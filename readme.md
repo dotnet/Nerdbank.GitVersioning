@@ -44,26 +44,28 @@ in order for it to build NuPkg files based on versions computed by this package:
 
 1. Remove any definition of a Version property:
 
-    <Version>1.0.0-beta1</Version>
+        <Version>1.0.0-beta1</Version>
 
 2. Add this property definition:
 
-    <VersionDependsOn>$(VersionDependsOn);GetNuPkgVersion</VersionDependsOn>
+
+        <VersionDependsOn>$(VersionDependsOn);GetNuPkgVersion</VersionDependsOn>
 
 3. Add these targets and imports (changing the version number in the paths as necessary):
 
-    <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-      <PropertyGroup>
-        <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-      </PropertyGroup>
-      <Error Condition="!Exists('..\packages\Nerdbank.GitVersioning.1.0.15136-beta\build\NerdBank.GitVersioning.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Nerdbank.GitVersioning.1.0.15136-beta\build\NerdBank.GitVersioning.targets'))" />
-    </Target>
-    <Import Project="..\packages\Nerdbank.GitVersioning.1.0.15136-beta\build\NerdBank.GitVersioning.targets" Condition="Exists('..\packages\Nerdbank.GitVersioning.1.0.15136-beta\build\NerdBank.GitVersioning.targets')" />
-    <Target Name="GetNuPkgVersion" DependsOnTargets="GetBuildVersion">
-      <PropertyGroup>
-        <Version>$(NuGetPackageVersion)</Version>
-      </PropertyGroup>
-    </Target>
+
+        <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+          <PropertyGroup>
+            <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+          </PropertyGroup>
+          <Error Condition="!Exists('..\packages\Nerdbank.GitVersioning.1.0.15136-beta\build\NerdBank.GitVersioning.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Nerdbank.GitVersioning.1.0.15136-beta\build\NerdBank.GitVersioning.targets'))" />
+        </Target>
+        <Import Project="..\packages\Nerdbank.GitVersioning.1.0.15136-beta\build\NerdBank.GitVersioning.targets" Condition="Exists('..\packages\Nerdbank.GitVersioning.1.0.15136-beta\build\NerdBank.GitVersioning.targets')" />
+        <Target Name="GetNuPkgVersion" DependsOnTargets="GetBuildVersion">
+          <PropertyGroup>
+            <Version>$(NuGetPackageVersion)</Version>
+          </PropertyGroup>
+        </Target>
 
 ## Build
 
