@@ -24,7 +24,7 @@
   <PropertyGroup Label="Configuration">
     <Id>Nerdbank.GitVersioning</Id>
     <Title>Nerdbank.GitVersioning</Title>
-    <Authors>andarno</Authors>
+    <Authors>Andrew Arnott</Authors>
     <Owners>andarno</Owners>
     <Summary>Stamps your assemblies with semver 2.0 compliant git commit specific version information and provides NuGet versioning information as well.</Summary>
     <Description>Stamps your assemblies with semver 2.0 compliant git commit specific version information and provides NuGet versioning information as well.</Description>
