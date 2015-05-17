@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <VersionCsFile>$(IntermediateOutputPath)\$(AssemblyName).Version.cs</VersionCsFile>
+
+    <PrepareResourceNamesDependsOn>
+      GenerateAssemblyInfo;
+      $(PrepareResourceNamesDependsOn)
+    </PrepareResourceNamesDependsOn>
+
+    <BeforeCompileDependsOn>
+      GenerateAssemblyInfo;
+      $(BeforeCompileDependsOn)
+    </BeforeCompileDependsOn>
+
+    <ProjectDepotRoot>$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), .git))\</ProjectDepotRoot>
+    <GitVersioningTxtFile Condition=" '$(GitVersioningTxtFile)' == '' and '$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildProjectDirectory), version.txt))' != '' ">$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildProjectDirectory), version.txt))\version.txt</GitVersioningTxtFile>
+
+    <!--
+    This should only be true in the one release branch we intend to ship from.
+    It is important that only one branch ever have this set to true at a time. 
+    To enforce this, without causing undue extra process in merging release branches
+    back into development branches, we simply set it to false always.
+    The build definition that builds releases can set this property to true via
+    a global property (msbuild /p:UseNonZeroBuildNumber=true), which overrides
+    our own definition here.
+    -->
+    <UseNonZeroBuildNumber>false</UseNonZeroBuildNumber>
+  </PropertyGroup>
+
+  <UsingTask AssemblyFile="MSBuild.Community.Tasks.dll" TaskName="AssemblyInfo"/>
+  <UsingTask AssemblyFile="net45\Nerdbank.GitVersioning.Tasks.dll" TaskName="GetBuildVersion"/>
+  <UsingTask AssemblyFile="net45\Nerdbank.GitVersioning.Tasks.dll" TaskName="CompareFiles"/>
+
+  <Target Name="GetBuildVersion" Returns="$(BuildVersion)">
+    <Error Text="The GitVersioningTxtFile property must be set." Condition=" '$(GitVersioningTxtFile)' == '' " />
+    <GetBuildVersion Condition=" '$(BuildVersion)' == '' "
+                     VersionFile="$(GitVersioningTxtFile)"
+                     GitRepoRoot="$(ProjectDepotRoot)">
+      <Output TaskParameter="Version" PropertyName="BuildVersion" />
+      <Output TaskParameter="SimpleVersion" PropertyName="BuildVersionSimple" />
+      <Output TaskParameter="PrereleaseVersion" PropertyName="PrereleaseVersion" Condition=" '$(PrereleaseVersion)' == '' " />
+      <Output TaskParameter="MajorMinorVersion" PropertyName="MajorMinorVersion" />
+      <Output TaskParameter="GitCommitId" PropertyName="GitCommitId" />
+      <Output TaskParameter="BuildNumber" PropertyName="JDate" />
+    </GetBuildVersion>
+    <PropertyGroup>
+      <BuildNumber Condition=" '$(BuildNumber)' == '' ">$(JDate)</BuildNumber>
+      <BuildNumberFirstComponent>$([System.Text.RegularExpressions.Regex]::Match($(BuildNumber), '(\d+)').Groups[1].Value)</BuildNumberFirstComponent>
+      <BuildNumberSecondComponent>$([System.Text.RegularExpressions.Regex]::Match($(BuildNumber), '(\d+)\.(\d+)').Groups[2].Value)</BuildNumberSecondComponent>
+      <BuildNumberFirstAndSecondComponentsIfApplicable Condition=" '$(BuildNumberSecondComponent)' == '' ">$(BuildNumberFirstComponent)</BuildNumberFirstAndSecondComponentsIfApplicable>
+      <BuildNumberFirstAndSecondComponentsIfApplicable Condition=" '$(BuildNumberSecondComponent)' != '' ">$(BuildNumberFirstComponent).$(BuildNumberSecondComponent)</BuildNumberFirstAndSecondComponentsIfApplicable>
+
+      <!-- In TeamCity, the build agent doesn't get the .git directory, but the commit id is available by other means. -->
+      <GitCommitId Condition=" '$(GitCommitId)' == '' ">$(BUILD_VCS_NUMBER)</GitCommitId>
+
+      <GitCommitIdShort Condition=" '$(GitCommitId)' != '' ">$(GitCommitId.Substring(0,10))</GitCommitIdShort>
+      <SemVerBuildSuffix>+g$(GitCommitIdShort)</SemVerBuildSuffix>
+
+      <BuildVersion>$(MajorMinorVersion).$(BuildNumberFirstAndSecondComponentsIfApplicable)</BuildVersion>
+      <BuildVersion3Components>$(MajorMinorVersion).$(BuildNumberFirstComponent)</BuildVersion3Components>
+      <AssemblyInformationalVersion>$(BuildVersion)$(PrereleaseVersion)$(SemVerBuildSuffix)</AssemblyInformationalVersion>
+
+      <!-- In release branches, we want to include the build number.
+           This is both because we want a more customary package number for public viewing and because these will build
+           on a daily build server on a single branch. 
+           Otherwise We use just major.minor rather than including build number so that building is reproducible 
+           across machines and dates. -->
+      <NuGetPackageVersion Condition=" '$(UseNonZeroBuildNumber)' == 'true' ">$(BuildVersion3Components)</NuGetPackageVersion>
+      <NuGetPackageVersion Condition=" '$(UseNonZeroBuildNumber)' != 'true' ">$(MajorMinorVersion).0</NuGetPackageVersion>
+
+      <!-- append the prerelease version when non-empty-->
+      <NuGetPackageVersion>$(NuGetPackageVersion)$(PrereleaseVersion)</NuGetPackageVersion>
+
+      <!-- When we're not using build numbers, append the git commit id.
+           The 'g' prefix allows tooling to recognize that a git commit ID follows. -->
+      <NuGetPackageVersion Condition=" '$(UseNonZeroBuildNumber)' != 'true' ">$(NuGetPackageVersion)-g$(GitCommitIdShort)</NuGetPackageVersion>
+    </PropertyGroup>
+
+    <Warning Condition=" '$(AssemblyInformationalVersion)' == '' " Text="Unable to determine the git HEAD commit ID to use for informational version number." />
+    <Message Condition=" '$(AssemblyInformationalVersion)' != '' " Text="Building version $(BuildVersion) from commit $(GitCommitId)"/>
+    <Message Condition=" '$(AssemblyInformationalVersion)' == '' " Text="Building version $(BuildVersion)"/>
+    <Message Importance="low" Text="AssemblyInformationalVersion: $(AssemblyInformationalVersion)" />
+    <Message Importance="low" Text="NuGetPackageVersion: $(NuGetPackageVersion)" />
+  </Target>
+
+  <Target Name="GetNuGetPackageVersion" DependsOnTargets="GetBuildVersion" Returns="$(NuGetPackageVersion)" />
+
+  <Target Name="GenerateAssemblyInfo" DependsOnTargets="GetBuildVersion">
+    <PropertyGroup>
+      <NewVersionCsFile>$(VersionCsFile).new</NewVersionCsFile>
+      <UltimateResourceFallbackLocation Condition=" '$(DevDivProjectSubType)' != 'portable' ">UltimateResourceFallbackLocation.MainAssembly</UltimateResourceFallbackLocation>
+    </PropertyGroup>
+    <MakeDir Directories="$(IntermediatePath)"/>
+    <AssemblyInfo OutputFile="$(NewVersionCsFile)" CodeLanguage="C#"
+                  AssemblyVersion="$(MajorMinorVersion)"
+                  AssemblyFileVersion="$(BuildVersion)"
+                  AssemblyInformationalVersion="$(AssemblyInformationalVersion)"
+                  NeutralResourcesLanguage="en-US"
+                  GenerateClass="true" />
+    <!-- Avoid applying the newly generated AssemblyInfo.cs file to the build 
+         unless it has changed in order to allow for incremental building. -->
+    <CompareFiles OriginalItems="$(VersionCsFile)" NewItems="$(NewVersionCsFile)">
+      <Output TaskParameter="AreChanged" PropertyName="AssemblyInfoChanged" />
+    </CompareFiles>
+    <Copy Condition=" '$(AssemblyInfoChanged)' == 'true' " SourceFiles="$(NewVersionCsFile)" DestinationFiles="$(VersionCsFile)" />
+    <ItemGroup>
+      <Compile Include="$(VersionCsFile)" />
+    </ItemGroup>
+  </Target>
+
+  <!-- Support for pattern found in users of Tvl.NuGet.BuildTasks. -->
+  <Target Name="SupplyNuGetManifestVersion" 
+          DependsOnTargets="GetBuildVersion"
+          BeforeTargets="EnsureNuGetManifestMetadata">
+    <ItemGroup>
+      <NuGetManifest>
+        <Version>$(NuGetPackageVersion)</Version>
+      </NuGetManifest>
+    </ItemGroup>
+  </Target>
+</Project>

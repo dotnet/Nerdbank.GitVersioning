@@ -1,0 +1,55 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|AnyCPU">
+      <Configuration>Debug</Configuration>
+      <Platform>AnyCPU</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|AnyCPU">
+      <Configuration>Release</Configuration>
+      <Platform>AnyCPU</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>b7de4122-9e90-43de-be44-454315cfae99</ProjectGuid>
+  </PropertyGroup>
+  <PropertyGroup>
+    <NuProjPath Condition=" '$(NuProjPath)' == '' ">..\..\build\NuProj\</NuProjPath>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <OutDir>..\..\bin\$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <Import Project="$(NuProjPath)\NuProj.props" Condition="Exists('$(NuProjPath)\NuProj.props')" />
+  <PropertyGroup Label="Configuration">
+    <Id>Nerdbank.GitVersioning</Id>
+    <Version>1.0.0-beta1</Version>
+    <Title>Nerdbank.GitVersioning</Title>
+    <Authors>andarno</Authors>
+    <Owners>andarno</Owners>
+    <Summary>Stamps your assemblies with semver 2.0 compliant git commit specific version information and provides NuGet versioning information as well.</Summary>
+    <Description>Stamps your assemblies with semver 2.0 compliant git commit specific version information and provides NuGet versioning information as well.</Description>
+    <ReleaseNotes>
+    </ReleaseNotes>
+    <ProjectUrl>
+    </ProjectUrl>
+    <LicenseUrl>
+    </LicenseUrl>
+    <Copyright>Copyright © Andrew Arnott</Copyright>
+    <Tags>git commit versioning version assemblyinfo</Tags>
+    <DevelopmentDependency>True</DevelopmentDependency>
+    <NoPackageAnalysis>true</NoPackageAnalysis>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="..\packages\MSBuildTasks.1.4.0.88\tools\MSBuild.Community.Tasks.dll">
+      <Link>build\MSBuild.Community.Tasks.dll</Link>
+    </Content>
+    <Content Include="build\NerdBank.GitVersioning.targets" />
+    <Content Include="content\version.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\NerdBank.GitVersioning.Tasks\Nerdbank.GitVersioning.Tasks.csproj">
+      <PackageDirectory>build</PackageDirectory>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(NuProjPath)\NuProj.targets" />
+</Project>
