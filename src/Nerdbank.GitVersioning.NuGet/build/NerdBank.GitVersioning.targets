@@ -32,7 +32,7 @@
   <UsingTask AssemblyFile="net45\Nerdbank.GitVersioning.Tasks.dll" TaskName="CompareFiles"/>
 
   <Target Name="GetBuildVersion" Returns="$(BuildVersion)">
-    <Error Text="The GitVersioningTxtFile property must be set." Condition=" '$(GitVersioningTxtFile)' == '' " />
+    <Error Text="Unable to find version.txt file." Condition=" '$(GitVersioningTxtFile)' == '' " />
     <GetBuildVersion Condition=" '$(BuildVersion)' == '' "
                      VersionFile="$(GitVersioningTxtFile)"
                      GitRepoPath="$(MSBuildProjectDirectory)">
