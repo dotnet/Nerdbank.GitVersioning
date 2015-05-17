@@ -40,16 +40,33 @@
     <NoPackageAnalysis>true</NoPackageAnalysis>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="..\packages\LibGit2Sharp.0.21.0.176\lib\net40\NativeBinaries\amd64\git2-e0902fb.dll">
+      <Link>build\net45\NativeBinaries\amd64\git2-e0902fb.dll</Link>
+    </Content>
+    <Content Include="..\packages\LibGit2Sharp.0.21.0.176\lib\net40\NativeBinaries\x86\git2-e0902fb.dll">
+      <Link>build\net45\NativeBinaries\x86\git2-e0902fb.dll</Link>
+    </Content>
     <Content Include="..\packages\MSBuildTasks.1.4.0.88\tools\MSBuild.Community.Tasks.dll">
       <Link>build\MSBuild.Community.Tasks.dll</Link>
     </Content>
     <Content Include="build\NerdBank.GitVersioning.targets" />
-    <Content Include="content\version.txt" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\NerdBank.GitVersioning.Tasks\Nerdbank.GitVersioning.Tasks.csproj">
       <PackageDirectory>build</PackageDirectory>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="build\net45\NativeBinaries\amd64\" />
+    <Folder Include="build\net45\NativeBinaries\x86\" />
+  </ItemGroup>
   <Import Project="$(NuProjPath)\NuProj.targets" />
+  <Target Name="CopyReadmeMD" BeforeTargets="ConvertItems">
+    <Copy SourceFiles="..\..\readme.md" DestinationFiles="$(IntermediateOutputPath)readme.txt" />
+    <ItemGroup>
+      <Content Include="$(IntermediateOutputPath)readme.txt">
+        <Link>readme.txt</Link>
+      </Content>
+    </ItemGroup>
+  </Target>
 </Project>

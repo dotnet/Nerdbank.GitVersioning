@@ -74,9 +74,9 @@
         public string VersionFile { get; set; }
 
         /// <summary>
-        /// Gets or sets the parent directory of the .git directory.
+        /// Gets or sets the path to the git repo root or some directory beneath it.
         /// </summary>
-        public string GitRepoRoot { get; set; }
+        public string GitRepoPath { get; set; }
 
         public override bool Execute()
         {
@@ -107,83 +107,25 @@
 
         private string GetGitHeadCommitId()
         {
-            if (string.IsNullOrEmpty(this.GitRepoRoot))
+            if (string.IsNullOrEmpty(this.GitRepoPath))
             {
                 return string.Empty;
             }
 
-            string commitId = string.Empty;
-
-            // First try asking Git for the HEAD commit id
-            try
+            string repoRoot = this.GitRepoPath;
+            while (!Directory.Exists(Path.Combine(repoRoot, ".git")))
             {
-                string cmdPath = Path.Combine(System.Environment.GetFolderPath(Environment.SpecialFolder.System), "cmd.exe");
-                var psi = new ProcessStartInfo(cmdPath, "/c git rev-parse HEAD")
+                repoRoot = Path.GetDirectoryName(repoRoot);
+                if (repoRoot == null)
                 {
-                    WindowStyle = ProcessWindowStyle.Hidden,
-                    CreateNoWindow = true,
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false
-                };
-                var git = Process.Start(psi);
-                commitId = git.StandardOutput.ReadLine();
-                git.WaitForExit();
-                if (git.ExitCode != 0)
-                {
-                    commitId = string.Empty;
+                    return string.Empty;
                 }
-                if (commitId != null)
-                {
-                    commitId = commitId.Trim();
-                    if (commitId.Length == 40)
-                    {
-                        return commitId;
-                    }
-                }
-            }
-            catch (InvalidOperationException)
-            {
-            }
-            catch (Win32Exception)
-            {
             }
 
-            // Failing being able to use the git command to figure out the HEAD commit ID, try the filesystem directly.
-            try
+            using (var git = new LibGit2Sharp.Repository(repoRoot))
             {
-                string headContent = File.ReadAllText(Path.Combine(this.GitRepoRoot, @".git/HEAD")).Trim();
-                if (headContent.StartsWith("ref:", StringComparison.Ordinal))
-                {
-                    string refName = headContent.Substring(5).Trim();
-                    string refPath = Path.Combine(this.GitRepoRoot, ".git/" + refName);
-                    if (File.Exists(refPath))
-                    {
-                        commitId = File.ReadAllText(refPath).Trim();
-                    }
-                    else
-                    {
-                        string packedRefPath = Path.Combine(this.GitRepoRoot, ".git/packed-refs");
-                        string matchingLine = File.ReadAllLines(packedRefPath).FirstOrDefault(line => line.EndsWith(refName));
-                        if (matchingLine != null)
-                        {
-                            commitId = matchingLine.Substring(0, matchingLine.IndexOf(' '));
-                        }
-                    }
-                }
-                else
-                {
-                    commitId = headContent;
-                }
+                return git.Lookup("HEAD").Sha;
             }
-            catch (FileNotFoundException)
-            {
-            }
-            catch (DirectoryNotFoundException)
-            {
-            }
-
-            commitId = commitId ?? String.Empty; // doubly-be sure it's not null, since in some error cases it can be.
-            return commitId.Trim();
         }
 
         private void ReadVersionFromFile(out Version typedVersion, out string prereleaseVersion, out string oauth2PackagesVersion)

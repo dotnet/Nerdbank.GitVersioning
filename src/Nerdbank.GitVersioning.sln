@@ -7,6 +7,11 @@ Project("{FF286327-C783-4F7A-AB73-9BCBAD0D4460}") = "Nerdbank.GitVersioning.NuGe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nerdbank.GitVersioning.Tasks", "NerdBank.GitVersioning.Tasks\Nerdbank.GitVersioning.Tasks.csproj", "{D76BE1F9-5063-4443-B792-EAEECAA457D7}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{4BD1A7CD-6F52-4F5A-825B-50E4D8C3ECFF}"
+	ProjectSection(SolutionItems) = preProject
+		..\readme.md = ..\readme.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

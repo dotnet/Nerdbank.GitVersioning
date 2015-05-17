@@ -13,7 +13,6 @@
       $(BeforeCompileDependsOn)
     </BeforeCompileDependsOn>
 
-    <ProjectDepotRoot>$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), .git))\</ProjectDepotRoot>
     <GitVersioningTxtFile Condition=" '$(GitVersioningTxtFile)' == '' and '$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildProjectDirectory), version.txt))' != '' ">$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildProjectDirectory), version.txt))\version.txt</GitVersioningTxtFile>
 
     <!--
@@ -36,7 +35,7 @@
     <Error Text="The GitVersioningTxtFile property must be set." Condition=" '$(GitVersioningTxtFile)' == '' " />
     <GetBuildVersion Condition=" '$(BuildVersion)' == '' "
                      VersionFile="$(GitVersioningTxtFile)"
-                     GitRepoRoot="$(ProjectDepotRoot)">
+                     GitRepoPath="$(MSBuildProjectDirectory)">
       <Output TaskParameter="Version" PropertyName="BuildVersion" />
       <Output TaskParameter="SimpleVersion" PropertyName="BuildVersionSimple" />
       <Output TaskParameter="PrereleaseVersion" PropertyName="PrereleaseVersion" Condition=" '$(PrereleaseVersion)' == '' " />
@@ -96,7 +95,6 @@
                   AssemblyVersion="$(MajorMinorVersion)"
                   AssemblyFileVersion="$(BuildVersion)"
                   AssemblyInformationalVersion="$(AssemblyInformationalVersion)"
-                  NeutralResourcesLanguage="en-US"
                   GenerateClass="true" />
     <!-- Avoid applying the newly generated AssemblyInfo.cs file to the build 
          unless it has changed in order to allow for incremental building. -->
