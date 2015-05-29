@@ -37,6 +37,15 @@ The `z` variable should be 0.
 The second line is optional and allows you to indicate that you are building
 prerelease software. 
 
+### Apply to VSIX versions
+
+Besides simply installing the NuGet package into your VSIX-generating project,
+you should also open the `source.extension.vsixmanifest` file in a code editor
+and set the `PackageManifest/Metadata/Identity/@Version` attribute to this
+value: `|YourProjectName;GetBuildVersion|` where `YourProjectName` is
+obviously replaced with the actual project name (without extension) of your
+VSIX project.
+
 ### Apply to NuProj built NuPkg versions
 
 You will need to manually make the following changes to your NuProj file
