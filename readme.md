@@ -1,5 +1,19 @@
 ﻿# Nerdbank.GitVersioning
 
+## Overview
+
+This package adds precise, semver-compatible git commit information
+to every assembly, VSIX, and NuGet package.
+It implicitly supports all cloud build services and CI server software
+because it simply uses git itself and integrates naturally in MSBuild. 
+
+What sets this package apart from other git-based versioning projects is:
+
+1. Prioritize absolute build reproducibility. Every single commit can be built and produce a unique version.
+2. No dependency on tags. Tags can be added to existing commits at any time. Clones may not fetch tags. No dependency on tags means better build reproducibility.
+3. No dependency on branch names. Branches come and go, and a commit may belong to any number of branches. Regardless of the branch HEAD may be attached to, the build should be identical.
+4. The computed version information is based on an author-defined major.minor version and unstable tag, plus a shortened git commit ID.
+
 ## Installation
 
 After installing this NuGet package, you may find that you get a compilation failure
