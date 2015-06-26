@@ -41,10 +41,10 @@
   </PropertyGroup>
   <ItemGroup>
     <Content Include="..\..\packages\LibGit2Sharp.0.21.0.176\lib\net40\NativeBinaries\amd64\git2-e0902fb.dll">
-      <Link>build\net45\NativeBinaries\amd64\git2-e0902fb.dll</Link>
+      <Link>build\NativeBinaries\amd64\git2-e0902fb.dll</Link>
     </Content>
     <Content Include="..\..\packages\LibGit2Sharp.0.21.0.176\lib\net40\NativeBinaries\x86\git2-e0902fb.dll">
-      <Link>build\net45\NativeBinaries\x86\git2-e0902fb.dll</Link>
+      <Link>build\NativeBinaries\x86\git2-e0902fb.dll</Link>
     </Content>
     <Content Include="..\..\packages\MSBuildTasks.1.4.0.88\tools\MSBuild.Community.Tasks.dll">
       <Link>build\MSBuild.Community.Tasks.dll</Link>
@@ -57,8 +57,8 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="build\net45\NativeBinaries\amd64\" />
-    <Folder Include="build\net45\NativeBinaries\x86\" />
+    <Folder Include="build\NativeBinaries\amd64\" />
+    <Folder Include="build\NativeBinaries\x86\" />
   </ItemGroup>
   <Import Project="$(NuProjPath)\NuProj.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
