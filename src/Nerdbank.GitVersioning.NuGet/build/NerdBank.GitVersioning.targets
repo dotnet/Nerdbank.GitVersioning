@@ -104,10 +104,6 @@
     <Copy Condition=" '$(AssemblyInfoChanged)' == 'true' " SourceFiles="$(NewVersionCsFile)" DestinationFiles="$(VersionCsFile)" />
     <ItemGroup>
       <Compile Include="$(VersionCsFile)" />
-
-      <!-- Markup compilation (for projects including xaml files) may also need this file (as it builds a copy of the original project that ignores the content of Compile).
-      Including it into _GeneratedCodeFiles that is used by the GenerateTemporaryTargetAssembly target to build the temporary project -->
-      <_GeneratedCodeFiles Include="$(VersionCsFile)" />
     </ItemGroup>
   </Target>
 
