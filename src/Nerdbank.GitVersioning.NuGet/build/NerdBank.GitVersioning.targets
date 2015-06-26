@@ -8,10 +8,10 @@
       $(PrepareResourcesDependsOn)
     </PrepareResourcesDependsOn>
 
-    <BeforeCompileDependsOn>
+    <CoreCompileDependsOn>
       GenerateAssemblyInfo;
-      $(BeforeCompileDependsOn)
-    </BeforeCompileDependsOn>
+      $(CoreCompileDependsOn)
+    </CoreCompileDependsOn>
 
     <GitVersioningTxtFile Condition=" '$(GitVersioningTxtFile)' == '' and '$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildProjectDirectory), version.txt))' != '' ">$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildProjectDirectory), version.txt))\version.txt</GitVersioningTxtFile>
 
