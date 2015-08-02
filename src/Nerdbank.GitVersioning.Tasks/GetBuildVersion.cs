@@ -20,6 +20,26 @@
         }
 
         /// <summary>
+        /// An enumeration of the options for calculating a build number.
+        /// </summary>
+        public enum BuildNumberCalculation
+        {
+            /// <summary>
+            /// A build number comprised of the last digit of the calendar year
+            /// and the number of days since the last day of the prior year.
+            /// For example: Jan 2, 2015 would be 5002.
+            /// </summary>
+            JDate,
+
+            /// <summary>
+            /// A build number based on the number of commits in the longest path
+            /// between the HEAD that is built and the original commit in the repo,
+            /// inclusive.
+            /// </summary>
+            GitHeadHeight,
+        }
+
+        /// <summary>
         /// Gets the version string to use in the compiled assemblies.
         /// </summary>
         [Output]
@@ -62,6 +82,13 @@
         public string GitCommitId { get; private set; }
 
         /// <summary>
+        /// Gets the number of commits in the longest single path between
+        /// head and the original commit (inclusive).
+        /// </summary>
+        [Output]
+        public int GitHeadHeight { get; private set; }
+
+        /// <summary>
         /// Gets the build number (JDate) for this version.
         /// </summary>
         [Output]
@@ -78,6 +105,11 @@
         /// </summary>
         public string GitRepoPath { get; set; }
 
+        /// <summary>
+        /// Gets or sets the kind of build number to use.
+        /// </summary>
+        public BuildNumberCalculation BuildNumberMode { get; set; } = BuildNumberCalculation.GitHeadHeight;
+
         public override bool Execute()
         {
             try
@@ -89,12 +121,25 @@
                 this.OAuth2PackagesVersion = oauth2PackagesVersion;
                 this.SimpleVersion = typedVersion.ToString();
                 this.MajorMinorVersion = new Version(typedVersion.Major, typedVersion.Minor).ToString();
-                this.BuildNumber = this.CalculateJDate(DateTime.Now);
+
+                switch (this.BuildNumberMode)
+                {
+                    case BuildNumberCalculation.JDate:
+                        this.BuildNumber = this.CalculateJDate(DateTime.Now);
+                        break;
+                    case BuildNumberCalculation.GitHeadHeight:
+                        this.BuildNumber = this.GetGitHeadHeight();
+                        break;
+                    default:
+                        this.Log.LogError("Unexpected value for {0} parameter.", nameof(BuildNumberMode));
+                        break;
+                }
 
                 var fullVersion = new Version(typedVersion.Major, typedVersion.Minor, typedVersion.Build, this.BuildNumber);
                 this.Version = fullVersion.ToString();
 
                 this.GitCommitId = GetGitHeadCommitId();
+                this.GitHeadHeight = this.GetGitHeadHeight();
             }
             catch (ArgumentOutOfRangeException ex)
             {
@@ -105,11 +150,32 @@
             return true;
         }
 
+        private static int GetCommitHeight(LibGit2Sharp.Commit commit, Dictionary<LibGit2Sharp.Commit, int> heights)
+        {
+            int height;
+            if (!heights.TryGetValue(commit, out height))
+            {
+                height = 1 + commit.Parents.Max(p => GetCommitHeight(p, heights));
+                heights[commit] = height;
+            }
+
+            return height;
+        }
+
         private string GetGitHeadCommitId()
         {
             using (var git = this.OpenGitRepo())
             {
                 return git?.Lookup("HEAD").Sha ?? string.Empty;
+            }
+        }
+
+        private int GetGitHeadHeight()
+        {
+            using (var git = this.OpenGitRepo())
+            {
+                var heights = new Dictionary<LibGit2Sharp.Commit, int>();
+                return GetCommitHeight(git.Head.Commits.First(), heights);
             }
         }
 
