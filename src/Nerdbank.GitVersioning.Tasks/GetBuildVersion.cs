@@ -9,6 +9,7 @@
     using System.Text;
     using Microsoft.Build.Framework;
     using Microsoft.Build.Utilities;
+    using NerdBank.GitVersioning;
 
     public class GetBuildVersion : Task
     {
@@ -150,23 +151,11 @@
             return true;
         }
 
-        private static int GetCommitHeight(LibGit2Sharp.Commit commit, Dictionary<LibGit2Sharp.Commit, int> heights)
-        {
-            int height;
-            if (!heights.TryGetValue(commit, out height))
-            {
-                height = 1 + commit.Parents.Max(p => GetCommitHeight(p, heights));
-                heights[commit] = height;
-            }
-
-            return height;
-        }
-
         private string GetGitHeadCommitId()
         {
             using (var git = this.OpenGitRepo())
             {
-                return git?.Lookup("HEAD").Sha ?? string.Empty;
+                return git?.Head.Commits.FirstOrDefault()?.Id.Sha ?? string.Empty;
             }
         }
 
@@ -174,8 +163,7 @@
         {
             using (var git = this.OpenGitRepo())
             {
-                var heights = new Dictionary<LibGit2Sharp.Commit, int>();
-                return GetCommitHeight(git.Head.Commits.First(), heights);
+                return git.Head.GetHeight();
             }
         }
 
