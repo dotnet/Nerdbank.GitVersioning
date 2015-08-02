@@ -41,10 +41,10 @@
       <Output TaskParameter="PrereleaseVersion" PropertyName="PrereleaseVersion" Condition=" '$(PrereleaseVersion)' == '' " />
       <Output TaskParameter="MajorMinorVersion" PropertyName="MajorMinorVersion" />
       <Output TaskParameter="GitCommitId" PropertyName="GitCommitId" />
-      <Output TaskParameter="BuildNumber" PropertyName="JDate" />
+      <Output TaskParameter="BuildNumber" PropertyName="BuildVersionNumberComponent" />
     </GetBuildVersion>
     <PropertyGroup>
-      <BuildNumber Condition=" '$(BuildNumber)' == '' ">$(JDate)</BuildNumber>
+      <BuildNumber Condition=" '$(BuildNumber)' == '' ">$(BuildVersionNumberComponent)</BuildNumber>
       <BuildNumberFirstComponent>$([System.Text.RegularExpressions.Regex]::Match($(BuildNumber), '(\d+)').Groups[1].Value)</BuildNumberFirstComponent>
       <BuildNumberSecondComponent>$([System.Text.RegularExpressions.Regex]::Match($(BuildNumber), '(\d+)\.(\d+)').Groups[2].Value)</BuildNumberSecondComponent>
       <BuildNumberFirstAndSecondComponentsIfApplicable Condition=" '$(BuildNumberSecondComponent)' == '' ">$(BuildNumberFirstComponent)</BuildNumberFirstAndSecondComponentsIfApplicable>
