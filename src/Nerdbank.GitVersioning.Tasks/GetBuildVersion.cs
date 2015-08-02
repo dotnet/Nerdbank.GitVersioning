@@ -107,9 +107,17 @@
 
         private string GetGitHeadCommitId()
         {
+            using (var git = this.OpenGitRepo())
+            {
+                return git?.Lookup("HEAD").Sha ?? string.Empty;
+            }
+        }
+
+        private LibGit2Sharp.Repository OpenGitRepo()
+        {
             if (string.IsNullOrEmpty(this.GitRepoPath))
             {
-                return string.Empty;
+                return null;
             }
 
             string repoRoot = this.GitRepoPath;
@@ -118,14 +126,11 @@
                 repoRoot = Path.GetDirectoryName(repoRoot);
                 if (repoRoot == null)
                 {
-                    return string.Empty;
+                    return null;
                 }
             }
 
-            using (var git = new LibGit2Sharp.Repository(repoRoot))
-            {
-                return git.Lookup("HEAD").Sha;
-            }
+            return new LibGit2Sharp.Repository(repoRoot);
         }
 
         private void ReadVersionFromFile(out Version typedVersion, out string prereleaseVersion, out string oauth2PackagesVersion)
