@@ -71,12 +71,6 @@
         public string PrereleaseVersion { get; set; }
 
         /// <summary>
-        /// Gets or sets the version string to use for NuGet packages containing OAuth 2 components.
-        /// </summary>
-        [Output]
-        public string OAuth2PackagesVersion { get; set; }
-
-        /// <summary>
         /// Gets the Git revision control commit id for HEAD (the current source code version).
         /// </summary>
         [Output]
@@ -116,10 +110,9 @@
             try
             {
                 Version typedVersion;
-                string prerelease, oauth2PackagesVersion;
-                this.ReadVersionFromFile(out typedVersion, out prerelease, out oauth2PackagesVersion);
+                string prerelease;
+                this.ReadVersionFromFile(out typedVersion, out prerelease);
                 this.PrereleaseVersion = prerelease;
-                this.OAuth2PackagesVersion = oauth2PackagesVersion;
                 this.SimpleVersion = typedVersion.ToString();
                 this.MajorMinorVersion = new Version(typedVersion.Major, typedVersion.Minor).ToString();
 
@@ -187,13 +180,12 @@
             return new LibGit2Sharp.Repository(repoRoot);
         }
 
-        private void ReadVersionFromFile(out Version typedVersion, out string prereleaseVersion, out string oauth2PackagesVersion)
+        private void ReadVersionFromFile(out Version typedVersion, out string prereleaseVersion)
         {
             string[] lines = File.ReadAllLines(VersionFile);
             string versionLine = lines[0];
             prereleaseVersion = lines.Length >= 2 ? lines[1] : null;
-            oauth2PackagesVersion = lines.Length >= 3 ? lines[2] : null;
-            if (!String.IsNullOrEmpty(prereleaseVersion))
+            if (!string.IsNullOrEmpty(prereleaseVersion))
             {
                 if (!prereleaseVersion.StartsWith("-"))
                 {
