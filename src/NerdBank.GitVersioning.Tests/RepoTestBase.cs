@@ -70,12 +70,12 @@ namespace NerdBank.GitVersioning.Tests
 
         protected void WriteVersionFile(string version = "1.2", string prerelease = "")
         {
-            VersionTextFile.WriteVersionFile(this.RepoPath, new System.Version(version), prerelease);
+            VersionFile.WriteVersionFile(this.RepoPath, new System.Version(version), prerelease);
 
             if (this.Repo != null)
             {
-                this.Repo.Stage(VersionTextFile.FileName);
-                this.Repo.Commit($"Add {VersionTextFile.FileName}", this.Signer);
+                this.Repo.Stage(VersionFile.FileName);
+                this.Repo.Commit($"Add {VersionFile.FileName}", this.Signer);
             }
         }
     }

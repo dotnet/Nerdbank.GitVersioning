@@ -91,7 +91,7 @@
                     this.GitCommitId = commit?.Id.Sha ?? string.Empty;
                     this.GitHeight = commit?.GetHeight() ?? 0;
 
-                    SemanticVersion v = VersionTextFile.GetVersionFromFile(commit);
+                    SemanticVersion v = NerdBank.GitVersioning.VersionFile.GetVersionFromFile(commit);
                     this.PrereleaseVersion = v.UnstableTag;
 
                     // Override the typedVersion with the special build number and revision components.

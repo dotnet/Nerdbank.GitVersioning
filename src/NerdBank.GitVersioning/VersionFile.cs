@@ -8,7 +8,7 @@ namespace NerdBank.GitVersioning
     /// <summary>
     /// Extension methods for interacting with the version.txt file.
     /// </summary>
-    public static class VersionTextFile
+    public static class VersionFile
     {
         /// <summary>
         /// The filename of the version.txt file.

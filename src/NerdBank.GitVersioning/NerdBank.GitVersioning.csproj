@@ -57,7 +57,7 @@
     <Compile Include="GitExtensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SemanticVersion.cs" />
-    <Compile Include="VersionTextFile.cs" />
+    <Compile Include="VersionFile.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

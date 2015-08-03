@@ -82,7 +82,7 @@
         {
             Requires.NotNull(commit, nameof(commit));
 
-            var baseVersion = VersionTextFile.GetVersionFromFile(commit)?.Version;
+            var baseVersion = VersionFile.GetVersionFromFile(commit)?.Version;
             Verify.Operation(baseVersion != null, "No version.txt file found in the commit being built.");
 
             // The 3rd component of the version is the height of the git history at this point.
@@ -128,7 +128,7 @@
                                   where commit.Id.StartsWith(commitIdPrefix1) || commit.Id.StartsWith(commitIdPrefix2)
                                   // Extra disambiguation that may be necessary
                                   where commit.GetHeight() == height
-                                  let majorMinor = VersionTextFile.GetVersionFromFile(commit).Version
+                                  let majorMinor = VersionFile.GetVersionFromFile(commit).Version
                                   where majorMinor.Major == version.Major && majorMinor.Minor == version.Minor
                                   select commit;
 
