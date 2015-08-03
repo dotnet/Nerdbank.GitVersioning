@@ -16,48 +16,19 @@ namespace NerdBank.GitVersioning
         public const string FileName = "version.txt";
 
         /// <summary>
-        /// Gets the version specified in the first line of the version.txt file
-        /// as recorded in the specified commit.
-        /// </summary>
-        /// <param name="commit">The commit to look up the version for.</param>
-        /// <returns>The version, if a version.txt file was found; otherwise <c>null</c>.</returns>
-        public static Version GetVersionFromTxtFile(this LibGit2Sharp.Commit commit)
-        {
-            Requires.NotNull(commit, nameof(commit));
-
-            var versionTxtBlob = commit.Tree[FileName]?.Target as LibGit2Sharp.Blob;
-            if (versionTxtBlob != null)
-            {
-                using (var versionTxtStream = new StreamReader(versionTxtBlob.GetContentStream()))
-                {
-                    return ReadVersionFromFile(versionTxtStream);
-                }
-            }
-
-            return null;
-        }
-
-        /// <summary>
         /// Reads the version.txt file and returns the <see cref="Version"/> and prerelease tag from it.
         /// </summary>
         /// <param name="commit">The commit to read the version file from.</param>
-        /// <param name="typedVersion">Receives the version from the first line of the file.</param>
-        /// <param name="prereleaseVersion">The prerelease tag from the second line of the file.</param>
-        public static void GetVersionFromTxtFile(this LibGit2Sharp.Commit commit, out Version typedVersion, out string prereleaseVersion)
+        /// <returns>The version information read from the file.</returns>
+        public static SemanticVersion GetVersionFromTxtFile(this LibGit2Sharp.Commit commit)
         {
             Requires.NotNull(commit, nameof(commit));
 
             using (var content = commit.ReadVersionTxt())
             {
-                if (content != null)
-                {
-                    ReadVersionFromFile(content, out typedVersion, out prereleaseVersion);
-                }
-                else
-                {
-                    typedVersion = null;
-                    prereleaseVersion = null;
-                }
+                return content != null
+                    ? ReadVersionFromFile(content)
+                    : null;
             }
         }
 
@@ -77,14 +48,17 @@ namespace NerdBank.GitVersioning
         /// <param name="repoRoot">The path to the root of the repo.</param>
         /// <param name="version">The version information to write to the file.</param>
         /// <param name="prerelease">The prerelease tag, starting with a hyphen per semver rules. May be the empty string or null.</param>
-        public static void WriteVersionFile(string repoRoot, Version version, string prerelease = "")
+        /// <returns>The path to the file written.</returns>
+        public static string WriteVersionFile(string repoRoot, Version version, string prerelease = "")
         {
             Requires.NotNullOrEmpty(repoRoot, nameof(repoRoot));
             Requires.NotNull(version, nameof(version));
 
+            string versionTxtPath = Path.Combine(repoRoot, FileName);
             File.WriteAllLines(
-                Path.Combine(repoRoot, FileName),
+                versionTxtPath,
                 new[] { version.ToString(), prerelease });
+            return Path.Combine(repoRoot, FileName);
         }
 
         /// <summary>
@@ -99,28 +73,14 @@ namespace NerdBank.GitVersioning
         }
 
         /// <summary>
-        /// Reads the first line of the version.txt file and returns the <see cref="Version"/> from it.
-        /// </summary>
-        /// <param name="versionTextContent">The content of the version.txt file to read.</param>
-        /// <returns>The deserialized <see cref="Version"/> instance.</returns>
-        private static Version ReadVersionFromFile(TextReader versionTextContent)
-        {
-            Version result;
-            string prerelease;
-            ReadVersionFromFile(versionTextContent, out result, out prerelease);
-            return result;
-        }
-
-        /// <summary>
         /// Reads the version.txt file and returns the <see cref="Version"/> and prerelease tag from it.
         /// </summary>
         /// <param name="versionTextContent">The content of the version.txt file to read.</param>
-        /// <param name="typedVersion">Receives the version from the first line of the file.</param>
-        /// <param name="prereleaseVersion">The prerelease tag from the second line of the file.</param>
-        private static void ReadVersionFromFile(TextReader versionTextContent, out Version typedVersion, out string prereleaseVersion)
+        /// <returns>The version information read from the file.</returns>
+        private static SemanticVersion ReadVersionFromFile(TextReader versionTextContent)
         {
             string versionLine = versionTextContent.ReadLine();
-            prereleaseVersion = versionTextContent.ReadLine();
+            string prereleaseVersion = versionTextContent.ReadLine();
             if (!string.IsNullOrEmpty(prereleaseVersion))
             {
                 if (!prereleaseVersion.StartsWith("-"))
@@ -132,7 +92,7 @@ namespace NerdBank.GitVersioning
                 VerifyValidPrereleaseVersion(prereleaseVersion);
             }
 
-            typedVersion = new Version(versionLine);
+            return new SemanticVersion(new Version(versionLine), prereleaseVersion);
         }
 
         /// <summary>

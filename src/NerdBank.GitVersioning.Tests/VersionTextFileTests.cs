@@ -48,24 +48,23 @@ public class VersionTextFileTests : RepoTestBase
     [InlineData("2.3.0", "-rc")]
     public void WriteVersionFile_GetVersionFromTxtFile(string expectedVersion, string expectedPrerelease)
     {
-        VersionTextFile.WriteVersionFile(this.RepoPath, new Version(expectedVersion), expectedPrerelease);
+        string pathWritten = VersionTextFile.WriteVersionFile(this.RepoPath, new Version(expectedVersion), expectedPrerelease);
+        Assert.Equal(Path.Combine(this.RepoPath, VersionTextFile.FileName), pathWritten);
 
-        string[] actual = File.ReadAllLines(this.versionTxtPath);
-        this.Logger.WriteLine(string.Join(Environment.NewLine, actual));
+        string[] actualFileContent = File.ReadAllLines(this.versionTxtPath);
+        this.Logger.WriteLine(string.Join(Environment.NewLine, actualFileContent));
 
-        Assert.Equal(2, actual.Length);
-        Assert.Equal(expectedVersion, actual[0]);
-        Assert.Equal(expectedPrerelease ?? string.Empty, actual[1]);
+        Assert.Equal(2, actualFileContent.Length);
+        Assert.Equal(expectedVersion, actualFileContent[0]);
+        Assert.Equal(expectedPrerelease ?? string.Empty, actualFileContent[1]);
 
         this.InitializeSourceControl();
         this.Repo.Stage(this.versionTxtPath, new LibGit2Sharp.StageOptions());
         this.AddCommits();
 
-        Version actualVersion;
-        string actualPrerelease;
-        VersionTextFile.GetVersionFromTxtFile(this.Repo.Head.Commits.First(), out actualVersion, out actualPrerelease);
+        SemanticVersion actualVersion = VersionTextFile.GetVersionFromTxtFile(this.Repo.Head.Commits.First());
 
-        Assert.Equal(new Version(expectedVersion), actualVersion);
-        Assert.Equal(expectedPrerelease ?? string.Empty, actualPrerelease);
+        Assert.Equal(new Version(expectedVersion), actualVersion.Version);
+        Assert.Equal(expectedPrerelease ?? string.Empty, actualVersion.UnstableTag);
     }
 }

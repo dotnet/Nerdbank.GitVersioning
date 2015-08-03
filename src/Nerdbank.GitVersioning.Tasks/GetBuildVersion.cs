@@ -91,9 +91,8 @@
                     this.GitCommitId = commit?.Id.Sha ?? string.Empty;
                     this.GitHeight = commit?.GetHeight() ?? 0;
 
-                    string prerelease = null;
-                    commit?.GetVersionFromTxtFile(out typedVersion, out prerelease);
-                    this.PrereleaseVersion = prerelease;
+                    SemanticVersion v = commit?.GetVersionFromTxtFile();
+                    this.PrereleaseVersion = v.UnstableTag;
 
                     // Override the typedVersion with the special build number and revision components.
                     typedVersion = commit?.GetIdAsVersion();
