@@ -59,6 +59,8 @@
 
       <BuildVersion3Components>$(MajorMinorVersion).$(BuildNumberFirstComponent)</BuildVersion3Components>
       <AssemblyInformationalVersion>$(MajorMinorVersion).$(BuildNumberFirstAndSecondComponentsIfApplicable)$(PrereleaseVersion)$(SemVerBuildSuffix)</AssemblyInformationalVersion>
+      <AssemblyFileVersion>$(BuildVersion)</AssemblyFileVersion>
+      <AssemblyVersion>$(MajorMinorVersion)</AssemblyVersion>
 
       <!-- In release branches, we want to include the build number.
            This is both because we want a more customary package number for public viewing and because these will build
@@ -92,8 +94,8 @@
     </PropertyGroup>
     <MakeDir Directories="$(IntermediatePath)"/>
     <AssemblyInfo OutputFile="$(NewVersionCsFile)" CodeLanguage="C#"
-                  AssemblyVersion="$(MajorMinorVersion)"
-                  AssemblyFileVersion="$(BuildVersion)"
+                  AssemblyVersion="$(AssemblyVersion)"
+                  AssemblyFileVersion="$(AssemblyFileVersion)"
                   AssemblyInformationalVersion="$(AssemblyInformationalVersion)"
                   GenerateClass="true" />
     <!-- Avoid applying the newly generated AssemblyInfo.cs file to the build 

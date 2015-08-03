@@ -84,7 +84,9 @@ public class BuildIntegrationTests : RepoTestBase
         int height = this.Repo.Head.GetHeight();
         string commitIdShort = this.Repo.Head.Commits.First().Id.Sha.Substring(0, 10);
         Version version = this.Repo.Head.Commits.First().GetIdAsVersion();
+        Assert.Equal($"{version}", buildResult.AssemblyFileVersion);
         Assert.Equal($"{version.Major}.{version.Minor}.{height}{prerelease}+g{commitIdShort}", buildResult.AssemblyInformationalVersion);
+        Assert.Equal($"{version.Major}.{version.Minor}", buildResult.AssemblyVersion);
         Assert.Equal(height.ToString(), buildResult.BuildNumber);
         Assert.Equal(height.ToString(), buildResult.BuildNumberFirstAndSecondComponentsIfApplicable);
         Assert.Equal(height.ToString(), buildResult.BuildNumberFirstComponent);
@@ -167,6 +169,8 @@ public class BuildIntegrationTests : RepoTestBase
         public string SemVerBuildSuffix => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("SemVerBuildSuffix");
         public string BuildVersion3Components => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("BuildVersion3Components");
         public string AssemblyInformationalVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyInformationalVersion");
+        public string AssemblyFileVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyFileVersion");
+        public string AssemblyVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyVersion");
         public string NuGetPackageVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("NuGetPackageVersion");
 
         public override string ToString()
