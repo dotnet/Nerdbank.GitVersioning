@@ -61,7 +61,7 @@
         /// head and the original commit (inclusive).
         /// </summary>
         [Output]
-        public int GitHeadHeight { get; private set; }
+        public int GitHeight { get; private set; }
 
         /// <summary>
         /// Gets the build number (git height) for this version.
@@ -89,7 +89,7 @@
                 {
                     var commit = git?.Head.Commits.FirstOrDefault();
                     this.GitCommitId = commit?.Id.Sha ?? string.Empty;
-                    this.GitHeadHeight = commit?.GetHeight() ?? 0;
+                    this.GitHeight = commit?.GetHeight() ?? 0;
 
                     string prerelease = null;
                     commit?.GetVersionFromTxtFile(out typedVersion, out prerelease);
