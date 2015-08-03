@@ -89,7 +89,7 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal(height.ToString(), buildResult.BuildNumberFirstAndSecondComponentsIfApplicable);
         Assert.Equal(height.ToString(), buildResult.BuildNumberFirstComponent);
         Assert.Equal(string.Empty, buildResult.BuildNumberSecondComponent);
-        Assert.Equal($"{version.Major}.{version.Minor}.{height}", buildResult.BuildVersion);
+        Assert.Equal($"{version}", buildResult.BuildVersion);
         Assert.Equal($"{version.Major}.{version.Minor}.{height}", buildResult.BuildVersion3Components);
         Assert.Equal(height.ToString(), buildResult.BuildVersionNumberComponent);
         Assert.Equal($"{version.Major}.{version.Minor}.{height}", buildResult.BuildVersionSimple);

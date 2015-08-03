@@ -57,9 +57,8 @@
       <GitCommitIdShort Condition=" '$(GitCommitId)' != '' ">$(GitCommitId.Substring(0,10))</GitCommitIdShort>
       <SemVerBuildSuffix>+g$(GitCommitIdShort)</SemVerBuildSuffix>
 
-      <BuildVersion>$(MajorMinorVersion).$(BuildNumberFirstAndSecondComponentsIfApplicable)</BuildVersion>
       <BuildVersion3Components>$(MajorMinorVersion).$(BuildNumberFirstComponent)</BuildVersion3Components>
-      <AssemblyInformationalVersion>$(BuildVersion)$(PrereleaseVersion)$(SemVerBuildSuffix)</AssemblyInformationalVersion>
+      <AssemblyInformationalVersion>$(MajorMinorVersion).$(BuildNumberFirstAndSecondComponentsIfApplicable)$(PrereleaseVersion)$(SemVerBuildSuffix)</AssemblyInformationalVersion>
 
       <!-- In release branches, we want to include the build number.
            This is both because we want a more customary package number for public viewing and because these will build
