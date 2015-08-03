@@ -7,11 +7,15 @@ using System.Threading.Tasks;
 using LibGit2Sharp;
 using NerdBank.GitVersioning;
 using Xunit;
+using Xunit.Abstractions;
 
 public class GitExtensionsTests : IDisposable
 {
-    public GitExtensionsTests()
+    private ITestOutputHelper logger;
+
+    public GitExtensionsTests(ITestOutputHelper logger)
     {
+        this.logger = logger;
         this.RepoPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
         Directory.CreateDirectory(this.RepoPath);
         this.Repo = new Repository(Repository.Init(this.RepoPath));
@@ -68,5 +72,56 @@ public class GitExtensionsTests : IDisposable
 
         // While we've created 8 commits, the tallest height is only 7.
         Assert.Equal(7, this.Repo.Head.GetHeight());
+    }
+
+    [Fact]
+    public void GetTruncatedCommitIdAsInteger_Roundtrip()
+    {
+        var firstCommit = this.Repo.Commit("First", new CommitOptions { AllowEmptyCommit = true });
+        var secondCommit = this.Repo.Commit("Second", new CommitOptions { AllowEmptyCommit = true });
+
+        int id1 = firstCommit.GetTruncatedCommitIdAsInteger();
+        int id2 = secondCommit.GetTruncatedCommitIdAsInteger();
+
+        this.logger.WriteLine($"Commit {firstCommit.Id.Sha.Substring(0, 8)} as int: {id1}");
+        this.logger.WriteLine($"Commit {secondCommit.Id.Sha.Substring(0, 8)} as int: {id2}");
+
+        Assert.Equal(firstCommit, this.Repo.GetCommitFromTruncatedIdInteger(id1));
+        Assert.Equal(secondCommit, this.Repo.GetCommitFromTruncatedIdInteger(id2));
+    }
+
+    [Fact]
+    public void GetIdAsVersion_ReadsMajorMinorFromVersionTxt()
+    {
+        this.StageVersionTxt(4, 8);
+        var firstCommit = this.Repo.Commit("First");
+
+        System.Version v1 = firstCommit.GetIdAsVersion();
+        Assert.Equal(4, v1.Major);
+        Assert.Equal(8, v1.Minor);
+    }
+
+    [Fact]
+    public void GetIdAsVersion_Roundtrip()
+    {
+        StageVersionTxt(2, 5);
+        var firstCommit = this.Repo.Commit("First");
+        var secondCommit = this.Repo.Commit("Second", new CommitOptions { AllowEmptyCommit = true });
+
+        System.Version v1 = firstCommit.GetIdAsVersion();
+        System.Version v2 = secondCommit.GetIdAsVersion();
+
+        this.logger.WriteLine($"Commit {firstCommit.Id.Sha.Substring(0, 8)} as version: {v1}");
+        this.logger.WriteLine($"Commit {secondCommit.Id.Sha.Substring(0, 8)} as version: {v2}");
+
+        Assert.Equal(firstCommit, this.Repo.GetCommitFromVersion(v1));
+        Assert.Equal(secondCommit, this.Repo.GetCommitFromVersion(v2));
+    }
+
+    private void StageVersionTxt(int major, int minor)
+    {
+        string versionTextFilePath = Path.Combine(this.RepoPath, "version.txt");
+        File.WriteAllText(versionTextFilePath, $"{major}.{minor}.0");
+        this.Repo.Stage(versionTextFilePath);
     }
 }

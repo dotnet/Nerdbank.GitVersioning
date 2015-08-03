@@ -21,26 +21,6 @@
         }
 
         /// <summary>
-        /// An enumeration of the options for calculating a build number.
-        /// </summary>
-        public enum BuildNumberCalculation
-        {
-            /// <summary>
-            /// A build number comprised of the last digit of the calendar year
-            /// and the number of days since the last day of the prior year.
-            /// For example: Jan 2, 2015 would be 5002.
-            /// </summary>
-            JDate,
-
-            /// <summary>
-            /// A build number based on the number of commits in the longest path
-            /// between the HEAD that is built and the original commit in the repo,
-            /// inclusive.
-            /// </summary>
-            GitHeadHeight,
-        }
-
-        /// <summary>
         /// Gets the version string to use in the compiled assemblies.
         /// </summary>
         [Output]
@@ -84,7 +64,7 @@
         public int GitHeadHeight { get; private set; }
 
         /// <summary>
-        /// Gets the build number (JDate) for this version.
+        /// Gets the build number (git height) for this version.
         /// </summary>
         [Output]
         public int BuildNumber { get; private set; }
@@ -100,40 +80,30 @@
         /// </summary>
         public string GitRepoPath { get; set; }
 
-        /// <summary>
-        /// Gets or sets the kind of build number to use.
-        /// </summary>
-        public BuildNumberCalculation BuildNumberMode { get; set; } = BuildNumberCalculation.GitHeadHeight;
-
         public override bool Execute()
         {
             try
             {
                 Version typedVersion;
-                string prerelease;
-                this.ReadVersionFromFile(out typedVersion, out prerelease);
-                this.PrereleaseVersion = prerelease;
-                this.SimpleVersion = typedVersion.ToString();
-                this.MajorMinorVersion = new Version(typedVersion.Major, typedVersion.Minor).ToString();
-
-                switch (this.BuildNumberMode)
+                using (var git = this.OpenGitRepo())
                 {
-                    case BuildNumberCalculation.JDate:
-                        this.BuildNumber = this.CalculateJDate(DateTime.Now);
-                        break;
-                    case BuildNumberCalculation.GitHeadHeight:
-                        this.BuildNumber = this.GetGitHeadHeight();
-                        break;
-                    default:
-                        this.Log.LogError("Unexpected value for {0} parameter.", nameof(BuildNumberMode));
-                        break;
+                    var commit = git?.Head.Commits.FirstOrDefault();
+                    this.GitCommitId = commit?.Id.Sha ?? string.Empty;
+                    this.GitHeadHeight = commit?.GetHeight() ?? 0;
+
+                    string prerelease = null;
+                    commit?.GetVersionFromTxtFile(out typedVersion, out prerelease);
+                    this.PrereleaseVersion = prerelease;
+
+                    // Override the typedVersion with the special build number and revision components.
+                    typedVersion = commit?.GetIdAsVersion();
                 }
 
-                var fullVersion = new Version(typedVersion.Major, typedVersion.Minor, typedVersion.Build, this.BuildNumber);
-                this.Version = fullVersion.ToString();
-
-                this.GitCommitId = GetGitHeadCommitId();
-                this.GitHeadHeight = this.GetGitHeadHeight();
+                typedVersion = typedVersion ?? new Version();
+                this.SimpleVersion = new Version(typedVersion.Major, typedVersion.Minor, typedVersion.Build).ToString();
+                this.MajorMinorVersion = new Version(typedVersion.Major, typedVersion.Minor).ToString();
+                this.BuildNumber = typedVersion.Build;
+                this.Version = typedVersion.ToString();
             }
             catch (ArgumentOutOfRangeException ex)
             {
@@ -142,22 +112,6 @@
             }
 
             return true;
-        }
-
-        private string GetGitHeadCommitId()
-        {
-            using (var git = this.OpenGitRepo())
-            {
-                return git?.Head.Commits.FirstOrDefault()?.Id.Sha ?? string.Empty;
-            }
-        }
-
-        private int GetGitHeadHeight()
-        {
-            using (var git = this.OpenGitRepo())
-            {
-                return git.Head.GetHeight();
-            }
         }
 
         private LibGit2Sharp.Repository OpenGitRepo()
@@ -178,50 +132,6 @@
             }
 
             return new LibGit2Sharp.Repository(repoRoot);
-        }
-
-        private void ReadVersionFromFile(out Version typedVersion, out string prereleaseVersion)
-        {
-            string[] lines = File.ReadAllLines(VersionFile);
-            string versionLine = lines[0];
-            prereleaseVersion = lines.Length >= 2 ? lines[1] : null;
-            if (!string.IsNullOrEmpty(prereleaseVersion))
-            {
-                if (!prereleaseVersion.StartsWith("-"))
-                {
-                    // SemVer requires that prerelease suffixes begin with a hyphen, so add one if it's missing.
-                    prereleaseVersion = "-" + prereleaseVersion;
-                }
-
-                this.VerifyValidPrereleaseVersion(prereleaseVersion);
-            }
-
-            typedVersion = new Version(versionLine);
-        }
-
-        private int CalculateJDate(DateTime date)
-        {
-            int yearLastDigit = date.Year - 2000; // can actually be two digits in or after 2010
-            DateTime firstOfYear = new DateTime(date.Year, 1, 1);
-            int dayOfYear = (date - firstOfYear).Days + 1;
-            int jdate = yearLastDigit * 1000 + dayOfYear;
-            return jdate;
-        }
-
-        private void VerifyValidPrereleaseVersion(string prerelease)
-        {
-            if (prerelease[0] != '-')
-            {
-                throw new ArgumentOutOfRangeException("The prerelease string must begin with a hyphen.");
-            }
-
-            for (int i = 1; i < prerelease.Length; i++)
-            {
-                if (!char.IsLetterOrDigit(prerelease[i]))
-                {
-                    throw new ArgumentOutOfRangeException("The prerelease string must be alphanumeric.");
-                }
-            }
         }
     }
 }
