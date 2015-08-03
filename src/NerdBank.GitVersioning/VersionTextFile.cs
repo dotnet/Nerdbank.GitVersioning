@@ -72,6 +72,22 @@ namespace NerdBank.GitVersioning
         }
 
         /// <summary>
+        /// Writes the version.txt file to the root of a repo with the specified version information.
+        /// </summary>
+        /// <param name="repoRoot">The path to the root of the repo.</param>
+        /// <param name="version">The version information to write to the file.</param>
+        /// <param name="prerelease">The prerelease tag, starting with a hyphen per semver rules. May be the empty string or null.</param>
+        public static void WriteVersionFile(string repoRoot, Version version, string prerelease = "")
+        {
+            Requires.NotNullOrEmpty(repoRoot, nameof(repoRoot));
+            Requires.NotNull(version, nameof(version));
+
+            File.WriteAllLines(
+                Path.Combine(repoRoot, FileName),
+                new[] { version.ToString(), prerelease });
+        }
+
+        /// <summary>
         /// Reads the version.txt file that is in the specified commit.
         /// </summary>
         /// <param name="commit">The commit to read the version file from.</param>

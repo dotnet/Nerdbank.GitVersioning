@@ -10,26 +10,12 @@ using NerdBank.GitVersioning.Tests;
 using Xunit;
 using Xunit.Abstractions;
 
-public class GitExtensionsTests : IDisposable
+public class GitExtensionsTests : RepoTestBase
 {
-    private ITestOutputHelper logger;
-
-    public GitExtensionsTests(ITestOutputHelper logger)
+    public GitExtensionsTests(ITestOutputHelper Logger)
+        : base(Logger)
     {
-        this.logger = logger;
-        this.RepoPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-        Directory.CreateDirectory(this.RepoPath);
-        this.Repo = new Repository(Repository.Init(this.RepoPath));
-    }
-
-    public Repository Repo { get; set; }
-
-    public string RepoPath { get; set; }
-
-    public void Dispose()
-    {
-        this.Repo.Dispose();
-        TestUtilities.DeleteDirectory(this.RepoPath);
+        this.InitializeSourceControl();
     }
 
     [Fact]
@@ -74,8 +60,8 @@ public class GitExtensionsTests : IDisposable
         int id1 = firstCommit.GetTruncatedCommitIdAsInteger();
         int id2 = secondCommit.GetTruncatedCommitIdAsInteger();
 
-        this.logger.WriteLine($"Commit {firstCommit.Id.Sha.Substring(0, 8)} as int: {id1}");
-        this.logger.WriteLine($"Commit {secondCommit.Id.Sha.Substring(0, 8)} as int: {id2}");
+        this.Logger.WriteLine($"Commit {firstCommit.Id.Sha.Substring(0, 8)} as int: {id1}");
+        this.Logger.WriteLine($"Commit {secondCommit.Id.Sha.Substring(0, 8)} as int: {id2}");
 
         Assert.Equal(firstCommit, this.Repo.GetCommitFromTruncatedIdInteger(id1));
         Assert.Equal(secondCommit, this.Repo.GetCommitFromTruncatedIdInteger(id2));
@@ -84,8 +70,8 @@ public class GitExtensionsTests : IDisposable
     [Fact]
     public void GetIdAsVersion_ReadsMajorMinorFromVersionTxt()
     {
-        this.StageVersionTxt(4, 8);
-        var firstCommit = this.Repo.Commit("First");
+        this.WriteVersionFile("4.8");
+        var firstCommit = this.Repo.Commits.First();
 
         System.Version v1 = firstCommit.GetIdAsVersion();
         Assert.Equal(4, v1.Major);
@@ -95,24 +81,17 @@ public class GitExtensionsTests : IDisposable
     [Fact]
     public void GetIdAsVersion_Roundtrip()
     {
-        StageVersionTxt(2, 5);
-        var firstCommit = this.Repo.Commit("First");
+        this.WriteVersionFile("2.5");
+        var firstCommit = this.Repo.Commits.First();
         var secondCommit = this.Repo.Commit("Second", new CommitOptions { AllowEmptyCommit = true });
 
         System.Version v1 = firstCommit.GetIdAsVersion();
         System.Version v2 = secondCommit.GetIdAsVersion();
 
-        this.logger.WriteLine($"Commit {firstCommit.Id.Sha.Substring(0, 8)} as version: {v1}");
-        this.logger.WriteLine($"Commit {secondCommit.Id.Sha.Substring(0, 8)} as version: {v2}");
+        this.Logger.WriteLine($"Commit {firstCommit.Id.Sha.Substring(0, 8)} as version: {v1}");
+        this.Logger.WriteLine($"Commit {secondCommit.Id.Sha.Substring(0, 8)} as version: {v2}");
 
         Assert.Equal(firstCommit, this.Repo.GetCommitFromVersion(v1));
         Assert.Equal(secondCommit, this.Repo.GetCommitFromVersion(v2));
-    }
-
-    private void StageVersionTxt(int major, int minor)
-    {
-        string versionTextFilePath = Path.Combine(this.RepoPath, "version.txt");
-        File.WriteAllText(versionTextFilePath, $"{major}.{minor}.0");
-        this.Repo.Stage(versionTextFilePath);
     }
 }

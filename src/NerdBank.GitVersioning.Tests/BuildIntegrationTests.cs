@@ -17,36 +17,29 @@ using NerdBank.GitVersioning.Tests;
 using Validation;
 using Xunit;
 using Xunit.Abstractions;
+using Version = System.Version;
 
-public class BuildIntegrationTests : IDisposable
+public class BuildIntegrationTests : RepoTestBase
 {
-    private readonly ITestOutputHelper logger;
     private BuildManager buildManager;
     private ProjectCollection projectCollection;
-    private string testDirectoryRoot;
     private string projectDirectory;
     private ProjectRootElement testProject;
-    private Repository repo;
-    private Signature signer = new Signature("a", "a@a.com", new DateTimeOffset(2015, 8, 2, 0, 0, 0, TimeSpan.Zero));
     private Dictionary<string, string> globalProperties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+    private Random random;
 
     public BuildIntegrationTests(ITestOutputHelper logger)
+        : base(logger)
     {
-        this.logger = logger;
-
+        int seed = (int)DateTime.Now.Ticks;
+        this.random = new Random(seed);
+        this.Logger.WriteLine("Random seed: {0}", seed);
         this.buildManager = new BuildManager();
         this.projectCollection = new ProjectCollection();
-        this.testDirectoryRoot = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-        this.projectDirectory = Path.Combine(this.testDirectoryRoot, "projdir");
+        this.projectDirectory = Path.Combine(this.RepoPath, "projdir");
         Directory.CreateDirectory(this.projectDirectory);
         this.testProject = this.CreateProjectRootElement();
         this.globalProperties.Add("NerdbankGitVersioningTasksPath", Environment.CurrentDirectory + "\\");
-    }
-
-    public void Dispose()
-    {
-        this.repo?.Dispose();
-        TestUtilities.DeleteDirectory(this.testDirectoryRoot);
     }
 
     [Fact]
@@ -63,48 +56,48 @@ public class BuildIntegrationTests : IDisposable
     [Fact]
     public async Task GetBuildVersion_StableVersion()
     {
-        const int height = 13;
         const string majorMinorVersion = "5.8";
         const string prerelease = "";
 
         this.WriteVersionFile(majorMinorVersion, prerelease);
         this.InitializeSourceControl();
-        this.AddCommits(height - 1);
+        this.AddCommits(this.random.Next(15));
         var buildResult = await this.BuildAsync();
-        this.AssertStandardProperties(height, majorMinorVersion, prerelease, buildResult);
+        this.AssertStandardProperties(prerelease, buildResult);
     }
 
     [Fact]
     public async Task GetBuildVersion_UnstableVersion()
     {
-        const int height = 13;
         const string majorMinorVersion = "5.8";
         const string prerelease = "-beta";
 
         this.WriteVersionFile(majorMinorVersion, prerelease);
         this.InitializeSourceControl();
-        this.AddCommits(height - 1);
+        this.AddCommits(this.random.Next(15));
         var buildResult = await this.BuildAsync();
-        this.AssertStandardProperties(height, majorMinorVersion, prerelease, buildResult);
+        this.AssertStandardProperties(prerelease, buildResult);
     }
 
-    private void AssertStandardProperties(int height, string majorMinorVersion, string prerelease, BuildResults buildResult)
+    private void AssertStandardProperties(string prerelease, BuildResults buildResult)
     {
-        string commitIdShort = this.repo.Head.Commits.First().Id.Sha.Substring(0, 10);
-        Assert.Equal($"{majorMinorVersion}.{height}{prerelease}+g{commitIdShort}", buildResult.AssemblyInformationalVersion);
+        int height = this.Repo.Head.GetHeight();
+        string commitIdShort = this.Repo.Head.Commits.First().Id.Sha.Substring(0, 10);
+        Version version = this.Repo.Head.Commits.First().GetIdAsVersion();
+        Assert.Equal($"{version.Major}.{version.Minor}.{height}{prerelease}+g{commitIdShort}", buildResult.AssemblyInformationalVersion);
         Assert.Equal(height.ToString(), buildResult.BuildNumber);
         Assert.Equal(height.ToString(), buildResult.BuildNumberFirstAndSecondComponentsIfApplicable);
         Assert.Equal(height.ToString(), buildResult.BuildNumberFirstComponent);
         Assert.Equal(string.Empty, buildResult.BuildNumberSecondComponent);
-        Assert.Equal($"{majorMinorVersion}.{height}", buildResult.BuildVersion);
-        Assert.Equal($"{majorMinorVersion}.{height}", buildResult.BuildVersion3Components);
+        Assert.Equal($"{version.Major}.{version.Minor}.{height}", buildResult.BuildVersion);
+        Assert.Equal($"{version.Major}.{version.Minor}.{height}", buildResult.BuildVersion3Components);
         Assert.Equal(height.ToString(), buildResult.BuildVersionNumberComponent);
-        Assert.Equal($"{majorMinorVersion}.{height}", buildResult.BuildVersionSimple);
-        Assert.Equal(this.repo.Head.Commits.First().Id.Sha, buildResult.GitCommitId);
+        Assert.Equal($"{version.Major}.{version.Minor}.{height}", buildResult.BuildVersionSimple);
+        Assert.Equal(this.Repo.Head.Commits.First().Id.Sha, buildResult.GitCommitId);
         Assert.Equal(commitIdShort, buildResult.GitCommitIdShort);
         Assert.Equal(height.ToString(), buildResult.GitHeight);
-        Assert.Equal(majorMinorVersion, buildResult.MajorMinorVersion);
-        Assert.Equal($"{majorMinorVersion}.0{prerelease}-g{commitIdShort}", buildResult.NuGetPackageVersion);
+        Assert.Equal($"{version.Major}.{version.Minor}", buildResult.MajorMinorVersion);
+        Assert.Equal($"{version.Major}.{version.Minor}.0{prerelease}-g{commitIdShort}", buildResult.NuGetPackageVersion);
         Assert.Equal(prerelease, buildResult.PrereleaseVersion);
         Assert.Equal($"+g{commitIdShort}", buildResult.SemVerBuildSuffix);
     }
@@ -112,13 +105,13 @@ public class BuildIntegrationTests : IDisposable
     private async Task<BuildResults> BuildAsync(string target = Targets.GetBuildVersion)
     {
         var buildResult = await this.buildManager.BuildAsync(
-            this.logger,
+            this.Logger,
             this.projectCollection,
             this.testProject,
             target,
             this.globalProperties);
         var result = new BuildResults(buildResult);
-        this.logger.WriteLine(result.ToString());
+        this.Logger.WriteLine(result.ToString());
         Assert.Equal(BuildResultCode.Success, buildResult.OverallResult);
         return result;
     }
@@ -134,46 +127,12 @@ public class BuildIntegrationTests : IDisposable
         using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"{ns}.{gitVersioningTargetsFileName}"))
         {
             gitVersioningTargets = ProjectRootElement.Create(XmlReader.Create(stream), this.projectCollection);
-            gitVersioningTargets.FullPath = Path.Combine(this.testDirectoryRoot, gitVersioningTargetsFileName);
+            gitVersioningTargets.FullPath = Path.Combine(this.RepoPath, gitVersioningTargetsFileName);
         }
 
         pre.AddImport(gitVersioningTargets.FullPath);
 
         return pre;
-    }
-
-    private void WriteVersionFile(string version = "1.2", string prerelease = "")
-    {
-        File.WriteAllLines(
-            Path.Combine(this.testDirectoryRoot, VersionTextFile.FileName),
-            new[] { version, prerelease });
-
-        if (this.repo != null)
-        {
-            this.repo.Stage(VersionTextFile.FileName);
-            this.repo.Commit($"Add {VersionTextFile.FileName}", this.signer);
-        }
-    }
-
-    private void InitializeSourceControl()
-    {
-        Repository.Init(this.testDirectoryRoot);
-        this.repo = new Repository(this.testDirectoryRoot);
-        foreach (var file in this.repo.RetrieveStatus().Untracked)
-        {
-            this.repo.Stage(file.FilePath);
-        }
-
-        this.repo.Commit("initial commit", this.signer);
-    }
-
-    private void AddCommits(int count = 1)
-    {
-        Verify.Operation(this.repo != null, "Repo has not been created yet.");
-        for (int i = 1; i <= count; i++)
-        {
-            this.repo.Commit($"filler commit {i}", signer, new CommitOptions { AllowEmptyCommit = true });
-        }
     }
 
     private static class Targets
