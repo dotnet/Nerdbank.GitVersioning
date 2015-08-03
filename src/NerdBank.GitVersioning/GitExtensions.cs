@@ -105,7 +105,7 @@
         /// Looks up the commit that matches a specified version number.
         /// </summary>
         /// <param name="repo">The repository to search for a matching commit.</param>
-        /// <param name="version">The version previously obtained from <see cref="GetIdAsVersion(Commit, int, int)"/>.</param>
+        /// <param name="version">The version previously obtained from <see cref="GetIdAsVersion(Commit)"/>.</param>
         /// <returns>The matching commit id, or <c>null</c> if no match is found.</returns>
         /// <exception cref="InvalidOperationException">
         /// Thrown in the very rare situation that more than one matching commit is found.
