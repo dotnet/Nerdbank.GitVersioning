@@ -4,10 +4,12 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using LibGit2Sharp;
 using NerdBank.GitVersioning;
 using NerdBank.GitVersioning.Tests;
 using Xunit;
 using Xunit.Abstractions;
+using Version = System.Version;
 
 public class VersionTextFileTests : RepoTestBase
 {
@@ -22,7 +24,7 @@ public class VersionTextFileTests : RepoTestBase
     [Fact]
     public void IsVersionTxtPresent_NullCommit()
     {
-        Assert.False(VersionTextFile.IsVersionTxtPresent(null));
+        Assert.False(VersionTextFile.IsVersionFilePresent(null));
     }
 
     [Fact]
@@ -30,14 +32,14 @@ public class VersionTextFileTests : RepoTestBase
     {
         this.InitializeSourceControl();
         this.AddCommits();
-        Assert.False(VersionTextFile.IsVersionTxtPresent(this.Repo.Head.Commits.First()));
+        Assert.False(VersionTextFile.IsVersionFilePresent(this.Repo.Head.Commits.First()));
 
         this.WriteVersionFile();
 
         // Verify that we can find the version.txt file in the most recent commit,
         // But not in the initial commit.
-        Assert.True(VersionTextFile.IsVersionTxtPresent(this.Repo.Head.Commits.First()));
-        Assert.False(VersionTextFile.IsVersionTxtPresent(this.Repo.Head.Commits.Last()));
+        Assert.True(VersionTextFile.IsVersionFilePresent(this.Repo.Head.Commits.First()));
+        Assert.False(VersionTextFile.IsVersionFilePresent(this.Repo.Head.Commits.Last()));
     }
 
     [Theory]
@@ -58,7 +60,7 @@ public class VersionTextFileTests : RepoTestBase
         Assert.Equal(expectedVersion, actualFileContent[0]);
         Assert.Equal(expectedPrerelease ?? string.Empty, actualFileContent[1]);
 
-        SemanticVersion actualVersion = VersionTextFile.GetVersionFromTxtFile(this.RepoPath);
+        SemanticVersion actualVersion = VersionTextFile.GetVersionFromFile(this.RepoPath);
 
         Assert.Equal(new Version(expectedVersion), actualVersion.Version);
         Assert.Equal(expectedPrerelease ?? string.Empty, actualVersion.UnstableTag);
@@ -67,10 +69,12 @@ public class VersionTextFileTests : RepoTestBase
     [Fact]
     public void GetVersionFromTxtFile_ViaCommit()
     {
+        Assert.Null(VersionTextFile.GetVersionFromFile((Commit)null));
+
         this.InitializeSourceControl();
         this.WriteVersionFile();
-        SemanticVersion fromCommit = VersionTextFile.GetVersionFromTxtFile(this.Repo.Head.Commits.First());
-        SemanticVersion fromFile = VersionTextFile.GetVersionFromTxtFile(this.RepoPath);
+        SemanticVersion fromCommit = VersionTextFile.GetVersionFromFile(this.Repo.Head.Commits.First());
+        SemanticVersion fromFile = VersionTextFile.GetVersionFromFile(this.RepoPath);
         Assert.NotNull(fromCommit);
         Assert.Equal(fromFile, fromCommit);
     }

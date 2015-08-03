@@ -20,14 +20,17 @@ namespace NerdBank.GitVersioning
         /// </summary>
         /// <param name="commit">The commit to read the version file from.</param>
         /// <returns>The version information read from the file.</returns>
-        public static SemanticVersion GetVersionFromTxtFile(this LibGit2Sharp.Commit commit)
+        public static SemanticVersion GetVersionFromFile(LibGit2Sharp.Commit commit)
         {
-            Requires.NotNull(commit, nameof(commit));
+            if (commit == null)
+            {
+                return null;
+            }
 
-            using (var content = commit.ReadVersionTxt())
+            using (var content = GetVersionFileReader(commit))
             {
                 return content != null
-                    ? ReadVersionFromFile(content)
+                    ? ReadVersionFile(content)
                     : null;
             }
         }
@@ -37,7 +40,7 @@ namespace NerdBank.GitVersioning
         /// </summary>
         /// <param name="repoRoot">The path to the directory in which to find the version.txt file.</param>
         /// <returns>The version information read from the file, or <c>null</c> if the file wasn't found.</returns>
-        public static SemanticVersion GetVersionFromTxtFile(string repoRoot)
+        public static SemanticVersion GetVersionFromFile(string repoRoot)
         {
             Requires.NotNullOrEmpty(repoRoot, nameof(repoRoot));
 
@@ -46,7 +49,7 @@ namespace NerdBank.GitVersioning
             {
                 using (var sr = new StreamReader(versionTxtPath))
                 {
-                    return ReadVersionFromFile(sr);
+                    return ReadVersionFile(sr);
                 }
             }
 
@@ -58,7 +61,7 @@ namespace NerdBank.GitVersioning
         /// </summary>
         /// <param name="commit">The commit to search.</param>
         /// <returns><c>true</c> if the version.txt file is found; otherwise <c>false</c>.</returns>
-        public static bool IsVersionTxtPresent(this LibGit2Sharp.Commit commit)
+        public static bool IsVersionFilePresent(LibGit2Sharp.Commit commit)
         {
             return commit?.Tree[FileName] != null;
         }
@@ -87,7 +90,7 @@ namespace NerdBank.GitVersioning
         /// </summary>
         /// <param name="commit">The commit to read the version file from.</param>
         /// <returns>A text reader with the content of the version.txt file.</returns>
-        private static TextReader ReadVersionTxt(this LibGit2Sharp.Commit commit)
+        private static TextReader GetVersionFileReader(LibGit2Sharp.Commit commit)
         {
             var versionTxtBlob = commit.Tree[FileName]?.Target as LibGit2Sharp.Blob;
             return versionTxtBlob != null ? new StreamReader(versionTxtBlob.GetContentStream()) : null;
@@ -98,7 +101,7 @@ namespace NerdBank.GitVersioning
         /// </summary>
         /// <param name="versionTextContent">The content of the version.txt file to read.</param>
         /// <returns>The version information read from the file.</returns>
-        private static SemanticVersion ReadVersionFromFile(TextReader versionTextContent)
+        private static SemanticVersion ReadVersionFile(TextReader versionTextContent)
         {
             string versionLine = versionTextContent.ReadLine();
             string prereleaseVersion = versionTextContent.ReadLine();
