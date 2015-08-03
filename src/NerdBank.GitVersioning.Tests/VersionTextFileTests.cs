@@ -58,13 +58,20 @@ public class VersionTextFileTests : RepoTestBase
         Assert.Equal(expectedVersion, actualFileContent[0]);
         Assert.Equal(expectedPrerelease ?? string.Empty, actualFileContent[1]);
 
-        this.InitializeSourceControl();
-        this.Repo.Stage(this.versionTxtPath, new LibGit2Sharp.StageOptions());
-        this.AddCommits();
-
-        SemanticVersion actualVersion = VersionTextFile.GetVersionFromTxtFile(this.Repo.Head.Commits.First());
+        SemanticVersion actualVersion = VersionTextFile.GetVersionFromTxtFile(this.RepoPath);
 
         Assert.Equal(new Version(expectedVersion), actualVersion.Version);
         Assert.Equal(expectedPrerelease ?? string.Empty, actualVersion.UnstableTag);
+    }
+
+    [Fact]
+    public void GetVersionFromTxtFile_ViaCommit()
+    {
+        this.InitializeSourceControl();
+        this.WriteVersionFile();
+        SemanticVersion fromCommit = VersionTextFile.GetVersionFromTxtFile(this.Repo.Head.Commits.First());
+        SemanticVersion fromFile = VersionTextFile.GetVersionFromTxtFile(this.RepoPath);
+        Assert.NotNull(fromCommit);
+        Assert.Equal(fromFile, fromCommit);
     }
 }

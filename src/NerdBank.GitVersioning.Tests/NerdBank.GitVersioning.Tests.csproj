@@ -73,6 +73,7 @@
     <Compile Include="MSBuildExtensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RepoTestBase.cs" />
+    <Compile Include="SemanticVersionTests.cs" />
     <Compile Include="TestUtilities.cs" />
     <Compile Include="VersionTextFileTests.cs" />
   </ItemGroup>

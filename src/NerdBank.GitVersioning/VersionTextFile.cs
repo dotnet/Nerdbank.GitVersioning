@@ -33,6 +33,27 @@ namespace NerdBank.GitVersioning
         }
 
         /// <summary>
+        /// Reads the version.txt file and returns the <see cref="Version"/> and prerelease tag from it.
+        /// </summary>
+        /// <param name="repoRoot">The path to the directory in which to find the version.txt file.</param>
+        /// <returns>The version information read from the file, or <c>null</c> if the file wasn't found.</returns>
+        public static SemanticVersion GetVersionFromTxtFile(string repoRoot)
+        {
+            Requires.NotNullOrEmpty(repoRoot, nameof(repoRoot));
+
+            string versionTxtPath = Path.Combine(repoRoot, FileName);
+            if (File.Exists(versionTxtPath))
+            {
+                using (var sr = new StreamReader(versionTxtPath))
+                {
+                    return ReadVersionFromFile(sr);
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// Checks whether the version.txt file is defined in the specified commit.
         /// </summary>
         /// <param name="commit">The commit to search.</param>

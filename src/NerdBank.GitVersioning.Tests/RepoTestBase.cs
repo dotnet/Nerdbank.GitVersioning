@@ -70,9 +70,7 @@ namespace NerdBank.GitVersioning.Tests
 
         protected void WriteVersionFile(string version = "1.2", string prerelease = "")
         {
-            File.WriteAllLines(
-                Path.Combine(this.RepoPath, VersionTextFile.FileName),
-                new[] { version, prerelease });
+            VersionTextFile.WriteVersionFile(this.RepoPath, new System.Version(version), prerelease);
 
             if (this.Repo != null)
             {
