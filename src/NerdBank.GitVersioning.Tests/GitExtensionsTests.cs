@@ -9,6 +9,7 @@ using NerdBank.GitVersioning;
 using NerdBank.GitVersioning.Tests;
 using Xunit;
 using Xunit.Abstractions;
+using Version = System.Version;
 
 public class GitExtensionsTests : RepoTestBase
 {
@@ -73,7 +74,7 @@ public class GitExtensionsTests : RepoTestBase
         this.WriteVersionFile("4.8");
         var firstCommit = this.Repo.Commits.First();
 
-        System.Version v1 = firstCommit.GetIdAsVersion();
+        Version v1 = firstCommit.GetIdAsVersion();
         Assert.Equal(4, v1.Major);
         Assert.Equal(8, v1.Minor);
     }
@@ -85,13 +86,28 @@ public class GitExtensionsTests : RepoTestBase
         var firstCommit = this.Repo.Commits.First();
         var secondCommit = this.Repo.Commit("Second", new CommitOptions { AllowEmptyCommit = true });
 
-        System.Version v1 = firstCommit.GetIdAsVersion();
-        System.Version v2 = secondCommit.GetIdAsVersion();
+        Version v1 = firstCommit.GetIdAsVersion();
+        Version v2 = secondCommit.GetIdAsVersion();
 
         this.Logger.WriteLine($"Commit {firstCommit.Id.Sha.Substring(0, 8)} as version: {v1}");
         this.Logger.WriteLine($"Commit {secondCommit.Id.Sha.Substring(0, 8)} as version: {v2}");
 
         Assert.Equal(firstCommit, this.Repo.GetCommitFromVersion(v1));
         Assert.Equal(secondCommit, this.Repo.GetCommitFromVersion(v2));
+    }
+
+    [Fact]
+    public void GetIdAsVersion_FitsInsideCompilerConstraints()
+    {
+        this.WriteVersionFile("2.5");
+        var firstCommit = this.Repo.Commits.First();
+
+        Version version = firstCommit.GetIdAsVersion();
+        this.Logger.WriteLine(version.ToString());
+
+        // The C# compiler produces a build warning and truncates the version number if it exceeds 0xfffe,
+        // even though a System.Version is made up of four 32-bit integers.
+        Assert.True(version.Build < 0xfffe, $"{nameof(Version.Build)} component exceeds maximum allowed by the compiler as an argument for AssemblyVersionAttribute and AssemblyFileVersionAttribute.");
+        Assert.True(version.Revision < 0xfffe, $"{nameof(Version.Revision)} component exceeds maximum allowed by the compiler as an argument for AssemblyVersionAttribute and AssemblyFileVersionAttribute.");
     }
 }
