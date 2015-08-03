@@ -28,8 +28,8 @@
   </PropertyGroup>
 
   <UsingTask AssemblyFile="MSBuild.Community.Tasks.dll" TaskName="AssemblyInfo"/>
-  <UsingTask AssemblyFile="Nerdbank.GitVersioning.Tasks.dll" TaskName="GetBuildVersion"/>
-  <UsingTask AssemblyFile="Nerdbank.GitVersioning.Tasks.dll" TaskName="CompareFiles"/>
+  <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="GetBuildVersion"/>
+  <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="CompareFiles"/>
 
   <Target Name="GetBuildVersion" Returns="$(BuildVersion)">
     <Error Text="Unable to find version.txt file." Condition=" '$(GitVersioningTxtFile)' == '' " />

@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using LibGit2Sharp;
 using NerdBank.GitVersioning;
+using NerdBank.GitVersioning.Tests;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -28,17 +29,7 @@ public class GitExtensionsTests : IDisposable
     public void Dispose()
     {
         this.Repo.Dispose();
-
-        try
-        {
-            Directory.Delete(this.RepoPath, true);
-        }
-        catch (UnauthorizedAccessException)
-        {
-            // Unknown why this fails so often.
-            // Somehow making commits with libgit2sharp locks files
-            // such that we can't delete them (but Windows Explorer can).
-        }
+        TestUtilities.DeleteDirectory(this.RepoPath);
     }
 
     [Fact]

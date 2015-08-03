@@ -13,7 +13,7 @@ namespace NerdBank.GitVersioning
         /// <summary>
         /// The filename of the version.txt file.
         /// </summary>
-        private const string versionTxtFileName = "version.txt";
+        public const string FileName = "version.txt";
 
         /// <summary>
         /// Gets the version specified in the first line of the version.txt file
@@ -25,7 +25,7 @@ namespace NerdBank.GitVersioning
         {
             Requires.NotNull(commit, nameof(commit));
 
-            var versionTxtBlob = commit.Tree[versionTxtFileName]?.Target as LibGit2Sharp.Blob;
+            var versionTxtBlob = commit.Tree[FileName]?.Target as LibGit2Sharp.Blob;
             if (versionTxtBlob != null)
             {
                 using (var versionTxtStream = new StreamReader(versionTxtBlob.GetContentStream()))
@@ -68,7 +68,7 @@ namespace NerdBank.GitVersioning
         /// <returns><c>true</c> if the version.txt file is found; otherwise <c>false</c>.</returns>
         public static bool IsVersionTxtPresent(this LibGit2Sharp.Commit commit)
         {
-            return commit?.Tree[versionTxtFileName] != null;
+            return commit?.Tree[FileName] != null;
         }
 
         /// <summary>
@@ -78,7 +78,7 @@ namespace NerdBank.GitVersioning
         /// <returns>A text reader with the content of the version.txt file.</returns>
         private static TextReader ReadVersionTxt(this LibGit2Sharp.Commit commit)
         {
-            var versionTxtBlob = commit.Tree[versionTxtFileName]?.Target as LibGit2Sharp.Blob;
+            var versionTxtBlob = commit.Tree[FileName]?.Target as LibGit2Sharp.Blob;
             return versionTxtBlob != null ? new StreamReader(versionTxtBlob.GetContentStream()) : null;
         }
 
