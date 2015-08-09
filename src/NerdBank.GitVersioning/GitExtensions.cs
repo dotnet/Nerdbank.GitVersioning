@@ -160,7 +160,7 @@
             ushort objectIdLeadingValue = (ushort)version.Revision;
             ushort objectIdMask = (ushort)(version.Revision == MaximumBuildNumberOrRevisionComponent ? 0xfffe : 0xffff);
 
-            var possibleCommits = from commit in repo.ObjectDatabase.OfType<Commit>() // TODO: avoid opening every object to see if it's a commit. Perhaps only search from refs
+            var possibleCommits = from commit in GetCommitsReachableFromRefs(repo)
                                   where commit.Id.StartsWith(objectIdLeadingValue, objectIdMask)
                                   where commit.GetHeight(c => CommitMatchesMajorMinorVersion(c, version)) == height
                                   select commit;
@@ -249,6 +249,50 @@
             }
 
             return height;
+        }
+
+        /// <summary>
+        /// Enumerates over the set of commits in the repository that are reachable from any named reference.
+        /// </summary>
+        /// <param name="repo">The repo to search.</param>
+        /// <returns>An enumerate of commits.</returns>
+        private static IEnumerable<Commit> GetCommitsReachableFromRefs(Repository repo)
+        {
+            Requires.NotNull(repo, nameof(repo));
+
+            var commits = new HashSet<Commit>();
+            foreach (var reference in repo.Refs)
+            {
+                var commit = reference.ResolveToDirectReference().Target as Commit;
+                if (commit != null)
+                {
+                    AddReachableCommitsFrom(commit, commits);
+                }
+            }
+
+            return commits;
+        }
+
+        /// <summary>
+        /// Adds a commit and all its ancestors to a set.
+        /// </summary>
+        /// <param name="startingCommit">The starting commit to add.</param>
+        /// <param name="set">
+        /// The set into which the <paramref name="startingCommit"/>
+        /// and all its ancestors are to be added.
+        /// </param>
+        private static void AddReachableCommitsFrom(Commit startingCommit, HashSet<Commit> set)
+        {
+            Requires.NotNull(startingCommit, nameof(startingCommit));
+            Requires.NotNull(set, nameof(set));
+
+            if (set.Add(startingCommit))
+            {
+                foreach (var parent in startingCommit.Parents)
+                {
+                    AddReachableCommitsFrom(parent, set);
+                }
+            }
         }
     }
 }
