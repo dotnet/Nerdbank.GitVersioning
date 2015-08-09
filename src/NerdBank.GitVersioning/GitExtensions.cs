@@ -20,7 +20,7 @@
         /// <param name="commit">The commit to measure the height of.</param>
         /// <param name="continueStepping">
         /// A function that returns <c>false</c> when we reach a commit that
-        /// we should stop at, as if it were the original commit.
+        /// should not be included in the height calculation.
         /// May be null to count the height to the original commit.
         /// </param>
         /// <returns>The height of the commit. Always a positive integer.</returns>
@@ -39,7 +39,7 @@
         /// <param name="branch">The branch to measure the height of.</param>
         /// <param name="continueStepping">
         /// A function that returns <c>false</c> when we reach a commit that
-        /// we should stop at, as if it were the original commit.
+        /// should not be included in the height calculation.
         /// May be null to count the height to the original commit.
         /// </param>
         /// <returns>The height of the branch.</returns>
@@ -172,7 +172,7 @@
         /// <param name="heights">A cache of commits and their heights.</param>
         /// <param name="continueStepping">
         /// A function that returns <c>false</c> when we reach a commit that
-        /// we should stop at, as if it were the original commit.
+        /// should not be included in the height calculation.
         /// May be null to count the height to the original commit.
         /// </param>
         /// <returns>The height of the branch.</returns>
@@ -184,10 +184,14 @@
             int height;
             if (!heights.TryGetValue(commit.Id, out height))
             {
-                height = 1;
-                if (commit.Parents.Any() && (continueStepping?.Invoke(commit) ?? true))
+                height = 0;
+                if (continueStepping == null || continueStepping(commit))
                 {
-                    height += commit.Parents.Max(p => GetCommitHeight(p, heights, continueStepping));
+                    height = 1;
+                    if (commit.Parents.Any())
+                    {
+                        height += commit.Parents.Max(p => GetCommitHeight(p, heights, continueStepping));
+                    }
                 }
 
                 heights[commit.Id] = height;

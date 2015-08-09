@@ -36,8 +36,8 @@ public class GitExtensionsTests : RepoTestBase
         Assert.Equal(3, this.Repo.Head.GetHeight());
         Assert.Equal(3, this.Repo.Head.GetHeight(c => true));
 
-        Assert.Equal(2, this.Repo.Head.GetHeight(c => c != second));
-        Assert.Equal(1, this.Repo.Head.GetHeight(c => c != third));
+        Assert.Equal(2, this.Repo.Head.GetHeight(c => c != first));
+        Assert.Equal(1, this.Repo.Head.GetHeight(c => c != second));
     }
 
     [Fact]
@@ -62,7 +62,7 @@ public class GitExtensionsTests : RepoTestBase
         Assert.Equal(7, this.Repo.Head.GetHeight(c => c != secondCommit));
 
         // This time stop in both branches of history, and verify that we count the taller one.
-        Assert.Equal(6, this.Repo.Head.GetHeight(c => c != secondCommit && c != branchCommits[2]));
+        Assert.Equal(3, this.Repo.Head.GetHeight(c => c != secondCommit && c != branchCommits[2]));
     }
 
     [Fact]
