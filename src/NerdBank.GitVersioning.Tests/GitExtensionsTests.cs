@@ -94,6 +94,17 @@ public class GitExtensionsTests : RepoTestBase
     }
 
     [Fact]
+    public void GetIdAsVersion_MissingVersionTxt()
+    {
+        this.AddCommits();
+        var firstCommit = this.Repo.Commits.First();
+
+        Version v1 = firstCommit.GetIdAsVersion();
+        Assert.Equal(0, v1.Major);
+        Assert.Equal(0, v1.Minor);
+    }
+
+    [Fact]
     public void GetIdAsVersion_ResetsBuildNumberForEachMajorMinorVersion()
     {
         Commit[] v48Commits = this.CommitsWithVersion("4.8");
@@ -138,6 +149,21 @@ public class GitExtensionsTests : RepoTestBase
         // even though a System.Version is made up of four 32-bit integers.
         Assert.True(version.Build < 0xfffe, $"{nameof(Version.Build)} component exceeds maximum allowed by the compiler as an argument for AssemblyVersionAttribute and AssemblyFileVersionAttribute.");
         Assert.True(version.Revision < 0xfffe, $"{nameof(Version.Revision)} component exceeds maximum allowed by the compiler as an argument for AssemblyVersionAttribute and AssemblyFileVersionAttribute.");
+    }
+
+    ////[Fact] // Manual, per machine test
+    public void TestBiggerRepo()
+    {
+        using (this.Repo = new Repository(@"C:\Users\andrew\git\NerdBank.GitVersioning"))
+        {
+            foreach (var commit in this.Repo.Head.Commits)
+            {
+                var version = commit.GetIdAsVersion();
+                this.Logger.WriteLine($"commit {commit.Id} got version {version}");
+                var backAgain = this.Repo.GetCommitFromVersion(version);
+                Assert.Equal(commit, backAgain);
+            }
+        }
     }
 
     private Commit[] CommitsWithVersion(string majorMinorVersion)

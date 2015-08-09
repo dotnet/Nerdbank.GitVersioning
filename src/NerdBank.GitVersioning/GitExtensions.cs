@@ -15,6 +15,11 @@
     public static class GitExtensions
     {
         /// <summary>
+        /// The 0.0 version.
+        /// </summary>
+        private static readonly Version Version0 = new Version();
+
+        /// <summary>
         /// Maximum allowable value for the <see cref="Version.Build"/>
         /// and <see cref="Version.Revision"/> components.
         /// </summary>
@@ -111,8 +116,7 @@
         {
             Requires.NotNull(commit, nameof(commit));
 
-            var baseVersion = VersionFile.GetVersionFromFile(commit)?.Version;
-            Verify.Operation(baseVersion != null, "No version.txt file found in the commit being built.");
+            var baseVersion = VersionFile.GetVersionFromFile(commit)?.Version ?? Version0;
 
             // The compiler (due to WinPE header requirements) only allows 16-bit version components,
             // and forbids 0xffff as a value.
@@ -180,8 +184,8 @@
             Requires.NotNull(commit, nameof(commit));
             Requires.NotNull(expectedVersion, nameof(expectedVersion));
 
-            Version majorMinorFromFile = VersionFile.GetVersionFromFile(commit).Version;
-            return majorMinorFromFile.Major == expectedVersion.Major && majorMinorFromFile.Minor == expectedVersion.Minor;
+            Version majorMinorFromFile = VersionFile.GetVersionFromFile(commit)?.Version ?? Version0;
+            return majorMinorFromFile?.Major == expectedVersion.Major && majorMinorFromFile?.Minor == expectedVersion.Minor;
         }
 
         /// <summary>
