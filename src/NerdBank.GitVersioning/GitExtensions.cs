@@ -7,12 +7,19 @@
     using System.Threading.Tasks;
     using LibGit2Sharp;
     using Validation;
+    using Version = System.Version;
 
     /// <summary>
     /// Git extension methods.
     /// </summary>
     public static class GitExtensions
     {
+        /// <summary>
+        /// Maximum allowable value for the <see cref="Version.Build"/>
+        /// and <see cref="Version.Revision"/> components.
+        /// </summary>
+        private const ushort MaximumBuildNumberOrRevisionComponent = 0xfffe;
+
         /// <summary>
         /// Gets the number of commits in the longest single path between
         /// the specified commit and the most distant ancestor (inclusive).
@@ -54,17 +61,29 @@
         /// </summary>
         /// <param name="commit">The commit to identify with an integer.</param>
         /// <returns>The integer which identifies a commit.</returns>
-        public static int GetTruncatedCommitIdAsInteger(this Commit commit)
+        public static int GetTruncatedCommitIdAsInt32(this Commit commit)
         {
             Requires.NotNull(commit, nameof(commit));
             return BitConverter.ToInt32(commit.Id.RawId, 0);
         }
 
         /// <summary>
+        /// Takes the first 2 bytes of a commit ID (i.e. first 4 characters of its hex-encoded SHA)
+        /// and returns them as an 16-bit unsigned integer.
+        /// </summary>
+        /// <param name="commit">The commit to identify with an integer.</param>
+        /// <returns>The unsigned integer which identifies a commit.</returns>
+        public static ushort GetTruncatedCommitIdAsUInt16(this Commit commit)
+        {
+            Requires.NotNull(commit, nameof(commit));
+            return BitConverter.ToUInt16(commit.Id.RawId, 0);
+        }
+
+        /// <summary>
         /// Looks up a commit by an integer that captures the first for bytes of its ID.
         /// </summary>
         /// <param name="repo">The repo to search for a matching commit.</param>
-        /// <param name="truncatedId">The value returned from <see cref="GetTruncatedCommitIdAsInteger(Commit)"/>.</param>
+        /// <param name="truncatedId">The value returned from <see cref="GetTruncatedCommitIdAsInt32(Commit)"/>.</param>
         /// <returns>A matching commit.</returns>
         public static Commit GetCommitFromTruncatedIdInteger(this Repository repo, int truncatedId)
         {
@@ -95,20 +114,16 @@
             var baseVersion = VersionFile.GetVersionFromFile(commit)?.Version;
             Verify.Operation(baseVersion != null, "No version.txt file found in the commit being built.");
 
-            // The 3rd component of the version is the height of the git history at this point.
-            // This helps ensure that within a major.minor release, each patch has an
-            // incrementing integer.
+            // The compiler (due to WinPE header requirements) only allows 16-bit version components,
+            // and forbids 0xffff as a value.
+            // The build number is set to the git height. This helps ensure that
+            // within a major.minor release, each patch has an incrementing integer.
+            // The revision is set to the first two bytes of the git commit ID.
             int build = commit.GetHeight();
+            Verify.Operation(build <= MaximumBuildNumberOrRevisionComponent, "Git height is {0}, which is greater than the maximum allowed {0}.", build, MaximumBuildNumberOrRevisionComponent);
+            int revision = Math.Min(MaximumBuildNumberOrRevisionComponent, commit.GetTruncatedCommitIdAsUInt16());
 
-            // The revision is set to the first four bytes of the git commit ID.
-            // Except that since version components must be positive, we force it if
-            // it naturally would be negative.
-            // When doing a reverse-lookup, this means we have to try both positive
-            // and negative values since we effectively only have 31-bits of useful
-            // space in the int32.
-            int revision = Math.Abs(commit.GetTruncatedCommitIdAsInteger());
-
-            return new System.Version(baseVersion.Major, baseVersion.Minor, build, revision);
+            return new Version(baseVersion.Major, baseVersion.Minor, build, revision);
         }
 
         /// <summary>
@@ -120,22 +135,21 @@
         /// <exception cref="InvalidOperationException">
         /// Thrown in the very rare situation that more than one matching commit is found.
         /// </exception>
-        public static Commit GetCommitFromVersion(this Repository repo, System.Version version)
+        public static Commit GetCommitFromVersion(this Repository repo, Version version)
         {
             Requires.NotNull(repo, nameof(repo));
             Requires.NotNull(version, nameof(version));
 
             int height = version.Build;
 
-            // Only the least significant 31 bits of the revision component hold data.
-            // The most significant bit (which stores positive or negative) must be 0
-            // so that the component is positive. But since no such restriction exists in git,
-            // we have to test both.
-            string commitIdPrefix1 = EncodeAsHex(BitConverter.GetBytes(version.Revision));
-            string commitIdPrefix2 = EncodeAsHex(BitConverter.GetBytes(-version.Revision));
+            // The revision is a 16-bit unsigned integer, but is not allowed to be 0xffff.
+            // So if the value is 0xfffe, consider that the actual last bit is insignificant
+            // since the original git commit ID could have been either 0xffff or 0xfffe.
+            ushort objectIdLeadingValue = (ushort)version.Revision;
+            ushort objectIdMask = (ushort)(version.Revision == MaximumBuildNumberOrRevisionComponent ? 0xfffe : 0xffff);
 
             var possibleCommits = from commit in repo.ObjectDatabase.OfType<Commit>()
-                                  where commit.Id.StartsWith(commitIdPrefix1) || commit.Id.StartsWith(commitIdPrefix2)
+                                  where commit.Id.StartsWith(objectIdLeadingValue, objectIdMask)
                                   // Extra disambiguation that may be necessary
                                   where commit.GetHeight() == height
                                   let majorMinor = VersionFile.GetVersionFromFile(commit).Version
@@ -144,6 +158,12 @@
 
             // Note we'll accept no match, or one match. But we throw if there is more than one match.
             return possibleCommits.SingleOrDefault();
+        }
+
+        private static bool StartsWith(this ObjectId @object, ushort leadingBytes, ushort bitMask)
+        {
+            ushort truncatedObjectId = BitConverter.ToUInt16(@object.RawId, 0);
+            return (truncatedObjectId & bitMask) == leadingBytes;
         }
 
         /// <summary>

@@ -71,8 +71,8 @@ public class GitExtensionsTests : RepoTestBase
         var firstCommit = this.Repo.Commit("First", new CommitOptions { AllowEmptyCommit = true });
         var secondCommit = this.Repo.Commit("Second", new CommitOptions { AllowEmptyCommit = true });
 
-        int id1 = firstCommit.GetTruncatedCommitIdAsInteger();
-        int id2 = secondCommit.GetTruncatedCommitIdAsInteger();
+        int id1 = firstCommit.GetTruncatedCommitIdAsInt32();
+        int id2 = secondCommit.GetTruncatedCommitIdAsInt32();
 
         this.Logger.WriteLine($"Commit {firstCommit.Id.Sha.Substring(0, 8)} as int: {id1}");
         this.Logger.WriteLine($"Commit {secondCommit.Id.Sha.Substring(0, 8)} as int: {id2}");
@@ -96,20 +96,23 @@ public class GitExtensionsTests : RepoTestBase
     public void GetIdAsVersion_Roundtrip()
     {
         this.WriteVersionFile("2.5");
-        var firstCommit = this.Repo.Commits.First();
-        var secondCommit = this.Repo.Commit("Second", new CommitOptions { AllowEmptyCommit = true });
 
-        Version v1 = firstCommit.GetIdAsVersion();
-        Version v2 = secondCommit.GetIdAsVersion();
+        Commit[] commits = new Commit[16]; // create enough that statistically we'll likely hit interesting bits as MSB and LSB
+        Version[] versions = new Version[commits.Length];
+        for (int i = 0; i < commits.Length; i++)
+        {
+            commits[i] = this.Repo.Commit($"Commit {i + 1}", new CommitOptions { AllowEmptyCommit = true });
+            versions[i] = commits[i].GetIdAsVersion();
+            this.Logger.WriteLine($"Commit {commits[i].Id.Sha.Substring(0, 8)} as version: {versions[i]}");
+        }
 
-        this.Logger.WriteLine($"Commit {firstCommit.Id.Sha.Substring(0, 8)} as version: {v1}");
-        this.Logger.WriteLine($"Commit {secondCommit.Id.Sha.Substring(0, 8)} as version: {v2}");
-
-        Assert.Equal(firstCommit, this.Repo.GetCommitFromVersion(v1));
-        Assert.Equal(secondCommit, this.Repo.GetCommitFromVersion(v2));
+        for (int i = 0; i < commits.Length; i++)
+        {
+            Assert.Equal(commits[i], this.Repo.GetCommitFromVersion(versions[i]));
+        }
     }
 
-    [Fact(Skip = "Does not yet pass")]
+    [Fact]
     public void GetIdAsVersion_FitsInsideCompilerConstraints()
     {
         this.WriteVersionFile("2.5");
