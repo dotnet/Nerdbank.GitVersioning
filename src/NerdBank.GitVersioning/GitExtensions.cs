@@ -160,7 +160,14 @@
             return possibleCommits.SingleOrDefault();
         }
 
-        private static bool StartsWith(this ObjectId @object, ushort leadingBytes, ushort bitMask)
+        /// <summary>
+        /// Tests whether an object's ID starts with the specified 16-bits, or a subset of them.
+        /// </summary>
+        /// <param name="object">The object whose ID is to be tested.</param>
+        /// <param name="leadingBytes">The leading 16-bits to be tested.</param>
+        /// <param name="bitMask">The mask that indicates which bits should be compared.</param>
+        /// <returns><c>True</c> if the object's ID starts with <paramref name="leadingBytes"/> after applying the <paramref name="bitMask"/>.</returns>
+        private static bool StartsWith(this ObjectId @object, ushort leadingBytes, ushort bitMask = 0xffff)
         {
             ushort truncatedObjectId = BitConverter.ToUInt16(@object.RawId, 0);
             return (truncatedObjectId & bitMask) == leadingBytes;
