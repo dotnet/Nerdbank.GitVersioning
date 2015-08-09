@@ -24,14 +24,20 @@ public class GitExtensionsTests : RepoTestBase
     {
         Branch head = this.Repo.Head;
         Assert.Throws<InvalidOperationException>(() => head.GetHeight());
+        Assert.Throws<InvalidOperationException>(() => head.GetHeight(c => true));
     }
 
     [Fact]
     public void GetHeight_SinglePath()
     {
-        this.Repo.Commit("First", new CommitOptions { AllowEmptyCommit = true });
-        this.Repo.Commit("Second", new CommitOptions { AllowEmptyCommit = true });
-        Assert.Equal(2, this.Repo.Head.GetHeight());
+        var first = this.Repo.Commit("First", new CommitOptions { AllowEmptyCommit = true });
+        var second = this.Repo.Commit("Second", new CommitOptions { AllowEmptyCommit = true });
+        var third = this.Repo.Commit("Third", new CommitOptions { AllowEmptyCommit = true });
+        Assert.Equal(3, this.Repo.Head.GetHeight());
+        Assert.Equal(3, this.Repo.Head.GetHeight(c => true));
+
+        Assert.Equal(2, this.Repo.Head.GetHeight(c => c != second));
+        Assert.Equal(1, this.Repo.Head.GetHeight(c => c != third));
     }
 
     [Fact]
@@ -41,15 +47,22 @@ public class GitExtensionsTests : RepoTestBase
         var anotherBranch = this.Repo.CreateBranch("another");
         var secondCommit = this.Repo.Commit("Second", new CommitOptions { AllowEmptyCommit = true });
         this.Repo.Checkout(anotherBranch);
-        for (int i = 1; i <= 5; i++)
+        Commit[] branchCommits = new Commit[5];
+        for (int i = 1; i <= branchCommits.Length; i++)
         {
-            this.Repo.Commit($"branch commit #{i}", new CommitOptions { AllowEmptyCommit = true });
+            branchCommits[i - 1] = this.Repo.Commit($"branch commit #{i}", new CommitOptions { AllowEmptyCommit = true });
         }
 
         this.Repo.Merge(secondCommit, new Signature("t", "t@t.com", DateTimeOffset.Now), new MergeOptions { FastForwardStrategy = FastForwardStrategy.NoFastFoward });
 
         // While we've created 8 commits, the tallest height is only 7.
         Assert.Equal(7, this.Repo.Head.GetHeight());
+
+        // Now stop enumerating early on just one branch of the ancestry -- the number should remain high.
+        Assert.Equal(7, this.Repo.Head.GetHeight(c => c != secondCommit));
+
+        // This time stop in both branches of history, and verify that we count the taller one.
+        Assert.Equal(6, this.Repo.Head.GetHeight(c => c != secondCommit && c != branchCommits[2]));
     }
 
     [Fact]

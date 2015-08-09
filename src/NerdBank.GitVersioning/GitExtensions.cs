@@ -18,13 +18,18 @@
         /// the specified commit and the most distant ancestor (inclusive).
         /// </summary>
         /// <param name="commit">The commit to measure the height of.</param>
+        /// <param name="continueStepping">
+        /// A function that returns <c>false</c> when we reach a commit that
+        /// we should stop at, as if it were the original commit.
+        /// May be null to count the height to the original commit.
+        /// </param>
         /// <returns>The height of the commit. Always a positive integer.</returns>
-        public static int GetHeight(this Commit commit)
+        public static int GetHeight(this Commit commit, Func<Commit, bool> continueStepping = null)
         {
             Requires.NotNull(commit, nameof(commit));
 
             var heights = new Dictionary<ObjectId, int>();
-            return GetCommitHeight(commit, heights);
+            return GetCommitHeight(commit, heights, continueStepping);
         }
 
         /// <summary>
@@ -32,10 +37,15 @@
         /// the specified branch's head and the most distant ancestor (inclusive).
         /// </summary>
         /// <param name="branch">The branch to measure the height of.</param>
+        /// <param name="continueStepping">
+        /// A function that returns <c>false</c> when we reach a commit that
+        /// we should stop at, as if it were the original commit.
+        /// May be null to count the height to the original commit.
+        /// </param>
         /// <returns>The height of the branch.</returns>
-        public static int GetHeight(this Branch branch)
+        public static int GetHeight(this Branch branch, Func<Commit, bool> continueStepping = null)
         {
-            return GetHeight(branch.Commits.First());
+            return GetHeight(branch.Commits.First(), continueStepping);
         }
 
         /// <summary>
@@ -160,8 +170,13 @@
         /// </summary>
         /// <param name="commit">The commit to measure the height of.</param>
         /// <param name="heights">A cache of commits and their heights.</param>
+        /// <param name="continueStepping">
+        /// A function that returns <c>false</c> when we reach a commit that
+        /// we should stop at, as if it were the original commit.
+        /// May be null to count the height to the original commit.
+        /// </param>
         /// <returns>The height of the branch.</returns>
-        private static int GetCommitHeight(Commit commit, Dictionary<ObjectId, int> heights)
+        private static int GetCommitHeight(Commit commit, Dictionary<ObjectId, int> heights, Func<Commit, bool> continueStepping)
         {
             Requires.NotNull(commit, nameof(commit));
             Requires.NotNull(heights, nameof(heights));
@@ -170,9 +185,9 @@
             if (!heights.TryGetValue(commit.Id, out height))
             {
                 height = 1;
-                if (commit.Parents.Any())
+                if (commit.Parents.Any() && (continueStepping?.Invoke(commit) ?? true))
                 {
-                    height += commit.Parents.Max(p => GetCommitHeight(p, heights));
+                    height += commit.Parents.Max(p => GetCommitHeight(p, heights, continueStepping));
                 }
 
                 heights[commit.Id] = height;
