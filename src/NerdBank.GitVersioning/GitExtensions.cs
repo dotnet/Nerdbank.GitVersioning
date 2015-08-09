@@ -94,20 +94,20 @@
         }
 
         /// <summary>
-        /// Encodes a commit from history in a <see cref="System.Version"/>
+        /// Encodes a commit from history in a <see cref="Version"/>
         /// so that the original commit can be found later.
         /// </summary>
         /// <param name="commit">The commit whose ID and position in history is to be encoded.</param>
         /// <returns>
-        /// A version whose <see cref="System.Version.Build"/> and
-        /// <see cref="System.Version.Revision"/> components are calculated based on the commit.
+        /// A version whose <see cref="Version.Build"/> and
+        /// <see cref="Version.Revision"/> components are calculated based on the commit.
         /// </returns>
         /// <remarks>
-        /// In the returned version, the <see cref="System.Version.Build"/> component is
-        /// the height of the git commit while the <see cref="System.Version.Revision"/>
+        /// In the returned version, the <see cref="Version.Build"/> component is
+        /// the height of the git commit while the <see cref="Version.Revision"/>
         /// component is the first four bytes of the git commit id (forced to be a positive integer).
         /// </remarks>
-        public static System.Version GetIdAsVersion(this Commit commit)
+        public static Version GetIdAsVersion(this Commit commit)
         {
             Requires.NotNull(commit, nameof(commit));
 
@@ -119,7 +119,7 @@
             // The build number is set to the git height. This helps ensure that
             // within a major.minor release, each patch has an incrementing integer.
             // The revision is set to the first two bytes of the git commit ID.
-            int build = commit.GetHeight();
+            int build = commit.GetHeight(c => CommitMatchesMajorMinorVersion(c, baseVersion));
             Verify.Operation(build <= MaximumBuildNumberOrRevisionComponent, "Git height is {0}, which is greater than the maximum allowed {0}.", build, MaximumBuildNumberOrRevisionComponent);
             int revision = Math.Min(MaximumBuildNumberOrRevisionComponent, commit.GetTruncatedCommitIdAsUInt16());
 
@@ -150,14 +150,27 @@
 
             var possibleCommits = from commit in repo.ObjectDatabase.OfType<Commit>()
                                   where commit.Id.StartsWith(objectIdLeadingValue, objectIdMask)
-                                  // Extra disambiguation that may be necessary
-                                  where commit.GetHeight() == height
-                                  let majorMinor = VersionFile.GetVersionFromFile(commit).Version
-                                  where majorMinor.Major == version.Major && majorMinor.Minor == version.Minor
+                                  where commit.GetHeight(c => CommitMatchesMajorMinorVersion(c, version)) == height
                                   select commit;
 
             // Note we'll accept no match, or one match. But we throw if there is more than one match.
             return possibleCommits.SingleOrDefault();
+        }
+
+        /// <summary>
+        /// Tests whether a commit is of a specified version, comparing major and minor components
+        /// with the version.txt file defined by that commit.
+        /// </summary>
+        /// <param name="commit">The commit to test.</param>
+        /// <param name="expectedVersion">The version to test for in the commit</param>
+        /// <returns><c>true</c> if the <paramref name="commit"/> matches the major and minor components of <paramref name="expectedVersion"/>.</returns>
+        private static bool CommitMatchesMajorMinorVersion(Commit commit, Version expectedVersion)
+        {
+            Requires.NotNull(commit, nameof(commit));
+            Requires.NotNull(expectedVersion, nameof(expectedVersion));
+
+            Version majorMinorFromFile = VersionFile.GetVersionFromFile(commit).Version;
+            return majorMinorFromFile.Major == expectedVersion.Major && majorMinorFromFile.Minor == expectedVersion.Minor;
         }
 
         /// <summary>

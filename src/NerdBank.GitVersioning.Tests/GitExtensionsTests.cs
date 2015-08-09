@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using LibGit2Sharp;
 using NerdBank.GitVersioning;
 using NerdBank.GitVersioning.Tests;
+using Validation;
 using Xunit;
 using Xunit.Abstractions;
 using Version = System.Version;
@@ -93,6 +94,18 @@ public class GitExtensionsTests : RepoTestBase
     }
 
     [Fact]
+    public void GetIdAsVersion_ResetsBuildNumberForEachMajorMinorVersion()
+    {
+        Commit[] v48Commits = this.CommitsWithVersion("4.8");
+        Commit[] v49Commits = this.CommitsWithVersion("4.9"); // change minor version only
+        Commit[] v59Commits = this.CommitsWithVersion("5.9"); // change major version only
+
+        this.VerifyCommitsWithVersion(v48Commits);
+        this.VerifyCommitsWithVersion(v49Commits);
+        this.VerifyCommitsWithVersion(v59Commits);
+    }
+
+    [Fact]
     public void GetIdAsVersion_Roundtrip()
     {
         this.WriteVersionFile("2.5");
@@ -125,5 +138,30 @@ public class GitExtensionsTests : RepoTestBase
         // even though a System.Version is made up of four 32-bit integers.
         Assert.True(version.Build < 0xfffe, $"{nameof(Version.Build)} component exceeds maximum allowed by the compiler as an argument for AssemblyVersionAttribute and AssemblyFileVersionAttribute.");
         Assert.True(version.Revision < 0xfffe, $"{nameof(Version.Revision)} component exceeds maximum allowed by the compiler as an argument for AssemblyVersionAttribute and AssemblyFileVersionAttribute.");
+    }
+
+    private Commit[] CommitsWithVersion(string majorMinorVersion)
+    {
+        this.WriteVersionFile(majorMinorVersion);
+        var commits = new Commit[2];
+        commits[0] = this.Repo.Commits.First();
+        for (int i = 1; i < commits.Length; i++)
+        {
+            commits[i] = this.Repo.Commit($"Extra commit {i} for version {majorMinorVersion}", new CommitOptions { AllowEmptyCommit = true });
+        }
+
+        return commits;
+    }
+
+    private void VerifyCommitsWithVersion(Commit[] commits)
+    {
+        Requires.NotNull(commits, nameof(commits));
+
+        for (int i = 0; i < commits.Length; i++)
+        {
+            Version encodedVersion = commits[i].GetIdAsVersion();
+            Assert.Equal(i + 1, encodedVersion.Build);
+            Assert.Equal(commits[i], this.Repo.GetCommitFromVersion(encodedVersion));
+        }
     }
 }

@@ -74,8 +74,8 @@ namespace NerdBank.GitVersioning.Tests
 
             if (this.Repo != null)
             {
-                this.Repo.Stage(VersionFile.FileName);
-                this.Repo.Commit($"Add {VersionFile.FileName}", this.Signer);
+                this.Repo.Index.Add(VersionFile.FileName);
+                this.Repo.Commit($"Add/write {VersionFile.FileName} set to {version}", this.Signer);
             }
         }
     }
