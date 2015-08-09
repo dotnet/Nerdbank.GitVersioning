@@ -1,5 +1,4 @@
-﻿using Validation;
-namespace NerdBank.GitVersioning.Tests
+﻿namespace NerdBank.GitVersioning.Tests
 {
     using System;
     using System.Collections.Generic;
@@ -8,6 +7,7 @@ namespace NerdBank.GitVersioning.Tests
     using System.Text;
     using System.Threading.Tasks;
     using LibGit2Sharp;
+    using Validation;
     using Xunit.Abstractions;
 
     public abstract class RepoTestBase : IDisposable

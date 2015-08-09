@@ -131,11 +131,23 @@
         /// </summary>
         /// <param name="repo">The repository to search for a matching commit.</param>
         /// <param name="version">The version previously obtained from <see cref="GetIdAsVersion(Commit)"/>.</param>
-        /// <returns>The matching commit id, or <c>null</c> if no match is found.</returns>
+        /// <returns>The matching commit, or <c>null</c> if no match is found.</returns>
         /// <exception cref="InvalidOperationException">
         /// Thrown in the very rare situation that more than one matching commit is found.
         /// </exception>
         public static Commit GetCommitFromVersion(this Repository repo, Version version)
+        {
+            // Note we'll accept no match, or one match. But we throw if there is more than one match.
+            return GetCommitsFromVersion(repo, version).SingleOrDefault();
+        }
+
+        /// <summary>
+        /// Looks up the commits that match a specified version number.
+        /// </summary>
+        /// <param name="repo">The repository to search for a matching commit.</param>
+        /// <param name="version">The version previously obtained from <see cref="GetIdAsVersion(Commit)"/>.</param>
+        /// <returns>The matching commits, or an empty enumeration if no match is found.</returns>
+        public static IEnumerable<Commit> GetCommitsFromVersion(this Repository repo, Version version)
         {
             Requires.NotNull(repo, nameof(repo));
             Requires.NotNull(version, nameof(version));
@@ -148,13 +160,12 @@
             ushort objectIdLeadingValue = (ushort)version.Revision;
             ushort objectIdMask = (ushort)(version.Revision == MaximumBuildNumberOrRevisionComponent ? 0xfffe : 0xffff);
 
-            var possibleCommits = from commit in repo.ObjectDatabase.OfType<Commit>()
+            var possibleCommits = from commit in repo.ObjectDatabase.OfType<Commit>() // TODO: avoid opening every object to see if it's a commit. Perhaps only search from refs
                                   where commit.Id.StartsWith(objectIdLeadingValue, objectIdMask)
                                   where commit.GetHeight(c => CommitMatchesMajorMinorVersion(c, version)) == height
                                   select commit;
 
-            // Note we'll accept no match, or one match. But we throw if there is more than one match.
-            return possibleCommits.SingleOrDefault();
+            return possibleCommits;
         }
 
         /// <summary>
