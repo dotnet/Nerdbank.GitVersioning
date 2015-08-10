@@ -22,35 +22,35 @@ public class VersionFileTests : RepoTestBase
     }
 
     [Fact]
-    public void IsVersionFilePresent_Commit_Null()
+    public void IsVersionDefined_Commit_Null()
     {
-        Assert.False(VersionFile.IsVersionFilePresent((Commit)null));
+        Assert.False(VersionFile.IsVersionDefined((Commit)null));
     }
 
     [Fact]
-    public void IsVersionFilePresent_String_NullOrEmpty()
+    public void IsVersionDefined_String_NullOrEmpty()
     {
-        Assert.Throws<ArgumentNullException>(() => VersionFile.IsVersionFilePresent((string)null));
-        Assert.Throws<ArgumentException>(() => VersionFile.IsVersionFilePresent(string.Empty));
+        Assert.Throws<ArgumentNullException>(() => VersionFile.IsVersionDefined((string)null));
+        Assert.Throws<ArgumentException>(() => VersionFile.IsVersionDefined(string.Empty));
     }
 
     [Fact]
-    public void IsVersionFilePresent_Commit()
+    public void IsVersionDefined_Commit()
     {
         this.InitializeSourceControl();
         this.AddCommits();
-        Assert.False(VersionFile.IsVersionFilePresent(this.Repo.Head.Commits.First()));
+        Assert.False(VersionFile.IsVersionDefined(this.Repo.Head.Commits.First()));
 
         this.WriteVersionFile();
 
         // Verify that we can find the version.txt file in the most recent commit,
         // But not in the initial commit.
-        Assert.True(VersionFile.IsVersionFilePresent(this.Repo.Head.Commits.First()));
-        Assert.False(VersionFile.IsVersionFilePresent(this.Repo.Head.Commits.Last()));
+        Assert.True(VersionFile.IsVersionDefined(this.Repo.Head.Commits.First()));
+        Assert.False(VersionFile.IsVersionDefined(this.Repo.Head.Commits.Last()));
     }
 
     [Fact]
-    public void IsVersionFilePresent_String_ConsiderAncestorFolders()
+    public void IsVersionDefined_String_ConsiderAncestorFolders()
     {
         // Construct a repo where versions are defined like this:
         /*   root <- 1.0
@@ -58,17 +58,17 @@ public class VersionFileTests : RepoTestBase
                     b <- 1.1
                          c    (inherits 1.1)
         */
-        VersionFile.WriteVersionFile(this.RepoPath, new Version(1, 0));
+        VersionFile.SetVersion(this.RepoPath, new Version(1, 0));
         string subDirA = Path.Combine(this.RepoPath, "a");
         string subDirAB = Path.Combine(subDirA, "b");
         string subDirABC = Path.Combine(subDirAB, "c");
         Directory.CreateDirectory(subDirABC);
-        VersionFile.WriteVersionFile(subDirAB, new Version(1, 1));
+        VersionFile.SetVersion(subDirAB, new Version(1, 1));
 
-        Assert.True(VersionFile.IsVersionFilePresent(subDirABC));
-        Assert.True(VersionFile.IsVersionFilePresent(subDirAB));
-        Assert.True(VersionFile.IsVersionFilePresent(subDirA));
-        Assert.True(VersionFile.IsVersionFilePresent(this.RepoPath));
+        Assert.True(VersionFile.IsVersionDefined(subDirABC));
+        Assert.True(VersionFile.IsVersionDefined(subDirAB));
+        Assert.True(VersionFile.IsVersionDefined(subDirA));
+        Assert.True(VersionFile.IsVersionDefined(this.RepoPath));
     }
 
     [Theory]
@@ -77,9 +77,9 @@ public class VersionFileTests : RepoTestBase
     [InlineData("2.3", "-beta")]
     [InlineData("2.3.0", "")]
     [InlineData("2.3.0", "-rc")]
-    public void WriteVersionFile_GetVersionFromFile(string expectedVersion, string expectedPrerelease)
+    public void SetVersion_GetVersionFromFile(string expectedVersion, string expectedPrerelease)
     {
-        string pathWritten = VersionFile.WriteVersionFile(this.RepoPath, new Version(expectedVersion), expectedPrerelease);
+        string pathWritten = VersionFile.SetVersion(this.RepoPath, new Version(expectedVersion), expectedPrerelease);
         Assert.Equal(Path.Combine(this.RepoPath, VersionFile.FileName), pathWritten);
 
         string[] actualFileContent = File.ReadAllLines(this.versionTxtPath);
@@ -89,27 +89,27 @@ public class VersionFileTests : RepoTestBase
         Assert.Equal(expectedVersion, actualFileContent[0]);
         Assert.Equal(expectedPrerelease ?? string.Empty, actualFileContent[1]);
 
-        SemanticVersion actualVersion = VersionFile.GetVersionFromFile(this.RepoPath);
+        SemanticVersion actualVersion = VersionFile.GetVersion(this.RepoPath);
 
         Assert.Equal(new Version(expectedVersion), actualVersion.Version);
         Assert.Equal(expectedPrerelease ?? string.Empty, actualVersion.UnstableTag);
     }
 
     [Fact]
-    public void GetVersionFromFile_Commit()
+    public void GetVersion_Commit()
     {
-        Assert.Null(VersionFile.GetVersionFromFile((Commit)null));
+        Assert.Null(VersionFile.GetVersion((Commit)null));
 
         this.InitializeSourceControl();
         this.WriteVersionFile();
-        SemanticVersion fromCommit = VersionFile.GetVersionFromFile(this.Repo.Head.Commits.First());
-        SemanticVersion fromFile = VersionFile.GetVersionFromFile(this.RepoPath);
+        SemanticVersion fromCommit = VersionFile.GetVersion(this.Repo.Head.Commits.First());
+        SemanticVersion fromFile = VersionFile.GetVersion(this.RepoPath);
         Assert.NotNull(fromCommit);
         Assert.Equal(fromFile, fromCommit);
     }
 
     [Fact]
-    public void GetVersionFromFile_String_FindsNearestFileInAncestorDirectories()
+    public void GetVersion_String_FindsNearestFileInAncestorDirectories()
     {
         // Construct a repo where versions are defined like this:
         /*   root <- 1.0
@@ -117,12 +117,12 @@ public class VersionFileTests : RepoTestBase
                     b <- 1.1
                          c    (inherits 1.1)
         */
-        VersionFile.WriteVersionFile(this.RepoPath, new Version(1, 0));
+        VersionFile.SetVersion(this.RepoPath, new Version(1, 0));
         string subDirA = Path.Combine(this.RepoPath, "a");
         string subDirAB = Path.Combine(subDirA, "b");
         string subDirABC = Path.Combine(subDirAB, "c");
         Directory.CreateDirectory(subDirABC);
-        VersionFile.WriteVersionFile(subDirAB, new Version(1, 1));
+        VersionFile.SetVersion(subDirAB, new Version(1, 1));
         this.InitializeSourceControl();
         var commit = this.Repo.Head.Commits.First();
 
@@ -133,19 +133,19 @@ public class VersionFileTests : RepoTestBase
     }
 
     [Fact]
-    public void GetVersionFromFile_String_MissingFile()
+    public void GetVersion_String_MissingFile()
     {
-        Assert.Null(VersionFile.GetVersionFromFile(this.RepoPath));
+        Assert.Null(VersionFile.GetVersion(this.RepoPath));
     }
 
     private void AssertPathHasVersion(Commit commit, string absolutePath, Version expected)
     {
-        var actual = VersionFile.GetVersionFromFile(absolutePath)?.Version;
+        var actual = VersionFile.GetVersion(absolutePath)?.Version;
         Assert.Equal(expected, actual);
 
         // Pass in the repo-relative path to ensure the commit is used as the data source.
         string relativePath = absolutePath.Substring(this.RepoPath.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        actual = VersionFile.GetVersionFromFile(commit, relativePath)?.Version;
+        actual = VersionFile.GetVersion(commit, relativePath)?.Version;
         Assert.Equal(expected, actual);
     }
 }

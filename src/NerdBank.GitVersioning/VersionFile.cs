@@ -21,7 +21,7 @@ namespace NerdBank.GitVersioning
         /// <param name="commit">The commit to read the version file from.</param>
         /// <param name="repoRelativeProjectDirectory">The directory to consider when searching for the version.txt file.</param>
         /// <returns>The version information read from the file.</returns>
-        public static SemanticVersion GetVersionFromFile(LibGit2Sharp.Commit commit, string repoRelativeProjectDirectory = null)
+        public static SemanticVersion GetVersion(LibGit2Sharp.Commit commit, string repoRelativeProjectDirectory = null)
         {
             if (commit == null)
             {
@@ -41,7 +41,7 @@ namespace NerdBank.GitVersioning
         /// </summary>
         /// <param name="projectDirectory">The path to the directory which may (or its ancestors may) define the version.txt file.</param>
         /// <returns>The version information read from the file, or <c>null</c> if the file wasn't found.</returns>
-        public static SemanticVersion GetVersionFromFile(string projectDirectory)
+        public static SemanticVersion GetVersion(string projectDirectory)
         {
             Requires.NotNullOrEmpty(projectDirectory, nameof(projectDirectory));
 
@@ -69,9 +69,9 @@ namespace NerdBank.GitVersioning
         /// <param name="commit">The commit to search.</param>
         /// <param name="projectDirectory">The directory to consider when searching for the version.txt file.</param>
         /// <returns><c>true</c> if the version.txt file is found; otherwise <c>false</c>.</returns>
-        public static bool IsVersionFilePresent(LibGit2Sharp.Commit commit, string projectDirectory = null)
+        public static bool IsVersionDefined(LibGit2Sharp.Commit commit, string projectDirectory = null)
         {
-            return GetVersionFromFile(commit, projectDirectory) != null;
+            return GetVersion(commit, projectDirectory) != null;
         }
 
         /// <summary>
@@ -80,11 +80,11 @@ namespace NerdBank.GitVersioning
         /// </summary>
         /// <param name="projectDirectory">The directory to start searching within.</param>
         /// <returns><c>true</c> if the version.txt file is found; otherwise <c>false</c>.</returns>
-        public static bool IsVersionFilePresent(string projectDirectory)
+        public static bool IsVersionDefined(string projectDirectory)
         {
             Requires.NotNullOrEmpty(projectDirectory, nameof(projectDirectory));
 
-            return GetVersionFromFile(projectDirectory) != null;
+            return GetVersion(projectDirectory) != null;
         }
 
         /// <summary>
@@ -98,7 +98,7 @@ namespace NerdBank.GitVersioning
         /// <param name="version">The version information to write to the file.</param>
         /// <param name="prerelease">The prerelease tag, starting with a hyphen per semver rules. May be the empty string or null.</param>
         /// <returns>The path to the file written.</returns>
-        public static string WriteVersionFile(string projectDirectory, Version version, string prerelease = "")
+        public static string SetVersion(string projectDirectory, Version version, string prerelease = "")
         {
             Requires.NotNullOrEmpty(projectDirectory, nameof(projectDirectory));
             Requires.NotNull(version, nameof(version));

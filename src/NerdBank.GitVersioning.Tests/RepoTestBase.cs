@@ -70,7 +70,7 @@
 
         protected void WriteVersionFile(string version = "1.2", string prerelease = "")
         {
-            VersionFile.WriteVersionFile(this.RepoPath, new System.Version(version), prerelease);
+            VersionFile.SetVersion(this.RepoPath, new System.Version(version), prerelease);
 
             if (this.Repo != null)
             {
