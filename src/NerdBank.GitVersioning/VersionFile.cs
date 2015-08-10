@@ -19,15 +19,16 @@ namespace NerdBank.GitVersioning
         /// Reads the version.txt file and returns the <see cref="Version"/> and prerelease tag from it.
         /// </summary>
         /// <param name="commit">The commit to read the version file from.</param>
+        /// <param name="repoRelativeProjectDirectory">The directory to consider when searching for the version.txt file.</param>
         /// <returns>The version information read from the file.</returns>
-        public static SemanticVersion GetVersionFromFile(LibGit2Sharp.Commit commit)
+        public static SemanticVersion GetVersionFromFile(LibGit2Sharp.Commit commit, string repoRelativeProjectDirectory = null)
         {
             if (commit == null)
             {
                 return null;
             }
 
-            using (var content = GetVersionFileReader(commit))
+            using (var content = GetVersionFileReader(commit, repoRelativeProjectDirectory))
             {
                 return content != null
                     ? ReadVersionFile(content)
@@ -38,19 +39,25 @@ namespace NerdBank.GitVersioning
         /// <summary>
         /// Reads the version.txt file and returns the <see cref="Version"/> and prerelease tag from it.
         /// </summary>
-        /// <param name="repoRoot">The path to the directory in which to find the version.txt file.</param>
+        /// <param name="projectDirectory">The path to the directory which may (or its ancestors may) define the version.txt file.</param>
         /// <returns>The version information read from the file, or <c>null</c> if the file wasn't found.</returns>
-        public static SemanticVersion GetVersionFromFile(string repoRoot)
+        public static SemanticVersion GetVersionFromFile(string projectDirectory)
         {
-            Requires.NotNullOrEmpty(repoRoot, nameof(repoRoot));
+            Requires.NotNullOrEmpty(projectDirectory, nameof(projectDirectory));
 
-            string versionTxtPath = Path.Combine(repoRoot, FileName);
-            if (File.Exists(versionTxtPath))
+            string searchDirectory = projectDirectory;
+            while (searchDirectory != null)
             {
-                using (var sr = new StreamReader(versionTxtPath))
+                string versionTxtPath = Path.Combine(searchDirectory, FileName);
+                if (File.Exists(versionTxtPath))
                 {
-                    return ReadVersionFile(sr);
+                    using (var sr = new StreamReader(versionTxtPath))
+                    {
+                        return ReadVersionFile(sr);
+                    }
                 }
+
+                searchDirectory = Path.GetDirectoryName(searchDirectory);
             }
 
             return null;
@@ -60,40 +67,71 @@ namespace NerdBank.GitVersioning
         /// Checks whether the version.txt file is defined in the specified commit.
         /// </summary>
         /// <param name="commit">The commit to search.</param>
+        /// <param name="projectDirectory">The directory to consider when searching for the version.txt file.</param>
         /// <returns><c>true</c> if the version.txt file is found; otherwise <c>false</c>.</returns>
-        public static bool IsVersionFilePresent(LibGit2Sharp.Commit commit)
+        public static bool IsVersionFilePresent(LibGit2Sharp.Commit commit, string projectDirectory = null)
         {
-            return commit?.Tree[FileName] != null;
+            return GetVersionFromFile(commit, projectDirectory) != null;
+        }
+
+        /// <summary>
+        /// Checks whether the version.txt file is defined in the specified project directory
+        /// or one of its ancestors.
+        /// </summary>
+        /// <param name="projectDirectory">The directory to start searching within.</param>
+        /// <returns><c>true</c> if the version.txt file is found; otherwise <c>false</c>.</returns>
+        public static bool IsVersionFilePresent(string projectDirectory)
+        {
+            Requires.NotNullOrEmpty(projectDirectory, nameof(projectDirectory));
+
+            return GetVersionFromFile(projectDirectory) != null;
         }
 
         /// <summary>
         /// Writes the version.txt file to the root of a repo with the specified version information.
         /// </summary>
-        /// <param name="repoRoot">The path to the root of the repo.</param>
+        /// <param name="projectDirectory">
+        /// The path to the directory in which to write the version.txt file.
+        /// The file's impact will be all descendent projects and directories from this specified directory,
+        /// except where any of those directories have their own version.txt file.
+        /// </param>
         /// <param name="version">The version information to write to the file.</param>
         /// <param name="prerelease">The prerelease tag, starting with a hyphen per semver rules. May be the empty string or null.</param>
         /// <returns>The path to the file written.</returns>
-        public static string WriteVersionFile(string repoRoot, Version version, string prerelease = "")
+        public static string WriteVersionFile(string projectDirectory, Version version, string prerelease = "")
         {
-            Requires.NotNullOrEmpty(repoRoot, nameof(repoRoot));
+            Requires.NotNullOrEmpty(projectDirectory, nameof(projectDirectory));
             Requires.NotNull(version, nameof(version));
 
-            string versionTxtPath = Path.Combine(repoRoot, FileName);
+            string versionTxtPath = Path.Combine(projectDirectory, FileName);
             File.WriteAllLines(
                 versionTxtPath,
                 new[] { version.ToString(), prerelease });
-            return Path.Combine(repoRoot, FileName);
+            return Path.Combine(projectDirectory, FileName);
         }
 
         /// <summary>
         /// Reads the version.txt file that is in the specified commit.
         /// </summary>
         /// <param name="commit">The commit to read the version file from.</param>
+        /// <param name="repoRelativeProjectDirectory">The directory to consider when searching for the version.txt file.</param>
         /// <returns>A text reader with the content of the version.txt file.</returns>
-        private static TextReader GetVersionFileReader(LibGit2Sharp.Commit commit)
+        private static TextReader GetVersionFileReader(LibGit2Sharp.Commit commit, string repoRelativeProjectDirectory)
         {
-            var versionTxtBlob = commit.Tree[FileName]?.Target as LibGit2Sharp.Blob;
-            return versionTxtBlob != null ? new StreamReader(versionTxtBlob.GetContentStream()) : null;
+            string searchDirectory = repoRelativeProjectDirectory ?? string.Empty;
+            while (searchDirectory != null)
+            {
+                string candidatePath = Path.Combine(searchDirectory, FileName);
+                var versionTxtBlob = commit.Tree[candidatePath]?.Target as LibGit2Sharp.Blob;
+                if (versionTxtBlob != null)
+                {
+                    return new StreamReader(versionTxtBlob.GetContentStream());
+                }
+
+                searchDirectory = searchDirectory.Length > 0 ? Path.GetDirectoryName(searchDirectory) : null;
+            }
+
+            return null;
         }
 
         /// <summary>
