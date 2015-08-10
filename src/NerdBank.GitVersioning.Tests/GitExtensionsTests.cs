@@ -137,6 +137,37 @@ public class GitExtensionsTests : RepoTestBase
     }
 
     [Fact]
+    public void GetIdAsVersion_Roundtrip_WithSubdirectoryVersionFiles()
+    {
+        var rootVersionExpected = new Version(1, 0);
+        VersionFile.SetVersion(this.RepoPath, rootVersionExpected);
+
+        var subPathVersionExpected = new Version(1, 1);
+        const string subPathRelative = "a";
+        string subPath = Path.Combine(this.RepoPath, subPathRelative);
+        Directory.CreateDirectory(subPath);
+        VersionFile.SetVersion(subPath, subPathVersionExpected);
+
+        this.InitializeSourceControl();
+
+        Commit head = this.Repo.Head.Commits.First();
+        Version rootVersionActual = head.GetIdAsVersion();
+        Version subPathVersionActual = head.GetIdAsVersion(subPathRelative);
+
+        // Verify that the versions calculated took the path into account.
+        Assert.Equal(rootVersionExpected.Minor, rootVersionActual?.Minor);
+        Assert.Equal(subPathVersionExpected.Minor, subPathVersionActual?.Minor);
+
+        // Verify that we can find the commit given the version and path.
+        Assert.Equal(head, this.Repo.GetCommitFromVersion(rootVersionActual));
+        Assert.Equal(head, this.Repo.GetCommitFromVersion(subPathVersionActual, subPathRelative));
+
+        // Verify that mismatching path and version results in a null value.
+        Assert.Null(this.Repo.GetCommitFromVersion(rootVersionActual, subPathRelative));
+        Assert.Null(this.Repo.GetCommitFromVersion(subPathVersionActual));
+    }
+
+    [Fact]
     public void GetIdAsVersion_FitsInsideCompilerConstraints()
     {
         this.WriteVersionFile("2.5");

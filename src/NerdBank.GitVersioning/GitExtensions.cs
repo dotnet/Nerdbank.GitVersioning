@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
@@ -103,6 +104,7 @@
         /// so that the original commit can be found later.
         /// </summary>
         /// <param name="commit">The commit whose ID and position in history is to be encoded.</param>
+        /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
         /// <returns>
         /// A version whose <see cref="Version.Build"/> and
         /// <see cref="Version.Revision"/> components are calculated based on the commit.
@@ -112,18 +114,19 @@
         /// the height of the git commit while the <see cref="Version.Revision"/>
         /// component is the first four bytes of the git commit id (forced to be a positive integer).
         /// </remarks>
-        public static Version GetIdAsVersion(this Commit commit)
+        public static Version GetIdAsVersion(this Commit commit, string repoRelativeProjectDirectory = null)
         {
             Requires.NotNull(commit, nameof(commit));
+            Requires.Argument(repoRelativeProjectDirectory == null || !Path.IsPathRooted(repoRelativeProjectDirectory), nameof(repoRelativeProjectDirectory), "Path should be relative to repo root.");
 
-            var baseVersion = VersionFile.GetVersion(commit)?.Version ?? Version0;
+            var baseVersion = VersionFile.GetVersion(commit, repoRelativeProjectDirectory)?.Version ?? Version0;
 
             // The compiler (due to WinPE header requirements) only allows 16-bit version components,
             // and forbids 0xffff as a value.
             // The build number is set to the git height. This helps ensure that
             // within a major.minor release, each patch has an incrementing integer.
             // The revision is set to the first two bytes of the git commit ID.
-            int build = commit.GetHeight(c => CommitMatchesMajorMinorVersion(c, baseVersion));
+            int build = commit.GetHeight(c => CommitMatchesMajorMinorVersion(c, baseVersion, repoRelativeProjectDirectory));
             Verify.Operation(build <= MaximumBuildNumberOrRevisionComponent, "Git height is {0}, which is greater than the maximum allowed {0}.", build, MaximumBuildNumberOrRevisionComponent);
             int revision = Math.Min(MaximumBuildNumberOrRevisionComponent, commit.GetTruncatedCommitIdAsUInt16());
 
@@ -134,24 +137,28 @@
         /// Looks up the commit that matches a specified version number.
         /// </summary>
         /// <param name="repo">The repository to search for a matching commit.</param>
-        /// <param name="version">The version previously obtained from <see cref="GetIdAsVersion(Commit)"/>.</param>
+        /// <param name="version">The version previously obtained from <see cref="GetIdAsVersion(Commit, string)"/>.</param>
+        /// <param name="repoRelativeProjectDirectory">
+        /// The repo-relative project directory from which <paramref name="version"/> was originally calculated.
+        /// </param>
         /// <returns>The matching commit, or <c>null</c> if no match is found.</returns>
         /// <exception cref="InvalidOperationException">
         /// Thrown in the very rare situation that more than one matching commit is found.
         /// </exception>
-        public static Commit GetCommitFromVersion(this Repository repo, Version version)
+        public static Commit GetCommitFromVersion(this Repository repo, Version version, string repoRelativeProjectDirectory = null)
         {
             // Note we'll accept no match, or one match. But we throw if there is more than one match.
-            return GetCommitsFromVersion(repo, version).SingleOrDefault();
+            return GetCommitsFromVersion(repo, version, repoRelativeProjectDirectory).SingleOrDefault();
         }
 
         /// <summary>
         /// Looks up the commits that match a specified version number.
         /// </summary>
         /// <param name="repo">The repository to search for a matching commit.</param>
-        /// <param name="version">The version previously obtained from <see cref="GetIdAsVersion(Commit)"/>.</param>
+        /// <param name="version">The version previously obtained from <see cref="GetIdAsVersion(Commit, string)"/>.</param>
+        /// <param name="repoRelativeProjectDirectory">The repo-relative project directory from which <paramref name="version"/> was originally calculated.</param>
         /// <returns>The matching commits, or an empty enumeration if no match is found.</returns>
-        public static IEnumerable<Commit> GetCommitsFromVersion(this Repository repo, Version version)
+        public static IEnumerable<Commit> GetCommitsFromVersion(this Repository repo, Version version, string repoRelativeProjectDirectory)
         {
             Requires.NotNull(repo, nameof(repo));
             Requires.NotNull(version, nameof(version));
@@ -166,7 +173,7 @@
 
             var possibleCommits = from commit in GetCommitsReachableFromRefs(repo)
                                   where commit.Id.StartsWith(objectIdLeadingValue, objectIdMask)
-                                  where commit.GetHeight(c => CommitMatchesMajorMinorVersion(c, version)) == height
+                                  where commit.GetHeight(c => CommitMatchesMajorMinorVersion(c, version, repoRelativeProjectDirectory)) == height
                                   select commit;
 
             return possibleCommits;
@@ -178,13 +185,14 @@
         /// </summary>
         /// <param name="commit">The commit to test.</param>
         /// <param name="expectedVersion">The version to test for in the commit</param>
+        /// <param name="repoRelativeProjectDirectory">The repo-relative directory from which <paramref name="expectedVersion"/> was originally calculated.</param>
         /// <returns><c>true</c> if the <paramref name="commit"/> matches the major and minor components of <paramref name="expectedVersion"/>.</returns>
-        private static bool CommitMatchesMajorMinorVersion(Commit commit, Version expectedVersion)
+        private static bool CommitMatchesMajorMinorVersion(Commit commit, Version expectedVersion, string repoRelativeProjectDirectory)
         {
             Requires.NotNull(commit, nameof(commit));
             Requires.NotNull(expectedVersion, nameof(expectedVersion));
 
-            Version majorMinorFromFile = VersionFile.GetVersion(commit)?.Version ?? Version0;
+            Version majorMinorFromFile = VersionFile.GetVersion(commit, repoRelativeProjectDirectory)?.Version ?? Version0;
             return majorMinorFromFile?.Major == expectedVersion.Major && majorMinorFromFile?.Minor == expectedVersion.Minor;
         }
 
