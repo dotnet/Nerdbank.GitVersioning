@@ -99,7 +99,15 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal(commitIdShort, buildResult.GitCommitIdShort);
         Assert.Equal(height.ToString(), buildResult.GitHeight);
         Assert.Equal($"{version.Major}.{version.Minor}", buildResult.MajorMinorVersion);
-        Assert.Equal($"{version.Major}.{version.Minor}.0{prerelease}-g{commitIdShort}", buildResult.NuGetPackageVersion);
+        if (string.IsNullOrEmpty(prerelease))
+        {
+            Assert.Equal($"{version.Major}.{version.Minor}.{buildResult.GitHeight}", buildResult.NuGetPackageVersion);
+        }
+        else
+        {
+            Assert.Equal($"{version.Major}.{version.Minor}.{buildResult.GitHeight}{prerelease}-g{commitIdShort}", buildResult.NuGetPackageVersion);
+        }
+
         Assert.Equal(prerelease, buildResult.PrereleaseVersion);
         Assert.Equal($"+g{commitIdShort}", buildResult.SemVerBuildSuffix);
     }

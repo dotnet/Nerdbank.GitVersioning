@@ -14,17 +14,6 @@
     </CoreCompileDependsOn>
 
     <GitVersioningTxtFile Condition=" '$(GitVersioningTxtFile)' == '' and '$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildProjectDirectory), version.txt))' != '' ">$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildProjectDirectory), version.txt))\version.txt</GitVersioningTxtFile>
-
-    <!--
-    This should only be true in the one release branch we intend to ship from.
-    It is important that only one branch ever have this set to true at a time. 
-    To enforce this, without causing undue extra process in merging release branches
-    back into development branches, we simply set it to false always.
-    The build definition that builds releases can set this property to true via
-    a global property (msbuild /p:UseNonZeroBuildNumber=true), which overrides
-    our own definition here.
-    -->
-    <UseNonZeroBuildNumber>false</UseNonZeroBuildNumber>
   </PropertyGroup>
 
   <UsingTask AssemblyFile="MSBuild.Community.Tasks.dll" TaskName="AssemblyInfo"/>
@@ -61,21 +50,11 @@
       <AssemblyInformationalVersion>$(MajorMinorVersion).$(BuildNumberFirstAndSecondComponentsIfApplicable)$(PrereleaseVersion)$(SemVerBuildSuffix)</AssemblyInformationalVersion>
       <AssemblyFileVersion>$(BuildVersion)</AssemblyFileVersion>
       <AssemblyVersion>$(MajorMinorVersion)</AssemblyVersion>
+      <NuGetPackageVersion>$(BuildVersion3Components)$(PrereleaseVersion)</NuGetPackageVersion>
 
-      <!-- In release branches, we want to include the build number.
-           This is both because we want a more customary package number for public viewing and because these will build
-           on a daily build server on a single branch. 
-           Otherwise We use just major.minor rather than including build number so that building is reproducible 
-           across machines and dates. -->
-      <NuGetPackageVersion Condition=" '$(UseNonZeroBuildNumber)' == 'true' ">$(BuildVersion3Components)</NuGetPackageVersion>
-      <NuGetPackageVersion Condition=" '$(UseNonZeroBuildNumber)' != 'true' ">$(MajorMinorVersion).0</NuGetPackageVersion>
-
-      <!-- append the prerelease version when non-empty-->
-      <NuGetPackageVersion>$(NuGetPackageVersion)$(PrereleaseVersion)</NuGetPackageVersion>
-
-      <!-- When we're not using build numbers, append the git commit id.
+      <!-- For prerelease versions, append the git commit id.
            The 'g' prefix allows tooling to recognize that a git commit ID follows. -->
-      <NuGetPackageVersion Condition=" '$(UseNonZeroBuildNumber)' != 'true' ">$(NuGetPackageVersion)-g$(GitCommitIdShort)</NuGetPackageVersion>
+      <NuGetPackageVersion Condition=" '$(PrereleaseVersion)' != '' ">$(NuGetPackageVersion)-g$(GitCommitIdShort)</NuGetPackageVersion>
     </PropertyGroup>
 
     <Warning Condition=" '$(AssemblyInformationalVersion)' == '' " Text="Unable to determine the git HEAD commit ID to use for informational version number." />
