@@ -1,4 +1,4 @@
-﻿namespace NerdBank.GitVersioning
+﻿namespace Nerdbank.GitVersioning
 {
     using System;
     using Validation;

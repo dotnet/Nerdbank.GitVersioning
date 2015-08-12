@@ -8,8 +8,8 @@
     <ProjectGuid>{50D7B410-D986-499A-9FD1-FBBB55B095BD}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>NerdBank.GitVersioning</RootNamespace>
-    <AssemblyName>NerdBank.GitVersioning</AssemblyName>
+    <RootNamespace>Nerdbank.GitVersioning</RootNamespace>
+    <AssemblyName>Nerdbank.GitVersioning</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <NuGetPackageImportStamp>
@@ -24,7 +24,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <DocumentationFile>..\..\bin\Debug\NerdBank.GitVersioning.XML</DocumentationFile>
+    <DocumentationFile>..\..\bin\Debug\Nerdbank.GitVersioning.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -33,7 +33,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <DocumentationFile>..\..\bin\Release\NerdBank.GitVersioning.XML</DocumentationFile>
+    <DocumentationFile>..\..\bin\Release\Nerdbank.GitVersioning.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="LibGit2Sharp, Version=0.21.0.176, Culture=neutral, processorArchitecture=MSIL">

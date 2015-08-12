@@ -1,5 +1,4 @@
-﻿using Validation;
-namespace NerdBank.GitVersioning
+﻿namespace Nerdbank.GitVersioning
 {
     using System;
     using System.IO;

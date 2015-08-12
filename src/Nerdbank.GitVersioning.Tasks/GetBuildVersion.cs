@@ -9,7 +9,7 @@
     using System.Text;
     using Microsoft.Build.Framework;
     using Microsoft.Build.Utilities;
-    using NerdBank.GitVersioning;
+    using Nerdbank.GitVersioning;
 
     public class GetBuildVersion : Task
     {
@@ -91,7 +91,7 @@
                     this.GitCommitId = commit?.Id.Sha ?? string.Empty;
                     this.GitHeight = commit?.GetHeight() ?? 0;
 
-                    SemanticVersion v = NerdBank.GitVersioning.VersionFile.GetVersion(commit);
+                    SemanticVersion v = GitVersioning.VersionFile.GetVersion(commit);
                     this.PrereleaseVersion = v.UnstableTag;
 
                     // Override the typedVersion with the special build number and revision components.

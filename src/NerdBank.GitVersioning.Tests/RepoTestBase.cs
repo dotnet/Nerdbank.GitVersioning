@@ -1,4 +1,4 @@
-﻿namespace NerdBank.GitVersioning.Tests
+﻿namespace Nerdbank.GitVersioning.Tests
 {
     using System;
     using System.Collections.Generic;
