@@ -74,6 +74,18 @@ public class BuildIntegrationTests : RepoTestBase
     }
 
     [Fact]
+    public async Task GetBuildVersion_In_Git_But_Head_Lacks_VersionFile()
+    {
+        Repository.Init(this.RepoPath);
+        var repo = new Repository(this.RepoPath); // do not assign Repo property to avoid commits being generated later
+        repo.Commit("empty", new CommitOptions { AllowEmptyCommit = true });
+        this.WriteVersionFile("3.4");
+        var buildResult = await this.BuildAsync();
+        Assert.Equal("0.0.1." + repo.Head.Commits.First().GetIdAsVersion().Revision, buildResult.BuildVersion);
+        Assert.Equal("0.0.1+g" + repo.Head.Commits.First().Id.Sha.Substring(0, 10), buildResult.AssemblyInformationalVersion);
+    }
+
+    [Fact]
     public async Task GetBuildVersion_StableVersion()
     {
         const string majorMinorVersion = "5.8";

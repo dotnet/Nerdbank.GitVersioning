@@ -91,15 +91,9 @@
                     this.GitCommitId = commit?.Id.Sha ?? string.Empty;
                     this.GitHeight = commit?.GetHeight() ?? 0;
 
-                    SemanticVersion v;
-                    if (commit != null)
-                    {
-                        v = GitVersioning.VersionFile.GetVersion(commit);
-                    }
-                    else
-                    {
-                        v = GitVersioning.VersionFile.GetVersion(this.GitRepoPath);
-                    }
+                    SemanticVersion v =
+                        GitVersioning.VersionFile.GetVersion(commit) ??
+                        GitVersioning.VersionFile.GetVersion(this.GitRepoPath);
 
                     this.PrereleaseVersion = v.UnstableTag;
 
