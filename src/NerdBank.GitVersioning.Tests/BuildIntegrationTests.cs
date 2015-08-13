@@ -63,6 +63,17 @@ public class BuildIntegrationTests : RepoTestBase
     }
 
     [Fact]
+    public async Task GetBuildVersion_In_Git_But_Without_Commits()
+    {
+        Repository.Init(this.RepoPath);
+        var repo = new Repository(this.RepoPath); // do not assign Repo property to avoid commits being generated later
+        this.WriteVersionFile("3.4");
+        var buildResult = await this.BuildAsync();
+        Assert.Equal("3.4", buildResult.BuildVersion);
+        Assert.Equal("3.4.0", buildResult.AssemblyInformationalVersion);
+    }
+
+    [Fact]
     public async Task GetBuildVersion_StableVersion()
     {
         const string majorMinorVersion = "5.8";
