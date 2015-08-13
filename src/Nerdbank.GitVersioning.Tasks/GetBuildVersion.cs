@@ -113,7 +113,7 @@
                     : new Version(typedVersion.Major, typedVersion.Minor);
                 this.SimpleVersion = typedVersionWithoutRevision.ToString();
                 this.MajorMinorVersion = new Version(typedVersion.Major, typedVersion.Minor).ToString();
-                this.BuildNumber = typedVersion.Build;
+                this.BuildNumber = Math.Max(0, typedVersion.Build);
                 this.Version = typedVersion.ToString();
             }
             catch (ArgumentOutOfRangeException ex)

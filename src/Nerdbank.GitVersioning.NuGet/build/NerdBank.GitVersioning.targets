@@ -44,7 +44,7 @@
       <GitCommitId Condition=" '$(GitCommitId)' == '' ">$(BUILD_VCS_NUMBER)</GitCommitId>
 
       <GitCommitIdShort Condition=" '$(GitCommitId)' != '' ">$(GitCommitId.Substring(0,10))</GitCommitIdShort>
-      <SemVerBuildSuffix>+g$(GitCommitIdShort)</SemVerBuildSuffix>
+      <SemVerBuildSuffix Condition=" '$(GitCommitIdShort)' != '' ">+g$(GitCommitIdShort)</SemVerBuildSuffix>
 
       <BuildVersion3Components>$(MajorMinorVersion).$(BuildNumberFirstComponent)</BuildVersion3Components>
       <AssemblyInformationalVersion>$(MajorMinorVersion).$(BuildNumberFirstAndSecondComponentsIfApplicable)$(PrereleaseVersion)$(SemVerBuildSuffix)</AssemblyInformationalVersion>

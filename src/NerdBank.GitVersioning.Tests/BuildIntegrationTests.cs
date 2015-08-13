@@ -58,9 +58,8 @@ public class BuildIntegrationTests : RepoTestBase
     {
         this.WriteVersionFile("3.4");
         var buildResult = await this.BuildAsync();
-        Assert.Equal(
-            "3.4",
-            buildResult.BuildVersion);
+        Assert.Equal("3.4", buildResult.BuildVersion);
+        Assert.Equal("3.4.0", buildResult.AssemblyInformationalVersion);
     }
 
     [Fact]
