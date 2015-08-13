@@ -50,6 +50,8 @@
       <Link>build\MSBuild.Community.Tasks.dll</Link>
     </Content>
     <Content Include="build\NerdBank.GitVersioning.targets" />
+    <Content Include="tools\Get-Version.ps1" />
+    <Content Include="tools\Get-CommitId.ps1" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\NerdBank.GitVersioning.Tasks\Nerdbank.GitVersioning.Tasks.csproj">
