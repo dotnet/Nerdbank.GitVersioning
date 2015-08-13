@@ -54,6 +54,16 @@ public class BuildIntegrationTests : RepoTestBase
     }
 
     [Fact]
+    public async Task GetBuildVersion_Without_Git()
+    {
+        this.WriteVersionFile("3.4");
+        var buildResult = await this.BuildAsync();
+        Assert.Equal(
+            "3.4",
+            buildResult.BuildVersion);
+    }
+
+    [Fact]
     public async Task GetBuildVersion_StableVersion()
     {
         const string majorMinorVersion = "5.8";

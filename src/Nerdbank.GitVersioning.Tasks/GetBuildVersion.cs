@@ -91,15 +91,27 @@
                     this.GitCommitId = commit?.Id.Sha ?? string.Empty;
                     this.GitHeight = commit?.GetHeight() ?? 0;
 
-                    SemanticVersion v = GitVersioning.VersionFile.GetVersion(commit);
+                    SemanticVersion v;
+                    if (commit != null)
+                    {
+                        v = GitVersioning.VersionFile.GetVersion(commit);
+                    }
+                    else
+                    {
+                        v = GitVersioning.VersionFile.GetVersion(this.GitRepoPath);
+                    }
+
                     this.PrereleaseVersion = v.UnstableTag;
 
-                    // Override the typedVersion with the special build number and revision components.
-                    typedVersion = commit?.GetIdAsVersion();
+                    // Override the typedVersion with the special build number and revision components, when available.
+                    typedVersion = commit?.GetIdAsVersion() ?? v.Version;
                 }
 
                 typedVersion = typedVersion ?? new Version();
-                this.SimpleVersion = new Version(typedVersion.Major, typedVersion.Minor, typedVersion.Build).ToString();
+                var typedVersionWithoutRevision = typedVersion.Build > 0
+                    ? new Version(typedVersion.Major, typedVersion.Minor, typedVersion.Build)
+                    : new Version(typedVersion.Major, typedVersion.Minor);
+                this.SimpleVersion = typedVersionWithoutRevision.ToString();
                 this.MajorMinorVersion = new Version(typedVersion.Major, typedVersion.Minor).ToString();
                 this.BuildNumber = typedVersion.Build;
                 this.Version = typedVersion.ToString();
