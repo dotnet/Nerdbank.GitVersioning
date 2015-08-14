@@ -144,11 +144,11 @@ number your assembly will be assigned.
 Given the same settings as used in the discussion above, a NuGet package may be
 assigned this version: 
 
-    1.0.0-alpha-g9a7eb6c819
+    1.0.24-alpha-g9a7eb6c819
 
-When built with the `/p:UseNonZeroBuildNumber=true` switch, the NuGet version becomes:
+When built with the `/p:PublicRelease=true` switch, the NuGet version becomes:
 
-    1.0.15136-alpha
+    1.0.24-alpha
 
 ## Frequently asked questions
 
