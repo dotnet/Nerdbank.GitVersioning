@@ -72,7 +72,7 @@
       <UltimateResourceFallbackLocation Condition=" '$(DevDivProjectSubType)' != 'portable' ">UltimateResourceFallbackLocation.MainAssembly</UltimateResourceFallbackLocation>
     </PropertyGroup>
     <MakeDir Directories="$(IntermediatePath)"/>
-    <AssemblyInfo OutputFile="$(NewVersionCsFile)" CodeLanguage="C#"
+    <AssemblyInfo OutputFile="$(NewVersionCsFile)" CodeLanguage="$(Language)"
                   AssemblyVersion="$(AssemblyVersion)"
                   AssemblyFileVersion="$(AssemblyFileVersion)"
                   AssemblyInformationalVersion="$(AssemblyInformationalVersion)"
