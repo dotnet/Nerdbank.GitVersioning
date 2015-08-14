@@ -117,8 +117,8 @@ the git 'height' of the version, and the git commit ID.
 During the build it adds source code such as this to your compilation:
 
     [assembly: System.Reflection.AssemblyVersion("1.0")]
-    [assembly: System.Reflection.AssemblyFileVersion("1.0.15136")]
-    [assembly: System.Reflection.AssemblyInformationalVersion("1.0.15136-alpha+g9a7eb6c819")]
+    [assembly: System.Reflection.AssemblyFileVersion("1.0.24.15136")]
+    [assembly: System.Reflection.AssemblyInformationalVersion("1.0.24.15136-alpha+g9a7eb6c819")]
 
 The first and second integer components of the versions above come from the 
 version.txt file.
@@ -132,8 +132,8 @@ This class is also injected into your project at build time:
 
     internal sealed partial class ThisAssembly {
         internal const string AssemblyVersion = "1.0";
-        internal const string AssemblyFileVersion = "1.0.15136";
-        internal const string AssemblyInformationalVersion = "1.0.15136-alpha+g9a7eb6c819";
+        internal const string AssemblyFileVersion = "1.0.24.15136";
+        internal const string AssemblyInformationalVersion = "1.0.24.15136-alpha+g9a7eb6c819";
     }
 
 This allows you to actually write source code that can refer to the exact build
