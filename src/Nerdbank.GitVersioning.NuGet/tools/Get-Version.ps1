@@ -19,14 +19,19 @@ Param(
 )
 
 $DependencyBasePath = "$PSScriptRoot\..\build"
-[Reflection.Assembly]::LoadFile((Resolve-Path "$DependencyBasePath\Validation.dll"))
-[Reflection.Assembly]::LoadFile((Resolve-Path "$DependencyBasePath\NerdBank.GitVersioning.dll"))
-[Reflection.Assembly]::LoadFile((Resolve-Path "$DependencyBasePath\LibGit2Sharp.dll"))
+$null = [Reflection.Assembly]::LoadFile((Resolve-Path "$DependencyBasePath\Validation.dll"))
+$null = [Reflection.Assembly]::LoadFile((Resolve-Path "$DependencyBasePath\NerdBank.GitVersioning.dll"))
+$null = [Reflection.Assembly]::LoadFile((Resolve-Path "$DependencyBasePath\LibGit2Sharp.dll"))
 
 $ProjectDirectory = Resolve-Path $ProjectDirectory
 $GitPath = $ProjectDirectory
-while (!(Test-Path "$GitPath\.git")) {
+while (!(Test-Path "$GitPath\.git") -and $GitPath.Length -gt 0) {
     $GitPath = Split-Path $GitPath
+}
+
+if ($GitPath -eq '') {
+    Write-Error "Unable to find git repo in $ProjectDirectory."
+    return 1
 }
 
 $RepoRelativeProjectDirectory = $ProjectDirectory.Substring($GitPath.Length)
