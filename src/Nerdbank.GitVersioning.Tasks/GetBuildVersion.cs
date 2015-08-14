@@ -9,6 +9,7 @@
     using System.Text;
     using Microsoft.Build.Framework;
     using Microsoft.Build.Utilities;
+    using Nerdbank.GitVersioning;
 
     public class GetBuildVersion : Task
     {
@@ -50,19 +51,20 @@
         public string PrereleaseVersion { get; set; }
 
         /// <summary>
-        /// Gets or sets the version string to use for NuGet packages containing OAuth 2 components.
-        /// </summary>
-        [Output]
-        public string OAuth2PackagesVersion { get; set; }
-
-        /// <summary>
         /// Gets the Git revision control commit id for HEAD (the current source code version).
         /// </summary>
         [Output]
         public string GitCommitId { get; private set; }
 
         /// <summary>
-        /// Gets the build number (JDate) for this version.
+        /// Gets the number of commits in the longest single path between
+        /// head and the original commit (inclusive).
+        /// </summary>
+        [Output]
+        public int GitHeight { get; private set; }
+
+        /// <summary>
+        /// Gets the build number (git height) for this version.
         /// </summary>
         [Output]
         public int BuildNumber { get; private set; }
@@ -83,18 +85,30 @@
             try
             {
                 Version typedVersion;
-                string prerelease, oauth2PackagesVersion;
-                this.ReadVersionFromFile(out typedVersion, out prerelease, out oauth2PackagesVersion);
-                this.PrereleaseVersion = prerelease;
-                this.OAuth2PackagesVersion = oauth2PackagesVersion;
-                this.SimpleVersion = typedVersion.ToString();
+                using (var git = this.OpenGitRepo())
+                {
+                    var commit = git?.Head.Commits.FirstOrDefault();
+                    this.GitCommitId = commit?.Id.Sha ?? string.Empty;
+                    this.GitHeight = commit?.GetHeight() ?? 0;
+
+                    SemanticVersion v =
+                        GitVersioning.VersionFile.GetVersion(commit) ??
+                        GitVersioning.VersionFile.GetVersion(this.GitRepoPath);
+
+                    this.PrereleaseVersion = v.UnstableTag;
+
+                    // Override the typedVersion with the special build number and revision components, when available.
+                    typedVersion = commit?.GetIdAsVersion() ?? v.Version;
+                }
+
+                typedVersion = typedVersion ?? new Version();
+                var typedVersionWithoutRevision = typedVersion.Build > 0
+                    ? new Version(typedVersion.Major, typedVersion.Minor, typedVersion.Build)
+                    : new Version(typedVersion.Major, typedVersion.Minor);
+                this.SimpleVersion = typedVersionWithoutRevision.ToString();
                 this.MajorMinorVersion = new Version(typedVersion.Major, typedVersion.Minor).ToString();
-                this.BuildNumber = this.CalculateJDate(DateTime.Now);
-
-                var fullVersion = new Version(typedVersion.Major, typedVersion.Minor, typedVersion.Build, this.BuildNumber);
-                this.Version = fullVersion.ToString();
-
-                this.GitCommitId = GetGitHeadCommitId();
+                this.BuildNumber = Math.Max(0, typedVersion.Build);
+                this.Version = typedVersion.ToString();
             }
             catch (ArgumentOutOfRangeException ex)
             {
@@ -103,14 +117,6 @@
             }
 
             return true;
-        }
-
-        private string GetGitHeadCommitId()
-        {
-            using (var git = this.OpenGitRepo())
-            {
-                return git?.Lookup("HEAD").Sha ?? string.Empty;
-            }
         }
 
         private LibGit2Sharp.Repository OpenGitRepo()
@@ -131,51 +137,6 @@
             }
 
             return new LibGit2Sharp.Repository(repoRoot);
-        }
-
-        private void ReadVersionFromFile(out Version typedVersion, out string prereleaseVersion, out string oauth2PackagesVersion)
-        {
-            string[] lines = File.ReadAllLines(VersionFile);
-            string versionLine = lines[0];
-            prereleaseVersion = lines.Length >= 2 ? lines[1] : null;
-            oauth2PackagesVersion = lines.Length >= 3 ? lines[2] : null;
-            if (!String.IsNullOrEmpty(prereleaseVersion))
-            {
-                if (!prereleaseVersion.StartsWith("-"))
-                {
-                    // SemVer requires that prerelease suffixes begin with a hyphen, so add one if it's missing.
-                    prereleaseVersion = "-" + prereleaseVersion;
-                }
-
-                this.VerifyValidPrereleaseVersion(prereleaseVersion);
-            }
-
-            typedVersion = new Version(versionLine);
-        }
-
-        private int CalculateJDate(DateTime date)
-        {
-            int yearLastDigit = date.Year - 2000; // can actually be two digits in or after 2010
-            DateTime firstOfYear = new DateTime(date.Year, 1, 1);
-            int dayOfYear = (date - firstOfYear).Days + 1;
-            int jdate = yearLastDigit * 1000 + dayOfYear;
-            return jdate;
-        }
-
-        private void VerifyValidPrereleaseVersion(string prerelease)
-        {
-            if (prerelease[0] != '-')
-            {
-                throw new ArgumentOutOfRangeException("The prerelease string must begin with a hyphen.");
-            }
-
-            for (int i = 1; i < prerelease.Length; i++)
-            {
-                if (!char.IsLetterOrDigit(prerelease[i]))
-                {
-                    throw new ArgumentOutOfRangeException("The prerelease string must be alphanumeric.");
-                }
-            }
         }
     }
 }

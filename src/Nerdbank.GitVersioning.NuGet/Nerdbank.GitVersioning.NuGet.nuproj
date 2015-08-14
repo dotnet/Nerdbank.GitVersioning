@@ -15,7 +15,7 @@
   </PropertyGroup>
   <PropertyGroup>
     <VersionDependsOn>$(VersionDependsOn);GetNuPkgVersion</VersionDependsOn>
-    <NuProjPath Condition=" '$(NuProjPath)' == '' ">..\..\packages\NuProj.0.10.0-beta-gd6d4e1ff23\tools\</NuProjPath>
+    <NuProjPath>..\..\packages\NuProj.0.10.0-beta-gd6d4e1ff23\tools\</NuProjPath>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <OutDir>..\..\bin\$(Configuration)\</OutDir>
@@ -50,6 +50,8 @@
       <Link>build\MSBuild.Community.Tasks.dll</Link>
     </Content>
     <Content Include="build\NerdBank.GitVersioning.targets" />
+    <Content Include="tools\Get-Version.ps1" />
+    <Content Include="tools\Get-CommitId.ps1" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\NerdBank.GitVersioning.Tasks\Nerdbank.GitVersioning.Tasks.csproj">
