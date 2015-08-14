@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
   <PropertyGroup>
-    <VersionCsFile>$(IntermediateOutputPath)\$(AssemblyName).Version.cs</VersionCsFile>
+    <VersionSourceFile>$(IntermediateOutputPath)\$(AssemblyName).Version$(DefaultLanguageSourceExtension)</VersionSourceFile>
 
     <PrepareResourcesDependsOn>
       GenerateAssemblyInfo;
@@ -68,23 +68,23 @@
 
   <Target Name="GenerateAssemblyInfo" DependsOnTargets="GetBuildVersion">
     <PropertyGroup>
-      <NewVersionCsFile>$(VersionCsFile).new</NewVersionCsFile>
+      <NewVersionSourceFile>$(VersionSourceFile).new</NewVersionSourceFile>
       <UltimateResourceFallbackLocation Condition=" '$(DevDivProjectSubType)' != 'portable' ">UltimateResourceFallbackLocation.MainAssembly</UltimateResourceFallbackLocation>
     </PropertyGroup>
     <MakeDir Directories="$(IntermediatePath)"/>
-    <AssemblyInfo OutputFile="$(NewVersionCsFile)" CodeLanguage="$(Language)"
+    <AssemblyInfo OutputFile="$(NewVersionSourceFile)" CodeLanguage="$(Language)"
                   AssemblyVersion="$(AssemblyVersion)"
                   AssemblyFileVersion="$(AssemblyFileVersion)"
                   AssemblyInformationalVersion="$(AssemblyInformationalVersion)"
                   GenerateClass="true" />
     <!-- Avoid applying the newly generated AssemblyInfo.cs file to the build 
          unless it has changed in order to allow for incremental building. -->
-    <CompareFiles OriginalItems="$(VersionCsFile)" NewItems="$(NewVersionCsFile)">
+    <CompareFiles OriginalItems="$(VersionSourceFile)" NewItems="$(NewVersionSourceFile)">
       <Output TaskParameter="AreChanged" PropertyName="AssemblyInfoChanged" />
     </CompareFiles>
-    <Copy Condition=" '$(AssemblyInfoChanged)' == 'true' " SourceFiles="$(NewVersionCsFile)" DestinationFiles="$(VersionCsFile)" />
+    <Copy Condition=" '$(AssemblyInfoChanged)' == 'true' " SourceFiles="$(NewVersionSourceFile)" DestinationFiles="$(VersionSourceFile)" />
     <ItemGroup>
-      <Compile Include="$(VersionCsFile)" />
+      <Compile Include="$(VersionSourceFile)" />
     </ItemGroup>
   </Target>
 
