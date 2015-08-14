@@ -92,26 +92,25 @@ in order for it to build NuPkg files based on versions computed by this package:
 
 ## Build
 
-By default, each build will fix the PATCH component of the version number to 0.
+By default, each build of a Nuget package will include the git commit ID.
 When you are preparing a release (whether a stable or unstable prerelease),
-you may build setting the `UseNonZeroBuildNumber` global property to `true`
-in order to switch from appending the git commit ID to the semver-compliant
-version and instead the PATCH component will be set to a non-zero value that
-increments with the calendar date.
+you may build setting the `PublicRelease` global property to `true`
+in order to avoid the git commit ID being included in the NuGet package version.
 
 From the command line, building a release version might look like this:
 
-    msbuild /p:UseNonZeroBuildNumber=true
+    msbuild /p:PublicRelease=true
 
-Note you may consider passing this switch to any build that occurs at a
-frequency of at most once per day. Building with this switch more than once
-per day may generate NuGet packages that have the same version but different
-content, which is discouraged.
+Note you may consider passing this switch to any build that occurs in the
+branch that you publish released NuGet packages from. 
+You should only build with this property set from one release branch per
+major.minor version to avoid the risk of producing multiple unique NuGet
+packages with a colliding version spec.
 
 ## Where and how versions are calculated and applied
 
-This package calculates the version based on a combination of the version.txt file
-the calendar date, and the git commit ID. 
+This package calculates the version based on a combination of the version.txt file,
+the git 'height' of the version, and the git commit ID.
 
 ### Assembly version generation
 

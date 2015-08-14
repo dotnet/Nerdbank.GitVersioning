@@ -86,7 +86,7 @@ public class BuildIntegrationTests : RepoTestBase
     }
 
     [Fact]
-    public async Task GetBuildVersion_StableVersion()
+    public async Task GetBuildVersion_StablePreRelease()
     {
         const string majorMinorVersion = "5.8";
         const string prerelease = "";
@@ -96,10 +96,30 @@ public class BuildIntegrationTests : RepoTestBase
         this.AddCommits(this.random.Next(15));
         var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(prerelease, buildResult);
+
+        Version version = this.Repo.Head.Commits.First().GetIdAsVersion();
+        Assert.Equal($"{version.Major}.{version.Minor}.{buildResult.GitHeight}", buildResult.NuGetPackageVersion);
     }
 
     [Fact]
-    public async Task GetBuildVersion_UnstableVersion()
+    public async Task GetBuildVersion_StableRelease()
+    {
+        const string majorMinorVersion = "5.8";
+        const string prerelease = "";
+
+        this.WriteVersionFile(majorMinorVersion, prerelease);
+        this.InitializeSourceControl();
+        this.AddCommits(this.random.Next(15));
+        this.globalProperties.Add("PublicRelease", "true");
+        var buildResult = await this.BuildAsync();
+        this.AssertStandardProperties(prerelease, buildResult);
+
+        Version version = this.Repo.Head.Commits.First().GetIdAsVersion();
+        Assert.Equal($"{version.Major}.{version.Minor}.{buildResult.GitHeight}", buildResult.NuGetPackageVersion);
+    }
+
+    [Fact]
+    public async Task GetBuildVersion_UnstablePreRelease()
     {
         const string majorMinorVersion = "5.8";
         const string prerelease = "-beta";
@@ -109,6 +129,27 @@ public class BuildIntegrationTests : RepoTestBase
         this.AddCommits(this.random.Next(15));
         var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(prerelease, buildResult);
+
+        Version version = this.Repo.Head.Commits.First().GetIdAsVersion();
+        string commitIdShort = this.Repo.Head.Commits.First().Id.Sha.Substring(0, 10);
+        Assert.Equal($"{version.Major}.{version.Minor}.{buildResult.GitHeight}{prerelease}-g{commitIdShort}", buildResult.NuGetPackageVersion);
+    }
+
+    [Fact]
+    public async Task GetBuildVersion_UnstableRelease()
+    {
+        const string majorMinorVersion = "5.8";
+        const string prerelease = "-beta";
+
+        this.WriteVersionFile(majorMinorVersion, prerelease);
+        this.InitializeSourceControl();
+        this.AddCommits(this.random.Next(15));
+        this.globalProperties.Add("PublicRelease", "true");
+        var buildResult = await this.BuildAsync();
+        this.AssertStandardProperties(prerelease, buildResult);
+
+        Version version = this.Repo.Head.Commits.First().GetIdAsVersion();
+        Assert.Equal($"{version.Major}.{version.Minor}.{buildResult.GitHeight}{prerelease}", buildResult.NuGetPackageVersion);
     }
 
     private void AssertStandardProperties(string prerelease, BuildResults buildResult)
@@ -131,15 +172,6 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal(commitIdShort, buildResult.GitCommitIdShort);
         Assert.Equal(height.ToString(), buildResult.GitHeight);
         Assert.Equal($"{version.Major}.{version.Minor}", buildResult.MajorMinorVersion);
-        if (string.IsNullOrEmpty(prerelease))
-        {
-            Assert.Equal($"{version.Major}.{version.Minor}.{buildResult.GitHeight}", buildResult.NuGetPackageVersion);
-        }
-        else
-        {
-            Assert.Equal($"{version.Major}.{version.Minor}.{buildResult.GitHeight}{prerelease}-g{commitIdShort}", buildResult.NuGetPackageVersion);
-        }
-
         Assert.Equal(prerelease, buildResult.PrereleaseVersion);
         Assert.Equal($"+g{commitIdShort}", buildResult.SemVerBuildSuffix);
     }
