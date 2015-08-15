@@ -140,15 +140,13 @@
         /// <returns>The version information read from the file.</returns>
         private static SemanticVersion ReadVersionFile(TextReader versionTextContent)
         {
-            string versionLine = versionTextContent.ReadLine();
-            string prereleaseVersion = versionTextContent.ReadLine();
-            if (!string.IsNullOrEmpty(prereleaseVersion))
+            var versionLines = versionTextContent.ReadToEnd().Split('-');
+            var versionLine = versionLines[0].Trim();
+            string prereleaseVersion = null;
+            if (versionLines.Length > 1)
             {
-                if (!prereleaseVersion.StartsWith("-"))
-                {
-                    // SemVer requires that prerelease suffixes begin with a hyphen, so add one if it's missing.
-                    prereleaseVersion = "-" + prereleaseVersion;
-                }
+                // SemVer requires that prerelease suffixes begin with a hyphen, so add one if it's missing.
+                prereleaseVersion = "-" + versionLines[1].Trim();
 
                 VerifyValidPrereleaseVersion(prereleaseVersion);
             }
