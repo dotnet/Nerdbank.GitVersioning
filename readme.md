@@ -71,7 +71,9 @@ in order for it to build NuPkg files based on versions computed by this package:
 
 1. Remove any definition of a Version property:
 
-        <Version>1.0.0-beta1</Version>
+    ```xml
+    <Version>1.0.0-beta1</Version>
+    ```
 
 2. Add this property definition:
 
