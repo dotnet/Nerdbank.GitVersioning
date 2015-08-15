@@ -23,9 +23,11 @@ because of multiple definitions of certain attributes such as `AssemblyVersionAt
 You should resolve these compilation errors by removing these attributes from your own
 source code, as commonly found in your `Properties\AssemblyInfo.cs` file:
 
-    [assembly: AssemblyVersion("1.0.0.0")]
-    [assembly: AssemblyFileVersion("1.0.0.0")]
-    [assembly: AssemblyInformationalVersion("1.0.0-dev")]
+```csharp
+[assembly: AssemblyVersion("1.0.0.0")]
+[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyInformationalVersion("1.0.0-dev")]
+```
 
 This NuGet package creates these attributes at build time based on version information
 found in your `version.txt` file and your git repo's HEAD position.
@@ -73,24 +75,26 @@ in order for it to build NuPkg files based on versions computed by this package:
 
 2. Add this property definition:
 
-
-        <VersionDependsOn>$(VersionDependsOn);GetNuPkgVersion</VersionDependsOn>
+    ```xml
+    <VersionDependsOn>$(VersionDependsOn);GetNuPkgVersion</VersionDependsOn>
+    ```
 
 3. Add these targets and imports (changing the version number in the paths as necessary):
 
-
-        <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-          <PropertyGroup>
+    ```xml
+    <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+        <PropertyGroup>
             <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-          </PropertyGroup>
-          <Error Condition="!Exists('..\packages\Nerdbank.GitVersioning.1.1.2-rc\build\NerdBank.GitVersioning.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Nerdbank.GitVersioning.1.1.2-rc\build\NerdBank.GitVersioning.targets'))" />
-        </Target>
-        <Import Project="..\packages\Nerdbank.GitVersioning.1.1.2-rc\build\NerdBank.GitVersioning.targets" Condition="Exists('..\packages\Nerdbank.GitVersioning.1.1.2-rc\build\NerdBank.GitVersioning.targets')" />
-        <Target Name="GetNuPkgVersion" DependsOnTargets="GetBuildVersion">
-          <PropertyGroup>
+        </PropertyGroup>
+        <Error Condition="!Exists('..\packages\Nerdbank.GitVersioning.1.1.2-rc\build\NerdBank.GitVersioning.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Nerdbank.GitVersioning.1.1.2-rc\build\NerdBank.GitVersioning.targets'))" />
+    </Target>
+    <Import Project="..\packages\Nerdbank.GitVersioning.1.1.2-rc\build\NerdBank.GitVersioning.targets" Condition="Exists('..\packages\Nerdbank.GitVersioning.1.1.2-rc\build\NerdBank.GitVersioning.targets')" />
+    <Target Name="GetNuPkgVersion" DependsOnTargets="GetBuildVersion">
+        <PropertyGroup>
             <Version>$(NuGetPackageVersion)</Version>
-          </PropertyGroup>
-        </Target>
+        </PropertyGroup>
+    </Target>
+    ```
 
 ## Build
 
@@ -118,9 +122,11 @@ the git 'height' of the version, and the git commit ID.
 
 During the build it adds source code such as this to your compilation:
 
-    [assembly: System.Reflection.AssemblyVersion("1.0")]
-    [assembly: System.Reflection.AssemblyFileVersion("1.0.24.15136")]
-    [assembly: System.Reflection.AssemblyInformationalVersion("1.0.24.15136-alpha+g9a7eb6c819")]
+```csharp
+[assembly: System.Reflection.AssemblyVersion("1.0")]
+[assembly: System.Reflection.AssemblyFileVersion("1.0.24.15136")]
+[assembly: System.Reflection.AssemblyInformationalVersion("1.0.24.15136-alpha+g9a7eb6c819")]
+```
 
 The first and second integer components of the versions above come from the 
 version.txt file.
@@ -132,11 +138,13 @@ The -g9a7eb6c819 tag is the concatenation of -g and the git commit ID that was b
 
 This class is also injected into your project at build time:
 
-    internal sealed partial class ThisAssembly {
-        internal const string AssemblyVersion = "1.0";
-        internal const string AssemblyFileVersion = "1.0.24.15136";
-        internal const string AssemblyInformationalVersion = "1.0.24.15136-alpha+g9a7eb6c819";
-    }
+```csharp
+internal sealed partial class ThisAssembly {
+    internal const string AssemblyVersion = "1.0";
+    internal const string AssemblyFileVersion = "1.0.24.15136";
+    internal const string AssemblyInformationalVersion = "1.0.24.15136-alpha+g9a7eb6c819";
+}
+```
 
 This allows you to actually write source code that can refer to the exact build
 number your assembly will be assigned.
