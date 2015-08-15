@@ -24,13 +24,13 @@
         /// <summary>
         /// Gets the version.
         /// </summary>
-        public Version Version { get; private set; }
+        public Version Version { get; }
 
         /// <summary>
         /// Gets an unstable tag (with the leading hyphen), if applicable.
         /// </summary>
         /// <value>A string with a leading hyphen or the empty string.</value>
-        public string UnstableTag { get; private set; }
+        public string UnstableTag { get; }
 
         /// <summary>
         /// Checks equality against another object.

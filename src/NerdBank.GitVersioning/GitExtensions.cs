@@ -250,11 +250,11 @@
                 height = 0;
                 if (continueStepping == null || continueStepping(commit))
                 {
-                    height = 1;
-                    if (commit.Parents.Any())
-                    {
-                        height += commit.Parents.Max(p => GetCommitHeight(p, heights, continueStepping));
-                    }
+                    height = 1 + commit
+                        .Parents
+                        .Select(p => GetCommitHeight(p, heights, continueStepping))
+                        .DefaultIfEmpty(0)
+                        .Max();
                 }
 
                 heights[commit.Id] = height;
