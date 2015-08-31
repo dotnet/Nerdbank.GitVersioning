@@ -5,7 +5,6 @@
     using System.IO;
     using System.Linq;
     using System.Text;
-    using System.Threading.Tasks;
     using LibGit2Sharp;
     using Validation;
     using Version = System.Version;

@@ -66,5 +66,14 @@
             return this.Version == other.Version
                 && this.UnstableTag == other.UnstableTag;
         }
+
+        /// <summary>
+        /// Returns string presentation of this version.
+        /// </summary>
+        /// <returns></returns>
+        public override string ToString()
+        {
+            return this.Version.ToString() + this.UnstableTag;
+        }
     }
 }

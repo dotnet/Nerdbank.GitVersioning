@@ -92,6 +92,18 @@ public class VersionFileTests : RepoTestBase
         Assert.Equal(expectedPrerelease ?? string.Empty, actualVersion.UnstableTag);
     }
 
+    [Theory]
+    [InlineData(new[] { "2.3" }, "2.3")]
+    [InlineData(new[] { "2.3", "-beta" }, "2.3-beta")]
+    [InlineData(new[] { "2.3-alpha" }, "2.3-alpha")]
+    [InlineData(new[] { " 2 . 3  - unstable  " }, "2.3-unstable")]
+    public void GetVersionFromFile(string[] file, string expectedVersion)
+    {
+        File.WriteAllLines(Path.Combine(this.RepoPath, VersionFile.FileName), file);
+        var version = VersionFile.GetVersion(this.RepoPath);
+        Assert.Equal(version.ToString(), expectedVersion);
+    }
+
     [Fact]
     public void GetVersion_Commit()
     {
