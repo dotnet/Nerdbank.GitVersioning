@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using LibGit2Sharp;
 using Nerdbank.GitVersioning;
 using Nerdbank.GitVersioning.Tests;
@@ -93,6 +90,18 @@ public class VersionFileTests : RepoTestBase
 
         Assert.Equal(new Version(expectedVersion), actualVersion.Version);
         Assert.Equal(expectedPrerelease ?? string.Empty, actualVersion.UnstableTag);
+    }
+
+    [Theory]
+    [InlineData(new[] { "2.3" }, "2.3")]
+    [InlineData(new[] { "2.3", "-beta" }, "2.3-beta")]
+    [InlineData(new[] { "2.3-alpha" }, "2.3-alpha")]
+    [InlineData(new[] { " 2 . 3  - unstable  " }, "2.3-unstable")]
+    public void GetVersionFromFile(string[] file, string expectedVersion)
+    {
+        File.WriteAllLines(Path.Combine(this.RepoPath, VersionFile.FileName), file);
+        var version = VersionFile.GetVersion(this.RepoPath);
+        Assert.Equal(version.ToString(), expectedVersion);
     }
 
     [Fact]
