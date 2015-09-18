@@ -2,11 +2,11 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
     using System.Text;
-    using Microsoft.Build.Utilities;
     using Microsoft.Build.Framework;
-    using System.IO;
+    using Microsoft.Build.Utilities;
 
     public class CompareFiles : Task
     {

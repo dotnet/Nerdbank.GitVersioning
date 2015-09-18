@@ -15,7 +15,7 @@
   </PropertyGroup>
   <PropertyGroup>
     <VersionDependsOn>$(VersionDependsOn);GetNuPkgVersion</VersionDependsOn>
-    <NuProjPath Condition=" '$(NuProjPath)' == '' ">..\..\build\NuProj\</NuProjPath>
+    <NuProjPath>..\..\packages\NuProj.0.10.0-beta-gd6d4e1ff23\tools\</NuProjPath>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <OutDir>..\..\bin\$(Configuration)\</OutDir>
@@ -40,16 +40,18 @@
     <NoPackageAnalysis>true</NoPackageAnalysis>
   </PropertyGroup>
   <ItemGroup>
-    <Content Include="..\packages\LibGit2Sharp.0.21.0.176\lib\net40\NativeBinaries\amd64\git2-e0902fb.dll">
-      <Link>build\net45\NativeBinaries\amd64\git2-e0902fb.dll</Link>
+    <Content Include="..\..\packages\LibGit2Sharp.0.21.0.176\lib\net40\NativeBinaries\amd64\git2-e0902fb.dll">
+      <Link>build\NativeBinaries\amd64\git2-e0902fb.dll</Link>
     </Content>
-    <Content Include="..\packages\LibGit2Sharp.0.21.0.176\lib\net40\NativeBinaries\x86\git2-e0902fb.dll">
-      <Link>build\net45\NativeBinaries\x86\git2-e0902fb.dll</Link>
+    <Content Include="..\..\packages\LibGit2Sharp.0.21.0.176\lib\net40\NativeBinaries\x86\git2-e0902fb.dll">
+      <Link>build\NativeBinaries\x86\git2-e0902fb.dll</Link>
     </Content>
-    <Content Include="..\packages\MSBuildTasks.1.4.0.88\tools\MSBuild.Community.Tasks.dll">
+    <Content Include="..\..\packages\MSBuildTasks.1.4.0.88\tools\MSBuild.Community.Tasks.dll">
       <Link>build\MSBuild.Community.Tasks.dll</Link>
     </Content>
     <Content Include="build\NerdBank.GitVersioning.targets" />
+    <Content Include="tools\Get-Version.ps1" />
+    <Content Include="tools\Get-CommitId.ps1" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\NerdBank.GitVersioning.Tasks\Nerdbank.GitVersioning.Tasks.csproj">
@@ -57,17 +59,17 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="build\net45\NativeBinaries\amd64\" />
-    <Folder Include="build\net45\NativeBinaries\x86\" />
+    <Folder Include="build\NativeBinaries\amd64\" />
+    <Folder Include="build\NativeBinaries\x86\" />
   </ItemGroup>
   <Import Project="$(NuProjPath)\NuProj.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\packages\Nerdbank.GitVersioning.1.0.15136-beta\build\NerdBank.GitVersioning.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Nerdbank.GitVersioning.1.0.15136-beta\build\NerdBank.GitVersioning.targets'))" />
+    <Error Condition="!Exists('..\..\packages\Nerdbank.GitVersioning.1.1.2-rc\build\NerdBank.GitVersioning.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\Nerdbank.GitVersioning.1.1.2-rc\build\NerdBank.GitVersioning.targets'))" />
   </Target>
-  <Import Project="..\packages\Nerdbank.GitVersioning.1.0.15136-beta\build\NerdBank.GitVersioning.targets" Condition="Exists('..\packages\Nerdbank.GitVersioning.1.0.15136-beta\build\NerdBank.GitVersioning.targets')" />
+  <Import Project="..\..\packages\Nerdbank.GitVersioning.1.1.2-rc\build\NerdBank.GitVersioning.targets" Condition="Exists('..\..\packages\Nerdbank.GitVersioning.1.1.2-rc\build\NerdBank.GitVersioning.targets')" />
   <Target Name="GetNuPkgVersion" DependsOnTargets="GetBuildVersion">
     <PropertyGroup>
       <Version>$(NuGetPackageVersion)</Version>

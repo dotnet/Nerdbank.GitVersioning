@@ -1,5 +1,7 @@
 ﻿# Nerdbank.GitVersioning
 
+[![Join the chat at https://gitter.im/AArnott/Nerdbank.GitVersioning](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/AArnott/Nerdbank.GitVersioning?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 ## Overview
 
 This package adds precise, semver-compatible git commit information
@@ -12,7 +14,7 @@ What sets this package apart from other git-based versioning projects is:
 1. Prioritize absolute build reproducibility. Every single commit can be built and produce a unique version.
 2. No dependency on tags. Tags can be added to existing commits at any time. Clones may not fetch tags. No dependency on tags means better build reproducibility.
 3. No dependency on branch names. Branches come and go, and a commit may belong to any number of branches. Regardless of the branch HEAD may be attached to, the build should be identical.
-4. The computed version information is based on an author-defined major.minor version and unstable tag, plus a shortened git commit ID.
+4. The computed version information is based on an author-defined major.minor version and an optional unstable tag, plus a shortened git commit ID.
 
 ## Installation
 
@@ -81,9 +83,9 @@ in order for it to build NuPkg files based on versions computed by this package:
           <PropertyGroup>
             <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
           </PropertyGroup>
-          <Error Condition="!Exists('..\packages\Nerdbank.GitVersioning.1.0.15136-beta\build\NerdBank.GitVersioning.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Nerdbank.GitVersioning.1.0.15136-beta\build\NerdBank.GitVersioning.targets'))" />
+          <Error Condition="!Exists('..\packages\Nerdbank.GitVersioning.1.1.2-rc\build\NerdBank.GitVersioning.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Nerdbank.GitVersioning.1.1.2-rc\build\NerdBank.GitVersioning.targets'))" />
         </Target>
-        <Import Project="..\packages\Nerdbank.GitVersioning.1.0.15136-beta\build\NerdBank.GitVersioning.targets" Condition="Exists('..\packages\Nerdbank.GitVersioning.1.0.15136-beta\build\NerdBank.GitVersioning.targets')" />
+        <Import Project="..\packages\Nerdbank.GitVersioning.1.1.2-rc\build\NerdBank.GitVersioning.targets" Condition="Exists('..\packages\Nerdbank.GitVersioning.1.1.2-rc\build\NerdBank.GitVersioning.targets')" />
         <Target Name="GetNuPkgVersion" DependsOnTargets="GetBuildVersion">
           <PropertyGroup>
             <Version>$(NuGetPackageVersion)</Version>
@@ -92,40 +94,38 @@ in order for it to build NuPkg files based on versions computed by this package:
 
 ## Build
 
-By default, each build will fix the PATCH component of the version number to 0.
+By default, each build of a Nuget package will include the git commit ID.
 When you are preparing a release (whether a stable or unstable prerelease),
-you may build setting the `UseNonZeroBuildNumber` global property to `true`
-in order to switch from appending the git commit ID to the semver-compliant
-version and instead the PATCH component will be set to a non-zero value that
-increments with the calendar date.
+you may build setting the `PublicRelease` global property to `true`
+in order to avoid the git commit ID being included in the NuGet package version.
 
 From the command line, building a release version might look like this:
 
-    msbuild /p:UseNonZeroBuildNumber=true
+    msbuild /p:PublicRelease=true
 
-Note you may consider passing this switch to any build that occurs at a
-frequency of at most once per day. Building with this switch more than once
-per day may generate NuGet packages that have the same version but different
-content, which is discouraged.
+Note you may consider passing this switch to any build that occurs in the
+branch that you publish released NuGet packages from. 
+You should only build with this property set from one release branch per
+major.minor version to avoid the risk of producing multiple unique NuGet
+packages with a colliding version spec.
 
 ## Where and how versions are calculated and applied
 
-This package calculates the version based on a combination of the version.txt file
-the calendar date, and the git commit ID. 
+This package calculates the version based on a combination of the version.txt file,
+the git 'height' of the version, and the git commit ID.
 
 ### Assembly version generation
 
 During the build it adds source code such as this to your compilation:
 
     [assembly: System.Reflection.AssemblyVersion("1.0")]
-    [assembly: System.Reflection.AssemblyFileVersion("1.0.15136")]
-    [assembly: System.Reflection.AssemblyInformationalVersion("1.0.15136-alpha+g9a7eb6c819")]
+    [assembly: System.Reflection.AssemblyFileVersion("1.0.24.15136")]
+    [assembly: System.Reflection.AssemblyInformationalVersion("1.0.24.15136-alpha+g9a7eb6c819")]
 
 The first and second integer components of the versions above come from the 
 version.txt file.
-The third integer component of the version here is the jdate, which is the last
-two digits of the year, and then the number of the day of the year (disregarding
-months).
+The third integer component of the version here is the height of your git history up to
+that point, such that it reliably increases with each release.
 The -alpha tag also comes from the version.txt file and indicates this is an
 unstable version.
 The -g9a7eb6c819 tag is the concatenation of -g and the git commit ID that was built.
@@ -134,8 +134,8 @@ This class is also injected into your project at build time:
 
     internal sealed partial class ThisAssembly {
         internal const string AssemblyVersion = "1.0";
-        internal const string AssemblyFileVersion = "1.0.15136";
-        internal const string AssemblyInformationalVersion = "1.0.15136-alpha+g9a7eb6c819";
+        internal const string AssemblyFileVersion = "1.0.24.15136";
+        internal const string AssemblyInformationalVersion = "1.0.24.15136-alpha+g9a7eb6c819";
     }
 
 This allows you to actually write source code that can refer to the exact build
@@ -146,27 +146,15 @@ number your assembly will be assigned.
 Given the same settings as used in the discussion above, a NuGet package may be
 assigned this version: 
 
-    1.0.0-alpha-g9a7eb6c819
+    1.0.24-alpha-g9a7eb6c819
 
-When built with the `/p:UseNonZeroBuildNumber=true` switch, the NuGet version becomes:
+When built with the `/p:PublicRelease=true` switch, the NuGet version becomes:
 
-    1.0.15136-alpha
+    1.0.24-alpha
 
 ## Frequently asked questions
 
-### Why is the PATCH version component fixed to 0 for non-release builds?
-
-This is for reproducibility in between releases. When under active development,
-a project may build any number of times per day on any number of machines.
-Other projects that are also under development may need to take a dependency on
-one of these builds that occur in between public releases. It is important that
-a build that occurs on a dev box be exactly reproducible by others and by an
-official build machine or cloud build. The jdate that would otherwise be used
-for the PATCH component of the version represents a non-repeatable component
-since a build the next day would produce a different result. So we fix it to
-zero instead.
-
-### Why is the jdate used for the PATCH version component for public releases?
+### Why is the git height used for the PATCH version component for public releases?
 
 The git commit ID does not represent an alphanumerically sortable identifier
 in semver, and thus delivers a poor package update experience for NuGet package
@@ -174,9 +162,12 @@ consumers. Incrementing the PATCH with each public release ensures that users
 who want to update to your latest NuGet package will reliably get the latest
 version. 
 
+The git height is guaranteed to always increase with each release, assuming
+that each release builds on a previous release.
+
 ### Why isn't the git commit ID included for public releases?
 
-It could be, but the jdate serves as a unique identifier already and the
+It could be, but the git height serves as a pseudo-identifier already and the
 git commit id would just make it harder for users to type in the version
 number if they ever had to.
 
