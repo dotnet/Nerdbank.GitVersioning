@@ -94,6 +94,17 @@ public class GitExtensionsTests : RepoTestBase
     }
 
     [Fact]
+    public void GetIdAsVersion_ReadsMajorMinorFromVersionTxtInSubdirectory()
+    {
+        this.WriteVersionFile("4.8", relativeDirectory:@"foo\bar");
+        var firstCommit = this.Repo.Commits.First();
+
+        Version v1 = firstCommit.GetIdAsVersion(@"foo\bar");
+        Assert.Equal(4, v1.Major);
+        Assert.Equal(8, v1.Minor);
+    }
+
+    [Fact]
     public void GetIdAsVersion_MissingVersionTxt()
     {
         this.AddCommits();
