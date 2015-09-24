@@ -55,17 +55,24 @@ if (-not (Test-Path $versionTxtPath))
         {
             $fixedLines | Set-Content $assemblyInfo -Encoding UTF8
         }
-    }
-    
-    if (!$version)
-    {
-        $version = "1.0.0"
-        Write-Warning "Could not parse the AssemblyVersion for this project. Generating version.txt with the default version of '$version'"
-    }
 
-    if ($PSCmdlet.ShouldProcess($versionTxtPath, "Writing version.txt file"))
+        if ($version)
+        {
+            if ($PSCmdlet.ShouldProcess($versionTxtPath, "Writing version.txt file"))
+            {
+                $version | Set-Content $versionTxtPath
+                $versionTxtPath
+            }
+        }
+        else
+        {
+            # This is not a warning because the user is probably already consuming version.txt from a parent directory as part of
+            # a solution- or repo-level versioning scheme.
+            Write-Verbose "Could not find an AssemblyVersion attribute in file '$assemblyInfo'. Skipping version.txt generation."
+        }
+    }
+    else
     {
-        $version | Set-Content $versionTxtPath
-        $versionTxtPath
+        Write-Warning "Could not find an AssemblyInfo.cs file at '$assemblyInfo'. Skipping version.txt generation."
     }
 }
