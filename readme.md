@@ -196,8 +196,9 @@ consumers. Incrementing the PATCH with each public release ensures that users
 who want to update to your latest NuGet package will reliably get the latest
 version. 
 
-The git height is guaranteed to always increase with each release, assuming
-that each release builds on a previous release.
+The git height is guaranteed to always increase with each release within a given major.minor version,
+assuming that each release builds on a previous release. And the height automatically resets when
+the major or minor version numbers are incremented, which is also typically what you want.
 
 ### Why isn't the git commit ID included for public releases?
 
