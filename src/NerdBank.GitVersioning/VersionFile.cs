@@ -87,7 +87,7 @@
         }
 
         /// <summary>
-        /// Writes the version.txt file to the root of a repo with the specified version information.
+        /// Writes the version.txt file to a directory within a repo with the specified version information.
         /// </summary>
         /// <param name="projectDirectory">
         /// The path to the directory in which to write the version.txt file.
@@ -102,11 +102,13 @@
             Requires.NotNullOrEmpty(projectDirectory, nameof(projectDirectory));
             Requires.NotNull(version, nameof(version));
 
+            Directory.CreateDirectory(projectDirectory);
+
             string versionTxtPath = Path.Combine(projectDirectory, FileName);
             File.WriteAllLines(
                 versionTxtPath,
                 new[] { version.ToString(), prerelease });
-            return Path.Combine(projectDirectory, FileName);
+            return versionTxtPath;
         }
 
         /// <summary>

@@ -97,8 +97,13 @@
 
                     this.PrereleaseVersion = v.UnstableTag;
 
+                    var repoRoot = git?.Info?.WorkingDirectory;
+                    var relativeRepoProjectDirectory = !string.IsNullOrWhiteSpace(repoRoot) && GitRepoPath.StartsWith(repoRoot, StringComparison.OrdinalIgnoreCase)
+                        ? GitRepoPath.Substring(repoRoot.Length)
+                        : null;
+
                     // Override the typedVersion with the special build number and revision components, when available.
-                    typedVersion = commit?.GetIdAsVersion() ?? v.Version;
+                    typedVersion = commit?.GetIdAsVersion(relativeRepoProjectDirectory) ?? v.Version;
                 }
 
                 typedVersion = typedVersion ?? new Version();

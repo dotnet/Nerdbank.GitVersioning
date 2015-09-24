@@ -86,6 +86,23 @@ public class BuildIntegrationTests : RepoTestBase
     }
 
     [Fact]
+    public async Task GetBuildVersion_In_Git_With_Version_File_In_Subdirectory_Works()
+    {
+        const string majorMinorVersion = "5.8";
+        const string prerelease = "";
+        const string subdirectory = "projdir";
+
+        this.WriteVersionFile(majorMinorVersion, prerelease, subdirectory);
+        this.InitializeSourceControl();
+        this.AddCommits(this.random.Next(15));
+        var buildResult = await this.BuildAsync();
+        this.AssertStandardProperties(prerelease, buildResult, subdirectory);
+
+        Version version = this.Repo.Head.Commits.First().GetIdAsVersion(subdirectory);
+        Assert.Equal($"{version.Major}.{version.Minor}.{buildResult.GitHeight}", buildResult.NuGetPackageVersion);
+    }
+
+    [Fact]
     public async Task GetBuildVersion_StablePreRelease()
     {
         const string majorMinorVersion = "5.8";
@@ -152,11 +169,11 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal($"{version.Major}.{version.Minor}.{buildResult.GitHeight}{prerelease}", buildResult.NuGetPackageVersion);
     }
 
-    private void AssertStandardProperties(string prerelease, BuildResults buildResult)
+    private void AssertStandardProperties(string prerelease, BuildResults buildResult, string relativeProjectDirectory = null)
     {
         int height = this.Repo.Head.GetHeight();
         string commitIdShort = this.Repo.Head.Commits.First().Id.Sha.Substring(0, 10);
-        Version version = this.Repo.Head.Commits.First().GetIdAsVersion();
+        Version version = this.Repo.Head.Commits.First().GetIdAsVersion(relativeProjectDirectory);
         Assert.Equal($"{version}", buildResult.AssemblyFileVersion);
         Assert.Equal($"{version.Major}.{version.Minor}.{height}{prerelease}+g{commitIdShort}", buildResult.AssemblyInformationalVersion);
         Assert.Equal($"{version.Major}.{version.Minor}", buildResult.AssemblyVersion);

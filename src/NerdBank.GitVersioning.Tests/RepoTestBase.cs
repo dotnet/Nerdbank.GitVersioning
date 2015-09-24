@@ -68,14 +68,20 @@
             }
         }
 
-        protected void WriteVersionFile(string version = "1.2", string prerelease = "")
+        protected void WriteVersionFile(string version = "1.2", string prerelease = "", string relativeDirectory = null)
         {
-            VersionFile.SetVersion(this.RepoPath, new System.Version(version), prerelease);
+            if (relativeDirectory == null)
+            {
+                relativeDirectory = string.Empty;
+            }
+
+            VersionFile.SetVersion(Path.Combine(this.RepoPath, relativeDirectory), new System.Version(version), prerelease);
 
             if (this.Repo != null)
             {
-                this.Repo.Index.Add(VersionFile.FileName);
-                this.Repo.Commit($"Add/write {VersionFile.FileName} set to {version}", this.Signer);
+                var relativeFilePath = Path.Combine(relativeDirectory, VersionFile.FileName);
+                this.Repo.Index.Add(relativeFilePath);
+                this.Repo.Commit($"Add/write {relativeFilePath} set to {version}", this.Signer);
             }
         }
     }
