@@ -22,7 +22,7 @@ After installing this NuGet package, you may need to configure the version gener
 in order for it to work properly.
 
 With NuGet 2.x, the configuration is handled automatically via the tools\Install.ps1 script.
-For NuGet 3.x, you can run the script tools\Create-VesionTxt.ps1 to help you create the
+For NuGet 3.x, you can run the script tools\Create-VersionTxt.ps1 to help you create the
 version.txt file and remove the old assembly attributes.
 
 The scripts will look for the presence of a version.txt file. If it already exists, nothing
@@ -30,7 +30,7 @@ happens. If the version.txt file does not exist, the script looks in your projec
 Properties\AssemblyInfo.cs file and attempts to read the Major.Minor version number from
 the AssemblyVersion attribute. It then generates a version.txt file using the Major.Minor
 that was parsed so that your assembly will build with the same AssemblyVersion as before,
-which preserves backwards compatability. Finally, it will remove the various version-related
+which preserves backwards compatibility. Finally, it will remove the various version-related
 assembly attributes from AssemblyInfo.cs.
 
 If you did not use the scripts to configure the package, you may find that you get a
@@ -55,7 +55,7 @@ the version number produced will be 0.0.x.
 You must define a version.txt file in your project directory or some ancestor of it.
 
 When the package is installed, a version.txt file is created in your project directory
-(for NuGet 2.x clients). This ensures backwards compatability where the installation of
+(for NuGet 2.x clients). This ensures backwards compatibility where the installation of
 this package will not cause the assembly version of the project to change. If you would
 like the same version number to be applied to all projects in the repo, then you may move
 the file to the root directory of your git repo.
