@@ -52,6 +52,8 @@
     <Content Include="build\NerdBank.GitVersioning.targets" />
     <Content Include="tools\Get-Version.ps1" />
     <Content Include="tools\Get-CommitId.ps1" />
+    <Content Include="tools\Create-VersionTxt.ps1" />
+    <Content Include="tools\Install.ps1" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\NerdBank.GitVersioning.Tasks\Nerdbank.GitVersioning.Tasks.csproj">
