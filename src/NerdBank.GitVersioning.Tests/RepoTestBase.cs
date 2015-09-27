@@ -9,7 +9,7 @@
     using LibGit2Sharp;
     using Validation;
     using Xunit.Abstractions;
-
+    using System.Diagnostics;
     public abstract class RepoTestBase : IDisposable
     {
         public RepoTestBase(ITestOutputHelper logger)
@@ -75,11 +75,13 @@
                 relativeDirectory = string.Empty;
             }
 
-            VersionFile.SetVersion(Path.Combine(this.RepoPath, relativeDirectory), new System.Version(version), prerelease);
+            var versionData = VersionOptions.FromVersion(new System.Version(version), prerelease);
+            string versionFilePath = VersionFile.SetVersion(Path.Combine(this.RepoPath, relativeDirectory), versionData);
 
             if (this.Repo != null)
             {
-                var relativeFilePath = Path.Combine(relativeDirectory, VersionFile.FileName);
+                Assumes.True(versionFilePath.StartsWith(this.RepoPath, StringComparison.OrdinalIgnoreCase));
+                var relativeFilePath = versionFilePath.Substring(this.RepoPath.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                 this.Repo.Index.Add(relativeFilePath);
                 this.Repo.Commit($"Add/write {relativeFilePath} set to {version}", this.Signer);
             }

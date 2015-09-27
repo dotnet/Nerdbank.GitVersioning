@@ -119,7 +119,7 @@
             Requires.NotNull(commit, nameof(commit));
             Requires.Argument(repoRelativeProjectDirectory == null || !Path.IsPathRooted(repoRelativeProjectDirectory), nameof(repoRelativeProjectDirectory), "Path should be relative to repo root.");
 
-            var baseVersion = VersionFile.GetVersion(commit, repoRelativeProjectDirectory)?.Version ?? Version0;
+            var baseVersion = VersionFile.GetVersion(commit, repoRelativeProjectDirectory)?.DefaultVersion?.Version ?? Version0;
 
             // The compiler (due to WinPE header requirements) only allows 16-bit version components,
             // and forbids 0xffff as a value.
@@ -192,7 +192,7 @@
             Requires.NotNull(commit, nameof(commit));
             Requires.NotNull(expectedVersion, nameof(expectedVersion));
 
-            Version majorMinorFromFile = VersionFile.GetVersion(commit, repoRelativeProjectDirectory)?.Version ?? Version0;
+            Version majorMinorFromFile = VersionFile.GetVersion(commit, repoRelativeProjectDirectory)?.DefaultVersion?.Version ?? Version0;
             return majorMinorFromFile?.Major == expectedVersion.Major && majorMinorFromFile?.Minor == expectedVersion.Minor;
         }
 

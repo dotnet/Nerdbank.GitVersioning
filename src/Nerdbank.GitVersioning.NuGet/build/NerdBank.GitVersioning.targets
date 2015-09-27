@@ -12,8 +12,6 @@
       GenerateAssemblyInfo;
       $(CoreCompileDependsOn)
     </CoreCompileDependsOn>
-
-    <GitVersioningTxtFile Condition=" '$(GitVersioningTxtFile)' == '' and '$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildProjectDirectory), version.txt))' != '' ">$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildProjectDirectory), version.txt))\version.txt</GitVersioningTxtFile>
   </PropertyGroup>
 
   <UsingTask AssemblyFile="MSBuild.Community.Tasks.dll" TaskName="AssemblyInfo"/>
@@ -21,10 +19,7 @@
   <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="CompareFiles"/>
 
   <Target Name="GetBuildVersion" Returns="$(BuildVersion)">
-    <Error Text="Unable to find version.txt file." Condition=" '$(GitVersioningTxtFile)' == '' " />
-    <GetBuildVersion Condition=" '$(BuildVersion)' == '' "
-                     VersionFile="$(GitVersioningTxtFile)"
-                     GitRepoPath="$(MSBuildProjectDirectory)">
+    <GetBuildVersion>
       <Output TaskParameter="Version" PropertyName="BuildVersion" />
       <Output TaskParameter="SimpleVersion" PropertyName="BuildVersionSimple" />
       <Output TaskParameter="PrereleaseVersion" PropertyName="PrereleaseVersion" Condition=" '$(PrereleaseVersion)' == '' " />

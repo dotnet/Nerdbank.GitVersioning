@@ -96,7 +96,7 @@ public class GitExtensionsTests : RepoTestBase
     [Fact]
     public void GetIdAsVersion_ReadsMajorMinorFromVersionTxtInSubdirectory()
     {
-        this.WriteVersionFile("4.8", relativeDirectory:@"foo\bar");
+        this.WriteVersionFile("4.8", relativeDirectory: @"foo\bar");
         var firstCommit = this.Repo.Commits.First();
 
         Version v1 = firstCommit.GetIdAsVersion(@"foo\bar");
@@ -150,10 +150,10 @@ public class GitExtensionsTests : RepoTestBase
     [Fact]
     public void GetIdAsVersion_Roundtrip_WithSubdirectoryVersionFiles()
     {
-        var rootVersionExpected = new Version(1, 0);
+        var rootVersionExpected = VersionOptions.FromVersion(new Version(1, 0));
         VersionFile.SetVersion(this.RepoPath, rootVersionExpected);
 
-        var subPathVersionExpected = new Version(1, 1);
+        var subPathVersionExpected = VersionOptions.FromVersion(new Version(1, 1));
         const string subPathRelative = "a";
         string subPath = Path.Combine(this.RepoPath, subPathRelative);
         Directory.CreateDirectory(subPath);
@@ -166,8 +166,8 @@ public class GitExtensionsTests : RepoTestBase
         Version subPathVersionActual = head.GetIdAsVersion(subPathRelative);
 
         // Verify that the versions calculated took the path into account.
-        Assert.Equal(rootVersionExpected.Minor, rootVersionActual?.Minor);
-        Assert.Equal(subPathVersionExpected.Minor, subPathVersionActual?.Minor);
+        Assert.Equal(rootVersionExpected.DefaultVersion.Version.Minor, rootVersionActual?.Minor);
+        Assert.Equal(subPathVersionExpected.DefaultVersion.Version.Minor, subPathVersionActual?.Minor);
 
         // Verify that we can find the commit given the version and path.
         Assert.Equal(head, this.Repo.GetCommitFromVersion(rootVersionActual));
