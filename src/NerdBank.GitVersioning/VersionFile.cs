@@ -145,7 +145,7 @@
                 {
                     File.WriteAllLines(
                         versionTxtPath,
-                        new[] { version.DefaultVersion.Version.ToString(), version.DefaultVersion.UnstableTag });
+                        new[] { version.DefaultVersion.Version.ToString(), version.DefaultVersion.Prerelease });
                     return versionTxtPath;
                 }
                 else

@@ -2,6 +2,7 @@
 {
     using System;
     using System.Diagnostics;
+    using System.Text.RegularExpressions;
     using Validation;
 
     /// <summary>
@@ -11,17 +12,30 @@
     public class SemanticVersion : IEquatable<SemanticVersion>
     {
         /// <summary>
+        /// The regex pattern that a prerelease must match.
+        /// </summary>
+        private static readonly Regex PrereleasePattern = new Regex(@"^-((?:[0-9A-Za-z-]+)(?:\.[0-9A-Za-z-]+)*)$");
+
+        /// <summary>
+        /// The regex pattern that build metadata must match.
+        /// </summary>
+        private static readonly Regex BuildMetadataPattern = new Regex(@"^\+((?:[0-9A-Za-z-]+)(?:\.[0-9A-Za-z-]+)*)$");
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="SemanticVersion"/> class.
         /// </summary>
-        /// <param name="version"></param>
-        /// <param name="unstableTag"></param>
-        public SemanticVersion(Version version, string unstableTag = null)
+        /// <param name="version">The numeric version.</param>
+        /// <param name="prerelease">The prerelease, with leading - character.</param>
+        /// <param name="buildMetadata">The build metadata, with leading + character.</param>
+        public SemanticVersion(Version version, string prerelease = null, string buildMetadata = null)
         {
             Requires.NotNull(version, nameof(version));
-            VerifyValidPrereleaseVersion(unstableTag, nameof(unstableTag));
+            VerifyPatternMatch(prerelease, PrereleasePattern, nameof(prerelease));
+            VerifyPatternMatch(buildMetadata, BuildMetadataPattern, nameof(buildMetadata));
 
             this.Version = version;
-            this.UnstableTag = unstableTag ?? string.Empty;
+            this.Prerelease = prerelease ?? string.Empty;
+            this.BuildMetadata = buildMetadata ?? string.Empty;
         }
 
         /// <summary>
@@ -33,7 +47,13 @@
         /// Gets an unstable tag (with the leading hyphen), if applicable.
         /// </summary>
         /// <value>A string with a leading hyphen or the empty string.</value>
-        public string UnstableTag { get; private set; }
+        public string Prerelease { get; private set; }
+
+        /// <summary>
+        /// Gets the build metadata (with the leading plus), if applicable.
+        /// </summary>
+        /// <value>A string with a leading plus or the empty string.</value>
+        public string BuildMetadata { get; private set; }
 
         /// <summary>
         /// Gets the debugger display for this instance.
@@ -56,7 +76,7 @@
         /// <returns>The hash code.</returns>
         public override int GetHashCode()
         {
-            return this.Version.GetHashCode() + this.UnstableTag.GetHashCode();
+            return this.Version.GetHashCode() + this.Prerelease.GetHashCode();
         }
 
         /// <summary>
@@ -65,7 +85,7 @@
         /// <returns>A string representation of this object.</returns>
         public override string ToString()
         {
-            return this.Version + this.UnstableTag;
+            return this.Version + this.Prerelease + this.BuildMetadata;
         }
 
         /// <summary>
@@ -81,36 +101,29 @@
             }
 
             return this.Version == other.Version
-                && this.UnstableTag == other.UnstableTag;
+                && this.Prerelease == other.Prerelease
+                && this.BuildMetadata == other.BuildMetadata;
         }
 
         /// <summary>
         /// Verifies that the prerelease tag follows semver rules.
         /// </summary>
-        /// <param name="prerelease">The prerelease tag to verify.</param>
-        /// <param name="parameterName">The name of the parameter to report as not conforming.</param>
-        /// <exception cref="ArgumentOutOfRangeException">
-        /// Thrown if the <paramref name="prerelease"/> does not follow semver rules.
+        /// <param name="input">The input string to test.</param>
+        /// <param name="pattern">The regex that the string must conform to.</param>
+        /// <param name="parameterName">The name of the parameter supplying the <paramref name="input"/>.</param>
+        /// <exception cref="ArgumentException">
+        /// Thrown if the <paramref name="input"/> does not match the required <paramref name="pattern"/>.
         /// </exception>
-        private static void VerifyValidPrereleaseVersion(string prerelease, string parameterName)
+        private static void VerifyPatternMatch(string input, Regex pattern, string parameterName)
         {
-            if (string.IsNullOrEmpty(prerelease))
+            Requires.NotNull(pattern, nameof(pattern));
+
+            if (string.IsNullOrEmpty(input))
             {
                 return;
             }
 
-            if (prerelease[0] != '-')
-            {
-                throw new ArgumentOutOfRangeException(parameterName, "The prerelease string must begin with a hyphen.");
-            }
-
-            for (int i = 1; i < prerelease.Length; i++)
-            {
-                if (!char.IsLetterOrDigit(prerelease[i]))
-                {
-                    throw new ArgumentOutOfRangeException(parameterName, "The prerelease string must be alphanumeric.");
-                }
-            }
+            Requires.Argument(pattern.IsMatch(input), parameterName, $"The prerelease must match the pattern \"{pattern}\".");
         }
     }
 }

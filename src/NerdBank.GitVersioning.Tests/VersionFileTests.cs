@@ -90,7 +90,7 @@ public class VersionFileTests : RepoTestBase
         VersionOptions actualVersion = VersionFile.GetVersion(this.RepoPath);
 
         Assert.Equal(new Version(expectedVersion), actualVersion.DefaultVersion.Version);
-        Assert.Equal(expectedPrerelease ?? string.Empty, actualVersion.DefaultVersion.UnstableTag);
+        Assert.Equal(expectedPrerelease ?? string.Empty, actualVersion.DefaultVersion.Prerelease);
     }
 
     [Fact]

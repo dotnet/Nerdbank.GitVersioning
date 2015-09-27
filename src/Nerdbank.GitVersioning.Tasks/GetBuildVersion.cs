@@ -84,7 +84,7 @@
                         VersionFile.GetVersion(commit) ??
                         VersionFile.GetVersion(Environment.CurrentDirectory);
 
-                    this.PrereleaseVersion = v.DefaultVersion.UnstableTag;
+                    this.PrereleaseVersion = v.DefaultVersion.Prerelease;
 
                     var repoRoot = git?.Info?.WorkingDirectory;
                     var relativeRepoProjectDirectory = !string.IsNullOrWhiteSpace(repoRoot)
