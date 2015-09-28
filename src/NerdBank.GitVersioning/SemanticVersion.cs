@@ -98,13 +98,25 @@
                 var patch = m.Groups["patch"].Value;
                 var systemVersion = patch.Length > 0 ? new Version(major, minor, int.Parse(patch)) : new Version(major, minor);
                 var prerelease = m.Groups["prerelease"].Value;
-                var buildMetadata = m.Groups["buildmetadata"].Value;
+                var buildMetadata = m.Groups["buildMetadata"].Value;
                 version = new SemanticVersion(systemVersion, prerelease, buildMetadata);
                 return true;
             }
 
             version = null;
             return false;
+        }
+
+        /// <summary>
+        /// Parses a semantic version from the given string.
+        /// </summary>
+        /// <param name="semanticVersion">The value which must wholly constitute a semantic version to succeed.</param>
+        /// <returns>An instance of <see cref="SemanticVersion"/>, initialized to the value specified in <paramref name="semanticVersion"/>.</returns>
+        public static SemanticVersion Parse(string semanticVersion)
+        {
+            SemanticVersion result;
+            Requires.Argument(TryParse(semanticVersion, out result), nameof(semanticVersion), "Unrecognized or unsupported semantic version.");
+            return result;
         }
 
         /// <summary>

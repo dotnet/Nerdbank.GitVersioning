@@ -42,6 +42,32 @@ public class SemanticVersionTests
     }
 
     [Fact]
+    public void TryParse()
+    {
+        SemanticVersion result;
+        Assert.True(SemanticVersion.TryParse("1.2-pre+build", out result));
+        Assert.Equal(1, result.Version.Major);
+        Assert.Equal(2, result.Version.Minor);
+        Assert.Equal("-pre", result.Prerelease);
+        Assert.Equal("+build", result.BuildMetadata);
+
+        Assert.False(SemanticVersion.TryParse("1.2-$", out result));
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void Parse()
+    {
+        SemanticVersion result = SemanticVersion.Parse("1.2-pre+build");
+        Assert.Equal(1, result.Version.Major);
+        Assert.Equal(2, result.Version.Minor);
+        Assert.Equal("-pre", result.Prerelease);
+        Assert.Equal("+build", result.BuildMetadata);
+
+        Assert.Throws<ArgumentException>(() => SemanticVersion.Parse("1.2-$"));
+    }
+
+    [Fact]
     public void Equality()
     {
         var sv12a = new SemanticVersion(new Version(1, 2), null);
