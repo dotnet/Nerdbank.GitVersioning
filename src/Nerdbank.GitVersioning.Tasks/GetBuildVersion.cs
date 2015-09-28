@@ -69,17 +69,6 @@
         [Output]
         public int BuildNumber { get; private set; }
 
-        /// <summary>
-        /// The file that contains the version base (Major.Minor.Build) to use.
-        /// </summary>
-        [Required]
-        public string VersionFile { get; set; }
-
-        /// <summary>
-        /// Gets or sets the path to the git repo root or some directory beneath it.
-        /// </summary>
-        public string GitRepoPath { get; set; }
-
         public override bool Execute()
         {
             try
@@ -91,19 +80,19 @@
                     this.GitCommitId = commit?.Id.Sha ?? string.Empty;
                     this.GitHeight = commit?.GetHeight() ?? 0;
 
-                    SemanticVersion v =
-                        GitVersioning.VersionFile.GetVersion(commit) ??
-                        GitVersioning.VersionFile.GetVersion(this.GitRepoPath);
+                    VersionOptions v =
+                        VersionFile.GetVersion(commit) ??
+                        VersionFile.GetVersion(Environment.CurrentDirectory);
 
-                    this.PrereleaseVersion = v.UnstableTag;
+                    this.PrereleaseVersion = v.Version.Prerelease;
 
                     var repoRoot = git?.Info?.WorkingDirectory;
-                    var relativeRepoProjectDirectory = !string.IsNullOrWhiteSpace(repoRoot) && GitRepoPath.StartsWith(repoRoot, StringComparison.OrdinalIgnoreCase)
-                        ? GitRepoPath.Substring(repoRoot.Length)
+                    var relativeRepoProjectDirectory = !string.IsNullOrWhiteSpace(repoRoot)
+                        ? Environment.CurrentDirectory.Substring(repoRoot.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
                         : null;
 
                     // Override the typedVersion with the special build number and revision components, when available.
-                    typedVersion = commit?.GetIdAsVersion(relativeRepoProjectDirectory) ?? v.Version;
+                    typedVersion = commit?.GetIdAsVersion(relativeRepoProjectDirectory) ?? v.Version.Version;
                 }
 
                 typedVersion = typedVersion ?? new Version();
@@ -126,12 +115,7 @@
 
         private LibGit2Sharp.Repository OpenGitRepo()
         {
-            if (string.IsNullOrEmpty(this.GitRepoPath))
-            {
-                return null;
-            }
-
-            string repoRoot = this.GitRepoPath;
+            string repoRoot = Environment.CurrentDirectory;
             while (!Directory.Exists(Path.Combine(repoRoot, ".git")))
             {
                 repoRoot = Path.GetDirectoryName(repoRoot);

@@ -11,9 +11,10 @@ public class SemanticVersionTests
     [Fact]
     public void Ctor()
     {
-        var sv = new SemanticVersion(new Version(1, 2), "-pre");
+        var sv = new SemanticVersion(new Version(1, 2), "-pre", "+mybuild");
         Assert.Equal(new Version(1, 2), sv.Version);
-        Assert.Equal("-pre", sv.UnstableTag);
+        Assert.Equal("-pre", sv.Prerelease);
+        Assert.Equal("+mybuild", sv.BuildMetadata);
     }
 
     [Fact]
@@ -23,10 +24,11 @@ public class SemanticVersionTests
     }
 
     [Fact]
-    public void Ctor_NormalizesNullUnstableTag()
+    public void Ctor_NormalizesNullPreleaseAndBuildMetadata()
     {
-        var sv = new SemanticVersion(new Version(1, 2), null);
-        Assert.Equal(string.Empty, sv.UnstableTag);
+        var sv = new SemanticVersion(new Version(1, 2));
+        Assert.Equal(string.Empty, sv.Prerelease);
+        Assert.Equal(string.Empty, sv.BuildMetadata);
     }
 
     [Fact]
@@ -45,6 +47,11 @@ public class SemanticVersionTests
         Assert.NotEqual(sv12Pre, sv12Beta);
         Assert.Equal(sv12Pre, sv12Pre);
 
+        var sv12BuildInfo = new SemanticVersion(new Version(1, 2), buildMetadata: "+buildInfo");
+        var sv12OtherBuildInfo = new SemanticVersion(new Version(1, 2), buildMetadata: "+otherBuildInfo");
+        Assert.NotEqual(sv12BuildInfo, sv12OtherBuildInfo);
+        Assert.Equal(sv12BuildInfo, sv12BuildInfo);
+
         Assert.False(sv12a.Equals(null));
     }
 
@@ -57,5 +64,19 @@ public class SemanticVersionTests
 
         var sv13 = new SemanticVersion(new Version(1, 3), null);
         Assert.NotEqual(sv12a.GetHashCode(), sv13.GetHashCode());
+    }
+
+    [Fact]
+    public void ToStringTests()
+    {
+        var v = new SemanticVersion(new Version(1, 2), null);
+        Assert.Equal("1.2", v.ToString());
+        var vp = new SemanticVersion(new Version(1, 2), "-pre");
+        Assert.Equal("1.2-pre", vp.ToString());
+        var vb = new SemanticVersion(new Version(1, 2), buildMetadata: "+buildInfo");
+        Assert.Equal("1.2+buildInfo", vb.ToString());
+        var vpb = new SemanticVersion(new Version(1, 2), "-pre", "+buildInfo");
+        Assert.Equal("1.2-pre+buildInfo", vpb.ToString());
+
     }
 }

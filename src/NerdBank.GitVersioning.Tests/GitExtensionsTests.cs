@@ -96,7 +96,7 @@ public class GitExtensionsTests : RepoTestBase
     [Fact]
     public void GetIdAsVersion_ReadsMajorMinorFromVersionTxtInSubdirectory()
     {
-        this.WriteVersionFile("4.8", relativeDirectory:@"foo\bar");
+        this.WriteVersionFile("4.8", relativeDirectory: @"foo\bar");
         var firstCommit = this.Repo.Commits.First();
 
         Version v1 = firstCommit.GetIdAsVersion(@"foo\bar");
@@ -150,10 +150,10 @@ public class GitExtensionsTests : RepoTestBase
     [Fact]
     public void GetIdAsVersion_Roundtrip_WithSubdirectoryVersionFiles()
     {
-        var rootVersionExpected = new Version(1, 0);
+        var rootVersionExpected = VersionOptions.FromVersion(new Version(1, 0));
         VersionFile.SetVersion(this.RepoPath, rootVersionExpected);
 
-        var subPathVersionExpected = new Version(1, 1);
+        var subPathVersionExpected = VersionOptions.FromVersion(new Version(1, 1));
         const string subPathRelative = "a";
         string subPath = Path.Combine(this.RepoPath, subPathRelative);
         Directory.CreateDirectory(subPath);
@@ -166,8 +166,8 @@ public class GitExtensionsTests : RepoTestBase
         Version subPathVersionActual = head.GetIdAsVersion(subPathRelative);
 
         // Verify that the versions calculated took the path into account.
-        Assert.Equal(rootVersionExpected.Minor, rootVersionActual?.Minor);
-        Assert.Equal(subPathVersionExpected.Minor, subPathVersionActual?.Minor);
+        Assert.Equal(rootVersionExpected.Version.Version.Minor, rootVersionActual?.Minor);
+        Assert.Equal(subPathVersionExpected.Version.Version.Minor, subPathVersionActual?.Minor);
 
         // Verify that we can find the commit given the version and path.
         Assert.Equal(head, this.Repo.GetCommitFromVersion(rootVersionActual));
@@ -191,6 +191,27 @@ public class GitExtensionsTests : RepoTestBase
         // even though a System.Version is made up of four 32-bit integers.
         Assert.True(version.Build < 0xfffe, $"{nameof(Version.Build)} component exceeds maximum allowed by the compiler as an argument for AssemblyVersionAttribute and AssemblyFileVersionAttribute.");
         Assert.True(version.Revision < 0xfffe, $"{nameof(Version.Revision)} component exceeds maximum allowed by the compiler as an argument for AssemblyVersionAttribute and AssemblyFileVersionAttribute.");
+    }
+
+    [Fact]
+    public void GetIdAsVersion_MigrationFromVersionTxtToJson()
+    {
+        var txtCommit = this.WriteVersionTxtFile("4.8");
+
+        // Delete the version.txt file so the system writes the version.json file.
+        File.Delete(Path.Combine(this.RepoPath, "version.txt"));
+        var jsonCommit = this.WriteVersionFile("4.8");
+        Assert.True(File.Exists(Path.Combine(this.RepoPath, "version.json")));
+
+        Version v1 = txtCommit.GetIdAsVersion();
+        Assert.Equal(4, v1.Major);
+        Assert.Equal(8, v1.Minor);
+        Assert.Equal(1, v1.Build);
+
+        Version v2 = jsonCommit.GetIdAsVersion();
+        Assert.Equal(4, v2.Major);
+        Assert.Equal(8, v2.Minor);
+        Assert.Equal(2, v2.Build);
     }
 
     ////[Fact] // Manual, per machine test

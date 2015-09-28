@@ -22,13 +22,14 @@ After installing this NuGet package, you may need to configure the version gener
 in order for it to work properly.
 
 With NuGet 2.x, the configuration is handled automatically via the tools\Install.ps1 script.
-For NuGet 3.x, you can run the script tools\Create-VersionTxt.ps1 to help you create the
-version.txt file and remove the old assembly attributes.
+For NuGet 3.x, you can run the script tools\Create-VersionFile.ps1 to help you create the
+version.json file and remove the old assembly attributes.
 
-The scripts will look for the presence of a version.txt file. If it already exists, nothing
-happens. If the version.txt file does not exist, the script looks in your project for the
-Properties\AssemblyInfo.cs file and attempts to read the Major.Minor version number from
-the AssemblyVersion attribute. It then generates a version.txt file using the Major.Minor
+The scripts will look for the presence of a version.json or version.txt file.
+If one already exists, nothing happens. If the version file does not exist,
+the script looks in your project for the Properties\AssemblyInfo.cs file and attempts
+to read the Major.Minor version number from
+the AssemblyVersion attribute. It then generates a version.json file using the Major.Minor
 that was parsed so that your assembly will build with the same AssemblyVersion as before,
 which preserves backwards compatibility. Finally, it will remove the various version-related
 assembly attributes from AssemblyInfo.cs.
@@ -44,39 +45,57 @@ source code, as commonly found in your `Properties\AssemblyInfo.cs` file:
     [assembly: AssemblyInformationalVersion("1.0.0-dev")]
 
 This NuGet package creates these attributes at build time based on version information
-found in your `version.txt` file and your git repo's HEAD position.
+found in your `version.json` or `version.txt` file and your git repo's HEAD position.
 
-Note: After first installing the package, you need to commit the version.txt file so that
+Note: After first installing the package, you need to commit the version file so that
 it will be picked up during the build's version generation. If you build prior to committing,
 the version number produced will be 0.0.x.
 
-### version.txt file
+### version.json or version.txt file
 
-You must define a version.txt file in your project directory or some ancestor of it.
+You must define a version.json or version.txt file in your project directory or some ancestor of it.
 
-When the package is installed, a version.txt file is created in your project directory
+When the package is installed, a version.json file is created in your project directory
 (for NuGet 2.x clients). This ensures backwards compatibility where the installation of
 this package will not cause the assembly version of the project to change. If you would
 like the same version number to be applied to all projects in the repo, then you may move
 the file to the root directory of your git repo.
 
-Here is the content of a sample version.txt file you may start with (do not indent):
+Here is the content of a sample version.json file you may start with (do not indent):
+
+	{ "version": "1.0.0-beta" }
+
+Or the (deprecated) version.txt file you may start with (do not indent):
 
     1.0.0
     -beta
 
-### version.txt file format
+### version.json file format
 
-The format of the version.txt file is as follows:
-LINE 1: x.y.z
-LINE 2: -prerelease
+The content of the version.json file is a JSON serialized object with these properties:
+
+    {
+	    "version": "x.y.z-prerelease"
+	}
 
 The `x` and `y` variables are for your use to specify a version that is meaningful
 to your customers. Consider using [semantic versioning][semver] for guidance.
 The `z` variable should be 0.
 
-The second line is optional and allows you to indicate that you are building
-prerelease software. 
+The optional -prerelease tag allows you to indicate that you are building prerelease software. 
+
+### version.txt file format (obsolete)
+
+The content of the version.txt file is a semver-compliant version in this format:
+
+	x.y.z-prerelease
+
+The `x` and `y` variables are for your use to specify a version that is meaningful
+to your customers. Consider using [semantic versioning][semver] for guidance.
+The `z` variable should be 0.
+
+The optional -prerelease tag may appear on the second line. This tag allows you
+to indicate that you are building prerelease software. 
 
 ### Apply to VSIX versions
 
@@ -136,7 +155,7 @@ packages with a colliding version spec.
 
 ## Where and how versions are calculated and applied
 
-This package calculates the version based on a combination of the version.txt file,
+This package calculates the version based on a combination of the version file,
 the git 'height' of the version, and the git commit ID.
 
 ### Assembly version generation
@@ -148,10 +167,10 @@ During the build it adds source code such as this to your compilation:
     [assembly: System.Reflection.AssemblyInformationalVersion("1.0.24.15136-alpha+g9a7eb6c819")]
 
 The first and second integer components of the versions above come from the 
-version.txt file.
+version file.
 The third integer component of the version here is the height of your git history up to
 that point, such that it reliably increases with each release.
-The -alpha tag also comes from the version.txt file and indicates this is an
+The -alpha tag also comes from the version file and indicates this is an
 unstable version.
 The -g9a7eb6c819 tag is the concatenation of -g and the git commit ID that was built.
 

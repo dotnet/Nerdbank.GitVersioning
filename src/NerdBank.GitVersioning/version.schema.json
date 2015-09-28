@@ -1,0 +1,8 @@
+﻿{
+  "title": "Nerdbank.GitVersioning version.json schema",
+  "type": "object",
+  "required": [ "version" ],
+  "properties": {
+    "version": { "type": "string" }
+  }
+}

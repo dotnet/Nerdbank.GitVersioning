@@ -1,15 +1,15 @@
 <#
 .SYNOPSIS
-Generates a version.txt file if one does not exist.
+Generates a version.json file if one does not exist.
 .DESCRIPTION
-When creating version.txt, AssemblyInfo.cs is loaded and the Major.Minor from the AssemblyVersion attribute is
+When creating version.json, AssemblyInfo.cs is loaded and the Major.Minor from the AssemblyVersion attribute is
 used to seed the version number. Then, those Assembly attributes are removed from AssemblyInfo.cs. This cmdlet
 returns the path to the generated file, or null if the file was not created (it already existed, or the cmdlet
 was being executed with -WhatIf).
 .PARAMETER ProjectDirectory
 The directory of the project which is adding versioning logic with Nerdbank.GitVersioning.
 .PARAMETER OutputDirectory
-The directory where version.txt should be generated. Defaults to the project directory if not specified.
+The directory where version.json should be generated. Defaults to the project directory if not specified.
 This should either be the project directory, or in a parent directory of the project inside the repo.
 #>
 [CmdletBinding(SupportsShouldProcess)]
@@ -27,8 +27,9 @@ if (!$OutputDirectory)
 }
 
 $versionTxtPath = Join-Path $OutputDirectory "version.txt"
+$versionJsonPath = Join-Path $OutputDirectory "version.json"
 
-if (-not (Test-Path $versionTxtPath))
+if (-not ((Test-Path $versionTxtPath) -or (Test-Path $versionJsonPath)))
 {
     # The version file doesn't exist, which means this package is being installed for the first time.
     # 1) Load up the AssemblyInfo.cs file and grab the existing version declarations.
@@ -58,21 +59,21 @@ if (-not (Test-Path $versionTxtPath))
 
         if ($version)
         {
-            if ($PSCmdlet.ShouldProcess($versionTxtPath, "Writing version.txt file"))
+            if ($PSCmdlet.ShouldProcess($versionJsonPath, "Writing version.json file"))
             {
-                $version | Set-Content $versionTxtPath
-                $versionTxtPath
+                "{ `"version`": `"$version`" }" | Set-Content $versionJsonPath
+                $versionJsonPath
             }
         }
         else
         {
-            # This is not a warning because the user is probably already consuming version.txt from a parent directory as part of
+            # This is not a warning because the user is probably already consuming version.json from a parent directory as part of
             # a solution- or repo-level versioning scheme.
-            Write-Verbose "Could not find an AssemblyVersion attribute in file '$assemblyInfo'. Skipping version.txt generation."
+            Write-Verbose "Could not find an AssemblyVersion attribute in file '$assemblyInfo'. Skipping version.json generation."
         }
     }
     else
     {
-        Write-Warning "Could not find an AssemblyInfo.cs file at '$assemblyInfo'. Skipping version.txt generation."
+        Write-Warning "Could not find an AssemblyInfo.cs file at '$assemblyInfo'. Skipping version.json generation."
     }
 }

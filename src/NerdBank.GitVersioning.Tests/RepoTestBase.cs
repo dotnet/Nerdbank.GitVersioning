@@ -9,7 +9,7 @@
     using LibGit2Sharp;
     using Validation;
     using Xunit.Abstractions;
-
+    using System.Diagnostics;
     public abstract class RepoTestBase : IDisposable
     {
         public RepoTestBase(ITestOutputHelper logger)
@@ -68,21 +68,53 @@
             }
         }
 
-        protected void WriteVersionFile(string version = "1.2", string prerelease = "", string relativeDirectory = null)
+        protected Commit WriteVersionTxtFile(string version = "1.2", string prerelease = "", string relativeDirectory = null)
         {
             if (relativeDirectory == null)
             {
                 relativeDirectory = string.Empty;
             }
 
-            VersionFile.SetVersion(Path.Combine(this.RepoPath, relativeDirectory), new System.Version(version), prerelease);
+            string versionFilePath = Path.Combine(this.RepoPath, relativeDirectory, "version.txt");
+            File.WriteAllText(versionFilePath, $"{version}\r\n{prerelease}");
+            return this.CommitVersionFile(versionFilePath, $"{version}{prerelease}");
+        }
+
+        protected Commit WriteVersionFile(string version = "1.2", string prerelease = "", string relativeDirectory = null)
+        {
+            if (relativeDirectory == null)
+            {
+                relativeDirectory = string.Empty;
+            }
+
+            var versionData = VersionOptions.FromVersion(new System.Version(version), prerelease);
+            string versionFilePath = VersionFile.SetVersion(Path.Combine(this.RepoPath, relativeDirectory), versionData);
+            return this.CommitVersionFile(versionFilePath, version);
+        }
+
+        private Commit CommitVersionFile(string versionFilePath, string version)
+        {
+            Requires.NotNullOrEmpty(versionFilePath, nameof(versionFilePath));
+            Requires.NotNullOrEmpty(versionFilePath, nameof(versionFilePath));
 
             if (this.Repo != null)
             {
-                var relativeFilePath = Path.Combine(relativeDirectory, VersionFile.FileName);
+                Assumes.True(versionFilePath.StartsWith(this.RepoPath, StringComparison.OrdinalIgnoreCase));
+                var relativeFilePath = versionFilePath.Substring(this.RepoPath.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                 this.Repo.Index.Add(relativeFilePath);
-                this.Repo.Commit($"Add/write {relativeFilePath} set to {version}", this.Signer);
+                if (Path.GetExtension(relativeFilePath) == ".json")
+                {
+                    string txtFilePath = relativeFilePath.Substring(0, relativeFilePath.Length - 4) + "txt";
+                    if (!File.Exists(Path.Combine(this.RepoPath, txtFilePath)) && this.Repo.Index[txtFilePath] != null)
+                    {
+                        this.Repo.Index.Remove(txtFilePath);
+                    }
+                }
+
+                return this.Repo.Commit($"Add/write {relativeFilePath} set to {version}", this.Signer);
             }
+
+            return null;
         }
     }
 }

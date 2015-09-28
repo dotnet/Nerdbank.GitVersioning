@@ -14,11 +14,13 @@ using Version = System.Version;
 public class VersionFileTests : RepoTestBase
 {
     private string versionTxtPath;
+    private string versionJsonPath;
 
     public VersionFileTests(ITestOutputHelper logger)
         : base(logger)
     {
-        this.versionTxtPath = Path.Combine(this.RepoPath, VersionFile.FileName);
+        this.versionTxtPath = Path.Combine(this.RepoPath, VersionFile.TxtFileName);
+        this.versionJsonPath = Path.Combine(this.RepoPath, VersionFile.JsonFileName);
     }
 
     [Fact]
@@ -80,19 +82,55 @@ public class VersionFileTests : RepoTestBase
     public void SetVersion_GetVersionFromFile(string expectedVersion, string expectedPrerelease)
     {
         string pathWritten = VersionFile.SetVersion(this.RepoPath, new Version(expectedVersion), expectedPrerelease);
-        Assert.Equal(Path.Combine(this.RepoPath, VersionFile.FileName), pathWritten);
+        Assert.Equal(Path.Combine(this.RepoPath, VersionFile.JsonFileName), pathWritten);
 
-        string[] actualFileContent = File.ReadAllLines(this.versionTxtPath);
-        this.Logger.WriteLine(string.Join(Environment.NewLine, actualFileContent));
+        string actualFileContent = File.ReadAllText(pathWritten);
+        this.Logger.WriteLine(actualFileContent);
 
-        Assert.Equal(2, actualFileContent.Length);
-        Assert.Equal(expectedVersion, actualFileContent[0]);
-        Assert.Equal(expectedPrerelease ?? string.Empty, actualFileContent[1]);
+        VersionOptions actualVersion = VersionFile.GetVersion(this.RepoPath);
 
-        SemanticVersion actualVersion = VersionFile.GetVersion(this.RepoPath);
+        Assert.Equal(new Version(expectedVersion), actualVersion.Version.Version);
+        Assert.Equal(expectedPrerelease ?? string.Empty, actualVersion.Version.Prerelease);
+    }
 
-        Assert.Equal(new Version(expectedVersion), actualVersion.Version);
-        Assert.Equal(expectedPrerelease ?? string.Empty, actualVersion.UnstableTag);
+    [Fact]
+    public void GetVersion_CanReadSpecConformantJsonFile()
+    {
+        File.WriteAllText(Path.Combine(this.RepoPath, VersionFile.JsonFileName), "{ version: \"1.2-pre\" }");
+        VersionOptions actualVersion = VersionFile.GetVersion(this.RepoPath);
+        Assert.NotNull(actualVersion);
+        Assert.Equal(new Version(1, 2), actualVersion.Version.Version);
+        Assert.Equal("-pre", actualVersion.Version.Prerelease);
+    }
+
+    [Fact]
+    public void GetVersion_CanReadSpecConformantTxtFile_SingleLine()
+    {
+        File.WriteAllText(Path.Combine(this.RepoPath, VersionFile.TxtFileName), "1.2-pre");
+        VersionOptions actualVersion = VersionFile.GetVersion(this.RepoPath);
+        Assert.NotNull(actualVersion);
+        Assert.Equal(new Version(1, 2), actualVersion.Version.Version);
+        Assert.Equal("-pre", actualVersion.Version.Prerelease);
+    }
+
+    [Fact]
+    public void GetVersion_CanReadSpecConformantTxtFile_MultiLine()
+    {
+        File.WriteAllText(Path.Combine(this.RepoPath, VersionFile.TxtFileName), "1.2\n-pre");
+        VersionOptions actualVersion = VersionFile.GetVersion(this.RepoPath);
+        Assert.NotNull(actualVersion);
+        Assert.Equal(new Version(1, 2), actualVersion.Version.Version);
+        Assert.Equal("-pre", actualVersion.Version.Prerelease);
+    }
+
+    [Fact]
+    public void GetVersion_CanReadSpecConformantTxtFile_MultiLineNoHyphen()
+    {
+        File.WriteAllText(Path.Combine(this.RepoPath, VersionFile.TxtFileName), "1.2\npre");
+        VersionOptions actualVersion = VersionFile.GetVersion(this.RepoPath);
+        Assert.NotNull(actualVersion);
+        Assert.Equal(new Version(1, 2), actualVersion.Version.Version);
+        Assert.Equal("-pre", actualVersion.Version.Prerelease);
     }
 
     [Fact]
@@ -102,8 +140,8 @@ public class VersionFileTests : RepoTestBase
 
         this.InitializeSourceControl();
         this.WriteVersionFile();
-        SemanticVersion fromCommit = VersionFile.GetVersion(this.Repo.Head.Commits.First());
-        SemanticVersion fromFile = VersionFile.GetVersion(this.RepoPath);
+        VersionOptions fromCommit = VersionFile.GetVersion(this.Repo.Head.Commits.First());
+        VersionOptions fromFile = VersionFile.GetVersion(this.RepoPath);
         Assert.NotNull(fromCommit);
         Assert.Equal(fromFile, fromCommit);
     }
@@ -140,12 +178,12 @@ public class VersionFileTests : RepoTestBase
 
     private void AssertPathHasVersion(Commit commit, string absolutePath, Version expected)
     {
-        var actual = VersionFile.GetVersion(absolutePath)?.Version;
+        var actual = VersionFile.GetVersion(absolutePath)?.Version?.Version;
         Assert.Equal(expected, actual);
 
         // Pass in the repo-relative path to ensure the commit is used as the data source.
         string relativePath = absolutePath.Substring(this.RepoPath.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        actual = VersionFile.GetVersion(commit, relativePath)?.Version;
+        actual = VersionFile.GetVersion(commit, relativePath)?.Version?.Version;
         Assert.Equal(expected, actual);
     }
 }
