@@ -200,11 +200,11 @@ When built with the `/p:PublicRelease=true` switch, the NuGet version becomes:
 
 ### What is 'git height'?
 
-Git 'height' is the count of commits in the shortest path between HEAD (the code you're building)
+Git 'height' is the count of commits in the longest path between HEAD (the code you're building)
 and some origin point. In this case the origin is the commit that set the major.minor version number
 to the values found in HEAD.
 
-For example, if the version specified at HEAD is 3.4 and the shortest path in git history from HEAD
+For example, if the version specified at HEAD is 3.4 and the longest path in git history from HEAD
 to where the version file was changed to 3.4 is 15 steps, then the git height is "15".
 
 ### Why is the git height used for the PATCH version component for public releases?
