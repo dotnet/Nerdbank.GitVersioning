@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Reflection;
+    using Newtonsoft.Json;
 
     /// <summary>
     /// Describes the various versions and options required for the build.
@@ -14,6 +15,7 @@
         /// <summary>
         /// Gets or sets the default version to use.
         /// </summary>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
         public SemanticVersion Version { get; set; }
 
         /// <summary>
@@ -21,6 +23,7 @@
         /// instead of the default <see cref="Version"/>.
         /// </summary>
         /// <value>An instance of <see cref="System.Version"/> or <c>null</c> to simply use the default <see cref="Version"/>.</value>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
         public Version AssemblyVersion { get; set; }
 
         /// <summary>
@@ -31,6 +34,7 @@
         /// An error will result if this value is negative with such a magnitude as to exceed the git height,
         /// resulting in a negative build number.
         /// </remarks>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
         public int BuildNumberOffset { get; set; }
 
         /// <summary>

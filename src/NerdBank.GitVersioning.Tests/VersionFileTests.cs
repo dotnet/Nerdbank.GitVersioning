@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using LibGit2Sharp;
 using Nerdbank.GitVersioning;
 using Nerdbank.GitVersioning.Tests;
+using Newtonsoft.Json;
 using Xunit;
 using Xunit.Abstractions;
 using Version = System.Version;
@@ -91,6 +92,26 @@ public class VersionFileTests : RepoTestBase
 
         Assert.Equal(new Version(expectedVersion), actualVersion.Version.Version);
         Assert.Equal(expectedPrerelease ?? string.Empty, actualVersion.Version.Prerelease);
+    }
+
+    [Theory]
+    [InlineData("2.3", null, 0, @"{""version"":""2.3""}")]
+    [InlineData("2.3", "2.2", 0, @"{""version"":""2.3"",""assemblyVersion"":""2.2""}")]
+    [InlineData("2.3", "2.2", -1, @"{""version"":""2.3"",""assemblyVersion"":""2.2"",""buildNumberOffset"":-1}")]
+    public void SetVersion_WritesSimplestFile(string version, string assemblyVersion, int buildNumberOffset, string expectedJson)
+    {
+        var versionOptions = new VersionOptions
+        {
+            Version = SemanticVersion.Parse(version),
+            AssemblyVersion = assemblyVersion != null ? new Version(assemblyVersion) : null,
+            BuildNumberOffset = buildNumberOffset,
+        };
+        string pathWritten = VersionFile.SetVersion(this.RepoPath, versionOptions);
+        string actualFileContent = File.ReadAllText(pathWritten);
+        this.Logger.WriteLine(actualFileContent);
+
+        string normalizedFileContent = JsonConvert.SerializeObject(JsonConvert.DeserializeObject(actualFileContent));
+        Assert.Equal(expectedJson, normalizedFileContent);
     }
 
     [Fact]
