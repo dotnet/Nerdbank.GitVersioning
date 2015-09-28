@@ -193,6 +193,27 @@ public class GitExtensionsTests : RepoTestBase
         Assert.True(version.Revision < 0xfffe, $"{nameof(Version.Revision)} component exceeds maximum allowed by the compiler as an argument for AssemblyVersionAttribute and AssemblyFileVersionAttribute.");
     }
 
+    [Fact]
+    public void GetIdAsVersion_MigrationFromVersionTxtToJson()
+    {
+        var txtCommit = this.WriteVersionTxtFile("4.8");
+
+        // Delete the version.txt file so the system writes the version.json file.
+        File.Delete(Path.Combine(this.RepoPath, "version.txt"));
+        var jsonCommit = this.WriteVersionFile("4.8");
+        Assert.True(File.Exists(Path.Combine(this.RepoPath, "version.json")));
+
+        Version v1 = txtCommit.GetIdAsVersion();
+        Assert.Equal(4, v1.Major);
+        Assert.Equal(8, v1.Minor);
+        Assert.Equal(1, v1.Build);
+
+        Version v2 = jsonCommit.GetIdAsVersion();
+        Assert.Equal(4, v2.Major);
+        Assert.Equal(8, v2.Minor);
+        Assert.Equal(2, v2.Build);
+    }
+
     ////[Fact] // Manual, per machine test
     public void TestBiggerRepo()
     {
