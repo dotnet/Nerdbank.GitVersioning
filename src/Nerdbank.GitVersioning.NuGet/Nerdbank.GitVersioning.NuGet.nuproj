@@ -49,6 +49,9 @@
     <Content Include="..\..\packages\MSBuildTasks.1.4.0.88\tools\MSBuild.Community.Tasks.dll">
       <Link>build\MSBuild.Community.Tasks.dll</Link>
     </Content>
+    <Content Include="..\NerdBank.GitVersioning\version.schema.json">
+      <Link>tools\version.schema.json</Link>
+    </Content>
     <Content Include="build\NerdBank.GitVersioning.targets" />
     <Content Include="tools\Get-Version.ps1" />
     <Content Include="tools\Get-CommitId.ps1" />

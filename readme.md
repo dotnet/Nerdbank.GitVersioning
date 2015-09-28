@@ -86,6 +86,10 @@ The `z` variable should be 0.
 
 The optional -prerelease tag allows you to indicate that you are building prerelease software.
 
+When editing the version.json file in an editor that supports JSON schema files, you may
+point the editor to the `tools\version.schema.json` file in this package for added
+assistance and validation.
+
 ### version.txt file format (obsolete)
 
 The content of the version.txt file is a semver-compliant version in this format:
