@@ -203,7 +203,7 @@
             ushort objectIdMask = (ushort)(version.Revision == MaximumBuildNumberOrRevisionComponent ? 0xfffe : 0xffff);
 
             var possibleCommits = from commit in GetCommitsReachableFromRefs(repo)
-                                  where commit.Id.StartsWith(objectIdLeadingValue, objectIdMask)
+                                  where version.Revision == -1 || commit.Id.StartsWith(objectIdLeadingValue, objectIdMask)
                                   let buildNumberOffset = VersionFile.GetVersion(commit)?.BuildNumberOffset ?? 0
                                   let versionHeight = commit.GetHeight(c => CommitMatchesMajorMinorVersion(c, version, repoRelativeProjectDirectory))
                                   where versionHeight == version.Build - buildNumberOffset

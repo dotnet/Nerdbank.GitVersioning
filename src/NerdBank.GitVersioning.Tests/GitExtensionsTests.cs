@@ -165,6 +165,11 @@ public class GitExtensionsTests : RepoTestBase
         for (int i = 0; i < commits.Length; i++)
         {
             Assert.Equal(commits[i], this.Repo.GetCommitFromVersion(versions[i]));
+
+            // Also verify that we can find it without the revision number.
+            // This is important because stable, publicly released NuGet packages
+            // that contain no assemblies may only have major.minor.build as their version evidence.
+            Assert.Equal(commits[i], this.Repo.GetCommitFromVersion(new Version(versions[i].Major, versions[i].Minor, versions[i].Build)));
         }
     }
 

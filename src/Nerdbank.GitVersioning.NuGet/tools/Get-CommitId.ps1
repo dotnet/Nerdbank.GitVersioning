@@ -45,7 +45,7 @@ $TypedVersion = New-Object Version($Version)
 
 $repo = New-Object LibGit2Sharp.Repository($GitPath)
 try {
-    $commit = [NerdBank.GitVersioning.GitExtensions]::GetCommitFromVersion($repo, $TypedVersion, $RepoRelativeProjectDirectory)
+    $commit = [NerdBank.GitVersioning.GitExtensions]::GetCommitsFromVersion($repo, $TypedVersion, $RepoRelativeProjectDirectory)
     $commit.Id.Sha
 } finally {
     $repo.Dispose()
