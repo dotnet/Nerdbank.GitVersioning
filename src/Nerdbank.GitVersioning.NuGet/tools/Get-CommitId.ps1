@@ -18,7 +18,7 @@ Param(
     [string]$ProjectDirectory=".",
     [Parameter()]
     [string]$AssemblyPath,
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory=$true, Position=0)]
     [string]$Version
 )
 
