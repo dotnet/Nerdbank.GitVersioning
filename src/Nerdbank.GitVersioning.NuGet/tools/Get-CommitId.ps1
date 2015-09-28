@@ -39,7 +39,7 @@ if ($GitPath -eq '') {
     return 1
 }
 
-$RepoRelativeProjectDirectory = $ProjectDirectory.Substring($GitPath.Length)
+$RepoRelativeProjectDirectory = $ProjectDirectory.Substring($GitPath.Length).TrimStart([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
 
 $TypedVersion = New-Object Version($Version)
 
