@@ -76,14 +76,15 @@ The content of the version.json file is a JSON serialized object with these prop
 
     {
         "version": "x.y.z-prerelease", // required
-        "assemblyVersion": "x.y"       // optional. Use when x.y for AssemblyVersionAttribute differs from the default version property.
+        "assemblyVersion": "x.y",      // optional. Use when x.y for AssemblyVersionAttribute differs from the default version property.
+        "buildNumberOffset": zOffset   // optional. Use when you need to add/subtract a fixed value from the computed build number.
     }
 
 The `x` and `y` variables are for your use to specify a version that is meaningful
 to your customers. Consider using [semantic versioning][semver] for guidance.
 The `z` variable should be 0.
 
-The optional -prerelease tag allows you to indicate that you are building prerelease software. 
+The optional -prerelease tag allows you to indicate that you are building prerelease software.
 
 ### version.txt file format (obsolete)
 
