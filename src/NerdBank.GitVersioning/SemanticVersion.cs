@@ -15,7 +15,10 @@
         /// The regular expression with capture groups for semantic versioning.
         /// It considers PATCH to be optional.
         /// </summary>
-        private static readonly Regex FullSemVerPattern = new Regex(@"^(?<major>\d+)\.(?<minor>\d+)(?:\.(?<patch>\d+))?(?<prerelease>-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?<buildMetadata>\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$");
+        /// <remarks>
+        /// Parts of this regex inspired by https://github.com/sindresorhus/semver-regex/blob/master/index.js
+        /// </remarks>
+        private static readonly Regex FullSemVerPattern = new Regex(@"^v?(?<major>0|[1-9][0-9]*)\.(?<minor>0|[1-9][0-9]*)(?:\.(?<patch>0|[1-9][0-9]*))?(?<prerelease>-[\da-z\-]+(?:\.[\da-z\-]+)*)?(?<buildMetadata>\+[\da-z\-]+(?:\.[\da-z\-]+)*)?$", RegexOptions.IgnoreCase);
 
         /// <summary>
         /// The regex pattern that a prerelease must match.
