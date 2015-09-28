@@ -150,14 +150,16 @@
             Requires.NotNull(commit, nameof(commit));
             Requires.Argument(repoRelativeProjectDirectory == null || !Path.IsPathRooted(repoRelativeProjectDirectory), nameof(repoRelativeProjectDirectory), "Path should be relative to repo root.");
 
-            var baseVersion = VersionFile.GetVersion(commit, repoRelativeProjectDirectory)?.Version?.Version ?? Version0;
+            var versionOptions = VersionFile.GetVersion(commit, repoRelativeProjectDirectory);
+            var baseVersion = versionOptions?.Version?.Version ?? Version0;
 
             // The compiler (due to WinPE header requirements) only allows 16-bit version components,
             // and forbids 0xffff as a value.
             // The build number is set to the git height. This helps ensure that
             // within a major.minor release, each patch has an incrementing integer.
             // The revision is set to the first two bytes of the git commit ID.
-            int build = commit.GetHeight(c => CommitMatchesMajorMinorVersion(c, baseVersion, repoRelativeProjectDirectory));
+            int versionHeight = commit.GetHeight(c => CommitMatchesMajorMinorVersion(c, baseVersion, repoRelativeProjectDirectory));
+            int build = versionHeight + (versionOptions?.BuildNumberOffset ?? 0);
             Verify.Operation(build <= MaximumBuildNumberOrRevisionComponent, "Git height is {0}, which is greater than the maximum allowed {0}.", build, MaximumBuildNumberOrRevisionComponent);
             int revision = Math.Min(MaximumBuildNumberOrRevisionComponent, commit.GetTruncatedCommitIdAsUInt16());
 
@@ -189,12 +191,10 @@
         /// <param name="version">The version previously obtained from <see cref="GetIdAsVersion(Commit, string)"/>.</param>
         /// <param name="repoRelativeProjectDirectory">The repo-relative project directory from which <paramref name="version"/> was originally calculated.</param>
         /// <returns>The matching commits, or an empty enumeration if no match is found.</returns>
-        public static IEnumerable<Commit> GetCommitsFromVersion(this Repository repo, Version version, string repoRelativeProjectDirectory)
+        public static IEnumerable<Commit> GetCommitsFromVersion(this Repository repo, Version version, string repoRelativeProjectDirectory = null)
         {
             Requires.NotNull(repo, nameof(repo));
             Requires.NotNull(version, nameof(version));
-
-            int height = version.Build;
 
             // The revision is a 16-bit unsigned integer, but is not allowed to be 0xffff.
             // So if the value is 0xfffe, consider that the actual last bit is insignificant
@@ -204,7 +204,9 @@
 
             var possibleCommits = from commit in GetCommitsReachableFromRefs(repo)
                                   where commit.Id.StartsWith(objectIdLeadingValue, objectIdMask)
-                                  where commit.GetHeight(c => CommitMatchesMajorMinorVersion(c, version, repoRelativeProjectDirectory)) == height
+                                  let buildNumberOffset = VersionFile.GetVersion(commit)?.BuildNumberOffset ?? 0
+                                  let versionHeight = commit.GetHeight(c => CommitMatchesMajorMinorVersion(c, version, repoRelativeProjectDirectory))
+                                  where versionHeight == version.Build - buildNumberOffset
                                   select commit;
 
             return possibleCommits;
@@ -223,7 +225,8 @@
             Requires.NotNull(commit, nameof(commit));
             Requires.NotNull(expectedVersion, nameof(expectedVersion));
 
-            Version majorMinorFromFile = VersionFile.GetVersion(commit, repoRelativeProjectDirectory)?.Version?.Version ?? Version0;
+            var commitVersionData = VersionFile.GetVersion(commit, repoRelativeProjectDirectory);
+            Version majorMinorFromFile = commitVersionData?.Version?.Version ?? Version0;
             return majorMinorFromFile?.Major == expectedVersion.Major && majorMinorFromFile?.Minor == expectedVersion.Minor;
         }
 

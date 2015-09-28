@@ -118,7 +118,7 @@
                     }
                 }
 
-                return this.Repo.Commit($"Add/write {relativeFilePath} set to {version}", this.Signer);
+                return this.Repo.Commit($"Add/write {relativeFilePath} set to {version}", this.Signer, new CommitOptions { AllowEmptyCommit = true });
             }
 
             return null;

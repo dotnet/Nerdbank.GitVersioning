@@ -24,6 +24,16 @@
         public Version AssemblyVersion { get; set; }
 
         /// <summary>
+        /// Gets or sets a number to add to the git height when calculating the <see cref="Version.Build"/> number.
+        /// </summary>
+        /// <value>Any integer (0, positive, or negative).</value>
+        /// <remarks>
+        /// An error will result if this value is negative with such a magnitude as to exceed the git height,
+        /// resulting in a negative build number.
+        /// </remarks>
+        public int BuildNumberOffset { get; set; }
+
+        /// <summary>
         /// Gets the debugger display for this instance.
         /// </summary>
         private string DebuggerDisplay => this.Version?.ToString();
@@ -75,7 +85,8 @@
             }
 
             return EqualityComparer<SemanticVersion>.Default.Equals(this.Version, other.Version)
-                && EqualityComparer<Version>.Default.Equals(this.AssemblyVersion, other.AssemblyVersion);
+                && EqualityComparer<Version>.Default.Equals(this.AssemblyVersion, other.AssemblyVersion)
+                && this.BuildNumberOffset == other.BuildNumberOffset;
         }
 
         /// <summary>

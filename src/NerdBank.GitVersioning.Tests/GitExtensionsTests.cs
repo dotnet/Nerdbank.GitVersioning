@@ -137,10 +137,21 @@ public class GitExtensionsTests : RepoTestBase
         this.VerifyCommitsWithVersion(v59Commits);
     }
 
-    [Fact]
-    public void GetIdAsVersion_Roundtrip()
+    [Theory]
+    [InlineData("2.5", "2.5", 0)]
+    [InlineData("2.5", "2.5", 5)]
+    [InlineData("2.5", "2.5", -1)]
+    [InlineData("2.5", "2.0", 0)]
+    [InlineData("2.5", "2.0", 5)]
+    [InlineData("2.5", "2.0", -1)]
+    public void GetIdAsVersion_Roundtrip(string version, string assemblyVersion, int buildNumberOffset)
     {
-        this.WriteVersionFile("2.5");
+        this.WriteVersionFile(new VersionOptions
+        {
+            Version = SemanticVersion.Parse(version),
+            AssemblyVersion = new Version(assemblyVersion),
+            BuildNumberOffset = buildNumberOffset,
+        });
 
         Commit[] commits = new Commit[16]; // create enough that statistically we'll likely hit interesting bits as MSB and LSB
         Version[] versions = new Version[commits.Length];
@@ -154,6 +165,53 @@ public class GitExtensionsTests : RepoTestBase
         for (int i = 0; i < commits.Length; i++)
         {
             Assert.Equal(commits[i], this.Repo.GetCommitFromVersion(versions[i]));
+        }
+    }
+
+    [Theory]
+    [InlineData(0, 2, false)]
+    [InlineData(50, -4, false)] // go backwards, but don't overlap
+    [InlineData(50, -2, true)] // force many build number collisions. generally revision will still make them unique, but it *might* collide on occasion.
+    public void GetIdAsVersion_Roundtrip_UnstableOffset(int startingOffset, int offsetStepChange, bool allowCollisions)
+    {
+        var versionOptions = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("1.2"),
+            AssemblyVersion = null,
+            BuildNumberOffset = startingOffset,
+        };
+        this.WriteVersionFile(versionOptions);
+
+        Commit[] commits = new Commit[16]; // create enough that statistically we'll likely hit interesting bits as MSB and LSB
+        Version[] versions = new Version[commits.Length];
+        for (int i = 0; i < commits.Length; i += 2)
+        {
+            versionOptions.BuildNumberOffset += offsetStepChange;
+            commits[i] = this.WriteVersionFile(versionOptions);
+            versions[i] = commits[i].GetIdAsVersion();
+
+            commits[i + 1] = this.Repo.Commit($"Commit {i + 1}", new CommitOptions { AllowEmptyCommit = true });
+            versions[i + 1] = commits[i + 1].GetIdAsVersion();
+
+            this.Logger.WriteLine($"Commit {commits[i].Id.Sha.Substring(0, 8)} as version: {versions[i]}");
+            this.Logger.WriteLine($"Commit {commits[i + 1].Id.Sha.Substring(0, 8)} as version: {versions[i + 1]}");
+
+            // Find the commits we just wrote while they are still at the tip of the branch.
+            var matchingCommits = this.Repo.GetCommitsFromVersion(versions[i]);
+            Assert.Contains(commits[i], matchingCommits);
+            matchingCommits = this.Repo.GetCommitsFromVersion(versions[i + 1]);
+            Assert.Contains(commits[i + 1], matchingCommits);
+        }
+
+        // Find all commits (again) now that history has been written.
+        for (int i = 0; i < commits.Length; i++)
+        {
+            var matchingCommits = this.Repo.GetCommitsFromVersion(versions[i]).ToList();
+            Assert.Contains(commits[i], matchingCommits);
+            if (!allowCollisions)
+            {
+                Assert.Equal(1, matchingCommits.Count);
+            }
         }
     }
 
