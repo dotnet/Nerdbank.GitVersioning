@@ -12,6 +12,11 @@
       "type": "string",
       "description": "The x.y version to use particularly for the AssemblyVersionAttribute instead of the default. This is useful when maintaining assembly binding compatibility on the desktop .NET Framework is important even though AssemblyFileVersion may change.",
       "pattern": "^\\d+\\.\\d+$"
+    },
+    "buildNumberOffset": {
+      "type": "integer",
+      "description": "A number to add to the git height when calculating the build number.",
+      "default": 0
     }
   }
 }
