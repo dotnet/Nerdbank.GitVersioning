@@ -240,9 +240,11 @@
                 }
             }
 
+            SemanticVersion semVer;
+            Verify.Operation(SemanticVersion.TryParse(versionLine + prereleaseVersion, out semVer), "Unrecognized version format.");
             return new VersionOptions
             {
-                Version = new SemanticVersion(new Version(versionLine), prereleaseVersion),
+                Version = semVer,
             };
         }
     }

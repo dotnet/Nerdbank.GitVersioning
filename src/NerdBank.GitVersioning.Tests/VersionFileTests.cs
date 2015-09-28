@@ -94,9 +94,39 @@ public class VersionFileTests : RepoTestBase
     }
 
     [Fact]
-    public void GetVersion_CanReadSpecConformantFile()
+    public void GetVersion_CanReadSpecConformantJsonFile()
     {
         File.WriteAllText(Path.Combine(this.RepoPath, VersionFile.JsonFileName), "{ version: \"1.2-pre\" }");
+        VersionOptions actualVersion = VersionFile.GetVersion(this.RepoPath);
+        Assert.NotNull(actualVersion);
+        Assert.Equal(new Version(1, 2), actualVersion.Version.Version);
+        Assert.Equal("-pre", actualVersion.Version.Prerelease);
+    }
+
+    [Fact]
+    public void GetVersion_CanReadSpecConformantTxtFile_SingleLine()
+    {
+        File.WriteAllText(Path.Combine(this.RepoPath, VersionFile.TxtFileName), "1.2-pre");
+        VersionOptions actualVersion = VersionFile.GetVersion(this.RepoPath);
+        Assert.NotNull(actualVersion);
+        Assert.Equal(new Version(1, 2), actualVersion.Version.Version);
+        Assert.Equal("-pre", actualVersion.Version.Prerelease);
+    }
+
+    [Fact]
+    public void GetVersion_CanReadSpecConformantTxtFile_MultiLine()
+    {
+        File.WriteAllText(Path.Combine(this.RepoPath, VersionFile.TxtFileName), "1.2\n-pre");
+        VersionOptions actualVersion = VersionFile.GetVersion(this.RepoPath);
+        Assert.NotNull(actualVersion);
+        Assert.Equal(new Version(1, 2), actualVersion.Version.Version);
+        Assert.Equal("-pre", actualVersion.Version.Prerelease);
+    }
+
+    [Fact]
+    public void GetVersion_CanReadSpecConformantTxtFile_MultiLineNoHyphen()
+    {
+        File.WriteAllText(Path.Combine(this.RepoPath, VersionFile.TxtFileName), "1.2\npre");
         VersionOptions actualVersion = VersionFile.GetVersion(this.RepoPath);
         Assert.NotNull(actualVersion);
         Assert.Equal(new Version(1, 2), actualVersion.Version.Version);
