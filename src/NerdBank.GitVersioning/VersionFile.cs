@@ -33,7 +33,10 @@
         /// </summary>
         private static readonly JsonSerializerSettings JsonSettings = new JsonSerializerSettings()
         {
-            Converters = new[] { new VersionConverter() },
+            Converters = new JsonConverter[] {
+                new VersionConverter(),
+                new SemanticVersionJsonConverter(),
+            },
             ContractResolver = new CamelCasePropertyNamesContractResolver(),
             Formatting = Formatting.Indented,
         };
@@ -134,7 +137,7 @@
         {
             Requires.NotNullOrEmpty(projectDirectory, nameof(projectDirectory));
             Requires.NotNull(version, nameof(version));
-            Requires.Argument(version.DefaultVersion != null, nameof(version), $"{nameof(VersionOptions.DefaultVersion)} must be set.");
+            Requires.Argument(version.Version != null, nameof(version), $"{nameof(VersionOptions.Version)} must be set.");
 
             Directory.CreateDirectory(projectDirectory);
 
@@ -145,7 +148,7 @@
                 {
                     File.WriteAllLines(
                         versionTxtPath,
-                        new[] { version.DefaultVersion.Version.ToString(), version.DefaultVersion.Prerelease });
+                        new[] { version.Version.Version.ToString(), version.Version.Prerelease });
                     return versionTxtPath;
                 }
                 else
@@ -239,7 +242,7 @@
 
             return new VersionOptions
             {
-                DefaultVersion = new SemanticVersion(new Version(versionLine), prereleaseVersion),
+                Version = new SemanticVersion(new Version(versionLine), prereleaseVersion),
             };
         }
     }

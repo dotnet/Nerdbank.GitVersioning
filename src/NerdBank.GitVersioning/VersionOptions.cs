@@ -13,16 +13,16 @@
         /// <summary>
         /// Gets the default version to use.
         /// </summary>
-        public SemanticVersion DefaultVersion { get; set; }
+        public SemanticVersion Version { get; set; }
 
         /// <summary>
         /// Gets the debugger display for this instance.
         /// </summary>
-        private string DebuggerDisplay => this.DefaultVersion.ToString();
+        private string DebuggerDisplay => this.Version?.ToString();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="VersionOptions"/> class
-        /// with <see cref="DefaultVersion"/> initialized with the specified parameters.
+        /// with <see cref="Version"/> initialized with the specified parameters.
         /// </summary>
         /// <param name="version">The version number.</param>
         /// <param name="unstableTag">The prerelease tag, if any.</param>
@@ -31,7 +31,7 @@
         {
             return new VersionOptions
             {
-                DefaultVersion = new SemanticVersion(version, unstableTag),
+                Version = new SemanticVersion(version, unstableTag),
             };
         }
 
@@ -51,7 +51,7 @@
         /// <returns>The hash code.</returns>
         public override int GetHashCode()
         {
-            return this.DefaultVersion?.GetHashCode() ?? 0;
+            return this.Version?.GetHashCode() ?? 0;
         }
 
         /// <summary>
@@ -66,16 +66,16 @@
                 return false;
             }
 
-            return EqualityComparer<SemanticVersion>.Default.Equals(this.DefaultVersion, other.DefaultVersion);
+            return EqualityComparer<SemanticVersion>.Default.Equals(this.Version, other.Version);
         }
 
         /// <summary>
-        /// Gets a value indicating whether <see cref="DefaultVersion"/> is
+        /// Gets a value indicating whether <see cref="Version"/> is
         /// set and the only property on this class that is set.
         /// </summary>
         internal bool IsDefaultVersionTheOnlyPropertySet
         {
-            get { return this.DefaultVersion != null; }
+            get { return this.Version != null; }
         }
     }
 }

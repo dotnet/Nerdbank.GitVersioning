@@ -166,8 +166,8 @@ public class GitExtensionsTests : RepoTestBase
         Version subPathVersionActual = head.GetIdAsVersion(subPathRelative);
 
         // Verify that the versions calculated took the path into account.
-        Assert.Equal(rootVersionExpected.DefaultVersion.Version.Minor, rootVersionActual?.Minor);
-        Assert.Equal(subPathVersionExpected.DefaultVersion.Version.Minor, subPathVersionActual?.Minor);
+        Assert.Equal(rootVersionExpected.Version.Version.Minor, rootVersionActual?.Minor);
+        Assert.Equal(subPathVersionExpected.Version.Version.Minor, subPathVersionActual?.Minor);
 
         // Verify that we can find the commit given the version and path.
         Assert.Equal(head, this.Repo.GetCommitFromVersion(rootVersionActual));

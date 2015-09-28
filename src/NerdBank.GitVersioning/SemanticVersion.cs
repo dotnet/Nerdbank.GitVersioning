@@ -12,14 +12,20 @@
     public class SemanticVersion : IEquatable<SemanticVersion>
     {
         /// <summary>
+        /// The regular expression with capture groups for semantic versioning.
+        /// It considers PATCH to be optional.
+        /// </summary>
+        private static readonly Regex FullSemVerPattern = new Regex(@"^(?<major>\d+)\.(?<minor>\d+)(?:\.(?<patch>\d+))?(?<prerelease>-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?<buildMetadata>\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$");
+
+        /// <summary>
         /// The regex pattern that a prerelease must match.
         /// </summary>
-        private static readonly Regex PrereleasePattern = new Regex(@"^-((?:[0-9A-Za-z-]+)(?:\.[0-9A-Za-z-]+)*)$");
+        private static readonly Regex PrereleasePattern = new Regex(@"^-(?:[0-9A-Za-z-]+)(?:\.[0-9A-Za-z-]+)*$");
 
         /// <summary>
         /// The regex pattern that build metadata must match.
         /// </summary>
-        private static readonly Regex BuildMetadataPattern = new Regex(@"^\+((?:[0-9A-Za-z-]+)(?:\.[0-9A-Za-z-]+)*)$");
+        private static readonly Regex BuildMetadataPattern = new Regex(@"^\+(?:[0-9A-Za-z-]+)(?:\.[0-9A-Za-z-]+)*$");
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SemanticVersion"/> class.
@@ -59,6 +65,33 @@
         /// Gets the debugger display for this instance.
         /// </summary>
         private string DebuggerDisplay => this.ToString();
+
+        /// <summary>
+        /// Parses a semantic version from the given string.
+        /// </summary>
+        /// <param name="semanticVersion">The value which must wholly constitute a semantic version to succeed.</param>
+        /// <param name="version">Receives the semantic version, if found.</param>
+        /// <returns><c>true</c> if a semantic version is found; <c>false</c> otherwise.</returns>
+        public static bool TryParse(string semanticVersion, out SemanticVersion version)
+        {
+            Requires.NotNullOrEmpty(semanticVersion, nameof(semanticVersion));
+
+            Match m = FullSemVerPattern.Match(semanticVersion);
+            if (m.Success)
+            {
+                var major = int.Parse(m.Groups["major"].Value);
+                var minor = int.Parse(m.Groups["minor"].Value);
+                var patch = m.Groups["patch"].Value;
+                var systemVersion = patch.Length > 0 ? new Version(major, minor, int.Parse(patch)) : new Version(major, minor);
+                var prerelease = m.Groups["prerelease"].Value;
+                var buildMetadata = m.Groups["buildmetadata"].Value;
+                version = new SemanticVersion(systemVersion, prerelease, buildMetadata);
+                return true;
+            }
+
+            version = null;
+            return false;
+        }
 
         /// <summary>
         /// Checks equality against another object.
