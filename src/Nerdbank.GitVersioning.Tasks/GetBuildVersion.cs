@@ -27,6 +27,12 @@
         public string Version { get; private set; }
 
         /// <summary>
+        /// Gets the version string to use for the <see cref="System.Reflection.AssemblyVersionAttribute"/>.
+        /// </summary>
+        [Output]
+        public string AssemblyVersion { get; private set; }
+
+        /// <summary>
         /// Gets the version string to use in the official release name (lacks revision number).
         /// </summary>
         [Output]
@@ -64,6 +70,14 @@
         public int GitHeight { get; private set; }
 
         /// <summary>
+        /// Gets the number of commits in the longest single path between
+        /// the specified commit and the most distant ancestor (inclusive)
+        /// that set the version to the value at HEAD.
+        /// </summary>
+        [Output]
+        public int GitVersionHeight { get; private set; }
+
+        /// <summary>
         /// Gets the build number (git height) for this version.
         /// </summary>
         [Output]
@@ -74,17 +88,19 @@
             try
             {
                 Version typedVersion;
+                VersionOptions versionOptions;
                 using (var git = this.OpenGitRepo())
                 {
                     var commit = git?.Head.Commits.FirstOrDefault();
                     this.GitCommitId = commit?.Id.Sha ?? string.Empty;
                     this.GitHeight = commit?.GetHeight() ?? 0;
+                    this.GitVersionHeight = commit?.GetVersionHeight() ?? 0;
 
-                    VersionOptions v =
+                    versionOptions =
                         VersionFile.GetVersion(commit) ??
                         VersionFile.GetVersion(Environment.CurrentDirectory);
 
-                    this.PrereleaseVersion = v.Version.Prerelease;
+                    this.PrereleaseVersion = versionOptions.Version.Prerelease;
 
                     var repoRoot = git?.Info?.WorkingDirectory;
                     var relativeRepoProjectDirectory = !string.IsNullOrWhiteSpace(repoRoot)
@@ -92,7 +108,7 @@
                         : null;
 
                     // Override the typedVersion with the special build number and revision components, when available.
-                    typedVersion = commit?.GetIdAsVersion(relativeRepoProjectDirectory) ?? v.Version.Version;
+                    typedVersion = commit?.GetIdAsVersion(relativeRepoProjectDirectory) ?? versionOptions.Version.Version;
                 }
 
                 typedVersion = typedVersion ?? new Version();
@@ -101,6 +117,7 @@
                     : new Version(typedVersion.Major, typedVersion.Minor);
                 this.SimpleVersion = typedVersionWithoutRevision.ToString();
                 this.MajorMinorVersion = new Version(typedVersion.Major, typedVersion.Minor).ToString();
+                this.AssemblyVersion = versionOptions.AssemblyVersion?.ToString() ?? this.MajorMinorVersion;
                 this.BuildNumber = Math.Max(0, typedVersion.Build);
                 this.Version = typedVersion.ToString();
             }

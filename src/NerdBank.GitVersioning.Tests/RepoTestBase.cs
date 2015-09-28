@@ -82,14 +82,21 @@
 
         protected Commit WriteVersionFile(string version = "1.2", string prerelease = "", string relativeDirectory = null)
         {
+            var versionData = VersionOptions.FromVersion(new System.Version(version), prerelease);
+            return WriteVersionFile(versionData, relativeDirectory);
+        }
+
+        protected Commit WriteVersionFile(VersionOptions versionData, string relativeDirectory = null)
+        {
+            Requires.NotNull(versionData, nameof(versionData));
+
             if (relativeDirectory == null)
             {
                 relativeDirectory = string.Empty;
             }
 
-            var versionData = VersionOptions.FromVersion(new System.Version(version), prerelease);
             string versionFilePath = VersionFile.SetVersion(Path.Combine(this.RepoPath, relativeDirectory), versionData);
-            return this.CommitVersionFile(versionFilePath, version);
+            return this.CommitVersionFile(versionFilePath, versionData.Version.ToString());
         }
 
         private Commit CommitVersionFile(string versionFilePath, string version)

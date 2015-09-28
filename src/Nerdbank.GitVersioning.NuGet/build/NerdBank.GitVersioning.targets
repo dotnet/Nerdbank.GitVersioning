@@ -24,8 +24,10 @@
       <Output TaskParameter="SimpleVersion" PropertyName="BuildVersionSimple" />
       <Output TaskParameter="PrereleaseVersion" PropertyName="PrereleaseVersion" Condition=" '$(PrereleaseVersion)' == '' " />
       <Output TaskParameter="MajorMinorVersion" PropertyName="MajorMinorVersion" />
+      <Output TaskParameter="AssemblyVersion" PropertyName="AssemblyVersion" />
       <Output TaskParameter="GitCommitId" PropertyName="GitCommitId" />
       <Output TaskParameter="GitHeight" PropertyName="GitHeight" />
+      <Output TaskParameter="GitVersionHeight" PropertyName="GitVersionHeight" />
       <Output TaskParameter="BuildNumber" PropertyName="BuildVersionNumberComponent" />
     </GetBuildVersion>
     <PropertyGroup>
@@ -44,7 +46,6 @@
       <BuildVersion3Components>$(MajorMinorVersion).$(BuildNumberFirstComponent)</BuildVersion3Components>
       <AssemblyInformationalVersion>$(MajorMinorVersion).$(BuildNumberFirstAndSecondComponentsIfApplicable)$(PrereleaseVersion)$(SemVerBuildSuffix)</AssemblyInformationalVersion>
       <AssemblyFileVersion>$(BuildVersion)</AssemblyFileVersion>
-      <AssemblyVersion>$(MajorMinorVersion)</AssemblyVersion>
       <NuGetPackageVersion>$(BuildVersion3Components)$(PrereleaseVersion)</NuGetPackageVersion>
 
       <!-- For unreleased versions (not expected to follow linear history), append the git commit id.

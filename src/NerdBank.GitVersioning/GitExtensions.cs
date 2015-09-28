@@ -28,6 +28,37 @@
 
         /// <summary>
         /// Gets the number of commits in the longest single path between
+        /// the specified commit and the most distant ancestor (inclusive)
+        /// that set the version to the value at <paramref name="commit"/>.
+        /// </summary>
+        /// <param name="commit">The commit to measure the height of.</param>
+        /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
+        /// <returns>The height of the commit. Always a positive integer.</returns>
+        public static int GetVersionHeight(this Commit commit, string repoRelativeProjectDirectory = null)
+        {
+            Requires.NotNull(commit, nameof(commit));
+            Requires.Argument(repoRelativeProjectDirectory == null || !Path.IsPathRooted(repoRelativeProjectDirectory), nameof(repoRelativeProjectDirectory), "Path should be relative to repo root.");
+
+            var baseVersion = VersionFile.GetVersion(commit, repoRelativeProjectDirectory)?.Version?.Version ?? Version0;
+            int height = commit.GetHeight(c => CommitMatchesMajorMinorVersion(c, baseVersion, repoRelativeProjectDirectory));
+            return height;
+        }
+
+        /// <summary>
+        /// Gets the number of commits in the longest single path between
+        /// the specified commit and the most distant ancestor (inclusive)
+        /// that set the version to the value at the tip of the <paramref name="branch"/>.
+        /// </summary>
+        /// <param name="branch">The branch to measure the height of.</param>
+        /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
+        /// <returns>The height of the branch till the version is changed.</returns>
+        public static int GetVersionHeight(this Branch branch, string repoRelativeProjectDirectory = null)
+        {
+            return GetVersionHeight(branch.Commits.First(), repoRelativeProjectDirectory);
+        }
+
+        /// <summary>
+        /// Gets the number of commits in the longest single path between
         /// the specified commit and the most distant ancestor (inclusive).
         /// </summary>
         /// <param name="commit">The commit to measure the height of.</param>
