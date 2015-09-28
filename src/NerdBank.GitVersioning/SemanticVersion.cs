@@ -48,6 +48,17 @@
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="SemanticVersion"/> class.
+        /// </summary>
+        /// <param name="version">The x.y.z numeric version.</param>
+        /// <param name="prerelease">The prerelease, with leading - character.</param>
+        /// <param name="buildMetadata">The build metadata, with leading + character.</param>
+        public SemanticVersion(string version, string prerelease = null, string buildMetadata = null)
+            : this(new Version(version), prerelease, buildMetadata)
+        {
+        }
+
+        /// <summary>
         /// Gets the version.
         /// </summary>
         public Version Version { get; private set; }

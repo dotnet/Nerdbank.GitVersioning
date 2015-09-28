@@ -74,7 +74,8 @@
                 return false;
             }
 
-            return EqualityComparer<SemanticVersion>.Default.Equals(this.Version, other.Version);
+            return EqualityComparer<SemanticVersion>.Default.Equals(this.Version, other.Version)
+                && EqualityComparer<Version>.Default.Equals(this.AssemblyVersion, other.AssemblyVersion);
         }
 
         /// <summary>

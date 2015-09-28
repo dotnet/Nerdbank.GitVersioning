@@ -76,6 +76,7 @@
     <Compile Include="SemanticVersionTests.cs" />
     <Compile Include="TestUtilities.cs" />
     <Compile Include="VersionFileTests.cs" />
+    <Compile Include="VersionOptionsTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="..\Nerdbank.GitVersioning.NuGet\build\NerdBank.GitVersioning.targets">

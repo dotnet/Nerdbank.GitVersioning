@@ -9,7 +9,7 @@ using Xunit;
 public class SemanticVersionTests
 {
     [Fact]
-    public void Ctor()
+    public void Ctor_Version()
     {
         var sv = new SemanticVersion(new Version(1, 2), "-pre", "+mybuild");
         Assert.Equal(new Version(1, 2), sv.Version);
@@ -18,9 +18,19 @@ public class SemanticVersionTests
     }
 
     [Fact]
+    public void Ctor_String()
+    {
+        var sv = new SemanticVersion("1.2", "-pre", "+mybuild");
+        Assert.Equal(new Version(1, 2), sv.Version);
+        Assert.Equal("-pre", sv.Prerelease);
+        Assert.Equal("+mybuild", sv.BuildMetadata);
+    }
+
+    [Fact]
     public void Ctor_ValidatesInputs()
     {
-        Assert.Throws<ArgumentNullException>(() => new SemanticVersion(null));
+        Assert.Throws<ArgumentNullException>(() => new SemanticVersion((Version)null));
+        Assert.Throws<ArgumentNullException>(() => new SemanticVersion((string)null));
     }
 
     [Fact]
