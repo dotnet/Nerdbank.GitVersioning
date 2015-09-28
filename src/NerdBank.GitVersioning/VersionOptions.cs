@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Reflection;
 
     /// <summary>
     /// Describes the various versions and options required for the build.
@@ -11,9 +12,16 @@
     public class VersionOptions : IEquatable<VersionOptions>
     {
         /// <summary>
-        /// Gets the default version to use.
+        /// Gets or sets the default version to use.
         /// </summary>
         public SemanticVersion Version { get; set; }
+
+        /// <summary>
+        /// Gets or sets the version to use particularly for the <see cref="AssemblyVersionAttribute"/>
+        /// instead of the default <see cref="Version"/>.
+        /// </summary>
+        /// <value>An instance of <see cref="System.Version"/> or <c>null</c> to simply use the default <see cref="Version"/>.</value>
+        public Version AssemblyVersion { get; set; }
 
         /// <summary>
         /// Gets the debugger display for this instance.
@@ -75,7 +83,11 @@
         /// </summary>
         internal bool IsDefaultVersionTheOnlyPropertySet
         {
-            get { return this.Version != null; }
+            get
+            {
+                return this.Version != null
+                    && this.AssemblyVersion == null;
+            }
         }
     }
 }

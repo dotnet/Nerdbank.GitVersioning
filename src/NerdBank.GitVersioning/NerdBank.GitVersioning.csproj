@@ -67,6 +67,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="version.schema.json" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\..\packages\NuProj.0.10.4-beta-gf7fc34e7d8\tools\Microsoft.Common.NuProj.targets" Condition=" Exists('..\..\packages\NuProj.0.10.4-beta-gf7fc34e7d8\tools\Microsoft.Common.NuProj.targets') " />
@@ -78,4 +79,9 @@
     <Error Condition="!Exists('..\..\packages\Nerdbank.GitVersioning.1.1.2-rc\build\NerdBank.GitVersioning.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\Nerdbank.GitVersioning.1.1.2-rc\build\NerdBank.GitVersioning.targets'))" />
   </Target>
   <Import Project="..\..\packages\Nerdbank.GitVersioning.1.1.2-rc\build\NerdBank.GitVersioning.targets" Condition="Exists('..\..\packages\Nerdbank.GitVersioning.1.1.2-rc\build\NerdBank.GitVersioning.targets')" />
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties version_1schema_1json__JSONSchema="http://json-schema.org/draft-04/schema" />
+    </VisualStudio>
+  </ProjectExtensions>
 </Project>

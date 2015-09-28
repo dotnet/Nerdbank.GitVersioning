@@ -67,6 +67,16 @@ public class GitExtensionsTests : RepoTestBase
     }
 
     [Fact]
+    public void GetVersionHeight()
+    {
+        var first = this.Repo.Commit("First", new CommitOptions { AllowEmptyCommit = true });
+        var second = this.Repo.Commit("Second", new CommitOptions { AllowEmptyCommit = true });
+        this.WriteVersionFile();
+        var third = this.Repo.Commit("Third", new CommitOptions { AllowEmptyCommit = true });
+        Assert.Equal(2, this.Repo.Head.GetVersionHeight());
+    }
+
+    [Fact]
     public void GetTruncatedCommitIdAsInteger_Roundtrip()
     {
         var firstCommit = this.Repo.Commit("First", new CommitOptions { AllowEmptyCommit = true });

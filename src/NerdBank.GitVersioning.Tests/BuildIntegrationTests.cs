@@ -96,7 +96,7 @@ public class BuildIntegrationTests : RepoTestBase
         this.InitializeSourceControl();
         this.AddCommits(this.random.Next(15));
         var buildResult = await this.BuildAsync();
-        this.AssertStandardProperties(prerelease, buildResult, subdirectory);
+        this.AssertStandardProperties(VersionOptions.FromVersion(new Version(majorMinorVersion)), buildResult, subdirectory);
 
         Version version = this.Repo.Head.Commits.First().GetIdAsVersion(subdirectory);
         Assert.Equal($"{version.Major}.{version.Minor}.{buildResult.GitHeight}", buildResult.NuGetPackageVersion);
@@ -112,7 +112,7 @@ public class BuildIntegrationTests : RepoTestBase
         this.InitializeSourceControl();
         this.AddCommits(this.random.Next(15));
         var buildResult = await this.BuildAsync();
-        this.AssertStandardProperties(prerelease, buildResult);
+        this.AssertStandardProperties(VersionOptions.FromVersion(new Version(majorMinorVersion)), buildResult);
 
         Version version = this.Repo.Head.Commits.First().GetIdAsVersion();
         Assert.Equal($"{version.Major}.{version.Minor}.{buildResult.GitHeight}", buildResult.NuGetPackageVersion);
@@ -129,7 +129,7 @@ public class BuildIntegrationTests : RepoTestBase
         this.AddCommits(this.random.Next(15));
         this.globalProperties.Add("PublicRelease", "true");
         var buildResult = await this.BuildAsync();
-        this.AssertStandardProperties(prerelease, buildResult);
+        this.AssertStandardProperties(VersionOptions.FromVersion(new Version(majorMinorVersion)), buildResult);
 
         Version version = this.Repo.Head.Commits.First().GetIdAsVersion();
         Assert.Equal($"{version.Major}.{version.Minor}.{buildResult.GitHeight}", buildResult.NuGetPackageVersion);
@@ -145,7 +145,7 @@ public class BuildIntegrationTests : RepoTestBase
         this.InitializeSourceControl();
         this.AddCommits(this.random.Next(15));
         var buildResult = await this.BuildAsync();
-        this.AssertStandardProperties(prerelease, buildResult);
+        this.AssertStandardProperties(VersionOptions.FromVersion(new Version(majorMinorVersion), prerelease), buildResult);
 
         Version version = this.Repo.Head.Commits.First().GetIdAsVersion();
         string commitIdShort = this.Repo.Head.Commits.First().Id.Sha.Substring(0, 10);
@@ -163,33 +163,51 @@ public class BuildIntegrationTests : RepoTestBase
         this.AddCommits(this.random.Next(15));
         this.globalProperties.Add("PublicRelease", "true");
         var buildResult = await this.BuildAsync();
-        this.AssertStandardProperties(prerelease, buildResult);
+        this.AssertStandardProperties(VersionOptions.FromVersion(new Version(majorMinorVersion), prerelease), buildResult);
 
         Version version = this.Repo.Head.Commits.First().GetIdAsVersion();
         Assert.Equal($"{version.Major}.{version.Minor}.{buildResult.GitHeight}{prerelease}", buildResult.NuGetPackageVersion);
     }
 
-    private void AssertStandardProperties(string prerelease, BuildResults buildResult, string relativeProjectDirectory = null)
+    [Fact]
+    public async Task GetBuildVersion_CustomAssemblyVersion()
     {
-        int height = this.Repo.Head.GetHeight();
+        this.WriteVersionFile("14.0");
+        this.InitializeSourceControl();
+        var versionOptions = new VersionOptions
+        {
+            Version = new SemanticVersion(new Version(14, 1)),
+            AssemblyVersion = new Version(14, 0),
+        };
+        this.WriteVersionFile(versionOptions);
+        var buildResult = await this.BuildAsync();
+        this.AssertStandardProperties(versionOptions, buildResult);
+    }
+
+    private void AssertStandardProperties(VersionOptions versionOptions, BuildResults buildResult, string relativeProjectDirectory = null)
+    {
+        int overallHeight = this.Repo.Head.GetHeight();
+        int versionHeight = this.Repo.Head.Commits.First().GetVersionHeight(relativeProjectDirectory);
         string commitIdShort = this.Repo.Head.Commits.First().Id.Sha.Substring(0, 10);
         Version version = this.Repo.Head.Commits.First().GetIdAsVersion(relativeProjectDirectory);
+        Version assemblyVersion = versionOptions.AssemblyVersion ?? versionOptions.Version.Version;
         Assert.Equal($"{version}", buildResult.AssemblyFileVersion);
-        Assert.Equal($"{version.Major}.{version.Minor}.{height}{prerelease}+g{commitIdShort}", buildResult.AssemblyInformationalVersion);
-        Assert.Equal($"{version.Major}.{version.Minor}", buildResult.AssemblyVersion);
-        Assert.Equal(height.ToString(), buildResult.BuildNumber);
-        Assert.Equal(height.ToString(), buildResult.BuildNumberFirstAndSecondComponentsIfApplicable);
-        Assert.Equal(height.ToString(), buildResult.BuildNumberFirstComponent);
+        Assert.Equal($"{version.Major}.{version.Minor}.{versionHeight}{versionOptions.Version.Prerelease}+g{commitIdShort}", buildResult.AssemblyInformationalVersion);
+        Assert.Equal($"{assemblyVersion.Major}.{assemblyVersion.Minor}", buildResult.AssemblyVersion);
+        Assert.Equal(versionHeight.ToString(), buildResult.BuildNumber);
+        Assert.Equal(versionHeight.ToString(), buildResult.BuildNumberFirstAndSecondComponentsIfApplicable);
+        Assert.Equal(versionHeight.ToString(), buildResult.BuildNumberFirstComponent);
         Assert.Equal(string.Empty, buildResult.BuildNumberSecondComponent);
         Assert.Equal($"{version}", buildResult.BuildVersion);
-        Assert.Equal($"{version.Major}.{version.Minor}.{height}", buildResult.BuildVersion3Components);
-        Assert.Equal(height.ToString(), buildResult.BuildVersionNumberComponent);
-        Assert.Equal($"{version.Major}.{version.Minor}.{height}", buildResult.BuildVersionSimple);
+        Assert.Equal($"{version.Major}.{version.Minor}.{versionHeight}", buildResult.BuildVersion3Components);
+        Assert.Equal(versionHeight.ToString(), buildResult.BuildVersionNumberComponent);
+        Assert.Equal($"{version.Major}.{version.Minor}.{versionHeight}", buildResult.BuildVersionSimple);
         Assert.Equal(this.Repo.Head.Commits.First().Id.Sha, buildResult.GitCommitId);
         Assert.Equal(commitIdShort, buildResult.GitCommitIdShort);
-        Assert.Equal(height.ToString(), buildResult.GitHeight);
+        Assert.Equal(overallHeight.ToString(), buildResult.GitHeight);
+        Assert.Equal(versionHeight.ToString(), buildResult.GitVersionHeight);
         Assert.Equal($"{version.Major}.{version.Minor}", buildResult.MajorMinorVersion);
-        Assert.Equal(prerelease, buildResult.PrereleaseVersion);
+        Assert.Equal(versionOptions.Version.Prerelease, buildResult.PrereleaseVersion);
         Assert.Equal($"+g{commitIdShort}", buildResult.SemVerBuildSuffix);
     }
 
@@ -255,6 +273,7 @@ public class BuildIntegrationTests : RepoTestBase
         public string BuildNumberFirstAndSecondComponentsIfApplicable => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("BuildNumberFirstAndSecondComponentsIfApplicable");
         public string GitCommitIdShort => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitCommitIdShort");
         public string GitHeight => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitHeight");
+        public string GitVersionHeight => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitVersionHeight");
         public string SemVerBuildSuffix => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("SemVerBuildSuffix");
         public string BuildVersion3Components => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("BuildVersion3Components");
         public string AssemblyInformationalVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyInformationalVersion");

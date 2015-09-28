@@ -63,7 +63,7 @@ the file to the root directory of your git repo.
 
 Here is the content of a sample version.json file you may start with (do not indent):
 
-	{ "version": "1.0.0-beta" }
+    { "version": "1.0.0-beta" }
 
 Or the (deprecated) version.txt file you may start with (do not indent):
 
@@ -75,8 +75,9 @@ Or the (deprecated) version.txt file you may start with (do not indent):
 The content of the version.json file is a JSON serialized object with these properties:
 
     {
-	    "version": "x.y.z-prerelease"
-	}
+        "version": "x.y.z-prerelease", // required
+        "assemblyVersion": "x.y"       // optional. Use when x.y for AssemblyVersionAttribute differs from the default version property.
+    }
 
 The `x` and `y` variables are for your use to specify a version that is meaningful
 to your customers. Consider using [semantic versioning][semver] for guidance.
@@ -88,7 +89,7 @@ The optional -prerelease tag allows you to indicate that you are building prerel
 
 The content of the version.txt file is a semver-compliant version in this format:
 
-	x.y.z-prerelease
+    x.y.z-prerelease
 
 The `x` and `y` variables are for your use to specify a version that is meaningful
 to your customers. Consider using [semantic versioning][semver] for guidance.
@@ -200,11 +201,11 @@ When built with the `/p:PublicRelease=true` switch, the NuGet version becomes:
 
 ### What is 'git height'?
 
-Git 'height' is the count of commits in the shortest path between HEAD (the code you're building)
+Git 'height' is the count of commits in the longest path between HEAD (the code you're building)
 and some origin point. In this case the origin is the commit that set the major.minor version number
 to the values found in HEAD.
 
-For example, if the version specified at HEAD is 3.4 and the shortest path in git history from HEAD
+For example, if the version specified at HEAD is 3.4 and the longest path in git history from HEAD
 to where the version file was changed to 3.4 is 15 steps, then the git height is "15".
 
 ### Why is the git height used for the PATCH version component for public releases?

@@ -3,6 +3,15 @@
   "type": "object",
   "required": [ "version" ],
   "properties": {
-    "version": { "type": "string" }
+    "version": {
+      "type": "string",
+      "description": "The default x.y-pre version to use as the basis for version calculations.",
+      "pattern": "^v?(?<major>0|[1-9][0-9]*)\\.(?<minor>0|[1-9][0-9]*)(?:\\.(?<patch>0|[1-9][0-9]*))?(?<prerelease>-[\\da-z\\-]+(?:\\.[\\da-z\\-]+)*)?(?<buildMetadata>\\+[\\da-z\\-]+(?:\\.[\\da-z\\-]+)*)?$"
+    },
+    "assemblyVersion": {
+      "type": "string",
+      "description": "The x.y version to use particularly for the AssemblyVersionAttribute instead of the default. This is useful when maintaining assembly binding compatibility on the desktop .NET Framework is important even though AssemblyFileVersion may change.",
+      "pattern": "^\\d+\\.\\d+$"
+    }
   }
 }
