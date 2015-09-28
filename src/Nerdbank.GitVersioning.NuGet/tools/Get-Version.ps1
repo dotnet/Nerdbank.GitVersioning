@@ -18,7 +18,7 @@ Param(
     [string]$ProjectDirectory="."
 )
 
-$DependencyBasePath = "$PSScriptRoot\..\build"
+if (!$DependencyBasePath) { $DependencyBasePath = "$PSScriptRoot\..\build" }
 $null = [Reflection.Assembly]::LoadFile((Resolve-Path "$DependencyBasePath\Validation.dll"))
 $null = [Reflection.Assembly]::LoadFile((Resolve-Path "$DependencyBasePath\NerdBank.GitVersioning.dll"))
 $null = [Reflection.Assembly]::LoadFile((Resolve-Path "$DependencyBasePath\LibGit2Sharp.dll"))
