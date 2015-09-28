@@ -97,9 +97,6 @@ public class BuildIntegrationTests : RepoTestBase
         this.AddCommits(this.random.Next(15));
         var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(VersionOptions.FromVersion(new Version(majorMinorVersion)), buildResult, subdirectory);
-
-        Version version = this.Repo.Head.Commits.First().GetIdAsVersion(subdirectory);
-        Assert.Equal($"{version.Major}.{version.Minor}.{buildResult.GitHeight}", buildResult.NuGetPackageVersion);
     }
 
     [Fact]
@@ -146,10 +143,6 @@ public class BuildIntegrationTests : RepoTestBase
         this.AddCommits(this.random.Next(15));
         var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(VersionOptions.FromVersion(new Version(majorMinorVersion), prerelease), buildResult);
-
-        Version version = this.Repo.Head.Commits.First().GetIdAsVersion();
-        string commitIdShort = this.Repo.Head.Commits.First().Id.Sha.Substring(0, 10);
-        Assert.Equal($"{version.Major}.{version.Minor}.{buildResult.GitHeight}{prerelease}-g{commitIdShort}", buildResult.NuGetPackageVersion);
     }
 
     [Fact]
@@ -164,9 +157,6 @@ public class BuildIntegrationTests : RepoTestBase
         this.globalProperties.Add("PublicRelease", "true");
         var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(VersionOptions.FromVersion(new Version(majorMinorVersion), prerelease), buildResult);
-
-        Version version = this.Repo.Head.Commits.First().GetIdAsVersion();
-        Assert.Equal($"{version.Major}.{version.Minor}.{buildResult.GitHeight}{prerelease}", buildResult.NuGetPackageVersion);
     }
 
     [Fact]
@@ -225,6 +215,11 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal($"{version.Major}.{version.Minor}", buildResult.MajorMinorVersion);
         Assert.Equal(versionOptions.Version.Prerelease, buildResult.PrereleaseVersion);
         Assert.Equal($"+g{commitIdShort}", buildResult.SemVerBuildSuffix);
+
+        string pkgVersionSuffix = (buildResult.PublicRelease || string.IsNullOrEmpty(versionOptions.Version.Prerelease))
+            ? string.Empty
+            : $"-g{commitIdShort}";
+        Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{versionOptions.Version.Prerelease}{pkgVersionSuffix}", buildResult.NuGetPackageVersion);
     }
 
     private async Task<BuildResults> BuildAsync(string target = Targets.GetBuildVersion)
@@ -277,6 +272,7 @@ public class BuildIntegrationTests : RepoTestBase
 
         public BuildResult BuildResult { get; private set; }
 
+        public bool PublicRelease => string.Equals("true", this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("PublicRelease"), StringComparison.OrdinalIgnoreCase);
         public string BuildNumber => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("BuildNumber");
         public string GitCommitId => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitCommitId");
         public string BuildVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("BuildVersion");
