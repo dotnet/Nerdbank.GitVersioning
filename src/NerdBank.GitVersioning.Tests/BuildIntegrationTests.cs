@@ -78,7 +78,7 @@ public class BuildIntegrationTests : RepoTestBase
     {
         Repository.Init(this.RepoPath);
         var repo = new Repository(this.RepoPath); // do not assign Repo property to avoid commits being generated later
-        repo.Commit("empty", new CommitOptions { AllowEmptyCommit = true });
+        repo.Commit("empty", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         this.WriteVersionFile("3.4");
         var buildResult = await this.BuildAsync();
         Assert.Equal("0.0.1." + repo.Head.Commits.First().GetIdAsVersion().Revision, buildResult.BuildVersion);

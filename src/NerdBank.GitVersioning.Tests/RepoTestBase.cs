@@ -55,7 +55,7 @@
 
             if (this.Repo.Index.Count > 0)
             {
-                this.Repo.Commit("initial commit", this.Signer);
+                this.Repo.Commit("initial commit", this.Signer, this.Signer);
             }
         }
 
@@ -64,7 +64,7 @@
             Verify.Operation(this.Repo != null, "Repo has not been created yet.");
             for (int i = 1; i <= count; i++)
             {
-                this.Repo.Commit($"filler commit {i}", this.Signer, new CommitOptions { AllowEmptyCommit = true });
+                this.Repo.Commit($"filler commit {i}", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
             }
         }
 
@@ -118,7 +118,7 @@
                     }
                 }
 
-                return this.Repo.Commit($"Add/write {relativeFilePath} set to {version}", this.Signer, new CommitOptions { AllowEmptyCommit = true });
+                return this.Repo.Commit($"Add/write {relativeFilePath} set to {version}", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
             }
 
             return null;

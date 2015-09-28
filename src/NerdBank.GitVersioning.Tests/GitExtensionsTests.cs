@@ -31,9 +31,9 @@ public class GitExtensionsTests : RepoTestBase
     [Fact]
     public void GetHeight_SinglePath()
     {
-        var first = this.Repo.Commit("First", new CommitOptions { AllowEmptyCommit = true });
-        var second = this.Repo.Commit("Second", new CommitOptions { AllowEmptyCommit = true });
-        var third = this.Repo.Commit("Third", new CommitOptions { AllowEmptyCommit = true });
+        var first = this.Repo.Commit("First", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
+        var second = this.Repo.Commit("Second", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
+        var third = this.Repo.Commit("Third", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         Assert.Equal(3, this.Repo.Head.GetHeight());
         Assert.Equal(3, this.Repo.Head.GetHeight(c => true));
 
@@ -44,14 +44,14 @@ public class GitExtensionsTests : RepoTestBase
     [Fact]
     public void GetHeight_Merge()
     {
-        var firstCommit = this.Repo.Commit("First", new CommitOptions { AllowEmptyCommit = true });
+        var firstCommit = this.Repo.Commit("First", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         var anotherBranch = this.Repo.CreateBranch("another");
-        var secondCommit = this.Repo.Commit("Second", new CommitOptions { AllowEmptyCommit = true });
+        var secondCommit = this.Repo.Commit("Second", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         this.Repo.Checkout(anotherBranch);
         Commit[] branchCommits = new Commit[5];
         for (int i = 1; i <= branchCommits.Length; i++)
         {
-            branchCommits[i - 1] = this.Repo.Commit($"branch commit #{i}", new CommitOptions { AllowEmptyCommit = true });
+            branchCommits[i - 1] = this.Repo.Commit($"branch commit #{i}", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         }
 
         this.Repo.Merge(secondCommit, new Signature("t", "t@t.com", DateTimeOffset.Now), new MergeOptions { FastForwardStrategy = FastForwardStrategy.NoFastFoward });
@@ -69,18 +69,18 @@ public class GitExtensionsTests : RepoTestBase
     [Fact]
     public void GetVersionHeight()
     {
-        var first = this.Repo.Commit("First", new CommitOptions { AllowEmptyCommit = true });
-        var second = this.Repo.Commit("Second", new CommitOptions { AllowEmptyCommit = true });
+        var first = this.Repo.Commit("First", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
+        var second = this.Repo.Commit("Second", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         this.WriteVersionFile();
-        var third = this.Repo.Commit("Third", new CommitOptions { AllowEmptyCommit = true });
+        var third = this.Repo.Commit("Third", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         Assert.Equal(2, this.Repo.Head.GetVersionHeight());
     }
 
     [Fact]
     public void GetTruncatedCommitIdAsInteger_Roundtrip()
     {
-        var firstCommit = this.Repo.Commit("First", new CommitOptions { AllowEmptyCommit = true });
-        var secondCommit = this.Repo.Commit("Second", new CommitOptions { AllowEmptyCommit = true });
+        var firstCommit = this.Repo.Commit("First", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
+        var secondCommit = this.Repo.Commit("Second", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
 
         int id1 = firstCommit.GetTruncatedCommitIdAsInt32();
         int id2 = secondCommit.GetTruncatedCommitIdAsInt32();
@@ -157,7 +157,7 @@ public class GitExtensionsTests : RepoTestBase
         Version[] versions = new Version[commits.Length];
         for (int i = 0; i < commits.Length; i++)
         {
-            commits[i] = this.Repo.Commit($"Commit {i + 1}", new CommitOptions { AllowEmptyCommit = true });
+            commits[i] = this.Repo.Commit($"Commit {i + 1}", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
             versions[i] = commits[i].GetIdAsVersion();
             this.Logger.WriteLine($"Commit {commits[i].Id.Sha.Substring(0, 8)} as version: {versions[i]}");
         }
@@ -190,7 +190,7 @@ public class GitExtensionsTests : RepoTestBase
             commits[i] = this.WriteVersionFile(versionOptions);
             versions[i] = commits[i].GetIdAsVersion();
 
-            commits[i + 1] = this.Repo.Commit($"Commit {i + 1}", new CommitOptions { AllowEmptyCommit = true });
+            commits[i + 1] = this.Repo.Commit($"Commit {i + 1}", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
             versions[i + 1] = commits[i + 1].GetIdAsVersion();
 
             this.Logger.WriteLine($"Commit {commits[i].Id.Sha.Substring(0, 8)} as version: {versions[i]}");
@@ -304,7 +304,7 @@ public class GitExtensionsTests : RepoTestBase
         commits[0] = this.Repo.Commits.First();
         for (int i = 1; i < commits.Length; i++)
         {
-            commits[i] = this.Repo.Commit($"Extra commit {i} for version {majorMinorVersion}", new CommitOptions { AllowEmptyCommit = true });
+            commits[i] = this.Repo.Commit($"Extra commit {i} for version {majorMinorVersion}", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         }
 
         return commits;
