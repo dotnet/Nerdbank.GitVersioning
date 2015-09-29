@@ -109,11 +109,11 @@
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('..\..\packages\xunit.core.2.0.0\build\portable-net45+win+wpa81+wp80+monotouch+monoandroid+Xamarin.iOS\xunit.core.props')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\xunit.core.2.0.0\build\portable-net45+win+wpa81+wp80+monotouch+monoandroid+Xamarin.iOS\xunit.core.props'))" />
-    <Error Condition="!Exists('..\..\packages\Nerdbank.GitVersioning.1.1.2-rc\build\NerdBank.GitVersioning.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\Nerdbank.GitVersioning.1.1.2-rc\build\NerdBank.GitVersioning.targets'))" />
     <Error Condition="!Exists('..\..\packages\LibGit2Sharp.0.21.0.176\build\net40\LibGit2Sharp.props')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\LibGit2Sharp.0.21.0.176\build\net40\LibGit2Sharp.props'))" />
     <Error Condition="!Exists('..\..\packages\xunit.runner.visualstudio.2.0.1\build\net20\xunit.runner.visualstudio.props')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\xunit.runner.visualstudio.2.0.1\build\net20\xunit.runner.visualstudio.props'))" />
+    <Error Condition="!Exists('..\..\packages\Nerdbank.GitVersioning.1.1.47-rc-g58708fcf8c\build\dotnet\Nerdbank.GitVersioning.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\Nerdbank.GitVersioning.1.1.47-rc-g58708fcf8c\build\dotnet\Nerdbank.GitVersioning.targets'))" />
   </Target>
-  <Import Project="..\..\packages\Nerdbank.GitVersioning.1.1.2-rc\build\NerdBank.GitVersioning.targets" Condition="Exists('..\..\packages\Nerdbank.GitVersioning.1.1.2-rc\build\NerdBank.GitVersioning.targets')" />
+  <Import Project="..\..\packages\Nerdbank.GitVersioning.1.1.47-rc-g58708fcf8c\build\dotnet\Nerdbank.GitVersioning.targets" Condition="Exists('..\..\packages\Nerdbank.GitVersioning.1.1.47-rc-g58708fcf8c\build\dotnet\Nerdbank.GitVersioning.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

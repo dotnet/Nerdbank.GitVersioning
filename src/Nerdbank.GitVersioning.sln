@@ -11,7 +11,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		..\nuget.config = ..\nuget.config
 		..\readme.md = ..\readme.md
-		..\version.txt = ..\version.txt
+		..\version.json = ..\version.json
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NerdBank.GitVersioning", "NerdBank.GitVersioning\NerdBank.GitVersioning.csproj", "{50D7B410-D986-499A-9FD1-FBBB55B095BD}"
