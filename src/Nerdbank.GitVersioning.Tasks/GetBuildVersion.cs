@@ -100,7 +100,7 @@
                         VersionFile.GetVersion(commit) ??
                         VersionFile.GetVersion(Environment.CurrentDirectory);
 
-                    this.PrereleaseVersion = versionOptions.Version.Prerelease;
+                    this.PrereleaseVersion = versionOptions?.Version.Prerelease ?? string.Empty;
 
                     var repoRoot = git?.Info?.WorkingDirectory;
                     var relativeRepoProjectDirectory = !string.IsNullOrWhiteSpace(repoRoot)
@@ -108,7 +108,7 @@
                         : null;
 
                     // Override the typedVersion with the special build number and revision components, when available.
-                    typedVersion = commit?.GetIdAsVersion(relativeRepoProjectDirectory) ?? versionOptions.Version.Version;
+                    typedVersion = commit?.GetIdAsVersion(relativeRepoProjectDirectory) ?? versionOptions?.Version.Version;
                 }
 
                 typedVersion = typedVersion ?? new Version();
@@ -117,7 +117,7 @@
                     : new Version(typedVersion.Major, typedVersion.Minor);
                 this.SimpleVersion = typedVersionWithoutRevision.ToString();
                 this.MajorMinorVersion = new Version(typedVersion.Major, typedVersion.Minor).ToString();
-                this.AssemblyVersion = versionOptions.AssemblyVersion?.ToString() ?? this.MajorMinorVersion;
+                this.AssemblyVersion = versionOptions?.AssemblyVersion?.ToString() ?? this.MajorMinorVersion;
                 this.BuildNumber = Math.Max(0, typedVersion.Build);
                 this.Version = typedVersion.ToString();
             }

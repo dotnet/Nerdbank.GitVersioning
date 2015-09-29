@@ -68,6 +68,7 @@ public class BuildIntegrationTests : RepoTestBase
         Repository.Init(this.RepoPath);
         var repo = new Repository(this.RepoPath); // do not assign Repo property to avoid commits being generated later
         this.WriteVersionFile("3.4");
+        Assumes.False(repo.Head.Commits.Any()); // verification that the test is doing what it claims
         var buildResult = await this.BuildAsync();
         Assert.Equal("3.4", buildResult.BuildVersion);
         Assert.Equal("3.4.0", buildResult.AssemblyInformationalVersion);
@@ -80,6 +81,18 @@ public class BuildIntegrationTests : RepoTestBase
         var repo = new Repository(this.RepoPath); // do not assign Repo property to avoid commits being generated later
         repo.Commit("empty", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         this.WriteVersionFile("3.4");
+        Assumes.True(repo.Index[VersionFile.JsonFileName] == null);
+        var buildResult = await this.BuildAsync();
+        Assert.Equal("0.0.1." + repo.Head.Commits.First().GetIdAsVersion().Revision, buildResult.BuildVersion);
+        Assert.Equal("0.0.1+g" + repo.Head.Commits.First().Id.Sha.Substring(0, 10), buildResult.AssemblyInformationalVersion);
+    }
+
+    [Fact]
+    public async Task GetBuildVersion_In_Git_No_VersionFile_At_All()
+    {
+        Repository.Init(this.RepoPath);
+        var repo = new Repository(this.RepoPath); // do not assign Repo property to avoid commits being generated later
+        repo.Commit("empty", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         var buildResult = await this.BuildAsync();
         Assert.Equal("0.0.1." + repo.Head.Commits.First().GetIdAsVersion().Revision, buildResult.BuildVersion);
         Assert.Equal("0.0.1+g" + repo.Head.Commits.First().Id.Sha.Substring(0, 10), buildResult.AssemblyInformationalVersion);
