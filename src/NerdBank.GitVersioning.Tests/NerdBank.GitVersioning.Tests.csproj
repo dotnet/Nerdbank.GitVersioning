@@ -79,6 +79,7 @@
     <Compile Include="RepoTestBase.cs" />
     <Compile Include="SemanticVersionTests.cs" />
     <Compile Include="TestUtilities.cs" />
+    <Compile Include="VersionExtensionsTests.cs" />
     <Compile Include="VersionFileTests.cs" />
     <Compile Include="VersionOptionsTests.cs" />
   </ItemGroup>

@@ -116,8 +116,9 @@
                     ? new Version(typedVersion.Major, typedVersion.Minor, typedVersion.Build)
                     : new Version(typedVersion.Major, typedVersion.Minor);
                 this.SimpleVersion = typedVersionWithoutRevision.ToString();
-                this.MajorMinorVersion = new Version(typedVersion.Major, typedVersion.Minor).ToString();
-                this.AssemblyVersion = versionOptions?.AssemblyVersion?.ToString() ?? this.MajorMinorVersion;
+                var majorMinorVersion = new Version(typedVersion.Major, typedVersion.Minor);
+                this.MajorMinorVersion = majorMinorVersion.ToString();
+                this.AssemblyVersion = (versionOptions?.AssemblyVersion ?? majorMinorVersion).ToStringSafe(4);
                 this.BuildNumber = Math.Max(0, typedVersion.Build);
                 this.Version = typedVersion.ToString();
             }

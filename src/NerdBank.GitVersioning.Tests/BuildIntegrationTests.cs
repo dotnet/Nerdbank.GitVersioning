@@ -209,10 +209,14 @@ public class BuildIntegrationTests : RepoTestBase
         Version idAsVersion = this.Repo.Head.Commits.First().GetIdAsVersion(relativeProjectDirectory);
         string commitIdShort = this.Repo.Head.Commits.First().Id.Sha.Substring(0, 10);
         Version version = this.Repo.Head.Commits.First().GetIdAsVersion(relativeProjectDirectory);
-        Version assemblyVersion = versionOptions.AssemblyVersion ?? versionOptions.Version.Version;
+        Version assemblyVersion = (versionOptions.AssemblyVersion ?? versionOptions.Version.Version).EnsureNonNegativeComponents();
         Assert.Equal($"{version}", buildResult.AssemblyFileVersion);
         Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{versionOptions.Version.Prerelease}+g{commitIdShort}", buildResult.AssemblyInformationalVersion);
-        Assert.Equal($"{assemblyVersion.Major}.{assemblyVersion.Minor}", buildResult.AssemblyVersion);
+
+        // The assembly version property should always have four integer components to it,
+        // per bug https://github.com/AArnott/Nerdbank.GitVersioning/issues/26
+        Assert.Equal($"{assemblyVersion.Major}.{assemblyVersion.Minor}.{assemblyVersion.Build}.{assemblyVersion.Revision}", buildResult.AssemblyVersion);
+
         Assert.Equal(idAsVersion.Build.ToString(), buildResult.BuildNumber);
         Assert.Equal(idAsVersion.Build.ToString(), buildResult.BuildNumberFirstAndSecondComponentsIfApplicable);
         Assert.Equal(idAsVersion.Build.ToString(), buildResult.BuildNumberFirstComponent);
