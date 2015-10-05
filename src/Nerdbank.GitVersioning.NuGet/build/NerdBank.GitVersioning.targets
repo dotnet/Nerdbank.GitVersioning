@@ -50,7 +50,7 @@
 
       <!-- For unreleased versions (not expected to follow linear history), append the git commit id.
            The 'g' prefix allows tooling to recognize that a git commit ID follows. -->
-      <NuGetPackageVersion Condition=" '$(PublicRelease)' != 'true' and '$(PrereleaseVersion)' != '' ">$(NuGetPackageVersion)-g$(GitCommitIdShort)</NuGetPackageVersion>
+      <NuGetPackageVersion Condition=" '$(PublicRelease)' != 'true' ">$(NuGetPackageVersion)-g$(GitCommitIdShort)</NuGetPackageVersion>
     </PropertyGroup>
 
     <Warning Condition=" '$(AssemblyInformationalVersion)' == '' " Text="Unable to determine the git HEAD commit ID to use for informational version number." />
