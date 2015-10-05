@@ -123,9 +123,6 @@ public class BuildIntegrationTests : RepoTestBase
         this.AddCommits(this.random.Next(15));
         var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(VersionOptions.FromVersion(new Version(majorMinorVersion)), buildResult);
-
-        Version version = this.Repo.Head.Commits.First().GetIdAsVersion();
-        Assert.Equal($"{version.Major}.{version.Minor}.{buildResult.GitHeight}", buildResult.NuGetPackageVersion);
     }
 
     [Fact]
@@ -233,7 +230,7 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal(versionOptions.Version.Prerelease, buildResult.PrereleaseVersion);
         Assert.Equal($"+g{commitIdShort}", buildResult.SemVerBuildSuffix);
 
-        string pkgVersionSuffix = (buildResult.PublicRelease || string.IsNullOrEmpty(versionOptions.Version.Prerelease))
+        string pkgVersionSuffix = buildResult.PublicRelease
             ? string.Empty
             : $"-g{commitIdShort}";
         Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{versionOptions.Version.Prerelease}{pkgVersionSuffix}", buildResult.NuGetPackageVersion);
