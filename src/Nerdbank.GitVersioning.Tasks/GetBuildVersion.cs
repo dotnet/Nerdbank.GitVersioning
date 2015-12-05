@@ -97,7 +97,7 @@
                     this.GitVersionHeight = commit?.GetVersionHeight() ?? 0;
 
                     versionOptions =
-                        VersionFile.GetVersion(commit) ??
+                        VersionFile.GetVersion(commit, Environment.CurrentDirectory) ??
                         VersionFile.GetVersion(Environment.CurrentDirectory);
 
                     this.PrereleaseVersion = versionOptions?.Version.Prerelease ?? string.Empty;

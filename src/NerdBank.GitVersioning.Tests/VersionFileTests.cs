@@ -176,7 +176,10 @@ public class VersionFileTests : RepoTestBase
                     b <- 1.1
                          c    (inherits 1.1)
         */
-        VersionFile.SetVersion(this.RepoPath, new Version(1, 0));
+        var rootVersionSpec = new VersionOptions { Version = SemanticVersion.Parse("1.0") };
+        var subdirVersionSpec = new VersionOptions { Version = SemanticVersion.Parse("1.1") };
+
+        VersionFile.SetVersion(this.RepoPath, rootVersionSpec);
         string subDirA = Path.Combine(this.RepoPath, "a");
         string subDirAB = Path.Combine(subDirA, "b");
         string subDirABC = Path.Combine(subDirAB, "c");
@@ -185,10 +188,37 @@ public class VersionFileTests : RepoTestBase
         this.InitializeSourceControl();
         var commit = this.Repo.Head.Commits.First();
 
-        AssertPathHasVersion(commit, subDirABC, new Version(1, 1));
-        AssertPathHasVersion(commit, subDirAB, new Version(1, 1));
-        AssertPathHasVersion(commit, subDirA, new Version(1, 0));
-        AssertPathHasVersion(commit, this.RepoPath, new Version(1, 0));
+        AssertPathHasVersion(commit, subDirABC, subdirVersionSpec);
+        AssertPathHasVersion(commit, subDirAB, subdirVersionSpec);
+        AssertPathHasVersion(commit, subDirA, rootVersionSpec);
+        AssertPathHasVersion(commit, this.RepoPath, rootVersionSpec);
+    }
+
+    [Fact]
+    public void GetVersion_String_FindsNearestFileInAncestorDirectories_WithAssemblyVersion()
+    {
+        // Construct a repo where versions are defined like this:
+        /*   root <- 14.0
+                a             (inherits 14.0)
+                    b <- 11.0
+                         c    (inherits 11.0)
+        */
+        var rootVersionSpec = new VersionOptions { Version = SemanticVersion.Parse("14.1"), AssemblyVersion = new Version(14, 0) };
+        var subdirVersionSpec = new VersionOptions { Version = SemanticVersion.Parse("11.0") };
+
+        VersionFile.SetVersion(this.RepoPath, rootVersionSpec);
+        string subDirA = Path.Combine(this.RepoPath, "a");
+        string subDirAB = Path.Combine(subDirA, "b");
+        string subDirABC = Path.Combine(subDirAB, "c");
+        Directory.CreateDirectory(subDirABC);
+        VersionFile.SetVersion(subDirAB, subdirVersionSpec);
+        this.InitializeSourceControl();
+        var commit = this.Repo.Head.Commits.First();
+
+        AssertPathHasVersion(commit, subDirABC, subdirVersionSpec);
+        AssertPathHasVersion(commit, subDirAB, subdirVersionSpec);
+        AssertPathHasVersion(commit, subDirA, rootVersionSpec);
+        AssertPathHasVersion(commit, this.RepoPath, rootVersionSpec);
     }
 
     [Fact]
@@ -197,14 +227,14 @@ public class VersionFileTests : RepoTestBase
         Assert.Null(VersionFile.GetVersion(this.RepoPath));
     }
 
-    private void AssertPathHasVersion(Commit commit, string absolutePath, Version expected)
+    private void AssertPathHasVersion(Commit commit, string absolutePath, VersionOptions expected)
     {
-        var actual = VersionFile.GetVersion(absolutePath)?.Version?.Version;
+        var actual = VersionFile.GetVersion(absolutePath);
         Assert.Equal(expected, actual);
 
         // Pass in the repo-relative path to ensure the commit is used as the data source.
         string relativePath = absolutePath.Substring(this.RepoPath.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        actual = VersionFile.GetVersion(commit, relativePath)?.Version?.Version;
+        actual = VersionFile.GetVersion(commit, relativePath);
         Assert.Equal(expected, actual);
     }
 }

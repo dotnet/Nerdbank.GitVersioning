@@ -113,6 +113,21 @@ public class BuildIntegrationTests : RepoTestBase
     }
 
     [Fact]
+    public async Task GetBuildVersion_In_Git_With_Version_File_In_Root_And_Subdirectory_Works()
+    {
+        var rootVersionSpec = new VersionOptions { Version = SemanticVersion.Parse("14.1"), AssemblyVersion = new Version(14, 0) };
+        var subdirVersionSpec = new VersionOptions { Version = SemanticVersion.Parse("11.0") };
+        const string subdirectory = "projdir";
+
+        this.WriteVersionFile(rootVersionSpec);
+        this.WriteVersionFile(subdirVersionSpec, subdirectory);
+        this.InitializeSourceControl();
+        this.AddCommits(this.random.Next(15));
+        var buildResult = await this.BuildAsync();
+        this.AssertStandardProperties(subdirVersionSpec, buildResult, subdirectory);
+    }
+
+    [Fact]
     public async Task GetBuildVersion_StablePreRelease()
     {
         const string majorMinorVersion = "5.8";
