@@ -26,7 +26,6 @@
       <Output TaskParameter="MajorMinorVersion" PropertyName="MajorMinorVersion" />
       <Output TaskParameter="AssemblyVersion" PropertyName="AssemblyVersion" />
       <Output TaskParameter="GitCommitId" PropertyName="GitCommitId" />
-      <Output TaskParameter="GitHeight" PropertyName="GitHeight" />
       <Output TaskParameter="GitVersionHeight" PropertyName="GitVersionHeight" />
       <Output TaskParameter="BuildNumber" PropertyName="BuildVersionNumberComponent" />
     </GetBuildVersion>

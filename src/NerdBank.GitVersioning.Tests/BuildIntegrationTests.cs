@@ -154,7 +154,7 @@ public class BuildIntegrationTests : RepoTestBase
         this.AssertStandardProperties(VersionOptions.FromVersion(new Version(majorMinorVersion)), buildResult);
 
         Version version = this.Repo.Head.Commits.First().GetIdAsVersion();
-        Assert.Equal($"{version.Major}.{version.Minor}.{buildResult.GitHeight}", buildResult.NuGetPackageVersion);
+        Assert.Equal($"{version.Major}.{version.Minor}.{buildResult.GitVersionHeight}", buildResult.NuGetPackageVersion);
     }
 
     [Fact]
@@ -216,7 +216,6 @@ public class BuildIntegrationTests : RepoTestBase
 
     private void AssertStandardProperties(VersionOptions versionOptions, BuildResults buildResult, string relativeProjectDirectory = null)
     {
-        int overallHeight = this.Repo.Head.GetHeight();
         int versionHeight = this.Repo.Head.Commits.First().GetVersionHeight(relativeProjectDirectory);
         Version idAsVersion = this.Repo.Head.Commits.First().GetIdAsVersion(relativeProjectDirectory);
         string commitIdShort = this.Repo.Head.Commits.First().Id.Sha.Substring(0, 10);
@@ -239,7 +238,6 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}", buildResult.BuildVersionSimple);
         Assert.Equal(this.Repo.Head.Commits.First().Id.Sha, buildResult.GitCommitId);
         Assert.Equal(commitIdShort, buildResult.GitCommitIdShort);
-        Assert.Equal(overallHeight.ToString(), buildResult.GitHeight);
         Assert.Equal(versionHeight.ToString(), buildResult.GitVersionHeight);
         Assert.Equal($"{version.Major}.{version.Minor}", buildResult.MajorMinorVersion);
         Assert.Equal(versionOptions.Version.Prerelease, buildResult.PrereleaseVersion);
@@ -313,7 +311,6 @@ public class BuildIntegrationTests : RepoTestBase
         public string BuildNumberSecondComponent => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("BuildNumberSecondComponent");
         public string BuildNumberFirstAndSecondComponentsIfApplicable => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("BuildNumberFirstAndSecondComponentsIfApplicable");
         public string GitCommitIdShort => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitCommitIdShort");
-        public string GitHeight => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitHeight");
         public string GitVersionHeight => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitVersionHeight");
         public string SemVerBuildSuffix => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("SemVerBuildSuffix");
         public string BuildVersion3Components => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("BuildVersion3Components");

@@ -64,13 +64,6 @@
 
         /// <summary>
         /// Gets the number of commits in the longest single path between
-        /// head and the original commit (inclusive).
-        /// </summary>
-        [Output]
-        public int GitHeight { get; private set; }
-
-        /// <summary>
-        /// Gets the number of commits in the longest single path between
         /// the specified commit and the most distant ancestor (inclusive)
         /// that set the version to the value at HEAD.
         /// </summary>
@@ -93,7 +86,6 @@
                 {
                     var commit = git?.Head.Commits.FirstOrDefault();
                     this.GitCommitId = commit?.Id.Sha ?? string.Empty;
-                    this.GitHeight = commit?.GetHeight() ?? 0;
                     this.GitVersionHeight = commit?.GetVersionHeight() ?? 0;
 
                     versionOptions =
