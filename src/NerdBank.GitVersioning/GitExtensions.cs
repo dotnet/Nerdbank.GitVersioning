@@ -136,6 +136,10 @@
         /// </summary>
         /// <param name="commit">The commit whose ID and position in history is to be encoded.</param>
         /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
+        /// <param name="versionHeight">
+        /// The version height, previously calculated by a call to <see cref="GetVersionHeight(Commit, string)"/>
+        /// with the same value for <paramref name="repoRelativeProjectDirectory"/>.
+        /// </param>
         /// <returns>
         /// A version whose <see cref="Version.Build"/> and
         /// <see cref="Version.Revision"/> components are calculated based on the commit.
@@ -145,7 +149,7 @@
         /// the height of the git commit while the <see cref="Version.Revision"/>
         /// component is the first four bytes of the git commit id (forced to be a positive integer).
         /// </remarks>
-        public static Version GetIdAsVersion(this Commit commit, string repoRelativeProjectDirectory = null)
+        public static Version GetIdAsVersion(this Commit commit, string repoRelativeProjectDirectory = null, int? versionHeight = null)
         {
             Requires.NotNull(commit, nameof(commit));
             Requires.Argument(repoRelativeProjectDirectory == null || !Path.IsPathRooted(repoRelativeProjectDirectory), nameof(repoRelativeProjectDirectory), "Path should be relative to repo root.");
@@ -158,8 +162,12 @@
             // The build number is set to the git height. This helps ensure that
             // within a major.minor release, each patch has an incrementing integer.
             // The revision is set to the first two bytes of the git commit ID.
-            int versionHeight = commit.GetHeight(c => CommitMatchesMajorMinorVersion(c, baseVersion, repoRelativeProjectDirectory));
-            int build = versionHeight + (versionOptions?.BuildNumberOffset ?? 0);
+            if (!versionHeight.HasValue)
+            {
+                versionHeight = commit.GetHeight(c => CommitMatchesMajorMinorVersion(c, baseVersion, repoRelativeProjectDirectory));
+            }
+
+            int build = versionHeight.Value + (versionOptions?.BuildNumberOffset ?? 0);
             Verify.Operation(build <= MaximumBuildNumberOrRevisionComponent, "Git height is {0}, which is greater than the maximum allowed {0}.", build, MaximumBuildNumberOrRevisionComponent);
             int revision = Math.Min(MaximumBuildNumberOrRevisionComponent, commit.GetTruncatedCommitIdAsUInt16());
 
