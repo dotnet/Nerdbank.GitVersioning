@@ -64,13 +64,6 @@
 
         /// <summary>
         /// Gets the number of commits in the longest single path between
-        /// head and the original commit (inclusive).
-        /// </summary>
-        [Output]
-        public int GitHeight { get; private set; }
-
-        /// <summary>
-        /// Gets the number of commits in the longest single path between
         /// the specified commit and the most distant ancestor (inclusive)
         /// that set the version to the value at HEAD.
         /// </summary>
@@ -91,10 +84,14 @@
                 VersionOptions versionOptions;
                 using (var git = this.OpenGitRepo())
                 {
+                    var repoRoot = git?.Info?.WorkingDirectory;
+                    var relativeRepoProjectDirectory = !string.IsNullOrWhiteSpace(repoRoot)
+                        ? Environment.CurrentDirectory.Substring(repoRoot.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                        : null;
+
                     var commit = git?.Head.Commits.FirstOrDefault();
                     this.GitCommitId = commit?.Id.Sha ?? string.Empty;
-                    this.GitHeight = commit?.GetHeight() ?? 0;
-                    this.GitVersionHeight = commit?.GetVersionHeight() ?? 0;
+                    this.GitVersionHeight = commit?.GetVersionHeight(relativeRepoProjectDirectory) ?? 0;
 
                     versionOptions =
                         VersionFile.GetVersion(commit, Environment.CurrentDirectory) ??
@@ -102,13 +99,8 @@
 
                     this.PrereleaseVersion = versionOptions?.Version.Prerelease ?? string.Empty;
 
-                    var repoRoot = git?.Info?.WorkingDirectory;
-                    var relativeRepoProjectDirectory = !string.IsNullOrWhiteSpace(repoRoot)
-                        ? Environment.CurrentDirectory.Substring(repoRoot.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
-                        : null;
-
                     // Override the typedVersion with the special build number and revision components, when available.
-                    typedVersion = commit?.GetIdAsVersion(relativeRepoProjectDirectory) ?? versionOptions?.Version.Version;
+                    typedVersion = commit?.GetIdAsVersion(relativeRepoProjectDirectory, this.GitVersionHeight) ?? versionOptions?.Version.Version;
                 }
 
                 typedVersion = typedVersion ?? new Version();
