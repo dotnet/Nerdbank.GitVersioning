@@ -26,11 +26,19 @@ if (!$OutputDirectory)
     $OutputDirectory = $ProjectDirectory
 }
 
-$versionTxtPath = Join-Path $OutputDirectory "version.txt"
-$versionJsonPath = Join-Path $OutputDirectory "version.json"
+$versionFileFound = $false
+$SearchDirectory = $OutputDirectory
+while (-not $versionFileFound -and $SearchDirectory) {
+    $versionTxtPath = Join-Path $SearchDirectory "version.txt"
+    $versionJsonPath = Join-Path $SearchDirectory "version.json"
+    $versionFileFound = (Test-Path $versionTxtPath) -or (Test-Path $versionJsonPath)
+    $SearchDirectory = Split-Path $SearchDirectory
+}
 
-if (-not ((Test-Path $versionTxtPath) -or (Test-Path $versionJsonPath)))
+if (-not $versionFileFound)
 {
+    $versionJsonPath = Join-Path $OutputDirectory "version.json"
+
     # The version file doesn't exist, which means this package is being installed for the first time.
     # 1) Load up the AssemblyInfo.cs file and grab the existing version declarations.
     # 2) Generate the version.txt with the version seeded from AssemblyInfo.cs
