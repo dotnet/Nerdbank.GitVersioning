@@ -53,7 +53,7 @@ if (-not $versionFileFound)
             if ($_ -match "^\w*\[assembly: AssemblyVersion\(""([0-9]+.[0-9]+|\*)(?:.(?:[0-9]+|\*)){0,2}""\)\]$")
             {
                 # Grab the Major.Minor out of this file which will be injected into the version.txt
-                $version = $matches[1] + ".0"
+                $version = $matches[1]
             }
 
             # Remove attributes related to assembly versioning since those are generated on the fly during the build
