@@ -178,7 +178,7 @@
         /// Looks up the commit that matches a specified version number.
         /// </summary>
         /// <param name="repo">The repository to search for a matching commit.</param>
-        /// <param name="version">The version previously obtained from <see cref="GetIdAsVersion(Commit, string)"/>.</param>
+        /// <param name="version">The version previously obtained from <see cref="GetIdAsVersion(Commit, string, int?)"/>.</param>
         /// <param name="repoRelativeProjectDirectory">
         /// The repo-relative project directory from which <paramref name="version"/> was originally calculated.
         /// </param>
@@ -196,7 +196,7 @@
         /// Looks up the commits that match a specified version number.
         /// </summary>
         /// <param name="repo">The repository to search for a matching commit.</param>
-        /// <param name="version">The version previously obtained from <see cref="GetIdAsVersion(Commit, string)"/>.</param>
+        /// <param name="version">The version previously obtained from <see cref="GetIdAsVersion(Commit, string, int?)"/>.</param>
         /// <param name="repoRelativeProjectDirectory">The repo-relative project directory from which <paramref name="version"/> was originally calculated.</param>
         /// <returns>The matching commits, or an empty enumeration if no match is found.</returns>
         public static IEnumerable<Commit> GetCommitsFromVersion(this Repository repo, Version version, string repoRelativeProjectDirectory = null)
