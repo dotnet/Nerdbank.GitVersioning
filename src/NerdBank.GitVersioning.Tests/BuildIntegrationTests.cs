@@ -70,7 +70,7 @@ public class BuildIntegrationTests : RepoTestBase
         this.WriteVersionFile("3.4");
         Assumes.False(repo.Head.Commits.Any()); // verification that the test is doing what it claims
         var buildResult = await this.BuildAsync();
-        Assert.Equal("3.4", buildResult.BuildVersion);
+        Assert.Equal("3.4.0.0", buildResult.BuildVersion);
         Assert.Equal("3.4.0", buildResult.AssemblyInformationalVersion);
     }
 
@@ -83,8 +83,22 @@ public class BuildIntegrationTests : RepoTestBase
         this.WriteVersionFile("3.4");
         Assumes.True(repo.Index[VersionFile.JsonFileName] == null);
         var buildResult = await this.BuildAsync();
-        Assert.Equal("0.0.1." + repo.Head.Commits.First().GetIdAsVersion().Revision, buildResult.BuildVersion);
-        Assert.Equal("0.0.1+g" + repo.Head.Commits.First().Id.Sha.Substring(0, 10), buildResult.AssemblyInformationalVersion);
+        Assert.Equal("3.4.0." + repo.Head.Commits.First().GetIdAsVersion().Revision, buildResult.BuildVersion);
+        Assert.Equal("3.4.0+g" + repo.Head.Commits.First().Id.Sha.Substring(0, 10), buildResult.AssemblyInformationalVersion);
+    }
+
+    [Fact]
+    public async Task GetBuildVersion_In_Git_But_WorkingCopy_Has_Changes()
+    {
+        const string majorMinorVersion = "5.8";
+        const string prerelease = "";
+
+        this.WriteVersionFile(majorMinorVersion, prerelease);
+        this.InitializeSourceControl();
+        var workingCopyVersion = VersionOptions.FromVersion(new Version("6.0"));
+        VersionFile.SetVersion(this.RepoPath, workingCopyVersion);
+        var buildResult = await this.BuildAsync();
+        this.AssertStandardProperties(workingCopyVersion, buildResult);
     }
 
     [Fact]
@@ -216,10 +230,10 @@ public class BuildIntegrationTests : RepoTestBase
 
     private void AssertStandardProperties(VersionOptions versionOptions, BuildResults buildResult, string relativeProjectDirectory = null)
     {
-        int versionHeight = this.Repo.Head.Commits.First().GetVersionHeight(relativeProjectDirectory);
-        Version idAsVersion = this.Repo.Head.Commits.First().GetIdAsVersion(relativeProjectDirectory);
+        int versionHeight = this.Repo.GetVersionHeight(relativeProjectDirectory);
+        Version idAsVersion = this.Repo.GetIdAsVersion(relativeProjectDirectory);
         string commitIdShort = this.Repo.Head.Commits.First().Id.Sha.Substring(0, 10);
-        Version version = this.Repo.Head.Commits.First().GetIdAsVersion(relativeProjectDirectory);
+        Version version = this.Repo.GetIdAsVersion(relativeProjectDirectory);
         Version assemblyVersion = (versionOptions.AssemblyVersion ?? versionOptions.Version.Version).EnsureNonNegativeComponents();
         Assert.Equal($"{version}", buildResult.AssemblyFileVersion);
         Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{versionOptions.Version.Prerelease}+g{commitIdShort}", buildResult.AssemblyInformationalVersion);

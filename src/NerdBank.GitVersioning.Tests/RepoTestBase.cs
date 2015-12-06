@@ -99,7 +99,7 @@
             return this.CommitVersionFile(versionFilePath, versionData.Version.ToString());
         }
 
-        private Commit CommitVersionFile(string versionFilePath, string version)
+        protected Commit CommitVersionFile(string versionFilePath, string version)
         {
             Requires.NotNullOrEmpty(versionFilePath, nameof(versionFilePath));
             Requires.NotNullOrEmpty(versionFilePath, nameof(versionFilePath));

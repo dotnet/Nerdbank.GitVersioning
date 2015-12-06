@@ -91,20 +91,20 @@
 
                     var commit = git?.Head.Commits.FirstOrDefault();
                     this.GitCommitId = commit?.Id.Sha ?? string.Empty;
-                    this.GitVersionHeight = commit?.GetVersionHeight(relativeRepoProjectDirectory) ?? 0;
+                    this.GitVersionHeight = git?.GetVersionHeight(relativeRepoProjectDirectory) ?? 0;
 
                     versionOptions =
-                        VersionFile.GetVersion(commit, Environment.CurrentDirectory) ??
+                        VersionFile.GetVersion(git, Environment.CurrentDirectory) ??
                         VersionFile.GetVersion(Environment.CurrentDirectory);
 
                     this.PrereleaseVersion = versionOptions?.Version.Prerelease ?? string.Empty;
 
                     // Override the typedVersion with the special build number and revision components, when available.
-                    typedVersion = commit?.GetIdAsVersion(relativeRepoProjectDirectory, this.GitVersionHeight) ?? versionOptions?.Version.Version;
+                    typedVersion = git?.GetIdAsVersion(relativeRepoProjectDirectory, this.GitVersionHeight) ?? versionOptions?.Version.Version;
                 }
 
                 typedVersion = typedVersion ?? new Version();
-                var typedVersionWithoutRevision = typedVersion.Build > 0
+                var typedVersionWithoutRevision = typedVersion.Build >= 0
                     ? new Version(typedVersion.Major, typedVersion.Minor, typedVersion.Build)
                     : new Version(typedVersion.Major, typedVersion.Minor);
                 this.SimpleVersion = typedVersionWithoutRevision.ToString();

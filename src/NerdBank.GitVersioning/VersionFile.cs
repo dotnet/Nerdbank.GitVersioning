@@ -7,7 +7,7 @@
     using System.Collections.Generic;
     using System.IO;
     using Validation;
-
+    using System.Linq;
     /// <summary>
     /// Extension methods for interacting with the version.txt file.
     /// </summary>
@@ -61,6 +61,28 @@
                     ? ReadVersionFile(content, json)
                     : null;
             }
+        }
+
+        /// <summary>
+        /// Reads the version.txt file and returns the <see cref="Version"/> and prerelease tag from it.
+        /// </summary>
+        /// <param name="repo">The repo to read the version file from.</param>
+        /// <param name="repoRelativeProjectDirectory">The directory to consider when searching for the version.txt file.</param>
+        /// <returns>The version information read from the file.</returns>
+        public static VersionOptions GetVersion(LibGit2Sharp.Repository repo, string repoRelativeProjectDirectory = null)
+        {
+            if (repo == null)
+            {
+                return null;
+            }
+
+            if (!repo.Info.IsBare)
+            {
+                string fullDirectory = Path.Combine(repo.Info.WorkingDirectory, repoRelativeProjectDirectory ?? string.Empty);
+                var workingCopyVersion = GetVersion(fullDirectory);
+            }
+
+            return GetVersion(repo.Head.Commits.FirstOrDefault(), repoRelativeProjectDirectory);
         }
 
         /// <summary>

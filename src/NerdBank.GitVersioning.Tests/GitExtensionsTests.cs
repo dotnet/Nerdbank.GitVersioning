@@ -126,6 +126,53 @@ public class GitExtensionsTests : RepoTestBase
     }
 
     [Fact]
+    public void GetIdAsVersion_VersionFileNeverCheckedIn()
+    {
+        this.AddCommits();
+        var expectedVersion = new Version(1, 1, 0);
+        var unstagedVersionData = VersionOptions.FromVersion(expectedVersion);
+        string versionFilePath = VersionFile.SetVersion(this.RepoPath, unstagedVersionData);
+        Version actualVersion = this.Repo.GetIdAsVersion();
+        Assert.Equal(expectedVersion.Major, actualVersion.Major);
+        Assert.Equal(expectedVersion.Minor, actualVersion.Minor);
+        Assert.Equal(expectedVersion.Build, actualVersion.Build);
+        Assert.Equal(this.Repo.Head.Commits.First().GetTruncatedCommitIdAsUInt16(), actualVersion.Revision);
+    }
+
+    [Fact]
+    public void GetIdAsVersion_VersionFileChangedOnDisk()
+    {
+        this.WriteVersionFile();
+        var versionChangeCommit = this.Repo.Commits.First();
+        this.AddCommits();
+
+        // Verify that we're seeing the original version.
+        Version actualVersion = this.Repo.GetIdAsVersion();
+        Assert.Equal(1, actualVersion.Major);
+        Assert.Equal(2, actualVersion.Minor);
+        Assert.Equal(2, actualVersion.Build);
+        Assert.Equal(this.Repo.Head.Commits.First().GetTruncatedCommitIdAsUInt16(), actualVersion.Revision);
+
+        // Now make a change on disk that isn't committed yet.
+        string versionFile = VersionFile.SetVersion(this.RepoPath, new Version("1.3"));
+
+        // Verify that HEAD reports whatever is on disk at the time.
+        actualVersion = this.Repo.GetIdAsVersion();
+        Assert.Equal(1, actualVersion.Major);
+        Assert.Equal(3, actualVersion.Minor);
+        Assert.Equal(0, actualVersion.Build);
+        Assert.Equal(this.Repo.Head.Commits.First().GetTruncatedCommitIdAsUInt16(), actualVersion.Revision);
+
+        // Now commit it and verify the height advances 0->1
+        this.CommitVersionFile(versionFile, "1.3");
+        actualVersion = this.Repo.GetIdAsVersion();
+        Assert.Equal(1, actualVersion.Major);
+        Assert.Equal(3, actualVersion.Minor);
+        Assert.Equal(1, actualVersion.Build);
+        Assert.Equal(this.Repo.Head.Commits.First().GetTruncatedCommitIdAsUInt16(), actualVersion.Revision);
+    }
+
+    [Fact]
     public void GetIdAsVersion_ResetsBuildNumberForEachMajorMinorVersion()
     {
         Commit[] v48Commits = this.CommitsWithVersion("4.8");
