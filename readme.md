@@ -1,6 +1,8 @@
 ﻿# Nerdbank.GitVersioning
 
-[![Build status](https://ci.appveyor.com/api/projects/status/94wwito7ifg57d65?svg=true)](https://ci.appveyor.com/project/AArnott/nerdbank-gitversioning) [![Join the chat at https://gitter.im/AArnott/Nerdbank.GitVersioning](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/AArnott/Nerdbank.GitVersioning?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Build status](https://ci.appveyor.com/api/projects/status/94wwito7ifg57d65?svg=true)](https://ci.appveyor.com/project/AArnott/nerdbank-gitversioning)
+[![NuGet package](https://img.shields.io/nuget/v/Nerdbank.GitVersioning.svg)](https://nuget.org/packages/Nerdbank.GitVersioning)
+[![Join the chat at https://gitter.im/AArnott/Nerdbank.GitVersioning](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/AArnott/Nerdbank.GitVersioning?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 ## Overview
 
