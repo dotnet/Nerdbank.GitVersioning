@@ -22,11 +22,22 @@ using Version = System.Version;
 public class BuildIntegrationTests : RepoTestBase
 {
     private const string GitVersioningTargetsFileName = "NerdBank.GitVersioning.targets";
+    private static readonly string[] ToxicEnvironmentVariablePrefixes = new string[]
+    {
+        "APPVEYOR",
+        "SYSTEM_",
+        "BUILD_",
+    };
     private BuildManager buildManager;
     private ProjectCollection projectCollection;
     private string projectDirectory;
     private ProjectRootElement testProject;
-    private Dictionary<string, string> globalProperties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, string> globalProperties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        // Set global properties to neutralize environment variables
+        // that might actually be defined by a CI that is building and running these tests.
+        { "PublicRelease", string.Empty },
+    };
     private Random random;
 
     public BuildIntegrationTests(ITestOutputHelper logger)
@@ -42,6 +53,16 @@ public class BuildIntegrationTests : RepoTestBase
         this.LoadTargetsIntoProjectCollection();
         this.testProject = this.CreateProjectRootElement();
         this.globalProperties.Add("NerdbankGitVersioningTasksPath", Environment.CurrentDirectory + "\\");
+
+        // Sterilize the test of any environment variables.
+        foreach (System.Collections.DictionaryEntry variable in Environment.GetEnvironmentVariables())
+        {
+            string name = (string)variable.Key;
+            if (ToxicEnvironmentVariablePrefixes.Any(toxic => name.StartsWith(toxic, StringComparison.OrdinalIgnoreCase)))
+            {
+                this.globalProperties[name] = string.Empty;
+            }
+        }
     }
 
     [Fact]
@@ -165,7 +186,7 @@ public class BuildIntegrationTests : RepoTestBase
         this.WriteVersionFile(majorMinorVersion, prerelease);
         this.InitializeSourceControl();
         this.AddCommits(this.random.Next(15));
-        this.globalProperties.Add("PublicRelease", "true");
+        this.globalProperties["PublicRelease"] = "true";
         var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(VersionOptions.FromVersion(new Version(majorMinorVersion)), buildResult);
 
@@ -195,7 +216,7 @@ public class BuildIntegrationTests : RepoTestBase
         this.WriteVersionFile(majorMinorVersion, prerelease);
         this.InitializeSourceControl();
         this.AddCommits(this.random.Next(15));
-        this.globalProperties.Add("PublicRelease", "true");
+        this.globalProperties["PublicRelease"] = "true";
         var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(VersionOptions.FromVersion(new Version(majorMinorVersion), prerelease), buildResult);
     }
@@ -288,7 +309,7 @@ public class BuildIntegrationTests : RepoTestBase
         // retain information about which tag was checked out on a detached head).
         foreach (var property in serverProperties)
         {
-            this.globalProperties.Add(property.Key, property.Value);
+            this.globalProperties[property.Key] = property.Value;
         }
 
         var buildResult = await this.BuildAsync();
