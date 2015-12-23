@@ -7,6 +7,7 @@
     using System.IO;
     using System.Linq;
     using System.Text;
+    using System.Text.RegularExpressions;
     using Microsoft.Build.Framework;
     using Microsoft.Build.Utilities;
     using Nerdbank.GitVersioning;
@@ -19,6 +20,18 @@
         public GetBuildVersion()
         {
         }
+
+        /// <summary>
+        /// Gets or sets the ref (branch or tag) being built.
+        /// </summary>
+        public string BuildingRef { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the project suggests the default
+        /// value for the PublicRelease MSBuild property be true.
+        /// </summary>
+        [Output]
+        public bool PublicReleaseDefault { get; private set; }
 
         /// <summary>
         /// Gets the version string to use in the compiled assemblies.
@@ -92,10 +105,19 @@
                     var commit = git?.Head.Commits.FirstOrDefault();
                     this.GitCommitId = commit?.Id.Sha ?? string.Empty;
                     this.GitVersionHeight = git?.GetVersionHeight(relativeRepoProjectDirectory) ?? 0;
+                    if (string.IsNullOrEmpty(this.BuildingRef))
+                    {
+                        this.BuildingRef = git?.Head.CanonicalName;
+                    }
 
                     versionOptions =
                         VersionFile.GetVersion(git, Environment.CurrentDirectory) ??
                         VersionFile.GetVersion(Environment.CurrentDirectory);
+
+                    if (!string.IsNullOrEmpty(this.BuildingRef) && !string.IsNullOrEmpty(versionOptions?.PublicReleaseRefSpec))
+                    {
+                        this.PublicReleaseDefault = Regex.IsMatch(this.BuildingRef, versionOptions.PublicReleaseRefSpec);
+                    }
 
                     this.PrereleaseVersion = versionOptions?.Version.Prerelease ?? string.Empty;
 

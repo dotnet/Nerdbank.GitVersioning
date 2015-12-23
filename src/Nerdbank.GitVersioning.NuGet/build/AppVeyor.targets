@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <!--
+         The AppVeyor-specific properties referenced here are documented here:
+         http://www.appveyor.com/docs/environment-variables 
+    -->
+    <_NBGV_BuildServerSoftware>AppVeyor</_NBGV_BuildServerSoftware>
+    <_NBGV_IsPullRequest Condition=" '$(APPVEYOR_PULL_REQUEST_NUMBER)' != '' ">true</_NBGV_IsPullRequest>
+    <_NBGV_BuildingTag Condition=" '$(APPVEYOR_REPO_TAG)' == 'true' ">refs/tags/$(APPVEYOR_REPO_TAG_NAME)</_NBGV_BuildingTag>
+
+    <!-- AppVeyor's branch variable is the target branch of a PR, which is *NOT* to be misinterpreted 
+         as building the target branch itself. So only set the branch built property if it's not a PR. -->
+    <_NBGV_BuildingBranch Condition=" '$(_NBGV_IsPullRequest)' != 'true' and '$(APPVEYOR_REPO_BRANCH)' != '' ">refs/heads/$(APPVEYOR_REPO_BRANCH)</_NBGV_BuildingBranch>
+  </PropertyGroup>
+</Project>

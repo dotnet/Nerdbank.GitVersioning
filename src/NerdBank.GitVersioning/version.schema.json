@@ -17,6 +17,11 @@
       "type": "integer",
       "description": "A number to add to the git height when calculating the build number.",
       "default": 0
+    },
+    "publicReleaseRefSpec": {
+      "type": "string",
+      "description": "A regular expression that may match a ref (branch or tag) that should be built with PublicRelease=true as the default value. The ref matched against is in its canonical form (e.g. refs/heads/master)",
+      "format": "regex"
     }
   }
 }
