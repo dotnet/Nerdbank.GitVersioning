@@ -21,11 +21,23 @@ using Version = System.Version;
 
 public class BuildIntegrationTests : RepoTestBase
 {
+    private const string GitVersioningTargetsFileName = "NerdBank.GitVersioning.targets";
+    private static readonly string[] ToxicEnvironmentVariablePrefixes = new string[]
+    {
+        "APPVEYOR",
+        "SYSTEM_",
+        "BUILD_",
+    };
     private BuildManager buildManager;
     private ProjectCollection projectCollection;
     private string projectDirectory;
     private ProjectRootElement testProject;
-    private Dictionary<string, string> globalProperties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, string> globalProperties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        // Set global properties to neutralize environment variables
+        // that might actually be defined by a CI that is building and running these tests.
+        { "PublicRelease", string.Empty },
+    };
     private Random random;
 
     public BuildIntegrationTests(ITestOutputHelper logger)
@@ -38,8 +50,19 @@ public class BuildIntegrationTests : RepoTestBase
         this.projectCollection = new ProjectCollection();
         this.projectDirectory = Path.Combine(this.RepoPath, "projdir");
         Directory.CreateDirectory(this.projectDirectory);
+        this.LoadTargetsIntoProjectCollection();
         this.testProject = this.CreateProjectRootElement();
         this.globalProperties.Add("NerdbankGitVersioningTasksPath", Environment.CurrentDirectory + "\\");
+
+        // Sterilize the test of any environment variables.
+        foreach (System.Collections.DictionaryEntry variable in Environment.GetEnvironmentVariables())
+        {
+            string name = (string)variable.Key;
+            if (ToxicEnvironmentVariablePrefixes.Any(toxic => name.StartsWith(toxic, StringComparison.OrdinalIgnoreCase)))
+            {
+                this.globalProperties[name] = string.Empty;
+            }
+        }
     }
 
     [Fact]
@@ -163,7 +186,7 @@ public class BuildIntegrationTests : RepoTestBase
         this.WriteVersionFile(majorMinorVersion, prerelease);
         this.InitializeSourceControl();
         this.AddCommits(this.random.Next(15));
-        this.globalProperties.Add("PublicRelease", "true");
+        this.globalProperties["PublicRelease"] = "true";
         var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(VersionOptions.FromVersion(new Version(majorMinorVersion)), buildResult);
 
@@ -193,7 +216,7 @@ public class BuildIntegrationTests : RepoTestBase
         this.WriteVersionFile(majorMinorVersion, prerelease);
         this.InitializeSourceControl();
         this.AddCommits(this.random.Next(15));
-        this.globalProperties.Add("PublicRelease", "true");
+        this.globalProperties["PublicRelease"] = "true";
         var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(VersionOptions.FromVersion(new Version(majorMinorVersion), prerelease), buildResult);
     }
@@ -226,6 +249,91 @@ public class BuildIntegrationTests : RepoTestBase
         this.WriteVersionFile(versionOptions);
         var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(versionOptions, buildResult);
+    }
+
+    [Fact]
+    public async Task PublicRelease_RegEx_Unsatisfied()
+    {
+        var versionOptions = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("1.0"),
+            PublicReleaseRefSpec = new string[] { "^refs/heads/release$" },
+        };
+        this.WriteVersionFile(versionOptions);
+        this.InitializeSourceControl();
+
+        // Just build "master", which doesn't conform to the regex.
+        var buildResult = await this.BuildAsync();
+        Assert.False(buildResult.PublicRelease);
+        AssertStandardProperties(versionOptions, buildResult);
+    }
+
+    public static IEnumerable<object[]> CIServerBuilds
+    {
+        get
+        {
+            return new object[][]
+            {
+                new object[] {
+                    new Dictionary<string, string> {
+                        { "APPVEYOR", "True" },
+                        { "APPVEYOR_REPO_BRANCH", "release" },
+                    },
+                },
+                new object[]
+                {
+                    new Dictionary<string, string>
+                    {
+                        { "SYSTEM_TEAMPROJECTID", "1" },
+                        { "BUILD_SOURCEBRANCH", "refs/heads/release" },
+                    },
+                },
+            };
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(CIServerBuilds))]
+    public async Task PublicRelease_RegEx_SatisfiedByCI(IReadOnlyDictionary<string, string> serverProperties)
+    {
+        var versionOptions = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("1.0"),
+            PublicReleaseRefSpec = new string[] { "^refs/heads/release$" },
+        };
+        this.WriteVersionFile(versionOptions);
+        this.InitializeSourceControl();
+
+        // Don't actually switch the checked out branch in git. CI environment variables
+        // should take precedence over actual git configuration. (Why? because these variables may
+        // retain information about which tag was checked out on a detached head).
+        foreach (var property in serverProperties)
+        {
+            this.globalProperties[property.Key] = property.Value;
+        }
+
+        var buildResult = await this.BuildAsync();
+        Assert.True(buildResult.PublicRelease);
+        AssertStandardProperties(versionOptions, buildResult);
+    }
+
+    [Fact]
+    public async Task PublicRelease_RegEx_SatisfiedByCheckedOutBranch()
+    {
+        var versionOptions = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("1.0"),
+            PublicReleaseRefSpec = new string[] { "^refs/heads/release$" },
+        };
+        this.WriteVersionFile(versionOptions);
+        this.InitializeSourceControl();
+
+        // Check out a branch that conforms.
+        var releaseBranch = this.Repo.CreateBranch("release");
+        this.Repo.Checkout(releaseBranch);
+        var buildResult = await this.BuildAsync();
+        Assert.True(buildResult.PublicRelease);
+        AssertStandardProperties(versionOptions, buildResult);
     }
 
     private void AssertStandardProperties(VersionOptions versionOptions, BuildResults buildResult, string relativeProjectDirectory = null)
@@ -277,22 +385,28 @@ public class BuildIntegrationTests : RepoTestBase
         return result;
     }
 
+    private void LoadTargetsIntoProjectCollection()
+    {
+        const string prefix = "NerdBank.GitVersioning.Tests.Targets.";
+
+        var streamNames = from name in Assembly.GetExecutingAssembly().GetManifestResourceNames()
+                          where name.StartsWith(prefix, StringComparison.Ordinal)
+                          select name;
+        foreach (string name in streamNames)
+        {
+            using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(name))
+            {
+                var targetsFile = ProjectRootElement.Create(XmlReader.Create(stream), this.projectCollection);
+                targetsFile.FullPath = Path.Combine(this.RepoPath, name.Substring(prefix.Length));
+            }
+        }
+    }
+
     private ProjectRootElement CreateProjectRootElement()
     {
         var pre = ProjectRootElement.Create(this.projectCollection);
         pre.FullPath = Path.Combine(this.projectDirectory, "test.proj");
-
-        const string ns = "NerdBank.GitVersioning.Tests";
-        const string gitVersioningTargetsFileName = "NerdBank.GitVersioning.targets";
-        ProjectRootElement gitVersioningTargets;
-        using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"{ns}.{gitVersioningTargetsFileName}"))
-        {
-            gitVersioningTargets = ProjectRootElement.Create(XmlReader.Create(stream), this.projectCollection);
-            gitVersioningTargets.FullPath = Path.Combine(this.RepoPath, gitVersioningTargetsFileName);
-        }
-
-        pre.AddImport(gitVersioningTargets.FullPath);
-
+        pre.AddImport(Path.Combine(this.RepoPath, GitVersioningTargetsFileName));
         return pre;
     }
 

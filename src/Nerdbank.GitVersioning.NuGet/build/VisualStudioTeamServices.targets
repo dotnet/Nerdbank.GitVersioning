@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <!--
+         The VSTS-specific properties referenced here are documented here:
+         https://msdn.microsoft.com/en-us/Library/vs/alm/Build/scripts/variables
+    -->
+    <_NBGV_BuildServerSoftware>VisualStudioTeamServices</_NBGV_BuildServerSoftware>
+    <_NBGV_BuildingBranch>$(BUILD_SOURCEBRANCH)</_NBGV_BuildingBranch>
+    <_NBGV_BuildingRef>$(_NBGV_BuildingBranch)</_NBGV_BuildingRef>
+
+    <!-- VSTS doesn't define variables for tags and PRs -->
+    <!--<_NBGV_BuildingTag Condition=" '$()' == 'true' ">$()</_NBGV_BuildingTag>-->
+    <!--<_NBGV_IsPullRequest Condition=" '$()' != '' "></_NBGV_IsPullRequest>-->
+  </PropertyGroup>
+</Project>

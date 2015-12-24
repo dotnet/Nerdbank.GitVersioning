@@ -84,8 +84,9 @@
     <Compile Include="VersionOptionsTests.cs" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="..\Nerdbank.GitVersioning.NuGet\build\NerdBank.GitVersioning.targets">
-      <Link>NerdBank.GitVersioning.targets</Link>
+    <EmbeddedResource Include="..\Nerdbank.GitVersioning.NuGet\build\*.targets">
+      <Visible>false</Visible>
+      <Link>Targets\%(FileName)%(Extension)</Link>
     </EmbeddedResource>
     <None Include="packages.config">
       <SubType>Designer</SubType>

@@ -18,8 +18,16 @@
   <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="GetBuildVersion"/>
   <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="CompareFiles"/>
 
+  <Import Project="VisualStudioTeamServices.targets"  Condition=" '$(SYSTEM_TEAMPROJECTID)' != '' "/>
+  <Import Project="AppVeyor.targets"                  Condition=" '$(APPVEYOR)' == 'True' "/>
+  <PropertyGroup>
+    <!-- Consider building a tag to be more precise than the branch we're building. -->
+    <_NBGV_BuildingRef>$(_NBGV_BuildingTag)</_NBGV_BuildingRef>
+    <_NBGV_BuildingRef Condition=" '$(_NBGV_BuildingRef)' == '' ">$(_NBGV_BuildingBranch)</_NBGV_BuildingRef>
+  </PropertyGroup>
+
   <Target Name="GetBuildVersion" Returns="$(BuildVersion)">
-    <GetBuildVersion>
+    <GetBuildVersion BuildingRef="$(_NBGV_BuildingRef)">
       <Output TaskParameter="Version" PropertyName="BuildVersion" />
       <Output TaskParameter="SimpleVersion" PropertyName="BuildVersionSimple" />
       <Output TaskParameter="PrereleaseVersion" PropertyName="PrereleaseVersion" Condition=" '$(PrereleaseVersion)' == '' " />
@@ -28,8 +36,11 @@
       <Output TaskParameter="GitCommitId" PropertyName="GitCommitId" />
       <Output TaskParameter="GitVersionHeight" PropertyName="GitVersionHeight" />
       <Output TaskParameter="BuildNumber" PropertyName="BuildVersionNumberComponent" />
+      <Output TaskParameter="PublicReleaseDefault" PropertyName="PublicReleaseDefault" />
     </GetBuildVersion>
     <PropertyGroup>
+      <PublicRelease Condition=" '$(PublicRelease)' == '' ">$(PublicReleaseDefault)</PublicRelease>
+
       <BuildNumber>$(BuildVersionNumberComponent)</BuildNumber>
       <BuildNumberFirstComponent>$([System.Text.RegularExpressions.Regex]::Match($(BuildNumber), '(\d+)').Groups[1].Value)</BuildNumberFirstComponent>
       <BuildNumberSecondComponent>$([System.Text.RegularExpressions.Regex]::Match($(BuildNumber), '(\d+)\.(\d+)').Groups[2].Value)</BuildNumberSecondComponent>
@@ -84,7 +95,7 @@
   </Target>
 
   <!-- Support for pattern found in users of Tvl.NuGet.BuildTasks. -->
-  <Target Name="SupplyNuGetManifestVersion" 
+  <Target Name="SupplyNuGetManifestVersion"
           DependsOnTargets="GetBuildVersion"
           BeforeTargets="EnsureNuGetManifestMetadata">
     <ItemGroup>
