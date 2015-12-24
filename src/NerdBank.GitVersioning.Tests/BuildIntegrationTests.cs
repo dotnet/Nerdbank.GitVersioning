@@ -257,7 +257,7 @@ public class BuildIntegrationTests : RepoTestBase
         var versionOptions = new VersionOptions
         {
             Version = SemanticVersion.Parse("1.0"),
-            PublicReleaseRefSpec = "^refs/heads/release$",
+            PublicReleaseRefSpec = new string[] { "^refs/heads/release$" },
         };
         this.WriteVersionFile(versionOptions);
         this.InitializeSourceControl();
@@ -299,7 +299,7 @@ public class BuildIntegrationTests : RepoTestBase
         var versionOptions = new VersionOptions
         {
             Version = SemanticVersion.Parse("1.0"),
-            PublicReleaseRefSpec = "^refs/heads/release$",
+            PublicReleaseRefSpec = new string[] { "^refs/heads/release$" },
         };
         this.WriteVersionFile(versionOptions);
         this.InitializeSourceControl();
@@ -323,7 +323,7 @@ public class BuildIntegrationTests : RepoTestBase
         var versionOptions = new VersionOptions
         {
             Version = SemanticVersion.Parse("1.0"),
-            PublicReleaseRefSpec = "^refs/heads/release$",
+            PublicReleaseRefSpec = new string[] { "^refs/heads/release$" },
         };
         this.WriteVersionFile(versionOptions);
         this.InitializeSourceControl();

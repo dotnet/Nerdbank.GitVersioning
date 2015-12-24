@@ -114,9 +114,10 @@
                         VersionFile.GetVersion(git, Environment.CurrentDirectory) ??
                         VersionFile.GetVersion(Environment.CurrentDirectory);
 
-                    if (!string.IsNullOrEmpty(this.BuildingRef) && !string.IsNullOrEmpty(versionOptions?.PublicReleaseRefSpec))
+                    if (!string.IsNullOrEmpty(this.BuildingRef) && versionOptions?.PublicReleaseRefSpec?.Length > 0)
                     {
-                        this.PublicReleaseDefault = Regex.IsMatch(this.BuildingRef, versionOptions.PublicReleaseRefSpec);
+                        this.PublicReleaseDefault = versionOptions.PublicReleaseRefSpec.Any(
+                            expr => Regex.IsMatch(this.BuildingRef, expr));
                     }
 
                     this.PrereleaseVersion = versionOptions?.Version.Prerelease ?? string.Empty;
