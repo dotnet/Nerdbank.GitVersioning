@@ -336,6 +336,36 @@ public class BuildIntegrationTests : RepoTestBase
         AssertStandardProperties(versionOptions, buildResult);
     }
 
+    [Fact]
+    public async Task AssemblyInfo()
+    {
+        var versionOptions = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("1.0"),
+            PublicReleaseRefSpec = new string[] { "^refs/heads/release$" },
+        };
+        this.WriteVersionFile(versionOptions);
+
+        var result = await this.BuildAsync("Build", logVerbosity: Microsoft.Build.Framework.LoggerVerbosity.Minimal);
+        string assemblyPath = result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("TargetPath");
+        string versionCsContent = File.ReadAllText(Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile")));
+        this.Logger.WriteLine(versionCsContent);
+
+        var assembly = Assembly.LoadFile(assemblyPath);
+
+        var assemblyFileVersion = assembly.GetCustomAttribute<AssemblyFileVersionAttribute>();
+        var assemblyInformationalVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+        var thisAssemblyClass = assembly.GetType("ThisAssembly");
+
+        Assert.Equal(new Version(result.AssemblyVersion), assembly.GetName().Version);
+        Assert.Equal(result.AssemblyFileVersion, assemblyFileVersion.Version);
+        Assert.Equal(result.AssemblyInformationalVersion, assemblyInformationalVersion.InformationalVersion);
+
+        Assert.Equal(result.AssemblyVersion, thisAssemblyClass.GetField("AssemblyVersion", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null));
+        Assert.Equal(result.AssemblyFileVersion, thisAssemblyClass.GetField("AssemblyFileVersion", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null));
+        Assert.Equal(result.AssemblyInformationalVersion, thisAssemblyClass.GetField("AssemblyInformationalVersion", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null));
+    }
+
     private void AssertStandardProperties(VersionOptions versionOptions, BuildResults buildResult, string relativeProjectDirectory = null)
     {
         int versionHeight = this.Repo.GetVersionHeight(relativeProjectDirectory);
@@ -371,14 +401,15 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{versionOptions.Version.Prerelease}{pkgVersionSuffix}", buildResult.NuGetPackageVersion);
     }
 
-    private async Task<BuildResults> BuildAsync(string target = Targets.GetBuildVersion)
+    private async Task<BuildResults> BuildAsync(string target = Targets.GetBuildVersion, Microsoft.Build.Framework.LoggerVerbosity logVerbosity = Microsoft.Build.Framework.LoggerVerbosity.Detailed)
     {
         var buildResult = await this.buildManager.BuildAsync(
             this.Logger,
             this.projectCollection,
             this.testProject,
             target,
-            this.globalProperties);
+            this.globalProperties,
+            logVerbosity);
         var result = new BuildResults(buildResult);
         this.Logger.WriteLine(result.ToString());
         Assert.Equal(BuildResultCode.Success, buildResult.OverallResult);
@@ -406,7 +437,18 @@ public class BuildIntegrationTests : RepoTestBase
     {
         var pre = ProjectRootElement.Create(this.projectCollection);
         pre.FullPath = Path.Combine(this.projectDirectory, "test.proj");
+
+        pre.AddProperty("RootNamespace", "TestNamespace");
+        pre.AddProperty("AssemblyName", "TestAssembly");
+        pre.AddProperty("TargetFrameworkVersion", "v4.5");
+        pre.AddProperty("OutputType", "Library");
+        pre.AddProperty("OutputPath", @"bin\");
+
+        pre.AddItem("Reference", "System");
+
+        pre.AddImport(@"$(MSBuildToolsPath)\Microsoft.CSharp.targets");
         pre.AddImport(Path.Combine(this.RepoPath, GitVersioningTargetsFileName));
+
         return pre;
     }
 
