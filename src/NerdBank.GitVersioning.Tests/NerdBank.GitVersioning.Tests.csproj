@@ -88,6 +88,8 @@
       <Visible>false</Visible>
       <Link>Targets\%(FileName)%(Extension)</Link>
     </EmbeddedResource>
+    <EmbeddedResource Include="Keys\keypair.snk" />
+    <EmbeddedResource Include="Keys\public.snk" />
     <None Include="packages.config">
       <SubType>Designer</SubType>
     </None>
