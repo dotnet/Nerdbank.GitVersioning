@@ -10,7 +10,7 @@
     <ProjectGuid>{C54F9EC8-FDA7-4D22-BCB2-7D97523BD91E}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>NerdBank.GitVersioning.Tests</RootNamespace>
+    <RootNamespace>Nerdbank.GitVersioning.Tests</RootNamespace>
     <AssemblyName>NerdBank.GitVersioning.Tests</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
