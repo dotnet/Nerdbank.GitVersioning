@@ -78,8 +78,10 @@
                 { "AssemblyFileVersion", this.AssemblyFileVersion },
                 { "AssemblyInformationalVersion", this.AssemblyInformationalVersion },
                 { "AssemblyName", this.AssemblyName },
-                { "RootNamespace", this.RootNamespace },
             }).ToArray());
+
+            // These properties should be defined even if they are empty.
+            thisAssembly.Members.Add(CreateField("RootNamespace", this.RootNamespace));
 
             return thisAssembly;
         }
