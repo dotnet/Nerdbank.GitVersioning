@@ -363,9 +363,12 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal(result.AssemblyFileVersion, assemblyFileVersion.Version);
         Assert.Equal(result.AssemblyInformationalVersion, assemblyInformationalVersion.InformationalVersion);
 
-        Assert.Equal(result.AssemblyVersion, thisAssemblyClass.GetField("AssemblyVersion", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null));
-        Assert.Equal(result.AssemblyFileVersion, thisAssemblyClass.GetField("AssemblyFileVersion", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null));
-        Assert.Equal(result.AssemblyInformationalVersion, thisAssemblyClass.GetField("AssemblyInformationalVersion", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null));
+        const BindingFlags fieldFlags = BindingFlags.Static | BindingFlags.NonPublic;
+        Assert.Equal(result.AssemblyVersion, thisAssemblyClass.GetField("AssemblyVersion", fieldFlags).GetValue(null));
+        Assert.Equal(result.AssemblyFileVersion, thisAssemblyClass.GetField("AssemblyFileVersion", fieldFlags).GetValue(null));
+        Assert.Equal(result.AssemblyInformationalVersion, thisAssemblyClass.GetField("AssemblyInformationalVersion", fieldFlags).GetValue(null));
+        Assert.Equal(result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyName"), thisAssemblyClass.GetField("AssemblyName", fieldFlags).GetValue(null));
+        Assert.Equal(result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("RootNamespace"), thisAssemblyClass.GetField("RootNamespace", fieldFlags).GetValue(null));
     }
 
     private void AssertStandardProperties(VersionOptions versionOptions, BuildResults buildResult, string relativeProjectDirectory = null)

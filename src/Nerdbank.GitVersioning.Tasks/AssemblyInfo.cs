@@ -28,11 +28,15 @@
         [Required]
         public string OutputFile { get; set; }
 
+        public string AssemblyName { get; set; }
+
         public string AssemblyVersion { get; set; }
 
         public string AssemblyFileVersion { get; set; }
 
         public string AssemblyInformationalVersion { get; set; }
+
+        public string RootNamespace { get; set; }
 
         public override bool Execute()
         {
@@ -73,7 +77,11 @@
                 { "AssemblyVersion", this.AssemblyVersion },
                 { "AssemblyFileVersion", this.AssemblyFileVersion },
                 { "AssemblyInformationalVersion", this.AssemblyInformationalVersion },
+                { "AssemblyName", this.AssemblyName },
             }).ToArray());
+
+            // These properties should be defined even if they are empty.
+            thisAssembly.Members.Add(CreateField("RootNamespace", this.RootNamespace));
 
             return thisAssembly;
         }
