@@ -349,8 +349,8 @@ public class BuildIntegrationTests : RepoTestBase
 
         var result = await this.BuildAsync("Build", logVerbosity: Microsoft.Build.Framework.LoggerVerbosity.Minimal);
         string assemblyPath = result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("TargetPath");
-        string versionCsContent = File.ReadAllText(Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile")));
-        this.Logger.WriteLine(versionCsContent);
+        string versionFileContent = File.ReadAllText(Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile")));
+        this.Logger.WriteLine(versionFileContent);
 
         var assembly = Assembly.LoadFile(assemblyPath);
 
