@@ -28,6 +28,8 @@
         [Required]
         public string OutputFile { get; set; }
 
+        public string AssemblyName { get; set; }
+
         public string AssemblyVersion { get; set; }
 
         public string AssemblyFileVersion { get; set; }
@@ -73,6 +75,7 @@
                 { "AssemblyVersion", this.AssemblyVersion },
                 { "AssemblyFileVersion", this.AssemblyFileVersion },
                 { "AssemblyInformationalVersion", this.AssemblyInformationalVersion },
+                { "AssemblyName", this.AssemblyName },
             }).ToArray());
 
             return thisAssembly;
