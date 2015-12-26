@@ -336,8 +336,10 @@ public class BuildIntegrationTests : RepoTestBase
         AssertStandardProperties(versionOptions, buildResult);
     }
 
-    [Fact]
-    public async Task AssemblyInfo()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AssemblyInfo(bool isVB)
     {
         var versionOptions = new VersionOptions
         {
@@ -345,6 +347,11 @@ public class BuildIntegrationTests : RepoTestBase
             PublicReleaseRefSpec = new string[] { "^refs/heads/release$" },
         };
         this.WriteVersionFile(versionOptions);
+
+        if (isVB)
+        {
+            this.MakeItAVBProject();
+        }
 
         var result = await this.BuildAsync("Build", logVerbosity: Microsoft.Build.Framework.LoggerVerbosity.Minimal);
         string assemblyPath = result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("TargetPath");
@@ -355,7 +362,8 @@ public class BuildIntegrationTests : RepoTestBase
 
         var assemblyFileVersion = assembly.GetCustomAttribute<AssemblyFileVersionAttribute>();
         var assemblyInformationalVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
-        var thisAssemblyClass = assembly.GetType("ThisAssembly");
+        var thisAssemblyClass = assembly.GetType("ThisAssembly") ?? assembly.GetType("TestNamespace.ThisAssembly");
+        Assert.NotNull(thisAssemblyClass);
 
         Assert.Equal(new Version(result.AssemblyVersion), assembly.GetName().Version);
         Assert.Equal(result.AssemblyFileVersion, assemblyFileVersion.Version);
@@ -450,6 +458,12 @@ public class BuildIntegrationTests : RepoTestBase
         pre.AddImport(Path.Combine(this.RepoPath, GitVersioningTargetsFileName));
 
         return pre;
+    }
+
+    private void MakeItAVBProject()
+    {
+        var csharpImport = this.testProject.Imports.Single(i => i.Project.Contains("CSharp"));
+        csharpImport.Project = @"$(MSBuildToolsPath)\Microsoft.VisualBasic.targets";
     }
 
     private static class Targets
