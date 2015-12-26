@@ -13,7 +13,7 @@ using Xunit.Abstractions;
 
 internal static class MSBuildExtensions
 {
-    internal static async Task<BuildResult> BuildAsync(this BuildManager buildManager, ITestOutputHelper logger, ProjectCollection projectCollection, ProjectRootElement project, string target, IDictionary<string, string> globalProperties = null)
+    internal static async Task<BuildResult> BuildAsync(this BuildManager buildManager, ITestOutputHelper logger, ProjectCollection projectCollection, ProjectRootElement project, string target, IDictionary<string, string> globalProperties = null, LoggerVerbosity logVerbosity = LoggerVerbosity.Detailed)
     {
         Requires.NotNull(buildManager, nameof(buildManager));
         Requires.NotNull(projectCollection, nameof(projectCollection));
@@ -26,7 +26,7 @@ internal static class MSBuildExtensions
         var parameters = new BuildParameters(projectCollection);
         parameters.Loggers = new ILogger[]
         {
-            new ConsoleLogger(LoggerVerbosity.Detailed, s => logger.WriteLine(s.TrimEnd('\r', '\n')), null, null),
+            new ConsoleLogger(logVerbosity, s => logger.WriteLine(s.TrimEnd('\r', '\n')), null, null),
         };
         buildManager.BeginBuild(parameters);
 

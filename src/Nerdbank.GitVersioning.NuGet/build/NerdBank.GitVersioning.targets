@@ -14,7 +14,7 @@
     </CoreCompileDependsOn>
   </PropertyGroup>
 
-  <UsingTask AssemblyFile="MSBuild.Community.Tasks.dll" TaskName="AssemblyInfo"/>
+  <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="AssemblyInfo"/>
   <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="GetBuildVersion"/>
   <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="CompareFiles"/>
 
@@ -81,8 +81,7 @@
     <AssemblyInfo OutputFile="$(NewVersionSourceFile)" CodeLanguage="$(Language)"
                   AssemblyVersion="$(AssemblyVersion)"
                   AssemblyFileVersion="$(AssemblyFileVersion)"
-                  AssemblyInformationalVersion="$(AssemblyInformationalVersion)"
-                  GenerateClass="true" />
+                  AssemblyInformationalVersion="$(AssemblyInformationalVersion)" />
     <!-- Avoid applying the newly generated AssemblyInfo.cs file to the build 
          unless it has changed in order to allow for incremental building. -->
     <CompareFiles OriginalItems="$(VersionSourceFile)" NewItems="$(NewVersionSourceFile)">
