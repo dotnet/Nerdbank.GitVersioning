@@ -368,6 +368,7 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal(result.AssemblyFileVersion, thisAssemblyClass.GetField("AssemblyFileVersion", fieldFlags).GetValue(null));
         Assert.Equal(result.AssemblyInformationalVersion, thisAssemblyClass.GetField("AssemblyInformationalVersion", fieldFlags).GetValue(null));
         Assert.Equal(result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyName"), thisAssemblyClass.GetField("AssemblyName", fieldFlags).GetValue(null));
+        Assert.Equal(result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("RootNamespace"), thisAssemblyClass.GetField("RootNamespace", fieldFlags).GetValue(null));
     }
 
     private void AssertStandardProperties(VersionOptions versionOptions, BuildResults buildResult, string relativeProjectDirectory = null)

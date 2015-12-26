@@ -36,6 +36,8 @@
 
         public string AssemblyInformationalVersion { get; set; }
 
+        public string RootNamespace { get; set; }
+
         public override bool Execute()
         {
             using (var codeDomProvider = CodeDomProvider.CreateProvider(this.CodeLanguage))
@@ -76,6 +78,7 @@
                 { "AssemblyFileVersion", this.AssemblyFileVersion },
                 { "AssemblyInformationalVersion", this.AssemblyInformationalVersion },
                 { "AssemblyName", this.AssemblyName },
+                { "RootNamespace", this.RootNamespace },
             }).ToArray());
 
             return thisAssembly;
