@@ -341,13 +341,7 @@ public class BuildIntegrationTests : RepoTestBase
     [InlineData(true)]
     public async Task AssemblyInfo(bool isVB)
     {
-        var versionOptions = new VersionOptions
-        {
-            Version = SemanticVersion.Parse("1.0"),
-            PublicReleaseRefSpec = new string[] { "^refs/heads/release$" },
-        };
-        this.WriteVersionFile(versionOptions);
-
+        this.WriteVersionFile();
         if (isVB)
         {
             this.MakeItAVBProject();
