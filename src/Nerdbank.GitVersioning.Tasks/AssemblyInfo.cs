@@ -8,7 +8,6 @@
     using System.IO;
     using System.Linq;
     using System.Reflection;
-    using System.Security.Cryptography;
     using System.Text;
     using Microsoft.Build.Framework;
     using Microsoft.Build.Utilities;
@@ -100,17 +99,23 @@
 
         private void ReadKeyInfo(out string publicKey, out string publicKeyToken)
         {
-            if (!string.IsNullOrEmpty(this.AssemblyOriginatorKeyFile) && Path.GetExtension(this.AssemblyOriginatorKeyFile).Equals(".snk", StringComparison.OrdinalIgnoreCase) && File.Exists(this.AssemblyOriginatorKeyFile))
+            byte[] publicKeyBytes = null;
+            if (!string.IsNullOrEmpty(this.AssemblyOriginatorKeyFile) && File.Exists(this.AssemblyOriginatorKeyFile))
             {
-                byte[] keyBytes = File.ReadAllBytes(this.AssemblyOriginatorKeyFile);
-                bool publicKeyOnly = keyBytes[0] != 0x07;
-                byte[] publicKeyBytes = publicKeyOnly ? keyBytes : MSCorEE.StrongNameGetPublicKey(keyBytes);
-                publicKey = ToHex(publicKeyBytes);
-                publicKeyToken = ToHex(MSCorEE.StrongNameTokenFromPublicKey(publicKeyBytes));
+                if (Path.GetExtension(this.AssemblyOriginatorKeyFile).Equals(".snk", StringComparison.OrdinalIgnoreCase))
+                {
+                    byte[] keyBytes = File.ReadAllBytes(this.AssemblyOriginatorKeyFile);
+                    bool publicKeyOnly = keyBytes[0] != 0x07;
+                    publicKeyBytes = publicKeyOnly ? keyBytes : MSCorEE.StrongNameGetPublicKey(keyBytes);
+                }
             }
             else if (!string.IsNullOrEmpty(this.AssemblyKeyContainerName))
             {
-                byte[] publicKeyBytes = MSCorEE.StrongNameGetPublicKey(this.AssemblyKeyContainerName);
+                publicKeyBytes = MSCorEE.StrongNameGetPublicKey(this.AssemblyKeyContainerName);
+            }
+
+            if (publicKeyBytes != null)
+            {
                 publicKey = ToHex(publicKeyBytes);
                 publicKeyToken = ToHex(MSCorEE.StrongNameTokenFromPublicKey(publicKeyBytes));
             }
