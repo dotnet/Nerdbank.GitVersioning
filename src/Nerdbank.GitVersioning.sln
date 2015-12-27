@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.23107.0
+VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FF286327-C783-4F7A-AB73-9BCBAD0D4460}") = "Nerdbank.GitVersioning.NuGet", "Nerdbank.GitVersioning.NuGet\Nerdbank.GitVersioning.NuGet.nuproj", "{B7DE4122-9E90-43DE-BE44-454315CFAE99}"
 EndProject
@@ -9,6 +9,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nerdbank.GitVersioning.Task
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{4BD1A7CD-6F52-4F5A-825B-50E4D8C3ECFF}"
 	ProjectSection(SolutionItems) = preProject
+		..\.gitignore = ..\.gitignore
 		..\nuget.config = ..\nuget.config
 		..\readme.md = ..\readme.md
 		..\version.json = ..\version.json

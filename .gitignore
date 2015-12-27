@@ -130,6 +130,9 @@ publish/
 
 # NuGet Packages Directory
 packages
+*.nuget.props
+*.nuget.targets
+project.lock.json
 
 ## TODO: If the tool you use requires repositories.config
 ## uncomment the next line
@@ -157,7 +160,6 @@ ClientBin/
 *~
 *.dbmdl
 *.dbproj.schemaview
-*.pfx
 *.publishsettings
 node_modules/
 bower_components/
