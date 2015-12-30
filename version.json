@@ -1,6 +1,6 @@
 {
   "$schema": "src\\NerdBank.GitVersioning\\version.schema.json",
-  "version": "1.1",
+  "version": "1.2",
   "publicReleaseRefSpec": [
     "^refs/heads/master$" // we release out of master
   ]
