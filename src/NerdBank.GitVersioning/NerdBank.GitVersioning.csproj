@@ -71,7 +71,7 @@
     <None Include="version.schema.json" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Import Project="..\..\packages\NuProj.0.10.4-beta-gf7fc34e7d8\tools\Microsoft.Common.NuProj.targets" Condition=" Exists('..\..\packages\NuProj.0.10.4-beta-gf7fc34e7d8\tools\Microsoft.Common.NuProj.targets') " />
+  <Import Project="..\..\packages\NuProj.0.10.30-beta-gcbd7693f91\tools\Microsoft.Common.NuProj.targets" Condition=" Exists('..\..\packages\NuProj.0.10.30-beta-gcbd7693f91\tools\Microsoft.Common.NuProj.targets') " />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
