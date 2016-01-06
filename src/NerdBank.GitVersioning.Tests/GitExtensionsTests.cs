@@ -77,6 +77,29 @@ public class GitExtensionsTests : RepoTestBase
     }
 
     [Fact]
+    public void GetVersionHeight_VersionJsonHasUnrelatedHistory()
+    {
+        // Emulate a repo that used version.json for something else.
+        string versionJsonPath = Path.Combine(this.RepoPath, "version.json");
+        File.WriteAllText(versionJsonPath, @"{ ""unrelated"": false }");
+        Assert.Equal(1, this.Repo.GetVersionHeight()); // exercise code that handles the file not yet checked in.
+        this.Repo.Stage(versionJsonPath);
+        this.Repo.Commit("Add unrelated version.json file.");
+        Assert.Equal(1, this.Repo.GetVersionHeight()); // exercise code that handles a checked in file.
+
+        // And now the repo has decided to use this package.
+        this.WriteVersionFile();
+
+        Assert.Equal(1, this.Repo.Head.GetVersionHeight());
+        Assert.Equal(1, this.Repo.GetVersionHeight());
+
+        // Also emulate case of where the related project.json was just changed to conform,
+        // but not yet checked in.
+        this.Repo.Reset(ResetMode.Mixed, this.Repo.Head.Commits.Skip(1).Single());
+        Assert.Equal(1, this.Repo.GetVersionHeight());
+    }
+
+    [Fact]
     public void GetTruncatedCommitIdAsInteger_Roundtrip()
     {
         var firstCommit = this.Repo.Commit("First", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
