@@ -82,7 +82,7 @@ public class GitExtensionsTests : RepoTestBase
         // Emulate a repo that used version.json for something else.
         string versionJsonPath = Path.Combine(this.RepoPath, "version.json");
         File.WriteAllText(versionJsonPath, @"{ ""unrelated"": false }");
-        Assert.Equal(1, this.Repo.GetVersionHeight()); // exercise code that handles the file not yet checked in.
+        Assert.Equal(0, this.Repo.GetVersionHeight()); // exercise code that handles the file not yet checked in.
         this.Repo.Stage(versionJsonPath);
         this.Repo.Commit("Add unrelated version.json file.");
         Assert.Equal(1, this.Repo.GetVersionHeight()); // exercise code that handles a checked in file.
@@ -95,8 +95,8 @@ public class GitExtensionsTests : RepoTestBase
 
         // Also emulate case of where the related project.json was just changed to conform,
         // but not yet checked in.
-        this.Repo.Reset(ResetMode.Mixed, this.Repo.Head.Commits.Skip(1).Single());
-        Assert.Equal(1, this.Repo.GetVersionHeight());
+        this.Repo.Reset(ResetMode.Mixed, this.Repo.Head.Commits.Skip(1).First());
+        Assert.Equal(0, this.Repo.GetVersionHeight());
     }
 
     [Fact]
@@ -108,7 +108,7 @@ public class GitExtensionsTests : RepoTestBase
         // Now introduce a parsing error.
         string versionJsonPath = Path.Combine(this.RepoPath, "version.json");
         File.WriteAllText(versionJsonPath, @"{ ""version"": ""1.0"""); // no closing curly brace for parsing error
-        Assert.Equal(1, this.Repo.GetVersionHeight());
+        Assert.Equal(0, this.Repo.GetVersionHeight());
         this.Repo.Stage(versionJsonPath);
         this.Repo.Commit("Add broken version.json file.");
         Assert.Equal(1, this.Repo.GetVersionHeight());
@@ -118,8 +118,8 @@ public class GitExtensionsTests : RepoTestBase
         Assert.Equal(1, this.Repo.GetVersionHeight());
 
         // And emulate fixing it without having checked in yet.
-        this.Repo.Reset(ResetMode.Mixed, this.Repo.Head.Commits.Skip(1).Single());
-        Assert.Equal(1, this.Repo.GetVersionHeight());
+        this.Repo.Reset(ResetMode.Mixed, this.Repo.Head.Commits.Skip(1).First());
+        Assert.Equal(0, this.Repo.GetVersionHeight());
     }
 
     [Fact]

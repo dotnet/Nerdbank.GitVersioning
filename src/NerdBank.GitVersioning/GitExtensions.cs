@@ -63,9 +63,9 @@
             VersionOptions workingCopyVersionOptions, committedVersionOptions;
             if (IsVersionFileChangedInWorkingCopy(repo, repoRelativeProjectDirectory, out committedVersionOptions, out workingCopyVersionOptions))
             {
-                Version workingCopyVersion = workingCopyVersionOptions?.Version.Version;
-                Version headCommitVersion = committedVersionOptions?.Version.Version ?? Version0;
-                if (!workingCopyVersion.Equals(headCommitVersion))
+                Version workingCopyVersion = workingCopyVersionOptions?.Version?.Version;
+                Version headCommitVersion = committedVersionOptions?.Version?.Version ?? Version0;
+                if (workingCopyVersion == null || !workingCopyVersion.Equals(headCommitVersion))
                 {
                     // The working copy has changed the major.minor version.
                     // So by definition the version height is 0, since no commit represents it yet.
