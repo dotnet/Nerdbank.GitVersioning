@@ -58,7 +58,7 @@
             using (var content = GetVersionFileReader(commit, repoRelativeProjectDirectory, out json))
             {
                 return content != null
-                    ? ReadVersionFile(content, json)
+                    ? TryReadVersionFile(content, json)
                     : null;
             }
         }
@@ -102,7 +102,11 @@
                 {
                     using (var sr = new StreamReader(versionTxtPath))
                     {
-                        return ReadVersionFile(sr, isJsonFile: false);
+                        var result = TryReadVersionFile(sr, isJsonFile: false);
+                        if (result != null)
+                        {
+                            return result;
+                        }
                     }
                 }
 
@@ -111,7 +115,11 @@
                 {
                     using (var sr = new StreamReader(versionJsonPath))
                     {
-                        return ReadVersionFile(sr, isJsonFile: true);
+                        var result = TryReadVersionFile(sr, isJsonFile: true);
+                        if (result != null)
+                        {
+                            return result;
+                        }
                     }
                 }
 
@@ -242,13 +250,20 @@
         /// </summary>
         /// <param name="versionTextContent">The content of the version.txt file to read.</param>
         /// <param name="isJsonFile"><c>true</c> if the file being read is a JSON file; <c>false</c> for the old-style text format.</param>
-        /// <returns>The version information read from the file.</returns>
-        private static VersionOptions ReadVersionFile(TextReader versionTextContent, bool isJsonFile)
+        /// <returns>The version information read from the file; or <c>null</c> if a deserialization error occurs.</returns>
+        private static VersionOptions TryReadVersionFile(TextReader versionTextContent, bool isJsonFile)
         {
             if (isJsonFile)
             {
                 string jsonContent = versionTextContent.ReadToEnd();
-                return JsonConvert.DeserializeObject<VersionOptions>(jsonContent, JsonSettings);
+                try
+                {
+                    return JsonConvert.DeserializeObject<VersionOptions>(jsonContent, JsonSettings);
+                }
+                catch (JsonSerializationException)
+                {
+                    return null;
+                }
             }
 
             string versionLine = versionTextContent.ReadLine();
