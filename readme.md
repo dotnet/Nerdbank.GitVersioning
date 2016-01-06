@@ -116,7 +116,7 @@ VSIX project.
 
 ### Apply to NuProj built NuPkg versions
 
-You will need to manually make the following changes to your NuProj file
+You will need to manually make the following changes *to your NuProj file*
 in order for it to build NuPkg files based on versions computed by this package:
 
 1. Remove any definition of a Version property:
