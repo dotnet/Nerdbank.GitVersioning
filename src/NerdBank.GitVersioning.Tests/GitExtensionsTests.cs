@@ -100,6 +100,29 @@ public class GitExtensionsTests : RepoTestBase
     }
 
     [Fact]
+    public void GetVersionHeight_VersionJsonHasParsingErrorsInHistory()
+    {
+        this.WriteVersionFile();
+        Assert.Equal(1, this.Repo.GetVersionHeight());
+
+        // Now introduce a parsing error.
+        string versionJsonPath = Path.Combine(this.RepoPath, "version.json");
+        File.WriteAllText(versionJsonPath, @"{ ""version"": ""1.0"""); // no closing curly brace for parsing error
+        Assert.Equal(1, this.Repo.GetVersionHeight());
+        this.Repo.Stage(versionJsonPath);
+        this.Repo.Commit("Add broken version.json file.");
+        Assert.Equal(1, this.Repo.GetVersionHeight());
+
+        // Now fix it.
+        this.WriteVersionFile();
+        Assert.Equal(1, this.Repo.GetVersionHeight());
+
+        // And emulate fixing it without having checked in yet.
+        this.Repo.Reset(ResetMode.Mixed, this.Repo.Head.Commits.Skip(1).Single());
+        Assert.Equal(1, this.Repo.GetVersionHeight());
+    }
+
+    [Fact]
     public void GetTruncatedCommitIdAsInteger_Roundtrip()
     {
         var firstCommit = this.Repo.Commit("First", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
