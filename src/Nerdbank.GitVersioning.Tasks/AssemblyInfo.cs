@@ -43,6 +43,16 @@
 
         public string AssemblyKeyContainerName { get; set; }
 
+        public string AssemblyTitle { get; set; }
+
+        public string AssemblyProduct { get; set; }
+
+        public string AssemblyCopyright { get; set; }
+
+        public string AssemblyCompany { get; set; }
+
+        public string AssemblyConfiguration { get; set; }
+
         public override bool Execute()
         {
             using (var codeDomProvider = CodeDomProvider.CreateProvider(this.CodeLanguage))
@@ -89,6 +99,11 @@
                 { "AssemblyName", this.AssemblyName },
                 { "PublicKey", publicKey },
                 { "PublicKeyToken", publicKeyToken },
+                { "AssemblyTitle", this.AssemblyTitle },
+                { "AssemblyProduct", this.AssemblyProduct },
+                { "AssemblyCopyright", this.AssemblyCopyright },
+                { "AssemblyCompany", this.AssemblyCompany },
+                { "AssemblyConfiguration", this.AssemblyConfiguration }
             }).ToArray());
 
             // These properties should be defined even if they are empty.
@@ -136,6 +151,14 @@
             yield return DeclareAttribute(typeof(AssemblyVersionAttribute), this.AssemblyVersion);
             yield return DeclareAttribute(typeof(AssemblyFileVersionAttribute), this.AssemblyFileVersion);
             yield return DeclareAttribute(typeof(AssemblyInformationalVersionAttribute), this.AssemblyInformationalVersion);
+            if (!string.IsNullOrEmpty(this.AssemblyTitle))
+                yield return DeclareAttribute(typeof(AssemblyTitleAttribute), this.AssemblyTitle);
+            if (!string.IsNullOrEmpty(this.AssemblyProduct))
+                yield return DeclareAttribute(typeof(AssemblyProductAttribute), this.AssemblyProduct);
+            if (!string.IsNullOrEmpty(this.AssemblyCompany))
+                yield return DeclareAttribute(typeof(AssemblyCompanyAttribute), this.AssemblyCompany);
+            if (!string.IsNullOrEmpty(this.AssemblyCopyright))
+                yield return DeclareAttribute(typeof(AssemblyCopyrightAttribute), this.AssemblyCopyright);
         }
 
         private static IEnumerable<CodeMemberField> CreateFields(IReadOnlyDictionary<string, string> namesAndValues)

@@ -84,7 +84,12 @@
                   AssemblyInformationalVersion="$(AssemblyInformationalVersion)"
                   AssemblyName="$(AssemblyName)"
                   RootNamespace="$(RootNamespace)"
-                  AssemblyOriginatorKeyFile="$(AssemblyOriginatorKeyFile)" />
+                  AssemblyOriginatorKeyFile="$(AssemblyOriginatorKeyFile)"
+                  AssemblyTitle="$(AssemblyTitle)"
+                  AssemblyProduct="$(AssemblyProduct)"
+                  AssemblyCopyright="$(AssemblyCopyright)"
+                  AssemblyCompany="$(AssemblyCompany)"
+                  AssemblyConfiguration="$(Configuration)"/>
     <!-- Avoid applying the newly generated AssemblyInfo.cs file to the build 
          unless it has changed in order to allow for incremental building. -->
     <CompareFiles OriginalItems="$(VersionSourceFile)" NewItems="$(NewVersionSourceFile)">

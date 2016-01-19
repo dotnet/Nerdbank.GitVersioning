@@ -359,19 +359,32 @@ public class BuildIntegrationTests : RepoTestBase
 
         var assemblyFileVersion = assembly.GetCustomAttribute<AssemblyFileVersionAttribute>();
         var assemblyInformationalVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+        var assemblyTitle = assembly.GetCustomAttribute<AssemblyTitleAttribute>();
+        var assemblyProduct = assembly.GetCustomAttribute<AssemblyProductAttribute>();
+        var assemblyCompany = assembly.GetCustomAttribute<AssemblyCompanyAttribute>();
+        var assemblyCopyright = assembly.GetCustomAttribute<AssemblyCopyrightAttribute>();
         var thisAssemblyClass = assembly.GetType("ThisAssembly") ?? assembly.GetType("TestNamespace.ThisAssembly");
         Assert.NotNull(thisAssemblyClass);
 
         Assert.Equal(new Version(result.AssemblyVersion), assembly.GetName().Version);
         Assert.Equal(result.AssemblyFileVersion, assemblyFileVersion.Version);
         Assert.Equal(result.AssemblyInformationalVersion, assemblyInformationalVersion.InformationalVersion);
+        Assert.Equal(result.AssemblyTitle, assemblyTitle.Title);
+        Assert.Equal(result.AssemblyProduct, assemblyProduct.Product);
+        Assert.Equal(result.AssemblyCompany, assemblyCompany.Company);
+        Assert.Equal(result.AssemblyCopyright, assemblyCopyright.Copyright);
 
         const BindingFlags fieldFlags = BindingFlags.Static | BindingFlags.NonPublic;
         Assert.Equal(result.AssemblyVersion, thisAssemblyClass.GetField("AssemblyVersion", fieldFlags).GetValue(null));
         Assert.Equal(result.AssemblyFileVersion, thisAssemblyClass.GetField("AssemblyFileVersion", fieldFlags).GetValue(null));
         Assert.Equal(result.AssemblyInformationalVersion, thisAssemblyClass.GetField("AssemblyInformationalVersion", fieldFlags).GetValue(null));
-        Assert.Equal(result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyName"), thisAssemblyClass.GetField("AssemblyName", fieldFlags).GetValue(null));
-        Assert.Equal(result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("RootNamespace"), thisAssemblyClass.GetField("RootNamespace", fieldFlags).GetValue(null));
+        Assert.Equal(result.AssemblyName, thisAssemblyClass.GetField("AssemblyName", fieldFlags).GetValue(null));
+        Assert.Equal(result.RootNamespace, thisAssemblyClass.GetField("RootNamespace", fieldFlags).GetValue(null));
+        Assert.Equal(result.AssemblyTitle, thisAssemblyClass.GetField("AssemblyTitle", fieldFlags).GetValue(null));
+        Assert.Equal(result.AssemblyProduct, thisAssemblyClass.GetField("AssemblyProduct", fieldFlags).GetValue(null));
+        Assert.Equal(result.AssemblyCompany, thisAssemblyClass.GetField("AssemblyCompany", fieldFlags).GetValue(null));
+        Assert.Equal(result.AssemblyCopyright, thisAssemblyClass.GetField("AssemblyCopyright", fieldFlags).GetValue(null));
+        Assert.Equal(result.AssemblyConfiguration, thisAssemblyClass.GetField("AssemblyConfiguration", fieldFlags).GetValue(null));
 
         // Verify that it doesn't have key fields
         Assert.Null(thisAssemblyClass.GetField("PublicKey", fieldFlags));
@@ -493,6 +506,11 @@ public class BuildIntegrationTests : RepoTestBase
 
         pre.AddProperty("RootNamespace", "TestNamespace");
         pre.AddProperty("AssemblyName", "TestAssembly");
+        pre.AddProperty("AssemblyTitle", "TestAssembly");
+        pre.AddProperty("AssemblyProduct", "TestProduct");
+        pre.AddProperty("AssemblyCompany", "TestCompany");
+        pre.AddProperty("AssemblyCopyright", "TestCopyright");
+        pre.AddProperty("AssemblyConfiguration", "TestConfiguration");
         pre.AddProperty("TargetFrameworkVersion", "v4.5");
         pre.AddProperty("OutputType", "Library");
         pre.AddProperty("OutputPath", @"bin\");
@@ -547,6 +565,13 @@ public class BuildIntegrationTests : RepoTestBase
         public string AssemblyFileVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyFileVersion");
         public string AssemblyVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyVersion");
         public string NuGetPackageVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("NuGetPackageVersion");
+        public string AssemblyName => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyName");
+        public string AssemblyTitle => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyTitle");
+        public string AssemblyProduct => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyProduct");
+        public string AssemblyCompany => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyCompany");
+        public string AssemblyCopyright => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyCopyright");
+        public string AssemblyConfiguration => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("Configuration");
+        public string RootNamespace => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("RootNamespace");
 
         public override string ToString()
         {
