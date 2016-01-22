@@ -13,7 +13,7 @@
     using Microsoft.Build.Utilities;
     using PInvoke;
 
-    public class AssemblyInfo : Task
+    public class AssemblyVersionInfo : Task
     {
         private static readonly CodeGeneratorOptions codeGeneratorOptions = new CodeGeneratorOptions
         {

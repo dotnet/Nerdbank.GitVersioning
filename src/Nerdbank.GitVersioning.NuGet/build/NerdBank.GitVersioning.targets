@@ -14,7 +14,7 @@
     </CoreCompileDependsOn>
   </PropertyGroup>
 
-  <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="AssemblyInfo"/>
+  <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="AssemblyVersionInfo"/>
   <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="GetBuildVersion"/>
   <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="CompareFiles"/>
 
@@ -78,7 +78,7 @@
       <UltimateResourceFallbackLocation Condition=" '$(DevDivProjectSubType)' != 'portable' ">UltimateResourceFallbackLocation.MainAssembly</UltimateResourceFallbackLocation>
     </PropertyGroup>
     <MakeDir Directories="$(IntermediatePath)"/>
-    <AssemblyInfo OutputFile="$(NewVersionSourceFile)" CodeLanguage="$(Language)"
+    <AssemblyVersionInfo OutputFile="$(NewVersionSourceFile)" CodeLanguage="$(Language)"
                   AssemblyVersion="$(AssemblyVersion)"
                   AssemblyFileVersion="$(AssemblyFileVersion)"
                   AssemblyInformationalVersion="$(AssemblyInformationalVersion)"
