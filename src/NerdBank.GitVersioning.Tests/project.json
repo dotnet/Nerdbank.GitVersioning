@@ -2,7 +2,7 @@
   "dependencies": {
     "LibGit2Sharp": "0.21.0.176",
     "Microsoft.CodeAnalysis.CSharp": "1.1.1",
-    "Nerdbank.GitVersioning": "1.2.1",
+    "Nerdbank.GitVersioning": "1.2.13-g103043c7fe",
     "Newtonsoft.Json": "7.0.1",
     "Validation": "2.0.6.15003",
     "xunit": "2.1.0",
