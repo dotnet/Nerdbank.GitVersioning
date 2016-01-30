@@ -75,6 +75,22 @@ public class VersionFileTests : RepoTestBase
     }
 
     [Theory]
+    [InlineData("2.3", null, 0, null, @"{""version"":""2.3""}")]
+    [InlineData("2.3", "2.2", 0, null, @"{""version"":""2.3"",""assemblyVersion"":""2.2""}")]
+    [InlineData("2.3", "2.2", -1, new[] { "refs/heads/master" }, @"{""version"":""2.3"",""assemblyVersion"":""2.2"",""buildNumberOffset"":-1,""publicReleaseRefSpec"":[""refs/heads/master""]}")]
+    public void GetVersion_JsonCompatibility(string version, string assemblyVersion, int buildNumberOffset, string[] publicReleaseRefSpec, string json)
+    {
+        File.WriteAllText(Path.Combine(this.RepoPath, VersionFile.JsonFileName), json);
+
+        var options = VersionFile.GetVersion(this.RepoPath);
+        Assert.NotNull(options);
+        Assert.Equal(version, options.Version?.ToString());
+        Assert.Equal(assemblyVersion, options.AssemblyVersion?.ToString());
+        Assert.Equal(buildNumberOffset, options.BuildNumberOffset);
+        Assert.Equal(publicReleaseRefSpec, options.PublicReleaseRefSpec);
+    }
+
+    [Theory]
     [InlineData("2.3", "")]
     [InlineData("2.3", null)]
     [InlineData("2.3", "-beta")]
