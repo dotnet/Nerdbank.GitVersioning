@@ -155,7 +155,11 @@ public class BuildIntegrationTests : RepoTestBase
     [Fact]
     public async Task GetBuildVersion_In_Git_With_Version_File_In_Root_And_Subdirectory_Works()
     {
-        var rootVersionSpec = new VersionOptions { Version = SemanticVersion.Parse("14.1"), AssemblyVersion = new Version(14, 0) };
+        var rootVersionSpec = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("14.1"),
+            AssemblyVersion = new VersionOptions.AssemblyVersionOptions(new Version(14, 0)),
+        };
         var subdirVersionSpec = new VersionOptions { Version = SemanticVersion.Parse("11.0") };
         const string subdirectory = "projdir";
 
@@ -232,9 +236,48 @@ public class BuildIntegrationTests : RepoTestBase
         var versionOptions = new VersionOptions
         {
             Version = new SemanticVersion(new Version(14, 1)),
-            AssemblyVersion = new Version(14, 0),
+            AssemblyVersion = new VersionOptions.AssemblyVersionOptions(new Version(14, 0)),
         };
         this.WriteVersionFile(versionOptions);
+        var buildResult = await this.BuildAsync();
+        this.AssertStandardProperties(versionOptions, buildResult);
+    }
+
+    [Theory]
+    [InlineData(VersionOptions.VersionPrecision.Build)]
+    [InlineData(VersionOptions.VersionPrecision.Revision)]
+    public async Task GetBuildVersion_CustomAssemblyVersionWithPrecision(VersionOptions.VersionPrecision precision)
+    {
+        var versionOptions = new VersionOptions
+        {
+            Version = new SemanticVersion("14.1"),
+            AssemblyVersion = new VersionOptions.AssemblyVersionOptions
+            {
+                Version = new Version("15.2"),
+                Precision = precision,
+            },
+        };
+        this.WriteVersionFile(versionOptions);
+        this.InitializeSourceControl();
+        var buildResult = await this.BuildAsync();
+        this.AssertStandardProperties(versionOptions, buildResult);
+    }
+
+    [Theory]
+    [InlineData(VersionOptions.VersionPrecision.Build)]
+    [InlineData(VersionOptions.VersionPrecision.Revision)]
+    public async Task GetBuildVersion_CustomAssemblyVersionPrecision(VersionOptions.VersionPrecision precision)
+    {
+        var versionOptions = new VersionOptions
+        {
+            Version = new SemanticVersion("14.1"),
+            AssemblyVersion = new VersionOptions.AssemblyVersionOptions
+            {
+                Precision = precision,
+            },
+        };
+        this.WriteVersionFile(versionOptions);
+        this.InitializeSourceControl();
         var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(versionOptions, buildResult);
     }
@@ -432,13 +475,23 @@ public class BuildIntegrationTests : RepoTestBase
         }
     }
 
+    private static Version GetExpectedAssemblyVersion(VersionOptions versionOptions, Version version)
+    {
+        var assemblyVersionPrecision = versionOptions.AssemblyVersion?.Precision ?? VersionOptions.VersionPrecision.Minor;
+        int assemblyVersionBuild = assemblyVersionPrecision >= VersionOptions.VersionPrecision.Build ? version.Build : 0;
+        int assemblyVersionRevision = assemblyVersionPrecision >= VersionOptions.VersionPrecision.Revision ? version.Revision : 0;
+        Version assemblyVersion = (versionOptions.AssemblyVersion?.Version ?? versionOptions.Version.Version).EnsureNonNegativeComponents();
+        assemblyVersion = new Version(assemblyVersion.Major, assemblyVersion.Minor, assemblyVersionBuild, assemblyVersionRevision);
+        return assemblyVersion;
+    }
+
     private void AssertStandardProperties(VersionOptions versionOptions, BuildResults buildResult, string relativeProjectDirectory = null)
     {
         int versionHeight = this.Repo.GetVersionHeight(relativeProjectDirectory);
         Version idAsVersion = this.Repo.GetIdAsVersion(relativeProjectDirectory);
         string commitIdShort = this.Repo.Head.Commits.First().Id.Sha.Substring(0, 10);
         Version version = this.Repo.GetIdAsVersion(relativeProjectDirectory);
-        Version assemblyVersion = (versionOptions.AssemblyVersion ?? versionOptions.Version.Version).EnsureNonNegativeComponents();
+        Version assemblyVersion = GetExpectedAssemblyVersion(versionOptions, version);
         Assert.Equal($"{version}", buildResult.AssemblyFileVersion);
         Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{versionOptions.Version.Prerelease}+g{commitIdShort}", buildResult.AssemblyInformationalVersion);
 

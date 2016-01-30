@@ -242,7 +242,7 @@ public class GitExtensionsTests : RepoTestBase
         this.WriteVersionFile(new VersionOptions
         {
             Version = SemanticVersion.Parse(version),
-            AssemblyVersion = new Version(assemblyVersion),
+            AssemblyVersion = new VersionOptions.AssemblyVersionOptions(new Version(assemblyVersion)),
             BuildNumberOffset = buildNumberOffset,
         });
 

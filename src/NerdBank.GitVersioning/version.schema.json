@@ -9,9 +9,22 @@
       "pattern": "^v?(?<major>0|[1-9][0-9]*)\\.(?<minor>0|[1-9][0-9]*)(?:\\.(?<patch>0|[1-9][0-9]*))?(?<prerelease>-[\\da-z\\-]+(?:\\.[\\da-z\\-]+)*)?(?<buildMetadata>\\+[\\da-z\\-]+(?:\\.[\\da-z\\-]+)*)?$"
     },
     "assemblyVersion": {
-      "type": "string",
       "description": "The x.y version to use particularly for the AssemblyVersionAttribute instead of the default. This is useful when maintaining assembly binding compatibility on the desktop .NET Framework is important even though AssemblyFileVersion may change.",
-      "pattern": "^\\d+\\.\\d+$"
+      "oneOf": [
+        { "$ref": "#/definitions/majorMinorVersion" },
+        {
+          "type": "object",
+          "properties": {
+            "version": { "$ref": "#/definitions/majorMinorVersion" },
+            "precision": {
+              "type": "string",
+              "description": "Identifies the last component to be explicitly set in the version.",
+              "enum": [ "minor", "build", "revision" ],
+              "default": "minor"
+            }
+          }
+        }
+      ]
     },
     "buildNumberOffset": {
       "type": "integer",
@@ -26,6 +39,13 @@
         "format": "regex"
       },
       "uniqueItems": true
+    }
+  },
+  "definitions": {
+    "majorMinorVersion": {
+      "type": "string",
+      "description": "A major.minor version",
+      "pattern": "^\\d+\\.\\d+$"
     }
   }
 }

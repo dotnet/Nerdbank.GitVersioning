@@ -36,8 +36,10 @@
             Converters = new JsonConverter[] {
                 new VersionConverter(),
                 new SemanticVersionJsonConverter(),
+                new AssemblyVersionOptionsConverter(),
+                new StringEnumConverter() { CamelCaseText = true },
             },
-            ContractResolver = new CamelCasePropertyNamesContractResolver(),
+            ContractResolver = new VersionOptionsContractResolver(),
             Formatting = Formatting.Indented,
         };
 
