@@ -133,7 +133,8 @@
                 this.SimpleVersion = typedVersionWithoutRevision.ToString();
                 var majorMinorVersion = new Version(typedVersion.Major, typedVersion.Minor);
                 this.MajorMinorVersion = majorMinorVersion.ToString();
-                this.AssemblyVersion = (versionOptions?.AssemblyVersion ?? majorMinorVersion).ToStringSafe(4);
+                Version assemblyVersion = GetAssemblyVersion(typedVersion, versionOptions);
+                this.AssemblyVersion = assemblyVersion.ToStringSafe(4);
                 this.BuildNumber = Math.Max(0, typedVersion.Build);
                 this.Version = typedVersion.ToString();
             }
@@ -144,6 +145,17 @@
             }
 
             return true;
+        }
+
+        private static Version GetAssemblyVersion(Version version, VersionOptions versionOptions)
+        {
+            var assemblyVersion = versionOptions?.AssemblyVersion?.Version ?? new System.Version(version.Major, version.Minor);
+            assemblyVersion = new System.Version(
+                assemblyVersion.Major,
+                assemblyVersion.Minor,
+                versionOptions?.AssemblyVersion?.Precision >= VersionOptions.VersionPrecision.Build ? version.Build : 0,
+                versionOptions?.AssemblyVersion?.Precision >= VersionOptions.VersionPrecision.Revision ? version.Revision : 0);
+            return assemblyVersion;
         }
 
         private LibGit2Sharp.Repository OpenGitRepo()

@@ -6,6 +6,7 @@
     using System.Text;
     using System.Threading.Tasks;
     using Newtonsoft.Json;
+
     internal class SemanticVersionJsonConverter : JsonConverter
     {
         public override bool CanConvert(Type objectType)

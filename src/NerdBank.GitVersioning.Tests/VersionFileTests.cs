@@ -75,17 +75,20 @@ public class VersionFileTests : RepoTestBase
     }
 
     [Theory]
-    [InlineData("2.3", null, 0, null, @"{""version"":""2.3""}")]
-    [InlineData("2.3", "2.2", 0, null, @"{""version"":""2.3"",""assemblyVersion"":""2.2""}")]
-    [InlineData("2.3", "2.2", -1, new[] { "refs/heads/master" }, @"{""version"":""2.3"",""assemblyVersion"":""2.2"",""buildNumberOffset"":-1,""publicReleaseRefSpec"":[""refs/heads/master""]}")]
-    public void GetVersion_JsonCompatibility(string version, string assemblyVersion, int buildNumberOffset, string[] publicReleaseRefSpec, string json)
+    [InlineData("2.3", null, null, 0, null, @"{""version"":""2.3""}")]
+    [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Minor, 0, null, @"{""version"":""2.3"",""assemblyVersion"":""2.2""}")]
+    [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Minor, -1, new[] { "refs/heads/master" }, @"{""version"":""2.3"",""assemblyVersion"":""2.2"",""buildNumberOffset"":-1,""publicReleaseRefSpec"":[""refs/heads/master""]}")]
+    [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Minor, 0, null, @"{""version"":""2.3"",""assemblyVersion"":{""version"":""2.2""}}")]
+    [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Revision, 0, null, @"{""version"":""2.3"",""assemblyVersion"":{""version"":""2.2"", ""precision"":""revision""}}")]
+    public void GetVersion_JsonCompatibility(string version, string assemblyVersion, object precision, int buildNumberOffset, string[] publicReleaseRefSpec, string json)
     {
         File.WriteAllText(Path.Combine(this.RepoPath, VersionFile.JsonFileName), json);
 
         var options = VersionFile.GetVersion(this.RepoPath);
         Assert.NotNull(options);
         Assert.Equal(version, options.Version?.ToString());
-        Assert.Equal(assemblyVersion, options.AssemblyVersion?.ToString());
+        Assert.Equal(assemblyVersion, options.AssemblyVersion?.Version?.ToString());
+        Assert.Equal(precision, options.AssemblyVersion?.Precision);
         Assert.Equal(buildNumberOffset, options.BuildNumberOffset);
         Assert.Equal(publicReleaseRefSpec, options.PublicReleaseRefSpec);
     }
@@ -111,15 +114,16 @@ public class VersionFileTests : RepoTestBase
     }
 
     [Theory]
-    [InlineData("2.3", null, 0, @"{""version"":""2.3""}")]
-    [InlineData("2.3", "2.2", 0, @"{""version"":""2.3"",""assemblyVersion"":""2.2""}")]
-    [InlineData("2.3", "2.2", -1, @"{""version"":""2.3"",""assemblyVersion"":""2.2"",""buildNumberOffset"":-1}")]
-    public void SetVersion_WritesSimplestFile(string version, string assemblyVersion, int buildNumberOffset, string expectedJson)
+    [InlineData("2.3", null, VersionOptions.VersionPrecision.Minor, 0, @"{""version"":""2.3""}")]
+    [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Minor, 0, @"{""version"":""2.3"",""assemblyVersion"":""2.2""}")]
+    [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Minor, -1, @"{""version"":""2.3"",""assemblyVersion"":""2.2"",""buildNumberOffset"":-1}")]
+    [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Revision, -1, @"{""version"":""2.3"",""assemblyVersion"":{""version"":""2.2"",""precision"":""revision""},""buildNumberOffset"":-1}")]
+    public void SetVersion_WritesSimplestFile(string version, string assemblyVersion, VersionOptions.VersionPrecision precision, int buildNumberOffset, string expectedJson)
     {
         var versionOptions = new VersionOptions
         {
             Version = SemanticVersion.Parse(version),
-            AssemblyVersion = assemblyVersion != null ? new Version(assemblyVersion) : null,
+            AssemblyVersion = new VersionOptions.AssemblyVersionOptions(assemblyVersion != null ? new Version(assemblyVersion) : null, precision),
             BuildNumberOffset = buildNumberOffset,
         };
         string pathWritten = VersionFile.SetVersion(this.RepoPath, versionOptions);
@@ -219,7 +223,11 @@ public class VersionFileTests : RepoTestBase
                     b <- 11.0
                          c    (inherits 11.0)
         */
-        var rootVersionSpec = new VersionOptions { Version = SemanticVersion.Parse("14.1"), AssemblyVersion = new Version(14, 0) };
+        var rootVersionSpec = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("14.1"),
+            AssemblyVersion = new VersionOptions.AssemblyVersionOptions(new Version(14, 0)),
+        };
         var subdirVersionSpec = new VersionOptions { Version = SemanticVersion.Parse("11.0") };
 
         VersionFile.SetVersion(this.RepoPath, rootVersionSpec);
