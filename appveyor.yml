@@ -1,0 +1,26 @@
+version: 1.0.{build}
+os: Visual Studio 2015
+configuration: Release
+init:
+- ps: >-
+    git config --global user.name appveyor
+
+    git config --global user.email me@appveyor.comenvironment:
+  NuGetApiKey:
+    secure: Ql19CstT9GvFNeSIAjXvgHXZg+/pNaYJ2jVkzde4LT2vwSyjiQgQ+M332wVYtu+r
+before_build:
+- ps: >-
+    nuget restore src -Verbosity quiet
+build:
+  parallel: true
+  verbosity: minimal
+artifacts:
+- path: bin\**\*.nupkg
+on_success:
+- ps: >-
+    if ($env:NuGetApiKey -and $env:APPVEYOR_REPO_TAG_NAME -match "^v\d") {
+        Write-Output "Publishing release packages to nuget.org due to pushed tag $env:APPVEYOR_REPO_TAG_NAME"
+        Get-ChildItem bin\Release\*.nupkg |% {
+            nuget push $_ -ApiKey $env:NuGetApiKey
+        }
+    }
