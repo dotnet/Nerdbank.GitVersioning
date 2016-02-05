@@ -65,9 +65,15 @@
                 ns.Types.Add(this.CreateThisAssemblyClass());
 
                 Directory.CreateDirectory(Path.GetDirectoryName(this.OutputFile));
-                using (var fileWriter = new StreamWriter(File.OpenWrite(this.OutputFile), new UTF8Encoding(true)))
+                using (var file = File.OpenWrite(this.OutputFile))
                 {
-                    codeDomProvider.GenerateCodeFromCompileUnit(this.generatedFile, fileWriter, codeGeneratorOptions);
+                    using (var fileWriter = new StreamWriter(file, new UTF8Encoding(true), 4096, leaveOpen: true))
+                    {
+                        codeDomProvider.GenerateCodeFromCompileUnit(this.generatedFile, fileWriter, codeGeneratorOptions);
+                    }
+
+                    // truncate to new size.
+                    file.SetLength(file.Position);
                 }
 
                 return !this.Log.HasLoggedErrors;

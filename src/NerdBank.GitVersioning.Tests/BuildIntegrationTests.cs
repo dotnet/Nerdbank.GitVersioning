@@ -475,6 +475,15 @@ public class BuildIntegrationTests : RepoTestBase
         }
     }
 
+    [Fact]
+    public async Task AssemblyInfo_IncrementalBuild()
+    {
+        this.WriteVersionFile(prerelease: "-beta");
+        await this.BuildAsync("Build", logVerbosity: Microsoft.Build.Framework.LoggerVerbosity.Minimal);
+        this.WriteVersionFile(prerelease: "-rc"); // two characters SHORTER, to test file truncation.
+        await this.BuildAsync("Build", logVerbosity: Microsoft.Build.Framework.LoggerVerbosity.Minimal);
+    }
+
     private static Version GetExpectedAssemblyVersion(VersionOptions versionOptions, Version version)
     {
         var assemblyVersionPrecision = versionOptions.AssemblyVersion?.Precision ?? VersionOptions.VersionPrecision.Minor;
