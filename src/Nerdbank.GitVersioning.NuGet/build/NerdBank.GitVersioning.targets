@@ -72,13 +72,16 @@
 
   <Target Name="GetNuGetPackageVersion" DependsOnTargets="GetBuildVersion" Returns="$(NuGetPackageVersion)" />
 
-  <Target Name="GenerateAssemblyInfo" DependsOnTargets="GetBuildVersion">
+  <Target Name="GenerateAssemblyInfo" DependsOnTargets="GetBuildVersion" Condition=" '$(GenerateAssemblyInfo)' != 'false' ">
     <PropertyGroup>
       <NewVersionSourceFile>$(VersionSourceFile).new</NewVersionSourceFile>
       <UltimateResourceFallbackLocation Condition=" '$(DevDivProjectSubType)' != 'portable' ">UltimateResourceFallbackLocation.MainAssembly</UltimateResourceFallbackLocation>
     </PropertyGroup>
     <MakeDir Directories="$(IntermediatePath)"/>
-    <AssemblyVersionInfo OutputFile="$(NewVersionSourceFile)" CodeLanguage="$(Language)"
+    <AssemblyVersionInfo
+                  OutputFile="$(NewVersionSourceFile)"
+                  CodeLanguage="$(Language)"
+                  ContinueOnError="WarnAndContinue"
                   AssemblyVersion="$(AssemblyVersion)"
                   AssemblyFileVersion="$(AssemblyFileVersion)"
                   AssemblyInformationalVersion="$(AssemblyInformationalVersion)"

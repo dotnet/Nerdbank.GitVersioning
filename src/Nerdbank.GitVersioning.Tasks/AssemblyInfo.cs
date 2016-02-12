@@ -55,29 +55,36 @@
 
         public override bool Execute()
         {
-            using (var codeDomProvider = CodeDomProvider.CreateProvider(this.CodeLanguage))
+            if (CodeDomProvider.IsDefinedLanguage(this.CodeLanguage))
             {
-                this.generatedFile = new CodeCompileUnit();
-                this.generatedFile.AssemblyCustomAttributes.AddRange(this.CreateAssemblyAttributes().ToArray());
-
-                var ns = new CodeNamespace();
-                this.generatedFile.Namespaces.Add(ns);
-                ns.Types.Add(this.CreateThisAssemblyClass());
-
-                Directory.CreateDirectory(Path.GetDirectoryName(this.OutputFile));
-                using (var file = File.OpenWrite(this.OutputFile))
+                using (var codeDomProvider = CodeDomProvider.CreateProvider(this.CodeLanguage))
                 {
-                    using (var fileWriter = new StreamWriter(file, new UTF8Encoding(true), 4096, leaveOpen: true))
+                    this.generatedFile = new CodeCompileUnit();
+                    this.generatedFile.AssemblyCustomAttributes.AddRange(this.CreateAssemblyAttributes().ToArray());
+
+                    var ns = new CodeNamespace();
+                    this.generatedFile.Namespaces.Add(ns);
+                    ns.Types.Add(this.CreateThisAssemblyClass());
+
+                    Directory.CreateDirectory(Path.GetDirectoryName(this.OutputFile));
+                    using (var file = File.OpenWrite(this.OutputFile))
                     {
-                        codeDomProvider.GenerateCodeFromCompileUnit(this.generatedFile, fileWriter, codeGeneratorOptions);
+                        using (var fileWriter = new StreamWriter(file, new UTF8Encoding(true), 4096, leaveOpen: true))
+                        {
+                            codeDomProvider.GenerateCodeFromCompileUnit(this.generatedFile, fileWriter, codeGeneratorOptions);
+                        }
+
+                        // truncate to new size.
+                        file.SetLength(file.Position);
                     }
-
-                    // truncate to new size.
-                    file.SetLength(file.Position);
                 }
-
-                return !this.Log.HasLoggedErrors;
             }
+            else
+            {
+                this.Log.LogError("CodeDomProvider not available for language: {0}. No version info will be embedded into assembly.", this.CodeLanguage);
+            }
+
+            return !this.Log.HasLoggedErrors;
         }
 
         private CodeTypeDeclaration CreateThisAssemblyClass()

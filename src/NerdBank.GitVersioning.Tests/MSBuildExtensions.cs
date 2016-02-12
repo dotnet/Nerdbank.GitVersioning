@@ -13,7 +13,7 @@ using Xunit.Abstractions;
 
 internal static class MSBuildExtensions
 {
-    internal static async Task<BuildResult> BuildAsync(this BuildManager buildManager, ITestOutputHelper logger, ProjectCollection projectCollection, ProjectRootElement project, string target, IDictionary<string, string> globalProperties = null, LoggerVerbosity logVerbosity = LoggerVerbosity.Detailed)
+    internal static async Task<BuildResult> BuildAsync(this BuildManager buildManager, ITestOutputHelper logger, ProjectCollection projectCollection, ProjectRootElement project, string target, IDictionary<string, string> globalProperties = null, LoggerVerbosity logVerbosity = LoggerVerbosity.Detailed, ILogger[] additionalLoggers = null)
     {
         Requires.NotNull(buildManager, nameof(buildManager));
         Requires.NotNull(projectCollection, nameof(projectCollection));
@@ -24,10 +24,12 @@ internal static class MSBuildExtensions
         var brd = new BuildRequestData(projectInstance, new[] { target }, null, BuildRequestDataFlags.ProvideProjectStateAfterBuild);
 
         var parameters = new BuildParameters(projectCollection);
-        parameters.Loggers = new ILogger[]
-        {
-            new ConsoleLogger(logVerbosity, s => logger.WriteLine(s.TrimEnd('\r', '\n')), null, null),
-        };
+
+        var loggers = new List<ILogger>();
+        loggers.Add(new ConsoleLogger(logVerbosity, s => logger.WriteLine(s.TrimEnd('\r', '\n')), null, null));
+        loggers.AddRange(additionalLoggers);
+        parameters.Loggers = loggers.ToArray();
+
         buildManager.BeginBuild(parameters);
 
         var result = await buildManager.BuildAsync(brd);
