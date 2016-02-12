@@ -506,7 +506,7 @@ public class BuildIntegrationTests : RepoTestBase
 
     /// <summary>
     /// Emulate a project with an unsupported language, and verify that
-    /// no warnings are emitted because the target is skipped.
+    /// no errors are emitted because the target is skipped.
     /// </summary>
     [Fact]
     public async Task AssemblyInfo_Suppressed()
@@ -520,6 +520,27 @@ public class BuildIntegrationTests : RepoTestBase
         var result = await this.BuildAsync(Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal);
         string versionCsFilePath = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"));
         Assert.False(File.Exists(versionCsFilePath));
+        Assert.Empty(result.LoggedEvents.OfType<BuildErrorEventArgs>());
+        Assert.Empty(result.LoggedEvents.OfType<BuildWarningEventArgs>());
+    }
+
+    /// <summary>
+    /// Emulate a project with an unsupported language, and verify that
+    /// no errors are emitted because the target is skipped.
+    /// </summary>
+    [Fact]
+    public async Task AssemblyInfo_SuppressedImplicitlyByTargetExt()
+    {
+        var propertyGroup = this.testProject.CreatePropertyGroupElement();
+        this.testProject.InsertAfterChild(propertyGroup, this.testProject.Imports.First()); // insert just after the Common.Targets import.
+        propertyGroup.AddProperty("Language", "NoCodeDOMProviderForThisLanguage");
+        propertyGroup.AddProperty("TargetExt", ".notdll");
+
+        this.WriteVersionFile();
+        var result = await this.BuildAsync(Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal);
+        string versionCsFilePath = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"));
+        Assert.False(File.Exists(versionCsFilePath));
+        Assert.Empty(result.LoggedEvents.OfType<BuildErrorEventArgs>());
         Assert.Empty(result.LoggedEvents.OfType<BuildWarningEventArgs>());
     }
 
