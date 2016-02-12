@@ -448,7 +448,7 @@ public class BuildIntegrationTests : RepoTestBase
         this.testProject.AddProperty("DelaySign", delaySigned.ToString());
 
         this.WriteVersionFile();
-        var result = await this.BuildAsync("GenerateAssemblyInfo", logVerbosity: LoggerVerbosity.Minimal);
+        var result = await this.BuildAsync(Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal);
         string versionCsContent = File.ReadAllText(Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile")));
         this.Logger.WriteLine(versionCsContent);
 
@@ -497,10 +497,11 @@ public class BuildIntegrationTests : RepoTestBase
         propertyGroup.AddProperty("Language", "NoCodeDOMProviderForThisLanguage");
 
         this.WriteVersionFile();
-        var result = await this.BuildAsync("GenerateAssemblyInfo", logVerbosity: LoggerVerbosity.Minimal);
+        var result = await this.BuildAsync(Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal, assertSuccessfulBuild: false);
+        Assert.Equal(BuildResultCode.Failure, result.BuildResult.OverallResult);
         string versionCsFilePath = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"));
         Assert.False(File.Exists(versionCsFilePath));
-        Assert.Equal(1, result.LoggedEvents.OfType<BuildWarningEventArgs>().Count());
+        Assert.Equal(1, result.LoggedEvents.OfType<BuildErrorEventArgs>().Count());
     }
 
     /// <summary>
@@ -513,10 +514,10 @@ public class BuildIntegrationTests : RepoTestBase
         var propertyGroup = this.testProject.CreatePropertyGroupElement();
         this.testProject.AppendChild(propertyGroup);
         propertyGroup.AddProperty("Language", "NoCodeDOMProviderForThisLanguage");
-        propertyGroup.AddProperty("GenerateAssemblyInfo", "false");
+        propertyGroup.AddProperty(Targets.GenerateAssemblyVersionInfo, "false");
 
         this.WriteVersionFile();
-        var result = await this.BuildAsync("GenerateAssemblyInfo", logVerbosity: LoggerVerbosity.Minimal);
+        var result = await this.BuildAsync(Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal);
         string versionCsFilePath = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"));
         Assert.False(File.Exists(versionCsFilePath));
         Assert.Empty(result.LoggedEvents.OfType<BuildWarningEventArgs>());
@@ -567,7 +568,7 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{versionOptions.Version.Prerelease}{pkgVersionSuffix}", buildResult.NuGetPackageVersion);
     }
 
-    private async Task<BuildResults> BuildAsync(string target = Targets.GetBuildVersion, Microsoft.Build.Framework.LoggerVerbosity logVerbosity = LoggerVerbosity.Detailed)
+    private async Task<BuildResults> BuildAsync(string target = Targets.GetBuildVersion, LoggerVerbosity logVerbosity = LoggerVerbosity.Detailed, bool assertSuccessfulBuild = true)
     {
         var eventLogger = new MSBuildLogger { Verbosity = LoggerVerbosity.Minimal };
         var loggers = new ILogger[] { eventLogger };
@@ -581,7 +582,11 @@ public class BuildIntegrationTests : RepoTestBase
             loggers);
         var result = new BuildResults(buildResult, eventLogger.LoggedEvents);
         this.Logger.WriteLine(result.ToString());
-        Assert.Equal(BuildResultCode.Success, buildResult.OverallResult);
+        if (assertSuccessfulBuild)
+        {
+            Assert.Equal(BuildResultCode.Success, buildResult.OverallResult);
+        }
+
         return result;
     }
 
@@ -636,7 +641,7 @@ public class BuildIntegrationTests : RepoTestBase
     {
         internal const string GetBuildVersion = "GetBuildVersion";
         internal const string GetNuGetPackageVersion = "GetNuGetPackageVersion";
-        internal const string GenerateAssemblyInfo = "GenerateAssemblyInfo";
+        internal const string GenerateAssemblyVersionInfo = "GenerateAssemblyVersionInfo";
     }
 
     private class BuildResults
