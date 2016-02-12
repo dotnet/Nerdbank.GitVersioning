@@ -59,7 +59,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AssemblyInfo.cs" />
+    <Compile Include="AssemblyVersionInfo.cs" />
     <Compile Include="CompareFiles.cs" />
     <Compile Include="GetBuildVersion.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

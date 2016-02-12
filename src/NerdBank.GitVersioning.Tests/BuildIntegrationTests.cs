@@ -448,7 +448,7 @@ public class BuildIntegrationTests : RepoTestBase
         this.testProject.AddProperty("DelaySign", delaySigned.ToString());
 
         this.WriteVersionFile();
-        var result = await this.BuildAsync("GenerateAssemblyInfo", logVerbosity: LoggerVerbosity.Minimal);
+        var result = await this.BuildAsync(Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal);
         string versionCsContent = File.ReadAllText(Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile")));
         this.Logger.WriteLine(versionCsContent);
 
@@ -497,7 +497,7 @@ public class BuildIntegrationTests : RepoTestBase
         propertyGroup.AddProperty("Language", "NoCodeDOMProviderForThisLanguage");
 
         this.WriteVersionFile();
-        var result = await this.BuildAsync("GenerateAssemblyInfo", logVerbosity: LoggerVerbosity.Minimal, assertSuccessfulBuild: false);
+        var result = await this.BuildAsync(Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal, assertSuccessfulBuild: false);
         Assert.Equal(BuildResultCode.Failure, result.BuildResult.OverallResult);
         string versionCsFilePath = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"));
         Assert.False(File.Exists(versionCsFilePath));
@@ -514,10 +514,10 @@ public class BuildIntegrationTests : RepoTestBase
         var propertyGroup = this.testProject.CreatePropertyGroupElement();
         this.testProject.AppendChild(propertyGroup);
         propertyGroup.AddProperty("Language", "NoCodeDOMProviderForThisLanguage");
-        propertyGroup.AddProperty("GenerateAssemblyInfo", "false");
+        propertyGroup.AddProperty(Targets.GenerateAssemblyVersionInfo, "false");
 
         this.WriteVersionFile();
-        var result = await this.BuildAsync("GenerateAssemblyInfo", logVerbosity: LoggerVerbosity.Minimal);
+        var result = await this.BuildAsync(Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal);
         string versionCsFilePath = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"));
         Assert.False(File.Exists(versionCsFilePath));
         Assert.Empty(result.LoggedEvents.OfType<BuildWarningEventArgs>());
@@ -641,7 +641,7 @@ public class BuildIntegrationTests : RepoTestBase
     {
         internal const string GetBuildVersion = "GetBuildVersion";
         internal const string GetNuGetPackageVersion = "GetNuGetPackageVersion";
-        internal const string GenerateAssemblyInfo = "GenerateAssemblyInfo";
+        internal const string GenerateAssemblyVersionInfo = "GenerateAssemblyVersionInfo";
     }
 
     private class BuildResults

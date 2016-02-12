@@ -4,12 +4,12 @@
     <VersionSourceFile>$(IntermediateOutputPath)\$(AssemblyName).Version$(DefaultLanguageSourceExtension)</VersionSourceFile>
 
     <PrepareResourcesDependsOn>
-      GenerateAssemblyInfo;
+      GenerateAssemblyVersionInfo;
       $(PrepareResourcesDependsOn)
     </PrepareResourcesDependsOn>
 
     <CoreCompileDependsOn>
-      GenerateAssemblyInfo;
+      GenerateAssemblyVersionInfo;
       $(CoreCompileDependsOn)
     </CoreCompileDependsOn>
   </PropertyGroup>
@@ -72,7 +72,7 @@
 
   <Target Name="GetNuGetPackageVersion" DependsOnTargets="GetBuildVersion" Returns="$(NuGetPackageVersion)" />
 
-  <Target Name="GenerateAssemblyInfo" DependsOnTargets="GetBuildVersion" Condition=" '$(GenerateAssemblyInfo)' != 'false' ">
+  <Target Name="GenerateAssemblyVersionInfo" DependsOnTargets="GetBuildVersion" Condition=" '$(GenerateAssemblyVersionInfo)' != 'false' ">
     <PropertyGroup>
       <NewVersionSourceFile>$(VersionSourceFile).new</NewVersionSourceFile>
       <UltimateResourceFallbackLocation Condition=" '$(DevDivProjectSubType)' != 'portable' ">UltimateResourceFallbackLocation.MainAssembly</UltimateResourceFallbackLocation>
@@ -92,12 +92,12 @@
                   AssemblyCopyright="$(AssemblyCopyright)"
                   AssemblyCompany="$(AssemblyCompany)"
                   AssemblyConfiguration="$(Configuration)"/>
-    <!-- Avoid applying the newly generated AssemblyInfo.cs file to the build 
+    <!-- Avoid applying the newly generated AssemblyVersionInfo.cs file to the build 
          unless it has changed in order to allow for incremental building. -->
     <CompareFiles OriginalItems="$(VersionSourceFile)" NewItems="$(NewVersionSourceFile)">
-      <Output TaskParameter="AreChanged" PropertyName="AssemblyInfoChanged" />
+      <Output TaskParameter="AreChanged" PropertyName="AssemblyVersionInfoChanged" />
     </CompareFiles>
-    <Copy Condition=" '$(AssemblyInfoChanged)' == 'true' " SourceFiles="$(NewVersionSourceFile)" DestinationFiles="$(VersionSourceFile)" />
+    <Copy Condition=" '$(AssemblyVersionInfoChanged)' == 'true' " SourceFiles="$(NewVersionSourceFile)" DestinationFiles="$(VersionSourceFile)" />
     <ItemGroup>
       <Compile Include="$(VersionSourceFile)" />
     </ItemGroup>
