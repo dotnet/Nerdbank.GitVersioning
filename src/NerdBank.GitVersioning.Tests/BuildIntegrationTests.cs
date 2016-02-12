@@ -12,6 +12,7 @@ using LibGit2Sharp;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
+using Microsoft.Build.Framework;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -393,7 +394,7 @@ public class BuildIntegrationTests : RepoTestBase
             this.MakeItAVBProject();
         }
 
-        var result = await this.BuildAsync("Build", logVerbosity: Microsoft.Build.Framework.LoggerVerbosity.Minimal);
+        var result = await this.BuildAsync("Build", logVerbosity: LoggerVerbosity.Minimal);
         string assemblyPath = result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("TargetPath");
         string versionFileContent = File.ReadAllText(Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile")));
         this.Logger.WriteLine(versionFileContent);
@@ -447,7 +448,7 @@ public class BuildIntegrationTests : RepoTestBase
         this.testProject.AddProperty("DelaySign", delaySigned.ToString());
 
         this.WriteVersionFile();
-        var result = await this.BuildAsync("GenerateAssemblyInfo", logVerbosity: Microsoft.Build.Framework.LoggerVerbosity.Minimal);
+        var result = await this.BuildAsync("GenerateAssemblyInfo", logVerbosity: LoggerVerbosity.Minimal);
         string versionCsContent = File.ReadAllText(Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile")));
         this.Logger.WriteLine(versionCsContent);
 
@@ -479,9 +480,46 @@ public class BuildIntegrationTests : RepoTestBase
     public async Task AssemblyInfo_IncrementalBuild()
     {
         this.WriteVersionFile(prerelease: "-beta");
-        await this.BuildAsync("Build", logVerbosity: Microsoft.Build.Framework.LoggerVerbosity.Minimal);
+        await this.BuildAsync("Build", logVerbosity: LoggerVerbosity.Minimal);
         this.WriteVersionFile(prerelease: "-rc"); // two characters SHORTER, to test file truncation.
-        await this.BuildAsync("Build", logVerbosity: Microsoft.Build.Framework.LoggerVerbosity.Minimal);
+        await this.BuildAsync("Build", logVerbosity: LoggerVerbosity.Minimal);
+    }
+
+    /// <summary>
+    /// Emulate a project with an unsupported language, and verify that
+    /// one warning is emitted because the assembly info file couldn't be generated.
+    /// </summary>
+    [Fact]
+    public async Task AssemblyInfo_NotProducedWithoutCodeDomProvider()
+    {
+        var propertyGroup = this.testProject.CreatePropertyGroupElement();
+        this.testProject.AppendChild(propertyGroup);
+        propertyGroup.AddProperty("Language", "NoCodeDOMProviderForThisLanguage");
+
+        this.WriteVersionFile();
+        var result = await this.BuildAsync("GenerateAssemblyInfo", logVerbosity: LoggerVerbosity.Minimal);
+        string versionCsFilePath = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"));
+        Assert.False(File.Exists(versionCsFilePath));
+        Assert.Equal(1, result.LoggedEvents.OfType<BuildWarningEventArgs>().Count());
+    }
+
+    /// <summary>
+    /// Emulate a project with an unsupported language, and verify that
+    /// no warnings are emitted because the target is skipped.
+    /// </summary>
+    [Fact]
+    public async Task AssemblyInfo_Suppressed()
+    {
+        var propertyGroup = this.testProject.CreatePropertyGroupElement();
+        this.testProject.AppendChild(propertyGroup);
+        propertyGroup.AddProperty("Language", "NoCodeDOMProviderForThisLanguage");
+        propertyGroup.AddProperty("GenerateAssemblyInfo", "false");
+
+        this.WriteVersionFile();
+        var result = await this.BuildAsync("GenerateAssemblyInfo", logVerbosity: LoggerVerbosity.Minimal);
+        string versionCsFilePath = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"));
+        Assert.False(File.Exists(versionCsFilePath));
+        Assert.Empty(result.LoggedEvents.OfType<BuildWarningEventArgs>());
     }
 
     private static Version GetExpectedAssemblyVersion(VersionOptions versionOptions, Version version)
@@ -529,16 +567,19 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{versionOptions.Version.Prerelease}{pkgVersionSuffix}", buildResult.NuGetPackageVersion);
     }
 
-    private async Task<BuildResults> BuildAsync(string target = Targets.GetBuildVersion, Microsoft.Build.Framework.LoggerVerbosity logVerbosity = Microsoft.Build.Framework.LoggerVerbosity.Detailed)
+    private async Task<BuildResults> BuildAsync(string target = Targets.GetBuildVersion, Microsoft.Build.Framework.LoggerVerbosity logVerbosity = LoggerVerbosity.Detailed)
     {
+        var eventLogger = new MSBuildLogger { Verbosity = LoggerVerbosity.Minimal };
+        var loggers = new ILogger[] { eventLogger };
         var buildResult = await this.buildManager.BuildAsync(
             this.Logger,
             this.projectCollection,
             this.testProject,
             target,
             this.globalProperties,
-            logVerbosity);
-        var result = new BuildResults(buildResult);
+            logVerbosity,
+            loggers);
+        var result = new BuildResults(buildResult, eventLogger.LoggedEvents);
         this.Logger.WriteLine(result.ToString());
         Assert.Equal(BuildResultCode.Success, buildResult.OverallResult);
         return result;
@@ -600,13 +641,16 @@ public class BuildIntegrationTests : RepoTestBase
 
     private class BuildResults
     {
-        internal BuildResults(BuildResult buildResult)
+        internal BuildResults(BuildResult buildResult, IReadOnlyList<BuildEventArgs> loggedEvents)
         {
             Requires.NotNull(buildResult, nameof(buildResult));
             this.BuildResult = buildResult;
+            this.LoggedEvents = loggedEvents;
         }
 
         public BuildResult BuildResult { get; private set; }
+
+        public IReadOnlyList<BuildEventArgs> LoggedEvents { get; private set; }
 
         public bool PublicRelease => string.Equals("true", this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("PublicRelease"), StringComparison.OrdinalIgnoreCase);
         public string BuildNumber => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("BuildNumber");
@@ -648,6 +692,29 @@ public class BuildIntegrationTests : RepoTestBase
             }
 
             return sb.ToString();
+        }
+    }
+
+    private class MSBuildLogger : ILogger
+    {
+        public string Parameters { get; set; }
+
+        public LoggerVerbosity Verbosity { get; set; }
+
+        public List<BuildEventArgs> LoggedEvents { get; } = new List<BuildEventArgs>();
+
+        public void Initialize(IEventSource eventSource)
+        {
+            eventSource.AnyEventRaised += this.EventSource_AnyEventRaised;
+        }
+
+        public void Shutdown()
+        {
+        }
+
+        private void EventSource_AnyEventRaised(object sender, BuildEventArgs e)
+        {
+            this.LoggedEvents.Add(e);
         }
     }
 }
