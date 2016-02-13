@@ -12,6 +12,9 @@
       GenerateAssemblyVersionInfo;
       $(CoreCompileDependsOn)
     </CoreCompileDependsOn>
+
+    <!-- Suppress assembly version info generation if not obviously compiling an assembly. -->
+    <GenerateAssemblyVersionInfo Condition=" '$(GenerateAssemblyVersionInfo)' == '' and '$(TargetExt)' != '.dll' and '$(TargetExt)' != '.exe'">false</GenerateAssemblyVersionInfo>
   </PropertyGroup>
 
   <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="AssemblyVersionInfo"/>
