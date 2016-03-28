@@ -30,8 +30,7 @@
     <Description>Stamps your assemblies with semver 2.0 compliant git commit specific version information and provides NuGet versioning information as well.</Description>
     <ReleaseNotes>
     </ReleaseNotes>
-    <ProjectUrl>
-    </ProjectUrl>
+    <ProjectUrl>http://github.com/aarnott/Nerdbank.GitVersioning</ProjectUrl>
     <LicenseUrl>https://raw.githubusercontent.com/AArnott/Nerdbank.GitVersioning/$CommitId$/LICENSE.txt</LicenseUrl>
     <Copyright>Copyright © Andrew Arnott</Copyright>
     <Tags>git commit versioning version assemblyinfo</Tags>
