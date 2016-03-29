@@ -31,7 +31,7 @@
     <ReleaseNotes>
     </ReleaseNotes>
     <ProjectUrl>http://github.com/aarnott/Nerdbank.GitVersioning</ProjectUrl>
-    <LicenseUrl>https://raw.githubusercontent.com/AArnott/Nerdbank.GitVersioning/$CommitId$/LICENSE.txt</LicenseUrl>
+    <LicenseUrl>https://raw.githubusercontent.com/AArnott/Nerdbank.GitVersioning/$GitCommitIdShort$/LICENSE.txt</LicenseUrl>
     <Copyright>Copyright © Andrew Arnott</Copyright>
     <Tags>git commit versioning version assemblyinfo</Tags>
     <DevelopmentDependency>True</DevelopmentDependency>
@@ -77,7 +77,7 @@
   <Target Name="GetNuPkgVersion" DependsOnTargets="GetBuildVersion">
     <PropertyGroup>
       <Version>$(NuGetPackageVersion)</Version>
-      <NuSpecProperties>$(NuGetProperties);CommitId=$(GitCommitIdShort)</NuSpecProperties>
+      <NuSpecProperties>$(NuGetProperties);GitCommitIdShort=$(GitCommitIdShort)</NuSpecProperties>
     </PropertyGroup>
   </Target>
   <Target Name="CopyReadmeMD" BeforeTargets="ConvertItems">
