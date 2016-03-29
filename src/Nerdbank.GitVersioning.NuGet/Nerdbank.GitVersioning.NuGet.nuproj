@@ -51,7 +51,7 @@
     <Content Include="build\dotnet\Nerdbank.GitVersioning.targets" />
     <Content Include="build\AppVeyor.targets" />
     <Content Include="build\NerdBank.GitVersioning.targets" />
-    <Content Include="build\portable-net+win+wpa+wp+sl+net-cf+netmf+MonoAndroid+MonoTouch+Xamarin.iOS\Nerdbank.GitVersioning.targets" />
+    <Content Include="build\portable-net+win+wpa+wp+sl+netmf+MonoAndroid+MonoTouch+Xamarin.iOS\Nerdbank.GitVersioning.targets" />
     <Content Include="tools\Get-Version.ps1" />
     <Content Include="tools\Get-CommitId.ps1" />
     <Content Include="tools\Create-VersionFile.ps1" />
