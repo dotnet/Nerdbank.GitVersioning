@@ -13,4 +13,25 @@
     <!--<_NBGV_BuildingTag Condition=" '$()' == 'true' ">$()</_NBGV_BuildingTag>-->
     <!--<_NBGV_IsPullRequest Condition=" '$()' != '' "></_NBGV_IsPullRequest>-->
   </PropertyGroup>
+
+  <!-- When we're building in VSTS, set VSTS variables so that build drops
+       can be in paths named after the versions are calculated during the build. -->
+  <Target Name="SetVsoVersionVars"
+          DependsOnTargets="GetBuildVersion"
+          AfterTargets="GetBuildVersion">
+    <ItemGroup>
+      <VSOVariable Include="GitAssemblyInformationalVersion">
+        <Value>$(AssemblyInformationalVersion)</Value>
+      </VSOVariable>
+      <VSOVariable Include="GitBuildVersion">
+        <Value>$(BuildVersion)</Value>
+      </VSOVariable>
+    </ItemGroup>
+
+    <!-- IMPORTANT: The newline character at the end of this message is important when MSBuild logging
+                    verbosity is set to diagnostic, so that the " (TaskId: 25)" suffix is not appended
+                    at the end of the line that VSO will interpret as a variable set command. -->
+    <Message Text="##vso[task.setvariable variable=%(VSOVariable.Identity);]%(VSOVariable.Value)
+" />
+  </Target>
 </Project>
