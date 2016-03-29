@@ -39,9 +39,25 @@ $RepoRelativeProjectDirectory = $ProjectDirectory.Substring($GitPath.Length).Tri
 
 $repo = New-Object LibGit2Sharp.Repository($GitPath)
 try {
-    $commit = [System.Linq.Enumerable]::First($repo.Head.Commits)
-    $version = [NerdBank.GitVersioning.GitExtensions]::GetIdAsVersion($commit, $RepoRelativeProjectDirectory)
-    $version
+    $Head = [System.Linq.Enumerable]::First($repo.Head.Commits)
+    $versionOptions = [NerdBank.GitVersioning.VersionFile]::GetVersion($repo, $RepoRelativeProjectDirectory)
+    $version = [NerdBank.GitVersioning.GitExtensions]::GetIdAsVersion($repo, $RepoRelativeProjectDirectory)
+    $SimpleVersion = New-Object Version ($version.Major, $version.Minor, $version.Build)
+    $MajorMinorVersion = New-Object Version ($version.Major, $version.Minor)
+    $PrereleaseVersion = $versionOptions.Version.Prerelease
+    $SemVer1 = "{0}{1}-g{2}" -f $SimpleVersion, $PrereleaseVersion, $Head.Id.Sha.Substring(0,10)
+    $SemVer2 = "{0}{1}+g{2}" -f $SimpleVersion, $PrereleaseVersion, $Head.Id.Sha.Substring(0,10)
+    $RichObject = New-Object PSObject
+    Add-Member -InputObject $RichObject -MemberType NoteProperty -Name Version -Value $version
+    Add-Member -InputObject $RichObject -MemberType NoteProperty -Name SimpleVersion -Value $SimpleVersion
+    Add-Member -InputObject $RichObject -MemberType NoteProperty -Name MajorMinorVersion  -Value $MajorMinorVersion
+    Add-Member -InputObject $RichObject -MemberType NoteProperty -Name PrereleaseVersion -Value $PrereleaseVersion
+    Add-Member -InputObject $RichObject -MemberType NoteProperty -Name CommitId -Value $Head.Id.Sha
+    Add-Member -InputObject $RichObject -MemberType NoteProperty -Name CommitIdShort -Value $Head.Id.Sha.Substring(0, 10)
+    Add-Member -InputObject $RichObject -MemberType NoteProperty -Name VersionHeight -Value $version.Build
+    Add-Member -InputObject $RichObject -MemberType NoteProperty -Name SemVer1 -Value $SemVer1
+    Add-Member -InputObject $RichObject -MemberType NoteProperty -Name SemVer2 -Value $SemVer2
+    $RichObject
 } finally {
     $repo.Dispose()
 }
