@@ -13,6 +13,11 @@
       $(CoreCompileDependsOn)
     </CoreCompileDependsOn>
 
+    <VersionDependsOn>
+      GetNuPkgVersion;
+      $(VersionDependsOn)
+    </VersionDependsOn>
+
     <!-- Suppress assembly version info generation if not obviously compiling an assembly. -->
     <GenerateAssemblyVersionInfo Condition=" '$(GenerateAssemblyVersionInfo)' == '' and '$(TargetExt)' != '.dll' and '$(TargetExt)' != '.exe'">false</GenerateAssemblyVersionInfo>
   </PropertyGroup>
@@ -115,5 +120,15 @@
         <Version>$(NuGetPackageVersion)</Version>
       </NuGetManifest>
     </ItemGroup>
+  </Target>
+
+  <!-- Support for NuProj projects. -->
+  <Target Name="GetNuPkgVersion"
+          DependsOnTargets="GetBuildVersion"
+          Returns="$(NuGetPackageVersion)">
+    <PropertyGroup>
+      <Version>$(NuGetPackageVersion)</Version>
+      <NuSpecProperties>$(NuGetProperties);GitCommitIdShort=$(GitCommitIdShort)</NuSpecProperties>
+    </PropertyGroup>
   </Target>
 </Project>
