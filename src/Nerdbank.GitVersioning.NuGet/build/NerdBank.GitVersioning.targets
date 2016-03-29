@@ -124,6 +124,7 @@
 
   <!-- Support for NuProj projects. -->
   <Target Name="GetNuPkgVersion"
+          Condition=" '$(MSBuildProjectExtension)' == '.nuproj' "
           DependsOnTargets="GetBuildVersion"
           Returns="$(NuGetPackageVersion)">
     <PropertyGroup>
