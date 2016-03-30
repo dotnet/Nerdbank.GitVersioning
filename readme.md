@@ -204,6 +204,17 @@ When built with the `/p:PublicRelease=true` switch, the NuGet version becomes:
 
     1.0.24-alpha
 
+### Visual Studio Team Services builds
+
+When building online with visualstudio.com, two VSTS variables are set during the build:
+
+| VSTS variable | MSBuild property | Sample value
+| --- | --- | --- |
+| GitAssemblyInformationalVersion | AssemblyInformationalVersion | 1.3.1+g15e1898f47
+| GitBuildVersion | BuildVersion | 1.3.1.57621
+
+This means you can use these variables in subsequent steps in your cloud build such as publishing artifacts, so that your richer version information can be expressed in the publish location or artifact name.
+
 ## Frequently asked questions
 
 ### What is 'git height'?
