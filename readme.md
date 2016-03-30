@@ -42,9 +42,11 @@ compilation failure because of multiple definitions of certain attributes such a
 You should resolve these compilation errors by removing these attributes from your own
 source code, as commonly found in your `Properties\AssemblyInfo.cs` file:
 
-    [assembly: AssemblyVersion("1.0.0.0")]
-    [assembly: AssemblyFileVersion("1.0.0.0")]
-    [assembly: AssemblyInformationalVersion("1.0.0-dev")]
+```csharp
+[assembly: AssemblyVersion("1.0.0.0")]
+[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyInformationalVersion("1.0.0-dev")]
+```
 
 This NuGet package creates these attributes at build time based on version information
 found in your `version.json` or `version.txt` file and your git repo's HEAD position.
@@ -76,11 +78,17 @@ Or the (deprecated) version.txt file you may start with (do not indent):
 
 The content of the version.json file is a JSON serialized object with these properties:
 
-    {
-        "version": "x.y.z-prerelease", // required
-        "assemblyVersion": "x.y",      // optional. Use when x.y for AssemblyVersionAttribute differs from the default version property.
-        "buildNumberOffset": zOffset   // optional. Use when you need to add/subtract a fixed value from the computed build number.
-    }
+```json
+{
+  "version": "x.y.z-prerelease", // required
+  "assemblyVersion": "x.y", // optional. Use when x.y for AssemblyVersionAttribute differs from the default version property.
+  "buildNumberOffset": "zOffset", // optional. Use when you need to add/subtract a fixed value from the computed build number.
+  "publicReleaseRefSpec": [
+    "^refs/heads/master$", // we release out of master
+    "^refs/tags/v\\d\\.\\d" // we also release tags starting with vN.N
+  ]
+}
+```
 
 The `x` and `y` variables are for your use to specify a version that is meaningful
 to your customers. Consider using [semantic versioning][semver] for guidance.
@@ -88,9 +96,15 @@ The `z` variable should be 0.
 
 The optional -prerelease tag allows you to indicate that you are building prerelease software.
 
+The `publicReleaseRefSpec` field causes builds out of certain branches or tags to automatically default the `PublicRelease` property to `true`, making it convenient to build releases out of these refs without the `-gCOMMITID` suffix in your version specs.
+
 When editing the version.json file in an editor that supports JSON schema files, you may
 point the editor to the `tools\version.schema.json` file in this package for added
-assistance and validation.
+assistance and validation or add this as the first field in your version.json file:
+
+```json
+"$schema": "https://raw.githubusercontent.com/AArnott/Nerdbank.GitVersioning/master/src/NerdBank.GitVersioning/version.schema.json",
+```
 
 ### version.txt file format (obsolete)
 
@@ -116,33 +130,14 @@ VSIX project.
 
 ### Apply to NuProj built NuPkg versions
 
-You will need to manually make the following changes *to your NuProj file*
-in order for it to build NuPkg files based on versions computed by this package:
+To automatically apply versioning to your NuProj projects, simply install the Nerdbank.GitVersioning package to your project. 
+You are encouraged to *remove* any definition of a Version property:
 
-1. Remove any definition of a Version property:
+```xml
+<Version>1.0.0-removeThisWholeLine</Version>
+```
 
-        <Version>1.0.0-beta1</Version>
-
-2. Add this property definition:
-
-
-        <VersionDependsOn>$(VersionDependsOn);GetNuPkgVersion</VersionDependsOn>
-
-3. Add these targets and imports (changing the version number in the paths as necessary):
-
-
-        <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-          <PropertyGroup>
-            <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-          </PropertyGroup>
-          <Error Condition="!Exists('..\packages\Nerdbank.GitVersioning.1.1.2-rc\build\NerdBank.GitVersioning.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Nerdbank.GitVersioning.1.1.2-rc\build\NerdBank.GitVersioning.targets'))" />
-        </Target>
-        <Import Project="..\packages\Nerdbank.GitVersioning.1.1.2-rc\build\NerdBank.GitVersioning.targets" Condition="Exists('..\packages\Nerdbank.GitVersioning.1.1.2-rc\build\NerdBank.GitVersioning.targets')" />
-        <Target Name="GetNuPkgVersion" DependsOnTargets="GetBuildVersion">
-          <PropertyGroup>
-            <Version>$(NuGetPackageVersion)</Version>
-          </PropertyGroup>
-        </Target>
+Installing a NuGet package into a NuProj must be done via project.json, since it doesn't support the deprecated packages.config format.
 
 ## Build
 
@@ -170,9 +165,11 @@ the git 'height' of the version, and the git commit ID.
 
 During the build it adds source code such as this to your compilation:
 
-    [assembly: System.Reflection.AssemblyVersion("1.0")]
-    [assembly: System.Reflection.AssemblyFileVersion("1.0.24.15136")]
-    [assembly: System.Reflection.AssemblyInformationalVersion("1.0.24.15136-alpha+g9a7eb6c819")]
+```csharp
+[assembly: System.Reflection.AssemblyVersion("1.0")]
+[assembly: System.Reflection.AssemblyFileVersion("1.0.24.15136")]
+[assembly: System.Reflection.AssemblyInformationalVersion("1.0.24.15136-alpha+g9a7eb6c819")]
+```
 
 The first and second integer components of the versions above come from the 
 version file.
@@ -184,11 +181,13 @@ The -g9a7eb6c819 tag is the concatenation of -g and the git commit ID that was b
 
 This class is also injected into your project at build time:
 
-    internal sealed partial class ThisAssembly {
-        internal const string AssemblyVersion = "1.0";
-        internal const string AssemblyFileVersion = "1.0.24.15136";
-        internal const string AssemblyInformationalVersion = "1.0.24.15136-alpha+g9a7eb6c819";
-    }
+```csharp
+internal sealed partial class ThisAssembly {
+    internal const string AssemblyVersion = "1.0";
+    internal const string AssemblyFileVersion = "1.0.24.15136";
+    internal const string AssemblyInformationalVersion = "1.0.24.15136-alpha+g9a7eb6c819";
+}
+```
 
 This allows you to actually write source code that can refer to the exact build
 number your assembly will be assigned.
