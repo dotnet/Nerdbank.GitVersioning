@@ -78,7 +78,7 @@ Or the (deprecated) version.txt file you may start with (do not indent):
 
 The content of the version.json file is a JSON serialized object with these properties:
 
-```json
+```js
 {
   "version": "x.y.z-prerelease", // required
   "assemblyVersion": "x.y", // optional. Use when x.y for AssemblyVersionAttribute differs from the default version property.
