@@ -97,6 +97,12 @@
         public int BuildNumber { get; private set; }
 
         /// <summary>
+        /// Gets the BuildNumber to set the cloud build to (if applicable).
+        /// </summary>
+        [Output]
+        public string CloudBuildNumber { get; private set; }
+
+        /// <summary>
         /// Gets a value indicating whether to set cloud build version variables.
         /// </summary>
         [Output]
@@ -157,6 +163,25 @@
 
                 this.SetCloudBuildVersionVars = versionOptions?.CloudBuild?.SetVersionVariables
                     ?? (new VersionOptions.CloudBuildOptions()).SetVersionVariables;
+
+                var buildNumber = versionOptions?.CloudBuild?.BuildNumber ?? new VersionOptions.CloudBuildNumberOptions();
+                if (buildNumber.Enabled)
+                {
+                    var commitIdOptions = buildNumber.IncludeCommitId ?? new VersionOptions.CloudBuildNumberCommitIdOptions();
+                    bool includeCommitInfo = commitIdOptions.When == VersionOptions.CloudBuildNumberCommitWhen.Always ||
+                        (commitIdOptions.When == VersionOptions.CloudBuildNumberCommitWhen.NonPublicReleaseOnly && !this.PublicRelease);
+                    bool commitIdInRevision = includeCommitInfo && commitIdOptions.Where == VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent;
+                    bool commitIdInBuildMetadata = includeCommitInfo && commitIdOptions.Where == VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata;
+                    Version buildNumberVersion = commitIdInRevision ? typedVersion : typedVersionWithoutRevision;
+                    var buildMetadata = new List<string>();
+                    if (commitIdInBuildMetadata && !string.IsNullOrEmpty(this.GitCommitId))
+                    {
+                        buildMetadata.Insert(0, $"g{this.GitCommitId.Substring(0, 10)}");
+                    }
+
+                    string buildNumberMetadata = FormatBuildMetadata(buildMetadata);
+                    this.CloudBuildNumber = buildNumberVersion + this.PrereleaseVersion + buildNumberMetadata;
+                }
             }
             catch (ArgumentOutOfRangeException ex)
             {
@@ -165,6 +190,13 @@
             }
 
             return true;
+        }
+
+        private static string FormatBuildMetadata(IEnumerable<string> identifiers)
+        {
+            return identifiers?.Any() ?? false
+                ? "+" + string.Join(".", identifiers)
+                : string.Empty;
         }
 
         private static Version GetAssemblyVersion(Version version, VersionOptions versionOptions)

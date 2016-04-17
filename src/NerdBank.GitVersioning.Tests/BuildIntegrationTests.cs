@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -315,32 +316,17 @@ public class BuildIntegrationTests : RepoTestBase
         AssertStandardProperties(versionOptions, buildResult);
     }
 
-    public static IEnumerable<object[]> CIServerBuilds
+    public static IEnumerable<object[]> CloudBuildOfBranch(string branchName)
     {
-        get
+        return new object[][]
         {
-            return new object[][]
-            {
-                new object[] {
-                    new Dictionary<string, string> {
-                        { "APPVEYOR", "True" },
-                        { "APPVEYOR_REPO_BRANCH", "release" },
-                    },
-                },
-                new object[]
-                {
-                    new Dictionary<string, string>
-                    {
-                        { "SYSTEM_TEAMPROJECTID", "1" },
-                        { "BUILD_SOURCEBRANCH", "refs/heads/release" },
-                    },
-                },
-            };
-        }
+            new object[] { CloudBuild.AppVeyor.Add("APPVEYOR_REPO_BRANCH", branchName) },
+            new object[] { CloudBuild.VSTS.Add( "BUILD_SOURCEBRANCH", $"refs/heads/{branchName}") },
+        };
     }
 
     [Theory]
-    [MemberData(nameof(CIServerBuilds))]
+    [MemberData(nameof(CloudBuildOfBranch), "release")]
     public async Task PublicRelease_RegEx_SatisfiedByCI(IReadOnlyDictionary<string, string> serverProperties)
     {
         var versionOptions = new VersionOptions
@@ -361,6 +347,69 @@ public class BuildIntegrationTests : RepoTestBase
 
         var buildResult = await this.BuildAsync();
         Assert.True(buildResult.PublicRelease);
+        AssertStandardProperties(versionOptions, buildResult);
+    }
+
+    private static VersionOptions BuildNumberVersionOptionsBasis
+    {
+        get
+        {
+            return new VersionOptions
+            {
+                Version = SemanticVersion.Parse("1.0"),
+                CloudBuild = new VersionOptions.CloudBuildOptions
+                {
+                    BuildNumber = new VersionOptions.CloudBuildNumberOptions
+                    {
+                        Enabled = true,
+                        IncludeCommitId = new VersionOptions.CloudBuildNumberCommitIdOptions(),
+                    }
+                },
+            };
+        }
+    }
+
+    public static object[][] BuildNumberData
+    {
+        get
+        {
+            return new object[][]
+            {
+                new object[] { BuildNumberVersionOptionsBasis, CloudBuild.VSTS, "##vso[build.updatebuildnumber]{CLOUDBUILDNUMBER}" },
+            };
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(BuildNumberData))]
+    public async Task BuildNumber_SetInCI(VersionOptions versionOptions, IReadOnlyDictionary<string, string> properties, string expectedBuildNumberMessage)
+    {
+        this.WriteVersionFile(versionOptions);
+        this.InitializeSourceControl();
+
+        foreach (var property in CloudBuild.VSTS)
+        {
+            this.globalProperties[property.Key] = property.Value;
+        }
+
+        var buildResult = await this.BuildAsync();
+        AssertStandardProperties(versionOptions, buildResult);
+        expectedBuildNumberMessage = expectedBuildNumberMessage.Replace("{CLOUDBUILDNUMBER}", buildResult.CloudBuildNumber);
+        Assert.Contains(buildResult.LoggedEvents, e => e.Message.TrimEnd() == expectedBuildNumberMessage);
+    }
+
+    [Theory]
+    [CombinatorialData]
+    public async Task BuildNumber_VariousOptions(bool isPublic, VersionOptions.CloudBuildNumberCommitWhere where, VersionOptions.CloudBuildNumberCommitWhen when)
+    {
+        var versionOptions = BuildNumberVersionOptionsBasis;
+        versionOptions.CloudBuild.BuildNumber.IncludeCommitId.Where = where;
+        versionOptions.CloudBuild.BuildNumber.IncludeCommitId.When = when;
+        this.WriteVersionFile(versionOptions);
+        this.InitializeSourceControl();
+
+        this.globalProperties["PublicRelease"] = isPublic.ToString();
+        var buildResult = await this.BuildAsync();
         AssertStandardProperties(versionOptions, buildResult);
     }
 
@@ -587,6 +636,28 @@ public class BuildIntegrationTests : RepoTestBase
             ? string.Empty
             : $"-g{commitIdShort}";
         Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{versionOptions.Version.Prerelease}{pkgVersionSuffix}", buildResult.NuGetPackageVersion);
+
+        var buildNumberOptions = versionOptions.CloudBuild?.BuildNumber ?? new VersionOptions.CloudBuildNumberOptions();
+        if (buildNumberOptions.Enabled)
+        {
+            var commitIdOptions = buildNumberOptions.IncludeCommitId ?? new VersionOptions.CloudBuildNumberCommitIdOptions();
+            var buildNumberSemVer = SemanticVersion.Parse(buildResult.CloudBuildNumber);
+            bool hasCommitData = commitIdOptions.When == VersionOptions.CloudBuildNumberCommitWhen.Always
+                || (commitIdOptions.When == VersionOptions.CloudBuildNumberCommitWhen.NonPublicReleaseOnly && !buildResult.PublicRelease);
+            Version expectedVersion = hasCommitData && commitIdOptions.Where == VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent
+                ? idAsVersion
+                : new Version(version.Major, version.Minor, version.Build);
+            Assert.Equal(expectedVersion, buildNumberSemVer.Version);
+            Assert.Equal(buildResult.PrereleaseVersion, buildNumberSemVer.Prerelease);
+            string expectedBuildMetadata = hasCommitData && commitIdOptions.Where == VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata
+                ? $"+g{commitIdShort}"
+                : string.Empty;
+            Assert.Equal(expectedBuildMetadata, buildNumberSemVer.BuildMetadata);
+        }
+        else
+        {
+            Assert.Equal(string.Empty, buildResult.CloudBuildNumber);
+        }
     }
 
     private async Task<BuildResults> BuildAsync(string target = Targets.GetBuildVersion, LoggerVerbosity logVerbosity = LoggerVerbosity.Detailed, bool assertSuccessfulBuild = true)
@@ -658,6 +729,14 @@ public class BuildIntegrationTests : RepoTestBase
         csharpImport.Project = @"$(MSBuildToolsPath)\Microsoft.VisualBasic.targets";
     }
 
+    private static class CloudBuild
+    {
+        public static readonly ImmutableDictionary<string, string> VSTS = ImmutableDictionary<string, string>.Empty
+            .Add("SYSTEM_TEAMPROJECTID", "1");
+        public static readonly ImmutableDictionary<string, string> AppVeyor = ImmutableDictionary<string, string>.Empty
+            .Add("APPVEYOR", "True");
+    }
+
     private static class Targets
     {
         internal const string GetBuildVersion = "GetBuildVersion";
@@ -697,6 +776,7 @@ public class BuildIntegrationTests : RepoTestBase
         public string AssemblyFileVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyFileVersion");
         public string AssemblyVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyVersion");
         public string NuGetPackageVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("NuGetPackageVersion");
+        public string CloudBuildNumber => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("CloudBuildNumber");
         public string AssemblyName => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyName");
         public string AssemblyTitle => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyTitle");
         public string AssemblyProduct => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyProduct");

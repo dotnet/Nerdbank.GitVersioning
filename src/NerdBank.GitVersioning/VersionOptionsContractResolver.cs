@@ -30,6 +30,21 @@
                 property.ShouldSerialize = instance => ((VersionOptions.CloudBuildOptions)instance).ShouldSerializeSetVersionVariables();
             }
 
+            if (property.DeclaringType == typeof(VersionOptions.CloudBuildNumberOptions) && member.Name == nameof(VersionOptions.CloudBuildNumberOptions.IncludeCommitId))
+            {
+                property.ShouldSerialize = instance => ((VersionOptions.CloudBuildNumberOptions)instance).ShouldSerializeIncludeCommitId();
+            }
+
+            if (property.DeclaringType == typeof(VersionOptions.CloudBuildNumberCommitIdOptions) && member.Name == nameof(VersionOptions.CloudBuildNumberCommitIdOptions.When))
+            {
+                property.ShouldSerialize = instance => ((VersionOptions.CloudBuildNumberCommitIdOptions)instance).ShouldSerializeWhen();
+            }
+
+            if (property.DeclaringType == typeof(VersionOptions.CloudBuildNumberCommitIdOptions) && member.Name == nameof(VersionOptions.CloudBuildNumberCommitIdOptions.Where))
+            {
+                property.ShouldSerialize = instance => ((VersionOptions.CloudBuildNumberCommitIdOptions)instance).ShouldSerializeWhere();
+            }
+
             return property;
         }
     }

@@ -26,4 +26,15 @@
     <Message Text="##vso[task.setvariable variable=%(CloudBuildVersionVars.Identity);]%(CloudBuildVersionVars.Value)
 " />
   </Target>
+
+  <Target Name="SetCloudBuildNumberWithVersion"
+          DependsOnTargets="GetBuildVersion"
+          AfterTargets="GetBuildVersion"
+          Condition=" '$(CloudBuildNumber)' != '' ">
+    <!-- IMPORTANT: The newline character at the end of this message is important when MSBuild logging
+                    verbosity is set to diagnostic, so that the " (TaskId: 25)" suffix is not appended
+                    at the end of the line that VSO will interpret as a variable set command. -->
+    <Message Text="##vso[build.updatebuildnumber]$(CloudBuildNumber)
+" />
+  </Target>
 </Project>

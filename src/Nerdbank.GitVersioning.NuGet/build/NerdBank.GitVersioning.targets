@@ -47,6 +47,7 @@
       <Output TaskParameter="GitVersionHeight" PropertyName="GitVersionHeight" />
       <Output TaskParameter="BuildNumber" PropertyName="BuildVersionNumberComponent" />
       <Output TaskParameter="PublicRelease" PropertyName="PublicRelease" />
+      <Output TaskParameter="CloudBuildNumber" PropertyName="CloudBuildNumber" />
       <Output TaskParameter="SetCloudBuildVersionVars" PropertyName="SetCloudBuildVersionVars" />
     </GetBuildVersion>
     <PropertyGroup>
