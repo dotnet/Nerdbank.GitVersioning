@@ -37,6 +37,7 @@
   <Target Name="GetBuildVersion" Returns="$(BuildVersion)">
     <GetBuildVersion
       BuildingRef="$(_NBGV_BuildingRef)"
+      BuildMetadata="@(BuildMetadata)"
       DefaultPublicRelease="$(PublicRelease)">
       <Output TaskParameter="Version" PropertyName="BuildVersion" />
       <Output TaskParameter="SimpleVersion" PropertyName="BuildVersionSimple" />

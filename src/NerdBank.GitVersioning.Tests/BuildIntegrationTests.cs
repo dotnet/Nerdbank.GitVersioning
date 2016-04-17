@@ -399,8 +399,8 @@ public class BuildIntegrationTests : RepoTestBase
     }
 
     [Theory]
-    [CombinatorialData]
-    public async Task BuildNumber_VariousOptions(bool isPublic, VersionOptions.CloudBuildNumberCommitWhere where, VersionOptions.CloudBuildNumberCommitWhen when)
+    [PairwiseData]
+    public async Task BuildNumber_VariousOptions(bool isPublic, VersionOptions.CloudBuildNumberCommitWhere where, VersionOptions.CloudBuildNumberCommitWhen when, [CombinatorialValues(0, 1, 2)] int extraBuildMetadataCount)
     {
         var versionOptions = BuildNumberVersionOptionsBasis;
         versionOptions.CloudBuild.BuildNumber.IncludeCommitId.Where = where;
@@ -409,6 +409,11 @@ public class BuildIntegrationTests : RepoTestBase
         this.InitializeSourceControl();
 
         this.globalProperties["PublicRelease"] = isPublic.ToString();
+        for (int i = 0; i < extraBuildMetadataCount; i++)
+        {
+            this.testProject.AddItem("BuildMetadata", $"A{i}");
+        }
+
         var buildResult = await this.BuildAsync();
         AssertStandardProperties(versionOptions, buildResult);
     }
@@ -652,6 +657,16 @@ public class BuildIntegrationTests : RepoTestBase
             string expectedBuildMetadata = hasCommitData && commitIdOptions.Where == VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata
                 ? $"+g{commitIdShort}"
                 : string.Empty;
+            var additionalBuildMetadata = from item in this.testProject.Items
+                                          where string.Equals(item.ItemType, "BuildMetadata", StringComparison.OrdinalIgnoreCase)
+                                          select item.Include;
+            if (additionalBuildMetadata.Any())
+            {
+                expectedBuildMetadata = expectedBuildMetadata.Length == 0
+                    ? "+" + string.Join(".", additionalBuildMetadata)
+                    : expectedBuildMetadata + "." + string.Join(".", additionalBuildMetadata);
+            }
+
             Assert.Equal(expectedBuildMetadata, buildNumberSemVer.BuildMetadata);
         }
         else

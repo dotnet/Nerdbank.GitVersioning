@@ -27,6 +27,11 @@
         public string BuildingRef { get; set; }
 
         /// <summary>
+        /// Gets or sets identifiers to append as build metadata.
+        /// </summary>
+        public string[] BuildMetadata { get; set; }
+
+        /// <summary>
         /// Gets or sets the value of the PublicRelease property in MSBuild at the
         /// start of this Task.
         /// </summary>
@@ -173,7 +178,7 @@
                     bool commitIdInRevision = includeCommitInfo && commitIdOptions.Where == VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent;
                     bool commitIdInBuildMetadata = includeCommitInfo && commitIdOptions.Where == VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata;
                     Version buildNumberVersion = commitIdInRevision ? typedVersion : typedVersionWithoutRevision;
-                    var buildMetadata = new List<string>();
+                    var buildMetadata = this.BuildMetadata?.ToList() ?? new List<string>();
                     if (commitIdInBuildMetadata && !string.IsNullOrEmpty(this.GitCommitId))
                     {
                         buildMetadata.Insert(0, $"g{this.GitCommitId.Substring(0, 10)}");
