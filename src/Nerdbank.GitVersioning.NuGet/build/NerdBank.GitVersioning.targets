@@ -70,6 +70,14 @@
            The 'g' prefix allows tooling to recognize that a git commit ID follows. -->
       <NuGetPackageVersion Condition=" '$(PublicRelease)' != 'true' ">$(NuGetPackageVersion)-g$(GitCommitIdShort)</NuGetPackageVersion>
     </PropertyGroup>
+    <ItemGroup>
+      <CloudBuildVersionVars Include="GitAssemblyInformationalVersion">
+        <Value>$(AssemblyInformationalVersion)</Value>
+      </CloudBuildVersionVars>
+      <CloudBuildVersionVars Include="GitBuildVersion">
+        <Value>$(BuildVersion)</Value>
+      </CloudBuildVersionVars>
+    </ItemGroup>
 
     <Warning Condition=" '$(AssemblyInformationalVersion)' == '' " Text="Unable to determine the git HEAD commit ID to use for informational version number." />
     <Message Condition=" '$(AssemblyInformationalVersion)' != '' " Text="Building version $(BuildVersion) from commit $(GitCommitId)"/>
