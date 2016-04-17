@@ -45,14 +45,57 @@ public class SemanticVersionTests
     public void TryParse()
     {
         SemanticVersion result;
-        Assert.True(SemanticVersion.TryParse("1.2-pre+build", out result));
+        Assert.True(SemanticVersion.TryParse("1.2-pre.5.8-foo+build-metadata.id1.2", out result));
         Assert.Equal(1, result.Version.Major);
         Assert.Equal(2, result.Version.Minor);
+        Assert.Equal("-pre.5.8-foo", result.Prerelease);
+        Assert.Equal("+build-metadata.id1.2", result.BuildMetadata);
+
+    }
+
+    [Fact]
+    public void PrereleaseIdentifiers_InvalidCases()
+    {
+        SemanticVersion result;
+        Assert.False(SemanticVersion.TryParse("1.2-$", out result));
+        Assert.False(SemanticVersion.TryParse("1.2-", out result));
+        Assert.False(SemanticVersion.TryParse("1.2-a.", out result));
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void BuildMetadata_InvalidCases()
+    {
+        SemanticVersion result;
+        Assert.False(SemanticVersion.TryParse("1.2+$", out result));
+        Assert.False(SemanticVersion.TryParse("1.2+", out result));
+        Assert.False(SemanticVersion.TryParse("1.2+a.", out result));
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void TryParse_WithPatch()
+    {
+        SemanticVersion result;
+        Assert.True(SemanticVersion.TryParse("1.2.3-pre+build", out result));
+        Assert.Equal(1, result.Version.Major);
+        Assert.Equal(2, result.Version.Minor);
+        Assert.Equal(3, result.Version.Build);
         Assert.Equal("-pre", result.Prerelease);
         Assert.Equal("+build", result.BuildMetadata);
+    }
 
-        Assert.False(SemanticVersion.TryParse("1.2-$", out result));
-        Assert.Null(result);
+    [Fact]
+    public void TryParse_WithRevision()
+    {
+        SemanticVersion result;
+        Assert.True(SemanticVersion.TryParse("1.2.3.4-pre+build", out result));
+        Assert.Equal(1, result.Version.Major);
+        Assert.Equal(2, result.Version.Minor);
+        Assert.Equal(3, result.Version.Build);
+        Assert.Equal(4, result.Version.Revision);
+        Assert.Equal("-pre", result.Prerelease);
+        Assert.Equal("+build", result.BuildMetadata);
     }
 
     [Fact]
