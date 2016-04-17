@@ -35,7 +35,9 @@
   </PropertyGroup>
 
   <Target Name="GetBuildVersion" Returns="$(BuildVersion)">
-    <GetBuildVersion BuildingRef="$(_NBGV_BuildingRef)">
+    <GetBuildVersion
+      BuildingRef="$(_NBGV_BuildingRef)"
+      DefaultPublicRelease="$(PublicRelease)">
       <Output TaskParameter="Version" PropertyName="BuildVersion" />
       <Output TaskParameter="SimpleVersion" PropertyName="BuildVersionSimple" />
       <Output TaskParameter="PrereleaseVersion" PropertyName="PrereleaseVersion" Condition=" '$(PrereleaseVersion)' == '' " />
@@ -44,11 +46,9 @@
       <Output TaskParameter="GitCommitId" PropertyName="GitCommitId" />
       <Output TaskParameter="GitVersionHeight" PropertyName="GitVersionHeight" />
       <Output TaskParameter="BuildNumber" PropertyName="BuildVersionNumberComponent" />
-      <Output TaskParameter="PublicReleaseDefault" PropertyName="PublicReleaseDefault" />
+      <Output TaskParameter="PublicRelease" PropertyName="PublicRelease" />
     </GetBuildVersion>
     <PropertyGroup>
-      <PublicRelease Condition=" '$(PublicRelease)' == '' ">$(PublicReleaseDefault)</PublicRelease>
-
       <BuildNumber>$(BuildVersionNumberComponent)</BuildNumber>
       <BuildNumberFirstComponent>$([System.Text.RegularExpressions.Regex]::Match($(BuildNumber), '(\d+)').Groups[1].Value)</BuildNumberFirstComponent>
       <BuildNumberSecondComponent>$([System.Text.RegularExpressions.Regex]::Match($(BuildNumber), '(\d+)\.(\d+)').Groups[2].Value)</BuildNumberSecondComponent>

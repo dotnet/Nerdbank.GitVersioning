@@ -27,11 +27,18 @@
         public string BuildingRef { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether the project suggests the default
-        /// value for the PublicRelease MSBuild property be true.
+        /// Gets or sets the value of the PublicRelease property in MSBuild at the
+        /// start of this Task.
+        /// </summary>
+        /// <value>Expected to be "true", "false", or empty.</value>
+        public string DefaultPublicRelease { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the project is building
+        /// in PublicRelease mode.
         /// </summary>
         [Output]
-        public bool PublicReleaseDefault { get; private set; }
+        public bool PublicRelease { get; private set; }
 
         /// <summary>
         /// Gets the version string to use in the compiled assemblies.
@@ -114,10 +121,14 @@
                         VersionFile.GetVersion(git, Environment.CurrentDirectory) ??
                         VersionFile.GetVersion(Environment.CurrentDirectory);
 
-                    if (!string.IsNullOrEmpty(this.BuildingRef) && versionOptions?.PublicReleaseRefSpec?.Length > 0)
+                    this.PublicRelease = string.Equals(this.DefaultPublicRelease, "true", StringComparison.OrdinalIgnoreCase);
+                    if (string.IsNullOrEmpty(this.DefaultPublicRelease))
                     {
-                        this.PublicReleaseDefault = versionOptions.PublicReleaseRefSpec.Any(
-                            expr => Regex.IsMatch(this.BuildingRef, expr));
+                        if (!string.IsNullOrEmpty(this.BuildingRef) && versionOptions?.PublicReleaseRefSpec?.Length > 0)
+                        {
+                            this.PublicRelease = versionOptions.PublicReleaseRefSpec.Any(
+                                expr => Regex.IsMatch(this.BuildingRef, expr));
+                        }
                     }
 
                     this.PrereleaseVersion = versionOptions?.Version.Prerelease ?? string.Empty;
