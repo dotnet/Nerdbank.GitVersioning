@@ -14,6 +14,21 @@
     public class VersionOptions : IEquatable<VersionOptions>
     {
         /// <summary>
+        /// The JSON serializer settings to use.
+        /// </summary>
+        public static JsonSerializerSettings JsonSettings => new JsonSerializerSettings
+        {
+            Converters = new JsonConverter[] {
+                new VersionConverter(),
+                new SemanticVersionJsonConverter(),
+                new AssemblyVersionOptionsConverter(),
+                new StringEnumConverter() { CamelCaseText = true },
+            },
+            ContractResolver = new VersionOptionsContractResolver(),
+            Formatting = Formatting.Indented,
+        };
+
+        /// <summary>
         /// Gets or sets the default version to use.
         /// </summary>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
