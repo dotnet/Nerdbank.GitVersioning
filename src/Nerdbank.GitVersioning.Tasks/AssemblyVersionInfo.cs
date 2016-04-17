@@ -142,13 +142,18 @@
                 publicKeyBytes = MSCorEE.StrongNameGetPublicKey(this.AssemblyKeyContainerName);
             }
 
-            if (publicKeyBytes != null)
+            if (publicKeyBytes != null && publicKeyBytes.Length > 0) // If .NET 2.0 isn't installed, we get byte[0] back.
             {
                 publicKey = ToHex(publicKeyBytes);
                 publicKeyToken = ToHex(MSCorEE.StrongNameTokenFromPublicKey(publicKeyBytes));
             }
             else
             {
+                if (publicKeyBytes != null)
+                {
+                    this.Log.LogWarning("Unable to emit public key fields in ThisAssembly class because .NET 2.0 isn't installed.");
+                }
+
                 publicKey = null;
                 publicKeyToken = null;
             }
