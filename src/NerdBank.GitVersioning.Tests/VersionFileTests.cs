@@ -134,6 +134,22 @@ public class VersionFileTests : RepoTestBase
         Assert.Equal(expectedJson, normalizedFileContent);
     }
 
+    [Theory]
+    [InlineData(@"{""cloudBuild"":{""setVersionVariables"":true}}", @"{}")]
+    public void JsonMinification(string full, string minimal)
+    {
+        var settings = VersionOptions.JsonSettings;
+        settings.Formatting = Formatting.None;
+
+        // Assert that the two representations are equivalent.
+        var fullVersion = JsonConvert.DeserializeObject<VersionOptions>(full, settings);
+        var minimalVersion = JsonConvert.DeserializeObject<VersionOptions>(minimal, settings);
+        Assert.Equal(fullVersion, minimalVersion);
+
+        string fullVersionSerialized = JsonConvert.SerializeObject(fullVersion, settings);
+        Assert.Equal(minimal, fullVersionSerialized);
+    }
+
     [Fact]
     public void GetVersion_CanReadSpecConformantJsonFile()
     {

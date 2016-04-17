@@ -1,4 +1,5 @@
 ﻿{
+  "$schema": "http://json-schema.org/draft-04/schema",
   "title": "Nerdbank.GitVersioning version.json schema",
   "type": "object",
   "required": [ "version" ],
@@ -39,6 +40,17 @@
         "format": "regex"
       },
       "uniqueItems": true
+    },
+    "cloudBuild": {
+      "type": "object",
+      "description": "Options that are applicable specifically to cloud builds (e.g. VSTS, AppVeyor, TeamCity)",
+      "properties": {
+        "setVersionVariables": {
+          "type": "boolean",
+          "default": true,
+          "description": "Elevate certain calculated version build properties to cloud build variables."
+        }
+      }
     }
   },
   "definitions": {

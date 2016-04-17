@@ -61,6 +61,12 @@
         public string[] PublicReleaseRefSpec { get; set; }
 
         /// <summary>
+        /// Gets or sets the options around cloud build.
+        /// </summary>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public CloudBuildOptions CloudBuild { get; set; }
+
+        /// <summary>
         /// Gets the debugger display for this instance.
         /// </summary>
         private string DebuggerDisplay => this.Version?.ToString();
@@ -113,6 +119,7 @@
 
             return EqualityComparer<SemanticVersion>.Default.Equals(this.Version, other.Version)
                 && EqualityComparer<AssemblyVersionOptions>.Default.Equals(this.AssemblyVersion, other.AssemblyVersion)
+                && EqualityComparer<CloudBuildOptions>.Default.Equals(this.CloudBuild ?? CloudBuildOptions.DefaultInstance, other.CloudBuild ?? CloudBuildOptions.DefaultInstance)
                 && this.BuildNumberOffset == other.BuildNumberOffset;
         }
 
@@ -130,6 +137,8 @@
         }
 
         internal bool ShouldSerializeAssemblyVersion() => !(this.AssemblyVersion?.IsDefault ?? true);
+
+        internal bool ShouldSerializeCloudBuild() => !(this.CloudBuild?.IsDefault ?? true);
 
         /// <summary>
         /// Describes the details of how the AssemblyVersion value will be calculated.
@@ -186,6 +195,52 @@
             public override int GetHashCode()
             {
                 return (this.Version?.GetHashCode() ?? 0) + (int)this.Precision;
+            }
+
+            /// <summary>
+            /// Gets a value indicating whether this instance is equivalent to the default instance.
+            /// </summary>
+            internal bool IsDefault => this.Equals(DefaultInstance);
+        }
+
+        /// <summary>
+        /// Options that are applicable specifically to cloud builds (e.g. VSTS, AppVeyor, TeamCity)
+        /// </summary>
+        public class CloudBuildOptions : IEquatable<CloudBuildOptions>
+        {
+            /// <summary>
+            /// The default (uninitialized) instance.
+            /// </summary>
+            internal static readonly CloudBuildOptions DefaultInstance = new CloudBuildOptions();
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="CloudBuildOptions"/> class.
+            /// </summary>
+            public CloudBuildOptions()
+            {
+            }
+
+            /// <summary>
+            /// Gets or sets a value indicating whether to elevate certain calculated version build properties to cloud build variables.
+            /// </summary>
+            public bool SetVersionVariables { get; set; } = true;
+
+            internal bool ShouldSerializeSetVersionVariables() => this.SetVersionVariables != DefaultInstance.SetVersionVariables;
+
+            /// <inheritdoc />
+            public override bool Equals(object obj) => this.Equals(obj as CloudBuildOptions);
+
+            /// <inheritdoc />
+            public bool Equals(CloudBuildOptions other)
+            {
+                return other != null
+                    && this.SetVersionVariables == other.SetVersionVariables;
+            }
+
+            /// <inheritdoc />
+            public override int GetHashCode()
+            {
+                return this.SetVersionVariables ? 1 : 0;
             }
 
             /// <summary>

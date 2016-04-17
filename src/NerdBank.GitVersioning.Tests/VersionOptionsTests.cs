@@ -90,4 +90,18 @@ public class VersionOptionsTests
         };
         Assert.NotEqual(avo4, avo5);
     }
+
+    [Fact]
+    public void CloudBuildOptions_Equality()
+    {
+        var cbo1a = new VersionOptions.CloudBuildOptions { };
+        var cbo1b = new VersionOptions.CloudBuildOptions { };
+        Assert.Equal(cbo1a, cbo1b);
+
+        var cbo2a = new VersionOptions.CloudBuildOptions
+        {
+            SetVersionVariables = !cbo1a.SetVersionVariables,
+        };
+        Assert.NotEqual(cbo2a, cbo1a);
+    }
 }

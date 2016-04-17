@@ -96,6 +96,12 @@
         [Output]
         public int BuildNumber { get; private set; }
 
+        /// <summary>
+        /// Gets a value indicating whether to set cloud build version variables.
+        /// </summary>
+        [Output]
+        public bool SetCloudBuildVersionVars { get; private set; }
+
         public override bool Execute()
         {
             try
@@ -148,6 +154,9 @@
                 this.AssemblyVersion = assemblyVersion.ToStringSafe(4);
                 this.BuildNumber = Math.Max(0, typedVersion.Build);
                 this.Version = typedVersion.ToString();
+
+                this.SetCloudBuildVersionVars = versionOptions?.CloudBuild?.SetVersionVariables
+                    ?? (new VersionOptions.CloudBuildOptions()).SetVersionVariables;
             }
             catch (ArgumentOutOfRangeException ex)
             {
