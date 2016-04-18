@@ -96,6 +96,12 @@
         public int GitVersionHeight { get; private set; }
 
         /// <summary>
+        /// Gets the +buildMetadata fragment for the semantic version.
+        /// </summary>
+        [Output]
+        public string BuildMetadataFragment { get; private set; }
+
+        /// <summary>
         /// Gets the build number (git height) for this version.
         /// </summary>
         [Output]
@@ -169,6 +175,14 @@
                 this.SetCloudBuildVersionVars = versionOptions?.CloudBuild?.SetVersionVariables
                     ?? (new VersionOptions.CloudBuildOptions()).SetVersionVariables;
 
+                var buildMetadata = this.BuildMetadata?.ToList() ?? new List<string>();
+                if (!string.IsNullOrEmpty(this.GitCommitId))
+                {
+                    buildMetadata.Insert(0, $"g{this.GitCommitId.Substring(0, 10)}");
+                }
+
+                this.BuildMetadataFragment = FormatBuildMetadata(buildMetadata);
+
                 var buildNumber = versionOptions?.CloudBuild?.BuildNumber ?? new VersionOptions.CloudBuildNumberOptions();
                 if (buildNumber.Enabled)
                 {
@@ -178,13 +192,7 @@
                     bool commitIdInRevision = includeCommitInfo && commitIdOptions.Where == VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent;
                     bool commitIdInBuildMetadata = includeCommitInfo && commitIdOptions.Where == VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata;
                     Version buildNumberVersion = commitIdInRevision ? typedVersion : typedVersionWithoutRevision;
-                    var buildMetadata = this.BuildMetadata?.ToList() ?? new List<string>();
-                    if (commitIdInBuildMetadata && !string.IsNullOrEmpty(this.GitCommitId))
-                    {
-                        buildMetadata.Insert(0, $"g{this.GitCommitId.Substring(0, 10)}");
-                    }
-
-                    string buildNumberMetadata = FormatBuildMetadata(buildMetadata);
+                    string buildNumberMetadata = FormatBuildMetadata(commitIdInBuildMetadata ? (IEnumerable<string>)buildMetadata : this.BuildMetadata);
                     this.CloudBuildNumber = buildNumberVersion + this.PrereleaseVersion + buildNumberMetadata;
                 }
             }

@@ -50,6 +50,7 @@
       <Output TaskParameter="PublicRelease" PropertyName="PublicRelease" />
       <Output TaskParameter="CloudBuildNumber" PropertyName="CloudBuildNumber" />
       <Output TaskParameter="SetCloudBuildVersionVars" PropertyName="SetCloudBuildVersionVars" />
+      <Output TaskParameter="BuildMetadataFragment" PropertyName="SemVerBuildSuffix" />
     </GetBuildVersion>
     <PropertyGroup>
       <BuildNumber>$(BuildVersionNumberComponent)</BuildNumber>
@@ -62,7 +63,6 @@
       <GitCommitId Condition=" '$(GitCommitId)' == '' ">$(BUILD_VCS_NUMBER)</GitCommitId>
 
       <GitCommitIdShort Condition=" '$(GitCommitId)' != '' ">$(GitCommitId.Substring(0,10))</GitCommitIdShort>
-      <SemVerBuildSuffix Condition=" '$(GitCommitIdShort)' != '' ">+g$(GitCommitIdShort)</SemVerBuildSuffix>
 
       <BuildVersion3Components>$(MajorMinorVersion).$(BuildNumberFirstComponent)</BuildVersion3Components>
       <AssemblyInformationalVersion>$(MajorMinorVersion).$(BuildNumberFirstAndSecondComponentsIfApplicable)$(PrereleaseVersion)$(SemVerBuildSuffix)</AssemblyInformationalVersion>

@@ -615,8 +615,17 @@ public class BuildIntegrationTests : RepoTestBase
         string commitIdShort = this.Repo.Head.Commits.First().Id.Sha.Substring(0, 10);
         Version version = this.Repo.GetIdAsVersion(relativeProjectDirectory);
         Version assemblyVersion = GetExpectedAssemblyVersion(versionOptions, version);
+        var additionalBuildMetadata = from item in this.testProject.Items
+                                      where string.Equals(item.ItemType, "BuildMetadata", StringComparison.OrdinalIgnoreCase)
+                                      select item.Include;
+        var expectedBuildMetadata = $"+g{commitIdShort}";
+        if (additionalBuildMetadata.Any())
+        {
+            expectedBuildMetadata += "." + string.Join(".", additionalBuildMetadata);
+        }
+
         Assert.Equal($"{version}", buildResult.AssemblyFileVersion);
-        Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{versionOptions.Version.Prerelease}+g{commitIdShort}", buildResult.AssemblyInformationalVersion);
+        Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{versionOptions.Version.Prerelease}{expectedBuildMetadata}", buildResult.AssemblyInformationalVersion);
 
         // The assembly version property should always have four integer components to it,
         // per bug https://github.com/AArnott/Nerdbank.GitVersioning/issues/26
@@ -635,7 +644,7 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal(versionHeight.ToString(), buildResult.GitVersionHeight);
         Assert.Equal($"{version.Major}.{version.Minor}", buildResult.MajorMinorVersion);
         Assert.Equal(versionOptions.Version.Prerelease, buildResult.PrereleaseVersion);
-        Assert.Equal($"+g{commitIdShort}", buildResult.SemVerBuildSuffix);
+        Assert.Equal(expectedBuildMetadata, buildResult.SemVerBuildSuffix);
 
         string pkgVersionSuffix = buildResult.PublicRelease
             ? string.Empty
@@ -654,20 +663,17 @@ public class BuildIntegrationTests : RepoTestBase
                 : new Version(version.Major, version.Minor, version.Build);
             Assert.Equal(expectedVersion, buildNumberSemVer.Version);
             Assert.Equal(buildResult.PrereleaseVersion, buildNumberSemVer.Prerelease);
-            string expectedBuildMetadata = hasCommitData && commitIdOptions.Where == VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata
+            string expectedBuildNumberMetadata = hasCommitData && commitIdOptions.Where == VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata
                 ? $"+g{commitIdShort}"
                 : string.Empty;
-            var additionalBuildMetadata = from item in this.testProject.Items
-                                          where string.Equals(item.ItemType, "BuildMetadata", StringComparison.OrdinalIgnoreCase)
-                                          select item.Include;
             if (additionalBuildMetadata.Any())
             {
-                expectedBuildMetadata = expectedBuildMetadata.Length == 0
+                expectedBuildNumberMetadata = expectedBuildNumberMetadata.Length == 0
                     ? "+" + string.Join(".", additionalBuildMetadata)
-                    : expectedBuildMetadata + "." + string.Join(".", additionalBuildMetadata);
+                    : expectedBuildNumberMetadata + "." + string.Join(".", additionalBuildMetadata);
             }
 
-            Assert.Equal(expectedBuildMetadata, buildNumberSemVer.BuildMetadata);
+            Assert.Equal(expectedBuildNumberMetadata, buildNumberSemVer.BuildMetadata);
         }
         else
         {
