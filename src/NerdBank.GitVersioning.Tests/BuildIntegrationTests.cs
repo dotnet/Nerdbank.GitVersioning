@@ -670,9 +670,8 @@ public class BuildIntegrationTests : RepoTestBase
         string commitIdShort = this.Repo.Head.Commits.First().Id.Sha.Substring(0, 10);
         Version version = this.Repo.GetIdAsVersion(relativeProjectDirectory);
         Version assemblyVersion = GetExpectedAssemblyVersion(versionOptions, version);
-        var additionalBuildMetadata = from item in this.testProject.Items
-                                      where string.Equals(item.ItemType, "BuildMetadata", StringComparison.OrdinalIgnoreCase)
-                                      select item.Include;
+        var additionalBuildMetadata = from item in buildResult.BuildResult.ProjectStateAfterBuild.GetItems("BuildMetadata")
+                                      select item.EvaluatedInclude;
         var expectedBuildMetadata = $"+g{commitIdShort}";
         if (additionalBuildMetadata.Any())
         {
