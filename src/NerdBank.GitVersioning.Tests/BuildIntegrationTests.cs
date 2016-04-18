@@ -350,6 +350,61 @@ public class BuildIntegrationTests : RepoTestBase
         AssertStandardProperties(versionOptions, buildResult);
     }
 
+    public static object[][] CloudBuildVariablesData
+    {
+        get
+        {
+            return new object[][]
+            {
+                new object[] { CloudBuild.VSTS, "##vso[task.setvariable variable={NAME};]{VALUE}" },
+            };
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(CloudBuildVariablesData))]
+    public async Task CloudBuildVariables_SetInCI(IReadOnlyDictionary<string, string> properties, string expectedMessage)
+    {
+        foreach (var property in properties)
+        {
+            this.globalProperties[property.Key] = property.Value;
+        }
+
+        string keyName = "n1";
+        string value = "v1";
+        this.testProject.AddItem("CloudBuildVersionVars", keyName, new Dictionary<string, string> { { "Value", value } });
+
+        string alwaysExpectedMessage = expectedMessage
+            .Replace("{NAME}", keyName)
+            .Replace("{VALUE}", value);
+
+        var versionOptions = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("1.0"),
+            CloudBuild = new VersionOptions.CloudBuildOptions { SetVersionVariables = true },
+        };
+        this.WriteVersionFile(versionOptions);
+        this.InitializeSourceControl();
+
+        var buildResult = await this.BuildAsync();
+        AssertStandardProperties(versionOptions, buildResult);
+        string conditionallyExpectedMessage = expectedMessage
+            .Replace("{NAME}", "GitBuildVersion")
+            .Replace("{VALUE}", buildResult.BuildVersion);
+        Assert.Contains(alwaysExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
+        Assert.Contains(conditionallyExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
+
+        versionOptions.CloudBuild.SetVersionVariables = false;
+        this.WriteVersionFile(versionOptions);
+        buildResult = await this.BuildAsync();
+        AssertStandardProperties(versionOptions, buildResult);
+        conditionallyExpectedMessage = expectedMessage
+            .Replace("{NAME}", "GitBuildVersion")
+            .Replace("{VALUE}", buildResult.BuildVersion);
+        Assert.Contains(alwaysExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
+        Assert.DoesNotContain(conditionallyExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
+    }
+
     private static VersionOptions BuildNumberVersionOptionsBasis
     {
         get
@@ -387,7 +442,7 @@ public class BuildIntegrationTests : RepoTestBase
         this.WriteVersionFile(versionOptions);
         this.InitializeSourceControl();
 
-        foreach (var property in CloudBuild.VSTS)
+        foreach (var property in properties)
         {
             this.globalProperties[property.Key] = property.Value;
         }
@@ -395,7 +450,7 @@ public class BuildIntegrationTests : RepoTestBase
         var buildResult = await this.BuildAsync();
         AssertStandardProperties(versionOptions, buildResult);
         expectedBuildNumberMessage = expectedBuildNumberMessage.Replace("{CLOUDBUILDNUMBER}", buildResult.CloudBuildNumber);
-        Assert.Contains(buildResult.LoggedEvents, e => e.Message.TrimEnd() == expectedBuildNumberMessage);
+        Assert.Contains(expectedBuildNumberMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
     }
 
     [Theory]
