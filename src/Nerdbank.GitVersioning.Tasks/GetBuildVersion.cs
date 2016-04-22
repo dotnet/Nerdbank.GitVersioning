@@ -27,11 +27,23 @@
         public string BuildingRef { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether the project suggests the default
-        /// value for the PublicRelease MSBuild property be true.
+        /// Gets or sets identifiers to append as build metadata.
+        /// </summary>
+        public string[] BuildMetadata { get; set; }
+
+        /// <summary>
+        /// Gets or sets the value of the PublicRelease property in MSBuild at the
+        /// start of this Task.
+        /// </summary>
+        /// <value>Expected to be "true", "false", or empty.</value>
+        public string DefaultPublicRelease { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the project is building
+        /// in PublicRelease mode.
         /// </summary>
         [Output]
-        public bool PublicReleaseDefault { get; private set; }
+        public bool PublicRelease { get; private set; }
 
         /// <summary>
         /// Gets the version string to use in the compiled assemblies.
@@ -84,10 +96,28 @@
         public int GitVersionHeight { get; private set; }
 
         /// <summary>
+        /// Gets the +buildMetadata fragment for the semantic version.
+        /// </summary>
+        [Output]
+        public string BuildMetadataFragment { get; private set; }
+
+        /// <summary>
         /// Gets the build number (git height) for this version.
         /// </summary>
         [Output]
         public int BuildNumber { get; private set; }
+
+        /// <summary>
+        /// Gets the BuildNumber to set the cloud build to (if applicable).
+        /// </summary>
+        [Output]
+        public string CloudBuildNumber { get; private set; }
+
+        /// <summary>
+        /// Gets a value indicating whether to set cloud build version variables.
+        /// </summary>
+        [Output]
+        public bool SetCloudBuildVersionVars { get; private set; }
 
         public override bool Execute()
         {
@@ -114,10 +144,14 @@
                         VersionFile.GetVersion(git, Environment.CurrentDirectory) ??
                         VersionFile.GetVersion(Environment.CurrentDirectory);
 
-                    if (!string.IsNullOrEmpty(this.BuildingRef) && versionOptions?.PublicReleaseRefSpec?.Length > 0)
+                    this.PublicRelease = string.Equals(this.DefaultPublicRelease, "true", StringComparison.OrdinalIgnoreCase);
+                    if (string.IsNullOrEmpty(this.DefaultPublicRelease))
                     {
-                        this.PublicReleaseDefault = versionOptions.PublicReleaseRefSpec.Any(
-                            expr => Regex.IsMatch(this.BuildingRef, expr));
+                        if (!string.IsNullOrEmpty(this.BuildingRef) && versionOptions?.PublicReleaseRefSpec?.Length > 0)
+                        {
+                            this.PublicRelease = versionOptions.PublicReleaseRefSpec.Any(
+                                expr => Regex.IsMatch(this.BuildingRef, expr));
+                        }
                     }
 
                     this.PrereleaseVersion = versionOptions?.Version.Prerelease ?? string.Empty;
@@ -137,6 +171,30 @@
                 this.AssemblyVersion = assemblyVersion.ToStringSafe(4);
                 this.BuildNumber = Math.Max(0, typedVersion.Build);
                 this.Version = typedVersion.ToString();
+
+                this.SetCloudBuildVersionVars = versionOptions?.CloudBuild?.SetVersionVariables
+                    ?? (new VersionOptions.CloudBuildOptions()).SetVersionVariables;
+
+                var buildMetadata = this.BuildMetadata?.ToList() ?? new List<string>();
+                if (!string.IsNullOrEmpty(this.GitCommitId))
+                {
+                    buildMetadata.Insert(0, $"g{this.GitCommitId.Substring(0, 10)}");
+                }
+
+                this.BuildMetadataFragment = FormatBuildMetadata(buildMetadata);
+
+                var buildNumber = versionOptions?.CloudBuild?.BuildNumber ?? new VersionOptions.CloudBuildNumberOptions();
+                if (buildNumber.Enabled)
+                {
+                    var commitIdOptions = buildNumber.IncludeCommitId ?? new VersionOptions.CloudBuildNumberCommitIdOptions();
+                    bool includeCommitInfo = commitIdOptions.When == VersionOptions.CloudBuildNumberCommitWhen.Always ||
+                        (commitIdOptions.When == VersionOptions.CloudBuildNumberCommitWhen.NonPublicReleaseOnly && !this.PublicRelease);
+                    bool commitIdInRevision = includeCommitInfo && commitIdOptions.Where == VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent;
+                    bool commitIdInBuildMetadata = includeCommitInfo && commitIdOptions.Where == VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata;
+                    Version buildNumberVersion = commitIdInRevision ? typedVersion : typedVersionWithoutRevision;
+                    string buildNumberMetadata = FormatBuildMetadata(commitIdInBuildMetadata ? (IEnumerable<string>)buildMetadata : this.BuildMetadata);
+                    this.CloudBuildNumber = buildNumberVersion + this.PrereleaseVersion + buildNumberMetadata;
+                }
             }
             catch (ArgumentOutOfRangeException ex)
             {
@@ -145,6 +203,13 @@
             }
 
             return true;
+        }
+
+        private static string FormatBuildMetadata(IEnumerable<string> identifiers)
+        {
+            return identifiers?.Any() ?? false
+                ? "+" + string.Join(".", identifiers)
+                : string.Empty;
         }
 
         private static Version GetAssemblyVersion(Version version, VersionOptions versionOptions)

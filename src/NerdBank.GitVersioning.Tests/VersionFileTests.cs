@@ -134,6 +134,26 @@ public class VersionFileTests : RepoTestBase
         Assert.Equal(expectedJson, normalizedFileContent);
     }
 
+    [Theory]
+    [InlineData(@"{""cloudBuild"":{""buildNumber"":{""enabled"":false,""includeCommitId"":{""when"":""nonPublicReleaseOnly"",""where"":""buildMetadata""}}}}", @"{}")]
+    [InlineData(@"{""cloudBuild"":{""buildNumber"":{""enabled"":true,""includeCommitId"":{""when"":""nonPublicReleaseOnly"",""where"":""buildMetadata""}}}}", @"{""cloudBuild"":{""buildNumber"":{""enabled"":true}}}")]
+    [InlineData(@"{""cloudBuild"":{""buildNumber"":{""enabled"":true,""includeCommitId"":{""when"":""always"",""where"":""buildMetadata""}}}}", @"{""cloudBuild"":{""buildNumber"":{""enabled"":true,""includeCommitId"":{""when"":""always""}}}}")]
+    [InlineData(@"{""cloudBuild"":{""buildNumber"":{""enabled"":true,""includeCommitId"":{""when"":""nonPublicReleaseOnly"",""where"":""fourthVersionComponent""}}}}", @"{""cloudBuild"":{""buildNumber"":{""enabled"":true,""includeCommitId"":{""where"":""fourthVersionComponent""}}}}")]
+    [InlineData(@"{""cloudBuild"":{""setVersionVariables"":true}}", @"{}")]
+    public void JsonMinification(string full, string minimal)
+    {
+        var settings = VersionOptions.JsonSettings;
+        settings.Formatting = Formatting.None;
+
+        // Assert that the two representations are equivalent.
+        var fullVersion = JsonConvert.DeserializeObject<VersionOptions>(full, settings);
+        var minimalVersion = JsonConvert.DeserializeObject<VersionOptions>(minimal, settings);
+        Assert.Equal(fullVersion, minimalVersion);
+
+        string fullVersionSerialized = JsonConvert.SerializeObject(fullVersion, settings);
+        Assert.Equal(minimal, fullVersionSerialized);
+    }
+
     [Fact]
     public void GetVersion_CanReadSpecConformantJsonFile()
     {

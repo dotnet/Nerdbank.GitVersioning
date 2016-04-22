@@ -29,21 +29,6 @@
         public static readonly IReadOnlyList<string> PreferredFileNames = new[] { JsonFileName, TxtFileName };
 
         /// <summary>
-        /// The JSON serializer settings to use.
-        /// </summary>
-        private static readonly JsonSerializerSettings JsonSettings = new JsonSerializerSettings()
-        {
-            Converters = new JsonConverter[] {
-                new VersionConverter(),
-                new SemanticVersionJsonConverter(),
-                new AssemblyVersionOptionsConverter(),
-                new StringEnumConverter() { CamelCaseText = true },
-            },
-            ContractResolver = new VersionOptionsContractResolver(),
-            Formatting = Formatting.Indented,
-        };
-
-        /// <summary>
         /// Reads the version.txt file and returns the <see cref="Version"/> and prerelease tag from it.
         /// </summary>
         /// <param name="commit">The commit to read the version file from.</param>
@@ -191,7 +176,7 @@
             }
 
             string versionJsonPath = Path.Combine(projectDirectory, JsonFileName);
-            var jsonContent = JsonConvert.SerializeObject(version, JsonSettings);
+            var jsonContent = JsonConvert.SerializeObject(version, VersionOptions.JsonSettings);
             File.WriteAllText(versionJsonPath, jsonContent);
             return versionJsonPath;
         }
@@ -260,7 +245,7 @@
                 string jsonContent = versionTextContent.ReadToEnd();
                 try
                 {
-                    return JsonConvert.DeserializeObject<VersionOptions>(jsonContent, JsonSettings);
+                    return JsonConvert.DeserializeObject<VersionOptions>(jsonContent, VersionOptions.JsonSettings);
                 }
                 catch (JsonSerializationException)
                 {

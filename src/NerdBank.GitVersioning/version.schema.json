@@ -1,4 +1,5 @@
 ﻿{
+  "$schema": "http://json-schema.org/draft-04/schema",
   "title": "Nerdbank.GitVersioning version.json schema",
   "type": "object",
   "required": [ "version" ],
@@ -39,6 +40,46 @@
         "format": "regex"
       },
       "uniqueItems": true
+    },
+    "cloudBuild": {
+      "type": "object",
+      "description": "Options that are applicable specifically to cloud builds (e.g. VSTS, AppVeyor, TeamCity)",
+      "properties": {
+        "setVersionVariables": {
+          "type": "boolean",
+          "default": true,
+          "description": "Elevate certain calculated version build properties to cloud build variables."
+        },
+        "buildNumber": {
+          "type": "object",
+          "description": "Override the build number preset by the cloud build with one enriched with version information.",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Whether to override the build number preset by the cloud build.",
+              "default": false
+            },
+            "includeCommitId": {
+              "type": "object",
+              "description": "Describes when and where to include information about the git commit being built.",
+              "properties": {
+                "when": {
+                  "type": "string",
+                  "default": "nonPublicReleaseOnly",
+                  "description": "The conditions when the commit ID is included in the build number.",
+                  "enum": [ "always", "nonPublicReleaseOnly", "never" ]
+                },
+                "where": {
+                  "type": "string",
+                  "default": "buildMetadata",
+                  "description": "The position to include the commit ID information.",
+                  "enum": [ "buildMetadata", "fourthVersionComponent" ]
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {

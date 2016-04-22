@@ -13,12 +13,12 @@
     {
         /// <summary>
         /// The regular expression with capture groups for semantic versioning.
-        /// It considers PATCH to be optional.
+        /// It considers PATCH to be optional and permits the 4th Revision component.
         /// </summary>
         /// <remarks>
         /// Parts of this regex inspired by https://github.com/sindresorhus/semver-regex/blob/master/index.js
         /// </remarks>
-        private static readonly Regex FullSemVerPattern = new Regex(@"^v?(?<major>0|[1-9][0-9]*)\.(?<minor>0|[1-9][0-9]*)(?:\.(?<patch>0|[1-9][0-9]*))?(?<prerelease>-[\da-z\-]+(?:\.[\da-z\-]+)*)?(?<buildMetadata>\+[\da-z\-]+(?:\.[\da-z\-]+)*)?$", RegexOptions.IgnoreCase);
+        private static readonly Regex FullSemVerPattern = new Regex(@"^v?(?<major>0|[1-9][0-9]*)\.(?<minor>0|[1-9][0-9]*)(?:\.(?<patch>0|[1-9][0-9]*)(?:\.(?<revision>0|[1-9][0-9]*))?)?(?<prerelease>-[\da-z\-]+(?:\.[\da-z\-]+)*)?(?<buildMetadata>\+[\da-z\-]+(?:\.[\da-z\-]+)*)?$", RegexOptions.IgnoreCase);
 
         /// <summary>
         /// The regex pattern that a prerelease must match.
@@ -96,7 +96,10 @@
                 var major = int.Parse(m.Groups["major"].Value);
                 var minor = int.Parse(m.Groups["minor"].Value);
                 var patch = m.Groups["patch"].Value;
-                var systemVersion = patch.Length > 0 ? new Version(major, minor, int.Parse(patch)) : new Version(major, minor);
+                var revision = m.Groups["revision"].Value;
+                var systemVersion = patch.Length > 0
+                    ? revision.Length > 0 ? new Version(major, minor, int.Parse(patch), int.Parse(revision)) : new Version(major, minor, int.Parse(patch))
+                    : new Version(major, minor);
                 var prerelease = m.Groups["prerelease"].Value;
                 var buildMetadata = m.Groups["buildMetadata"].Value;
                 version = new SemanticVersion(systemVersion, prerelease, buildMetadata);

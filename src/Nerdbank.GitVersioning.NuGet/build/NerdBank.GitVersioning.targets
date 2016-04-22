@@ -35,7 +35,10 @@
   </PropertyGroup>
 
   <Target Name="GetBuildVersion" Returns="$(BuildVersion)">
-    <GetBuildVersion BuildingRef="$(_NBGV_BuildingRef)">
+    <GetBuildVersion
+      BuildingRef="$(_NBGV_BuildingRef)"
+      BuildMetadata="@(BuildMetadata)"
+      DefaultPublicRelease="$(PublicRelease)">
       <Output TaskParameter="Version" PropertyName="BuildVersion" />
       <Output TaskParameter="SimpleVersion" PropertyName="BuildVersionSimple" />
       <Output TaskParameter="PrereleaseVersion" PropertyName="PrereleaseVersion" Condition=" '$(PrereleaseVersion)' == '' " />
@@ -44,11 +47,12 @@
       <Output TaskParameter="GitCommitId" PropertyName="GitCommitId" />
       <Output TaskParameter="GitVersionHeight" PropertyName="GitVersionHeight" />
       <Output TaskParameter="BuildNumber" PropertyName="BuildVersionNumberComponent" />
-      <Output TaskParameter="PublicReleaseDefault" PropertyName="PublicReleaseDefault" />
+      <Output TaskParameter="PublicRelease" PropertyName="PublicRelease" />
+      <Output TaskParameter="CloudBuildNumber" PropertyName="CloudBuildNumber" />
+      <Output TaskParameter="SetCloudBuildVersionVars" PropertyName="SetCloudBuildVersionVars" />
+      <Output TaskParameter="BuildMetadataFragment" PropertyName="SemVerBuildSuffix" />
     </GetBuildVersion>
     <PropertyGroup>
-      <PublicRelease Condition=" '$(PublicRelease)' == '' ">$(PublicReleaseDefault)</PublicRelease>
-
       <BuildNumber>$(BuildVersionNumberComponent)</BuildNumber>
       <BuildNumberFirstComponent>$([System.Text.RegularExpressions.Regex]::Match($(BuildNumber), '(\d+)').Groups[1].Value)</BuildNumberFirstComponent>
       <BuildNumberSecondComponent>$([System.Text.RegularExpressions.Regex]::Match($(BuildNumber), '(\d+)\.(\d+)').Groups[2].Value)</BuildNumberSecondComponent>
@@ -59,7 +63,6 @@
       <GitCommitId Condition=" '$(GitCommitId)' == '' ">$(BUILD_VCS_NUMBER)</GitCommitId>
 
       <GitCommitIdShort Condition=" '$(GitCommitId)' != '' ">$(GitCommitId.Substring(0,10))</GitCommitIdShort>
-      <SemVerBuildSuffix Condition=" '$(GitCommitIdShort)' != '' ">+g$(GitCommitIdShort)</SemVerBuildSuffix>
 
       <BuildVersion3Components>$(MajorMinorVersion).$(BuildNumberFirstComponent)</BuildVersion3Components>
       <AssemblyInformationalVersion>$(MajorMinorVersion).$(BuildNumberFirstAndSecondComponentsIfApplicable)$(PrereleaseVersion)$(SemVerBuildSuffix)</AssemblyInformationalVersion>
@@ -70,6 +73,14 @@
            The 'g' prefix allows tooling to recognize that a git commit ID follows. -->
       <NuGetPackageVersion Condition=" '$(PublicRelease)' != 'true' ">$(NuGetPackageVersion)-g$(GitCommitIdShort)</NuGetPackageVersion>
     </PropertyGroup>
+    <ItemGroup Condition=" '$(SetCloudBuildVersionVars)' == 'true' ">
+      <CloudBuildVersionVars Include="GitAssemblyInformationalVersion">
+        <Value>$(AssemblyInformationalVersion)</Value>
+      </CloudBuildVersionVars>
+      <CloudBuildVersionVars Include="GitBuildVersion">
+        <Value>$(BuildVersion)</Value>
+      </CloudBuildVersionVars>
+    </ItemGroup>
 
     <Warning Condition=" '$(AssemblyInformationalVersion)' == '' " Text="Unable to determine the git HEAD commit ID to use for informational version number." />
     <Message Condition=" '$(AssemblyInformationalVersion)' != '' " Text="Building version $(BuildVersion) from commit $(GitCommitId)"/>

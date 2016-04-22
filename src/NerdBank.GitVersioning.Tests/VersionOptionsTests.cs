@@ -90,4 +90,79 @@ public class VersionOptionsTests
         };
         Assert.NotEqual(avo4, avo5);
     }
+
+    [Fact]
+    public void CloudBuildOptions_Equality()
+    {
+        var cbo1a = new VersionOptions.CloudBuildOptions { };
+        var cbo1b = new VersionOptions.CloudBuildOptions { };
+        Assert.Equal(cbo1a, cbo1b);
+
+        var cbo2a = new VersionOptions.CloudBuildOptions
+        {
+            SetVersionVariables = !cbo1a.SetVersionVariables,
+        };
+        Assert.NotEqual(cbo2a, cbo1a);
+
+        var cbo3a = new VersionOptions.CloudBuildOptions
+        {
+            BuildNumber = new VersionOptions.CloudBuildNumberOptions { },
+        };
+        Assert.Equal(cbo3a, cbo1a); // Equal because we haven't changed defaults.
+
+        var cbo4a = new VersionOptions.CloudBuildOptions
+        {
+            BuildNumber = new VersionOptions.CloudBuildNumberOptions
+            {
+                Enabled = !(new VersionOptions.CloudBuildNumberOptions().Enabled),
+            },
+        };
+        Assert.NotEqual(cbo4a, cbo1a);
+    }
+
+    [Fact]
+    public void CloudBuildNumberOptions_Equality()
+    {
+        var bno1a = new VersionOptions.CloudBuildNumberOptions { };
+        var bno1b = new VersionOptions.CloudBuildNumberOptions { };
+        Assert.Equal(bno1a, bno1b);
+
+        var bno2a = new VersionOptions.CloudBuildNumberOptions
+        {
+            Enabled = !bno1a.Enabled,
+        };
+        Assert.NotEqual(bno1a, bno2a);
+
+        var bno3a = new VersionOptions.CloudBuildNumberOptions
+        {
+            IncludeCommitId = new VersionOptions.CloudBuildNumberCommitIdOptions { },
+        };
+        Assert.Equal(bno1a, bno3a); // we haven't changed any defaults, even if it's non-null.
+
+        var bno4a = new VersionOptions.CloudBuildNumberOptions
+        {
+            IncludeCommitId = new VersionOptions.CloudBuildNumberCommitIdOptions { When = VersionOptions.CloudBuildNumberCommitWhen.Never },
+        };
+        Assert.NotEqual(bno1a, bno4a);
+    }
+
+    [Fact]
+    public void CloudBuildNumberCommitIdOptions_Equality()
+    {
+        var cio1a = new VersionOptions.CloudBuildNumberCommitIdOptions { };
+        var cio1b = new VersionOptions.CloudBuildNumberCommitIdOptions { };
+        Assert.Equal(cio1a, cio1b);
+
+        var cio2a = new VersionOptions.CloudBuildNumberCommitIdOptions
+        {
+            When = (VersionOptions.CloudBuildNumberCommitWhen)((int)cio1a.When + 1),
+        };
+        Assert.NotEqual(cio1a, cio2a);
+
+        var cio3a = new VersionOptions.CloudBuildNumberCommitIdOptions
+        {
+            Where = (VersionOptions.CloudBuildNumberCommitWhere)((int)cio1a.Where + 1),
+        };
+        Assert.NotEqual(cio1a, cio3a);
+    }
 }
