@@ -171,13 +171,14 @@ During the build it adds source code such as this to your compilation:
 [assembly: System.Reflection.AssemblyInformationalVersion("1.0.24.15136-alpha+g9a7eb6c819")]
 ```
 
-The first and second integer components of the versions above come from the 
+* The first and second integer components of the versions above come from the 
 version file.
-The third integer component of the version here is the height of your git history up to
+* The third integer component of the version here is the height of your git history up to
 that point, such that it reliably increases with each release.
-The -alpha tag also comes from the version file and indicates this is an
+* The fourth component (when present) is the first two bytes of the git commit ID, encoded as an integer. This number will appear essentially random, and is not useful in sorting versions. It is useful when you have two branches in git history that have exactly the same major.minor.height version information in order to distinguish which commit it is.
+* The -alpha tag also comes from the version file and indicates this is an
 unstable version.
-The -g9a7eb6c819 tag is the concatenation of -g and the git commit ID that was built.
+* The -g9a7eb6c819 tag is the concatenation of -g and the git commit ID that was built.
 
 This class is also injected into your project at build time:
 
@@ -246,5 +247,16 @@ number if they ever had to.
 Note that the git commit ID is *always* included in the 
 `AssemblyInformationVersionAttribute` so one can always match a binary to the
 exact version of source code that produced it.
+
+### How do I translate from a version to a git commit and vice versa?
+
+A pair of Powershell scripts are included in the Nerdbank.GitVersioning NuGet package
+that can help you to translate between the two representations. 
+
+    tools\Get-CommitId.ps1
+    tools\Get-Version.ps1
+
+`Get-CommitId.ps1` takes a version and print out the matching commit (or possible commits, in the exceptionally rare event of a collision).
+`Get-Version.ps1` prints out the version information for the git commit current at HEAD.
 
  [semver]: http://semver.org
