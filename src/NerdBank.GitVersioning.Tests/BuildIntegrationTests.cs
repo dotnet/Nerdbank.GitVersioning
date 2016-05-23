@@ -42,6 +42,7 @@ public class BuildIntegrationTests : RepoTestBase
         // Set global properties to neutralize environment variables
         // that might actually be defined by a CI that is building and running these tests.
         { "PublicRelease", string.Empty },
+        { "_NBGV_UnitTest", "true" }
     };
     private Random random;
 
