@@ -2,7 +2,7 @@
   "dependencies": {
     "LibGit2Sharp": "0.21.0.176",
     "Microsoft.CodeAnalysis.CSharp": "1.1.1",
-    "Nerdbank.GitVersioning": "1.4.6",
+    "Nerdbank.GitVersioning": "1.4.24-g799b862509",
     "Newtonsoft.Json": "7.0.1",
     "System.Collections.Immutable": "1.1.37",
     "Validation": "2.0.6.15003",
@@ -11,10 +11,10 @@
     "xunit.runner.visualstudio": "2.1.0"
   },
   "frameworks": {
-    ".NETFramework,Version=v4.5.2": { }
+    ".NETFramework,Version=v4.5.2": {}
   },
   "runtimes": {
-    "win": { }
+    "win": {}
   },
-  "supports": { }
+  "supports": {}
 }
