@@ -26,7 +26,9 @@
           DependsOnTargets="GetBuildVersion"
           AfterTargets="GetBuildVersion"
           Condition=" '$(CloudBuildNumber)' != '' ">
+    <!-- We ignore exit code so as to not fail the build when the cloud build number is not unique. -->
     <Exec Command='appveyor UpdateBuild -Version "$(CloudBuildNumber)"'
-          Condition=" '$(_NBGV_UnitTest)' != 'true' " />
+          Condition=" '$(_NBGV_UnitTest)' != 'true' "
+          IgnoreExitCode="true" />
   </Target>
 </Project>
