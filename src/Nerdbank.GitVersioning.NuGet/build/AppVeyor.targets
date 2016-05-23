@@ -13,4 +13,11 @@
          as building the target branch itself. So only set the branch built property if it's not a PR. -->
     <_NBGV_BuildingBranch Condition=" '$(_NBGV_IsPullRequest)' != 'true' and '$(APPVEYOR_REPO_BRANCH)' != '' ">refs/heads/$(APPVEYOR_REPO_BRANCH)</_NBGV_BuildingBranch>
   </PropertyGroup>
+
+  <Target Name="SetCloudBuildNumberWithVersion"
+          DependsOnTargets="GetBuildVersion"
+          AfterTargets="GetBuildVersion"
+          Condition=" '$(CloudBuildNumber)' != '' ">
+    <Exec Command='appveyor UpdateBuild -Version "$(CloudBuildNumber)"' />
+  </Target>
 </Project>
