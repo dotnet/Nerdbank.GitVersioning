@@ -14,6 +14,13 @@
     <_NBGV_BuildingBranch Condition=" '$(_NBGV_IsPullRequest)' != 'true' and '$(APPVEYOR_REPO_BRANCH)' != '' ">refs/heads/$(APPVEYOR_REPO_BRANCH)</_NBGV_BuildingBranch>
   </PropertyGroup>
 
+  <Target Name="SetCloudBuildVersionVars"
+        DependsOnTargets="GetBuildVersion"
+        AfterTargets="GetBuildVersion"
+        Condition=" '@(CloudBuildVersionVars)' != '' ">
+    <Exec Command='appveyor SetVariable -Name %(CloudBuildVersionVars.Identity) -Value "%(CloudBuildVersionVars.Value)"' />
+  </Target>
+
   <Target Name="SetCloudBuildNumberWithVersion"
           DependsOnTargets="GetBuildVersion"
           AfterTargets="GetBuildVersion"
