@@ -18,13 +18,15 @@
         DependsOnTargets="GetBuildVersion"
         AfterTargets="GetBuildVersion"
         Condition=" '@(CloudBuildVersionVars)' != '' ">
-    <Exec Command='appveyor SetVariable -Name %(CloudBuildVersionVars.Identity) -Value "%(CloudBuildVersionVars.Value)"' />
+    <Exec Command='appveyor SetVariable -Name %(CloudBuildVersionVars.Identity) -Value "%(CloudBuildVersionVars.Value)"'
+          Condition=" '$(_NBGV_UnitTest)' != 'true' " />
   </Target>
 
   <Target Name="SetCloudBuildNumberWithVersion"
           DependsOnTargets="GetBuildVersion"
           AfterTargets="GetBuildVersion"
           Condition=" '$(CloudBuildNumber)' != '' ">
-    <Exec Command='appveyor UpdateBuild -Version "$(CloudBuildNumber)"' />
+    <Exec Command='appveyor UpdateBuild -Version "$(CloudBuildNumber)"'
+          Condition=" '$(_NBGV_UnitTest)' != 'true' " />
   </Target>
 </Project>
