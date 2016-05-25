@@ -37,7 +37,6 @@ public class BuildIntegrationTests : RepoTestBase
     private ProjectCollection projectCollection;
     private string projectDirectory;
     private ProjectRootElement testProject;
-    private ProjectRootElement testProjectInRoot;
     private Dictionary<string, string> globalProperties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
         // Set global properties to neutralize environment variables
@@ -59,7 +58,6 @@ public class BuildIntegrationTests : RepoTestBase
         Directory.CreateDirectory(this.projectDirectory);
         this.LoadTargetsIntoProjectCollection();
         this.testProject = this.CreateProjectRootElement(this.projectDirectory, "test.proj");
-        this.testProjectInRoot = this.CreateProjectRootElement(this.RepoPath, "root.proj");
         this.globalProperties.Add("NerdbankGitVersioningTasksPath", Environment.CurrentDirectory + "\\");
 
         // Sterilize the test of any environment variables.
@@ -78,7 +76,7 @@ public class BuildIntegrationTests : RepoTestBase
     {
         this.WriteVersionFile();
         this.InitializeSourceControl();
-        var buildResult = await this.BuildAsync(this.testProject);
+        var buildResult = await this.BuildAsync();
         Assert.Equal(
             buildResult.BuildVersion,
             buildResult.BuildResult.ResultsByTarget[Targets.GetBuildVersion].Items.Single().ItemSpec);
@@ -88,7 +86,7 @@ public class BuildIntegrationTests : RepoTestBase
     public async Task GetBuildVersion_Without_Git()
     {
         this.WriteVersionFile("3.4");
-        var buildResult = await this.BuildAsync(this.testProject);
+        var buildResult = await this.BuildAsync();
         Assert.Equal("3.4", buildResult.BuildVersion);
         Assert.Equal("3.4.0", buildResult.AssemblyInformationalVersion);
     }
@@ -100,7 +98,7 @@ public class BuildIntegrationTests : RepoTestBase
         var repo = new Repository(this.RepoPath); // do not assign Repo property to avoid commits being generated later
         this.WriteVersionFile("3.4");
         Assumes.False(repo.Head.Commits.Any()); // verification that the test is doing what it claims
-        var buildResult = await this.BuildAsync(this.testProject);
+        var buildResult = await this.BuildAsync();
         Assert.Equal("3.4.0.0", buildResult.BuildVersion);
         Assert.Equal("3.4.0", buildResult.AssemblyInformationalVersion);
     }
@@ -113,7 +111,7 @@ public class BuildIntegrationTests : RepoTestBase
         repo.Commit("empty", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         this.WriteVersionFile("3.4");
         Assumes.True(repo.Index[VersionFile.JsonFileName] == null);
-        var buildResult = await this.BuildAsync(this.testProject);
+        var buildResult = await this.BuildAsync();
         Assert.Equal("3.4.0." + repo.Head.Commits.First().GetIdAsVersion().Revision, buildResult.BuildVersion);
         Assert.Equal("3.4.0+g" + repo.Head.Commits.First().Id.Sha.Substring(0, 10), buildResult.AssemblyInformationalVersion);
     }
@@ -128,7 +126,7 @@ public class BuildIntegrationTests : RepoTestBase
         this.InitializeSourceControl();
         var workingCopyVersion = VersionOptions.FromVersion(new Version("6.0"));
         VersionFile.SetVersion(this.RepoPath, workingCopyVersion);
-        var buildResult = await this.BuildAsync(this.testProject);
+        var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(workingCopyVersion, buildResult);
     }
 
@@ -138,7 +136,7 @@ public class BuildIntegrationTests : RepoTestBase
         Repository.Init(this.RepoPath);
         var repo = new Repository(this.RepoPath); // do not assign Repo property to avoid commits being generated later
         repo.Commit("empty", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
-        var buildResult = await this.BuildAsync(this.testProject);
+        var buildResult = await this.BuildAsync();
         Assert.Equal("0.0.1." + repo.Head.Commits.First().GetIdAsVersion().Revision, buildResult.BuildVersion);
         Assert.Equal("0.0.1+g" + repo.Head.Commits.First().Id.Sha.Substring(0, 10), buildResult.AssemblyInformationalVersion);
     }
@@ -153,7 +151,7 @@ public class BuildIntegrationTests : RepoTestBase
         this.WriteVersionFile(majorMinorVersion, prerelease, subdirectory);
         this.InitializeSourceControl();
         this.AddCommits(this.random.Next(15));
-        var buildResult = await this.BuildAsync(this.testProject);
+        var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(VersionOptions.FromVersion(new Version(majorMinorVersion)), buildResult, subdirectory);
     }
 
@@ -172,7 +170,7 @@ public class BuildIntegrationTests : RepoTestBase
         this.WriteVersionFile(subdirVersionSpec, subdirectory);
         this.InitializeSourceControl();
         this.AddCommits(this.random.Next(15));
-        var buildResult = await this.BuildAsync(this.testProject);
+        var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(subdirVersionSpec, buildResult, subdirectory);
     }
 
@@ -188,7 +186,8 @@ public class BuildIntegrationTests : RepoTestBase
         this.WriteVersionFile(rootVersionSpec);
         this.InitializeSourceControl();
         this.AddCommits(this.random.Next(15));
-        var buildResult = await this.BuildAsync(this.testProjectInRoot);
+        this.testProject = this.CreateProjectRootElement(this.RepoPath, "root.proj");
+        var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(rootVersionSpec, buildResult);
     }
 
@@ -201,7 +200,7 @@ public class BuildIntegrationTests : RepoTestBase
         this.WriteVersionFile(majorMinorVersion, prerelease);
         this.InitializeSourceControl();
         this.AddCommits(this.random.Next(15));
-        var buildResult = await this.BuildAsync(this.testProject);
+        var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(VersionOptions.FromVersion(new Version(majorMinorVersion)), buildResult);
     }
 
@@ -215,7 +214,7 @@ public class BuildIntegrationTests : RepoTestBase
         this.InitializeSourceControl();
         this.AddCommits(this.random.Next(15));
         this.globalProperties["PublicRelease"] = "true";
-        var buildResult = await this.BuildAsync(this.testProject);
+        var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(VersionOptions.FromVersion(new Version(majorMinorVersion)), buildResult);
 
         Version version = this.Repo.Head.Commits.First().GetIdAsVersion();
@@ -231,7 +230,7 @@ public class BuildIntegrationTests : RepoTestBase
         this.WriteVersionFile(majorMinorVersion, prerelease);
         this.InitializeSourceControl();
         this.AddCommits(this.random.Next(15));
-        var buildResult = await this.BuildAsync(this.testProject);
+        var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(VersionOptions.FromVersion(new Version(majorMinorVersion), prerelease), buildResult);
     }
 
@@ -245,7 +244,7 @@ public class BuildIntegrationTests : RepoTestBase
         this.InitializeSourceControl();
         this.AddCommits(this.random.Next(15));
         this.globalProperties["PublicRelease"] = "true";
-        var buildResult = await this.BuildAsync(this.testProject);
+        var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(VersionOptions.FromVersion(new Version(majorMinorVersion), prerelease), buildResult);
     }
 
@@ -260,7 +259,7 @@ public class BuildIntegrationTests : RepoTestBase
             AssemblyVersion = new VersionOptions.AssemblyVersionOptions(new Version(14, 0)),
         };
         this.WriteVersionFile(versionOptions);
-        var buildResult = await this.BuildAsync(this.testProject);
+        var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(versionOptions, buildResult);
     }
 
@@ -280,7 +279,7 @@ public class BuildIntegrationTests : RepoTestBase
         };
         this.WriteVersionFile(versionOptions);
         this.InitializeSourceControl();
-        var buildResult = await this.BuildAsync(this.testProject);
+        var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(versionOptions, buildResult);
     }
 
@@ -299,7 +298,7 @@ public class BuildIntegrationTests : RepoTestBase
         };
         this.WriteVersionFile(versionOptions);
         this.InitializeSourceControl();
-        var buildResult = await this.BuildAsync(this.testProject);
+        var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(versionOptions, buildResult);
     }
 
@@ -314,7 +313,7 @@ public class BuildIntegrationTests : RepoTestBase
             BuildNumberOffset = 5,
         };
         this.WriteVersionFile(versionOptions);
-        var buildResult = await this.BuildAsync(this.testProject);
+        var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(versionOptions, buildResult);
     }
 
@@ -330,7 +329,7 @@ public class BuildIntegrationTests : RepoTestBase
         this.InitializeSourceControl();
 
         // Just build "master", which doesn't conform to the regex.
-        var buildResult = await this.BuildAsync(this.testProject);
+        var buildResult = await this.BuildAsync();
         Assert.False(buildResult.PublicRelease);
         AssertStandardProperties(versionOptions, buildResult);
     }
@@ -364,7 +363,7 @@ public class BuildIntegrationTests : RepoTestBase
             this.globalProperties[property.Key] = property.Value;
         }
 
-        var buildResult = await this.BuildAsync(this.testProject);
+        var buildResult = await this.BuildAsync();
         Assert.True(buildResult.PublicRelease);
         AssertStandardProperties(versionOptions, buildResult);
     }
@@ -405,7 +404,7 @@ public class BuildIntegrationTests : RepoTestBase
         this.WriteVersionFile(versionOptions);
         this.InitializeSourceControl();
 
-        var buildResult = await this.BuildAsync(this.testProject);
+        var buildResult = await this.BuildAsync();
         AssertStandardProperties(versionOptions, buildResult);
         string conditionallyExpectedMessage = expectedMessage
             .Replace("{NAME}", "GitBuildVersion")
@@ -415,7 +414,7 @@ public class BuildIntegrationTests : RepoTestBase
 
         versionOptions.CloudBuild.SetVersionVariables = false;
         this.WriteVersionFile(versionOptions);
-        buildResult = await this.BuildAsync(this.testProject);
+        buildResult = await this.BuildAsync();
         AssertStandardProperties(versionOptions, buildResult);
         conditionallyExpectedMessage = expectedMessage
             .Replace("{NAME}", "GitBuildVersion")
@@ -466,7 +465,7 @@ public class BuildIntegrationTests : RepoTestBase
             this.globalProperties[property.Key] = property.Value;
         }
 
-        var buildResult = await this.BuildAsync(this.testProject);
+        var buildResult = await this.BuildAsync();
         AssertStandardProperties(versionOptions, buildResult);
         expectedBuildNumberMessage = expectedBuildNumberMessage.Replace("{CLOUDBUILDNUMBER}", buildResult.CloudBuildNumber);
         Assert.Contains(expectedBuildNumberMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
@@ -488,7 +487,7 @@ public class BuildIntegrationTests : RepoTestBase
             this.testProject.AddItem("BuildMetadata", $"A{i}");
         }
 
-        var buildResult = await this.BuildAsync(this.testProject);
+        var buildResult = await this.BuildAsync();
         AssertStandardProperties(versionOptions, buildResult);
     }
 
@@ -506,7 +505,7 @@ public class BuildIntegrationTests : RepoTestBase
         // Check out a branch that conforms.
         var releaseBranch = this.Repo.CreateBranch("release");
         this.Repo.Checkout(releaseBranch);
-        var buildResult = await this.BuildAsync(this.testProject);
+        var buildResult = await this.BuildAsync();
         Assert.True(buildResult.PublicRelease);
         AssertStandardProperties(versionOptions, buildResult);
     }
@@ -522,7 +521,7 @@ public class BuildIntegrationTests : RepoTestBase
             this.MakeItAVBProject();
         }
 
-        var result = await this.BuildAsync(this.testProject, "Build", logVerbosity: LoggerVerbosity.Minimal);
+        var result = await this.BuildAsync("Build", logVerbosity: LoggerVerbosity.Minimal);
         string assemblyPath = result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("TargetPath");
         string versionFileContent = File.ReadAllText(Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile")));
         this.Logger.WriteLine(versionFileContent);
@@ -576,7 +575,7 @@ public class BuildIntegrationTests : RepoTestBase
         this.testProject.AddProperty("DelaySign", delaySigned.ToString());
 
         this.WriteVersionFile();
-        var result = await this.BuildAsync(this.testProject, Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal);
+        var result = await this.BuildAsync(Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal);
         string versionCsContent = File.ReadAllText(Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile")));
         this.Logger.WriteLine(versionCsContent);
 
@@ -608,9 +607,9 @@ public class BuildIntegrationTests : RepoTestBase
     public async Task AssemblyInfo_IncrementalBuild()
     {
         this.WriteVersionFile(prerelease: "-beta");
-        await this.BuildAsync(this.testProject, "Build", logVerbosity: LoggerVerbosity.Minimal);
+        await this.BuildAsync("Build", logVerbosity: LoggerVerbosity.Minimal);
         this.WriteVersionFile(prerelease: "-rc"); // two characters SHORTER, to test file truncation.
-        await this.BuildAsync(this.testProject, "Build", logVerbosity: LoggerVerbosity.Minimal);
+        await this.BuildAsync("Build", logVerbosity: LoggerVerbosity.Minimal);
     }
 
     /// <summary>
@@ -625,7 +624,7 @@ public class BuildIntegrationTests : RepoTestBase
         propertyGroup.AddProperty("Language", "NoCodeDOMProviderForThisLanguage");
 
         this.WriteVersionFile();
-        var result = await this.BuildAsync(this.testProject, Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal, assertSuccessfulBuild: false);
+        var result = await this.BuildAsync(Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal, assertSuccessfulBuild: false);
         Assert.Equal(BuildResultCode.Failure, result.BuildResult.OverallResult);
         string versionCsFilePath = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"));
         Assert.False(File.Exists(versionCsFilePath));
@@ -645,7 +644,7 @@ public class BuildIntegrationTests : RepoTestBase
         propertyGroup.AddProperty(Targets.GenerateAssemblyVersionInfo, "false");
 
         this.WriteVersionFile();
-        var result = await this.BuildAsync(this.testProject, Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal);
+        var result = await this.BuildAsync(Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal);
         string versionCsFilePath = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"));
         Assert.False(File.Exists(versionCsFilePath));
         Assert.Empty(result.LoggedEvents.OfType<BuildErrorEventArgs>());
@@ -665,7 +664,7 @@ public class BuildIntegrationTests : RepoTestBase
         propertyGroup.AddProperty("TargetExt", ".notdll");
 
         this.WriteVersionFile();
-        var result = await this.BuildAsync(this.testProject, Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal);
+        var result = await this.BuildAsync(Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal);
         string versionCsFilePath = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"));
         Assert.False(File.Exists(versionCsFilePath));
         Assert.Empty(result.LoggedEvents.OfType<BuildErrorEventArgs>());
@@ -754,14 +753,14 @@ public class BuildIntegrationTests : RepoTestBase
         }
     }
 
-    private async Task<BuildResults> BuildAsync(ProjectRootElement project, string target = Targets.GetBuildVersion, LoggerVerbosity logVerbosity = LoggerVerbosity.Detailed, bool assertSuccessfulBuild = true)
+    private async Task<BuildResults> BuildAsync(string target = Targets.GetBuildVersion, LoggerVerbosity logVerbosity = LoggerVerbosity.Detailed, bool assertSuccessfulBuild = true)
     {
         var eventLogger = new MSBuildLogger { Verbosity = LoggerVerbosity.Minimal };
         var loggers = new ILogger[] { eventLogger };
         var buildResult = await this.buildManager.BuildAsync(
             this.Logger,
             this.projectCollection,
-            project,
+            this.testProject,
             target,
             this.globalProperties,
             logVerbosity,
