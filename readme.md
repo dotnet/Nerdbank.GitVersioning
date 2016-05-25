@@ -156,6 +156,13 @@ You should only build with this property set from one release branch per
 major.minor version to avoid the risk of producing multiple unique NuGet
 packages with a colliding version spec.
 
+### Shallow clones
+
+Since git history is a crucial part of calculating a git height based version, it is important
+that you *not* build using a shallow clone or the computed version may be incorrect.
+Some cloud build systems such as AppVeyor or TeamCity allow you to use shallow cloning or
+suppress the .git folder entirely. You should not use these options when using git-based versioning.
+
 ## Where and how versions are calculated and applied
 
 This package calculates the version based on a combination of the version file,
