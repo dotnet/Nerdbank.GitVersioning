@@ -127,7 +127,7 @@
                 VersionOptions versionOptions;
                 using (var git = this.OpenGitRepo())
                 {
-                    var repoRoot = git?.Info?.WorkingDirectory;
+                    var repoRoot = git?.Info?.WorkingDirectory?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                     var relativeRepoProjectDirectory = !string.IsNullOrWhiteSpace(repoRoot)
                         ? Environment.CurrentDirectory.Substring(repoRoot.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
                         : null;

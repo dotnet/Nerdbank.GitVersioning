@@ -57,7 +57,7 @@ public class BuildIntegrationTests : RepoTestBase
         this.projectDirectory = Path.Combine(this.RepoPath, "projdir");
         Directory.CreateDirectory(this.projectDirectory);
         this.LoadTargetsIntoProjectCollection();
-        this.testProject = this.CreateProjectRootElement();
+        this.testProject = this.CreateProjectRootElement(this.projectDirectory, "test.proj");
         this.globalProperties.Add("NerdbankGitVersioningTasksPath", Environment.CurrentDirectory + "\\");
 
         // Sterilize the test of any environment variables.
@@ -172,6 +172,23 @@ public class BuildIntegrationTests : RepoTestBase
         this.AddCommits(this.random.Next(15));
         var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(subdirVersionSpec, buildResult, subdirectory);
+    }
+
+    [Fact]
+    public async Task GetBuildVersion_In_Git_With_Version_File_In_Root_And_Project_In_Root_Works()
+    {
+        var rootVersionSpec = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("14.1"),
+            AssemblyVersion = new VersionOptions.AssemblyVersionOptions(new Version(14, 0)),
+        };
+
+        this.WriteVersionFile(rootVersionSpec);
+        this.InitializeSourceControl();
+        this.AddCommits(this.random.Next(15));
+        this.testProject = this.CreateProjectRootElement(this.RepoPath, "root.proj");
+        var buildResult = await this.BuildAsync();
+        this.AssertStandardProperties(rootVersionSpec, buildResult);
     }
 
     [Fact]
@@ -775,10 +792,10 @@ public class BuildIntegrationTests : RepoTestBase
         }
     }
 
-    private ProjectRootElement CreateProjectRootElement()
+    private ProjectRootElement CreateProjectRootElement(string projectDirectory, string projectName)
     {
         var pre = ProjectRootElement.Create(this.projectCollection);
-        pre.FullPath = Path.Combine(this.projectDirectory, "test.proj");
+        pre.FullPath = Path.Combine(projectDirectory, projectName);
 
         pre.AddProperty("RootNamespace", "TestNamespace");
         pre.AddProperty("AssemblyName", "TestAssembly");
