@@ -12,7 +12,7 @@ The directory of the project which is adding versioning logic with Nerdbank.GitV
 The directory where version.json should be generated. Defaults to the project directory if not specified.
 This should either be the project directory, or in a parent directory of the project inside the repo.
 #>
-[CmdletBinding(SupportsShouldProcess)]
+[CmdletBinding(SupportsShouldProcess=$true)]
 Param(
     [Parameter()]
     [string]$ProjectDirectory=".",
