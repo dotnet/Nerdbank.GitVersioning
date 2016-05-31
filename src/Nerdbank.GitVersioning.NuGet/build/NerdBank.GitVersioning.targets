@@ -34,9 +34,6 @@
     <_NBGV_BuildingRef Condition=" '$(_NBGV_BuildingRef)' == '' ">$(_NBGV_BuildingBranch)</_NBGV_BuildingRef>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(NBGV_DoNotEmitNonVersionCustomAttributes)' != 'true' ">
-    <_NBGV_AssemblyName>$(AssemblyName)</_NBGV_AssemblyName>
-    <_NBGV_RootNamespace>$(RootNamespace)</_NBGV_RootNamespace>
-    <_NBGV_AssemblyOriginatorKeyFile>$(AssemblyOriginatorKeyFile)</_NBGV_AssemblyOriginatorKeyFile>
     <_NBGV_AssemblyTitle>$(AssemblyTitle)</_NBGV_AssemblyTitle>
     <_NBGV_AssemblyProduct>$(AssemblyProduct)</_NBGV_AssemblyProduct>
     <_NBGV_AssemblyCopyright>$(AssemblyCopyright)</_NBGV_AssemblyCopyright>
@@ -112,9 +109,9 @@
                   AssemblyVersion="$(AssemblyVersion)"
                   AssemblyFileVersion="$(AssemblyFileVersion)"
                   AssemblyInformationalVersion="$(AssemblyInformationalVersion)"
-                  AssemblyName="$(_NBGV_AssemblyName)"
-                  RootNamespace="$(_NBGV_RootNamespace)"
-                  AssemblyOriginatorKeyFile="$(_NBGV_AssemblyOriginatorKeyFile)"
+                  AssemblyName="$(AssemblyName)"
+                  RootNamespace="$(RootNamespace)"
+                  AssemblyOriginatorKeyFile="$(AssemblyOriginatorKeyFile)"
                   AssemblyTitle="$(_NBGV_AssemblyTitle)"
                   AssemblyProduct="$(_NBGV_AssemblyProduct)"
                   AssemblyCopyright="$(_NBGV_AssemblyCopyright)"
