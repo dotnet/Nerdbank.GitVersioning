@@ -22,9 +22,9 @@
     <GenerateAssemblyVersionInfo Condition=" '$(GenerateAssemblyVersionInfo)' == '' and '$(TargetExt)' != '.dll' and '$(TargetExt)' != '.exe'">false</GenerateAssemblyVersionInfo>
   </PropertyGroup>
 
-  <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="AssemblyVersionInfo"/>
-  <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="GetBuildVersion"/>
-  <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="CompareFiles"/>
+  <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="Nerdbank.GitVersioning.Tasks.AssemblyVersionInfo"/>
+  <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="Nerdbank.GitVersioning.Tasks.GetBuildVersion"/>
+  <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="Nerdbank.GitVersioning.Tasks.CompareFiles"/>
 
   <Import Project="VisualStudioTeamServices.targets"  Condition=" '$(SYSTEM_TEAMPROJECTID)' != '' "/>
   <Import Project="AppVeyor.targets"                  Condition=" '$(APPVEYOR)' == 'True' "/>
@@ -33,9 +33,18 @@
     <_NBGV_BuildingRef>$(_NBGV_BuildingTag)</_NBGV_BuildingRef>
     <_NBGV_BuildingRef Condition=" '$(_NBGV_BuildingRef)' == '' ">$(_NBGV_BuildingBranch)</_NBGV_BuildingRef>
   </PropertyGroup>
-
+  <PropertyGroup Condition=" '$(NBGV_DoNotEmitNonVersionCustomAttributes)' != 'true' ">
+    <_NBGV_AssemblyName>$(AssemblyName)</_NBGV_AssemblyName>
+    <_NBGV_RootNamespace>$(RootNamespace)</_NBGV_RootNamespace>
+    <_NBGV_AssemblyOriginatorKeyFile>$(AssemblyOriginatorKeyFile)</_NBGV_AssemblyOriginatorKeyFile>
+    <_NBGV_AssemblyTitle>$(AssemblyTitle)</_NBGV_AssemblyTitle>
+    <_NBGV_AssemblyProduct>$(AssemblyProduct)</_NBGV_AssemblyProduct>
+    <_NBGV_AssemblyCopyright>$(AssemblyCopyright)</_NBGV_AssemblyCopyright>
+    <_NBGV_AssemblyCompany>$(AssemblyCompany)</_NBGV_AssemblyCompany>
+  </PropertyGroup>
+  
   <Target Name="GetBuildVersion" Returns="$(BuildVersion)">
-    <GetBuildVersion
+    <Nerdbank.GitVersioning.Tasks.GetBuildVersion
       BuildingRef="$(_NBGV_BuildingRef)"
       BuildMetadata="@(BuildMetadata)"
       DefaultPublicRelease="$(PublicRelease)">
@@ -51,7 +60,7 @@
       <Output TaskParameter="CloudBuildNumber" PropertyName="CloudBuildNumber" />
       <Output TaskParameter="SetCloudBuildVersionVars" PropertyName="SetCloudBuildVersionVars" />
       <Output TaskParameter="BuildMetadataFragment" PropertyName="SemVerBuildSuffix" />
-    </GetBuildVersion>
+    </Nerdbank.GitVersioning.Tasks.GetBuildVersion>
     <PropertyGroup>
       <BuildNumber>$(BuildVersionNumberComponent)</BuildNumber>
       <BuildNumberFirstComponent>$([System.Text.RegularExpressions.Regex]::Match($(BuildNumber), '(\d+)').Groups[1].Value)</BuildNumberFirstComponent>
@@ -97,25 +106,25 @@
       <UltimateResourceFallbackLocation Condition=" '$(DevDivProjectSubType)' != 'portable' ">UltimateResourceFallbackLocation.MainAssembly</UltimateResourceFallbackLocation>
     </PropertyGroup>
     <MakeDir Directories="$(IntermediatePath)"/>
-    <AssemblyVersionInfo
+    <Nerdbank.GitVersioning.Tasks.AssemblyVersionInfo
                   OutputFile="$(NewVersionSourceFile)"
                   CodeLanguage="$(Language)"
                   AssemblyVersion="$(AssemblyVersion)"
                   AssemblyFileVersion="$(AssemblyFileVersion)"
                   AssemblyInformationalVersion="$(AssemblyInformationalVersion)"
-                  AssemblyName="$(AssemblyName)"
-                  RootNamespace="$(RootNamespace)"
-                  AssemblyOriginatorKeyFile="$(AssemblyOriginatorKeyFile)"
-                  AssemblyTitle="$(AssemblyTitle)"
-                  AssemblyProduct="$(AssemblyProduct)"
-                  AssemblyCopyright="$(AssemblyCopyright)"
-                  AssemblyCompany="$(AssemblyCompany)"
+                  AssemblyName="$(_NBGV_AssemblyName)"
+                  RootNamespace="$(_NBGV_RootNamespace)"
+                  AssemblyOriginatorKeyFile="$(_NBGV_AssemblyOriginatorKeyFile)"
+                  AssemblyTitle="$(_NBGV_AssemblyTitle)"
+                  AssemblyProduct="$(_NBGV_AssemblyProduct)"
+                  AssemblyCopyright="$(_NBGV_AssemblyCopyright)"
+                  AssemblyCompany="$(_NBGV_AssemblyCompany)"
                   AssemblyConfiguration="$(Configuration)"/>
     <!-- Avoid applying the newly generated AssemblyVersionInfo.cs file to the build 
          unless it has changed in order to allow for incremental building. -->
-    <CompareFiles OriginalItems="$(VersionSourceFile)" NewItems="$(NewVersionSourceFile)">
+    <Nerdbank.GitVersioning.Tasks.CompareFiles OriginalItems="$(VersionSourceFile)" NewItems="$(NewVersionSourceFile)">
       <Output TaskParameter="AreChanged" PropertyName="AssemblyVersionInfoChanged" />
-    </CompareFiles>
+    </Nerdbank.GitVersioning.Tasks.CompareFiles>
     <Copy Condition=" '$(AssemblyVersionInfoChanged)' == 'true' " SourceFiles="$(NewVersionSourceFile)" DestinationFiles="$(VersionSourceFile)" />
     <ItemGroup>
       <Compile Include="$(VersionSourceFile)" />
