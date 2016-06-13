@@ -5,7 +5,6 @@
         "module": "commonjs",
         "sourceMap": true,
         "noImplicitAny": false,
-        "sortOutput": true,
         "outDir": "js"
     },
     "exclude": [
