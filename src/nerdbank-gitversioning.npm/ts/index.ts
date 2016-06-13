@@ -20,7 +20,6 @@ export async function downloadNuGetExe(): Promise<string> {
                 req.pipe(fs.createWriteStream(nugetExePath))
                     .on('finish', () => resolve(req));
             });
-        console.log('Download successful.');
     }
 
     return nugetExePath;
