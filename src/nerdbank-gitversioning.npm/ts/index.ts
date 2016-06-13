@@ -1,8 +1,8 @@
 'use strict';
 
 import * as q from 'q';
-const request = require('request');
-const fs = require('fs');
+import request = require('request');
+import fs = require('fs');
 
 function downloadNuGetExe(): q.Promise<string> {
     console.log('Downloading nuget.exe...');
