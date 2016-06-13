@@ -1,0 +1,30 @@
+{
+  "name": "nerdbank-gitversioning",
+  "version": "0.0.0-placeholder",
+  "description": "Stamps your NPM packages with semver 2.0 compliant git commit specific version information.",
+  "author": {
+    "name": "Andrew Arnott",
+    "email": "andrewarnott@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AArnott/Nerdbank.GitVersioning.git"
+  },
+  "scripts": {
+    "install": "install.cmd"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "gulp": "3.9.1",
+    "gulp-concat": "2.6.0",
+    "gulp-sourcemaps": "1.6.0",
+    "gulp-typescript": "2.13.6",
+    "merge2": "1.0.2",
+    "q": "1.4.1",
+    "typescript": "1.8.10",
+    "typings": "1.0.5"
+  },
+  "dependencies": {
+    "request": "^2.72.0"
+  }
+}
