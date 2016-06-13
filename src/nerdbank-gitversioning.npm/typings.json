@@ -4,6 +4,7 @@
     "q": "registry:dt/q#0.0.0+20160417152954"
   },
   "dependencies": {
+    "del": "registry:npm/del#2.2.0+20160416211512",
     "request": "registry:npm/request#2.69.0+20160428223725"
   }
 }

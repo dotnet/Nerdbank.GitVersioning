@@ -15,7 +15,8 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "gulp": "3.9.1",
+    "del": "^2.2.0",
+    "gulp": "^3.9.1",
     "gulp-concat": "2.6.0",
     "gulp-sourcemaps": "1.6.0",
     "gulp-tslint": "^5.0.0",

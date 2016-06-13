@@ -6,6 +6,7 @@ var sourcemaps = require('gulp-sourcemaps');
 var merge = require('merge2');
 var tslint = require('gulp-tslint');
 
+const outDir = 'release';
 var tsProject = ts.createProject('tsconfig.json', { declarationFiles: true });
 
 gulp.task('tsc', function() {
@@ -15,17 +16,22 @@ gulp.task('tsc', function() {
         .pipe(ts(tsProject));
 
     return merge([
-        tsResult.dts.pipe(gulp.dest('release/definitions')),
+        tsResult.dts.pipe(gulp.dest(`{outDir}/definitions`)),
         tsResult.js
-            .pipe(concat('index.js'))
-            .pipe(sourcemaps.write())
-            .pipe(gulp.dest('release/js'))
+            .pipe(sourcemaps.write('../maps'))
+            .pipe(gulp.dest(`{outDir}/js`))
     ]);
+});
+
+gulp.task('clean', function() {
+    return del([
+        outDir
+    ])
 });
 
 gulp.task('default', ['tsc'], function() {
 });
 
 gulp.task('watch', ['tsc'], function() {
-    gulp.watch('**/*.ts', ['tsc']);
+    return gulp.watch('**/*.ts', ['tsc']);
 });
