@@ -27,7 +27,7 @@ export async function installNuGetPackage(packageId: string) {
     var nugetExePath = await downloadNuGetExe();
     await mkdirIfNotExistAsync(packagesFolder);
     console.log(`Installing ${packageId}...`);
-    var result = await execAsync(`${nugetExePath} install ${packageId} -OutputDirectory .`);
+    var result = await execAsync(`${nugetExePath} install ${packageId} -OutputDirectory ${packagesFolder}`);
     console.log(result.stdout);
     console.log(result.stderr);
 };
