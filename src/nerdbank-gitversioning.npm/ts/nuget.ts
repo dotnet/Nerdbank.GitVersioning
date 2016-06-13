@@ -23,11 +23,27 @@ async function downloadNuGetExe(): Promise<string> {
     return nugetExePath;
 };
 
-export async function installNuGetPackage(packageId: string) {
+export async function installNuGetPackage(packageId: string, version?: string) {
     var nugetExePath = await downloadNuGetExe();
-    await mkdirIfNotExistAsync(packagesFolder);
-    console.log(`Installing ${packageId}...`);
-    var result = await execAsync(`${nugetExePath} install ${packageId} -OutputDirectory ${packagesFolder}`);
-    console.log(result.stdout);
-    console.log(result.stderr);
+
+    if (!version) {
+        var versionInfo = await execAsync(`${nugetExePath} list ${packageId}`);
+        var regex = new RegExp(`${packageId} (\\S+)`);
+        var matches = regex.exec(versionInfo.stdout);
+        version = matches[1];
+    }
+
+    var packageLocation = path.join(packagesFolder, `${packageId}.${version}`);
+
+    if (!(await existsAsync(packageLocation))) {
+        console.log(`Installing ${packageId} ${version}...`);
+        await mkdirIfNotExistAsync(packagesFolder);
+        var result = await execAsync(`${nugetExePath} install ${packageId} -OutputDirectory ${packagesFolder} -Version ${version}`);
+    }
+
+    return {
+        packageDir: packageLocation,
+        id: packageId,
+        version: version
+    };
 };
