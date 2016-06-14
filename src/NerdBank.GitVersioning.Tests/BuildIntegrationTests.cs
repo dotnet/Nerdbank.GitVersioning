@@ -92,6 +92,30 @@ public class BuildIntegrationTests : RepoTestBase
     }
 
     [Fact]
+    public async Task GetBuildVersion_OutsideGit_PointingToGit()
+    {
+        // Write a version file to the 'virtualized' repo.
+        string version = "3.4";
+        this.WriteVersionFile(version);
+
+        // Update the repo path so we create the 'normal' one elsewhere
+        this.RepoPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        this.InitializeSourceControl();
+
+        // Write the same version file to the 'real' repo
+        this.WriteVersionFile(version);
+        
+        // Point the project to the 'real' repo
+        this.testProject.AddProperty("GitRepoRoot", this.RepoPath);
+
+        var buildResult = await this.BuildAsync();
+
+        var workingCopyVersion = VersionOptions.FromVersion(new Version(version));
+
+        this.AssertStandardProperties(workingCopyVersion, buildResult);
+    }
+
+    [Fact]
     public async Task GetBuildVersion_In_Git_But_Without_Commits()
     {
         Repository.Init(this.RepoPath);
