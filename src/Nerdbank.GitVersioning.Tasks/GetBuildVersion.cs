@@ -39,6 +39,11 @@
         public string DefaultPublicRelease { get; set; }
 
         /// <summary>
+        /// Gets or sets the path to the repo root. If null or empty, behavior defaults to using Environment.CurrentDirectory and searching upwards.
+        /// </summary>
+        public string GitRepoRoot { get; set; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether the project is building
         /// in PublicRelease mode.
         /// </summary>
@@ -225,7 +230,7 @@
 
         private LibGit2Sharp.Repository OpenGitRepo()
         {
-            string repoRoot = Environment.CurrentDirectory;
+            string repoRoot = string.IsNullOrEmpty(this.GitRepoRoot) ? Environment.CurrentDirectory : this.GitRepoRoot;
             while (!Directory.Exists(Path.Combine(repoRoot, ".git")))
             {
                 repoRoot = Path.GetDirectoryName(repoRoot);

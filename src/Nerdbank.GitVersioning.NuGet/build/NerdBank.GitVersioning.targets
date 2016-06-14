@@ -44,7 +44,9 @@
     <Nerdbank.GitVersioning.Tasks.GetBuildVersion
       BuildingRef="$(_NBGV_BuildingRef)"
       BuildMetadata="@(BuildMetadata)"
-      DefaultPublicRelease="$(PublicRelease)">
+      DefaultPublicRelease="$(PublicRelease)"
+      GitRepoRoot="$(GitRepoRoot)">
+
       <Output TaskParameter="Version" PropertyName="BuildVersion" />
       <Output TaskParameter="SimpleVersion" PropertyName="BuildVersionSimple" />
       <Output TaskParameter="PrereleaseVersion" PropertyName="PrereleaseVersion" Condition=" '$(PrereleaseVersion)' == '' " />
