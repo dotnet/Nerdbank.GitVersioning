@@ -19,7 +19,7 @@ gulp.task('tsc', function() {
     return merge([
         tsResult.dts.pipe(gulp.dest(`${outDir}/definitions`)),
         tsResult.js
-            .pipe(sourcemaps.write('../maps'))
+            .pipe(sourcemaps.write(`maps`))
             .pipe(gulp.dest(outDir))
     ]);
 });
