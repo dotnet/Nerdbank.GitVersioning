@@ -24,13 +24,23 @@ gulp.task('tsc', function() {
     ]);
 });
 
-gulp.task('package', ['tsc'], function() {
-    gulp.src([
-        'package.json',
-        '../../LICENSE.txt',
-        '../../README.md'
-    ])
-        .pipe(gulp.dest(outDir))
+gulp.task('copyPackageContents', ['tsc'], function() {
+    return gulp
+        .src([
+            'package.json',
+            '../../LICENSE.txt',
+            '../../README.md'
+        ])
+        .pipe(gulp.dest(outDir));
+});
+
+gulp.task('setPackageVersion', ['copyPackageContents'], function() {
+    var nbgv = require(`./${outDir}`);
+    return nbgv.setPackageVersion(outDir, '.'); 
+});
+
+gulp.task('package', ['setPackageVersion'], function() {
+
 });
 
 gulp.task('clean', function() {

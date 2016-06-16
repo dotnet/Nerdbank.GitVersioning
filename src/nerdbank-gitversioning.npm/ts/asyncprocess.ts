@@ -1,13 +1,13 @@
-import {exec} from 'child_process';
+import * as cp from 'child_process';
 
 export interface IExecAsyncResult {
     stdout: string;
     stderr: string;
 }
 
-export function execAsync(command: string) {
+export function execAsync(command: string, options?: cp.ExecOptions) {
     return new Promise<IExecAsyncResult>(
-        (resolve, reject) => exec(command, (error, stdout, stderr) => {
+        (resolve, reject) => cp.exec(command, options, (error, stdout, stderr) => {
             if (error) {
                 reject(error);
             } else {
