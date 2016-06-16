@@ -2,6 +2,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+var camelCase = require('camel-case')
 import {installNuGetPackage} from './nuget'
 import {execAsync} from './asyncprocess';
 
@@ -13,7 +14,7 @@ export async function getPackageVersion(projectDirectory: string) {
     var match;
     var result = {};
     while (match = varsRegEx.exec(versionText.stdout)) {
-        result[match[1]] = match[2];
+        result[camelCase(match[1])] = match[2];
     }
 
     //console.log(result);

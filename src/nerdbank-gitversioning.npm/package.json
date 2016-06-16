@@ -27,6 +27,7 @@
     "typings": "1.0.5"
   },
   "dependencies": {
+    "camel-case": "^3.0.0",
     "request": "^2.72.0"
   }
 }

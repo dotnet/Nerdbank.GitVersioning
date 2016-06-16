@@ -1,5 +1,6 @@
 {
   "globalDependencies": {
+    "camel-case": "registry:dt/camel-case#0.0.0+20160316155526",
     "node": "registry:dt/node#6.0.0+20160608110640"
   },
   "dependencies": {
