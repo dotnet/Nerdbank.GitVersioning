@@ -54,3 +54,16 @@ export async function setPackageVersion(packageDirectory?: string, srcDirectory?
         console.log(result.stderr);
     }
 }
+
+/**
+ * Sets the package version to 0.0.0-placeholder, so as to obviously indicate
+ * that the version isn't set in the source code version of package.json.
+ * @param srcDirectory The directory of the source code behind the package, if different. 
+ */
+export async function resetPackageVersionPlaceholder(srcDirectory?: string) {
+    srcDirectory = srcDirectory || '.';
+    var result = await execAsync(`npm version 0.0.0-placeholder`);
+    if (result.stderr) {
+        console.log(result.stderr);
+    }
+}
