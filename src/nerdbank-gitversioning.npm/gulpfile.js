@@ -20,8 +20,17 @@ gulp.task('tsc', function() {
         tsResult.dts.pipe(gulp.dest(`${outDir}/definitions`)),
         tsResult.js
             .pipe(sourcemaps.write('../maps'))
-            .pipe(gulp.dest(`${outDir}/js`))
+            .pipe(gulp.dest(outDir))
     ]);
+});
+
+gulp.task('package', ['tsc'], function() {
+    gulp.src([
+        'package.json',
+        '../../LICENSE.txt',
+        '../../README.md'
+    ])
+        .pipe(gulp.dest(outDir))
 });
 
 gulp.task('clean', function() {
@@ -30,7 +39,7 @@ gulp.task('clean', function() {
     ])
 });
 
-gulp.task('default', ['tsc'], function() {
+gulp.task('default', ['package'], function() {
 });
 
 gulp.task('watch', ['tsc'], function() {
