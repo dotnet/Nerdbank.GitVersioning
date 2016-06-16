@@ -27,7 +27,17 @@ The content of the version.json file is a JSON serialized object with these prop
   "publicReleaseRefSpec": [
     "^refs/heads/master$", // we release out of master
     "^refs/tags/v\\d\\.\\d" // we also release tags starting with vN.N
-  ]
+  ],
+  "cloudBuild": {
+    "setVersionVariables": true,
+    "buildNumber": {
+      "enabled": false,
+      "includeCommitId": {
+        "when": "nonPublicReleaseOnly",
+        "where": "buildMetadata"
+      }
+    }
+  }
 }
 ```
 
@@ -37,4 +47,7 @@ The `z` variable should be 0.
 
 The optional -prerelease tag allows you to indicate that you are building prerelease software.
 
-The `publicReleaseRefSpec` field causes builds out of certain branches or tags to automatically default the `PublicRelease` property to `true`, making it convenient to build releases out of these refs without the `-gCOMMITID` suffix in your version specs.
+The `publicReleaseRefSpec` field causes builds out of certain branches or tags
+to automatically drop the `-gabc123` git commit ID suffix from the version, making it
+convenient to build releases out of these refs with a friendly version number
+that assumes linear versioning.
