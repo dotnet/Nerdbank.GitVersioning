@@ -4,8 +4,8 @@ import * as request from 'request';
 import {existsAsync, mkdirIfNotExistAsync} from './asyncio';
 import {execAsync} from './asyncprocess';
 
-const nugetExePath = `${__dirname}/tools/nuget.exe`;
-const packagesFolder = `${__dirname}/packages/`;
+const nugetExePath = `${__dirname}/../tools/nuget.exe`;
+const packagesFolder = `${__dirname}/../packages/`;
 
 async function downloadNuGetExe(): Promise<string> {
     if (!(await existsAsync(nugetExePath))) {
