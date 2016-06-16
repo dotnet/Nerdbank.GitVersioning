@@ -29,6 +29,10 @@ export async function getGitVersion(projectDirectory?: string) : Promise<IGitVer
     var packageInstallPath = await installNuGetPackage('Nerdbank.GitVersioning', '1.4.41');
     var getVersionScriptPath = path.join(packageInstallPath.packageDir, "tools", "Get-Version.ps1");
     var versionText = await execAsync(`powershell -ExecutionPolicy Bypass -Command (${getVersionScriptPath} -ProjectDirectory "${projectDirectory}")`)
+    if (versionText.stderr) {
+        throw versionText.stderr;
+    }
+
     var varsRegEx = /^(\w+)\s*: (.+)/mg;
     var match;
     var result = {};
