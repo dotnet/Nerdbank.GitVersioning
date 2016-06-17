@@ -24,9 +24,9 @@ gulp.task('tsc', function() {
         }
     };
     return merge([
-        tsResult.dts.pipe(gulp.dest(`${outDir}/definitions`)),
+        tsResult.dts.pipe(gulp.dest(outDir)),
         tsResult.js
-            .pipe(sourcemaps.write(`maps`))
+            .pipe(sourcemaps.write('.'))
             .pipe(replace({
                 tokens: replacements,
                 preserveUnknownTokens: true // we'll set the remaining ones later.
