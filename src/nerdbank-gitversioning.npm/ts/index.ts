@@ -63,7 +63,7 @@ export async function setPackageVersion(packageDirectory?: string, srcDirectory?
     srcDirectory = srcDirectory || packageDirectory;
     const gitVersion = await getGitVersion(srcDirectory);
     console.log(`Setting package version to ${gitVersion.semVer1}`);
-    var result = await execAsync(`npm version ${gitVersion.semVer1}`, { cwd: packageDirectory });
+    var result = await execAsync(`npm version ${gitVersion.semVer1} --no-git-tag-version`, { cwd: packageDirectory });
     if (result.stderr) {
         console.log(result.stderr);
     }
