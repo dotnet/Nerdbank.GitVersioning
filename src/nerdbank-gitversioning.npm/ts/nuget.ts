@@ -7,7 +7,9 @@ import {execAsync} from './asyncprocess';
 const nugetExePath = `${__dirname}/../tools/nuget.exe`;
 const packagesFolder = `${__dirname}/../packages/`;
 
-async function downloadNuGetExe(): Promise<string> {
+var downloadNuGetExePromise: Promise<string> = null;
+
+async function downloadNuGetExeImpl(): Promise<string> {
     if (!(await existsAsync(nugetExePath))) {
         await mkdirIfNotExistAsync(path.dirname(nugetExePath));
 
@@ -23,7 +25,23 @@ async function downloadNuGetExe(): Promise<string> {
     return nugetExePath;
 };
 
-export async function installNuGetPackage(packageId: string, version?: string) {
+function downloadNuGetExe(): Promise<string> {
+    if (downloadNuGetExePromise) {
+        return downloadNuGetExePromise;
+    } else {
+        return downloadNuGetExePromise = downloadNuGetExeImpl();
+    }
+}
+
+var installNuGetPackagePromises = { };
+
+export interface INuGetPackageInstallResult {
+    packageDir: string;
+    id: string;
+    version: string;
+}
+
+export async function installNuGetPackage(packageId: string, version?: string) : Promise<INuGetPackageInstallResult> {
     var nugetExePath = await downloadNuGetExe();
 
     if (!version) {
@@ -34,11 +52,31 @@ export async function installNuGetPackage(packageId: string, version?: string) {
     }
 
     var packageLocation = path.join(packagesFolder, `${packageId}.${version}`);
+    if (installNuGetPackagePromises[packageLocation]) {
+        return installNuGetPackagePromises[packageLocation];
+    } else {
+        return installNuGetPackagePromises[packageLocation] = installNuGetPackageImpl(packageId, version);
+    }
+}
+
+async function delay(millis) {
+    await new Promise(resolve => setTimeout(resolve, millis));    
+}
+
+async function installNuGetPackageImpl(packageId: string, version: string) : Promise<INuGetPackageInstallResult> {
+    var nugetExePath = await downloadNuGetExe();
+    var packageLocation = path.join(packagesFolder, `${packageId}.${version}`);
 
     if (!(await existsAsync(packageLocation))) {
         console.log(`Installing ${packageId} ${version}...`);
         await mkdirIfNotExistAsync(packagesFolder);
-        var result = await execAsync(`${nugetExePath} install ${packageId} -OutputDirectory ${packagesFolder} -Version ${version}`);
+        try {
+            await execAsync(`${nugetExePath} install ${packageId} -OutputDirectory ${packagesFolder} -Version ${version}`);
+        } catch (err) {
+            // try once more. Some bizarre race condition seems to kill us.
+            await delay(250);
+            await execAsync(`${nugetExePath} install ${packageId} -OutputDirectory ${packagesFolder} -Version ${version}`);
+        }
     }
 
     return {
