@@ -14,12 +14,11 @@ install:
     iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/install-nuget-3-3-0.ps1'))
 before_build:
 - ps: >-
-    nuget restore src -Verbosity quiet
+    .\init.ps1
 
     #$blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
-build:
-  parallel: true
-  verbosity: minimal
+build_script:
+- ps: .\build.ps1
 artifacts:
 - path: bin\**\*.nupkg
 - path: bin\js\*.tgz

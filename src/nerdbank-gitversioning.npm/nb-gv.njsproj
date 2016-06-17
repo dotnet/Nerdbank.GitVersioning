@@ -19,19 +19,29 @@
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
   <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
   <ItemGroup>
+    <Content Include=".gitignore" />
     <Content Include="jsconfig.json" />
     <Content Include="package.json" />
+    <Content Include="README.md" />
     <Content Include="tsconfig.json" />
     <Compile Include="gulpfile.js" />
     <Content Include="typings.json" />
+    <Content Include="typings\globals\camel-case\typings.json" />
+    <Content Include="typings\globals\node\typings.json" />
+    <Content Include="typings\modules\del\typings.json" />
+    <Content Include="typings\modules\request\typings.json" />
+    <TypeScriptCompile Include="ts\asyncio.ts" />
+    <TypeScriptCompile Include="ts\asyncprocess.ts" />
     <TypeScriptCompile Include="ts\index.ts" />
-    <TypeScriptCompile Include="typings\globals\node\index.d.ts" />
-    <TypeScriptCompile Include="typings\globals\q\index.d.ts" />
-    <TypeScriptCompile Include="typings\index.d.ts" />
+    <TypeScriptCompile Include="ts\nuget.ts" />
     <TypeScriptCompile Include="release\definitions\gulpfile.d.ts" />
     <TypeScriptCompile Include="release\definitions\index.d.ts" />
     <TypeScriptCompile Include="release\definitions\try.d.ts" />
     <Compile Include="release\js\index.js" />
+    <TypeScriptCompile Include="typings\globals\camel-case\index.d.ts" />
+    <TypeScriptCompile Include="typings\globals\node\index.d.ts" />
+    <TypeScriptCompile Include="typings\index.d.ts" />
+    <TypeScriptCompile Include="typings\modules\del\index.d.ts" />
     <TypeScriptCompile Include="typings\modules\request\index.d.ts" />
   </ItemGroup>
   <ItemGroup>
@@ -39,11 +49,12 @@
     <Folder Include="release\definitions" />
     <Folder Include="release\js" />
     <Folder Include="ts" />
-    <Folder Include="typings" />
+    <Folder Include="typings\" />
     <Folder Include="typings\globals\" />
+    <Folder Include="typings\globals\camel-case\" />
     <Folder Include="typings\globals\node\" />
-    <Folder Include="typings\globals\q\" />
     <Folder Include="typings\modules\" />
+    <Folder Include="typings\modules\del\" />
     <Folder Include="typings\modules\request\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.Common.targets" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
