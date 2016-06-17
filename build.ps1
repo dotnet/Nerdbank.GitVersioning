@@ -6,5 +6,5 @@ if (Test-Path "C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll")
 
 Invoke-Expression $msbuildCommandLine 
 Push-Location "$PSScriptRoot\src\nerdbank-gitversioning.npm"
-gulp
+.\node_modules\.bin\gulp.cmd
 Pop-Location
