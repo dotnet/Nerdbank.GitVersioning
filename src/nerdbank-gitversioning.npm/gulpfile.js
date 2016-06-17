@@ -2,12 +2,12 @@
 var gulp = require('gulp');
 var gutil = require('gulp-util');
 var ts = require('gulp-typescript');
-var concat = require('gulp-concat');
 var sourcemaps = require('gulp-sourcemaps');
 var merge = require('merge2');
 var tslint = require('gulp-tslint');
 var del = require('del');
 var replace = require('gulp-token-replace');
+var path = require('path');
 
 const outDir = 'out';
 var tsProject = ts.createProject('tsconfig.json', { declarationFiles: true });
@@ -64,7 +64,13 @@ gulp.task('setPackageVersionToken', ['copyPackageContents'], function() {
 });
 
 gulp.task('package', ['setPackageVersion','setPackageVersionToken'], function() {
-
+    var afs = require('./out/asyncio');
+    var binDir =  '../../bin/js';
+    return afs.mkdirIfNotExistAsync(binDir)
+        .then(function() {
+            var ap = require('./out/asyncprocess');
+            return ap.execAsync(`npm pack "${path.join(__dirname, outDir)}"`, { cwd: binDir });
+        });
 });
 
 gulp.task('clean', function() {

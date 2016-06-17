@@ -22,6 +22,7 @@ build:
   verbosity: minimal
 artifacts:
 - path: bin\**\*.nupkg
+- path: bin\js\*.tgz
 on_success:
 - ps: >-
     if ($env:NuGetApiKey -and $env:APPVEYOR_REPO_TAG_NAME -match "^v\d") {
