@@ -4,7 +4,21 @@ if (Test-Path "C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll")
     $msbuildCommandLine += " /logger:`"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll`""
 }
 
-Invoke-Expression $msbuildCommandLine 
-Push-Location "$PSScriptRoot\src\nerdbank-gitversioning.npm"
-.\node_modules\.bin\gulp.cmd
-Pop-Location
+try {
+    Invoke-Expression $msbuildCommandLine
+    if ($LASTEXITCODE -ne 0) {
+        throw "MSBuild failed"
+    }
+
+    Push-Location "$PSScriptRoot\src\nerdbank-gitversioning.npm"
+    .\node_modules\.bin\gulp.cmd
+    if ($LASTEXITCODE -ne 0) {
+        throw "Node build failed"
+    }
+
+    Pop-Location
+} catch {
+    Write-Error "Build failure"
+    # we have the try so that PS fails when we get failure exit codes from build steps.
+    throw;
+}
