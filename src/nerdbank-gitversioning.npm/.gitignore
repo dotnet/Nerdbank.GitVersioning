@@ -1,0 +1,5 @@
+out/
+typings/
+.ntvs_analysis.dat
+tools/
+packages/
