@@ -4,13 +4,21 @@
   "description": "Stamps your NPM packages with semver 2.0 compliant git commit specific version information.",
   "author": {
     "name": "Andrew Arnott",
-    "email": "andrewarnott@gmail.com"
+    "email": "andrewarnott@gmail.com",
+    "url": "http://blog.nerdbank.net/"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/AArnott/Nerdbank.GitVersioning.git"
   },
+  "bugs": {
+    "url": "https://github.com/AArnott/Nerdbank.GitVersioning/issues"
+  },
+  "homepage": "https://github.com/AArnott/Nerdbank.GitVersioning",
   "license": "MIT",
+  "keywords": [
+    "versioning"
+  ],
   "devDependencies": {
     "del": "^2.2.0",
     "gulp": "^3.9.1",
