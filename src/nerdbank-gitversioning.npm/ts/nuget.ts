@@ -70,12 +70,13 @@ async function installNuGetPackageImpl(packageId: string, version: string) : Pro
     if (!(await existsAsync(packageLocation))) {
         console.log(`Installing ${packageId} ${version}...`);
         await mkdirIfNotExistAsync(packagesFolder);
+        let cmdline = `${nugetExePath} install ${packageId} -OutputDirectory ${packagesFolder} -Version ${version} -Source https://api.nuget.org/v3/index.json`;
         try {
-            await execAsync(`${nugetExePath} install ${packageId} -OutputDirectory ${packagesFolder} -Version ${version}`);
+            await execAsync(cmdline);
         } catch (err) {
             // try once more. Some bizarre race condition seems to kill us.
             await delay(250);
-            await execAsync(`${nugetExePath} install ${packageId} -OutputDirectory ${packagesFolder} -Version ${version}`);
+            await execAsync(cmdline);
         }
     }
 
