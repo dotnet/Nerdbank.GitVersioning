@@ -226,21 +226,40 @@
         /// <summary>
         /// Gets the version to use for NuGet packages.
         /// </summary>
-        public string NuGetPackageVersion =>
-            $"{this.Version.ToStringSafe(3)}{this.PrereleaseVersion}{this.SemVer1GitCommitIdShortPackageSuffix}";
+        public string NuGetPackageVersion => this.SemVer1;
 
         /// <summary>
         /// Gets the version to use for NPM packages.
         /// </summary>
-        public string NpmPackageVersion => this.NuGetPackageVersion;
+        public string NpmPackageVersion => this.SemVer1;
 
-        private string SemVer1GitCommitIdShortPackageSuffix =>
+        /// <summary>
+        /// Gets a SemVer 1.0 compliant string that represents this version, including the -gCOMMITID suffix
+        /// when <see cref="PublicRelease"/> is <c>false</c>.
+        /// </summary>
+        public string SemVer1 =>
+            $"{this.Version.ToStringSafe(3)}{this.PrereleaseVersion}{this.SemVer1BuildMetadata}";
+
+        /// <summary>
+        /// Gets a SemVer 2.0 compliant string that represents this version, including a +gCOMMITID suffix
+        /// when <see cref="PublicRelease"/> is <c>false</c>.
+        /// </summary>
+        public string SemVer2 =>
+            $"{this.Version.ToStringSafe(3)}{this.PrereleaseVersion}{this.SemVer2BuildMetadata}";
+
+        private string SemVer1BuildMetadata =>
             this.PublicRelease ? string.Empty : $"-g{this.GitCommitIdShort}";
+
+        private string SemVer2BuildMetadata =>
+            FormatBuildMetadata(this.PublicRelease ? this.BuildMetadata : this.BuildMetadataWithCommitId);
 
         private VersionOptions.CloudBuildNumberOptions CloudBuildNumberOptions { get; }
 
         private static string FormatBuildMetadata(IEnumerable<string> identifiers) =>
             (identifiers?.Any() ?? false) ? "+" + string.Join(".", identifiers) : string.Empty;
+
+        private static string FormatBuildMetadataSemVerV1(IEnumerable<string> identifiers) =>
+            (identifiers?.Any() ?? false) ? "-" + string.Join("-", identifiers) : string.Empty;
 
         private static LibGit2Sharp.Repository OpenGitRepo(string repoRoot)
         {
