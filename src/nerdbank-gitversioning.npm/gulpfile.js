@@ -52,7 +52,7 @@ gulp.task('setPackageVersion', ['copyPackageContents'], function() {
 
 gulp.task('setPackageVersionToken', ['copyPackageContents'], function() {
     var nbgv = require(`./${outDir}`);
-    return nbgv.getGitVersion()
+    return nbgv.getVersion()
         .then(function(v) {
             var replacements = {
                 version: { current: v.semVer1 }
