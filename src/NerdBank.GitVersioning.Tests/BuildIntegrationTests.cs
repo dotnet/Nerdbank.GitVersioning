@@ -27,6 +27,7 @@ using Version = System.Version;
 public class BuildIntegrationTests : RepoTestBase
 {
     private const string GitVersioningTargetsFileName = "NerdBank.GitVersioning.targets";
+    private const string UnitTestCloudBuildPrefix = "UnitTest: ";
     private static readonly string[] ToxicEnvironmentVariablePrefixes = new string[]
     {
         "APPVEYOR",
@@ -42,7 +43,6 @@ public class BuildIntegrationTests : RepoTestBase
         // Set global properties to neutralize environment variables
         // that might actually be defined by a CI that is building and running these tests.
         { "PublicRelease", string.Empty },
-        { "_NBGV_UnitTest", "true" }
     };
     private Random random;
 
@@ -59,6 +59,7 @@ public class BuildIntegrationTests : RepoTestBase
         this.LoadTargetsIntoProjectCollection();
         this.testProject = this.CreateProjectRootElement(this.projectDirectory, "test.proj");
         this.globalProperties.Add("NerdbankGitVersioningTasksPath", Environment.CurrentDirectory + "\\");
+        Environment.SetEnvironmentVariable("_NBGV_UnitTest", "true");
 
         // Sterilize the test of any environment variables.
         foreach (System.Collections.DictionaryEntry variable in Environment.GetEnvironmentVariables())
@@ -69,6 +70,12 @@ public class BuildIntegrationTests : RepoTestBase
                 this.globalProperties[name] = string.Empty;
             }
         }
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        Environment.SetEnvironmentVariable("_NBGV_UnitTest", string.Empty);
+        base.Dispose(disposing);
     }
 
     [Fact]
@@ -104,7 +111,7 @@ public class BuildIntegrationTests : RepoTestBase
 
         // Write the same version file to the 'real' repo
         this.WriteVersionFile(version);
-        
+
         // Point the project to the 'real' repo
         this.testProject.AddProperty("GitRepoRoot", this.RepoPath);
 
@@ -382,14 +389,12 @@ public class BuildIntegrationTests : RepoTestBase
         // Don't actually switch the checked out branch in git. CI environment variables
         // should take precedence over actual git configuration. (Why? because these variables may
         // retain information about which tag was checked out on a detached head).
-        foreach (var property in serverProperties)
+        using (ApplyEnvironmentVariables(serverProperties))
         {
-            this.globalProperties[property.Key] = property.Value;
+            var buildResult = await this.BuildAsync();
+            Assert.True(buildResult.PublicRelease);
+            AssertStandardProperties(versionOptions, buildResult);
         }
-
-        var buildResult = await this.BuildAsync();
-        Assert.True(buildResult.PublicRelease);
-        AssertStandardProperties(versionOptions, buildResult);
     }
 
     public static object[][] CloudBuildVariablesData
@@ -407,44 +412,42 @@ public class BuildIntegrationTests : RepoTestBase
     [MemberData(nameof(CloudBuildVariablesData))]
     public async Task CloudBuildVariables_SetInCI(IReadOnlyDictionary<string, string> properties, string expectedMessage)
     {
-        foreach (var property in properties)
+        using (ApplyEnvironmentVariables(properties))
         {
-            this.globalProperties[property.Key] = property.Value;
+            string keyName = "n1";
+            string value = "v1";
+            this.testProject.AddItem("CloudBuildVersionVars", keyName, new Dictionary<string, string> { { "Value", value } });
+
+            string alwaysExpectedMessage = UnitTestCloudBuildPrefix + expectedMessage
+                .Replace("{NAME}", keyName)
+                .Replace("{VALUE}", value);
+
+            var versionOptions = new VersionOptions
+            {
+                Version = SemanticVersion.Parse("1.0"),
+                CloudBuild = new VersionOptions.CloudBuildOptions { SetVersionVariables = true },
+            };
+            this.WriteVersionFile(versionOptions);
+            this.InitializeSourceControl();
+
+            var buildResult = await this.BuildAsync();
+            AssertStandardProperties(versionOptions, buildResult);
+            string conditionallyExpectedMessage = UnitTestCloudBuildPrefix + expectedMessage
+                .Replace("{NAME}", "GitBuildVersion")
+                .Replace("{VALUE}", buildResult.BuildVersion);
+            Assert.Contains(alwaysExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
+            Assert.Contains(conditionallyExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
+
+            versionOptions.CloudBuild.SetVersionVariables = false;
+            this.WriteVersionFile(versionOptions);
+            buildResult = await this.BuildAsync();
+            AssertStandardProperties(versionOptions, buildResult);
+            conditionallyExpectedMessage = UnitTestCloudBuildPrefix + expectedMessage
+                .Replace("{NAME}", "GitBuildVersion")
+                .Replace("{VALUE}", buildResult.BuildVersion);
+            Assert.Contains(alwaysExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
+            Assert.DoesNotContain(conditionallyExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
         }
-
-        string keyName = "n1";
-        string value = "v1";
-        this.testProject.AddItem("CloudBuildVersionVars", keyName, new Dictionary<string, string> { { "Value", value } });
-
-        string alwaysExpectedMessage = expectedMessage
-            .Replace("{NAME}", keyName)
-            .Replace("{VALUE}", value);
-
-        var versionOptions = new VersionOptions
-        {
-            Version = SemanticVersion.Parse("1.0"),
-            CloudBuild = new VersionOptions.CloudBuildOptions { SetVersionVariables = true },
-        };
-        this.WriteVersionFile(versionOptions);
-        this.InitializeSourceControl();
-
-        var buildResult = await this.BuildAsync();
-        AssertStandardProperties(versionOptions, buildResult);
-        string conditionallyExpectedMessage = expectedMessage
-            .Replace("{NAME}", "GitBuildVersion")
-            .Replace("{VALUE}", buildResult.BuildVersion);
-        Assert.Contains(alwaysExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
-        Assert.Contains(conditionallyExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
-
-        versionOptions.CloudBuild.SetVersionVariables = false;
-        this.WriteVersionFile(versionOptions);
-        buildResult = await this.BuildAsync();
-        AssertStandardProperties(versionOptions, buildResult);
-        conditionallyExpectedMessage = expectedMessage
-            .Replace("{NAME}", "GitBuildVersion")
-            .Replace("{VALUE}", buildResult.BuildVersion);
-        Assert.Contains(alwaysExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
-        Assert.DoesNotContain(conditionallyExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
     }
 
     private static VersionOptions BuildNumberVersionOptionsBasis
@@ -483,16 +486,23 @@ public class BuildIntegrationTests : RepoTestBase
     {
         this.WriteVersionFile(versionOptions);
         this.InitializeSourceControl();
-
-        foreach (var property in properties)
+        using (ApplyEnvironmentVariables(properties))
         {
-            this.globalProperties[property.Key] = property.Value;
+            var buildResult = await this.BuildAsync();
+            AssertStandardProperties(versionOptions, buildResult);
+            expectedBuildNumberMessage = expectedBuildNumberMessage.Replace("{CLOUDBUILDNUMBER}", buildResult.CloudBuildNumber);
+            Assert.Contains(UnitTestCloudBuildPrefix + expectedBuildNumberMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
         }
 
-        var buildResult = await this.BuildAsync();
-        AssertStandardProperties(versionOptions, buildResult);
-        expectedBuildNumberMessage = expectedBuildNumberMessage.Replace("{CLOUDBUILDNUMBER}", buildResult.CloudBuildNumber);
-        Assert.Contains(expectedBuildNumberMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
+        versionOptions.CloudBuild.BuildNumber.Enabled = false;
+        this.WriteVersionFile(versionOptions);
+        using (ApplyEnvironmentVariables(properties))
+        {
+            var buildResult = await this.BuildAsync();
+            AssertStandardProperties(versionOptions, buildResult);
+            expectedBuildNumberMessage = expectedBuildNumberMessage.Replace("{CLOUDBUILDNUMBER}", buildResult.CloudBuildNumber);
+            Assert.DoesNotContain(UnitTestCloudBuildPrefix + expectedBuildNumberMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
+        }
     }
 
     [Theory]
@@ -705,6 +715,20 @@ public class BuildIntegrationTests : RepoTestBase
         return assemblyVersion;
     }
 
+    private static RestoreEnvironmentVariables ApplyEnvironmentVariables(IReadOnlyDictionary<string, string> variables)
+    {
+        Requires.NotNull(variables, nameof(variables));
+
+        var oldValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var variable in variables)
+        {
+            oldValues[variable.Key] = Environment.GetEnvironmentVariable(variable.Key);
+            Environment.SetEnvironmentVariable(variable.Key, variable.Value);
+        }
+
+        return new RestoreEnvironmentVariables(oldValues);
+    }
+
     private void AssertStandardProperties(VersionOptions versionOptions, BuildResults buildResult, string relativeProjectDirectory = null)
     {
         int versionHeight = this.Repo.GetVersionHeight(relativeProjectDirectory);
@@ -728,9 +752,6 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal($"{assemblyVersion.Major}.{assemblyVersion.Minor}.{assemblyVersion.Build}.{assemblyVersion.Revision}", buildResult.AssemblyVersion);
 
         Assert.Equal(idAsVersion.Build.ToString(), buildResult.BuildNumber);
-        Assert.Equal(idAsVersion.Build.ToString(), buildResult.BuildNumberFirstAndSecondComponentsIfApplicable);
-        Assert.Equal(idAsVersion.Build.ToString(), buildResult.BuildNumberFirstComponent);
-        Assert.Equal(string.Empty, buildResult.BuildNumberSecondComponent);
         Assert.Equal($"{version}", buildResult.BuildVersion);
         Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}", buildResult.BuildVersion3Components);
         Assert.Equal(idAsVersion.Build.ToString(), buildResult.BuildVersionNumberComponent);
@@ -846,6 +867,21 @@ public class BuildIntegrationTests : RepoTestBase
         csharpImport.Project = @"$(MSBuildToolsPath)\Microsoft.VisualBasic.targets";
     }
 
+    private struct RestoreEnvironmentVariables : IDisposable
+    {
+        private readonly IReadOnlyDictionary<string, string> applyVariables;
+
+        internal RestoreEnvironmentVariables(IReadOnlyDictionary<string, string> applyVariables)
+        {
+            this.applyVariables = applyVariables;
+        }
+
+        public void Dispose()
+        {
+            ApplyEnvironmentVariables(this.applyVariables);
+        }
+    }
+
     private static class CloudBuild
     {
         public static readonly ImmutableDictionary<string, string> VSTS = ImmutableDictionary<string, string>.Empty
@@ -882,9 +918,6 @@ public class BuildIntegrationTests : RepoTestBase
         public string PrereleaseVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("PrereleaseVersion");
         public string MajorMinorVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("MajorMinorVersion");
         public string BuildVersionNumberComponent => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("BuildVersionNumberComponent");
-        public string BuildNumberFirstComponent => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("BuildNumberFirstComponent");
-        public string BuildNumberSecondComponent => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("BuildNumberSecondComponent");
-        public string BuildNumberFirstAndSecondComponentsIfApplicable => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("BuildNumberFirstAndSecondComponentsIfApplicable");
         public string GitCommitIdShort => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitCommitIdShort");
         public string GitVersionHeight => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitVersionHeight");
         public string SemVerBuildSuffix => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("SemVerBuildSuffix");

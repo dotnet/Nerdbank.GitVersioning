@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.IO;
     using System.Linq;
     using System.Text;
@@ -9,7 +10,7 @@
     using LibGit2Sharp;
     using Validation;
     using Xunit.Abstractions;
-    using System.Diagnostics;
+
     public abstract class RepoTestBase : IDisposable
     {
         public RepoTestBase(ITestOutputHelper logger)

@@ -63,6 +63,18 @@
         public string AssemblyVersion { get; private set; }
 
         /// <summary>
+        /// Gets the version string to use for the <see cref="System.Reflection.AssemblyFileVersionAttribute"/>.
+        /// </summary>
+        [Output]
+        public string AssemblyFileVersion { get; private set; }
+
+        /// <summary>
+        /// Gets the version string to use for the <see cref="System.Reflection.AssemblyInformationalVersionAttribute"/>.
+        /// </summary>
+        [Output]
+        public string AssemblyInformationalVersion { get; private set; }
+
+        /// <summary>
         /// Gets the version string to use in the official release name (lacks revision number).
         /// </summary>
         [Output]
@@ -92,6 +104,9 @@
         [Output]
         public string GitCommitId { get; private set; }
 
+        [Output]
+        public string GitCommitIdShort { get; private set; }
+
         /// <summary>
         /// Gets the number of commits in the longest single path between
         /// the specified commit and the most distant ancestor (inclusive)
@@ -106,6 +121,12 @@
         [Output]
         public string BuildMetadataFragment { get; private set; }
 
+        [Output]
+        public string NuGetPackageVersion { get; private set; }
+
+        [Output]
+        public string NpmPackageVersion { get; private set; }
+
         /// <summary>
         /// Gets the build number (git height) for this version.
         /// </summary>
@@ -118,87 +139,47 @@
         [Output]
         public string CloudBuildNumber { get; private set; }
 
-        /// <summary>
-        /// Gets a value indicating whether to set cloud build version variables.
-        /// </summary>
         [Output]
-        public bool SetCloudBuildVersionVars { get; private set; }
+        public ITaskItem[] CloudBuildVersionVars { get; private set; }
 
         public override bool Execute()
         {
             try
             {
-                Version typedVersion;
-                VersionOptions versionOptions;
-                using (var git = this.OpenGitRepo())
+                var cloudBuild = CloudBuild.Active;
+                var oracle = VersionOracle.Create(Environment.CurrentDirectory, this.GitRepoRoot, cloudBuild);
+                if (!string.IsNullOrEmpty(this.DefaultPublicRelease))
                 {
-                    var repoRoot = git?.Info?.WorkingDirectory?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-                    var relativeRepoProjectDirectory = !string.IsNullOrWhiteSpace(repoRoot)
-                        ? Environment.CurrentDirectory.Substring(repoRoot.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
-                        : null;
-
-                    var commit = git?.Head.Commits.FirstOrDefault();
-                    this.GitCommitId = commit?.Id.Sha ?? string.Empty;
-                    this.GitVersionHeight = git?.GetVersionHeight(relativeRepoProjectDirectory) ?? 0;
-                    if (string.IsNullOrEmpty(this.BuildingRef))
-                    {
-                        this.BuildingRef = git?.Head.CanonicalName;
-                    }
-
-                    versionOptions =
-                        VersionFile.GetVersion(git, Environment.CurrentDirectory) ??
-                        VersionFile.GetVersion(Environment.CurrentDirectory);
-
-                    this.PublicRelease = string.Equals(this.DefaultPublicRelease, "true", StringComparison.OrdinalIgnoreCase);
-                    if (string.IsNullOrEmpty(this.DefaultPublicRelease))
-                    {
-                        if (!string.IsNullOrEmpty(this.BuildingRef) && versionOptions?.PublicReleaseRefSpec?.Length > 0)
-                        {
-                            this.PublicRelease = versionOptions.PublicReleaseRefSpec.Any(
-                                expr => Regex.IsMatch(this.BuildingRef, expr));
-                        }
-                    }
-
-                    this.PrereleaseVersion = versionOptions?.Version.Prerelease ?? string.Empty;
-
-                    // Override the typedVersion with the special build number and revision components, when available.
-                    typedVersion = git?.GetIdAsVersion(relativeRepoProjectDirectory, this.GitVersionHeight) ?? versionOptions?.Version.Version;
+                    oracle.PublicRelease = string.Equals(this.DefaultPublicRelease, "true", StringComparison.OrdinalIgnoreCase);
                 }
 
-                typedVersion = typedVersion ?? new Version();
-                var typedVersionWithoutRevision = typedVersion.Build >= 0
-                    ? new Version(typedVersion.Major, typedVersion.Minor, typedVersion.Build)
-                    : new Version(typedVersion.Major, typedVersion.Minor);
-                this.SimpleVersion = typedVersionWithoutRevision.ToString();
-                var majorMinorVersion = new Version(typedVersion.Major, typedVersion.Minor);
-                this.MajorMinorVersion = majorMinorVersion.ToString();
-                Version assemblyVersion = GetAssemblyVersion(typedVersion, versionOptions);
-                this.AssemblyVersion = assemblyVersion.ToStringSafe(4);
-                this.BuildNumber = Math.Max(0, typedVersion.Build);
-                this.Version = typedVersion.ToString();
-
-                this.SetCloudBuildVersionVars = versionOptions?.CloudBuild?.SetVersionVariables
-                    ?? (new VersionOptions.CloudBuildOptions()).SetVersionVariables;
-
-                var buildMetadata = this.BuildMetadata?.ToList() ?? new List<string>();
-                if (!string.IsNullOrEmpty(this.GitCommitId))
+                if (this.BuildMetadata != null)
                 {
-                    buildMetadata.Insert(0, $"g{this.GitCommitId.Substring(0, 10)}");
+                    oracle.BuildMetadata.AddRange(this.BuildMetadata);
                 }
 
-                this.BuildMetadataFragment = FormatBuildMetadata(buildMetadata);
+                this.PublicRelease = oracle.PublicRelease;
+                this.Version = oracle.TypedVersion.ToString();
+                this.AssemblyVersion = oracle.AssemblyVersion.ToString();
+                this.AssemblyFileVersion = oracle.AssemblyFileVersion.ToString();
+                this.AssemblyInformationalVersion = oracle.AssemblyInformationalVersion;
+                this.SimpleVersion = oracle.TypedVersionWithoutRevision.ToString();
+                this.MajorMinorVersion = oracle.MajorMinorVersion.ToString();
+                this.BuildNumber = oracle.BuildNumber;
+                this.PrereleaseVersion = oracle.PrereleaseVersion;
+                this.GitCommitId = oracle.GitCommitId;
+                this.GitCommitIdShort = oracle.GitCommitIdShort;
+                this.GitVersionHeight = oracle.GitVersionHeight;
+                this.BuildMetadataFragment = oracle.BuildMetadataFragment;
+                this.CloudBuildNumber = oracle.SetCloudBuildNumber ? oracle.CloudBuildNumber : null;
+                this.NuGetPackageVersion = oracle.NuGetPackageVersion;
+                this.NpmPackageVersion = oracle.NpmPackageVersion;
 
-                var buildNumber = versionOptions?.CloudBuild?.BuildNumber ?? new VersionOptions.CloudBuildNumberOptions();
-                if (buildNumber.Enabled)
+                if (oracle.SetCloudBuildVersionVars)
                 {
-                    var commitIdOptions = buildNumber.IncludeCommitId ?? new VersionOptions.CloudBuildNumberCommitIdOptions();
-                    bool includeCommitInfo = commitIdOptions.When == VersionOptions.CloudBuildNumberCommitWhen.Always ||
-                        (commitIdOptions.When == VersionOptions.CloudBuildNumberCommitWhen.NonPublicReleaseOnly && !this.PublicRelease);
-                    bool commitIdInRevision = includeCommitInfo && commitIdOptions.Where == VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent;
-                    bool commitIdInBuildMetadata = includeCommitInfo && commitIdOptions.Where == VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata;
-                    Version buildNumberVersion = commitIdInRevision ? typedVersion : typedVersionWithoutRevision;
-                    string buildNumberMetadata = FormatBuildMetadata(commitIdInBuildMetadata ? (IEnumerable<string>)buildMetadata : this.BuildMetadata);
-                    this.CloudBuildNumber = buildNumberVersion + this.PrereleaseVersion + buildNumberMetadata;
+                    this.CloudBuildVersionVars = oracle.CloudBuildVersionVars
+                        .Select(item => new TaskItem(item.Key, new Dictionary<string, string> { { "Value", item.Value } }))
+                        .ToArray();
                 }
             }
             catch (ArgumentOutOfRangeException ex)
@@ -208,39 +189,6 @@
             }
 
             return true;
-        }
-
-        private static string FormatBuildMetadata(IEnumerable<string> identifiers)
-        {
-            return identifiers?.Any() ?? false
-                ? "+" + string.Join(".", identifiers)
-                : string.Empty;
-        }
-
-        private static Version GetAssemblyVersion(Version version, VersionOptions versionOptions)
-        {
-            var assemblyVersion = versionOptions?.AssemblyVersion?.Version ?? new System.Version(version.Major, version.Minor);
-            assemblyVersion = new System.Version(
-                assemblyVersion.Major,
-                assemblyVersion.Minor,
-                versionOptions?.AssemblyVersion?.Precision >= VersionOptions.VersionPrecision.Build ? version.Build : 0,
-                versionOptions?.AssemblyVersion?.Precision >= VersionOptions.VersionPrecision.Revision ? version.Revision : 0);
-            return assemblyVersion;
-        }
-
-        private LibGit2Sharp.Repository OpenGitRepo()
-        {
-            string repoRoot = string.IsNullOrEmpty(this.GitRepoRoot) ? Environment.CurrentDirectory : this.GitRepoRoot;
-            while (!Directory.Exists(Path.Combine(repoRoot, ".git")))
-            {
-                repoRoot = Path.GetDirectoryName(repoRoot);
-                if (repoRoot == null)
-                {
-                    return null;
-                }
-            }
-
-            return new LibGit2Sharp.Repository(repoRoot);
         }
     }
 }

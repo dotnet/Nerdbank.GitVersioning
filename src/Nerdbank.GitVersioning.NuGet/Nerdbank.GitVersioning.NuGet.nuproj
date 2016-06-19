@@ -47,9 +47,7 @@
     <Content Include="..\NerdBank.GitVersioning\version.schema.json">
       <Link>tools\version.schema.json</Link>
     </Content>
-    <Content Include="build\VisualStudioTeamServices.targets" />
     <Content Include="build\dotnet\Nerdbank.GitVersioning.targets" />
-    <Content Include="build\AppVeyor.targets" />
     <Content Include="build\NerdBank.GitVersioning.targets" />
     <Content Include="build\portable-net+win+wpa+wp+sl+netmf+MonoAndroid+MonoTouch+Xamarin.iOS\Nerdbank.GitVersioning.targets" />
     <Content Include="tools\Get-Version.ps1" />
