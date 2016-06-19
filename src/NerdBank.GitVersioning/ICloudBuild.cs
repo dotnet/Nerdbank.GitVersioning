@@ -1,0 +1,52 @@
+﻿namespace Nerdbank.GitVersioning
+{
+    using System.IO;
+
+    /// <summary>
+    /// Defines cloud build provider functionality.
+    /// </summary>
+    public interface ICloudBuild
+    {
+        /// <summary>
+        /// Gets a value indicating whether the active cloud build matches what this instance supports.
+        /// </summary>
+        bool IsApplicable { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether a cloud build is validating a pull request.
+        /// </summary>
+        bool IsPullRequest { get; }
+
+        /// <summary>
+        /// Gets the branch being built by a cloud build, if applicable.
+        /// </summary>
+        string BuildingBranch { get; }
+
+        /// <summary>
+        /// Gets the tag being built by a cloud build, if applicable.
+        /// </summary>
+        string BuildingTag { get; }
+
+        /// <summary>
+        /// Gets the git commit ID being built by a cloud build, if applicable.
+        /// </summary>
+        string GitCommitId { get; }
+
+        /// <summary>
+        /// Sets the build number for the cloud build, if supported.
+        /// </summary>
+        /// <param name="buildNumber">The build number to set.</param>
+        /// <param name="stdout">An optional redirection for what should be written to the standard out stream.</param>
+        /// <param name="stderr">An optional redirection for what should be written to the standard error stream.</param>
+        void SetCloudBuildNumber(string buildNumber, TextWriter stdout, TextWriter stderr);
+
+        /// <summary>
+        /// Sets a cloud build variable, if supported.
+        /// </summary>
+        /// <param name="name">The name of the variable.</param>
+        /// <param name="value">The value for the variable.</param>
+        /// <param name="stdout">An optional redirection for what should be written to the standard out stream.</param>
+        /// <param name="stderr">An optional redirection for what should be written to the standard error stream.</param>
+        void SetCloudBuildVariable(string name, string value, TextWriter stdout, TextWriter stderr);
+    }
+}

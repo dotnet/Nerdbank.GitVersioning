@@ -23,11 +23,10 @@
   </PropertyGroup>
 
   <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="Nerdbank.GitVersioning.Tasks.AssemblyVersionInfo"/>
+  <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="Nerdbank.GitVersioning.Tasks.SetCloudBuildVariables"/>
   <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="Nerdbank.GitVersioning.Tasks.GetBuildVersion"/>
   <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="Nerdbank.GitVersioning.Tasks.CompareFiles"/>
 
-  <Import Project="VisualStudioTeamServices.targets"  Condition=" '$(SYSTEM_TEAMPROJECTID)' != '' "/>
-  <Import Project="AppVeyor.targets"                  Condition=" '$(APPVEYOR)' == 'True' "/>
   <PropertyGroup>
     <!-- Consider building a tag to be more precise than the branch we're building. -->
     <_NBGV_BuildingRef>$(_NBGV_BuildingTag)</_NBGV_BuildingRef>
@@ -48,53 +47,50 @@
       GitRepoRoot="$(GitRepoRoot)">
 
       <Output TaskParameter="Version" PropertyName="BuildVersion" />
+      <Output TaskParameter="AssemblyInformationalVersion" PropertyName="AssemblyInformationalVersion" />
+      <Output TaskParameter="AssemblyFileVersion" PropertyName="AssemblyFileVersion" />
       <Output TaskParameter="SimpleVersion" PropertyName="BuildVersionSimple" />
-      <Output TaskParameter="PrereleaseVersion" PropertyName="PrereleaseVersion" Condition=" '$(PrereleaseVersion)' == '' " />
+      <Output TaskParameter="PrereleaseVersion" PropertyName="PrereleaseVersion" />
       <Output TaskParameter="MajorMinorVersion" PropertyName="MajorMinorVersion" />
       <Output TaskParameter="AssemblyVersion" PropertyName="AssemblyVersion" />
       <Output TaskParameter="GitCommitId" PropertyName="GitCommitId" />
+      <Output TaskParameter="GitCommitIdShort" PropertyName="GitCommitIdShort" />
       <Output TaskParameter="GitVersionHeight" PropertyName="GitVersionHeight" />
+      <Output TaskParameter="BuildNumber" PropertyName="BuildNumber" />
       <Output TaskParameter="BuildNumber" PropertyName="BuildVersionNumberComponent" />
       <Output TaskParameter="PublicRelease" PropertyName="PublicRelease" />
-      <Output TaskParameter="CloudBuildNumber" PropertyName="CloudBuildNumber" />
-      <Output TaskParameter="SetCloudBuildVersionVars" PropertyName="SetCloudBuildVersionVars" />
+      <Output TaskParameter="CloudBuildNumber" PropertyName="CloudBuildNumber" Condition=" '$(CloudBuildNumber)' == '' "/>
       <Output TaskParameter="BuildMetadataFragment" PropertyName="SemVerBuildSuffix" />
+      <Output TaskParameter="NuGetPackageVersion" PropertyName="NuGetPackageVersion" />
+      <Output TaskParameter="NPMPackageVersion" PropertyName="NPMPackageVersion" />
+      <Output TaskParameter="CloudBuildVersionVars" ItemName="CloudBuildVersionVars" />
     </Nerdbank.GitVersioning.Tasks.GetBuildVersion>
+
     <PropertyGroup>
-      <BuildNumber>$(BuildVersionNumberComponent)</BuildNumber>
-      <BuildNumberFirstComponent>$([System.Text.RegularExpressions.Regex]::Match($(BuildNumber), '(\d+)').Groups[1].Value)</BuildNumberFirstComponent>
-      <BuildNumberSecondComponent>$([System.Text.RegularExpressions.Regex]::Match($(BuildNumber), '(\d+)\.(\d+)').Groups[2].Value)</BuildNumberSecondComponent>
-      <BuildNumberFirstAndSecondComponentsIfApplicable Condition=" '$(BuildNumberSecondComponent)' == '' ">$(BuildNumberFirstComponent)</BuildNumberFirstAndSecondComponentsIfApplicable>
-      <BuildNumberFirstAndSecondComponentsIfApplicable Condition=" '$(BuildNumberSecondComponent)' != '' ">$(BuildNumberFirstComponent).$(BuildNumberSecondComponent)</BuildNumberFirstAndSecondComponentsIfApplicable>
-
-      <!-- In TeamCity, the build agent doesn't get the .git directory, but the commit id is available by other means. -->
-      <GitCommitId Condition=" '$(GitCommitId)' == '' ">$(BUILD_VCS_NUMBER)</GitCommitId>
-
-      <GitCommitIdShort Condition=" '$(GitCommitId)' != '' ">$(GitCommitId.Substring(0,10))</GitCommitIdShort>
-
-      <BuildVersion3Components>$(MajorMinorVersion).$(BuildNumberFirstComponent)</BuildVersion3Components>
-      <AssemblyInformationalVersion>$(MajorMinorVersion).$(BuildNumberFirstAndSecondComponentsIfApplicable)$(PrereleaseVersion)$(SemVerBuildSuffix)</AssemblyInformationalVersion>
-      <AssemblyFileVersion>$(BuildVersion)</AssemblyFileVersion>
-      <NuGetPackageVersion>$(BuildVersion3Components)$(PrereleaseVersion)</NuGetPackageVersion>
-
-      <!-- For unreleased versions (not expected to follow linear history), append the git commit id.
-           The 'g' prefix allows tooling to recognize that a git commit ID follows. -->
-      <NuGetPackageVersion Condition=" '$(PublicRelease)' != 'true' ">$(NuGetPackageVersion)-g$(GitCommitIdShort)</NuGetPackageVersion>
+      <BuildVersion3Components>$(MajorMinorVersion).$(BuildVersionNumberComponent)</BuildVersion3Components>
     </PropertyGroup>
-    <ItemGroup Condition=" '$(SetCloudBuildVersionVars)' == 'true' ">
-      <CloudBuildVersionVars Include="GitAssemblyInformationalVersion">
-        <Value>$(AssemblyInformationalVersion)</Value>
-      </CloudBuildVersionVars>
-      <CloudBuildVersionVars Include="GitBuildVersion">
-        <Value>$(BuildVersion)</Value>
-      </CloudBuildVersionVars>
-    </ItemGroup>
 
     <Warning Condition=" '$(AssemblyInformationalVersion)' == '' " Text="Unable to determine the git HEAD commit ID to use for informational version number." />
     <Message Condition=" '$(AssemblyInformationalVersion)' != '' " Text="Building version $(BuildVersion) from commit $(GitCommitId)"/>
     <Message Condition=" '$(AssemblyInformationalVersion)' == '' " Text="Building version $(BuildVersion)"/>
     <Message Importance="low" Text="AssemblyInformationalVersion: $(AssemblyInformationalVersion)" />
     <Message Importance="low" Text="NuGetPackageVersion: $(NuGetPackageVersion)" />
+  </Target>
+
+  <Target Name="SetCloudBuildVersionVars"
+        DependsOnTargets="GetBuildVersion"
+        AfterTargets="GetBuildVersion"
+        Condition=" '@(CloudBuildVersionVars)' != '' ">
+    <Nerdbank.GitVersioning.Tasks.SetCloudBuildVariables
+      CloudBuildVersionVars="@(CloudBuildVersionVars)" />
+  </Target>
+
+  <Target Name="SetCloudBuildNumberWithVersion"
+        DependsOnTargets="GetBuildVersion"
+        AfterTargets="GetBuildVersion"
+        Condition=" '$(CloudBuildNumber)' != '' ">
+    <Nerdbank.GitVersioning.Tasks.SetCloudBuildVariables
+      CloudBuildNumber="$(CloudBuildNumber)" />
   </Target>
 
   <Target Name="GetNuGetPackageVersion" DependsOnTargets="GetBuildVersion" Returns="$(NuGetPackageVersion)" />
