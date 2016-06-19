@@ -33,7 +33,7 @@ function downloadNuGetExe(): Promise<string> {
     }
 }
 
-var installNuGetPackagePromises = { };
+var installNuGetPackagePromises = {};
 
 export interface INuGetPackageInstallResult {
     packageDir: string;
@@ -41,7 +41,7 @@ export interface INuGetPackageInstallResult {
     version: string;
 }
 
-export async function installNuGetPackage(packageId: string, version?: string) : Promise<INuGetPackageInstallResult> {
+export async function installNuGetPackage(packageId: string, version?: string): Promise<INuGetPackageInstallResult> {
     var nugetExePath = await downloadNuGetExe();
 
     if (!version) {
@@ -60,10 +60,10 @@ export async function installNuGetPackage(packageId: string, version?: string) :
 }
 
 async function delay(millis) {
-    await new Promise(resolve => setTimeout(resolve, millis));    
+    await new Promise(resolve => setTimeout(resolve, millis));
 }
 
-async function installNuGetPackageImpl(packageId: string, version: string) : Promise<INuGetPackageInstallResult> {
+async function installNuGetPackageImpl(packageId: string, version: string): Promise<INuGetPackageInstallResult> {
     var nugetExePath = await downloadNuGetExe();
     var packageLocation = path.join(packagesFolder, `${packageId}.${version}`);
 
@@ -71,11 +71,17 @@ async function installNuGetPackageImpl(packageId: string, version: string) : Pro
         console.log(`Installing ${packageId} ${version}...`);
         await mkdirIfNotExistAsync(packagesFolder);
         try {
-            await execAsync(`${nugetExePath} install ${packageId} -OutputDirectory ${packagesFolder} -Version ${version}`);
+            try {
+                await execAsync(`${nugetExePath} install ${packageId} -OutputDirectory ${packagesFolder} -Version ${version}`);
+            } catch (err) {
+                // try once more. Some bizarre race condition seems to kill us.
+                await delay(250);
+                await execAsync(`${nugetExePath} install ${packageId} -OutputDirectory ${packagesFolder} -Version ${version}`);
+            }
         } catch (err) {
-            // try once more. Some bizarre race condition seems to kill us.
-            await delay(250);
-            await execAsync(`${nugetExePath} install ${packageId} -OutputDirectory ${packagesFolder} -Version ${version}`);
+            var e = new Error("Failed to install Nerdbank.GitVersioning nuget package");
+            e['inner'] = err;
+            throw e;
         }
     }
 
