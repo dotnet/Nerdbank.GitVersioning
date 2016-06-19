@@ -57,12 +57,12 @@
 
             var commit = repo?.Head.Commits.FirstOrDefault();
             this.GitCommitId = commit?.Id.Sha ?? cloudBuild?.GitCommitId ?? null;
-            this.GitVersionHeight = repo?.GetVersionHeight(relativeRepoProjectDirectory) ?? 0;
+            this.VersionHeight = repo?.GetVersionHeight(relativeRepoProjectDirectory) ?? 0;
             this.BuildingRef = cloudBuild?.BuildingTag ?? cloudBuild?.BuildingBranch ?? repo?.Head.CanonicalName;
 
             // Override the typedVersion with the special build number and revision components, when available.
-            this.TypedVersion = repo?.GetIdAsVersion(relativeRepoProjectDirectory, this.GitVersionHeight) ?? this.VersionOptions?.Version.Version;
-            this.TypedVersion = this.TypedVersion ?? new Version();
+            this.Version = repo?.GetIdAsVersion(relativeRepoProjectDirectory, this.VersionHeight) ?? this.VersionOptions?.Version.Version;
+            this.Version = this.Version ?? new Version();
 
             this.CloudBuildNumberOptions = this.VersionOptions?.CloudBuild?.BuildNumber ?? new VersionOptions.CloudBuildNumberOptions();
 
@@ -85,7 +85,7 @@
                     (commitIdOptions.When == VersionOptions.CloudBuildNumberCommitWhen.NonPublicReleaseOnly && !this.PublicRelease);
                 bool commitIdInRevision = includeCommitInfo && commitIdOptions.Where == VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent;
                 bool commitIdInBuildMetadata = includeCommitInfo && commitIdOptions.Where == VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata;
-                Version buildNumberVersion = commitIdInRevision ? this.TypedVersion : this.TypedVersionWithoutRevision;
+                Version buildNumberVersion = commitIdInRevision ? this.Version : this.SimpleVersion;
                 string buildNumberMetadata = FormatBuildMetadata(commitIdInBuildMetadata ? this.BuildMetadataWithCommitId : this.BuildMetadata);
                 return buildNumberVersion + this.PrereleaseVersion + buildNumberMetadata;
             }
@@ -94,7 +94,7 @@
         /// <summary>
         /// Gets a value indicating whether the cloud build number should be set.
         /// </summary>
-        public bool SetCloudBuildNumber => this.CloudBuildNumberOptions.Enabled;
+        public bool CloudBuildNumberEnabled => this.CloudBuildNumberOptions.Enabled;
 
         /// <summary>
         /// Gets the build metadata identifiers, including the git commit ID as the first identifier if appropriate.
@@ -123,18 +123,18 @@
         /// <summary>
         /// Gets the version string to use for the <see cref="System.Reflection.AssemblyVersionAttribute"/>.
         /// </summary>
-        public Version AssemblyVersion => GetAssemblyVersion(this.TypedVersion, this.VersionOptions).EnsureNonNegativeComponents();
+        public Version AssemblyVersion => GetAssemblyVersion(this.Version, this.VersionOptions).EnsureNonNegativeComponents();
 
         /// <summary>
         /// Gets the version string to use for the <see cref="System.Reflection.AssemblyFileVersionAttribute"/>.
         /// </summary>
-        public Version AssemblyFileVersion => this.TypedVersion;
+        public Version AssemblyFileVersion => this.Version;
 
         /// <summary>
         /// Gets the version string to use for the <see cref="System.Reflection.AssemblyInformationalVersionAttribute"/>.
         /// </summary>
         public string AssemblyInformationalVersion =>
-            $"{this.TypedVersion.ToStringSafe(3)}{this.PrereleaseVersion}{FormatBuildMetadata(this.BuildMetadataWithCommitId)}";
+            $"{this.Version.ToStringSafe(3)}{this.PrereleaseVersion}{FormatBuildMetadata(this.BuildMetadataWithCommitId)}";
 
         /// <summary>
         /// Gets or sets a value indicating whether the project is building
@@ -148,22 +148,16 @@
         public string PrereleaseVersion => this.VersionOptions?.Version.Prerelease ?? string.Empty;
 
         /// <summary>
-        /// Gets the version string to use in the official release name (lacks revision number).
-        /// </summary>
-        [Obsolete("Use " + nameof(TypedVersionWithoutRevision) + " instead")]
-        public string SimpleVersion => this.TypedVersionWithoutRevision.ToString();
-
-        /// <summary>
         /// Gets the version information without a Revision component.
         /// </summary>
-        public Version TypedVersionWithoutRevision => this.TypedVersion.Build >= 0
-                ? new Version(this.TypedVersion.Major, this.TypedVersion.Minor, this.TypedVersion.Build)
-                : new Version(this.TypedVersion.Major, this.TypedVersion.Minor);
+        public Version SimpleVersion => this.Version.Build >= 0
+                ? new Version(this.Version.Major, this.Version.Minor, this.Version.Build)
+                : new Version(this.Version.Major, this.Version.Minor);
 
         /// <summary>
-        /// Gets the build number (git height) for this version.
+        /// Gets the build number (git height + offset) for this version.
         /// </summary>
-        public int BuildNumber => Math.Max(0, this.TypedVersion.Build);
+        public int BuildNumber => Math.Max(0, this.Version.Build);
 
         /// <summary>
         /// Gets or sets the major.minor version string.
@@ -171,7 +165,7 @@
         /// <value>
         /// The x.y string (no build number or revision number).
         /// </value>
-        public Version MajorMinorVersion => new Version(this.TypedVersion.Major, this.TypedVersion.Minor);
+        public Version MajorMinorVersion => new Version(this.Version.Major, this.Version.Minor);
 
         /// <summary>
         /// Gets the Git revision control commit id for HEAD (the current source code version).
@@ -188,24 +182,24 @@
         /// the specified commit and the most distant ancestor (inclusive)
         /// that set the version to the value at HEAD.
         /// </summary>
-        public int GitVersionHeight { get; }
+        public int VersionHeight { get; }
 
         private string BuildingRef { get; }
 
         /// <summary>
         /// Gets the version for this project, with up to 4 components.
         /// </summary>
-        public Version TypedVersion { get; }
+        public Version Version { get; }
 
         /// <summary>
         /// Gets a value indicating whether to set cloud build version variables.
         /// </summary>
-        public bool SetCloudBuildVersionVars => this.VersionOptions?.CloudBuild?.SetVersionVariables
+        public bool CloudBuildVersionVarsEnabled => this.VersionOptions?.CloudBuild?.SetVersionVariables
             ?? (new VersionOptions.CloudBuildOptions()).SetVersionVariables;
 
         /// <summary>
         /// Gets a dictionary of cloud build variables that applies to this project,
-        /// regardless of the current setting of <see cref="SetCloudBuildVersionVars"/>.
+        /// regardless of the current setting of <see cref="CloudBuildVersionVarsEnabled"/>.
         /// </summary>
         public IDictionary<string, string> CloudBuildVersionVars
         {
@@ -214,7 +208,7 @@
                 return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
                 {
                     { "GitAssemblyInformationalVersion", this.AssemblyInformationalVersion },
-                    { "GitBuildVersion", this.TypedVersion.ToString() },
+                    { "GitBuildVersion", this.Version.ToString() },
                 };
             }
         }
@@ -233,7 +227,7 @@
         /// Gets the version to use for NuGet packages.
         /// </summary>
         public string NuGetPackageVersion =>
-            $"{this.TypedVersion.ToStringSafe(3)}{this.PrereleaseVersion}{this.SemVer1GitCommitIdShortPackageSuffix}";
+            $"{this.Version.ToStringSafe(3)}{this.PrereleaseVersion}{this.SemVer1GitCommitIdShortPackageSuffix}";
 
         /// <summary>
         /// Gets the version to use for NPM packages.

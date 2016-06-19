@@ -159,23 +159,23 @@
                 }
 
                 this.PublicRelease = oracle.PublicRelease;
-                this.Version = oracle.TypedVersion.ToString();
+                this.Version = oracle.Version.ToString();
                 this.AssemblyVersion = oracle.AssemblyVersion.ToString();
                 this.AssemblyFileVersion = oracle.AssemblyFileVersion.ToString();
                 this.AssemblyInformationalVersion = oracle.AssemblyInformationalVersion;
-                this.SimpleVersion = oracle.TypedVersionWithoutRevision.ToString();
+                this.SimpleVersion = oracle.SimpleVersion.ToString();
                 this.MajorMinorVersion = oracle.MajorMinorVersion.ToString();
                 this.BuildNumber = oracle.BuildNumber;
                 this.PrereleaseVersion = oracle.PrereleaseVersion;
                 this.GitCommitId = oracle.GitCommitId;
                 this.GitCommitIdShort = oracle.GitCommitIdShort;
-                this.GitVersionHeight = oracle.GitVersionHeight;
+                this.GitVersionHeight = oracle.VersionHeight;
                 this.BuildMetadataFragment = oracle.BuildMetadataFragment;
-                this.CloudBuildNumber = oracle.SetCloudBuildNumber ? oracle.CloudBuildNumber : null;
+                this.CloudBuildNumber = oracle.CloudBuildNumberEnabled ? oracle.CloudBuildNumber : null;
                 this.NuGetPackageVersion = oracle.NuGetPackageVersion;
                 this.NpmPackageVersion = oracle.NpmPackageVersion;
 
-                if (oracle.SetCloudBuildVersionVars)
+                if (oracle.CloudBuildVersionVarsEnabled)
                 {
                     this.CloudBuildVersionVars = oracle.CloudBuildVersionVars
                         .Select(item => new TaskItem(item.Key, new Dictionary<string, string> { { "Value", item.Value } }))
