@@ -369,8 +369,8 @@ public class BuildIntegrationTests : RepoTestBase
     {
         return new object[][]
         {
-            new object[] { CloudBuild.AppVeyor.Add("APPVEYOR_REPO_BRANCH", branchName) },
-            new object[] { CloudBuild.VSTS.Add( "BUILD_SOURCEBRANCH", $"refs/heads/{branchName}") },
+            new object[] { CloudBuild.AppVeyor.SetItem("APPVEYOR_REPO_BRANCH", branchName) },
+            new object[] { CloudBuild.VSTS.SetItem( "BUILD_SOURCEBRANCH", $"refs/heads/{branchName}") },
         };
     }
 
@@ -536,12 +536,15 @@ public class BuildIntegrationTests : RepoTestBase
         this.WriteVersionFile(versionOptions);
         this.InitializeSourceControl();
 
-        // Check out a branch that conforms.
-        var releaseBranch = this.Repo.CreateBranch("release");
-        this.Repo.Checkout(releaseBranch);
-        var buildResult = await this.BuildAsync();
-        Assert.True(buildResult.PublicRelease);
-        AssertStandardProperties(versionOptions, buildResult);
+        using (ApplyEnvironmentVariables(CloudBuild.SuppressEnvironment))
+        {
+            // Check out a branch that conforms.
+            var releaseBranch = this.Repo.CreateBranch("release");
+            this.Repo.Checkout(releaseBranch);
+            var buildResult = await this.BuildAsync();
+            Assert.True(buildResult.PublicRelease);
+            AssertStandardProperties(versionOptions, buildResult);
+        }
     }
 
     [Theory]
@@ -884,10 +887,19 @@ public class BuildIntegrationTests : RepoTestBase
 
     private static class CloudBuild
     {
-        public static readonly ImmutableDictionary<string, string> VSTS = ImmutableDictionary<string, string>.Empty
-            .Add("SYSTEM_TEAMPROJECTID", "1");
-        public static readonly ImmutableDictionary<string, string> AppVeyor = ImmutableDictionary<string, string>.Empty
-            .Add("APPVEYOR", "True");
+        public static readonly ImmutableDictionary<string, string> SuppressEnvironment = ImmutableDictionary<string, string>.Empty
+            // AppVeyor
+            .Add("APPVEYOR", string.Empty)
+            .Add("APPVEYOR_REPO_TAG", string.Empty)
+            .Add("APPVEYOR_REPO_TAG_NAME", string.Empty)
+            .Add("APPVEYOR_PULL_REQUEST_NUMBER", string.Empty)
+            // VSTS
+            .Add("SYSTEM_TEAMPROJECTID", string.Empty)
+            .Add("BUILD_SOURCEBRANCH", string.Empty);
+        public static readonly ImmutableDictionary<string, string> VSTS = SuppressEnvironment
+            .SetItem("SYSTEM_TEAMPROJECTID", "1");
+        public static readonly ImmutableDictionary<string, string> AppVeyor = SuppressEnvironment
+            .SetItem("APPVEYOR", "True");
     }
 
     private static class Targets

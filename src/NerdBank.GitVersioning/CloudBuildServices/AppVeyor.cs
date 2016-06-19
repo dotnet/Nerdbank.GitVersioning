@@ -52,8 +52,13 @@
         {
             try
             {
-                Process.Start("appveyor", args)
-                    .WaitForExit();
+                // Skip this if this build is running in our own unit tests, since that can
+                // mess with AppVeyor's actual build information.
+                if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("_NBGV_UnitTest")))
+                {
+                    Process.Start("appveyor", args)
+                        .WaitForExit();
+                }
             }
             catch (Win32Exception ex) when ((uint)ex.HResult == 0x80004005)
             {
