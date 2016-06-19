@@ -3,16 +3,11 @@
 Finds the git commit ID that was built to produce some specific version of an assembly.
 .PARAMETER ProjectDirectory
 The directory of the project that built the assembly, within the git repo.
-.PARAMETER PublicRelease
-Forces version generation to consider this a public release. 
-Similar to the MSBuild /p:PublicRelease=true switch.
 #>
 [CmdletBinding(SupportsShouldProcess)]
 Param(
     [Parameter()]
-    [string]$ProjectDirectory=".",
-    [Parameter()]
-    [switch]$PublicRelease
+    [string]$ProjectDirectory="."
 )
 
 if (!$DependencyBasePath) { $DependencyBasePath = "$PSScriptRoot\..\build" }
@@ -26,8 +21,6 @@ $ProjectDirectory = Resolve-Path $ProjectDirectory
 try {
     $CloudBuild = [Nerdbank.GitVersioning.CloudBuild]::Active
     $VersionOracle = [Nerdbank.GitVersioning.VersionOracle]::Create($ProjectDirectory, $null, $CloudBuild)
-    $VersionOracle.PublicRelease = $PublicRelease
-
     $VersionOracle
 }
 finally {
