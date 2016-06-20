@@ -6,7 +6,6 @@ var sourcemaps = require('gulp-sourcemaps');
 var merge = require('merge2');
 var tslint = require('gulp-tslint');
 var del = require('del');
-var replace = require('gulp-token-replace');
 var path = require('path');
 
 const outDir = 'out';
@@ -18,19 +17,10 @@ gulp.task('tsc', function() {
         .pipe(sourcemaps.init())
         .pipe(ts(tsProject));
 
-    var replacements = {
-        'version': {
-            'lkg': '1.5.18-rc'
-        }
-    };
     return merge([
         tsResult.dts.pipe(gulp.dest(outDir)),
         tsResult.js
             .pipe(sourcemaps.write('.'))
-            .pipe(replace({
-                tokens: replacements,
-                preserveUnknownTokens: true // we'll set the remaining ones later.
-            }))
             .pipe(gulp.dest(outDir))
     ]);
 });
@@ -50,20 +40,7 @@ gulp.task('setPackageVersion', ['copyPackageContents'], function() {
     return nbgv.setPackageVersion(outDir, '.');
 });
 
-gulp.task('setPackageVersionToken', ['copyPackageContents'], function() {
-    var nbgv = require(`./${outDir}`);
-    return nbgv.getVersion()
-        .then(function(v) {
-            var replacements = {
-                version: { current: v.semVer1 }
-            };
-            return gulp.src([`${outDir}/*.js`])
-                .pipe(replace({ tokens: replacements }))
-                .pipe(gulp.dest(outDir));
-        });
-});
-
-gulp.task('package', ['setPackageVersion','setPackageVersionToken'], function() {
+gulp.task('package', ['setPackageVersion'], function() {
     var afs = require('./out/asyncio');
     var binDir =  '../../bin/js';
     return afs.mkdirIfNotExistAsync(binDir)
