@@ -10,14 +10,29 @@ import {execAsync} from './asyncprocess';
  * The various aspects of a version that can be calculated.
  */
 export interface IGitVersion {
-    version: string;
-    simpleVersion: string;
-    majorMinorVersoin: string;
-    commitId: string;
-    commitIdShort: string;
-    versionHeight: string;
-    semVer1: string;
-    semVer2: string;
+    cloudBuildNumber: string,
+    cloudBuildNumberEnabled: boolean,
+    buildMetadataWithCommitId: string,
+    assemblyVersion: string,
+    assemblyFileVersion: string,
+    assemblyInformationalVersion: string,
+    publicRelease: boolean,
+    prereleaseVersion: string,
+    simpleVersion: string,
+    buildNumber: string,
+    majorMinorVersion: string,
+    gitCommitId: string,
+    gitCommitIdShort: string,
+    versionHeight: string,
+    version: string,
+    cloudBuildVersionVarsEnabled: boolean,
+    cloudBuildVersionVars: string,
+    buildMetadata: string,
+    buildMetadataFragment: string,
+    nuGetPackageVersion: string,
+    npmPackageVersion: string,
+    semVer1: string,
+    semVer2: string
 }
 
 /** Gets the version of the Nerdbank.GitVersioning nuget package to download. */
@@ -34,7 +49,7 @@ function getNuGetPkgVersion() {
  * Gets an object describing various aspects of the version of a project.
  * @param projectDirectory The directory of the source code to get the version of.
  */
-export async function getGitVersion(projectDirectory?: string) : Promise<IGitVersion> {
+export async function getVersion(projectDirectory?: string): Promise<IGitVersion> {
     projectDirectory = projectDirectory || '.';
     var packageInstallPath = await installNuGetPackage('Nerdbank.GitVersioning', getNuGetPkgVersion());
     var getVersionScriptPath = path.join(packageInstallPath.packageDir, "tools", "Get-Version.ps1");
@@ -47,7 +62,15 @@ export async function getGitVersion(projectDirectory?: string) : Promise<IGitVer
     var match;
     var result = {};
     while (match = varsRegEx.exec(versionText.stdout)) {
-        result[camelCase(match[1])] = match[2];
+        // Do a few type casts if appropriate.
+        let value = match[2];
+        if (value.toUpperCase() === 'TRUE') {
+            value = true;
+        } else if (value.toUpperCase() === 'FALSE') {
+            value = false;
+        }
+
+        result[camelCase(match[1])] = value;
     }
 
     return <IGitVersion>result;
@@ -61,7 +84,7 @@ export async function getGitVersion(projectDirectory?: string) : Promise<IGitVer
 export async function setPackageVersion(packageDirectory?: string, srcDirectory?: string) {
     packageDirectory = packageDirectory || '.';
     srcDirectory = srcDirectory || packageDirectory;
-    const gitVersion = await getGitVersion(srcDirectory);
+    const gitVersion = await getVersion(srcDirectory);
     console.log(`Setting package version to ${gitVersion.semVer1}`);
     var result = await execAsync(`npm version ${gitVersion.semVer1} --no-git-tag-version`, { cwd: packageDirectory });
     if (result.stderr) {

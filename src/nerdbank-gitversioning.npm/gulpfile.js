@@ -20,7 +20,7 @@ gulp.task('tsc', function() {
 
     var replacements = {
         'version': {
-            'lkg': '1.4.41'
+            'lkg': '1.5.18-rc'
         }
     };
     return merge([
@@ -52,7 +52,7 @@ gulp.task('setPackageVersion', ['copyPackageContents'], function() {
 
 gulp.task('setPackageVersionToken', ['copyPackageContents'], function() {
     var nbgv = require(`./${outDir}`);
-    return nbgv.getGitVersion()
+    return nbgv.getVersion()
         .then(function(v) {
             var replacements = {
                 version: { current: v.semVer1 }

@@ -59,6 +59,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyVersionOptionsConverter.cs" />
+    <Compile Include="CloudBuildServices\AppVeyor.cs" />
+    <Compile Include="CloudBuild.cs" />
+    <Compile Include="CloudBuildServices\TeamCity.cs" />
+    <Compile Include="ICloudBuild.cs" />
+    <Compile Include="CloudBuildServices\VisualStudioTeamServices.cs" />
     <Compile Include="GitExtensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SemanticVersion.cs" />
@@ -67,6 +72,7 @@
     <Compile Include="VersionFile.cs" />
     <Compile Include="VersionOptions.cs" />
     <Compile Include="VersionOptionsContractResolver.cs" />
+    <Compile Include="VersionOracle.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
