@@ -70,7 +70,7 @@ async function installNuGetPackageImpl(packageId: string, version: string): Prom
     if (!(await existsAsync(packageLocation))) {
         console.log(`Installing ${packageId} ${version}...`);
         await mkdirIfNotExistAsync(packagesFolder);
-        let cmdline = `${nugetExePath} install ${packageId} -OutputDirectory ${packagesFolder} -Version ${version} -Source https://api.nuget.org/v3/index.json`;
+        let cmdline = `${nugetExePath} install ${packageId} -OutputDirectory ${packagesFolder} -Version ${version} -Source https://ci.appveyor.com/nuget/nerdbank-gitversioning`;
         try {
             try {
                 await execAsync(cmdline);
