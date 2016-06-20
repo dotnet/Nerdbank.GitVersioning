@@ -23,7 +23,6 @@
     "del": "^2.2.0",
     "gulp": "^3.9.1",
     "gulp-sourcemaps": "1.6.0",
-    "gulp-token-replace": "^1.0.3",
     "gulp-tslint": "^5.0.0",
     "gulp-typescript": "2.13.6",
     "gulp-util": "^3.0.7",

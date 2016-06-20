@@ -3,8 +3,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 var camelCase = require('camel-case')
-import {installNuGetPackage} from './nuget'
 import {execAsync} from './asyncprocess';
+
+const nbgvPath = 'nbgv.nuget';
 
 /**
  * The various aspects of a version that can be calculated.
@@ -35,24 +36,13 @@ export interface IGitVersion {
     semVer2: string
 }
 
-/** Gets the version of the Nerdbank.GitVersioning nuget package to download. */
-function getNuGetPkgVersion() {
-    // During compilation, lkgVersion receives its token and we use this LKG
-    // to calculate currentVersion which is set later before we package up for redist.
-    const lkgVersion = '{{version.lkg}}';
-    const currentVersion = '{{version.current}}';
-    const currentVersionPlaceholder = '{' + '{version.current}' + '}';
-    return currentVersion === currentVersionPlaceholder ? lkgVersion : currentVersion;
-}
-
 /**
  * Gets an object describing various aspects of the version of a project.
  * @param projectDirectory The directory of the source code to get the version of.
  */
 export async function getVersion(projectDirectory?: string): Promise<IGitVersion> {
     projectDirectory = projectDirectory || '.';
-    var packageInstallPath = await installNuGetPackage('Nerdbank.GitVersioning', getNuGetPkgVersion());
-    var getVersionScriptPath = path.join(packageInstallPath.packageDir, "tools", "Get-Version.ps1");
+    var getVersionScriptPath = path.join(__dirname, nbgvPath, "tools", "Get-Version.ps1");
     var versionText = await execAsync(`powershell -ExecutionPolicy Bypass -Command (${getVersionScriptPath} -ProjectDirectory "${projectDirectory}")`)
     if (versionText.stderr) {
         throw versionText.stderr;
