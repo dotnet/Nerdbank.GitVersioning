@@ -50,7 +50,7 @@ increases. If your version.json file sets your version to "1.0", the generated b
 can overlap, making AppVeyor fail builds due to a non-unique number. To avoid this,
 make sure that your CI build creates initial build numbers that do not overlap with those
 produced by semantic versioning. For instance, you can set your appveyor build's version
-to 0.0 or 50.0 so that your regular semantic version build numbers are in an entirely unique
+to 1.1000 or 50.0 so that your regular semantic version build numbers are in an entirely unique
 range.
 
 ### Set special build variables for use in subsequent build steps
