@@ -1,6 +1,7 @@
 ﻿namespace Nerdbank.GitVersioning.CloudBuildServices
 {
     using System;
+    using System.Collections.Generic;
     using System.ComponentModel;
     using System.Diagnostics;
     using System.IO;
@@ -37,15 +38,17 @@
 
         public bool IsPullRequest => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("APPVEYOR_PULL_REQUEST_NUMBER"));
 
-        public void SetCloudBuildNumber(string buildNumber, TextWriter stdout, TextWriter stderr)
+        public IReadOnlyDictionary<string, string> SetCloudBuildNumber(string buildNumber, TextWriter stdout, TextWriter stderr)
         {
             // We ignore exit code so as to not fail the build when the cloud build number is not unique.
             RunAppveyor($"UpdateBuild -Version \"{buildNumber}\"", stdout, stderr);
+            return new Dictionary<string, string>();
         }
 
-        public void SetCloudBuildVariable(string name, string value, TextWriter stdout, TextWriter stderr)
+        public IReadOnlyDictionary<string, string> SetCloudBuildVariable(string name, string value, TextWriter stdout, TextWriter stderr)
         {
             RunAppveyor($"SetVariable -Name {name} -Value \"{value}\"", stdout, stderr);
+            return new Dictionary<string, string>();
         }
 
         private static void RunAppveyor(string args, TextWriter stdout, TextWriter stderr)

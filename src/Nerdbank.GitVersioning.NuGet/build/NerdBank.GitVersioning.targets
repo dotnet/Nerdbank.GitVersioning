@@ -82,7 +82,12 @@
         AfterTargets="GetBuildVersion"
         Condition=" '@(CloudBuildVersionVars)' != '' ">
     <Nerdbank.GitVersioning.Tasks.SetCloudBuildVariables
-      CloudBuildVersionVars="@(CloudBuildVersionVars)" />
+      CloudBuildVersionVars="@(CloudBuildVersionVars)">
+      <Output TaskParameter="MSBuildPropertyUpdates" ItemName="_MSBuildPropertyUpdates_Vars" />
+    </Nerdbank.GitVersioning.Tasks.SetCloudBuildVariables>
+    <CreateProperty Value="%(_MSBuildPropertyUpdates_Vars.Value)" Condition=" '@(_MSBuildPropertyUpdates_Vars)' != '' ">
+      <Output TaskParameter="Value" PropertyName="%(_MSBuildPropertyUpdates_Vars.Identity)" />
+    </CreateProperty>
   </Target>
 
   <Target Name="SetCloudBuildNumberWithVersion"
@@ -90,7 +95,12 @@
         AfterTargets="GetBuildVersion"
         Condition=" '$(CloudBuildNumber)' != '' ">
     <Nerdbank.GitVersioning.Tasks.SetCloudBuildVariables
-      CloudBuildNumber="$(CloudBuildNumber)" />
+      CloudBuildNumber="$(CloudBuildNumber)">
+      <Output TaskParameter="MSBuildPropertyUpdates" ItemName="_MSBuildPropertyUpdates_BuildNumber" />
+    </Nerdbank.GitVersioning.Tasks.SetCloudBuildVariables>
+    <CreateProperty Value="%(_MSBuildPropertyUpdates_BuildNumber.Value)" Condition=" '@(_MSBuildPropertyUpdates_BuildNumber)' != '' ">
+      <Output TaskParameter="Value" PropertyName="%(_MSBuildPropertyUpdates_BuildNumber.Identity)" />
+    </CreateProperty>
   </Target>
 
   <Target Name="GetNuGetPackageVersion" DependsOnTargets="GetBuildVersion" Returns="$(NuGetPackageVersion)" />

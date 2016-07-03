@@ -438,6 +438,13 @@ public class BuildIntegrationTests : RepoTestBase
             Assert.Contains(alwaysExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
             Assert.Contains(conditionallyExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
 
+            // Assert that project properties are also set.
+            Assert.Equal(buildResult.BuildVersion, buildResult.GitBuildVersion);
+            Assert.Equal(buildResult.AssemblyInformationalVersion, buildResult.GitAssemblyInformationalVersion);
+
+            // Assert that env variables were also set in context of the build.
+            Assert.True(buildResult.LoggedEvents.Any(e => string.Equals(e.Message, $"n1=v1", StringComparison.OrdinalIgnoreCase)));
+
             versionOptions.CloudBuild.SetVersionVariables = false;
             this.WriteVersionFile(versionOptions);
             buildResult = await this.BuildAsync();
@@ -447,6 +454,7 @@ public class BuildIntegrationTests : RepoTestBase
                 .Replace("{VALUE}", buildResult.BuildVersion);
             Assert.Contains(alwaysExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
             Assert.DoesNotContain(conditionallyExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
+            Assert.NotEqual(buildResult.BuildVersion, buildResult.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitBuildVersion"));
         }
     }
 
@@ -842,26 +850,13 @@ public class BuildIntegrationTests : RepoTestBase
 
     private ProjectRootElement CreateProjectRootElement(string projectDirectory, string projectName)
     {
-        var pre = ProjectRootElement.Create(this.projectCollection);
-        pre.FullPath = Path.Combine(projectDirectory, projectName);
-
-        pre.AddProperty("RootNamespace", "TestNamespace");
-        pre.AddProperty("AssemblyName", "TestAssembly");
-        pre.AddProperty("AssemblyTitle", "TestAssembly");
-        pre.AddProperty("AssemblyProduct", "TestProduct");
-        pre.AddProperty("AssemblyCompany", "TestCompany");
-        pre.AddProperty("AssemblyCopyright", "TestCopyright");
-        pre.AddProperty("AssemblyConfiguration", "TestConfiguration");
-        pre.AddProperty("TargetFrameworkVersion", "v4.5");
-        pre.AddProperty("OutputType", "Library");
-        pre.AddProperty("OutputPath", @"bin\");
-
-        pre.AddItem("Reference", "System");
-
-        pre.AddImport(@"$(MSBuildToolsPath)\Microsoft.CSharp.targets");
-        pre.AddImport(Path.Combine(this.RepoPath, GitVersioningTargetsFileName));
-
-        return pre;
+        using (var reader = XmlReader.Create(Assembly.GetExecutingAssembly().GetManifestResourceStream($"{ThisAssembly.RootNamespace}.test.proj")))
+        {
+            var pre = ProjectRootElement.Create(reader, this.projectCollection);
+            pre.FullPath = Path.Combine(projectDirectory, projectName);
+            pre.AddImport(Path.Combine(this.RepoPath, GitVersioningTargetsFileName));
+            return pre;
+        }
     }
 
     private void MakeItAVBProject()
@@ -946,6 +941,9 @@ public class BuildIntegrationTests : RepoTestBase
         public string AssemblyCopyright => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyCopyright");
         public string AssemblyConfiguration => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("Configuration");
         public string RootNamespace => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("RootNamespace");
+
+        public string GitBuildVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitBuildVersion");
+        public string GitAssemblyInformationalVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitAssemblyInformationalVersion");
 
         public override string ToString()
         {

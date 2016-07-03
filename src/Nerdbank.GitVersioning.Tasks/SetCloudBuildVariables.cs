@@ -12,6 +12,9 @@
     {
         public ITaskItem[] CloudBuildVersionVars { get; set; }
 
+        [Output]
+        public ITaskItem[] MSBuildPropertyUpdates { get; set; }
+
         public string CloudBuildNumber { get; set; }
 
         public override bool Execute()
@@ -19,6 +22,8 @@
             var cloudBuild = CloudBuild.Active;
             if (cloudBuild != null)
             {
+                var envVars = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
                 // Take care in a unit test environment because it would actually
                 // adversely impact the build variables of the cloud build underway that
                 // is running the tests.
@@ -30,15 +35,32 @@
 
                 if (!string.IsNullOrWhiteSpace(this.CloudBuildNumber))
                 {
-                    cloudBuild.SetCloudBuildNumber(this.CloudBuildNumber, stdout, stderr);
+                    var newVars = cloudBuild.SetCloudBuildNumber(this.CloudBuildNumber, stdout, stderr);
+                    foreach (var item in newVars)
+                    {
+                        envVars[item.Key] = item.Value;
+                    }
                 }
 
                 if (this.CloudBuildVersionVars != null)
                 {
                     foreach (var variable in this.CloudBuildVersionVars)
                     {
-                        cloudBuild.SetCloudBuildVariable(variable.ItemSpec, variable.GetMetadata("Value"), stdout, stderr);
+                        var newVars = cloudBuild.SetCloudBuildVariable(variable.ItemSpec, variable.GetMetadata("Value"), stdout, stderr);
+                        foreach (var item in newVars)
+                        {
+                            envVars[item.Key] = item.Value;
+                        }
                     }
+                }
+
+                this.MSBuildPropertyUpdates = (from envVar in envVars
+                                               let metadata = new Dictionary<string, string> { { "Value", envVar.Value } }
+                                               select new TaskItem(envVar.Key, metadata)).ToArray();
+
+                foreach (var item in envVars)
+                {
+                    Environment.SetEnvironmentVariable(item.Key, item.Value, EnvironmentVariableTarget.Process);
                 }
 
                 if (isUnitTest)
