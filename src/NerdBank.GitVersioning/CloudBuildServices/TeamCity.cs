@@ -1,6 +1,7 @@
 ﻿namespace Nerdbank.GitVersioning.CloudBuildServices
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
 
     internal class TeamCity : ICloudBuild
@@ -15,12 +16,14 @@
 
         public bool IsPullRequest => false;
 
-        public void SetCloudBuildNumber(string buildNumber, TextWriter stdout, TextWriter stderr)
+        public IReadOnlyDictionary<string, string>  SetCloudBuildNumber(string buildNumber, TextWriter stdout, TextWriter stderr)
         {
+            return new Dictionary<string, string>();
         }
 
-        public void SetCloudBuildVariable(string name, string value, TextWriter stdout, TextWriter stderr)
+        public IReadOnlyDictionary<string, string> SetCloudBuildVariable(string name, string value, TextWriter stdout, TextWriter stderr)
         {
+            return new Dictionary<string, string>();
         }
     }
 }

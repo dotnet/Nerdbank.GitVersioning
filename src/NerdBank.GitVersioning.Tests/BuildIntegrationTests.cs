@@ -438,6 +438,13 @@ public class BuildIntegrationTests : RepoTestBase
             Assert.Contains(alwaysExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
             Assert.Contains(conditionallyExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
 
+            // Assert that project properties are also set.
+            Assert.Equal(buildResult.BuildVersion, buildResult.GitBuildVersion);
+            Assert.Equal(buildResult.AssemblyInformationalVersion, buildResult.GitAssemblyInformationalVersion);
+
+            // Assert that env variables were also set in context of the build.
+            // TODO:
+
             versionOptions.CloudBuild.SetVersionVariables = false;
             this.WriteVersionFile(versionOptions);
             buildResult = await this.BuildAsync();
@@ -447,6 +454,7 @@ public class BuildIntegrationTests : RepoTestBase
                 .Replace("{VALUE}", buildResult.BuildVersion);
             Assert.Contains(alwaysExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
             Assert.DoesNotContain(conditionallyExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
+            Assert.NotEqual(buildResult.BuildVersion, buildResult.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitBuildVersion"));
         }
     }
 
@@ -946,6 +954,9 @@ public class BuildIntegrationTests : RepoTestBase
         public string AssemblyCopyright => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyCopyright");
         public string AssemblyConfiguration => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("Configuration");
         public string RootNamespace => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("RootNamespace");
+
+        public string GitBuildVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitBuildVersion");
+        public string GitAssemblyInformationalVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitAssemblyInformationalVersion");
 
         public override string ToString()
         {

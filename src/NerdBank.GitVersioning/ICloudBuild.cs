@@ -1,5 +1,6 @@
 ﻿namespace Nerdbank.GitVersioning
 {
+    using System.Collections.Generic;
     using System.IO;
 
     /// <summary>
@@ -38,7 +39,8 @@
         /// <param name="buildNumber">The build number to set.</param>
         /// <param name="stdout">An optional redirection for what should be written to the standard out stream.</param>
         /// <param name="stderr">An optional redirection for what should be written to the standard error stream.</param>
-        void SetCloudBuildNumber(string buildNumber, TextWriter stdout, TextWriter stderr);
+        /// <returns>A dictionary of environment/build variables that the caller should set to update the environment to match the new settings.</returns>
+        IReadOnlyDictionary<string, string> SetCloudBuildNumber(string buildNumber, TextWriter stdout, TextWriter stderr);
 
         /// <summary>
         /// Sets a cloud build variable, if supported.
@@ -47,6 +49,7 @@
         /// <param name="value">The value for the variable.</param>
         /// <param name="stdout">An optional redirection for what should be written to the standard out stream.</param>
         /// <param name="stderr">An optional redirection for what should be written to the standard error stream.</param>
-        void SetCloudBuildVariable(string name, string value, TextWriter stdout, TextWriter stderr);
+        /// <returns>A dictionary of environment/build variables that the caller should set to update the environment to match the new settings.</returns>
+        IReadOnlyDictionary<string, string> SetCloudBuildVariable(string name, string value, TextWriter stdout, TextWriter stderr);
     }
 }
