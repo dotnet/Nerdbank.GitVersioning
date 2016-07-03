@@ -58,6 +58,11 @@
                                                let metadata = new Dictionary<string, string> { { "Value", envVar.Value } }
                                                select new TaskItem(envVar.Key, metadata)).ToArray();
 
+                foreach (var item in envVars)
+                {
+                    Environment.SetEnvironmentVariable(item.Key, item.Value, EnvironmentVariableTarget.Process);
+                }
+
                 if (isUnitTest)
                 {
                     PipeOutputToMSBuildLog(testStdOut.ToString(), warning: false);

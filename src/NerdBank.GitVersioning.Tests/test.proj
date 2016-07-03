@@ -15,5 +15,10 @@
   <ItemGroup>
     <Reference Include="System" />
   </ItemGroup>
+  <Target Name="PrintEnvironmentVariables"
+          DependsOnTargets="SetCloudBuildNumberWithVersion;SetCloudBuildVersionVars"
+          AfterTargets="GetBuildVersion">
+    <Exec Command="set" />
+  </Target>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

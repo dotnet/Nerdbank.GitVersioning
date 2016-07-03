@@ -443,7 +443,7 @@ public class BuildIntegrationTests : RepoTestBase
             Assert.Equal(buildResult.AssemblyInformationalVersion, buildResult.GitAssemblyInformationalVersion);
 
             // Assert that env variables were also set in context of the build.
-            // TODO:
+            Assert.True(buildResult.LoggedEvents.Any(e => string.Equals(e.Message, $"n1=v1", StringComparison.OrdinalIgnoreCase)));
 
             versionOptions.CloudBuild.SetVersionVariables = false;
             this.WriteVersionFile(versionOptions);
