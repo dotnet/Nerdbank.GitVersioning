@@ -27,11 +27,19 @@
         public void SetCloudBuildNumber(string buildNumber, TextWriter stdout, TextWriter stderr)
         {
             (stdout ?? Console.Out).WriteLine($"##vso[build.updatebuildnumber]{buildNumber}");
+            SetEnvVariableForBuildVariable("Build.BuildNumber", buildNumber);
         }
 
         public void SetCloudBuildVariable(string name, string value, TextWriter stdout, TextWriter stderr)
         {
             (stdout ?? Console.Out).WriteLine($"##vso[task.setvariable variable={name};]{value}");
+            SetEnvVariableForBuildVariable(name, value);
+        }
+
+        private static void SetEnvVariableForBuildVariable(string name, string value)
+        {
+            string envVarName = name.ToUpperInvariant().Replace('.', '_');
+            Environment.SetEnvironmentVariable(envVarName, value);
         }
     }
 }
