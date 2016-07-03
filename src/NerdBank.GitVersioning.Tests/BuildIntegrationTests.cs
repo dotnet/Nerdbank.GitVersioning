@@ -850,26 +850,13 @@ public class BuildIntegrationTests : RepoTestBase
 
     private ProjectRootElement CreateProjectRootElement(string projectDirectory, string projectName)
     {
-        var pre = ProjectRootElement.Create(this.projectCollection);
-        pre.FullPath = Path.Combine(projectDirectory, projectName);
-
-        pre.AddProperty("RootNamespace", "TestNamespace");
-        pre.AddProperty("AssemblyName", "TestAssembly");
-        pre.AddProperty("AssemblyTitle", "TestAssembly");
-        pre.AddProperty("AssemblyProduct", "TestProduct");
-        pre.AddProperty("AssemblyCompany", "TestCompany");
-        pre.AddProperty("AssemblyCopyright", "TestCopyright");
-        pre.AddProperty("AssemblyConfiguration", "TestConfiguration");
-        pre.AddProperty("TargetFrameworkVersion", "v4.5");
-        pre.AddProperty("OutputType", "Library");
-        pre.AddProperty("OutputPath", @"bin\");
-
-        pre.AddItem("Reference", "System");
-
-        pre.AddImport(@"$(MSBuildToolsPath)\Microsoft.CSharp.targets");
-        pre.AddImport(Path.Combine(this.RepoPath, GitVersioningTargetsFileName));
-
-        return pre;
+        using (var reader = XmlReader.Create(Assembly.GetExecutingAssembly().GetManifestResourceStream($"{ThisAssembly.RootNamespace}.test.proj")))
+        {
+            var pre = ProjectRootElement.Create(reader, this.projectCollection);
+            pre.FullPath = Path.Combine(projectDirectory, projectName);
+            pre.AddImport(Path.Combine(this.RepoPath, GitVersioningTargetsFileName));
+            return pre;
+        }
     }
 
     private void MakeItAVBProject()
