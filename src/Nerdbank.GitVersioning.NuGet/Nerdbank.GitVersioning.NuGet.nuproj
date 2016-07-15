@@ -76,7 +76,7 @@
   <Target Name="GetNuPkgVersion" DependsOnTargets="GetBuildVersion">
     <PropertyGroup>
       <Version>$(NuGetPackageVersion)</Version>
-      <NuSpecProperties>$(NuGetProperties);GitCommitIdShort=$(GitCommitIdShort)</NuSpecProperties>
+      <NuSpecProperties>$(NuSpecProperties);$(NuGetProperties);GitCommitIdShort=$(GitCommitIdShort)</NuSpecProperties>
     </PropertyGroup>
   </Target>
   <Target Name="ExpandForNpmPackage"
