@@ -154,7 +154,7 @@
           Returns="$(NuGetPackageVersion)">
     <PropertyGroup>
       <Version>$(NuGetPackageVersion)</Version>
-      <NuSpecProperties>$(NuGetProperties);GitCommitIdShort=$(GitCommitIdShort)</NuSpecProperties>
+      <NuSpecProperties>$(NuSpecProperties);$(NuGetProperties);GitCommitIdShort=$(GitCommitIdShort)</NuSpecProperties>
     </PropertyGroup>
   </Target>
 </Project>
