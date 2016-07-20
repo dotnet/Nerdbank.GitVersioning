@@ -16,7 +16,7 @@ $null = [Reflection.Assembly]::LoadFile((Resolve-Path "$DependencyBasePath\NerdB
 $null = [Reflection.Assembly]::LoadFile((Resolve-Path "$DependencyBasePath\LibGit2Sharp.dll"))
 $null = [Reflection.Assembly]::LoadFile((Resolve-Path "$DependencyBasePath\Newtonsoft.Json.dll"))
 
-$ProjectDirectory = Resolve-Path $ProjectDirectory
+$ProjectDirectory = (Resolve-Path $ProjectDirectory).ProviderPath
 
 try {
     $CloudBuild = [Nerdbank.GitVersioning.CloudBuild]::Active

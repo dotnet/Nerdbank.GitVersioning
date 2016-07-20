@@ -28,7 +28,7 @@ $null = [Reflection.Assembly]::LoadFile((Resolve-Path "$DependencyBasePath\NerdB
 $null = [Reflection.Assembly]::LoadFile((Resolve-Path "$DependencyBasePath\LibGit2Sharp.dll"))
 $null = [Reflection.Assembly]::LoadFile((Resolve-Path "$DependencyBasePath\Newtonsoft.Json.dll"))
 
-$ProjectDirectory = Resolve-Path $ProjectDirectory
+$ProjectDirectory = (Resolve-Path $ProjectDirectory).ProviderPath
 $GitPath = $ProjectDirectory
 while (!(Test-Path "$GitPath\.git") -and $GitPath.Length -gt 0) {
     $GitPath = Split-Path $GitPath
