@@ -54,4 +54,18 @@ gulp.task('setPackageVersion', ['copyPackageContents'], function() {
 gulp.task('package', ['setPackageVersion'], function() {
     return ap.execAsync(`npm pack "${path.join(__dirname, outDir)}"`, { cwd: outDir });
 });
+
+gulp.task('default', ['package'], function() {
+});
+
 ``` 
+
+When you run your gulp script, the out directory will contain a package
+with a package.json file with a specific version field, such as:
+
+```json
+{
+  "name": "nbgv-trial",
+  "version": "1.0.15-g0b1ed99829",
+}
+```
