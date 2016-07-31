@@ -7,7 +7,7 @@ Here is the content of a sample version.json file you may start with:
 ```json
 {
   "$schema": "https://raw.githubusercontent.com/AArnott/Nerdbank.GitVersioning/master/src/NerdBank.GitVersioning/version.schema.json",
-  "version": "1.0.0-beta"
+  "version": "1.0-beta"
 }
 ```
 
@@ -21,7 +21,7 @@ The content of the version.json file is a JSON serialized object with these prop
 
 ```js
 {
-  "version": "x.y.z-prerelease", // required
+  "version": "x.y-prerelease", // required
   "assemblyVersion": "x.y", // optional. Use when x.y for AssemblyVersionAttribute differs from the default version property.
   "buildNumberOffset": "zOffset", // optional. Use when you need to add/subtract a fixed value from the computed build number.
   "publicReleaseRefSpec": [
@@ -43,7 +43,6 @@ The content of the version.json file is a JSON serialized object with these prop
 
 The `x` and `y` variables are for your use to specify a version that is meaningful
 to your customers. Consider using [semantic versioning][semver] for guidance.
-The `z` variable should be 0.
 
 The optional -prerelease tag allows you to indicate that you are building prerelease software.
 
