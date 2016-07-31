@@ -69,7 +69,7 @@ export async function getVersion(projectDirectory?: string): Promise<IGitVersion
 /**
  * Sets an NPM package version based on the git height and version.json.
  * @param packageDirectory The directory of the package about to be published.
- * @param srcDirectory The directory of the source code behind the package, if different. 
+ * @param srcDirectory The directory of the source code behind the package, if different than the packageDirectory. 
  */
 export async function setPackageVersion(packageDirectory?: string, srcDirectory?: string) {
     packageDirectory = packageDirectory || '.';

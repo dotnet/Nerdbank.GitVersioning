@@ -14,3 +14,44 @@ gulp.task('default', function() {
     return nbgv.setPackageVersion();
 });
 ```
+
+The recommended pattern is to create your NPM package from another directory
+than your source directory so that the package.json can be version-stamped
+without requiring a change to your source files.
+In your checked-in version of package.json, set your `version` property to
+`0.0.0-placeholder`:
+
+```json
+{
+  "name": "your-package",
+  "version": "0.0.0-placeholder",
+}
+```
+
+Then write a gulp script that copies your files to package into another folder
+and stamps the version into that folder.
+
+```js
+const outDir = 'out';
+
+gulp.task('copyPackageContents', function() {
+    return gulp
+        .src([
+            'package.json',
+            'README.md',
+            '*.js'
+        ])
+        .pipe(gulp.dest(outDir));
+});
+
+gulp.task('setPackageVersion', ['copyPackageContents'], function() {
+    var nbgv = require(`./${outDir}`);
+    // Stamp the copy of the NPM package in outDir, but use this
+    // source directory as a reference for calculating the git version.
+    return nbgv.setPackageVersion(outDir, '.');
+});
+
+gulp.task('package', ['setPackageVersion'], function() {
+    return ap.execAsync(`npm pack "${path.join(__dirname, outDir)}"`, { cwd: outDir });
+});
+``` 
