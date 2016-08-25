@@ -369,7 +369,7 @@
             var commits = new HashSet<Commit>();
             foreach (var reference in repo.Refs)
             {
-                var commit = reference.ResolveToDirectReference().Target as Commit;
+                var commit = reference.ResolveToDirectReference()?.Target as Commit;
                 if (commit != null)
                 {
                     AddReachableCommitsFrom(commit, commits);
