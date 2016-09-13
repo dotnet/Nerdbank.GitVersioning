@@ -25,7 +25,7 @@ What sets this package apart from other git-based versioning projects is:
 You can install Nerdbank.GitVersioning into your projects via NuGet or NPM.
 
 * [NuGet installation instructions](doc/nuget-acquisition.md)
-* [NPM installation instructinos](doc/npm-acquisition.md)
+* [NPM installation instructions](doc/npm-acquisition.md)
 
 You must also create [a version.json file](doc/versionJson.md) in your repo.
 
