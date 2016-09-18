@@ -54,7 +54,7 @@ public class GitExtensionsTests : RepoTestBase
             branchCommits[i - 1] = this.Repo.Commit($"branch commit #{i}", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         }
 
-        this.Repo.Merge(secondCommit, new Signature("t", "t@t.com", DateTimeOffset.Now), new MergeOptions { FastForwardStrategy = FastForwardStrategy.NoFastFoward });
+        this.Repo.Merge(secondCommit, new Signature("t", "t@t.com", DateTimeOffset.Now), new MergeOptions { FastForwardStrategy = FastForwardStrategy.NoFastForward });
 
         // While we've created 8 commits, the tallest height is only 7.
         Assert.Equal(7, this.Repo.Head.GetHeight());
