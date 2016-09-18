@@ -18,7 +18,10 @@
             Requires.NotNull(logger, nameof(logger));
 
             this.Logger = logger;
-            this.RepoPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+            do
+            {
+                this.RepoPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+            } while (Directory.Exists(this.RepoPath));
             Directory.CreateDirectory(this.RepoPath);
         }
 
