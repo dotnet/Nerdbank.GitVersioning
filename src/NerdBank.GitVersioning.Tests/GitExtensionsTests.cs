@@ -54,7 +54,7 @@ public class GitExtensionsTests : RepoTestBase
             branchCommits[i - 1] = this.Repo.Commit($"branch commit #{i}", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         }
 
-        this.Repo.Merge(secondCommit, new Signature("t", "t@t.com", DateTimeOffset.Now), new MergeOptions { FastForwardStrategy = FastForwardStrategy.NoFastFoward });
+        this.Repo.Merge(secondCommit, new Signature("t", "t@t.com", DateTimeOffset.Now), new MergeOptions { FastForwardStrategy = FastForwardStrategy.NoFastForward });
 
         // While we've created 8 commits, the tallest height is only 7.
         Assert.Equal(7, this.Repo.Head.GetHeight());
@@ -84,7 +84,7 @@ public class GitExtensionsTests : RepoTestBase
         File.WriteAllText(versionJsonPath, @"{ ""unrelated"": false }");
         Assert.Equal(0, this.Repo.GetVersionHeight()); // exercise code that handles the file not yet checked in.
         this.Repo.Stage(versionJsonPath);
-        this.Repo.Commit("Add unrelated version.json file.");
+        this.Repo.Commit("Add unrelated version.json file.", this.Signer, this.Signer);
         Assert.Equal(1, this.Repo.GetVersionHeight()); // exercise code that handles a checked in file.
 
         // And now the repo has decided to use this package.
@@ -110,7 +110,7 @@ public class GitExtensionsTests : RepoTestBase
         File.WriteAllText(versionJsonPath, @"{ ""version"": ""1.0"""); // no closing curly brace for parsing error
         Assert.Equal(0, this.Repo.GetVersionHeight());
         this.Repo.Stage(versionJsonPath);
-        this.Repo.Commit("Add broken version.json file.");
+        this.Repo.Commit("Add broken version.json file.", this.Signer, this.Signer);
         Assert.Equal(1, this.Repo.GetVersionHeight());
 
         // Now fix it.
