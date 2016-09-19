@@ -1,11 +1,7 @@
 ﻿{
   "dependencies": {
-    "LibGit2Sharp": "0.23.0-pre20160803182831",
     "Microsoft.CodeAnalysis.CSharp": "1.1.1",
-    "Nerdbank.GitVersioning": "1.5.46",
-    "Newtonsoft.Json": "7.0.1",
     "System.Collections.Immutable": "1.1.37",
-    "Validation": "2.0.6.15003",
     "xunit": "2.1.0",
     "Xunit.Combinatorial": "1.1.12",
     "xunit.runner.visualstudio": "2.1.0"
