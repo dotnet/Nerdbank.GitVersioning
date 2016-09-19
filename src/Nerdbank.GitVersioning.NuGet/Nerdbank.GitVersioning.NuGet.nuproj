@@ -14,8 +14,7 @@
     <ProjectGuid>b7de4122-9e90-43de-be44-454315cfae99</ProjectGuid>
   </PropertyGroup>
   <PropertyGroup>
-    <VersionDependsOn>$(VersionDependsOn);GetNuPkgVersion</VersionDependsOn>
-    <NuProjPath>..\..\packages\NuProj.0.10.30-beta-gcbd7693f91\tools\</NuProjPath>
+    <NuProjPath>$(UserProfile)\.nuget\packages\NuProj\0.11.14-beta\tools\</NuProjPath>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <OutDir>..\..\bin\$(Configuration)\</OutDir>
@@ -36,32 +35,9 @@
     <Tags>git commit versioning version assemblyinfo</Tags>
     <DevelopmentDependency>True</DevelopmentDependency>
     <NoPackageAnalysis>true</NoPackageAnalysis>
+    <NoDefaultExcludes>true</NoDefaultExcludes>
   </PropertyGroup>
   <ItemGroup>
-    <Content Include="..\..\packages\LibGit2Sharp.NativeBinaries.1.0.157\libgit2\windows\amd64\git2-785d8c4.dll">
-        <Link>build\NativeBinaries\amd64\git2-785d8c4.dll</Link>
-    </Content>
-    <Content Include="..\..\packages\LibGit2Sharp.NativeBinaries.1.0.157\libgit2\windows\amd64\git2-785d8c4.pdb">
-        <Link>build\NativeBinaries\amd64\git2-785d8c4.pdb</Link>
-    </Content>
-    <Content Include="..\..\packages\LibGit2Sharp.NativeBinaries.1.0.157\libgit2\windows\x86\git2-785d8c4.dll">
-        <Link>build\NativeBinaries\x86\git2-785d8c4.dll</Link>
-    </Content>
-    <Content Include="..\..\packages\LibGit2Sharp.NativeBinaries.1.0.157\libgit2\windows\x86\git2-785d8c4.pdb">
-        <Link>build\NativeBinaries\x86\git2-785d8c4.pdb</Link>
-    </Content>
-    <Content Include="..\..\packages\LibGit2Sharp.NativeBinaries.1.0.157\libgit2\osx\libgit2-785d8c4.dylib">
-        <Link>build\NativeBinaries\osx\libgit2-785d8c4.dylib</Link>
-    </Content>
-    <Content Include="..\..\packages\LibGit2Sharp.NativeBinaries.1.0.157\libgit2\linux\amd64\libgit2-785d8c4.so">
-        <Link>build\NativeBinaries\linux\amd64\libgit2-785d8c4.so</Link>
-    </Content>
-    <Content Include="..\..\packages\LibGit2Sharp.NativeBinaries.1.0.157\libgit2\LibGit2Sharp.dll.config">
-        <Link>build\LibGit2Sharp.dll.config</Link>
-    </Content>
-    <Content Include="..\NerdBank.GitVersioning\version.schema.json">
-      <Link>tools\version.schema.json</Link>
-    </Content>
     <Content Include="build\dotnet\Nerdbank.GitVersioning.targets" />
     <Content Include="build\NerdBank.GitVersioning.targets" />
     <Content Include="build\portable-net+win+wpa+wp+sl+netmf+MonoAndroid+MonoTouch+Xamarin.iOS\Nerdbank.GitVersioning.targets" />
@@ -72,32 +48,26 @@
     <Content Include="readme.txt" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="project.json" />
+  </ItemGroup>
+  <Target Name="PackageLibGit2SharpNativeBinaries" BeforeTargets="ConvertItems">
+    <ItemGroup>
+      <!-- Adapt the copy behavior  -->
+      <Content Include="@(None)" Condition=" '%(None.CopyToOutputDirectory)' == 'PreserveNewest' ">
+        <Link>build\%(None.Link)</Link>
+        <CopyToOutputDirectory />
+        <PackageDirectory>build</PackageDirectory>
+      </Content>
+    </ItemGroup>
+  </Target>
+  <ItemGroup>
     <ProjectReference Include="..\NerdBank.GitVersioning.Tasks\Nerdbank.GitVersioning.Tasks.csproj">
       <PackageDirectory>build</PackageDirectory>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="build\NativeBinaries\amd64\" />
-    <Folder Include="build\NativeBinaries\x86\" />
-  </ItemGroup>
   <Import Project="$(NuProjPath)\NuProj.targets" />
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+  <Target Name="ExpandForNpmPackage" DependsOnTargets="GenerateNuSpec;PrepareForBuild" AfterTargets="GenerateNuSpec">
     <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('..\..\packages\Nerdbank.GitVersioning.1.5.46\build\NerdBank.GitVersioning.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\Nerdbank.GitVersioning.1.5.46\build\NerdBank.GitVersioning.targets'))" />
-  </Target>
-  <Import Project="..\..\packages\Nerdbank.GitVersioning.1.5.46\build\NerdBank.GitVersioning.targets" Condition="Exists('..\..\packages\Nerdbank.GitVersioning.1.5.46\build\NerdBank.GitVersioning.targets')" />
-  <Target Name="GetNuPkgVersion" DependsOnTargets="GetBuildVersion">
-    <PropertyGroup>
-      <Version>$(NuGetPackageVersion)</Version>
-      <NuSpecProperties>$(NuSpecProperties);GitCommitIdShort=$(GitCommitIdShort)</NuSpecProperties>
-    </PropertyGroup>
-  </Target>
-  <Target Name="ExpandForNpmPackage"
-          DependsOnTargets="GenerateNuSpec;PrepareForBuild"
-          AfterTargets="GenerateNuSpec">
-  	<PropertyGroup>
       <NpmPackageLayoutDir>..\nerdbank-gitversioning.npm\out\nbgv.nuget\</NpmPackageLayoutDir>
     </PropertyGroup>
     <ItemGroup>
@@ -106,7 +76,6 @@
         <TargetPath Condition=" '%(File.TargetPath)' == '' ">$(NpmPackageLayoutDir)%(FileName)%(Extension)</TargetPath>
       </NpmPackageLayout>
     </ItemGroup>
-    <Copy SourceFiles="@(NpmPackageLayout)"
-          DestinationFiles="@(NpmPackageLayout->'%(TargetPath)')" />
+    <Copy SourceFiles="@(NpmPackageLayout)" DestinationFiles="@(NpmPackageLayout->'%(TargetPath)')" />
   </Target>
 </Project>

@@ -1,0 +1,16 @@
+{
+  "frameworks": {
+    "net451": { }
+  },
+  "dependencies": {
+    "LibGit2Sharp": "0.23.0-pre20160803182831",
+    "Nerdbank.GitVersioning": {
+      "version": "1.5.46",
+      "suppressParent": "none"
+    },
+    "NuProj": "0.11.14-beta"
+  },
+  "runtimes": {
+    "win": { }
+  }
+}

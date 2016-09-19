@@ -7,6 +7,14 @@ Param(
 )
 
 Write-Host "Restoring NuGet packages..." -ForegroundColor Yellow
+
+# First restore NuProj packages since the solution restore depends on NuProj evaluation succeeding.
+gci "$PSScriptRoot\src\project.json" -rec |? { $_.FullName -imatch 'nuget' } |% {
+    if ($PSCmdlet.ShouldProcess($_, "nuget restore")) {
+        nuget restore $_ -Verbosity quiet
+    }
+}
+
 if ($PSCmdlet.ShouldProcess("$PSScriptRoot\src", "nuget restore")) {
     nuget restore "$PSScriptRoot\src" -Verbosity quiet
 }
