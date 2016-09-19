@@ -50,11 +50,13 @@
   <ItemGroup>
     <None Include="project.json" />
   </ItemGroup>
-  <Target Name="PackageLibGit2SharpNativeBinaries" BeforeTargets="ConvertItems">
+  <Target Name="PackageLibGit2SharpNativeBinaries" BeforeTargets="ConvertItems;GetCopyToOutputDirectoryItems">
     <ItemGroup>
       <!-- Adapt the copy behavior  -->
-      <Content Include="@(None)" Condition=" '%(None.CopyToOutputDirectory)' == 'PreserveNewest' ">
-        <Link>build\%(None.Link)</Link>
+      <NoneToContentPort Include="@(None)" Condition=" '%(None.CopyToOutputDirectory)' == 'PreserveNewest' " />
+      <None Remove="@(NoneToContentPort)" />
+      <Content Include="@(NoneToContentPort)">
+        <Link>build\%(NoneToContentPort.Link)</Link>
         <CopyToOutputDirectory />
         <PackageDirectory>build</PackageDirectory>
       </Content>
