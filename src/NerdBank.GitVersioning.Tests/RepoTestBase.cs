@@ -44,7 +44,14 @@
             if (disposing)
             {
                 this.Repo?.Dispose();
-                TestUtilities.DeleteDirectory(this.RepoPath);
+                try
+                {
+                    TestUtilities.DeleteDirectory(this.RepoPath);
+                }
+                catch (IOException)
+                {
+                    // This happens in AppVeyor a lot.
+                }
             }
         }
 
