@@ -370,7 +370,8 @@ public class BuildIntegrationTests : RepoTestBase
         return new object[][]
         {
             new object[] { CloudBuild.AppVeyor.SetItem("APPVEYOR_REPO_BRANCH", branchName) },
-            new object[] { CloudBuild.VSTS.SetItem( "BUILD_SOURCEBRANCH", $"refs/heads/{branchName}") },
+            new object[] { CloudBuild.VSTS.SetItem("BUILD_SOURCEBRANCH", $"refs/heads/{branchName}") },
+            new object[] { CloudBuild.VSTS.SetItem("BUILD_SOURCEBRANCH", branchName) }, // VSTS building a github repo
         };
     }
 
