@@ -17,7 +17,7 @@
 
         public string BuildingTag => null; // VSTS doesn't define this.
 
-        public string BuildingBranch => Environment.GetEnvironmentVariable("BUILD_SOURCEBRANCH");
+        public string BuildingBranch => CloudBuild.ShouldStartWith(Environment.GetEnvironmentVariable("BUILD_SOURCEBRANCH"), "refs/heads/");
 
         public string BuildingRef => this.BuildingBranch;
 
