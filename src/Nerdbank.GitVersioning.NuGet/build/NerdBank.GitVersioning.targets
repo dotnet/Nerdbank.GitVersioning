@@ -19,7 +19,7 @@
     </VersionDependsOn>
 
     <GenerateNuspecDependsOn>
-      GetNuPkgVersion;
+      GetBuildVersion;
       $(GenerateNuspecDependsOn)
     </GenerateNuspecDependsOn>
 
@@ -171,4 +171,9 @@
       <NuSpecProperties>$(NuSpecProperties);$(NuGetProperties);GitCommitIdShort=$(GitCommitIdShort)</NuSpecProperties>
     </PropertyGroup>
   </Target>
+
+  <!-- Workaround till https://github.com/NuGet/NuGet.Client/issues/1064 is merged and used. -->
+  <Target Name="_NBGV_CalculateNuSpecVersionHelper"
+          BeforeTargets="GenerateNuspec"
+          DependsOnTargets="GetBuildVersion" />
 </Project>
