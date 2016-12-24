@@ -110,4 +110,9 @@ that can help you to translate between the two representations.
 `Get-CommitId.ps1` takes a version and print out the matching commit (or possible commits, in the exceptionally rare event of a collision).
 `Get-Version.ps1` prints out the version information for the git commit current at HEAD.
 
+### How do I build Nerdbank.GitVersioning from source?
+
+Prerequisites and build instructions are found in our
+[contributing guidelines](CONTRIBUTING.md).
+
  [semver]: http://semver.org
