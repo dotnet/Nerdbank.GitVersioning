@@ -8,6 +8,7 @@ It is highly recommended that anyone contributing to this library use the same
 software.
 
 1. [Visual Studio 2015][VS]
+2. [Node.js][NodeJs]
 
 ### Optional additional software
 
@@ -32,7 +33,7 @@ and you are running Windows PowerShell, the command is:
 Everything in the repo may be built via building the solution file
 either from Visual Studio 2015 or the command line:
 
-    msbuild src\Nerdbank.GitVersioning.sln
+    .\build.ps1
 
 ### Important notice when developing with Visual Studio
 
@@ -99,6 +100,7 @@ validation build for your pull request, clicking ARTIFACTS, and noting the versi
 of the produced packages.
 
  [VS]: https://www.visualstudio.com/en-us/downloads/visual-studio-2015-downloads-vs.aspx
+ [NodeJs]: https://nodejs.org
  [NuProj]: https://onedrive.live.com/redir?resid=63D0C265F96E43D!2477835&authkey=!AHh2k9FoNR-nFHo&ithint=file%2cmsi
  [NodeJsTools]: https://www.visualstudio.com/vs/node-js/
  [NuGetClient]: https://dist.nuget.org/win-x86-commandline/v3.3.0/nuget.exe
