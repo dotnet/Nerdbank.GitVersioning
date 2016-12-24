@@ -19,7 +19,7 @@ but installing this software will facilitate an enhanced developer experience in
 1. [Node.js Tools for Visual Studio][NodeJsTools]
 2. [NuProj for VS2015][NuProj]
 
-All other dependencies are acquired via NuGet.
+All other dependencies are acquired via NuGet or NPM.
 
 ## Building
 
@@ -34,6 +34,11 @@ Everything in the repo may be built via building the solution file
 either from Visual Studio 2015 or the command line:
 
     .\build.ps1
+
+This repo is structured such that it builds the NuGet package first, using MSBuild.
+It then builds an NPM package that includes some of the outputs of MSBuild, along with
+some javascript, for our NPM consumers who want a reasonable versioning story for their
+NPM packages too.
 
 ### Important notice when developing with Visual Studio
 
