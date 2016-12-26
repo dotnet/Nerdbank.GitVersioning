@@ -162,7 +162,7 @@
             /// </summary>
             /// <param name="version">The assembly version (with major.minor components).</param>
             /// <param name="precision">The additional version precision to add toward matching the AssemblyFileVersion.</param>
-            public AssemblyVersionOptions(Version version, VersionPrecision precision = default(VersionPrecision))
+            public AssemblyVersionOptions(Version version, VersionPrecision precision = VersionPrecision.Minor)
             {
                 this.Version = version;
                 this.Precision = precision;
@@ -368,6 +368,11 @@
         /// </summary>
         public enum VersionPrecision
         {
+            /// <summary>
+            /// The first integer is the last number set. The rest will be zeros.
+            /// </summary>
+            Major,
+
             /// <summary>
             /// The second integer is the last number set. The rest will be zeros.
             /// </summary>
