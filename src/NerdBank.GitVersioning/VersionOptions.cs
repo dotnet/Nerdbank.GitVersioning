@@ -6,6 +6,7 @@
     using System.Reflection;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Converters;
+    using System.ComponentModel;
 
     /// <summary>
     /// Describes the various versions and options required for the build.
@@ -178,7 +179,8 @@
             /// Gets or sets the additional version precision to add toward matching the AssemblyFileVersion.
             /// </summary>
             [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-            public VersionPrecision Precision { get; set; }
+            [DefaultValue(VersionPrecision.Minor)]
+            public VersionPrecision Precision { get; set; } = VersionPrecision.Minor;
 
             /// <inheritdoc />
             public override bool Equals(object obj) => this.Equals(obj as AssemblyVersionOptions);
