@@ -279,11 +279,13 @@
         private static Version GetAssemblyVersion(Version version, VersionOptions versionOptions)
         {
             var assemblyVersion = versionOptions?.AssemblyVersion?.Version ?? new System.Version(version.Major, version.Minor);
+            var precision = versionOptions?.AssemblyVersion?.Precision ?? VersionOptions.VersionPrecision.Minor;
+
             assemblyVersion = new System.Version(
                 assemblyVersion.Major,
-                versionOptions?.AssemblyVersion?.Precision >= VersionOptions.VersionPrecision.Minor ? version.Minor : 0,
-                versionOptions?.AssemblyVersion?.Precision >= VersionOptions.VersionPrecision.Build ? version.Build : 0,
-                versionOptions?.AssemblyVersion?.Precision >= VersionOptions.VersionPrecision.Revision ? version.Revision : 0);
+                precision >= VersionOptions.VersionPrecision.Minor ? assemblyVersion.Minor : 0,
+                precision >= VersionOptions.VersionPrecision.Build ? version.Build : 0,
+                precision >= VersionOptions.VersionPrecision.Revision ? version.Revision : 0);
             return assemblyVersion.EnsureNonNegativeComponents(4);
         }
     }
