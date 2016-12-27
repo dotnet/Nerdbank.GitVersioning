@@ -88,6 +88,11 @@
         }
 
         /// <summary>
+        /// Default value for <see cref="VersionPrecision"/>.
+        /// </summary>
+        public const VersionPrecision DefaultVersionPrecision = VersionPrecision.Minor;
+
+        /// <summary>
         /// Checks equality against another object.
         /// </summary>
         /// <param name="obj">The other instance.</param>
@@ -163,12 +168,12 @@
             /// </summary>
             /// <param name="version">The assembly version (with major.minor components).</param>
             /// <param name="precision">The additional version precision to add toward matching the AssemblyFileVersion.</param>
-            public AssemblyVersionOptions(Version version, VersionPrecision precision = VersionPrecision.Minor)
+            public AssemblyVersionOptions(Version version, VersionPrecision precision = DefaultVersionPrecision)
             {
                 this.Version = version;
                 this.Precision = precision;
             }
-
+            
             /// <summary>
             /// Gets or sets the major.minor components of the assembly version.
             /// </summary>
@@ -179,8 +184,8 @@
             /// Gets or sets the additional version precision to add toward matching the AssemblyFileVersion.
             /// </summary>
             [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-            [DefaultValue(VersionPrecision.Minor)]
-            public VersionPrecision Precision { get; set; } = VersionPrecision.Minor;
+            [DefaultValue(DefaultVersionPrecision)]
+            public VersionPrecision Precision { get; set; } = DefaultVersionPrecision;
 
             /// <inheritdoc />
             public override bool Equals(object obj) => this.Equals(obj as AssemblyVersionOptions);

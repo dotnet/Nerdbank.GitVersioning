@@ -45,7 +45,7 @@
             var data = value as VersionOptions.AssemblyVersionOptions;
             if (data != null)
             {
-                if (data.Precision == VersionOptions.VersionPrecision.Minor)
+                if (data.Precision == VersionOptions.DefaultVersionPrecision)
                 {
                     serializer.Serialize(writer, data.Version);
                     return;

@@ -279,7 +279,7 @@
         private static Version GetAssemblyVersion(Version version, VersionOptions versionOptions)
         {
             var assemblyVersion = versionOptions?.AssemblyVersion?.Version ?? new System.Version(version.Major, version.Minor);
-            var precision = versionOptions?.AssemblyVersion?.Precision ?? VersionOptions.VersionPrecision.Minor;
+            var precision = versionOptions?.AssemblyVersion?.Precision ?? VersionOptions.DefaultVersionPrecision;
 
             assemblyVersion = new System.Version(
                 assemblyVersion.Major,
