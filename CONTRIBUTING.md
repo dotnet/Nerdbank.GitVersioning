@@ -31,7 +31,7 @@ and you are running Windows PowerShell, the command is:
     .\init.ps1
 
 Everything in the repo may be built via building the solution file
-either from Visual Studio 2015 or the command line:
+either from Visual Studio 2015 or the VS2015 Developer Command Prompt:
 
     .\build.ps1
 
