@@ -6,6 +6,9 @@ Restores all NuGet, NPM and Typings packages necessary to build this repository.
 Param(
 )
 
+$oldPlatform=$env:Platform
+$env:Platform='AnyCPU' # Some people wander in here from a platform-specific build window.
+
 Push-Location $PSScriptRoot
 try {
     $toolsPath = "$PSScriptRoot\tools"
@@ -38,5 +41,6 @@ catch {
     exit $lastexitcode
 }
 finally {
+    $env:Platform=$oldPlatform
     Pop-Location
 }
