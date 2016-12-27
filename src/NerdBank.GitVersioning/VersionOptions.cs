@@ -6,6 +6,7 @@
     using System.Reflection;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Converters;
+    using System.ComponentModel;
 
     /// <summary>
     /// Describes the various versions and options required for the build.
@@ -162,7 +163,7 @@
             /// </summary>
             /// <param name="version">The assembly version (with major.minor components).</param>
             /// <param name="precision">The additional version precision to add toward matching the AssemblyFileVersion.</param>
-            public AssemblyVersionOptions(Version version, VersionPrecision precision = default(VersionPrecision))
+            public AssemblyVersionOptions(Version version, VersionPrecision precision = VersionPrecision.Minor)
             {
                 this.Version = version;
                 this.Precision = precision;
@@ -178,7 +179,8 @@
             /// Gets or sets the additional version precision to add toward matching the AssemblyFileVersion.
             /// </summary>
             [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-            public VersionPrecision Precision { get; set; }
+            [DefaultValue(VersionPrecision.Minor)]
+            public VersionPrecision Precision { get; set; } = VersionPrecision.Minor;
 
             /// <inheritdoc />
             public override bool Equals(object obj) => this.Equals(obj as AssemblyVersionOptions);
@@ -368,6 +370,11 @@
         /// </summary>
         public enum VersionPrecision
         {
+            /// <summary>
+            /// The first integer is the last number set. The rest will be zeros.
+            /// </summary>
+            Major,
+
             /// <summary>
             /// The second integer is the last number set. The rest will be zeros.
             /// </summary>
