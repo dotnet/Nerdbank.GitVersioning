@@ -295,6 +295,7 @@ public class BuildIntegrationTests : RepoTestBase
     }
 
     [Theory]
+    [InlineData(VersionOptions.VersionPrecision.Major)]
     [InlineData(VersionOptions.VersionPrecision.Build)]
     [InlineData(VersionOptions.VersionPrecision.Revision)]
     public async Task GetBuildVersion_CustomAssemblyVersionWithPrecision(VersionOptions.VersionPrecision precision)
@@ -315,6 +316,7 @@ public class BuildIntegrationTests : RepoTestBase
     }
 
     [Theory]
+    [InlineData(VersionOptions.VersionPrecision.Major)]
     [InlineData(VersionOptions.VersionPrecision.Build)]
     [InlineData(VersionOptions.VersionPrecision.Revision)]
     public async Task GetBuildVersion_CustomAssemblyVersionPrecision(VersionOptions.VersionPrecision precision)
@@ -719,11 +721,15 @@ public class BuildIntegrationTests : RepoTestBase
 
     private static Version GetExpectedAssemblyVersion(VersionOptions versionOptions, Version version)
     {
-        var assemblyVersionPrecision = versionOptions.AssemblyVersion?.Precision ?? VersionOptions.VersionPrecision.Minor;
-        int assemblyVersionBuild = assemblyVersionPrecision >= VersionOptions.VersionPrecision.Build ? version.Build : 0;
-        int assemblyVersionRevision = assemblyVersionPrecision >= VersionOptions.VersionPrecision.Revision ? version.Revision : 0;
-        Version assemblyVersion = (versionOptions.AssemblyVersion?.Version ?? versionOptions.Version.Version).EnsureNonNegativeComponents();
-        assemblyVersion = new Version(assemblyVersion.Major, assemblyVersion.Minor, assemblyVersionBuild, assemblyVersionRevision);
+        // Function should be very similar to VersionOracle.GetAssemblyVersion()
+        var assemblyVersion = (versionOptions?.AssemblyVersion?.Version ?? versionOptions.Version.Version).EnsureNonNegativeComponents();
+        var precision = versionOptions?.AssemblyVersion?.Precision ?? VersionOptions.DefaultVersionPrecision;
+
+        assemblyVersion = new System.Version(
+            assemblyVersion.Major,
+            precision >= VersionOptions.VersionPrecision.Minor ? assemblyVersion.Minor : 0,
+            precision >= VersionOptions.VersionPrecision.Build ? version.Build : 0,
+            precision >= VersionOptions.VersionPrecision.Revision ? version.Revision : 0);
         return assemblyVersion;
     }
 
