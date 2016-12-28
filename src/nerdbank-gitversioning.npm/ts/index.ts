@@ -43,7 +43,7 @@ export interface IGitVersion {
 export async function getVersion(projectDirectory?: string): Promise<IGitVersion> {
     projectDirectory = projectDirectory || '.';
     var getVersionScriptPath = path.join(__dirname, nbgvPath, "tools", "Get-Version.ps1");
-    var versionText = await execAsync(`powershell -ExecutionPolicy Bypass -Command (${getVersionScriptPath} -ProjectDirectory "${projectDirectory}")`)
+    var versionText = await execAsync(`powershell -ExecutionPolicy Bypass -Command "& '${getVersionScriptPath}' -ProjectDirectory '${projectDirectory}'"`)
     if (versionText.stderr) {
         throw versionText.stderr;
     }
