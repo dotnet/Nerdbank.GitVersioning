@@ -349,6 +349,21 @@ public class BuildIntegrationTests : RepoTestBase
     }
 
     [Fact]
+    public async Task GetBuildVersion_Minus1BuildOffset_NotYetCommitted()
+    {
+        this.WriteVersionFile("14.0");
+        this.InitializeSourceControl();
+        var versionOptions = new VersionOptions
+        {
+            Version = new SemanticVersion(new Version(14, 1)),
+            BuildNumberOffset = -1,
+        };
+        VersionFile.SetVersion(this.RepoPath, versionOptions);
+        var buildResult = await this.BuildAsync();
+        this.AssertStandardProperties(versionOptions, buildResult);
+    }
+
+    [Fact]
     public async Task PublicRelease_RegEx_Unsatisfied()
     {
         var versionOptions = new VersionOptions
