@@ -438,7 +438,7 @@
                     : 0;
             }
 
-            int build = versionHeight.Value + (versionOptions?.BuildNumberOffset ?? 0);
+            int build =  versionHeight.Value == 0 ? 0 : versionHeight.Value + (versionOptions?.BuildNumberOffset ?? 0);
             Verify.Operation(build <= MaximumBuildNumberOrRevisionComponent, "Git height is {0}, which is greater than the maximum allowed {0}.", build, MaximumBuildNumberOrRevisionComponent);
             int revision = commit != null
                 ? Math.Min(MaximumBuildNumberOrRevisionComponent, commit.GetTruncatedCommitIdAsUInt16())
