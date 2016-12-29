@@ -1,1 +1,1 @@
-powershell.exe -ExecutionPolicy bypass -Command "& '%~dpn0.ps1'" %*
+powershell.exe -ExecutionPolicy bypass -NoProfile -Command "& '%~dpn0.ps1'" %*
