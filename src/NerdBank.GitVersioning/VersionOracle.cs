@@ -278,6 +278,9 @@
 
         private static Version GetAssemblyVersion(Version version, VersionOptions versionOptions)
         {
+            // If there is no repo, "version" could have uninitialized components (-1).
+            version = version.EnsureNonNegativeComponents();
+
             var assemblyVersion = versionOptions?.AssemblyVersion?.Version ?? new System.Version(version.Major, version.Minor);
             assemblyVersion = new System.Version(
                 assemblyVersion.Major,
