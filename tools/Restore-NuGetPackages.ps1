@@ -16,6 +16,6 @@ Param(
 
 $nugetPath = & "$PSScriptRoot\Get-NuGetTool.ps1"
 
-Write-Verbose "Restoring NuGet packages for $Path"
+Write-Host "Restoring NuGet packages for $Path" -ForegroundColor Yellow
 & $nugetPath restore $Path -Verbosity $Verbosity
 if ($lastexitcode -ne 0) { throw }
