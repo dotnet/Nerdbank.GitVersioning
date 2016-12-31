@@ -99,6 +99,22 @@ public class BuildIntegrationTests : RepoTestBase
     }
 
     [Fact]
+    public async Task GetBuildVersion_Without_Git_HighPrecisionAssemblyVersion()
+    {
+        this.WriteVersionFile(new VersionOptions
+        {
+            Version = SemanticVersion.Parse("3.4"),
+            AssemblyVersion = new VersionOptions.AssemblyVersionOptions
+            {
+                Precision = VersionOptions.VersionPrecision.Revision,
+            },
+        });
+        var buildResult = await this.BuildAsync();
+        Assert.Equal("3.4", buildResult.BuildVersion);
+        Assert.Equal("3.4.0", buildResult.AssemblyInformationalVersion);
+    }
+
+    [Fact]
     public async Task GetBuildVersion_OutsideGit_PointingToGit()
     {
         // Write a version file to the 'virtualized' repo.
