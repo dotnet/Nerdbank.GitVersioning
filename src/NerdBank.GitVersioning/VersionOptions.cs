@@ -2,11 +2,11 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel;
     using System.Diagnostics;
     using System.Reflection;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Converters;
-    using System.ComponentModel;
 
     /// <summary>
     /// Describes the various versions and options required for the build.
@@ -14,6 +14,11 @@
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
     public class VersionOptions : IEquatable<VersionOptions>
     {
+        /// <summary>
+        /// Default value for <see cref="VersionPrecision"/>.
+        /// </summary>
+        public const VersionPrecision DefaultVersionPrecision = VersionPrecision.Minor;
+
         /// <summary>
         /// The JSON serializer settings to use.
         /// </summary>
@@ -86,11 +91,6 @@
                 Version = new SemanticVersion(version, unstableTag),
             };
         }
-
-        /// <summary>
-        /// Default value for <see cref="VersionPrecision"/>.
-        /// </summary>
-        public const VersionPrecision DefaultVersionPrecision = VersionPrecision.Minor;
 
         /// <summary>
         /// Checks equality against another object.
@@ -173,7 +173,7 @@
                 this.Version = version;
                 this.Precision = precision;
             }
-            
+
             /// <summary>
             /// Gets or sets the major.minor components of the assembly version.
             /// </summary>
