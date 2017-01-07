@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel;
     using System.Diagnostics;
     using System.Reflection;
     using Newtonsoft.Json;
@@ -13,6 +14,11 @@
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
     public class VersionOptions : IEquatable<VersionOptions>
     {
+        /// <summary>
+        /// Default value for <see cref="VersionPrecision"/>.
+        /// </summary>
+        public const VersionPrecision DefaultVersionPrecision = VersionPrecision.Minor;
+
         /// <summary>
         /// The JSON serializer settings to use.
         /// </summary>
@@ -162,7 +168,7 @@
             /// </summary>
             /// <param name="version">The assembly version (with major.minor components).</param>
             /// <param name="precision">The additional version precision to add toward matching the AssemblyFileVersion.</param>
-            public AssemblyVersionOptions(Version version, VersionPrecision precision = default(VersionPrecision))
+            public AssemblyVersionOptions(Version version, VersionPrecision precision = DefaultVersionPrecision)
             {
                 this.Version = version;
                 this.Precision = precision;
@@ -178,7 +184,8 @@
             /// Gets or sets the additional version precision to add toward matching the AssemblyFileVersion.
             /// </summary>
             [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-            public VersionPrecision Precision { get; set; }
+            [DefaultValue(DefaultVersionPrecision)]
+            public VersionPrecision Precision { get; set; } = DefaultVersionPrecision;
 
             /// <inheritdoc />
             public override bool Equals(object obj) => this.Equals(obj as AssemblyVersionOptions);
@@ -368,6 +375,11 @@
         /// </summary>
         public enum VersionPrecision
         {
+            /// <summary>
+            /// The first integer is the last number set. The rest will be zeros.
+            /// </summary>
+            Major,
+
             /// <summary>
             /// The second integer is the last number set. The rest will be zeros.
             /// </summary>

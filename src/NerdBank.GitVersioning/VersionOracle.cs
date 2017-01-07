@@ -282,11 +282,13 @@
             version = version.EnsureNonNegativeComponents();
 
             var assemblyVersion = versionOptions?.AssemblyVersion?.Version ?? new System.Version(version.Major, version.Minor);
+            var precision = versionOptions?.AssemblyVersion?.Precision ?? VersionOptions.DefaultVersionPrecision;
+
             assemblyVersion = new System.Version(
                 assemblyVersion.Major,
-                assemblyVersion.Minor,
-                versionOptions?.AssemblyVersion?.Precision >= VersionOptions.VersionPrecision.Build ? version.Build : 0,
-                versionOptions?.AssemblyVersion?.Precision >= VersionOptions.VersionPrecision.Revision ? version.Revision : 0);
+                precision >= VersionOptions.VersionPrecision.Minor ? assemblyVersion.Minor : 0,
+                precision >= VersionOptions.VersionPrecision.Build ? version.Build : 0,
+                precision >= VersionOptions.VersionPrecision.Revision ? version.Revision : 0);
             return assemblyVersion.EnsureNonNegativeComponents(4);
         }
     }
