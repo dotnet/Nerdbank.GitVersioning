@@ -1,6 +1,7 @@
 {
   "dependencies": {
-    "PInvoke.MSCorEE": "0.1.286-beta-ge68a656187"
+    "PInvoke.MSCorEE": "0.1.286-beta-ge68a656187",
+    "Microsoft.Build.Tasks.Core": "14.3.0"
   },
   "frameworks": {
     "net45": { }
