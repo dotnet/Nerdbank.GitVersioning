@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "LibGit2Sharp": {
-      "version": "0.22.0",
+      "version": "0.23.1",
       "suppressParent": "none"
     },
     "Nerdbank.GitVersioning":  {

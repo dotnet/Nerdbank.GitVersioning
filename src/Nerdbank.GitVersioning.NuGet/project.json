@@ -3,7 +3,7 @@
     "net451": { }
   },
   "dependencies": {
-    "LibGit2Sharp": "0.22.0",
+    "LibGit2Sharp": "0.23.1",
     "Nerdbank.GitVersioning": {
       "version": "1.5.46",
       "suppressParent": "none"
