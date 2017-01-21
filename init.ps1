@@ -25,13 +25,17 @@ try {
 
     Write-Host "Restoring NPM packages..." -ForegroundColor Yellow
     Push-Location "$PSScriptRoot\src\nerdbank-gitversioning.npm"
-    if ($PSCmdlet.ShouldProcess("$PSScriptRoot\src\nerdbank-gitversioning.npm", "npm install")) {
-        npm install --loglevel error
-    }
+    try {
+        if ($PSCmdlet.ShouldProcess("$PSScriptRoot\src\nerdbank-gitversioning.npm", "npm install")) {
+            npm install --loglevel error
+        }
 
-    Write-Host "Restoring Typings..." -ForegroundColor Yellow
-    if ($PSCmdlet.ShouldProcess("$PSScriptRoot\src\nerdbank-gitversioning.npm", "typings install")) {
-        .\node_modules\.bin\typings install
+        Write-Host "Restoring Typings..." -ForegroundColor Yellow
+        if ($PSCmdlet.ShouldProcess("$PSScriptRoot\src\nerdbank-gitversioning.npm", "typings install")) {
+            .\node_modules\.bin\typings install
+        }
+    } finally {
+        Pop-Location
     }
 
     Write-Host "Successfully restored all dependencies" -ForegroundColor Yellow
