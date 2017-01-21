@@ -70,12 +70,14 @@ When built as a public release, the git commit ID is dropped:
 
 ### What is 'git height'?
 
-Git 'height' is the count of commits in the longest path between HEAD (the code you're building)
-and some origin point. In this case the origin is the commit that set the major.minor version number
-to the values found in HEAD.
+Git 'height' is the number of commits in the longest path from HEAD (the code you're building)
+to some origin point, inclusive. In this case the origin is the commit that set the major.minor
+version number to the values found in HEAD.
 
 For example, if the version specified at HEAD is 3.4 and the longest path in git history from HEAD
-to where the version file was changed to 3.4 is 15 steps, then the git height is "15".
+to where the version file was changed to 3.4 includes 15 commits, then the git height is "15".
+Another example is when HEAD points directly at the commit that changed the major.minor version,
+which has a git height of 1. [Learn more about 1 being the minimum revision number][GitHeightMinimum].
 
 ### Why is the git height used for the PATCH version component for public releases?
 
@@ -110,4 +112,10 @@ that can help you to translate between the two representations.
 `Get-CommitId.ps1` takes a version and print out the matching commit (or possible commits, in the exceptionally rare event of a collision).
 `Get-Version.ps1` prints out the version information for the git commit current at HEAD.
 
+### How do I build Nerdbank.GitVersioning from source?
+
+Prerequisites and build instructions are found in our
+[contributing guidelines](CONTRIBUTING.md).
+
  [semver]: http://semver.org
+ [GitHeightMinimum]: https://github.com/AArnott/Nerdbank.GitVersioning/issues/102#issuecomment-269591960

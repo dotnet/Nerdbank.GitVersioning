@@ -38,6 +38,7 @@
     <NoDefaultExcludes>true</NoDefaultExcludes>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="buildCrossTargeting\NerdBank.GitVersioning.targets" />
     <Content Include="build\dotnet\Nerdbank.GitVersioning.targets" />
     <Content Include="build\NerdBank.GitVersioning.targets" />
     <Content Include="build\portable-net+win+wpa+wp+sl+netmf+MonoAndroid+MonoTouch+Xamarin.iOS\Nerdbank.GitVersioning.targets" />

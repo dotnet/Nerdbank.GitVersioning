@@ -4,7 +4,7 @@ var gutil = require('gulp-util');
 var ts = require('gulp-typescript');
 var sourcemaps = require('gulp-sourcemaps');
 var merge = require('merge2');
-var tslint = require('gulp-tslint');
+// var tslint = require('gulp-tslint');
 var del = require('del');
 var path = require('path');
 
@@ -13,7 +13,7 @@ var tsProject = ts.createProject('tsconfig.json', { declarationFiles: true });
 
 gulp.task('tsc', function() {
     var tsResult = gulp.src(['*.ts', 'ts/**/*.ts', 'typings/**/*.ts'])
-        .pipe(tslint())
+        // .pipe(tslint())
         .pipe(sourcemaps.init())
         .pipe(ts(tsProject));
 

@@ -18,8 +18,19 @@
       $(VersionDependsOn)
     </VersionDependsOn>
 
+    <GenerateNuspecDependsOn>
+      GetBuildVersion;
+      $(GenerateNuspecDependsOn)
+    </GenerateNuspecDependsOn>
+
     <!-- Suppress assembly version info generation if not obviously compiling an assembly. -->
     <GenerateAssemblyVersionInfo Condition=" '$(GenerateAssemblyVersionInfo)' == '' and '$(TargetExt)' != '.dll' and '$(TargetExt)' != '.exe'">false</GenerateAssemblyVersionInfo>
+
+    <!-- Suppress version attribute generation in Microsoft.NET.Sdk projects to avoid build failures
+         when two sets of attributes are emitted. -->
+    <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
+    <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
+    <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
   </PropertyGroup>
 
   <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="Nerdbank.GitVersioning.Tasks.AssemblyVersionInfo"/>
@@ -38,7 +49,7 @@
     <_NBGV_AssemblyCopyright>$(AssemblyCopyright)</_NBGV_AssemblyCopyright>
     <_NBGV_AssemblyCompany>$(AssemblyCompany)</_NBGV_AssemblyCompany>
   </PropertyGroup>
-  
+
   <Target Name="GetBuildVersion" Returns="$(BuildVersion)">
     <Nerdbank.GitVersioning.Tasks.GetBuildVersion
       BuildingRef="$(_NBGV_BuildingRef)"
@@ -49,6 +60,7 @@
       <Output TaskParameter="Version" PropertyName="BuildVersion" />
       <Output TaskParameter="AssemblyInformationalVersion" PropertyName="AssemblyInformationalVersion" />
       <Output TaskParameter="AssemblyFileVersion" PropertyName="AssemblyFileVersion" />
+      <Output TaskParameter="AssemblyFileVersion" PropertyName="FileVersion" />
       <Output TaskParameter="SimpleVersion" PropertyName="BuildVersionSimple" />
       <Output TaskParameter="PrereleaseVersion" PropertyName="PrereleaseVersion" />
       <Output TaskParameter="MajorMinorVersion" PropertyName="MajorMinorVersion" />
@@ -62,6 +74,8 @@
       <Output TaskParameter="CloudBuildNumber" PropertyName="CloudBuildNumber" Condition=" '$(CloudBuildNumber)' == '' "/>
       <Output TaskParameter="BuildMetadataFragment" PropertyName="SemVerBuildSuffix" />
       <Output TaskParameter="NuGetPackageVersion" PropertyName="NuGetPackageVersion" />
+      <Output TaskParameter="NuGetPackageVersion" PropertyName="Version" />
+      <Output TaskParameter="NuGetPackageVersion" PropertyName="PackageVersion" />
       <Output TaskParameter="NPMPackageVersion" PropertyName="NPMPackageVersion" />
       <Output TaskParameter="CloudBuildVersionVars" ItemName="CloudBuildVersionVars" />
     </Nerdbank.GitVersioning.Tasks.GetBuildVersion>
@@ -155,4 +169,9 @@
       <NuSpecProperties>$(NuSpecProperties);$(NuGetProperties);GitCommitIdShort=$(GitCommitIdShort)</NuSpecProperties>
     </PropertyGroup>
   </Target>
+
+  <!-- Workaround till https://github.com/NuGet/NuGet.Client/issues/1064 is merged and used. -->
+  <Target Name="_NBGV_CalculateNuSpecVersionHelper"
+          BeforeTargets="GenerateNuspec"
+          DependsOnTargets="GetBuildVersion" />
 </Project>

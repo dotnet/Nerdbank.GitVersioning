@@ -8,10 +8,14 @@ The project configuration to build.
 Param(
     [Parameter()]
     [ValidateSet('Debug', 'Release')]
-    [string]$Configuration
+    [string]$Configuration,
+
+    [Parameter()]
+    [ValidateSet('minimal', 'normal', 'detailed', 'diagnostic')]
+    [string]$MsBuildVerbosity = 'minimal'
 )
 
-$msbuildCommandLine = "msbuild `"$PSScriptRoot\src\Nerdbank.GitVersioning.sln`" /m /verbosity:minimal /nologo"
+$msbuildCommandLine = "msbuild `"$PSScriptRoot\src\Nerdbank.GitVersioning.sln`" /m /verbosity:$MsBuildVerbosity /nologo /p:Platform=`"Any CPU`""
 
 if (Test-Path "C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll") {
     $msbuildCommandLine += " /logger:`"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll`""

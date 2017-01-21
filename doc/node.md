@@ -8,7 +8,7 @@ See [NPM acquisition](npm-acquisition.md).
 
 ```js
 var nbgv = require('nerdbank-gitversioning')
-nbgv.getGitVersion()
+nbgv.getVersion()
     .then(r => console.log(r))
     .catch(e => console.error(e));
 ```

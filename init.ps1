@@ -6,28 +6,41 @@ Restores all NuGet, NPM and Typings packages necessary to build this repository.
 Param(
 )
 
-Write-Host "Restoring NuGet packages..." -ForegroundColor Yellow
+$oldPlatform=$env:Platform
+$env:Platform='AnyCPU' # Some people wander in here from a platform-specific build window.
 
-# First restore NuProj packages since the solution restore depends on NuProj evaluation succeeding.
-gci "$PSScriptRoot\src\project.json" -rec |? { $_.FullName -imatch 'nuget' } |% {
-    if ($PSCmdlet.ShouldProcess($_, "nuget restore")) {
-        nuget restore $_ -Verbosity quiet
+Push-Location $PSScriptRoot
+try {
+    $toolsPath = "$PSScriptRoot\tools"
+
+    # First restore NuProj packages since the solution restore depends on NuProj evaluation succeeding.
+    gci "$PSScriptRoot\src\project.json" -rec |? { $_.FullName -imatch 'nuget' } |% {
+        & "$toolsPath\Restore-NuGetPackages.ps1" -Path $_ -Verbosity Quiet
     }
-}
 
-if ($PSCmdlet.ShouldProcess("$PSScriptRoot\src", "nuget restore")) {
-    nuget restore "$PSScriptRoot\src" -Verbosity quiet
-}
+    # Restore VS solution dependencies
+    gci "$PSScriptRoot\src" -rec |? { $_.FullName.EndsWith('.sln') } |% {
+        & "$toolsPath\Restore-NuGetPackages.ps1" -Path $_.FullName -Verbosity Quiet
+    }
 
-Write-Host "Restoring NPM packages..." -ForegroundColor Yellow
-Push-Location "$PSScriptRoot\src\nerdbank-gitversioning.npm"
-if ($PSCmdlet.ShouldProcess("$PSScriptRoot\src\nerdbank-gitversioning.npm", "npm install")) {
-    npm install --loglevel error
-}
+    Write-Host "Restoring NPM packages..." -ForegroundColor Yellow
+    Push-Location "$PSScriptRoot\src\nerdbank-gitversioning.npm"
+    if ($PSCmdlet.ShouldProcess("$PSScriptRoot\src\nerdbank-gitversioning.npm", "npm install")) {
+        npm install --loglevel error
+    }
 
-Write-Host "Restoring Typings..." -ForegroundColor Yellow
-if ($PSCmdlet.ShouldProcess("$PSScriptRoot\src\nerdbank-gitversioning.npm", "typings install")) {
-    .\node_modules\.bin\typings install
-}
+    Write-Host "Restoring Typings..." -ForegroundColor Yellow
+    if ($PSCmdlet.ShouldProcess("$PSScriptRoot\src\nerdbank-gitversioning.npm", "typings install")) {
+        .\node_modules\.bin\typings install
+    }
 
-Pop-Location
+    Write-Host "Successfully restored all dependencies" -ForegroundColor Yellow
+}
+catch {
+    Write-Error "Aborting script due to error"
+    exit $lastexitcode
+}
+finally {
+    $env:Platform=$oldPlatform
+    Pop-Location
+}

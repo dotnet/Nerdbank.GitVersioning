@@ -99,6 +99,22 @@ public class BuildIntegrationTests : RepoTestBase
     }
 
     [Fact]
+    public async Task GetBuildVersion_Without_Git_HighPrecisionAssemblyVersion()
+    {
+        this.WriteVersionFile(new VersionOptions
+        {
+            Version = SemanticVersion.Parse("3.4"),
+            AssemblyVersion = new VersionOptions.AssemblyVersionOptions
+            {
+                Precision = VersionOptions.VersionPrecision.Revision,
+            },
+        });
+        var buildResult = await this.BuildAsync();
+        Assert.Equal("3.4", buildResult.BuildVersion);
+        Assert.Equal("3.4.0", buildResult.AssemblyInformationalVersion);
+    }
+
+    [Fact]
     public async Task GetBuildVersion_OutsideGit_PointingToGit()
     {
         // Write a version file to the 'virtualized' repo.
@@ -295,6 +311,7 @@ public class BuildIntegrationTests : RepoTestBase
     }
 
     [Theory]
+    [InlineData(VersionOptions.VersionPrecision.Major)]
     [InlineData(VersionOptions.VersionPrecision.Build)]
     [InlineData(VersionOptions.VersionPrecision.Revision)]
     public async Task GetBuildVersion_CustomAssemblyVersionWithPrecision(VersionOptions.VersionPrecision precision)
@@ -315,6 +332,7 @@ public class BuildIntegrationTests : RepoTestBase
     }
 
     [Theory]
+    [InlineData(VersionOptions.VersionPrecision.Major)]
     [InlineData(VersionOptions.VersionPrecision.Build)]
     [InlineData(VersionOptions.VersionPrecision.Revision)]
     public async Task GetBuildVersion_CustomAssemblyVersionPrecision(VersionOptions.VersionPrecision precision)
@@ -349,6 +367,21 @@ public class BuildIntegrationTests : RepoTestBase
     }
 
     [Fact]
+    public async Task GetBuildVersion_Minus1BuildOffset_NotYetCommitted()
+    {
+        this.WriteVersionFile("14.0");
+        this.InitializeSourceControl();
+        var versionOptions = new VersionOptions
+        {
+            Version = new SemanticVersion(new Version(14, 1)),
+            BuildNumberOffset = -1,
+        };
+        VersionFile.SetVersion(this.RepoPath, versionOptions);
+        var buildResult = await this.BuildAsync();
+        this.AssertStandardProperties(versionOptions, buildResult);
+    }
+
+    [Fact]
     public async Task PublicRelease_RegEx_Unsatisfied()
     {
         var versionOptions = new VersionOptions
@@ -370,7 +403,8 @@ public class BuildIntegrationTests : RepoTestBase
         return new object[][]
         {
             new object[] { CloudBuild.AppVeyor.SetItem("APPVEYOR_REPO_BRANCH", branchName) },
-            new object[] { CloudBuild.VSTS.SetItem( "BUILD_SOURCEBRANCH", $"refs/heads/{branchName}") },
+            new object[] { CloudBuild.VSTS.SetItem("BUILD_SOURCEBRANCH", $"refs/heads/{branchName}") },
+            new object[] { CloudBuild.VSTS.SetItem("BUILD_SOURCEBRANCH", branchName) }, // VSTS building a github repo
         };
     }
 
@@ -718,11 +752,15 @@ public class BuildIntegrationTests : RepoTestBase
 
     private static Version GetExpectedAssemblyVersion(VersionOptions versionOptions, Version version)
     {
-        var assemblyVersionPrecision = versionOptions.AssemblyVersion?.Precision ?? VersionOptions.VersionPrecision.Minor;
-        int assemblyVersionBuild = assemblyVersionPrecision >= VersionOptions.VersionPrecision.Build ? version.Build : 0;
-        int assemblyVersionRevision = assemblyVersionPrecision >= VersionOptions.VersionPrecision.Revision ? version.Revision : 0;
-        Version assemblyVersion = (versionOptions.AssemblyVersion?.Version ?? versionOptions.Version.Version).EnsureNonNegativeComponents();
-        assemblyVersion = new Version(assemblyVersion.Major, assemblyVersion.Minor, assemblyVersionBuild, assemblyVersionRevision);
+        // Function should be very similar to VersionOracle.GetAssemblyVersion()
+        var assemblyVersion = (versionOptions?.AssemblyVersion?.Version ?? versionOptions.Version.Version).EnsureNonNegativeComponents();
+        var precision = versionOptions?.AssemblyVersion?.Precision ?? VersionOptions.DefaultVersionPrecision;
+
+        assemblyVersion = new System.Version(
+            assemblyVersion.Major,
+            precision >= VersionOptions.VersionPrecision.Minor ? assemblyVersion.Minor : 0,
+            precision >= VersionOptions.VersionPrecision.Build ? version.Build : 0,
+            precision >= VersionOptions.VersionPrecision.Revision ? version.Revision : 0);
         return assemblyVersion;
     }
 

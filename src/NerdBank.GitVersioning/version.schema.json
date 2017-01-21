@@ -20,7 +20,7 @@
             "precision": {
               "type": "string",
               "description": "Identifies the last component to be explicitly set in the version.",
-              "enum": [ "minor", "build", "revision" ],
+              "enum": [ "major", "minor", "build", "revision" ],
               "default": "minor"
             }
           }
