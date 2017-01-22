@@ -18,7 +18,7 @@
         /// <summary>
         /// The 0.0 version.
         /// </summary>
-        private static readonly Version Version0 = new Version();
+        private static readonly Version Version0 = new Version(0, 0);
 
         /// <summary>
         /// Maximum allowable value for the <see cref="Version.Build"/>

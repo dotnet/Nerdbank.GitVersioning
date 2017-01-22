@@ -62,7 +62,7 @@
 
             // Override the typedVersion with the special build number and revision components, when available.
             this.Version = repo?.GetIdAsVersion(relativeRepoProjectDirectory, this.VersionHeight) ?? this.VersionOptions?.Version.Version;
-            this.Version = this.Version ?? new Version();
+            this.Version = this.Version ?? new Version(0, 0);
 
             this.CloudBuildNumberOptions = this.VersionOptions?.CloudBuild?.BuildNumber ?? new VersionOptions.CloudBuildNumberOptions();
 

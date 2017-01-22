@@ -1,6 +1,6 @@
 ﻿namespace Nerdbank.GitVersioning.Tasks
 {
-    using System;
+    using System;   
     using System.CodeDom;
     using System.CodeDom.Compiler;
     using System.Collections.Generic;
@@ -11,10 +11,12 @@
     using System.Text;
     using Microsoft.Build.Framework;
     using Microsoft.Build.Utilities;
+#if NET45
     using PInvoke;
-
+#endif
     public class AssemblyVersionInfo : Task
     {
+#if NET45
         private static readonly CodeGeneratorOptions codeGeneratorOptions = new CodeGeneratorOptions
         {
             BlankLinesBetweenMembers = false,
@@ -105,19 +107,19 @@
 
             // Define the constants.
             thisAssembly.Members.AddRange(CreateFields(new Dictionary<string, string>
-            {
-                { "AssemblyVersion", this.AssemblyVersion },
-                { "AssemblyFileVersion", this.AssemblyFileVersion },
-                { "AssemblyInformationalVersion", this.AssemblyInformationalVersion },
-                { "AssemblyName", this.AssemblyName },
-                { "PublicKey", publicKey },
-                { "PublicKeyToken", publicKeyToken },
-                { "AssemblyTitle", this.AssemblyTitle },
-                { "AssemblyProduct", this.AssemblyProduct },
-                { "AssemblyCopyright", this.AssemblyCopyright },
-                { "AssemblyCompany", this.AssemblyCompany },
-                { "AssemblyConfiguration", this.AssemblyConfiguration }
-            }).ToArray());
+                {
+                    { "AssemblyVersion", this.AssemblyVersion },
+                    { "AssemblyFileVersion", this.AssemblyFileVersion },
+                    { "AssemblyInformationalVersion", this.AssemblyInformationalVersion },
+                    { "AssemblyName", this.AssemblyName },
+                    { "PublicKey", publicKey },
+                    { "PublicKeyToken", publicKeyToken },
+                    { "AssemblyTitle", this.AssemblyTitle },
+                    { "AssemblyProduct", this.AssemblyProduct },
+                    { "AssemblyCopyright", this.AssemblyCopyright },
+                    { "AssemblyCompany", this.AssemblyCompany },
+                    { "AssemblyConfiguration", this.AssemblyConfiguration }
+                }).ToArray());
 
             // These properties should be defined even if they are empty.
             thisAssembly.Members.Add(CreateField("RootNamespace", this.RootNamespace));
@@ -211,5 +213,12 @@
                 attributeType,
                 arguments.Select(a => new CodeAttributeArgument(new CodePrimitiveExpression(a))).ToArray());
         }
+#else
+        public override bool Execute()
+        {
+            this.Log.LogError("Not yet implemented.");
+            return false;
+        }
+#endif
     }
 }

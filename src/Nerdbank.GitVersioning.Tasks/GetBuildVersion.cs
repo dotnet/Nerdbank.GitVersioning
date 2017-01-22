@@ -147,7 +147,7 @@
             try
             {
                 var cloudBuild = CloudBuild.Active;
-                var oracle = VersionOracle.Create(Environment.CurrentDirectory, this.GitRepoRoot, cloudBuild);
+                var oracle = VersionOracle.Create(Directory.GetCurrentDirectory(), this.GitRepoRoot, cloudBuild);
                 if (!string.IsNullOrEmpty(this.DefaultPublicRelease))
                 {
                     oracle.PublicRelease = string.Equals(this.DefaultPublicRelease, "true", StringComparison.OrdinalIgnoreCase);
