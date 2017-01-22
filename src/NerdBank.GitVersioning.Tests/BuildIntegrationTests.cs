@@ -582,7 +582,7 @@ public class BuildIntegrationTests : RepoTestBase
         {
             // Check out a branch that conforms.
             var releaseBranch = this.Repo.CreateBranch("release");
-            this.Repo.Checkout(releaseBranch);
+            Commands.Checkout(this.Repo, releaseBranch);
             var buildResult = await this.BuildAsync();
             Assert.True(buildResult.PublicRelease);
             AssertStandardProperties(versionOptions, buildResult);
