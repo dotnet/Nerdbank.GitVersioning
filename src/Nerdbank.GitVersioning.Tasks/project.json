@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "PInvoke.MSCorEE": "0.1.286-beta-ge68a656187"
+  },
+  "frameworks": {
+    "net45": { }
+  },
+  "runtimes": {
+    "win": { }
+  }
+}

@@ -30,7 +30,7 @@ on_success:
 - ps: >-
     if ($env:NuGetApiKey -and $env:APPVEYOR_REPO_TAG_NAME -match "^v\d") {
         Write-Output "Publishing release packages to nuget.org due to pushed tag $env:APPVEYOR_REPO_TAG_NAME"
-        Get-ChildItem bin\Release\*.nupkg -exclude *.symbols.nupkg |% {
+        Get-ChildItem bin\Release\Nerdbank.GitVersioning.NuGet\*.nupkg -exclude *.symbols.nupkg |% {
             nuget push $_ -ApiKey $env:NuGetApiKey
         }
     }

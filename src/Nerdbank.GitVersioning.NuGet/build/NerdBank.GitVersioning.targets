@@ -93,7 +93,6 @@
 
   <Target Name="SetCloudBuildVersionVars"
         DependsOnTargets="GetBuildVersion"
-        AfterTargets="GetBuildVersion"
         Condition=" '@(CloudBuildVersionVars)' != '' ">
     <Nerdbank.GitVersioning.Tasks.SetCloudBuildVariables
       CloudBuildVersionVars="@(CloudBuildVersionVars)">
@@ -106,7 +105,6 @@
 
   <Target Name="SetCloudBuildNumberWithVersion"
         DependsOnTargets="GetBuildVersion"
-        AfterTargets="GetBuildVersion"
         Condition=" '$(CloudBuildNumber)' != '' ">
     <Nerdbank.GitVersioning.Tasks.SetCloudBuildVariables
       CloudBuildNumber="$(CloudBuildNumber)">
