@@ -7,5 +7,6 @@
     <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
     <PackageReference Include="System.Diagnostics.Process" Version="4.3.0" Condition=" '$(TargetFramework)' == 'netstandard1.3' " />
     <PackageReference Include="Validation" Version="2.3.7" />
+    <PackageReference Include="Nerdbank.GitVersioning.LKG" Version="1.5.82" />
   </ItemGroup>
 </Project>
