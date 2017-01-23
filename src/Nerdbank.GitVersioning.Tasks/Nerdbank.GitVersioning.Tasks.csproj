@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>netstandard1.3;net45</TargetFrameworks>
+    <IsTool>true</IsTool>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Build.Tasks.Core" Version="15.1.0-preview-000458-02" Condition=" '$(TargetFramework)' == 'netstandard1.3' " />
