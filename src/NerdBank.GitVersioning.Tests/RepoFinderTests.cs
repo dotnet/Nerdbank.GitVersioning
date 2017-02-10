@@ -65,5 +65,11 @@ namespace Nerdbank.GitVersioning.Tests
             File.WriteAllText(Path.Combine(submodule.FullName, ".git"), $"gitdir: ../{gitDir.Name}");
             Assert.Equal(FindGitDir(submodule.FullName), gitDir.FullName);
         }
+
+        [Fact]
+        public void NonRepoDirectory()
+        {
+            Assert.Equal(FindGitDir(Path.GetTempPath()), null);
+        }
     }
 }
