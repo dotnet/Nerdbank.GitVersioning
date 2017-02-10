@@ -265,7 +265,7 @@
         {
             Requires.NotNullOrEmpty(repoRoot, nameof(repoRoot));
             var gitDir = FindGitDir(repoRoot);
-            return gitDir == null ? null : new LibGit2Sharp.Repository(gitDir);            
+            return gitDir == null ? null : new LibGit2Sharp.Repository(gitDir);
         }
 
         private static string FindGitDir(string startingDir)
@@ -274,7 +274,9 @@
             {
                 var dirOrFilePath = Path.Combine(startingDir, ".git");
                 if (Directory.Exists(dirOrFilePath))
+                {
                     return dirOrFilePath;
+                }
                 else if (File.Exists(dirOrFilePath))
                 {
                     var relativeGitDirPath = ReadGitDirFromFile(dirOrFilePath);
@@ -282,12 +284,15 @@
                     {
                         var fullGitDirPath = Path.GetFullPath(Path.Combine(startingDir, relativeGitDirPath));
                         if (Directory.Exists(fullGitDirPath))
+                        {
                             return fullGitDirPath;
+                        }
                     }
                 }
-                
+
                 startingDir = Path.GetDirectoryName(startingDir);
             }
+
             return null;
         }
 
@@ -303,7 +308,6 @@
                 return String.Empty;
             }
         }
-
 
         private static Version GetAssemblyVersion(Version version, VersionOptions versionOptions)
         {
