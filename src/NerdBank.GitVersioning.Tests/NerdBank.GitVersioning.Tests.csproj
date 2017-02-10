@@ -56,6 +56,7 @@
     <Compile Include="VersionExtensionsTests.cs" />
     <Compile Include="VersionFileTests.cs" />
     <Compile Include="VersionOptionsTests.cs" />
+    <Compile Include="VersionOracleTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="..\Nerdbank.GitVersioning.NuGet\build\*.targets">
@@ -82,6 +83,7 @@
     <EmbeddedResource Include="Keys\protectedPair.pfx" />
     <None Include="project.json" />
     <EmbeddedResource Include="test.proj" />
+    <EmbeddedResource Include="repos\submodules.7z" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

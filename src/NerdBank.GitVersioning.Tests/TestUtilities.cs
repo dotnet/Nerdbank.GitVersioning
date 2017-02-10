@@ -1,4 +1,6 @@
-﻿using Validation;
+﻿using SevenZipNET;
+using Validation;
+
 namespace Nerdbank.GitVersioning.Tests
 {
     using System;
@@ -51,6 +53,46 @@ namespace Nerdbank.GitVersioning.Tests
                 using (var extractedFile = File.OpenWrite(extractedFilePath))
                 {
                     stream.CopyTo(extractedFile);
+                }
+            }
+        }
+
+        internal static ExpandedRepo ExtractRepoArchive(string repoArchiveName)
+        {
+            string archiveFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+            string expandedFolderPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+
+            ExtractEmbeddedResource($"repos.{repoArchiveName}.7z", archiveFilePath);
+            try
+            {
+                var extractor = new SevenZipExtractor(archiveFilePath);
+                extractor.ExtractAll(expandedFolderPath);
+                return new ExpandedRepo(expandedFolderPath);
+            }
+            finally
+            {
+                if (File.Exists(archiveFilePath))
+                {
+                    File.Delete(archiveFilePath);
+                }
+            }
+        }
+
+        internal class ExpandedRepo : IDisposable
+        {
+            internal ExpandedRepo(string repoPath)
+            {
+                Requires.NotNullOrEmpty(repoPath, nameof(repoPath));
+                this.RepoPath = repoPath;
+            }
+
+            public string RepoPath { get; private set; }
+
+            public void Dispose()
+            {
+                if (Directory.Exists(this.RepoPath))
+                {
+                    DeleteDirectory(this.RepoPath);
                 }
             }
         }
