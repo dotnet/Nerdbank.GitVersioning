@@ -280,7 +280,7 @@
                 else if (File.Exists(dirOrFilePath))
                 {
                     var relativeGitDirPath = ReadGitDirFromFile(dirOrFilePath);
-                    if (!String.IsNullOrWhiteSpace(relativeGitDirPath))
+                    if (!string.IsNullOrWhiteSpace(relativeGitDirPath))
                     {
                         var fullGitDirPath = Path.GetFullPath(Path.Combine(startingDir, relativeGitDirPath));
                         if (Directory.Exists(fullGitDirPath))
@@ -298,15 +298,14 @@
 
         private static string ReadGitDirFromFile(string fileName)
         {
-            try
+            const string expectedPrefix = "gitdir: ";
+            var firstLineOfFile = File.ReadLines(fileName).FirstOrDefault();
+            if (firstLineOfFile?.StartsWith(expectedPrefix) ?? false)
             {
-                var firstLineOfFile = File.ReadLines(fileName).FirstOrDefault();
-                return Regex.Replace(firstLineOfFile, "^gitdir: *", String.Empty);
+                return firstLineOfFile.Substring(expectedPrefix.Length); // strip off the prefix, leaving just the path
             }
-            catch
-            {
-                return String.Empty;
-            }
+
+            return null;
         }
 
         private static Version GetAssemblyVersion(Version version, VersionOptions versionOptions)
