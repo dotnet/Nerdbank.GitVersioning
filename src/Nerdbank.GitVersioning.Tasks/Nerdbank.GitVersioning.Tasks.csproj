@@ -7,6 +7,7 @@
     <PackageReference Include="Microsoft.Build.Tasks.Core" Version="15.1.0-preview-000458-02" Condition=" '$(TargetFramework)' == 'netstandard1.3' " />
     <PackageReference Include="Microsoft.Build.Tasks.Core" Version="14.3" Condition=" '$(TargetFramework)' == 'net45' " />
     <PackageReference Include="PInvoke.MSCorEE" Version="0.3.152" Condition=" '$(TargetFramework)' == 'net45' " />
+    <PackageReference Include="Nerdbank.GitVersioning.LKG" Version="1.5.95" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\NerdBank.GitVersioning\NerdBank.GitVersioning.csproj" />
