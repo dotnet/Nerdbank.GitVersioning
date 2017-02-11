@@ -264,16 +264,48 @@
         private static LibGit2Sharp.Repository OpenGitRepo(string repoRoot)
         {
             Requires.NotNullOrEmpty(repoRoot, nameof(repoRoot));
-            while (!Directory.Exists(Path.Combine(repoRoot, ".git")))
+            var gitDir = FindGitDir(repoRoot);
+            return gitDir == null ? null : new LibGit2Sharp.Repository(gitDir);
+        }
+
+        private static string FindGitDir(string startingDir)
+        {
+            while (startingDir != null)
             {
-                repoRoot = Path.GetDirectoryName(repoRoot);
-                if (repoRoot == null)
+                var dirOrFilePath = Path.Combine(startingDir, ".git");
+                if (Directory.Exists(dirOrFilePath))
                 {
-                    return null;
+                    return dirOrFilePath;
                 }
+                else if (File.Exists(dirOrFilePath))
+                {
+                    var relativeGitDirPath = ReadGitDirFromFile(dirOrFilePath);
+                    if (!string.IsNullOrWhiteSpace(relativeGitDirPath))
+                    {
+                        var fullGitDirPath = Path.GetFullPath(Path.Combine(startingDir, relativeGitDirPath));
+                        if (Directory.Exists(fullGitDirPath))
+                        {
+                            return fullGitDirPath;
+                        }
+                    }
+                }
+
+                startingDir = Path.GetDirectoryName(startingDir);
             }
 
-            return new LibGit2Sharp.Repository(repoRoot);
+            return null;
+        }
+
+        private static string ReadGitDirFromFile(string fileName)
+        {
+            const string expectedPrefix = "gitdir: ";
+            var firstLineOfFile = File.ReadLines(fileName).FirstOrDefault();
+            if (firstLineOfFile?.StartsWith(expectedPrefix) ?? false)
+            {
+                return firstLineOfFile.Substring(expectedPrefix.Length); // strip off the prefix, leaving just the path
+            }
+
+            return null;
         }
 
         private static Version GetAssemblyVersion(Version version, VersionOptions versionOptions)
