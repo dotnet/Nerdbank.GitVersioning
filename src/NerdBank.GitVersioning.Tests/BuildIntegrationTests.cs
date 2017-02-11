@@ -590,14 +590,21 @@ public class BuildIntegrationTests : RepoTestBase
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task AssemblyInfo(bool isVB)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task AssemblyInfo(bool isVB, bool includeNonVersionAttributes)
     {
         this.WriteVersionFile();
         if (isVB)
         {
             this.MakeItAVBProject();
+        }
+
+        if (includeNonVersionAttributes)
+        {
+            this.testProject.AddProperty("NBGV_EmitNonVersionCustomAttributes", "true");
         }
 
         var result = await this.BuildAsync("Build", logVerbosity: LoggerVerbosity.Minimal);
@@ -619,10 +626,20 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal(new Version(result.AssemblyVersion), assembly.GetName().Version);
         Assert.Equal(result.AssemblyFileVersion, assemblyFileVersion.Version);
         Assert.Equal(result.AssemblyInformationalVersion, assemblyInformationalVersion.InformationalVersion);
-        Assert.Equal(result.AssemblyTitle, assemblyTitle.Title);
-        Assert.Equal(result.AssemblyProduct, assemblyProduct.Product);
-        Assert.Equal(result.AssemblyCompany, assemblyCompany.Company);
-        Assert.Equal(result.AssemblyCopyright, assemblyCopyright.Copyright);
+        if (includeNonVersionAttributes)
+        {
+            Assert.Equal(result.AssemblyTitle, assemblyTitle.Title);
+            Assert.Equal(result.AssemblyProduct, assemblyProduct.Product);
+            Assert.Equal(result.AssemblyCompany, assemblyCompany.Company);
+            Assert.Equal(result.AssemblyCopyright, assemblyCopyright.Copyright);
+        }
+        else
+        {
+            Assert.Null(assemblyTitle);
+            Assert.Null(assemblyProduct);
+            Assert.Null(assemblyCompany);
+            Assert.Null(assemblyCopyright);
+        }
 
         const BindingFlags fieldFlags = BindingFlags.Static | BindingFlags.NonPublic;
         Assert.Equal(result.AssemblyVersion, thisAssemblyClass.GetField("AssemblyVersion", fieldFlags).GetValue(null));
@@ -630,11 +647,22 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal(result.AssemblyInformationalVersion, thisAssemblyClass.GetField("AssemblyInformationalVersion", fieldFlags).GetValue(null));
         Assert.Equal(result.AssemblyName, thisAssemblyClass.GetField("AssemblyName", fieldFlags).GetValue(null));
         Assert.Equal(result.RootNamespace, thisAssemblyClass.GetField("RootNamespace", fieldFlags).GetValue(null));
-        Assert.Equal(result.AssemblyTitle, thisAssemblyClass.GetField("AssemblyTitle", fieldFlags).GetValue(null));
-        Assert.Equal(result.AssemblyProduct, thisAssemblyClass.GetField("AssemblyProduct", fieldFlags).GetValue(null));
-        Assert.Equal(result.AssemblyCompany, thisAssemblyClass.GetField("AssemblyCompany", fieldFlags).GetValue(null));
-        Assert.Equal(result.AssemblyCopyright, thisAssemblyClass.GetField("AssemblyCopyright", fieldFlags).GetValue(null));
         Assert.Equal(result.AssemblyConfiguration, thisAssemblyClass.GetField("AssemblyConfiguration", fieldFlags).GetValue(null));
+        if (includeNonVersionAttributes)
+        {
+
+            Assert.Equal(result.AssemblyTitle, thisAssemblyClass.GetField("AssemblyTitle", fieldFlags).GetValue(null));
+            Assert.Equal(result.AssemblyProduct, thisAssemblyClass.GetField("AssemblyProduct", fieldFlags).GetValue(null));
+            Assert.Equal(result.AssemblyCompany, thisAssemblyClass.GetField("AssemblyCompany", fieldFlags).GetValue(null));
+            Assert.Equal(result.AssemblyCopyright, thisAssemblyClass.GetField("AssemblyCopyright", fieldFlags).GetValue(null));
+        }
+        else
+        {
+            Assert.Null(thisAssemblyClass.GetField("AssemblyTitle", fieldFlags));
+            Assert.Null(thisAssemblyClass.GetField("AssemblyProduct", fieldFlags));
+            Assert.Null(thisAssemblyClass.GetField("AssemblyCompany", fieldFlags));
+            Assert.Null(thisAssemblyClass.GetField("AssemblyCopyright", fieldFlags));
+        }
 
         // Verify that it doesn't have key fields
         Assert.Null(thisAssemblyClass.GetField("PublicKey", fieldFlags));
