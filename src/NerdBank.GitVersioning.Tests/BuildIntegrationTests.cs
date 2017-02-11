@@ -57,7 +57,7 @@ public class BuildIntegrationTests : RepoTestBase
         this.projectDirectory = Path.Combine(this.RepoPath, "projdir");
         Directory.CreateDirectory(this.projectDirectory);
         this.LoadTargetsIntoProjectCollection();
-        this.testProject = this.CreateProjectRootElement(this.projectDirectory, "test.proj");
+        this.testProject = this.CreateProjectRootElement(this.projectDirectory, "test.prj");
         this.globalProperties.Add("NerdbankGitVersioningTasksPath", Environment.CurrentDirectory + "\\");
         Environment.SetEnvironmentVariable("_NBGV_UnitTest", "true");
 
@@ -888,7 +888,7 @@ public class BuildIntegrationTests : RepoTestBase
 
     private ProjectRootElement CreateProjectRootElement(string projectDirectory, string projectName)
     {
-        using (var reader = XmlReader.Create(Assembly.GetExecutingAssembly().GetManifestResourceStream($"{ThisAssembly.RootNamespace}.test.proj")))
+        using (var reader = XmlReader.Create(Assembly.GetExecutingAssembly().GetManifestResourceStream($"{ThisAssembly.RootNamespace}.test.prj")))
         {
             var pre = ProjectRootElement.Create(reader, this.projectCollection);
             pre.FullPath = Path.Combine(projectDirectory, projectName);

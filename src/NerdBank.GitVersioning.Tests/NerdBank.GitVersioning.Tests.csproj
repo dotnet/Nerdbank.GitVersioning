@@ -8,7 +8,7 @@
       <Link>Targets\%(FileName)%(Extension)</Link>
     </EmbeddedResource>
     <EmbeddedResource Include="Keys\*.snk" />
-    <EmbeddedResource Include="test.proj" />
+    <EmbeddedResource Include="test.prj" />
     <EmbeddedResource Include="repos\submodules.7z" />
   </ItemGroup>
   <ItemGroup>
