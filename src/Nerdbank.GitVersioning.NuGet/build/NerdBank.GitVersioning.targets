@@ -43,7 +43,7 @@
     <_NBGV_BuildingRef>$(_NBGV_BuildingTag)</_NBGV_BuildingRef>
     <_NBGV_BuildingRef Condition=" '$(_NBGV_BuildingRef)' == '' ">$(_NBGV_BuildingBranch)</_NBGV_BuildingRef>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(NBGV_DoNotEmitNonVersionCustomAttributes)' != 'true' ">
+  <PropertyGroup Condition=" '$(NBGV_EmitNonVersionCustomAttributes)' == 'true' ">
     <_NBGV_AssemblyTitle>$(AssemblyTitle)</_NBGV_AssemblyTitle>
     <_NBGV_AssemblyProduct>$(AssemblyProduct)</_NBGV_AssemblyProduct>
     <_NBGV_AssemblyCopyright>$(AssemblyCopyright)</_NBGV_AssemblyCopyright>
