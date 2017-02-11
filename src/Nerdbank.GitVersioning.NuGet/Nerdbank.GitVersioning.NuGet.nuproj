@@ -21,7 +21,7 @@
   </PropertyGroup>
   <Import Project="$(NuProjPath)\NuProj.props" Condition="Exists('$(NuProjPath)\NuProj.props')" />
   <PropertyGroup Label="Configuration">
-    <Id>Nerdbank.GitVersioning</Id>
+    <Id>Nerdbank.GitVersioning.LKG</Id>
     <Title>Nerdbank.GitVersioning</Title>
     <Authors>Andrew Arnott</Authors>
     <Owners>andarno</Owners>
@@ -38,10 +38,10 @@
     <NoDefaultExcludes>true</NoDefaultExcludes>
   </PropertyGroup>
   <ItemGroup>
-    <Content Include="buildCrossTargeting\NerdBank.GitVersioning.targets" />
-    <Content Include="build\dotnet\Nerdbank.GitVersioning.targets" />
-    <Content Include="build\NerdBank.GitVersioning.targets" />
-    <Content Include="build\portable-net+win+wpa+wp+sl+netmf+MonoAndroid+MonoTouch+Xamarin.iOS\Nerdbank.GitVersioning.targets" />
+    <Content Include="buildCrossTargeting\NerdBank.GitVersioning.LKG.targets" />
+    <Content Include="build\dotnet\Nerdbank.GitVersioning.LKG.targets" />
+    <Content Include="build\NerdBank.GitVersioning.LKG.targets" />
+    <Content Include="build\portable-net+win+wpa+wp+sl+netmf+MonoAndroid+MonoTouch+Xamarin.iOS\Nerdbank.GitVersioning.LKG.targets" />
     <Content Include="tools\Get-Version.ps1" />
     <Content Include="tools\Get-CommitId.ps1" />
     <Content Include="tools\Create-VersionFile.ps1" />
