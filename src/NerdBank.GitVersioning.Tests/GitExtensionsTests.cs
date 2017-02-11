@@ -95,7 +95,7 @@ public class GitExtensionsTests : RepoTestBase
 
         // Also emulate case of where the related project.json was just changed to conform,
         // but not yet checked in.
-        this.Repo.Reset(ResetMode.Mixed, this.Repo.Head.Commits.Skip(1).First());
+        this.Repo.Reset(ResetMode.Mixed, this.Repo.Head.Tip.Parents.Single());
         Assert.Equal(0, this.Repo.GetVersionHeight());
     }
 
