@@ -31,6 +31,8 @@
     <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
     <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
     <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
+
+    <NerdbankGitVersioningTasksPath Condition=" '$(NerdbankGitVersioningTasksPath)' == '' ">$(MSBuildThisFileDirectory)</NerdbankGitVersioningTasksPath>
   </PropertyGroup>
 
   <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="Nerdbank.GitVersioning.Tasks.AssemblyVersionInfo"/>
@@ -55,7 +57,8 @@
       BuildingRef="$(_NBGV_BuildingRef)"
       BuildMetadata="@(BuildMetadata)"
       DefaultPublicRelease="$(PublicRelease)"
-      GitRepoRoot="$(GitRepoRoot)">
+      GitRepoRoot="$(GitRepoRoot)"
+      TaskAssemblyPath="$(NerdbankGitVersioningTasksPath)">
 
       <Output TaskParameter="Version" PropertyName="BuildVersion" />
       <Output TaskParameter="AssemblyInformationalVersion" PropertyName="AssemblyInformationalVersion" />

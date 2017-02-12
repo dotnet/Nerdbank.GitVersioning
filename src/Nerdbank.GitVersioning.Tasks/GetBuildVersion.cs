@@ -6,6 +6,7 @@
     using System.Diagnostics;
     using System.IO;
     using System.Linq;
+    using System.Runtime.InteropServices;
     using System.Text;
     using System.Text.RegularExpressions;
     using Microsoft.Build.Framework;
@@ -14,6 +15,13 @@
 
     public class GetBuildVersion : Task
     {
+#if !NET45
+        /// <summary>
+        /// An AppDomain-wide variable used on 
+        /// </summary>
+        private static bool libgit2PathInitialized;
+#endif
+
         /// <summary>
         /// Initializes a new instance of the <see cref="GetBuildVersion"/> class.
         /// </summary>
@@ -42,6 +50,15 @@
         /// Gets or sets the path to the repo root. If null or empty, behavior defaults to using Environment.CurrentDirectory and searching upwards.
         /// </summary>
         public string GitRepoRoot { get; set; }
+
+        /// <summary>
+        /// Gets or sets the path to the folder that contains this task's assembly.
+        /// </summary>
+        /// <remarks>
+        /// This is particularly useful in .NET Core where discovering one's own assembly path
+        /// is not allowed before .NETStandard 2.0.
+        /// </remarks>
+        public string TaskAssemblyPath { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the project is building
@@ -146,6 +163,11 @@
         {
             try
             {
+                if (!this.HelpFindLibGit2NativeBinaries())
+                {
+                    return false;
+                }
+
                 var cloudBuild = CloudBuild.Active;
                 var oracle = VersionOracle.Create(Directory.GetCurrentDirectory(), this.GitRepoRoot, cloudBuild);
                 if (!string.IsNullOrEmpty(this.DefaultPublicRelease))
@@ -187,6 +209,26 @@
                 Log.LogErrorFromException(ex);
                 return false;
             }
+
+            return true;
+        }
+
+        private bool HelpFindLibGit2NativeBinaries()
+        {
+#if !NET45
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && !libgit2PathInitialized)
+            {
+                if (string.IsNullOrWhiteSpace(this.TaskAssemblyPath))
+                {
+                    this.Log.LogError("The TaskAssemblyPath parameter is required on .NET Core running on Windows.");
+                    return false;
+                }
+
+                string nativeDllPath = Path.Combine(this.TaskAssemblyPath, "lib", "win32", IntPtr.Size == 4 ? "x86" : "x64");
+                Environment.SetEnvironmentVariable("PATH", Environment.GetEnvironmentVariable("PATH") + Path.PathSeparator + nativeDllPath);
+                libgit2PathInitialized = true;
+            }
+#endif
 
             return true;
         }
