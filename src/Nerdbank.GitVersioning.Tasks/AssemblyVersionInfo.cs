@@ -29,6 +29,8 @@
         [Required]
         public string OutputFile { get; set; }
 
+        public bool EmitNonVersionCustomAttributes { get; set; }
+
         public string AssemblyName { get; set; }
 
         public string AssemblyVersion { get; set; }
@@ -169,14 +171,17 @@
             yield return DeclareAttribute(typeof(AssemblyVersionAttribute), this.AssemblyVersion);
             yield return DeclareAttribute(typeof(AssemblyFileVersionAttribute), this.AssemblyFileVersion);
             yield return DeclareAttribute(typeof(AssemblyInformationalVersionAttribute), this.AssemblyInformationalVersion);
-            if (!string.IsNullOrEmpty(this.AssemblyTitle))
-                yield return DeclareAttribute(typeof(AssemblyTitleAttribute), this.AssemblyTitle);
-            if (!string.IsNullOrEmpty(this.AssemblyProduct))
-                yield return DeclareAttribute(typeof(AssemblyProductAttribute), this.AssemblyProduct);
-            if (!string.IsNullOrEmpty(this.AssemblyCompany))
-                yield return DeclareAttribute(typeof(AssemblyCompanyAttribute), this.AssemblyCompany);
-            if (!string.IsNullOrEmpty(this.AssemblyCopyright))
-                yield return DeclareAttribute(typeof(AssemblyCopyrightAttribute), this.AssemblyCopyright);
+            if (this.EmitNonVersionCustomAttributes)
+            {
+                if (!string.IsNullOrEmpty(this.AssemblyTitle))
+                    yield return DeclareAttribute(typeof(AssemblyTitleAttribute), this.AssemblyTitle);
+                if (!string.IsNullOrEmpty(this.AssemblyProduct))
+                    yield return DeclareAttribute(typeof(AssemblyProductAttribute), this.AssemblyProduct);
+                if (!string.IsNullOrEmpty(this.AssemblyCompany))
+                    yield return DeclareAttribute(typeof(AssemblyCompanyAttribute), this.AssemblyCompany);
+                if (!string.IsNullOrEmpty(this.AssemblyCopyright))
+                    yield return DeclareAttribute(typeof(AssemblyCopyrightAttribute), this.AssemblyCopyright);
+            }
         }
 
         private static IEnumerable<CodeMemberField> CreateFields(IReadOnlyDictionary<string, string> namesAndValues)
