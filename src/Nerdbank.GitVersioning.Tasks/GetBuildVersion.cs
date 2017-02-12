@@ -15,12 +15,10 @@
 
     public class GetBuildVersion : Task
     {
-#if !NET45
         /// <summary>
         /// An AppDomain-wide variable used on 
         /// </summary>
         private static bool libgit2PathInitialized;
-#endif
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GetBuildVersion"/> class.
@@ -52,13 +50,14 @@
         public string GitRepoRoot { get; set; }
 
         /// <summary>
-        /// Gets or sets the path to the folder that contains this task's assembly.
+        /// Gets or sets the path to the folder that contains the NB.GV .targets file.
         /// </summary>
         /// <remarks>
         /// This is particularly useful in .NET Core where discovering one's own assembly path
         /// is not allowed before .NETStandard 2.0.
         /// </remarks>
-        public string TaskAssemblyPath { get; set; }
+        [Required]
+        public string TargetsPath { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the project is building
@@ -163,10 +162,7 @@
         {
             try
             {
-                if (!this.HelpFindLibGit2NativeBinaries())
-                {
-                    return false;
-                }
+                this.HelpFindLibGit2NativeBinaries();
 
                 var cloudBuild = CloudBuild.Active;
                 var oracle = VersionOracle.Create(Directory.GetCurrentDirectory(), this.GitRepoRoot, cloudBuild);
@@ -213,24 +209,25 @@
             return true;
         }
 
-        private bool HelpFindLibGit2NativeBinaries()
+        private void HelpFindLibGit2NativeBinaries()
         {
-#if !NET45
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && !libgit2PathInitialized)
+            if (!libgit2PathInitialized)
             {
-                if (string.IsNullOrWhiteSpace(this.TaskAssemblyPath))
+                string nativeDllPath = null;
+#if !NET45
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+#endif
                 {
-                    this.Log.LogError("The TaskAssemblyPath parameter is required on .NET Core running on Windows.");
-                    return false;
+                    nativeDllPath = Path.Combine(this.TargetsPath, "lib", "win32", IntPtr.Size == 4 ? "x86" : "x64");
                 }
 
-                string nativeDllPath = Path.Combine(this.TaskAssemblyPath, "lib", "win32", IntPtr.Size == 4 ? "x86" : "x64");
-                Environment.SetEnvironmentVariable("PATH", Environment.GetEnvironmentVariable("PATH") + Path.PathSeparator + nativeDllPath);
+                if (nativeDllPath != null)
+                {
+                    Environment.SetEnvironmentVariable("PATH", Environment.GetEnvironmentVariable("PATH") + Path.PathSeparator + nativeDllPath);
+                }
+
                 libgit2PathInitialized = true;
             }
-#endif
-
-            return true;
         }
     }
 }
