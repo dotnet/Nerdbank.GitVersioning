@@ -259,14 +259,17 @@
             this.generator.DeclareAttribute(typeof(AssemblyVersionAttribute), this.AssemblyVersion);
             this.generator.DeclareAttribute(typeof(AssemblyFileVersionAttribute), this.AssemblyFileVersion);
             this.generator.DeclareAttribute(typeof(AssemblyInformationalVersionAttribute), this.AssemblyInformationalVersion);
-            if (!string.IsNullOrEmpty(this.AssemblyTitle))
-                this.generator.DeclareAttribute(typeof(AssemblyTitleAttribute), this.AssemblyTitle);
-            if (!string.IsNullOrEmpty(this.AssemblyProduct))
-                this.generator.DeclareAttribute(typeof(AssemblyProductAttribute), this.AssemblyProduct);
-            if (!string.IsNullOrEmpty(this.AssemblyCompany))
-                this.generator.DeclareAttribute(typeof(AssemblyCompanyAttribute), this.AssemblyCompany);
-            if (!string.IsNullOrEmpty(this.AssemblyCopyright))
-                this.generator.DeclareAttribute(typeof(AssemblyCopyrightAttribute), this.AssemblyCopyright);
+            if (this.EmitNonVersionCustomAttributes)
+            {
+                if (!string.IsNullOrEmpty(this.AssemblyTitle))
+                    this.generator.DeclareAttribute(typeof(AssemblyTitleAttribute), this.AssemblyTitle);
+                if (!string.IsNullOrEmpty(this.AssemblyProduct))
+                    this.generator.DeclareAttribute(typeof(AssemblyProductAttribute), this.AssemblyProduct);
+                if (!string.IsNullOrEmpty(this.AssemblyCompany))
+                    this.generator.DeclareAttribute(typeof(AssemblyCompanyAttribute), this.AssemblyCompany);
+                if (!string.IsNullOrEmpty(this.AssemblyCopyright))
+                    this.generator.DeclareAttribute(typeof(AssemblyCopyrightAttribute), this.AssemblyCopyright);
+            }
         }
 
         private void CreateThisAssemblyClass()
