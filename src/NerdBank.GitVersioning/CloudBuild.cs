@@ -16,6 +16,7 @@
             new AppVeyor(),
             new VisualStudioTeamServices(),
             new TeamCity(),
+            new AtlassianBamboo(), 
         };
 
         /// <summary>

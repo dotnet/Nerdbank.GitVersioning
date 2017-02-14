@@ -47,6 +47,7 @@
     <Compile Include="CloudBuildServices\AppVeyor.cs" />
     <Compile Include="CloudBuild.cs" />
     <Compile Include="CloudBuildServices\TeamCity.cs" />
+    <Compile Include="CloudBuildServices\AtlassianBamboo.cs" />
     <Compile Include="ICloudBuild.cs" />
     <Compile Include="CloudBuildServices\VisualStudioTeamServices.cs" />
     <Compile Include="GitExtensions.cs" />
