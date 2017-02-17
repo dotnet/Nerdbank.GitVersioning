@@ -103,6 +103,7 @@
   <Target Name="SkipFrameworkAssemblies" AfterTargets="GetPackageFiles">
     <ItemGroup>
       <PackageFile Remove="@(PackageFile)" Condition="
+         $([System.String]::new('%(TargetPath)').StartsWith('build\')) and
         !$([System.String]::new('%(TargetPath)').StartsWith('build\lib\')) and
         '%(FileName)' != 'NerdBank.GitVersioning' and
         '%(FileName)' != 'NerdBank.GitVersioning.Tasks' and
@@ -111,7 +112,8 @@
         '%(FileName)' != 'Newtonsoft.Json' and
         '%(FileName)' != 'PInvoke.Kernel32' and
         '%(FileName)' != 'PInvoke.MsCorEE' and
-        '%(FileName)' != 'PInvoke.Windows.Core'
+        '%(FileName)' != 'PInvoke.Windows.Core' and
+        '%(Extension)' == '.dll'
         " />
     </ItemGroup>
   </Target>
