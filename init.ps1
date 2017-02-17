@@ -23,6 +23,9 @@ try {
         & "$toolsPath\Restore-NuGetPackages.ps1" -Path $_.FullName -Verbosity Quiet
     }
 
+    # Restore VS2017 style as well, since nuget 3.3 doesn't support it.
+    msbuild "$PSScriptRoot\src\NerdBank.GitVersioning.Tests\NerdBank.GitVersioning.Tests.csproj" /t:restore /v:minimal /m /nologo
+
     Write-Host "Restoring NPM packages..." -ForegroundColor Yellow
     Push-Location "$PSScriptRoot\src\nerdbank-gitversioning.npm"
     try {
