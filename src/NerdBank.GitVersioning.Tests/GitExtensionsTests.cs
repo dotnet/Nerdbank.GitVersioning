@@ -47,7 +47,7 @@ public class GitExtensionsTests : RepoTestBase
         var firstCommit = this.Repo.Commit("First", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         var anotherBranch = this.Repo.CreateBranch("another");
         var secondCommit = this.Repo.Commit("Second", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
-        this.Repo.Checkout(anotherBranch);
+        Commands.Checkout(this.Repo, anotherBranch);
         Commit[] branchCommits = new Commit[5];
         for (int i = 1; i <= branchCommits.Length; i++)
         {
@@ -83,7 +83,7 @@ public class GitExtensionsTests : RepoTestBase
         string versionJsonPath = Path.Combine(this.RepoPath, "version.json");
         File.WriteAllText(versionJsonPath, @"{ ""unrelated"": false }");
         Assert.Equal(0, this.Repo.GetVersionHeight()); // exercise code that handles the file not yet checked in.
-        this.Repo.Stage(versionJsonPath);
+        Commands.Stage(this.Repo, versionJsonPath);
         this.Repo.Commit("Add unrelated version.json file.", this.Signer, this.Signer);
         Assert.Equal(1, this.Repo.GetVersionHeight()); // exercise code that handles a checked in file.
 
@@ -109,7 +109,7 @@ public class GitExtensionsTests : RepoTestBase
         string versionJsonPath = Path.Combine(this.RepoPath, "version.json");
         File.WriteAllText(versionJsonPath, @"{ ""version"": ""1.0"""); // no closing curly brace for parsing error
         Assert.Equal(0, this.Repo.GetVersionHeight());
-        this.Repo.Stage(versionJsonPath);
+        Commands.Stage(this.Repo, versionJsonPath);
         this.Repo.Commit("Add broken version.json file.", this.Signer, this.Signer);
         Assert.Equal(1, this.Repo.GetVersionHeight());
 

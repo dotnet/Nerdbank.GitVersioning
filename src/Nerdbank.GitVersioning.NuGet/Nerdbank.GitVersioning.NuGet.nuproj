@@ -39,9 +39,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Content Include="buildCrossTargeting\NerdBank.GitVersioning.LKG.targets" />
-    <Content Include="build\dotnet\Nerdbank.GitVersioning.LKG.targets" />
     <Content Include="build\NerdBank.GitVersioning.LKG.targets" />
-    <Content Include="build\portable-net+win+wpa+wp+sl+netmf+MonoAndroid+MonoTouch+Xamarin.iOS\Nerdbank.GitVersioning.LKG.targets" />
     <Content Include="tools\Get-Version.ps1" />
     <Content Include="tools\Get-CommitId.ps1" />
     <Content Include="tools\Create-VersionFile.ps1" />
@@ -80,5 +78,41 @@
       </NpmPackageLayout>
     </ItemGroup>
     <Copy SourceFiles="@(NpmPackageLayout)" DestinationFiles="@(NpmPackageLayout->'%(TargetPath)')" />
+  </Target>
+  <Target Name="FixCrossTargetingProjectReferences" AfterTargets="ResolveProjectReferences">
+    <ItemGroup>
+      <CrossTargetProjects Include="@(_MSBuildProjectReferenceExistent)">
+        <SetPlatform>TargetFramework=net45;%(_MSBuildProjectReferenceExistent.SetPlatform)</SetPlatform>
+        <SetTargetFramework>TargetFramework=net45;ProjectHasSingleTargetFramework=false</SetTargetFramework>
+        <TargetSubdirectory>MSBuildFull</TargetSubdirectory>
+      </CrossTargetProjects>
+      <CrossTargetProjects Include="@(_MSBuildProjectReferenceExistent)">
+        <SetPlatform>TargetFramework=netstandard1.3;%(_MSBuildProjectReferenceExistent.SetPlatform)</SetPlatform>
+        <SetTargetFramework>TargetFramework=netstandard1.3;ProjectHasSingleTargetFramework=false</SetTargetFramework>
+        <TargetSubdirectory>MSBuildCore</TargetSubdirectory>
+      </CrossTargetProjects>
+      <_MSBuildProjectReferenceExistent Remove="@(CrossTargetProjects)" />
+      <_MSBuildProjectReferenceExistent Include="@(CrossTargetProjects)" />
+    </ItemGroup>
+    <!-- Build the default target of our P2P ref to ensure it builds. Hacky workaround.-->
+    <MSBuild Projects="@(CrossTargetProjects)"
+             BuildInParallel="true"
+             Properties="TargetFramework=netstandard1.3;ProjectHasSingleTargetFramework=false"
+             Condition=" '$(BuildingInsideVisualStudio)' != 'true' " />
+  </Target>
+  <Target Name="SkipFrameworkAssemblies" AfterTargets="GetPackageFiles">
+    <ItemGroup>
+      <PackageFile Remove="@(PackageFile)" Condition="
+        !$([System.String]::new('%(TargetPath)').StartsWith('build\lib\')) and
+        '%(FileName)' != 'NerdBank.GitVersioning' and
+        '%(FileName)' != 'NerdBank.GitVersioning.Tasks' and
+        '%(FileName)' != 'LibGit2Sharp' and
+        '%(FileName)' != 'Validation' and
+        '%(FileName)' != 'Newtonsoft.Json' and
+        '%(FileName)' != 'PInvoke.Kernel32' and
+        '%(FileName)' != 'PInvoke.MsCorEE' and
+        '%(FileName)' != 'PInvoke.Windows.Core'
+        " />
+    </ItemGroup>
   </Target>
 </Project>

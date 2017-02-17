@@ -6,6 +6,7 @@
     using System.Diagnostics;
     using System.IO;
     using System.Linq;
+    using System.Runtime.InteropServices;
     using System.Text;
     using System.Text.RegularExpressions;
     using Microsoft.Build.Framework;
@@ -14,6 +15,11 @@
 
     public class GetBuildVersion : Task
     {
+        /// <summary>
+        /// An AppDomain-wide variable used on 
+        /// </summary>
+        private static bool libgit2PathInitialized;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="GetBuildVersion"/> class.
         /// </summary>
@@ -42,6 +48,16 @@
         /// Gets or sets the path to the repo root. If null or empty, behavior defaults to using Environment.CurrentDirectory and searching upwards.
         /// </summary>
         public string GitRepoRoot { get; set; }
+
+        /// <summary>
+        /// Gets or sets the path to the folder that contains the NB.GV .targets file.
+        /// </summary>
+        /// <remarks>
+        /// This is particularly useful in .NET Core where discovering one's own assembly path
+        /// is not allowed before .NETStandard 2.0.
+        /// </remarks>
+        [Required]
+        public string TargetsPath { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the project is building
@@ -146,8 +162,10 @@
         {
             try
             {
+                this.HelpFindLibGit2NativeBinaries();
+
                 var cloudBuild = CloudBuild.Active;
-                var oracle = VersionOracle.Create(Environment.CurrentDirectory, this.GitRepoRoot, cloudBuild);
+                var oracle = VersionOracle.Create(Directory.GetCurrentDirectory(), this.GitRepoRoot, cloudBuild);
                 if (!string.IsNullOrEmpty(this.DefaultPublicRelease))
                 {
                     oracle.PublicRelease = string.Equals(this.DefaultPublicRelease, "true", StringComparison.OrdinalIgnoreCase);
@@ -189,6 +207,27 @@
             }
 
             return true;
+        }
+
+        private void HelpFindLibGit2NativeBinaries()
+        {
+            if (!libgit2PathInitialized)
+            {
+                string nativeDllPath = null;
+#if !NET45
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+#endif
+                {
+                    nativeDllPath = Path.Combine(this.TargetsPath, "lib", "win32", IntPtr.Size == 4 ? "x86" : "x64");
+                }
+
+                if (nativeDllPath != null)
+                {
+                    Environment.SetEnvironmentVariable("PATH", Environment.GetEnvironmentVariable("PATH") + Path.PathSeparator + nativeDllPath);
+                }
+
+                libgit2PathInitialized = true;
+            }
         }
     }
 }

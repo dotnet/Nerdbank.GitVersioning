@@ -31,6 +31,10 @@
     <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
     <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
     <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
+
+    <_NBGV_PlatformSuffix Condition=" '$(_NBGV_PlatformSuffix)' == '' and '$(MSBuildRuntimeType)' == 'Core' ">MSBuildCore/</_NBGV_PlatformSuffix>
+    <_NBGV_PlatformSuffix Condition=" '$(_NBGV_PlatformSuffix)' == '' ">MSBuildFull/</_NBGV_PlatformSuffix>
+    <NerdbankGitVersioningTasksPath Condition=" '$(NerdbankGitVersioningTasksPath)' == '' ">$(MSBuildThisFileDirectory)$(_NBGV_PlatformSuffix)</NerdbankGitVersioningTasksPath>
   </PropertyGroup>
 
   <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="Nerdbank.GitVersioning.Tasks.AssemblyVersionInfo"/>
@@ -43,19 +47,14 @@
     <_NBGV_BuildingRef>$(_NBGV_BuildingTag)</_NBGV_BuildingRef>
     <_NBGV_BuildingRef Condition=" '$(_NBGV_BuildingRef)' == '' ">$(_NBGV_BuildingBranch)</_NBGV_BuildingRef>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(NBGV_EmitNonVersionCustomAttributes)' == 'true' ">
-    <_NBGV_AssemblyTitle>$(AssemblyTitle)</_NBGV_AssemblyTitle>
-    <_NBGV_AssemblyProduct>$(AssemblyProduct)</_NBGV_AssemblyProduct>
-    <_NBGV_AssemblyCopyright>$(AssemblyCopyright)</_NBGV_AssemblyCopyright>
-    <_NBGV_AssemblyCompany>$(AssemblyCompany)</_NBGV_AssemblyCompany>
-  </PropertyGroup>
 
   <Target Name="GetBuildVersion" Returns="$(BuildVersion)">
     <Nerdbank.GitVersioning.Tasks.GetBuildVersion
       BuildingRef="$(_NBGV_BuildingRef)"
       BuildMetadata="@(BuildMetadata)"
       DefaultPublicRelease="$(PublicRelease)"
-      GitRepoRoot="$(GitRepoRoot)">
+      GitRepoRoot="$(GitRepoRoot)"
+      TargetsPath="$(MSBuildThisFileDirectory)">
 
       <Output TaskParameter="Version" PropertyName="BuildVersion" />
       <Output TaskParameter="AssemblyInformationalVersion" PropertyName="AssemblyInformationalVersion" />
@@ -132,11 +131,13 @@
                   AssemblyName="$(AssemblyName)"
                   RootNamespace="$(RootNamespace)"
                   AssemblyOriginatorKeyFile="$(AssemblyOriginatorKeyFile)"
-                  AssemblyTitle="$(_NBGV_AssemblyTitle)"
-                  AssemblyProduct="$(_NBGV_AssemblyProduct)"
-                  AssemblyCopyright="$(_NBGV_AssemblyCopyright)"
-                  AssemblyCompany="$(_NBGV_AssemblyCompany)"
-                  AssemblyConfiguration="$(Configuration)"/>
+                  AssemblyTitle="$(AssemblyTitle)"
+                  AssemblyProduct="$(AssemblyProduct)"
+                  AssemblyCopyright="$(AssemblyCopyright)"
+                  AssemblyCompany="$(AssemblyCompany)"
+                  AssemblyConfiguration="$(Configuration)"
+                  EmitNonVersionCustomAttributes="$(NBGV_EmitNonVersionCustomAttributes)"
+                  />
     <!-- Avoid applying the newly generated AssemblyVersionInfo.cs file to the build 
          unless it has changed in order to allow for incremental building. -->
     <Nerdbank.GitVersioning.Tasks.CompareFiles OriginalItems="$(VersionSourceFile)" NewItems="$(NewVersionSourceFile)">

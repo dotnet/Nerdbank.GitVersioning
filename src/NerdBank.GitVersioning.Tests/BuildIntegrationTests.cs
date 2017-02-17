@@ -57,7 +57,7 @@ public class BuildIntegrationTests : RepoTestBase
         this.projectDirectory = Path.Combine(this.RepoPath, "projdir");
         Directory.CreateDirectory(this.projectDirectory);
         this.LoadTargetsIntoProjectCollection();
-        this.testProject = this.CreateProjectRootElement(this.projectDirectory, "test.proj");
+        this.testProject = this.CreateProjectRootElement(this.projectDirectory, "test.prj");
         this.globalProperties.Add("NerdbankGitVersioningTasksPath", Environment.CurrentDirectory + "\\");
         Environment.SetEnvironmentVariable("_NBGV_UnitTest", "true");
 
@@ -582,7 +582,7 @@ public class BuildIntegrationTests : RepoTestBase
         {
             // Check out a branch that conforms.
             var releaseBranch = this.Repo.CreateBranch("release");
-            this.Repo.Checkout(releaseBranch);
+            Commands.Checkout(this.Repo, releaseBranch);
             var buildResult = await this.BuildAsync();
             Assert.True(buildResult.PublicRelease);
             AssertStandardProperties(versionOptions, buildResult);
@@ -648,21 +648,10 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal(result.AssemblyName, thisAssemblyClass.GetField("AssemblyName", fieldFlags).GetValue(null));
         Assert.Equal(result.RootNamespace, thisAssemblyClass.GetField("RootNamespace", fieldFlags).GetValue(null));
         Assert.Equal(result.AssemblyConfiguration, thisAssemblyClass.GetField("AssemblyConfiguration", fieldFlags).GetValue(null));
-        if (includeNonVersionAttributes)
-        {
-
-            Assert.Equal(result.AssemblyTitle, thisAssemblyClass.GetField("AssemblyTitle", fieldFlags).GetValue(null));
-            Assert.Equal(result.AssemblyProduct, thisAssemblyClass.GetField("AssemblyProduct", fieldFlags).GetValue(null));
-            Assert.Equal(result.AssemblyCompany, thisAssemblyClass.GetField("AssemblyCompany", fieldFlags).GetValue(null));
-            Assert.Equal(result.AssemblyCopyright, thisAssemblyClass.GetField("AssemblyCopyright", fieldFlags).GetValue(null));
-        }
-        else
-        {
-            Assert.Null(thisAssemblyClass.GetField("AssemblyTitle", fieldFlags));
-            Assert.Null(thisAssemblyClass.GetField("AssemblyProduct", fieldFlags));
-            Assert.Null(thisAssemblyClass.GetField("AssemblyCompany", fieldFlags));
-            Assert.Null(thisAssemblyClass.GetField("AssemblyCopyright", fieldFlags));
-        }
+        Assert.Equal(result.AssemblyTitle, thisAssemblyClass.GetField("AssemblyTitle", fieldFlags)?.GetValue(null));
+        Assert.Equal(result.AssemblyProduct, thisAssemblyClass.GetField("AssemblyProduct", fieldFlags)?.GetValue(null));
+        Assert.Equal(result.AssemblyCompany, thisAssemblyClass.GetField("AssemblyCompany", fieldFlags)?.GetValue(null));
+        Assert.Equal(result.AssemblyCopyright, thisAssemblyClass.GetField("AssemblyCopyright", fieldFlags)?.GetValue(null));
 
         // Verify that it doesn't have key fields
         Assert.Null(thisAssemblyClass.GetField("PublicKey", fieldFlags));
@@ -916,7 +905,7 @@ public class BuildIntegrationTests : RepoTestBase
 
     private ProjectRootElement CreateProjectRootElement(string projectDirectory, string projectName)
     {
-        using (var reader = XmlReader.Create(Assembly.GetExecutingAssembly().GetManifestResourceStream($"{ThisAssembly.RootNamespace}.test.proj")))
+        using (var reader = XmlReader.Create(Assembly.GetExecutingAssembly().GetManifestResourceStream($"{ThisAssembly.RootNamespace}.test.prj")))
         {
             var pre = ProjectRootElement.Create(reader, this.projectCollection);
             pre.FullPath = Path.Combine(projectDirectory, projectName);

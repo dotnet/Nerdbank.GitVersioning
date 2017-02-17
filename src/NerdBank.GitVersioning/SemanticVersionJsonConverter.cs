@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Reflection;
     using System.Text;
     using System.Threading.Tasks;
     using Newtonsoft.Json;
@@ -11,12 +12,12 @@
     {
         public override bool CanConvert(Type objectType)
         {
-            return typeof(SemanticVersion).IsAssignableFrom(objectType);
+            return typeof(SemanticVersion).GetTypeInfo().IsAssignableFrom(objectType.GetTypeInfo());
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
-            if (objectType.IsEquivalentTo(typeof(SemanticVersion)) && reader.Value is string)
+            if (objectType.Equals(typeof(SemanticVersion)) && reader.Value is string)
             {
                 SemanticVersion value;
                 if (SemanticVersion.TryParse((string)reader.Value, out value))

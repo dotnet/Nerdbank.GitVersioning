@@ -60,7 +60,7 @@
 
                 foreach (var item in envVars)
                 {
-                    Environment.SetEnvironmentVariable(item.Key, item.Value, EnvironmentVariableTarget.Process);
+                    Environment.SetEnvironmentVariable(item.Key, item.Value);
                 }
 
                 if (isUnitTest)
