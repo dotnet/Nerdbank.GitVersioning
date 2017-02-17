@@ -4,8 +4,8 @@
   },
   "dependencies": {
     "LibGit2Sharp": "0.24.7-g9fca61fdda",
-    "Nerdbank.GitVersioning": {
-      "version": "1.5.46",
+    "Nerdbank.GitVersioning.LKG": {
+      "version": "1.5.108-g37118a0bd6",
       "suppressParent": "none"
     },
     "ReadOnlySourceTree": {
