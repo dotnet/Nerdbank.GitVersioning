@@ -83,15 +83,22 @@
     <ItemGroup>
       <CrossTargetProjects Include="@(_MSBuildProjectReferenceExistent)">
         <SetPlatform>TargetFramework=net45;%(_MSBuildProjectReferenceExistent.SetPlatform)</SetPlatform>
+        <SetTargetFramework>TargetFramework=net45;ProjectHasSingleTargetFramework=false</SetTargetFramework>
         <TargetSubdirectory>MSBuildFull</TargetSubdirectory>
       </CrossTargetProjects>
       <CrossTargetProjects Include="@(_MSBuildProjectReferenceExistent)">
         <SetPlatform>TargetFramework=netstandard1.3;%(_MSBuildProjectReferenceExistent.SetPlatform)</SetPlatform>
+        <SetTargetFramework>TargetFramework=netstandard1.3;ProjectHasSingleTargetFramework=false</SetTargetFramework>
         <TargetSubdirectory>MSBuildCore</TargetSubdirectory>
       </CrossTargetProjects>
       <_MSBuildProjectReferenceExistent Remove="@(CrossTargetProjects)" />
       <_MSBuildProjectReferenceExistent Include="@(CrossTargetProjects)" />
     </ItemGroup>
+    <!-- Build the default target of our P2P ref to ensure it builds. Hacky workaround.-->
+    <MSBuild Projects="@(CrossTargetProjects)"
+             BuildInParallel="true"
+             Properties="TargetFramework=netstandard1.3;ProjectHasSingleTargetFramework=false"
+             Condition=" '$(BuildingInsideVisualStudio)' != 'true' " />
   </Target>
   <Target Name="SkipFrameworkAssemblies" AfterTargets="GetPackageFiles">
     <ItemGroup>
