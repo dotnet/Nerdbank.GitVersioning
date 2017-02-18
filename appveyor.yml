@@ -1,9 +1,8 @@
 version: 1.0.{build}
 skip_tags: true
-os: Visual Studio 2015
+os: Visual Studio 2017 RC
 configuration: Release
 cache:
- - '%USERPROFILE%\.nuget\packages -> **\project.json'
  - '%APPDATA%\npm-cache -> src\nerdbank-gitversioning.npm\package.json'
 init:
 - ps: >-
