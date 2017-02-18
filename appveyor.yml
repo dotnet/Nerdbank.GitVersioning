@@ -11,8 +11,6 @@ init:
     git config --global user.email me@appveyor.com
 environment:
   VisualStudioVersion: 15.0
-  NuGetApiKey:
-    secure: Ql19CstT9GvFNeSIAjXvgHXZg+/pNaYJ2jVkzde4LT2vwSyjiQgQ+M332wVYtu+r
 install:
 - ps: >-
     npm install npm -g
@@ -31,11 +29,3 @@ build_script:
 artifacts:
 - path: bin\**\*.nupkg
 - path: bin\js\*.tgz
-on_success:
-- ps: >-
-    if ($env:NuGetApiKey -and $env:APPVEYOR_REPO_TAG_NAME -match "^v\d") {
-        Write-Output "Publishing release packages to nuget.org due to pushed tag $env:APPVEYOR_REPO_TAG_NAME"
-        Get-ChildItem bin\Release\Nerdbank.GitVersioning.NuGet\*.nupkg -exclude *.symbols.nupkg |% {
-            nuget push $_ -ApiKey $env:NuGetApiKey
-        }
-    }
