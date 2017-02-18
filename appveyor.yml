@@ -22,7 +22,12 @@ before_build:
 
     #$blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 build_script:
-- ps: .\build.ps1
+- ps: >-
+    Write-Host "VisualStudioVersion = $env:VisualStudioVersion"
+
+    $env:VisualStudioVersion = '15.0'
+
+    .\build.ps1
 artifacts:
 - path: bin\**\*.nupkg
 - path: bin\js\*.tgz
