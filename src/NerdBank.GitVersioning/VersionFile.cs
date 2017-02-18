@@ -87,7 +87,7 @@
                 string versionTxtPath = Path.Combine(searchDirectory, TxtFileName);
                 if (File.Exists(versionTxtPath))
                 {
-                    using (var sr = new StreamReader(versionTxtPath))
+                    using (var sr = new StreamReader(File.OpenRead(versionTxtPath)))
                     {
                         var result = TryReadVersionFile(sr, isJsonFile: false);
                         if (result != null)
@@ -100,7 +100,7 @@
                 string versionJsonPath = Path.Combine(searchDirectory, JsonFileName);
                 if (File.Exists(versionJsonPath))
                 {
-                    using (var sr = new StreamReader(versionJsonPath))
+                    using (var sr = new StreamReader(File.OpenRead(versionJsonPath)))
                     {
                         var result = TryReadVersionFile(sr, isJsonFile: true);
                         if (result != null)

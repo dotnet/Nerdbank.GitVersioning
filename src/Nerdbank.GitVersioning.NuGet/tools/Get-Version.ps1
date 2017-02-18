@@ -10,7 +10,7 @@ Param(
     [string]$ProjectDirectory="."
 )
 
-if (-not (Test-Path variable:global:DependencyBasePath) -or !$DependencyBasePath) { $DependencyBasePath = "$PSScriptRoot\..\build" }
+if (-not (Test-Path variable:global:DependencyBasePath) -or !$DependencyBasePath) { $DependencyBasePath = "$PSScriptRoot\..\build\MSBuildFull" }
 $null = [Reflection.Assembly]::LoadFile((Resolve-Path "$DependencyBasePath\Validation.dll"))
 $null = [Reflection.Assembly]::LoadFile((Resolve-Path "$DependencyBasePath\NerdBank.GitVersioning.dll"))
 $null = [Reflection.Assembly]::LoadFile((Resolve-Path "$DependencyBasePath\LibGit2Sharp.dll"))
@@ -19,6 +19,7 @@ $null = [Reflection.Assembly]::LoadFile((Resolve-Path "$DependencyBasePath\Newto
 $ProjectDirectory = (Resolve-Path $ProjectDirectory).ProviderPath
 
 try {
+    [Nerdbank.GitVersioning.GitExtensions]::HelpFindLibGit2NativeBinaries("$DependencyBasePath\..")
     $CloudBuild = [Nerdbank.GitVersioning.CloudBuild]::Active
     $VersionOracle = [Nerdbank.GitVersioning.VersionOracle]::Create($ProjectDirectory, $null, $CloudBuild)
     $VersionOracle

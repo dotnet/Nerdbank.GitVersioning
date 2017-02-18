@@ -3,15 +3,15 @@
     "net451": { }
   },
   "dependencies": {
-    "LibGit2Sharp": "0.22.0",
-    "Nerdbank.GitVersioning": {
-      "version": "1.5.46",
+    "LibGit2Sharp": "0.24.7-g9fca61fdda",
+    "Nerdbank.GitVersioning.LKG": {
+      "version": "1.5.108-g37118a0bd6",
       "suppressParent": "none"
     },
     "ReadOnlySourceTree": {
       "version": "0.1.37-beta",
       "suppressParent": "none"
-    }, 
+    },
     "NuProj": "0.11.14-beta"
   },
   "runtimes": {

@@ -7,7 +7,7 @@ This project is actively developed using the following software.
 It is highly recommended that anyone contributing to this library use the same
 software.
 
-1. [Visual Studio 2015][VS]
+1. [Visual Studio 2017][VS]
 2. [Node.js][NodeJs]
 
 ### Optional additional software
@@ -17,7 +17,6 @@ They are not required to build the full solution from the command line using MSB
 but installing this software will facilitate an enhanced developer experience in Visual Studio.
 
 1. [Node.js Tools for Visual Studio][NodeJsTools]
-2. [NuProj for VS2015][NuProj]
 
 All other dependencies are acquired via NuGet or NPM.
 
@@ -30,8 +29,8 @@ and you are running Windows PowerShell, the command is:
 
     .\init.ps1
 
-Everything in the repo may be built via building the solution file
-either from Visual Studio 2015 or the VS2015 Developer Command Prompt:
+Most of the repo may be built via building the solution file from Visual Studio 2017,
+but for a complete build, build from the VS2017 Developer Command Prompt:
 
     .\build.ps1
 
@@ -40,28 +39,9 @@ It then builds an NPM package that includes some of the outputs of MSBuild, alon
 some javascript, for our NPM consumers who want a reasonable versioning story for their
 NPM packages too.
 
-### Important notice when developing with Visual Studio
-
-The NuGet package restore functionality in Visual Studio does not work for this project, which relies
-on newer functionality than comes with Visual Studio 2015 Update 3. You should disable automatic
-package restore on build in Visual Studio in order to build successfully and have a useful Error List
-while developing.
-
-Follow these steps to disable automatic package restore in Visual Studio:
-
-1. Tools -> Options -> NuGet Package Manager -> General
-2. *Clear* the checkbox for "Automatically check for missing packages during build in Visual Studio
-
-With this setting, you can still execute a package restore within Visual Studio by right-clicking
-on the _solution_ node in Solution Explorer and clicking "Restore NuGet Packages". But do not ever
-execute that on this project as that will corrupt the result of `init.ps1`.
-
-Before developing this project in Visual Studio, or after making project or project.json changes,
-or to recover after Visual Studio executes a package restore, run the `init` script again.
-
 ## Testing
 
-The Visual Studio 2015 Test Explorer will list and execute all tests.
+The Visual Studio 2017 Test Explorer will list and execute all tests.
 
 ## Pull requests
 
@@ -104,8 +84,6 @@ for your pull request. You can get the version number by reviewing the result of
 validation build for your pull request, clicking ARTIFACTS, and noting the version
 of the produced packages.
 
- [VS]: https://www.visualstudio.com/en-us/downloads/visual-studio-2015-downloads-vs.aspx
+ [VS]: https://www.visualstudio.com/downloads/
  [NodeJs]: https://nodejs.org
- [NuProj]: https://onedrive.live.com/redir?resid=63D0C265F96E43D!2477835&authkey=!AHh2k9FoNR-nFHo&ithint=file%2cmsi
  [NodeJsTools]: https://www.visualstudio.com/vs/node-js/
- [NuGetClient]: https://dist.nuget.org/win-x86-commandline/v3.3.0/nuget.exe

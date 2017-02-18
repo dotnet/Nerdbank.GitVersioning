@@ -61,7 +61,7 @@
             this.Repo = new Repository(this.RepoPath);
             foreach (var file in this.Repo.RetrieveStatus().Untracked)
             {
-                this.Repo.Stage(file.FilePath);
+                Commands.Stage(this.Repo, file.FilePath);
             }
 
             if (this.Repo.Index.Count > 0)

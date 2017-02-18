@@ -6,6 +6,7 @@
     using System.Diagnostics;
     using System.IO;
     using System.Linq;
+    using System.Runtime.InteropServices;
     using System.Text;
     using System.Text.RegularExpressions;
     using Microsoft.Build.Framework;
@@ -42,6 +43,16 @@
         /// Gets or sets the path to the repo root. If null or empty, behavior defaults to using Environment.CurrentDirectory and searching upwards.
         /// </summary>
         public string GitRepoRoot { get; set; }
+
+        /// <summary>
+        /// Gets or sets the path to the folder that contains the NB.GV .targets file.
+        /// </summary>
+        /// <remarks>
+        /// This is particularly useful in .NET Core where discovering one's own assembly path
+        /// is not allowed before .NETStandard 2.0.
+        /// </remarks>
+        [Required]
+        public string TargetsPath { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the project is building
@@ -146,8 +157,10 @@
         {
             try
             {
+                GitExtensions.TryHelpFindLibGit2NativeBinaries(this.TargetsPath);
+
                 var cloudBuild = CloudBuild.Active;
-                var oracle = VersionOracle.Create(Environment.CurrentDirectory, this.GitRepoRoot, cloudBuild);
+                var oracle = VersionOracle.Create(Directory.GetCurrentDirectory(), this.GitRepoRoot, cloudBuild);
                 if (!string.IsNullOrEmpty(this.DefaultPublicRelease))
                 {
                     oracle.PublicRelease = string.Equals(this.DefaultPublicRelease, "true", StringComparison.OrdinalIgnoreCase);

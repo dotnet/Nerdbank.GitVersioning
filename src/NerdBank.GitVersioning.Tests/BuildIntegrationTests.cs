@@ -57,7 +57,7 @@ public class BuildIntegrationTests : RepoTestBase
         this.projectDirectory = Path.Combine(this.RepoPath, "projdir");
         Directory.CreateDirectory(this.projectDirectory);
         this.LoadTargetsIntoProjectCollection();
-        this.testProject = this.CreateProjectRootElement(this.projectDirectory, "test.proj");
+        this.testProject = this.CreateProjectRootElement(this.projectDirectory, "test.prj");
         this.globalProperties.Add("NerdbankGitVersioningTasksPath", Environment.CurrentDirectory + "\\");
         Environment.SetEnvironmentVariable("_NBGV_UnitTest", "true");
 
@@ -582,7 +582,7 @@ public class BuildIntegrationTests : RepoTestBase
         {
             // Check out a branch that conforms.
             var releaseBranch = this.Repo.CreateBranch("release");
-            this.Repo.Checkout(releaseBranch);
+            Commands.Checkout(this.Repo, releaseBranch);
             var buildResult = await this.BuildAsync();
             Assert.True(buildResult.PublicRelease);
             AssertStandardProperties(versionOptions, buildResult);
@@ -888,7 +888,7 @@ public class BuildIntegrationTests : RepoTestBase
 
     private void LoadTargetsIntoProjectCollection()
     {
-        const string prefix = "Nerdbank.GitVersioning.Tests.Targets.";
+        string prefix = $"{ThisAssembly.RootNamespace}.Targets.";
 
         var streamNames = from name in Assembly.GetExecutingAssembly().GetManifestResourceNames()
                           where name.StartsWith(prefix, StringComparison.Ordinal)
@@ -905,7 +905,7 @@ public class BuildIntegrationTests : RepoTestBase
 
     private ProjectRootElement CreateProjectRootElement(string projectDirectory, string projectName)
     {
-        using (var reader = XmlReader.Create(Assembly.GetExecutingAssembly().GetManifestResourceStream($"{ThisAssembly.RootNamespace}.test.proj")))
+        using (var reader = XmlReader.Create(Assembly.GetExecutingAssembly().GetManifestResourceStream($"{ThisAssembly.RootNamespace}.test.prj")))
         {
             var pre = ProjectRootElement.Create(reader, this.projectCollection);
             pre.FullPath = Path.Combine(projectDirectory, projectName);

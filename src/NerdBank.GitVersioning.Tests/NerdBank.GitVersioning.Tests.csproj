@@ -1,96 +1,29 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{C54F9EC8-FDA7-4D22-BCB2-7D97523BD91E}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Nerdbank.GitVersioning.Tests</RootNamespace>
-    <AssemblyName>NerdBank.GitVersioning.Tests</AssemblyName>
-    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <NuGetPackageImportStamp>
-    </NuGetPackageImportStamp>
-    <CopyNugetImplementations>true</CopyNugetImplementations>
+    <TargetFramework>net45</TargetFramework>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="Microsoft.Build" />
-    <Reference Include="Microsoft.Build.Framework" />
-    <Reference Include="Microsoft.Build.Tasks.v4.0" />
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Net.Http" />
-    <Reference Include="System.Xml" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="BuildIntegrationTests.cs" />
-    <Compile Include="GitExtensionsTests.cs" />
-    <Compile Include="MSBuildExtensions.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RepoTestBase.cs" />
-    <Compile Include="SemanticVersionTests.cs" />
-    <Compile Include="TestUtilities.cs" />
-    <Compile Include="VersionExtensionsTests.cs" />
-    <Compile Include="VersionFileTests.cs" />
-    <Compile Include="VersionOptionsTests.cs" />
-    <Compile Include="VersionOracleTests.cs" />
-  </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="..\Nerdbank.GitVersioning.NuGet\build\*.targets">
       <Visible>false</Visible>
       <Link>Targets\%(FileName)%(Extension)</Link>
     </EmbeddedResource>
-    <EmbeddedResource Include="Keys\keypair.snk" />
-    <EmbeddedResource Include="Keys\public.snk" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\NerdBank.GitVersioning.Tasks\Nerdbank.GitVersioning.Tasks.csproj">
-      <Project>{d76be1f9-5063-4443-b792-eaeecaa457d7}</Project>
-      <Name>Nerdbank.GitVersioning.Tasks</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\NerdBank.GitVersioning\NerdBank.GitVersioning.csproj">
-      <Project>{50d7b410-d986-499a-9fd1-fbbb55b095bd}</Project>
-      <Name>NerdBank.GitVersioning</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="Keys\protectedPair.pfx" />
-    <None Include="project.json" />
-    <EmbeddedResource Include="test.proj" />
+    <EmbeddedResource Include="Keys\*.snk" />
+    <EmbeddedResource Include="Keys\*.pfx" />
+    <EmbeddedResource Include="test.prj" />
     <EmbeddedResource Include="repos\submodules.7z" />
   </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
+  <ItemGroup>
+    <ProjectReference Include="..\Nerdbank.GitVersioning.Tasks\Nerdbank.GitVersioning.Tasks.csproj" />
+    <ProjectReference Include="..\NerdBank.GitVersioning\NerdBank.GitVersioning.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="7z.NET" Version="1.0.3" />
+    <PackageReference Include="System.Collections.Immutable" Version="1.3.1" />
+    <PackageReference Include="Microsoft.Build" Version="14.3" Condition=" '$(TargetFramework)' == 'net45' " />
+    <PackageReference Include="Xunit.Combinatorial" Version="1.1.12" />
+    <PackageReference Include="xunit" Version="2.1.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="1.1.1" />
+    <PackageReference Include="Nerdbank.GitVersioning.LKG" Version="1.5.108-g37118a0bd6" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.1.0" />
+  </ItemGroup>
 </Project>
