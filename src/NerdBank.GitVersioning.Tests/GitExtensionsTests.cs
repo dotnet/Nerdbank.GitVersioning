@@ -118,7 +118,7 @@ public class GitExtensionsTests : RepoTestBase
         Assert.Equal(1, this.Repo.GetVersionHeight());
 
         // And emulate fixing it without having checked in yet.
-        this.Repo.Reset(ResetMode.Mixed, this.Repo.Head.Commits.Skip(1).First());
+        this.Repo.Reset(ResetMode.Mixed, this.Repo.Head.Tip.Parents.Single());
         Assert.Equal(0, this.Repo.GetVersionHeight());
     }
 
