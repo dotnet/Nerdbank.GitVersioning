@@ -36,6 +36,7 @@ namespace Nerdbank.GitVersioning.Tests
                 // Somehow making commits with libgit2sharp locks files
                 // such that we can't delete them (but Windows Explorer can).
                 var psi = new ProcessStartInfo("cmd.exe", $"/c rd /s /q \"{path}\"");
+                psi.WorkingDirectory = Path.GetTempPath();
                 psi.WindowStyle = ProcessWindowStyle.Hidden;
                 var process = Process.Start(psi);
                 process.WaitForExit();
