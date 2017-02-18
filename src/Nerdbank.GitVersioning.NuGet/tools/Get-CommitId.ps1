@@ -27,6 +27,7 @@ $null = [Reflection.Assembly]::LoadFile((Resolve-Path "$DependencyBasePath\Valid
 $null = [Reflection.Assembly]::LoadFile((Resolve-Path "$DependencyBasePath\NerdBank.GitVersioning.dll"))
 $null = [Reflection.Assembly]::LoadFile((Resolve-Path "$DependencyBasePath\LibGit2Sharp.dll"))
 $null = [Reflection.Assembly]::LoadFile((Resolve-Path "$DependencyBasePath\Newtonsoft.Json.dll"))
+[Nerdbank.GitVersioning.GitExtensions]::HelpFindLibGit2NativeBinaries("$DependencyBasePath\..")
 
 $ProjectDirectory = (Resolve-Path $ProjectDirectory).ProviderPath
 $GitPath = $ProjectDirectory

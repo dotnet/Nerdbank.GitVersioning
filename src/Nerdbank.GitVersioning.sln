@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26210.2
+VisualStudioVersion = 15.0.26215.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FF286327-C783-4F7A-AB73-9BCBAD0D4460}") = "Nerdbank.GitVersioning.NuGet", "Nerdbank.GitVersioning.NuGet\Nerdbank.GitVersioning.NuGet.nuproj", "{B7DE4122-9E90-43DE-BE44-454315CFAE99}"
 EndProject
@@ -9,6 +9,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		..\.gitignore = ..\.gitignore
 		..\appveyor.yml = ..\appveyor.yml
+		..\build.ps1 = ..\build.ps1
 		..\init.ps1 = ..\init.ps1
 		..\nuget.config = ..\nuget.config
 		..\readme.md = ..\readme.md

@@ -4,8 +4,8 @@
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    using System.Runtime.InteropServices;
     using System.Text;
-    using System.Threading.Tasks;
     using LibGit2Sharp;
     using Validation;
     using Version = System.Version;
@@ -15,6 +15,11 @@
     /// </summary>
     public static class GitExtensions
     {
+        /// <summary>
+        /// An AppDomain-wide variable used on 
+        /// </summary>
+        private static bool libgit2PathInitialized;
+
         /// <summary>
         /// The 0.0 version.
         /// </summary>
@@ -273,6 +278,61 @@
         }
 
         /// <summary>
+        /// Assists the operating system in finding the appropriate native libgit2 module.
+        /// </summary>
+        /// <param name="basePath">The path to the directory that contains the lib folder.</param>
+        /// <exception cref="ArgumentException">Thrown if the provided path does not lead to an existing directory.</exception>
+        public static void HelpFindLibGit2NativeBinaries(string basePath)
+        {
+            if (!TryHelpFindLibGit2NativeBinaries(basePath, out string attemptedDirectory))
+            {
+                throw new ArgumentException($"Unable to find native binaries under directory: \"{attemptedDirectory}\".");
+            }
+        }
+
+        /// <summary>
+        /// Assists the operating system in finding the appropriate native libgit2 module.
+        /// </summary>
+        /// <param name="basePath">The path to the directory that contains the lib folder.</param>
+        /// <returns><c>true</c> if the libgit2 native binaries have been found; <c>false</c> otherwise.</returns>
+        public static bool TryHelpFindLibGit2NativeBinaries(string basePath)
+        {
+            return TryHelpFindLibGit2NativeBinaries(basePath, out string attemptedDirectory);
+        }
+
+        /// <summary>
+        /// Assists the operating system in finding the appropriate native libgit2 module.
+        /// </summary>
+        /// <param name="basePath">The path to the directory that contains the lib folder.</param>
+        /// <param name="attemptedDirectory">Receives the directory that native binaries are expected.</param>
+        /// <returns><c>true</c> if the libgit2 native binaries have been found; <c>false</c> otherwise.</returns>
+        public static bool TryHelpFindLibGit2NativeBinaries(string basePath, out string attemptedDirectory)
+        {
+            attemptedDirectory = null;
+            if (!libgit2PathInitialized)
+            {
+#if !NET45
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+#endif
+                {
+                    attemptedDirectory = Path.Combine(basePath, "lib", "win32", IntPtr.Size == 4 ? "x86" : "x64");
+                    if (Directory.Exists(attemptedDirectory))
+                    {
+                        Environment.SetEnvironmentVariable("PATH", Environment.GetEnvironmentVariable("PATH") + Path.PathSeparator + attemptedDirectory);
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+
+                libgit2PathInitialized = true;
+            }
+
+            return libgit2PathInitialized;
+        }
+
+        /// <summary>
         /// Tests whether a commit is of a specified version, comparing major and minor components
         /// with the version.txt file defined by that commit.
         /// </summary>
@@ -438,7 +498,7 @@
                     : 0;
             }
 
-            int build =  versionHeight.Value == 0 ? 0 : versionHeight.Value + (versionOptions?.BuildNumberOffset ?? 0);
+            int build = versionHeight.Value == 0 ? 0 : versionHeight.Value + (versionOptions?.BuildNumberOffset ?? 0);
             Verify.Operation(build <= MaximumBuildNumberOrRevisionComponent, "Git height is {0}, which is greater than the maximum allowed {0}.", build, MaximumBuildNumberOrRevisionComponent);
             int revision = commit != null
                 ? Math.Min(MaximumBuildNumberOrRevisionComponent, commit.GetTruncatedCommitIdAsUInt16())
