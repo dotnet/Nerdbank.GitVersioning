@@ -888,7 +888,7 @@ public class BuildIntegrationTests : RepoTestBase
 
     private void LoadTargetsIntoProjectCollection()
     {
-        const string prefix = "Nerdbank.GitVersioning.Tests.Targets.";
+        string prefix = $"{ThisAssembly.RootNamespace}.Targets.";
 
         var streamNames = from name in Assembly.GetExecutingAssembly().GetManifestResourceNames()
                           where name.StartsWith(prefix, StringComparison.Ordinal)

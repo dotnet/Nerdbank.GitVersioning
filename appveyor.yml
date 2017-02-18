@@ -1,9 +1,8 @@
 version: 1.0.{build}
 skip_tags: true
-os: Visual Studio 2015
+os: Visual Studio 2017 RC
 configuration: Release
 cache:
- - '%USERPROFILE%\.nuget\packages -> **\project.json'
  - '%APPDATA%\npm-cache -> src\nerdbank-gitversioning.npm\package.json'
 init:
 - ps: >-
@@ -11,7 +10,7 @@ init:
 
     git config --global user.email me@appveyor.com
 environment:
-  VisualStudioVersion: 14.0
+  VisualStudioVersion: 15.0
 install:
 - ps: >-
     npm install npm -g
@@ -21,7 +20,8 @@ before_build:
 
     #$blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 build_script:
-- ps: .\build.ps1
+- ps: >-
+    .\build.ps1
 artifacts:
 - path: bin\**\*.nupkg
 - path: bin\js\*.tgz

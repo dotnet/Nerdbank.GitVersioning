@@ -16,11 +16,6 @@
     public class GetBuildVersion : Task
     {
         /// <summary>
-        /// An AppDomain-wide variable used on 
-        /// </summary>
-        private static bool libgit2PathInitialized;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="GetBuildVersion"/> class.
         /// </summary>
         public GetBuildVersion()
@@ -162,7 +157,7 @@
         {
             try
             {
-                this.HelpFindLibGit2NativeBinaries();
+                GitExtensions.TryHelpFindLibGit2NativeBinaries(this.TargetsPath);
 
                 var cloudBuild = CloudBuild.Active;
                 var oracle = VersionOracle.Create(Directory.GetCurrentDirectory(), this.GitRepoRoot, cloudBuild);
@@ -207,27 +202,6 @@
             }
 
             return true;
-        }
-
-        private void HelpFindLibGit2NativeBinaries()
-        {
-            if (!libgit2PathInitialized)
-            {
-                string nativeDllPath = null;
-#if !NET45
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-#endif
-                {
-                    nativeDllPath = Path.Combine(this.TargetsPath, "lib", "win32", IntPtr.Size == 4 ? "x86" : "x64");
-                }
-
-                if (nativeDllPath != null)
-                {
-                    Environment.SetEnvironmentVariable("PATH", Environment.GetEnvironmentVariable("PATH") + Path.PathSeparator + nativeDllPath);
-                }
-
-                libgit2PathInitialized = true;
-            }
         }
     }
 }

@@ -72,9 +72,9 @@
       <NpmPackageLayoutDir>..\nerdbank-gitversioning.npm\out\nbgv.nuget\</NpmPackageLayoutDir>
     </PropertyGroup>
     <ItemGroup>
-      <NpmPackageLayout Include="@(File)">
-        <TargetPath Condition=" '%(File.TargetPath)' != '' ">$(NpmPackageLayoutDir)$([System.IO.Path]::GetDirectoryName('%(File.TargetPath)'))\%(FileName)%(Extension)</TargetPath>
-        <TargetPath Condition=" '%(File.TargetPath)' == '' ">$(NpmPackageLayoutDir)%(FileName)%(Extension)</TargetPath>
+      <NpmPackageLayout Include="@(PackageFile)">
+        <TargetPath Condition=" '%(PackageFile.TargetPath)' != '' ">$(NpmPackageLayoutDir)$([System.IO.Path]::GetDirectoryName('%(PackageFile.TargetPath)'))\%(FileName)%(Extension)</TargetPath>
+        <TargetPath Condition=" '%(PackageFile.TargetPath)' == '' ">$(NpmPackageLayoutDir)%(FileName)%(Extension)</TargetPath>
       </NpmPackageLayout>
     </ItemGroup>
     <Copy SourceFiles="@(NpmPackageLayout)" DestinationFiles="@(NpmPackageLayout->'%(TargetPath)')" />
