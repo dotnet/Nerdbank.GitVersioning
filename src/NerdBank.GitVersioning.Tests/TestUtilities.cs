@@ -47,7 +47,7 @@ namespace Nerdbank.GitVersioning.Tests
             Requires.NotNullOrEmpty(resourcePath, nameof(resourcePath));
             Requires.NotNullOrEmpty(extractedFilePath, nameof(extractedFilePath));
 
-            using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"Nerdbank.GitVersioning.Tests.{resourcePath.Replace('\\', '.')}"))
+            using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"{ThisAssembly.RootNamespace}.{resourcePath.Replace('\\', '.')}"))
             {
                 Requires.Argument(stream != null, nameof(resourcePath), "Resource not found.");
                 using (var extractedFile = File.OpenWrite(extractedFilePath))
