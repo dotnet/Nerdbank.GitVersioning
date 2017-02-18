@@ -22,6 +22,7 @@ before_build:
 build_script:
 - ps: >-
     .\build.ps1
+test: off
 artifacts:
 - path: bin\**\*.nupkg
 - path: bin\js\*.tgz
