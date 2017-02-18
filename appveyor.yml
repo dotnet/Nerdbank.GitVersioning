@@ -10,6 +10,7 @@ init:
 
     git config --global user.email me@appveyor.com
 environment:
+  VisualStudioVersion: 15.0
   NuGetApiKey:
     secure: Ql19CstT9GvFNeSIAjXvgHXZg+/pNaYJ2jVkzde4LT2vwSyjiQgQ+M332wVYtu+r
 install:
