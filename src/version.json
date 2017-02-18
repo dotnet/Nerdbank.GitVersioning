@@ -5,7 +5,7 @@
     "precision": "revision"
   },
   "publicReleaseRefSpec": [
-    "^refs/heads/lkg$" // ship LKG out of its branch
+    // "^refs/heads/lkg$" All LKGs retain their full commit ID in the version, since we don't tag them.
   ],
   "cloudBuild": {
     "buildNumber": {
