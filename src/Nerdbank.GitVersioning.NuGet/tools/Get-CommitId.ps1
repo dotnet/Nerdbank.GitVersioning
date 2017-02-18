@@ -22,7 +22,7 @@ Param(
     [string]$Version
 )
 
-if (-not (Test-Path variable:global:DependencyBasePath) -or !$DependencyBasePath) { $DependencyBasePath = "$PSScriptRoot\..\build" }
+if (-not (Test-Path variable:global:DependencyBasePath) -or !$DependencyBasePath) { $DependencyBasePath = "$PSScriptRoot\..\build\MSBuildFull" }
 $null = [Reflection.Assembly]::LoadFile((Resolve-Path "$DependencyBasePath\Validation.dll"))
 $null = [Reflection.Assembly]::LoadFile((Resolve-Path "$DependencyBasePath\NerdBank.GitVersioning.dll"))
 $null = [Reflection.Assembly]::LoadFile((Resolve-Path "$DependencyBasePath\LibGit2Sharp.dll"))
