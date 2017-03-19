@@ -16,11 +16,6 @@
     public static class GitExtensions
     {
         /// <summary>
-        /// An AppDomain-wide variable used on 
-        /// </summary>
-        private static bool libgit2PathInitialized;
-
-        /// <summary>
         /// The 0.0 version.
         /// </summary>
         private static readonly Version Version0 = new Version(0, 0);
@@ -277,6 +272,7 @@
             return possibleCommits;
         }
 
+#if NET45
         /// <summary>
         /// Assists the operating system in finding the appropriate native libgit2 module.
         /// </summary>
@@ -308,28 +304,59 @@
         /// <returns><c>true</c> if the libgit2 native binaries have been found; <c>false</c> otherwise.</returns>
         public static bool TryHelpFindLibGit2NativeBinaries(string basePath, out string attemptedDirectory)
         {
-            attemptedDirectory = null;
-            if (!libgit2PathInitialized)
+            attemptedDirectory = FindLibGit2NativeBinaries(basePath);
+            if (Directory.Exists(attemptedDirectory))
             {
-#if !NET45
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-#endif
-                {
-                    attemptedDirectory = Path.Combine(basePath, "lib", "win32", IntPtr.Size == 4 ? "x86" : "x64");
-                    if (Directory.Exists(attemptedDirectory))
-                    {
-                        Environment.SetEnvironmentVariable("PATH", Environment.GetEnvironmentVariable("PATH") + Path.PathSeparator + attemptedDirectory);
-                    }
-                    else
-                    {
-                        return false;
-                    }
-                }
-
-                libgit2PathInitialized = true;
+                AddDirectoryToPath(attemptedDirectory);
+                return true;
             }
 
-            return libgit2PathInitialized;
+            return false;
+        }
+
+        /// <summary>
+        /// Add a directory to the PATH environment variable if it isn't already present.
+        /// </summary>
+        /// <param name="directory">The directory to be added.</param>
+        public static void AddDirectoryToPath(string directory)
+        {
+            Requires.NotNullOrEmpty(directory, nameof(directory));
+
+            string pathEnvVar = Environment.GetEnvironmentVariable("PATH");
+            string[] searchPaths = pathEnvVar.Split(Path.PathSeparator);
+            if (!searchPaths.Contains(directory, StringComparer.OrdinalIgnoreCase))
+            {
+                pathEnvVar += Path.PathSeparator + directory;
+                Environment.SetEnvironmentVariable("PATH", pathEnvVar);
+            }
+        }
+#endif
+
+        /// <summary>
+        /// Finds the directory that contains the appropriate native libgit2 module.
+        /// </summary>
+        /// <param name="basePath">The path to the directory that contains the lib folder.</param>
+        /// <returns>Receives the directory that native binaries are expected.</returns>
+        public static string FindLibGit2NativeBinaries(string basePath)
+        {
+#if !NET45
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+#endif
+            {
+                return Path.Combine(basePath, "lib", "win32", IntPtr.Size == 4 ? "x86" : "x64");
+            }
+#if !NET45
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                return Path.Combine(basePath, "lib", "linux", IntPtr.Size == 4 ? "x86" : "x86_64");
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                return Path.Combine(basePath, "lib", "osx");
+            }
+
+            return null;
+#endif
         }
 
         /// <summary>
