@@ -2,9 +2,20 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard1.3;net45</TargetFrameworks>
 
+    <id>Nerdbank.GitVersioning</id>
+    <title>Nerdbank.GitVersioning</title>
+    <authors>Andrew Arnott</authors>
+    <owners>andarno</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <PackageProjectUrl>http://github.com/aarnott/Nerdbank.GitVersioning</PackageProjectUrl>
+    <description>Stamps your assemblies with semver 2.0 compliant git commit specific version information and provides NuGet versioning information as well.</description>
+    <summary>Stamps your assemblies with semver 2.0 compliant git commit specific version information and provides NuGet versioning information as well.</summary>
+    <PackageTags>git commit versioning version assemblyinfo</PackageTags>
+
     <NoPackageAnalysis>true</NoPackageAnalysis>
-    <!-- Workaround https://github.com/NuGet/Home/issues/4694 -->
-    <NuspecFile>$(MSBuildProjectName).nuspec</NuspecFile>
+
+    <!-- Note that https://github.com/NuGet/Home/issues/4694 prevents this from actually working. -->
+    <developmentDependency>true</developmentDependency>
 
     <!-- We're going to include it by virtue of sending the whole bin dir to the build folder. -->
     <IncludeBuildOutput>false</IncludeBuildOutput>
@@ -14,7 +25,7 @@
 
   <Target Name="SetNuSpecProperties" BeforeTargets="GenerateNuspec" DependsOnTargets="GetBuildVersion">
     <PropertyGroup>
-      <NuspecProperties>$(NuspecProperties);GitCommitIdShort=$(GitCommitIdShort);version=$(NuGetPackageVersion)</NuspecProperties>
+      <PackageLicenseUrl>https://raw.githubusercontent.com/AArnott/Nerdbank.GitVersioning/$(GitCommitIdShort)/LICENSE.txt</PackageLicenseUrl>
     </PropertyGroup>
   </Target>
 
