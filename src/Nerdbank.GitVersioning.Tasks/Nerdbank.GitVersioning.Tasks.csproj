@@ -1,8 +1,81 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>netstandard1.3;net45</TargetFrameworks>
-    <IsTool>true</IsTool>
+
+    <NoPackageAnalysis>true</NoPackageAnalysis>
+    <!-- Workaround https://github.com/NuGet/Home/issues/4694 -->
+    <NuspecFile>$(MSBuildProjectName).nuspec</NuspecFile>
+
+    <!-- We're going to include it by virtue of sending the whole bin dir to the build folder. -->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
+
+  <Target Name="SetNuSpecProperties" BeforeTargets="GenerateNuspec" DependsOnTargets="GetBuildVersion">
+    <PropertyGroup>
+      <NuspecProperties>$(NuspecProperties);GitCommitIdShort=$(GitCommitIdShort);version=$(NuGetPackageVersion)</NuspecProperties>
+    </PropertyGroup>
+  </Target>
+
+  <Target Name="CollectRuntimeOutputs" BeforeTargets="_GetPackageFiles">
+    <ItemGroup>
+      <Content Include="$(OutputPath)net45\*.dll;$(OutputPath)net45\*.dll.config">
+        <Pack>true</Pack>
+        <PackagePath>build\MSBuildFull\</PackagePath>
+      </Content>
+      <Content Include="$(OutputPath)netstandard1.3\*.dll;$(OutputPath)*.json">
+        <Pack>true</Pack>
+        <PackagePath>build\MSBuildCore\</PackagePath>
+      </Content>
+    </ItemGroup>
+    <MSBuild Projects="$(MSBuildProjectFullPath)"
+             Targets="GetLibGitNativeBinaries"
+             BuildInParallel="$(BuildInParallel)"
+             Properties="TargetFramework=%(_TargetFrameworks.Identity);BuildProjectReferences=false;">
+      <Output TaskParameter="TargetOutputs" ItemName="None" />
+    </MSBuild>
+  </Target>
+
+  <Target Name="GetLibGitNativeBinaries" Outputs="@(LibGitNativeBinaries)">
+    <!-- Package up the libgit2 native binaries -->
+    <ItemGroup>
+      <!-- Adapt the copy behavior  -->
+      <LibGitNativeBinaries Include="@(None)" Condition=" '%(None.CopyToOutputDirectory)' == 'PreserveNewest' ">
+        <Pack>true</Pack>
+        <PackagePath>build\%(None.Link)</PackagePath>
+      </LibGitNativeBinaries>
+    </ItemGroup>
+  </Target>
+
+  <ItemGroup>
+    <None Include="build\**">
+      <Pack>true</Pack>
+      <PackagePath>build\</PackagePath>
+    </None>
+    <None Include="buildCrossTargeting\**">
+      <Pack>true</Pack>
+      <PackagePath>buildCrossTargeting\</PackagePath>
+    </None>
+    <None Include="tools\**">
+      <Pack>true</Pack>
+      <PackagePath>tools\</PackagePath>
+    </None>
+    <None Include="readme.txt">
+      <Pack>true</Pack>
+      <PackagePath>readme.txt</PackagePath>
+    </None>
+  </ItemGroup>
+
+  <ItemDefinitionGroup>
+    <PackageReference>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <ProjectReference>
+      <PrivateAssets>all</PrivateAssets>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.Build.Tasks.Core" Version="15.1.0-preview-000458-02" Condition=" '$(TargetFramework)' == 'netstandard1.3' " />
     <PackageReference Include="Microsoft.Build.Tasks.Core" Version="14.3" Condition=" '$(TargetFramework)' == 'net45' " />

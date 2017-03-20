@@ -21,29 +21,12 @@
   </PropertyGroup>
   <Import Project="$(NuProjPath)\NuProj.props" Condition="Exists('$(NuProjPath)\NuProj.props')" />
   <PropertyGroup Label="Configuration">
-    <Id>Nerdbank.GitVersioning</Id>
-    <Title>Nerdbank.GitVersioning</Title>
-    <Authors>Andrew Arnott</Authors>
-    <Owners>andarno</Owners>
-    <Summary>Stamps your assemblies with semver 2.0 compliant git commit specific version information and provides NuGet versioning information as well.</Summary>
-    <Description>Stamps your assemblies with semver 2.0 compliant git commit specific version information and provides NuGet versioning information as well.</Description>
     <ReleaseNotes>
     </ReleaseNotes>
-    <ProjectUrl>http://github.com/aarnott/Nerdbank.GitVersioning</ProjectUrl>
-    <LicenseUrl>https://raw.githubusercontent.com/AArnott/Nerdbank.GitVersioning/$GitCommitIdShort$/LICENSE.txt</LicenseUrl>
-    <Copyright>Copyright © Andrew Arnott</Copyright>
-    <Tags>git commit versioning version assemblyinfo</Tags>
-    <DevelopmentDependency>True</DevelopmentDependency>
     <NoPackageAnalysis>true</NoPackageAnalysis>
     <NoDefaultExcludes>true</NoDefaultExcludes>
   </PropertyGroup>
   <ItemGroup>
-    <Content Include="buildCrossTargeting\NerdBank.GitVersioning.targets" />
-    <Content Include="build\NerdBank.GitVersioning.targets" />
-    <Content Include="tools\Get-Version.ps1" />
-    <Content Include="tools\Get-CommitId.ps1" />
-    <Content Include="tools\Create-VersionFile.ps1" />
-    <Content Include="tools\Install.ps1" />
     <Content Include="readme.txt" />
   </ItemGroup>
   <ItemGroup>
@@ -95,26 +78,11 @@
       <_MSBuildProjectReferenceExistent Include="@(CrossTargetProjects)" />
     </ItemGroup>
     <!-- Build the default target of our P2P ref to ensure it builds. Hacky workaround.-->
-    <MSBuild Projects="@(CrossTargetProjects)"
-             BuildInParallel="true"
-             Properties="TargetFramework=netstandard1.3;ProjectHasSingleTargetFramework=false"
-             Condition=" '$(BuildingInsideVisualStudio)' != 'true' " />
+    <MSBuild Projects="@(CrossTargetProjects)" BuildInParallel="true" Properties="TargetFramework=netstandard1.3;ProjectHasSingleTargetFramework=false" Condition=" '$(BuildingInsideVisualStudio)' != 'true' " />
   </Target>
   <Target Name="SkipFrameworkAssemblies" AfterTargets="GetPackageFiles">
     <ItemGroup>
-      <PackageFile Remove="@(PackageFile)" Condition="
-         $([System.String]::new('%(TargetPath)').StartsWith('build\')) and
-        !$([System.String]::new('%(TargetPath)').StartsWith('build\lib\')) and
-        '%(FileName)' != 'NerdBank.GitVersioning' and
-        '%(FileName)' != 'NerdBank.GitVersioning.Tasks' and
-        '%(FileName)' != 'LibGit2Sharp' and
-        '%(FileName)' != 'Validation' and
-        '%(FileName)' != 'Newtonsoft.Json' and
-        '%(FileName)' != 'PInvoke.Kernel32' and
-        '%(FileName)' != 'PInvoke.MsCorEE' and
-        '%(FileName)' != 'PInvoke.Windows.Core' and
-        '%(Extension)' == '.dll'
-        " />
+      <PackageFile Remove="@(PackageFile)" Condition="&#xD;&#xA;         $([System.String]::new('%(TargetPath)').StartsWith('build\')) and&#xD;&#xA;        !$([System.String]::new('%(TargetPath)').StartsWith('build\lib\')) and&#xD;&#xA;        '%(FileName)' != 'NerdBank.GitVersioning' and&#xD;&#xA;        '%(FileName)' != 'NerdBank.GitVersioning.Tasks' and&#xD;&#xA;        '%(FileName)' != 'LibGit2Sharp' and&#xD;&#xA;        '%(FileName)' != 'Validation' and&#xD;&#xA;        '%(FileName)' != 'Newtonsoft.Json' and&#xD;&#xA;        '%(FileName)' != 'PInvoke.Kernel32' and&#xD;&#xA;        '%(FileName)' != 'PInvoke.MsCorEE' and&#xD;&#xA;        '%(FileName)' != 'PInvoke.Windows.Core' and&#xD;&#xA;        '%(Extension)' == '.dll'&#xD;&#xA;        " />
     </ItemGroup>
   </Target>
 </Project>
