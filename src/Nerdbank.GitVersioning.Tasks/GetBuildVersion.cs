@@ -2,18 +2,13 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.ComponentModel;
-    using System.Diagnostics;
     using System.IO;
     using System.Linq;
-    using System.Runtime.InteropServices;
-    using System.Text;
-    using System.Text.RegularExpressions;
     using Microsoft.Build.Framework;
     using Microsoft.Build.Utilities;
-    using Nerdbank.GitVersioning;
+    using MSBuildExtensionTask;
 
-    public class GetBuildVersion : Task
+    public class GetBuildVersion : ContextAwareTask
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="GetBuildVersion"/> class.
@@ -153,12 +148,12 @@
         [Output]
         public ITaskItem[] CloudBuildVersionVars { get; private set; }
 
-        public override bool Execute()
+        protected override string UnmanagedDllDirectory => GitExtensions.FindLibGit2NativeBinaries(this.TargetsPath);
+
+        protected override bool ExecuteInner()
         {
             try
             {
-                GitExtensions.TryHelpFindLibGit2NativeBinaries(this.TargetsPath);
-
                 var cloudBuild = CloudBuild.Active;
                 var oracle = VersionOracle.Create(Directory.GetCurrentDirectory(), this.GitRepoRoot, cloudBuild);
                 if (!string.IsNullOrEmpty(this.DefaultPublicRelease))
@@ -194,14 +189,14 @@
                         .Select(item => new TaskItem(item.Key, new Dictionary<string, string> { { "Value", item.Value } }))
                         .ToArray();
                 }
+
+                return !this.Log.HasLoggedErrors;
             }
             catch (ArgumentOutOfRangeException ex)
             {
                 Log.LogErrorFromException(ex);
                 return false;
             }
-
-            return true;
         }
     }
 }
