@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.IO;
     using System.Linq;
     using Microsoft.Build.Framework;
@@ -140,6 +141,12 @@
         public int BuildNumber { get; private set; }
 
         /// <summary>
+        /// Gets the build number as specified in the version.json file.
+        /// </summary>
+        [Output]
+        public string BuildNumberFromVersionJson { get; private set; }
+
+        /// <summary>
         /// Gets the BuildNumber to set the cloud build to (if applicable).
         /// </summary>
         [Output]
@@ -174,6 +181,7 @@
                 this.SimpleVersion = oracle.SimpleVersion.ToString();
                 this.MajorMinorVersion = oracle.MajorMinorVersion.ToString();
                 this.BuildNumber = oracle.BuildNumber;
+                this.BuildNumberFromVersionJson = oracle.BuildNumberFromVersionOptions != -1 ? oracle.BuildNumberFromVersionOptions.ToString(CultureInfo.InvariantCulture) : string.Empty;
                 this.PrereleaseVersion = oracle.PrereleaseVersion;
                 this.GitCommitId = oracle.GitCommitId;
                 this.GitCommitIdShort = oracle.GitCommitIdShort;

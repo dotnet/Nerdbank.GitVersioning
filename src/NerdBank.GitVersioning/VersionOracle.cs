@@ -160,6 +160,12 @@
         public int BuildNumber => Math.Max(0, this.Version.Build);
 
         /// <summary>
+        /// Gets the build number as it was specified in the version.json file.
+        /// </summary>
+        /// <value>The version specified, or -1 if none was specified.</value>
+        public int BuildNumberFromVersionOptions => this.VersionOptions?.Version?.Version?.Build ?? -1;
+
+        /// <summary>
         /// Gets or sets the major.minor version string.
         /// </summary>
         /// <value>

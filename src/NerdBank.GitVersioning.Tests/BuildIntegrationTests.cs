@@ -381,6 +381,21 @@ public class BuildIntegrationTests : RepoTestBase
         this.AssertStandardProperties(versionOptions, buildResult);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(21)]
+    public async Task GetBuildVersion_BuildNumberSpecifiedInVersionJson(int buildNumber)
+    {
+        var versionOptions = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("14.0." + buildNumber),
+        };
+        this.WriteVersionFile(versionOptions);
+        this.InitializeSourceControl();
+        var buildResult = await this.BuildAsync();
+        this.AssertStandardProperties(versionOptions, buildResult);
+    }
+
     [Fact]
     public async Task PublicRelease_RegEx_Unsatisfied()
     {
@@ -821,6 +836,7 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal($"{version}", buildResult.BuildVersion);
         Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}", buildResult.BuildVersion3Components);
         Assert.Equal(idAsVersion.Build.ToString(), buildResult.BuildVersionNumberComponent);
+        Assert.Equal(versionOptions.Version.Version.Build != -1 ? versionOptions.Version.Version.Build.ToString() : string.Empty, buildResult.BuildNumberFromVersionJson);
         Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}", buildResult.BuildVersionSimple);
         Assert.Equal(this.Repo.Head.Commits.First().Id.Sha, buildResult.GitCommitId);
         Assert.Equal(commitIdShort, buildResult.GitCommitIdShort);
@@ -980,6 +996,7 @@ public class BuildIntegrationTests : RepoTestBase
         public string PrereleaseVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("PrereleaseVersion");
         public string MajorMinorVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("MajorMinorVersion");
         public string BuildVersionNumberComponent => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("BuildVersionNumberComponent");
+        public string BuildNumberFromVersionJson => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("BuildNumberFromVersionJson");
         public string GitCommitIdShort => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitCommitIdShort");
         public string GitVersionHeight => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitVersionHeight");
         public string SemVerBuildSuffix => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("SemVerBuildSuffix");
