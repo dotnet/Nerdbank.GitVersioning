@@ -7,12 +7,16 @@ NuGet Package Manager GUI, or the NuGet Package Manager Console:
 Install-Package Nerdbank-GitVersioning
 ```
 
+If in a project that uses PackageReference for this package reference, you should manually add
+`PrivateAssets="true"` to the PackageReference xml element to workaround
+[this issue](https://github.com/AArnott/Nerdbank.GitVersioning/issues/122).
+
 After installing this NuGet package, you may need to configure the version generation logic
 in order for it to work properly.
 
-With NuGet 2.x, the configuration is handled automatically via the tools\Install.ps1 script.
-For NuGet 3.x, you can run the script tools\Create-VersionFile.ps1 to help you create the
-version.json file and remove the old assembly attributes.
+When using packagse.config, the configuration is handled automatically via the tools\Install.ps1 script.
+When using project.json or PackageReference, you can run the script tools\Create-VersionFile.ps1 to help
+you create the version.json file and remove the old assembly attributes.
 
 The scripts will look for the presence of a version.json or version.txt file.
 If one already exists, nothing happens. If the version file does not exist,
@@ -35,14 +39,19 @@ source code, as commonly found in your `Properties\AssemblyInfo.cs` file:
 [assembly: AssemblyInformationalVersion("1.0.0-dev")]
 ```
 
+If you are using the new VS 2017 .NET Core/Standard projects (or otherwise using the .NET SDK project type)
+you won't see these attributes in your AssemblyInfo.cs file but you may still get compiler errors
+due to duplicate attributes. In that case, a Rebuild of your project should resolve
+[the issue](https://github.com/AArnott/Nerdbank.GitVersioning/issues/121).
+
 This NuGet package creates these attributes at build time based on version information
 found in your `version.json` file and your git repo's HEAD position.
 
 When the package is installed, a version.json file is created in your project directory
-(for NuGet 2.x clients). This ensures backwards compatibility where the installation of
+(for packages.config clients). This ensures backwards compatibility where the installation of
 this package will not cause the assembly version of the project to change. If you would
 like the same version number to be applied to all projects in the repo, then you may move
-the file to the root directory of your git repo.
+the version.json file to the root directory of your git repo.
 
 Note: After first installing the package, you need to commit the version file so that
 it will be picked up during the build's version generation. If you build prior to committing,
