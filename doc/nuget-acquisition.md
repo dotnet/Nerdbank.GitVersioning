@@ -8,7 +8,7 @@ Install-Package Nerdbank-GitVersioning
 ```
 
 If in a project that uses PackageReference for this package reference, you should manually add
-`PrivateAssets="true"` to the PackageReference xml element to workaround
+`PrivateAssets="all"` to the PackageReference xml element to workaround
 [this issue](https://github.com/AArnott/Nerdbank.GitVersioning/issues/122).
 
 After installing this NuGet package, you may need to configure the version generation logic
