@@ -148,7 +148,7 @@
         [Output]
         public ITaskItem[] CloudBuildVersionVars { get; private set; }
 
-        protected override string UnmanagedDllDirectory => GitExtensions.FindLibGit2NativeBinaries(this.TargetsPath);
+        protected override string UnmanagedDllDirectory => GitExtensions.FindLibGit2NativeBinaries(Path.Combine(this.TargetsPath, "MSBuildFull"));
 
         protected override bool ExecuteInner()
         {
