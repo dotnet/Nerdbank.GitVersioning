@@ -2,13 +2,11 @@
   <PropertyGroup>
     <TargetFrameworks>netcoreapp1.0;net45</TargetFrameworks>
     <IsTool>true</IsTool>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Nerdbank.GitVersioning.LKG" Version="1.6.20-beta-gfea83a8c9e" />
     <PackageReference Include="NuProj.Common" Version="0.11.14-beta" />
-  </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' == 'net45' ">
-    <PackageReference Include="PInvoke.MSCorEE" Version="0.3.152" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\MSBuildExtensionTask\MSBuildExtensionTask.csproj" />
