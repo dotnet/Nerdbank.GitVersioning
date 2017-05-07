@@ -22,6 +22,10 @@ before_build:
 build_script:
 - ps: >-
     .\build.ps1
+test:
+  assemblies:
+    only:
+    - NerdBank.GitVersioning.Tests.dll
 artifacts:
 - path: bin\**\*.nupkg
 - path: bin\js\*.tgz
