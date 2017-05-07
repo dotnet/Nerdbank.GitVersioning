@@ -55,9 +55,14 @@
       <NoneToContentPort Include="@(None)" Condition=" '%(None.CopyToOutputDirectory)' == 'PreserveNewest' " />
       <None Remove="@(NoneToContentPort)" />
       <Content Include="@(NoneToContentPort)">
-        <Link>build\%(NoneToContentPort.Link)</Link>
+        <Link>build\MSBuildFull\%(NoneToContentPort.Link)</Link>
         <CopyToOutputDirectory />
-        <PackageDirectory>build</PackageDirectory>
+        <PackageDirectory>build\MSBuildFull</PackageDirectory>
+      </Content>
+      <Content Include="@(NoneToContentPort)">
+        <Link>build\MSBuildCore\%(NoneToContentPort.Link)</Link>
+        <CopyToOutputDirectory />
+        <PackageDirectory>build\MSBuildCore</PackageDirectory>
       </Content>
     </ItemGroup>
   </Target>
@@ -87,8 +92,8 @@
         <TargetSubdirectory>MSBuildFull</TargetSubdirectory>
       </CrossTargetProjects>
       <CrossTargetProjects Include="@(_MSBuildProjectReferenceExistent)">
-        <SetPlatform>TargetFramework=netstandard1.3;%(_MSBuildProjectReferenceExistent.SetPlatform)</SetPlatform>
-        <SetTargetFramework>TargetFramework=netstandard1.3;ProjectHasSingleTargetFramework=false</SetTargetFramework>
+        <SetPlatform>TargetFramework=netcoreapp1.0;%(_MSBuildProjectReferenceExistent.SetPlatform)</SetPlatform>
+        <SetTargetFramework>TargetFramework=netcoreapp1.0;ProjectHasSingleTargetFramework=false</SetTargetFramework>
         <TargetSubdirectory>MSBuildCore</TargetSubdirectory>
       </CrossTargetProjects>
       <_MSBuildProjectReferenceExistent Remove="@(CrossTargetProjects)" />
@@ -97,16 +102,18 @@
     <!-- Build the default target of our P2P ref to ensure it builds. Hacky workaround.-->
     <MSBuild Projects="@(CrossTargetProjects)"
              BuildInParallel="true"
-             Properties="TargetFramework=netstandard1.3;ProjectHasSingleTargetFramework=false"
+             Properties="TargetFramework=netcoreapp1.0;ProjectHasSingleTargetFramework=false"
              Condition=" '$(BuildingInsideVisualStudio)' != 'true' " />
   </Target>
   <Target Name="SkipFrameworkAssemblies" AfterTargets="GetPackageFiles">
     <ItemGroup>
       <PackageFile Remove="@(PackageFile)" Condition="
          $([System.String]::new('%(TargetPath)').StartsWith('build\')) and
-        !$([System.String]::new('%(TargetPath)').StartsWith('build\lib\')) and
+        !$([System.String]::new('%(TargetPath)').StartsWith('build\MSBuildFull\lib\')) and
+        !$([System.String]::new('%(TargetPath)').StartsWith('build\MSBuildCore\lib\')) and
         '%(FileName)' != 'NerdBank.GitVersioning' and
         '%(FileName)' != 'NerdBank.GitVersioning.Tasks' and
+        '%(FileName)' != 'MSBuildExtensionTask' and
         '%(FileName)' != 'LibGit2Sharp' and
         '%(FileName)' != 'Validation' and
         '%(FileName)' != 'Newtonsoft.Json' and

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
   <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
     <VersionSourceFile>$(IntermediateOutputPath)\$(AssemblyName).Version$(DefaultLanguageSourceExtension)</VersionSourceFile>
 
     <PrepareResourcesDependsOn>
@@ -140,7 +141,7 @@
                   AssemblyConfiguration="$(Configuration)"
                   EmitNonVersionCustomAttributes="$(NBGV_EmitNonVersionCustomAttributes)"
                   />
-    <!-- Avoid applying the newly generated AssemblyVersionInfo.cs file to the build 
+    <!-- Avoid applying the newly generated AssemblyVersionInfo.cs file to the build
          unless it has changed in order to allow for incremental building. -->
     <Nerdbank.GitVersioning.Tasks.CompareFiles OriginalItems="$(VersionSourceFile)" NewItems="$(NewVersionSourceFile)">
       <Output TaskParameter="AreChanged" PropertyName="AssemblyVersionInfoChanged" />
