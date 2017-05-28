@@ -23,12 +23,27 @@
         /// <summary>
         /// The regex pattern that a prerelease must match.
         /// </summary>
-        private static readonly Regex PrereleasePattern = new Regex(@"^-(?:[0-9A-Za-z-]+)(?:\.[0-9A-Za-z-]+)*$");
+        /// <remarks>
+        /// Keep in sync with the regex for the version field found in the version.schema.json file.
+        /// </remarks>
+        private static readonly Regex PrereleasePattern = new Regex("-(?:[\\da-z\\-]+|\\{height\\})(?:\\.(?:[\\da-z\\-]+|\\{height\\}))*", RegexOptions.IgnoreCase);
 
         /// <summary>
         /// The regex pattern that build metadata must match.
         /// </summary>
-        private static readonly Regex BuildMetadataPattern = new Regex(@"^\+(?:[0-9A-Za-z-]+)(?:\.[0-9A-Za-z-]+)*$");
+        /// <remarks>
+        /// Keep in sync with the regex for the version field found in the version.schema.json file.
+        /// </remarks>
+        private static readonly Regex BuildMetadataPattern = new Regex("\\+(?:[\\da-z\\-]+|\\{height\\})(?:\\.(?:[\\da-z\\-]+|\\{height\\}))*", RegexOptions.IgnoreCase);
+
+        /// <summary>
+        /// The regular expression with capture groups for semantic versioning,
+        /// allowing for macros such as {height}.
+        /// </summary>
+        /// <remarks>
+        /// Keep in sync with the regex for the version field found in the version.schema.json file.
+        /// </remarks>
+        private static readonly Regex FullSemVerWithMacrosPattern = new Regex("^v?(?<major>0|[1-9][0-9]*)\\.(?<minor>0|[1-9][0-9]*)(?:\\.(?<patch>0|[1-9][0-9]*)(?:\\.(?<revision>0|[1-9][0-9]*))?)?(?<prerelease>" + PrereleasePattern + ")?(?<buildMetadata>" + BuildMetadataPattern + ")?$", RegexOptions.IgnoreCase);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SemanticVersion"/> class.
@@ -90,7 +105,7 @@
         {
             Requires.NotNullOrEmpty(semanticVersion, nameof(semanticVersion));
 
-            Match m = FullSemVerPattern.Match(semanticVersion);
+            Match m = FullSemVerWithMacrosPattern.Match(semanticVersion);
             if (m.Success)
             {
                 var major = int.Parse(m.Groups["major"].Value);

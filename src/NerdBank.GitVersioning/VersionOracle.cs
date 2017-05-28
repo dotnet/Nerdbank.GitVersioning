@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.IO;
     using System.Linq;
     using System.Text;
@@ -63,6 +64,9 @@
             // Override the typedVersion with the special build number and revision components, when available.
             this.Version = repo?.GetIdAsVersion(relativeRepoProjectDirectory, this.VersionHeight) ?? this.VersionOptions?.Version.Version;
             this.Version = this.Version ?? new Version(0, 0);
+            this.VersionHeightOffset = this.VersionOptions?.BuildNumberOffset ?? 0;
+
+            this.PrereleaseVersion = ReplaceMacros(this.VersionOptions?.Version.Prerelease ?? string.Empty);
 
             this.CloudBuildNumberOptions = this.VersionOptions?.CloudBuild?.BuildNumber ?? new VersionOptions.CloudBuildNumberOptions();
 
@@ -145,7 +149,7 @@
         /// <summary>
         /// Gets the prerelease version information.
         /// </summary>
-        public string PrereleaseVersion => this.VersionOptions?.Version.Prerelease ?? string.Empty;
+        public string PrereleaseVersion { get; }
 
         /// <summary>
         /// Gets the version information without a Revision component.
@@ -155,15 +159,9 @@
                 : new Version(this.Version.Major, this.Version.Minor);
 
         /// <summary>
-        /// Gets the build number (git height + offset) for this version.
+        /// Gets the build number (i.e. third integer, or PATCH) for this version.
         /// </summary>
         public int BuildNumber => Math.Max(0, this.Version.Build);
-
-        /// <summary>
-        /// Gets the build number as it was specified in the version.json file.
-        /// </summary>
-        /// <value>The version specified, or -1 if none was specified.</value>
-        public int BuildNumberFromVersionOptions => this.VersionOptions?.Version?.Version?.Build ?? -1;
 
         /// <summary>
         /// Gets or sets the major.minor version string.
@@ -189,6 +187,13 @@
         /// that set the version to the value at HEAD.
         /// </summary>
         public int VersionHeight { get; }
+
+        /// <summary>
+        /// The offset to add to the <see cref="VersionHeight"/>
+        /// when calculating the integer to use as the <see cref="BuildNumber"/>
+        /// or elsewhere that the {height} macro is used.
+        /// </summary>
+        public int VersionHeightOffset { get; }
 
         private string BuildingRef { get; }
 
@@ -261,6 +266,8 @@
 
         private VersionOptions.CloudBuildNumberOptions CloudBuildNumberOptions { get; }
 
+        private int VersionHeightWithOffset => this.VersionHeight + this.VersionHeightOffset;
+
         private static string FormatBuildMetadata(IEnumerable<string> identifiers) =>
             (identifiers?.Any() ?? false) ? "+" + string.Join(".", identifiers) : string.Empty;
 
@@ -329,5 +336,12 @@
                 precision >= VersionOptions.VersionPrecision.Revision ? version.Revision : 0);
             return assemblyVersion.EnsureNonNegativeComponents(4);
         }
+
+        /// <summary>
+        /// Replaces any macros found in a prerelease or build metadata string.
+        /// </summary>
+        /// <param name="prereleaseOrBuildMetadata">The prerelease or build metadata.</param>
+        /// <returns>The specified string, with macros substituted for actual values.</returns>
+        private string ReplaceMacros(string prereleaseOrBuildMetadata) => prereleaseOrBuildMetadata?.Replace("{height}", this.VersionHeightWithOffset.ToString(CultureInfo.InvariantCulture));
     }
 }

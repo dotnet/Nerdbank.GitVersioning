@@ -512,26 +512,40 @@
         private static Version GetIdAsVersionHelper(Commit commit, VersionOptions versionOptions, string repoRelativeProjectDirectory, int? versionHeight)
         {
             var baseVersion = versionOptions?.Version?.Version ?? Version0;
+            int buildNumber = baseVersion.Build;
+            int revision = baseVersion.Revision;
 
-            // The compiler (due to WinPE header requirements) only allows 16-bit version components,
-            // and forbids 0xffff as a value.
-            // The build number is set to the git height. This helps ensure that
-            // within a major.minor release, each patch has an incrementing integer.
-            // The revision is set to the first two bytes of the git commit ID.
-            if (!versionHeight.HasValue)
+            if (revision < 0)
             {
-                versionHeight = commit != null
-                    ? commit.GetHeight(c => CommitMatchesMajorMinorVersion(c, baseVersion, repoRelativeProjectDirectory))
-                    : 0;
+                // The compiler (due to WinPE header requirements) only allows 16-bit version components,
+                // and forbids 0xffff as a value.
+                // The build number is set to the git height. This helps ensure that
+                // within a major.minor release, each patch has an incrementing integer.
+                // The revision is set to the first two bytes of the git commit ID.
+                if (!versionHeight.HasValue)
+                {
+                    versionHeight = commit != null
+                        ? commit.GetHeight(c => CommitMatchesMajorMinorVersion(c, baseVersion, repoRelativeProjectDirectory))
+                        : 0;
+                }
+
+                int adjustedVersionHeight = versionHeight.Value == 0 ? 0 : versionHeight.Value + (versionOptions?.BuildNumberOffset ?? 0);
+                Verify.Operation(adjustedVersionHeight <= MaximumBuildNumberOrRevisionComponent, "Git height is {0}, which is greater than the maximum allowed {0}.", adjustedVersionHeight, MaximumBuildNumberOrRevisionComponent);
+
+                if (buildNumber < 0)
+                {
+                    buildNumber = adjustedVersionHeight;
+                    revision = commit != null
+                        ? Math.Min(MaximumBuildNumberOrRevisionComponent, commit.GetTruncatedCommitIdAsUInt16())
+                        : 0;
+                }
+                else
+                {
+                    revision = adjustedVersionHeight;
+                }
             }
 
-            int build = versionHeight.Value == 0 ? 0 : versionHeight.Value + (versionOptions?.BuildNumberOffset ?? 0);
-            Verify.Operation(build <= MaximumBuildNumberOrRevisionComponent, "Git height is {0}, which is greater than the maximum allowed {0}.", build, MaximumBuildNumberOrRevisionComponent);
-            int revision = commit != null
-                ? Math.Min(MaximumBuildNumberOrRevisionComponent, commit.GetTruncatedCommitIdAsUInt16())
-                : 0;
-
-            return new Version(baseVersion.Major, baseVersion.Minor, build, revision);
+            return new Version(baseVersion.Major, baseVersion.Minor, buildNumber, revision);
         }
 
         /// <summary>
