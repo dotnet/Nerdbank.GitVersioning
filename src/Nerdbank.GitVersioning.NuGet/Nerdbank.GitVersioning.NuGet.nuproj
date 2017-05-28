@@ -55,9 +55,14 @@
       <NoneToContentPort Include="@(None)" Condition=" '%(None.CopyToOutputDirectory)' == 'PreserveNewest' " />
       <None Remove="@(NoneToContentPort)" />
       <Content Include="@(NoneToContentPort)">
-        <Link>build\%(NoneToContentPort.Link)</Link>
+        <Link>build\MSBuildFull\%(NoneToContentPort.Link)</Link>
         <CopyToOutputDirectory />
-        <PackageDirectory>build</PackageDirectory>
+        <PackageDirectory>build\MSBuildFull</PackageDirectory>
+      </Content>
+      <Content Include="@(NoneToContentPort)">
+        <Link>build\MSBuildCore\%(NoneToContentPort.Link)</Link>
+        <CopyToOutputDirectory />
+        <PackageDirectory>build\MSBuildCore</PackageDirectory>
       </Content>
     </ItemGroup>
   </Target>
@@ -104,7 +109,8 @@
     <ItemGroup>
       <PackageFile Remove="@(PackageFile)" Condition="
          $([System.String]::new('%(TargetPath)').StartsWith('build\')) and
-        !$([System.String]::new('%(TargetPath)').StartsWith('build\lib\')) and
+        !$([System.String]::new('%(TargetPath)').StartsWith('build\MSBuildFull\lib\')) and
+        !$([System.String]::new('%(TargetPath)').StartsWith('build\MSBuildCore\lib\')) and
         '%(FileName)' != 'NerdBank.GitVersioning' and
         '%(FileName)' != 'NerdBank.GitVersioning.Tasks' and
         '%(FileName)' != 'MSBuildExtensionTask' and

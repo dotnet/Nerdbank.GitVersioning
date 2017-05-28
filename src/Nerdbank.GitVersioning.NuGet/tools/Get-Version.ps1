@@ -19,7 +19,7 @@ $null = [Reflection.Assembly]::LoadFile((Resolve-Path "$DependencyBasePath\Newto
 $ProjectDirectory = (Resolve-Path $ProjectDirectory).ProviderPath
 
 try {
-    [Nerdbank.GitVersioning.GitExtensions]::HelpFindLibGit2NativeBinaries("$DependencyBasePath\..")
+    [Nerdbank.GitVersioning.GitExtensions]::HelpFindLibGit2NativeBinaries($DependencyBasePath)
     $CloudBuild = [Nerdbank.GitVersioning.CloudBuild]::Active
     $VersionOracle = [Nerdbank.GitVersioning.VersionOracle]::Create($ProjectDirectory, $null, $CloudBuild)
     $VersionOracle
