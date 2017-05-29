@@ -112,4 +112,22 @@ public class VersionOracleTests : RepoTestBase
         Assert.Equal(1, oracle.VersionHeight);
         Assert.Equal(2, oracle.VersionHeightOffset);
     }
+
+    [Theory]
+    [InlineData("7.8.9-foo.25", "7.8.9-foo-0025")]
+    [InlineData("7.8.9-foo.25.bar-24.13-11", "7.8.9-foo-0025-bar-24-13-11")]
+    [InlineData("7.8.9-25.bar.baz-25", "7.8.9-0025-bar-baz-0025")]
+    [InlineData("7.8.9-foo.5.bar.1.43.baz", "7.8.9-foo-0005-bar-0001-0043-baz")]
+    public void SemVer1PrereleaseConversion(string semVer2, string semVer1)
+    {
+        VersionOptions workingCopyVersion = new VersionOptions
+        {
+            Version = SemanticVersion.Parse(semVer2),
+            BuildNumberOffset = 2,
+        };
+        this.WriteVersionFile(workingCopyVersion);
+        this.InitializeSourceControl();
+        var oracle = VersionOracle.Create(this.RepoPath);
+        Assert.Equal(semVer1, oracle.SemVer1);
+    }
 }
