@@ -104,6 +104,7 @@ public class BuildIntegrationTests : RepoTestBase
         VersionOptions workingCopyVersion = new VersionOptions
         {
             Version = SemanticVersion.Parse("7.8.9-beta.3"),
+            SemVer1NumericIdentifierPadding = 1,
         };
         this.WriteVersionFile(workingCopyVersion);
         this.InitializeSourceControl();
@@ -860,7 +861,7 @@ public class BuildIntegrationTests : RepoTestBase
         string pkgVersionSuffix = buildResult.PublicRelease
             ? string.Empty
             : $"-g{commitIdShort}";
-        Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{versionOptions.Version.Prerelease}{pkgVersionSuffix}", buildResult.NuGetPackageVersion);
+        Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{GetSemVer1PrereleaseTag(versionOptions)}{pkgVersionSuffix}", buildResult.NuGetPackageVersion);
 
         var buildNumberOptions = versionOptions.CloudBuild?.BuildNumber ?? new VersionOptions.CloudBuildNumberOptions();
         if (buildNumberOptions.Enabled)
@@ -890,6 +891,11 @@ public class BuildIntegrationTests : RepoTestBase
         {
             Assert.Equal(string.Empty, buildResult.CloudBuildNumber);
         }
+    }
+
+    private static string GetSemVer1PrereleaseTag(VersionOptions versionOptions)
+    {
+        return versionOptions.Version.Prerelease?.Replace('.', '-');
     }
 
     private async Task<BuildResults> BuildAsync(string target = Targets.GetBuildVersion, LoggerVerbosity logVerbosity = LoggerVerbosity.Detailed, bool assertSuccessfulBuild = true)

@@ -32,6 +32,13 @@
       "description": "A number to add to the git height when calculating the build number.",
       "default": 0
     },
+    "semVer1NumericIdentifierPadding": {
+      "type": "integer",
+      "description": "The minimum number of digits to use for numeric identifiers in SemVer 1.",
+      "default": 4,
+      "minimum": 1,
+      "maximum": 6
+    },
     "publicReleaseRefSpec": {
       "type": "array",
       "description": "An array of regular expressions that may match a ref (branch or tag) that should be built with PublicRelease=true as the default value. The ref matched against is in its canonical form (e.g. refs/heads/master)",

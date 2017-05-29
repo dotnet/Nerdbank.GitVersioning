@@ -16,6 +16,11 @@
     public class VersionOracle
     {
         /// <summary>
+        /// A regex that matches on numeric identifiers for prerelease or build metadata.
+        /// </summary>
+        private static readonly Regex NumericIdentifierRegex = new Regex(@"(?<![\w-])(\d+)(?![\w-])");
+
+        /// <summary>
         /// The cloud build suppport, if any.
         /// </summary>
         private readonly ICloudBuild cloudBuild;
@@ -249,7 +254,7 @@
         /// when <see cref="PublicRelease"/> is <c>false</c>.
         /// </summary>
         public string SemVer1 =>
-            $"{this.Version.ToStringSafe(3)}{this.PrereleaseVersion}{this.SemVer1BuildMetadata}";
+            $"{this.Version.ToStringSafe(3)}{this.PrereleaseVersionSemVer1}{this.SemVer1BuildMetadata}";
 
         /// <summary>
         /// Gets a SemVer 2.0 compliant string that represents this version, including a +gCOMMITID suffix
@@ -258,11 +263,18 @@
         public string SemVer2 =>
             $"{this.Version.ToStringSafe(3)}{this.PrereleaseVersion}{this.SemVer2BuildMetadata}";
 
+        /// <summary>
+        /// Gets the minimum number of digits to use for numeric identifiers in SemVer 1.
+        /// </summary>
+        public int SemVer1NumericIdentifierPadding => this.VersionOptions?.SemVer1NumericIdentifierPadding ?? 4;
+
         private string SemVer1BuildMetadata =>
             this.PublicRelease ? string.Empty : $"-g{this.GitCommitIdShort}";
 
         private string SemVer2BuildMetadata =>
             FormatBuildMetadata(this.PublicRelease ? this.BuildMetadata : this.BuildMetadataWithCommitId);
+
+        private string PrereleaseVersionSemVer1 => MakePrereleaseSemVer1Compliant(this.PrereleaseVersion, SemVer1NumericIdentifierPadding);
 
         private VersionOptions.CloudBuildNumberOptions CloudBuildNumberOptions { get; }
 
@@ -343,5 +355,31 @@
         /// <param name="prereleaseOrBuildMetadata">The prerelease or build metadata.</param>
         /// <returns>The specified string, with macros substituted for actual values.</returns>
         private string ReplaceMacros(string prereleaseOrBuildMetadata) => prereleaseOrBuildMetadata?.Replace("{height}", this.VersionHeightWithOffset.ToString(CultureInfo.InvariantCulture));
+
+        /// <summary>
+        /// Converts a semver 2 compliant "-beta.5" prerelease tag to a semver 1 compatible one.
+        /// </summary>
+        /// <param name="prerelease">The semver 2 prerelease tag, including its leading hyphen.</param>
+        /// <param name="paddingSize">The minimum number of digits to use for any numeric identifier.</param>
+        /// <returns>A semver 1 compliant prerelease tag. For example "-beta-0005".</returns>
+        private static string MakePrereleaseSemVer1Compliant(string prerelease, int paddingSize)
+        {
+            if (string.IsNullOrEmpty(prerelease))
+            {
+                return prerelease;
+            }
+
+            string paddingFormatter = "{0:" + new string('0', paddingSize) + "}";
+
+            string semver1 = prerelease;
+
+            // Identify numeric identifiers and pad them.
+            Assumes.True(prerelease.StartsWith("-"));
+            semver1 = "-" + NumericIdentifierRegex.Replace(semver1.Substring(1), m => string.Format(CultureInfo.InvariantCulture, paddingFormatter, int.Parse(m.Groups[1].Value)));
+
+            semver1 = semver1.Replace('.', '-');
+
+            return semver1;
+        }
     }
 }
