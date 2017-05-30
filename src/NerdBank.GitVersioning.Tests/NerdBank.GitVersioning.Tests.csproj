@@ -12,6 +12,7 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Keys\*.snk" />
     <EmbeddedResource Include="Keys\*.pfx" />
+    <EmbeddedResource Include="..\NerdBank.GitVersioning\version.schema.json" Link="version.schema.json" />
     <EmbeddedResource Include="test.prj" />
     <EmbeddedResource Include="repos\submodules.7z" />
   </ItemGroup>
@@ -21,6 +22,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="7z.NET" Version="1.0.3" />
+    <PackageReference Include="Newtonsoft.Json.Schema" Version="2.0.11" />
     <PackageReference Include="System.Collections.Immutable" Version="1.3.1" />
     <PackageReference Include="Microsoft.Build" Version="14.3" Condition=" '$(TargetFramework)' == 'net452' " />
     <PackageReference Include="Xunit.Combinatorial" Version="1.1.12" />

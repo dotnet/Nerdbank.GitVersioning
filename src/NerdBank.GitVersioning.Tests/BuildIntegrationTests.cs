@@ -99,6 +99,20 @@ public class BuildIntegrationTests : RepoTestBase
     }
 
     [Fact]
+    public async Task GetBuildVersion_WithThreeVersionIntegers()
+    {
+        VersionOptions workingCopyVersion = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("7.8.9-beta.3"),
+            SemVer1NumericIdentifierPadding = 1,
+        };
+        this.WriteVersionFile(workingCopyVersion);
+        this.InitializeSourceControl();
+        var buildResult = await this.BuildAsync();
+        this.AssertStandardProperties(workingCopyVersion, buildResult);
+    }
+
+    [Fact]
     public async Task GetBuildVersion_Without_Git_HighPrecisionAssemblyVersion()
     {
         this.WriteVersionFile(new VersionOptions
@@ -377,6 +391,21 @@ public class BuildIntegrationTests : RepoTestBase
             BuildNumberOffset = -1,
         };
         VersionFile.SetVersion(this.RepoPath, versionOptions);
+        var buildResult = await this.BuildAsync();
+        this.AssertStandardProperties(versionOptions, buildResult);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(21)]
+    public async Task GetBuildVersion_BuildNumberSpecifiedInVersionJson(int buildNumber)
+    {
+        var versionOptions = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("14.0." + buildNumber),
+        };
+        this.WriteVersionFile(versionOptions);
+        this.InitializeSourceControl();
         var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(versionOptions, buildResult);
     }
@@ -832,7 +861,7 @@ public class BuildIntegrationTests : RepoTestBase
         string pkgVersionSuffix = buildResult.PublicRelease
             ? string.Empty
             : $"-g{commitIdShort}";
-        Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{versionOptions.Version.Prerelease}{pkgVersionSuffix}", buildResult.NuGetPackageVersion);
+        Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{GetSemVer1PrereleaseTag(versionOptions)}{pkgVersionSuffix}", buildResult.NuGetPackageVersion);
 
         var buildNumberOptions = versionOptions.CloudBuild?.BuildNumber ?? new VersionOptions.CloudBuildNumberOptions();
         if (buildNumberOptions.Enabled)
@@ -862,6 +891,11 @@ public class BuildIntegrationTests : RepoTestBase
         {
             Assert.Equal(string.Empty, buildResult.CloudBuildNumber);
         }
+    }
+
+    private static string GetSemVer1PrereleaseTag(VersionOptions versionOptions)
+    {
+        return versionOptions.Version.Prerelease?.Replace('.', '-');
     }
 
     private async Task<BuildResults> BuildAsync(string target = Targets.GetBuildVersion, LoggerVerbosity logVerbosity = LoggerVerbosity.Detailed, bool assertSuccessfulBuild = true)

@@ -172,7 +172,7 @@ public class GitExtensionsTests : RepoTestBase
     }
 
     [Fact]
-    public void GetIdAsVersion_VersionFileNeverCheckedIn()
+    public void GetIdAsVersion_VersionFileNeverCheckedIn_3Ints()
     {
         this.AddCommits();
         var expectedVersion = new Version(1, 1, 0);
@@ -182,6 +182,23 @@ public class GitExtensionsTests : RepoTestBase
         Assert.Equal(expectedVersion.Major, actualVersion.Major);
         Assert.Equal(expectedVersion.Minor, actualVersion.Minor);
         Assert.Equal(expectedVersion.Build, actualVersion.Build);
+
+        // Height is expressed in the 4th integer since 3 were specified in version.json.
+        // height is 0 since the change hasn't been committed.
+        Assert.Equal(0, actualVersion.Revision);
+    }
+
+    [Fact]
+    public void GetIdAsVersion_VersionFileNeverCheckedIn_2Ints()
+    {
+        this.AddCommits();
+        var expectedVersion = new Version(1, 1);
+        var unstagedVersionData = VersionOptions.FromVersion(expectedVersion);
+        string versionFilePath = VersionFile.SetVersion(this.RepoPath, unstagedVersionData);
+        Version actualVersion = this.Repo.GetIdAsVersion();
+        Assert.Equal(expectedVersion.Major, actualVersion.Major);
+        Assert.Equal(expectedVersion.Minor, actualVersion.Minor);
+        Assert.Equal(0, actualVersion.Build); // height is 0 since the change hasn't been committed.
         Assert.Equal(this.Repo.Head.Commits.First().GetTruncatedCommitIdAsUInt16(), actualVersion.Revision);
     }
 

@@ -60,6 +60,12 @@
         public int BuildNumberOffset { get; set; }
 
         /// <summary>
+        /// Gets or sets the minimum number of digits to use for numeric identifiers in SemVer 1.
+        /// </summary>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public int? SemVer1NumericIdentifierPadding { get; set; }
+
+        /// <summary>
         /// Gets or sets an array of regular expressions that describes branch or tag names that should
         /// be built with PublicRelease=true as the default value on build servers.
         /// </summary>

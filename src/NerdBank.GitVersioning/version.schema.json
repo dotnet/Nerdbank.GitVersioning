@@ -6,8 +6,8 @@
   "properties": {
     "version": {
       "type": "string",
-      "description": "The default x.y-pre version to use as the basis for version calculations.",
-      "pattern": "^v?(?<major>0|[1-9][0-9]*)\\.(?<minor>0|[1-9][0-9]*)(?:\\.(?<patch>0|[1-9][0-9]*))?(?<prerelease>-[\\da-z\\-]+(?:\\.[\\da-z\\-]+)*)?(?<buildMetadata>\\+[\\da-z\\-]+(?:\\.[\\da-z\\-]+)*)?$"
+      "description": "The major.minor-pre version to use as the basis for version calculations. If {height} is not used in this value and the value has fewer than the full major.minor.build.revision specified, \".{height}\" will be appended by the build.",
+      "pattern": "^v?(?<major>0|[1-9][0-9]*)\\.(?<minor>0|[1-9][0-9]*)(?:\\.(?<patch>0|[1-9][0-9]*)(?:\\.(?<revision>0|[1-9][0-9]*))?)?(?<prerelease>-(?:[\\da-z\\-]+|\\{height\\})(?:\\.(?:[\\da-z\\-]+|\\{height\\}))*)?(?<buildMetadata>\\+(?:[\\da-z\\-]+|\\{height\\})(?:\\.(?:[\\da-z\\-]+|\\{height\\}))*)?$"
     },
     "assemblyVersion": {
       "description": "The x.y version to use particularly for the AssemblyVersionAttribute instead of the default. This is useful when maintaining assembly binding compatibility on the desktop .NET Framework is important even though AssemblyFileVersion may change.",
@@ -31,6 +31,13 @@
       "type": "integer",
       "description": "A number to add to the git height when calculating the build number.",
       "default": 0
+    },
+    "semVer1NumericIdentifierPadding": {
+      "type": "integer",
+      "description": "The minimum number of digits to use for numeric identifiers in SemVer 1.",
+      "default": 4,
+      "minimum": 1,
+      "maximum": 6
     },
     "publicReleaseRefSpec": {
       "type": "array",

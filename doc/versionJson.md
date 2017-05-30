@@ -24,9 +24,10 @@ The content of the version.json file is a JSON serialized object with these prop
   "version": "x.y-prerelease", // required
   "assemblyVersion": "x.y", // optional. Use when x.y for AssemblyVersionAttribute differs from the default version property.
   "buildNumberOffset": "zOffset", // optional. Use when you need to add/subtract a fixed value from the computed build number.
+  "semVer1NumericIdentifierPadding": 4, // optional. Use when your -prerelease includes numeric identifiers and need semver1 support.
   "publicReleaseRefSpec": [
     "^refs/heads/master$", // we release out of master
-    "^refs/tags/v\\d\\.\\d" // we also release tags starting with vN.N
+    "^refs/tags/v\\d+\\.\\d+" // we also release tags starting with vN.N
   ],
   "cloudBuild": {
     "setVersionVariables": true,
@@ -43,6 +44,11 @@ The content of the version.json file is a JSON serialized object with these prop
 
 The `x` and `y` variables are for your use to specify a version that is meaningful
 to your customers. Consider using [semantic versioning][semver] for guidance.
+You may optionally supply a third integer in the version (i.e. x.y.z),
+in which case the git version height is specified as the fourth integer,
+which only appears in certain version representations.
+Alternatively, you can include the git version height in the -prerelease tag using
+syntax such as: `1.2.3-beta.{height}`
 
 The optional -prerelease tag allows you to indicate that you are building prerelease software.
 
