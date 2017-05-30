@@ -284,14 +284,16 @@ public class GitExtensionsTests : RepoTestBase
     }
 
     [Theory]
-    [InlineData(0, 2, false)]
-    [InlineData(50, -4, false)] // go backwards, but don't overlap
-    [InlineData(50, -2, true)] // force many build number collisions. generally revision will still make them unique, but it *might* collide on occasion.
-    public void GetIdAsVersion_Roundtrip_UnstableOffset(int startingOffset, int offsetStepChange, bool allowCollisions)
+    [InlineData("1.2", 0, 2, false)]
+    [InlineData("1.2.3", 0, 3, false)]
+    [InlineData("1.2.3.4-beta.{height}", 0, 3, false)]
+    [InlineData("1.2", 50, -4, false)] // go backwards, but don't overlap
+    [InlineData("1.2", 50, -2, true)] // force many build number collisions. generally revision will still make them unique, but it *might* collide on occasion.
+    public void GetIdAsVersion_Roundtrip_UnstableOffset(string version, int startingOffset, int offsetStepChange, bool allowCollisions)
     {
         var versionOptions = new VersionOptions
         {
-            Version = SemanticVersion.Parse("1.2"),
+            Version = SemanticVersion.Parse(version),
             AssemblyVersion = null,
             BuildNumberOffset = startingOffset,
         };
