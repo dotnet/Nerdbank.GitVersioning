@@ -156,8 +156,6 @@ public class VersionOracleTests : RepoTestBase
         VersionOptions workingCopyVersion = new VersionOptions
         {
             Version = SemanticVersion.Parse("7.8.9-foo.25"),
-            BuildNumberOffset = 2,
-            SemVer1NumericIdentifierPadding = 3,
             PackageSemVerLevel = VersionOptions.SemVerLevel.SemVer2
         };
         this.WriteVersionFile(workingCopyVersion);
