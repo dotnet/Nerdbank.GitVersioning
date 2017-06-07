@@ -149,4 +149,22 @@ public class VersionOracleTests : RepoTestBase
         oracle.PublicRelease = true;
         Assert.Equal("7.8.9-foo-025", oracle.SemVer1);
     }
+
+    [Fact]
+    public void SemVer2ForPackageOption()
+    {
+        VersionOptions workingCopyVersion = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("7.8.9-foo.25"),
+            BuildNumberOffset = 2,
+            SemVer1NumericIdentifierPadding = 3,
+            PackageSemVerLevel = VersionOptions.SemVerLevel.SemVer2
+        };
+        this.WriteVersionFile(workingCopyVersion);
+        this.InitializeSourceControl();
+        var oracle = VersionOracle.Create(this.RepoPath);
+        oracle.PublicRelease = true;
+        Assert.Equal("7.8.9-foo.25", oracle.NuGetPackageVersion);
+        Assert.Equal("7.8.9-foo.25", oracle.NpmPackageVersion);
+    }
 }

@@ -39,6 +39,12 @@
       "minimum": 1,
       "maximum": 6
     },
+    "packageSemVerLevel": {
+      "type": "string",
+      "default": "semVer1",
+      "description": "The SemVer level to use for package version strings.",
+      "enum": [ "semVer1", "semVer2" ]
+    },
     "publicReleaseRefSpec": {
       "type": "array",
       "description": "An array of regular expressions that may match a ref (branch or tag) that should be built with PublicRelease=true as the default value. The ref matched against is in its canonical form (e.g. refs/heads/master)",

@@ -20,6 +20,11 @@
         public const VersionPrecision DefaultVersionPrecision = VersionPrecision.Minor;
 
         /// <summary>
+        /// Default value for <see cref="SemVerLevel"/>
+        /// </summary>
+        public const SemVerLevel DefaultSemVerLevel = SemVerLevel.SemVer1;
+
+        /// <summary>
         /// The JSON serializer settings to use.
         /// </summary>
         public static JsonSerializerSettings JsonSettings => new JsonSerializerSettings
@@ -64,6 +69,13 @@
         /// </summary>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
         public int? SemVer1NumericIdentifierPadding { get; set; }
+
+        /// <summary>
+        /// Gets or sets the SemVer level to use for package version strings
+        /// </summary>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        [DefaultValue(DefaultSemVerLevel)]
+        public SemVerLevel PackageSemVerLevel { get; set; } = DefaultSemVerLevel;
 
         /// <summary>
         /// Gets or sets an array of regular expressions that describes branch or tag names that should
@@ -437,6 +449,22 @@
             /// The commit ID appears as the 4th integer in the version (e.g. 1.2.3.23523).
             /// </summary>
             FourthVersionComponent,
+        }
+
+        /// <summary>
+        /// The SemVer level to use
+        /// </summary>
+        public enum SemVerLevel
+        {
+            /// <summary>
+            /// SemVer 1.0
+            /// </summary>
+            SemVer1, 
+
+            /// <summary>
+            /// SemVer 2.0
+            /// </summary>
+            SemVer2
         }
     }
 }
