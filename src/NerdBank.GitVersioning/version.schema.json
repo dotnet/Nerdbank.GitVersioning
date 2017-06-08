@@ -39,11 +39,18 @@
       "minimum": 1,
       "maximum": 6
     },
-    "packageSemVerLevel": {
-      "type": "string",
-      "default": "semVer1",
-      "description": "The SemVer level to use for package version strings.",
-      "enum": [ "semVer1", "semVer2" ]
+    "nugetPackageVersion": {
+      "type": "object",
+      "description": "The SemVer level to use for NuGet package version strings.",
+      "properties": {
+        "semVer": {
+          "type": "integer",
+          "description": "A semantic version level",
+          "default": 2,
+          "minimum": 1,
+          "maximum": 2
+        } 
+      }
     },
     "publicReleaseRefSpec": {
       "type": "array",

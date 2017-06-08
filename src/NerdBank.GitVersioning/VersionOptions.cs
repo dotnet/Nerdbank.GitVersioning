@@ -20,9 +20,9 @@
         public const VersionPrecision DefaultVersionPrecision = VersionPrecision.Minor;
 
         /// <summary>
-        /// Default value for <see cref="SemVerLevel"/>
+        /// Default value for <see cref="PackageSemVerLevel"/>
         /// </summary>
-        public const SemVerLevel DefaultSemVerLevel = SemVerLevel.SemVer1;
+        public const int DefaultNuGetPackageVersion = 2;
 
         /// <summary>
         /// The JSON serializer settings to use.
@@ -71,11 +71,10 @@
         public int? SemVer1NumericIdentifierPadding { get; set; }
 
         /// <summary>
-        /// Gets or sets the SemVer level to use for package version strings
+        /// Gets or sets the options around NuGet version strings
         /// </summary>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        [DefaultValue(DefaultSemVerLevel)]
-        public SemVerLevel PackageSemVerLevel { get; set; } = DefaultSemVerLevel;
+        public NuGetPackageVersionOptions NuGetPackageVersion { get; set; }
 
         /// <summary>
         /// Gets or sets an array of regular expressions that describes branch or tag names that should
@@ -143,6 +142,7 @@
 
             return EqualityComparer<SemanticVersion>.Default.Equals(this.Version, other.Version)
                 && EqualityComparer<AssemblyVersionOptions>.Default.Equals(this.AssemblyVersion, other.AssemblyVersion)
+                && EqualityComparer<NuGetPackageVersionOptions>.Default.Equals(this.NuGetPackageVersion, other.NuGetPackageVersion)
                 && EqualityComparer<CloudBuildOptions>.Default.Equals(this.CloudBuild ?? CloudBuildOptions.DefaultInstance, other.CloudBuild ?? CloudBuildOptions.DefaultInstance)
                 && this.BuildNumberOffset == other.BuildNumberOffset;
         }
@@ -162,7 +162,60 @@
 
         internal bool ShouldSerializeAssemblyVersion() => !(this.AssemblyVersion?.IsDefault ?? true);
 
+        internal bool ShouldSerializeNuGetPackageVersion() => !(this.NuGetPackageVersion?.IsDefault ?? true);
+
         internal bool ShouldSerializeCloudBuild() => !(this.CloudBuild?.IsDefault ?? true);
+
+
+        public class NuGetPackageVersionOptions : IEquatable<NuGetPackageVersionOptions>
+        {
+            
+
+            /// <summary>
+            /// the default (uninitialized) instance.
+            /// </summary>
+            private static readonly NuGetPackageVersionOptions DefaultInstance = new NuGetPackageVersionOptions();
+
+            public NuGetPackageVersionOptions() : this(DefaultNuGetPackageVersion)
+            {
+            }
+            /// <summary>
+            /// Initializes a new instance of the <see cref="NuGetPackageVersionOptions"/> class
+            /// </summary>
+            /// <param name="semVer">Semantic Version Level</param>
+            public NuGetPackageVersionOptions(int semVer)
+            {
+                this.SemVer = semVer;
+            }
+
+            /// <summary>
+            /// Semantic Version Level
+            /// </summary>
+            [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+            [DefaultValue(DefaultNuGetPackageVersion)]
+            public int SemVer { get; set; }
+
+            /// <inheritdoc />
+            public override bool Equals(object obj) => this.Equals(obj as NuGetPackageVersionOptions);
+
+            /// <inheritdoc />
+            public bool Equals(NuGetPackageVersionOptions other)
+            {
+                return other != null
+                       && this.SemVer == other.SemVer;
+            }
+
+            /// <inheritdoc />
+            public override int GetHashCode()
+            {
+                return this.SemVer.GetHashCode();
+            }
+
+            /// <summary>
+            /// Gets a value indicating whether this instance is equivalent to the default instance.
+            /// </summary>
+            internal bool IsDefault => this.Equals(DefaultInstance);
+        }
 
         /// <summary>
         /// Describes the details of how the AssemblyVersion value will be calculated.
@@ -449,22 +502,6 @@
             /// The commit ID appears as the 4th integer in the version (e.g. 1.2.3.23523).
             /// </summary>
             FourthVersionComponent,
-        }
-
-        /// <summary>
-        /// The SemVer level to use
-        /// </summary>
-        public enum SemVerLevel
-        {
-            /// <summary>
-            /// SemVer 1.0
-            /// </summary>
-            SemVer1, 
-
-            /// <summary>
-            /// SemVer 2.0
-            /// </summary>
-            SemVer2
         }
     }
 }

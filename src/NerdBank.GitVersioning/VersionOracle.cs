@@ -242,12 +242,12 @@
         /// <summary>
         /// Gets the version to use for NuGet packages.
         /// </summary>
-        public string NuGetPackageVersion => this.VersionOptions?.PackageSemVerLevel == VersionOptions.SemVerLevel.SemVer2 ? this.SemVer2 : this.SemVer1;
+        public string NuGetPackageVersion => this.VersionOptions?.NuGetPackageVersion?.SemVer == 1 ? this.SemVer1 : this.SemVer2;
 
         /// <summary>
         /// Gets the version to use for NPM packages.
         /// </summary>
-        public string NpmPackageVersion => this.VersionOptions?.PackageSemVerLevel == VersionOptions.SemVerLevel.SemVer2 ? this.SemVer2 : this.SemVer1;
+        public string NpmPackageVersion => this.SemVer1;
 
         /// <summary>
         /// Gets a SemVer 1.0 compliant string that represents this version, including the -gCOMMITID suffix
