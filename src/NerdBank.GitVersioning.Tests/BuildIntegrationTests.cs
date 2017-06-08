@@ -580,11 +580,15 @@ public class BuildIntegrationTests : RepoTestBase
 
     [Theory]
     [PairwiseData]
-    public async Task BuildNumber_VariousOptions(bool isPublic, VersionOptions.CloudBuildNumberCommitWhere where, VersionOptions.CloudBuildNumberCommitWhen when, [CombinatorialValues(0, 1, 2)] int extraBuildMetadataCount)
+    public async Task BuildNumber_VariousOptions(bool isPublic, VersionOptions.CloudBuildNumberCommitWhere where, VersionOptions.CloudBuildNumberCommitWhen when, [CombinatorialValues(0, 1, 2)] int extraBuildMetadataCount, [CombinatorialValues(1, 2)] int semVer)
     {
         var versionOptions = BuildNumberVersionOptionsBasis;
         versionOptions.CloudBuild.BuildNumber.IncludeCommitId.Where = where;
         versionOptions.CloudBuild.BuildNumber.IncludeCommitId.When = when;
+        versionOptions.NuGetPackageVersion = new VersionOptions.NuGetPackageVersionOptions
+        {
+            SemVer = semVer,
+        };
         this.WriteVersionFile(versionOptions);
         this.InitializeSourceControl();
 
@@ -841,6 +845,8 @@ public class BuildIntegrationTests : RepoTestBase
             expectedBuildMetadata += "." + string.Join(".", additionalBuildMetadata);
         }
 
+        string expectedBuildMetadataWithoutCommitId = additionalBuildMetadata.Any() ? $"+{string.Join(".", additionalBuildMetadata)}" : string.Empty;
+
         Assert.Equal($"{version}", buildResult.AssemblyFileVersion);
         Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{versionOptions.Version.Prerelease}{expectedBuildMetadata}", buildResult.AssemblyInformationalVersion);
 
@@ -861,10 +867,13 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal(expectedBuildMetadata, buildResult.SemVerBuildSuffix);
 
         // NuGet is now SemVer 2.0 and will pass additional build metadata if provided
-        bool semVer1 = (versionOptions?.NuGetPackageVersion ?? VersionOptions.NuGetPackageVersionOptions.DefaultInstance).SemVer == 1;
-        string pkgVersionSuffix = buildResult.PublicRelease
-            ? (semVer1 ? string.Empty : expectedBuildMetadata)
-            : (semVer1 ? $"-g{commitIdShort}" : $"-g{commitIdShort}{(additionalBuildMetadata.Any() ? "+" : string.Empty)}{string.Join(".", additionalBuildMetadata)}");
+        bool semVer2 = (versionOptions?.NuGetPackageVersion ?? VersionOptions.NuGetPackageVersionOptions.DefaultInstance).SemVer == 2;
+        string pkgVersionSuffix = buildResult.PublicRelease ? string.Empty : $"-g{commitIdShort}";
+        if (semVer2)
+        {
+            pkgVersionSuffix += expectedBuildMetadataWithoutCommitId;
+        }
+
         Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{GetSemVerAppropriatePrereleaseTag(versionOptions)}{pkgVersionSuffix}", buildResult.NuGetPackageVersion);
 
         var buildNumberOptions = versionOptions.CloudBuild?.BuildNumber ?? new VersionOptions.CloudBuildNumberOptions();
