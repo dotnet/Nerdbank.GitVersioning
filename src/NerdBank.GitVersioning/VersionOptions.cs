@@ -169,7 +169,7 @@
             /// <summary>
             /// Default value for <see cref="SemVer"/>
             /// </summary>
-            private const int DefaultNuGetPackageVersion = 2;
+            private const int DefaultNuGetPackageVersion = 1;
 
             /// <summary>
             /// The default (uninitialized) instance.
