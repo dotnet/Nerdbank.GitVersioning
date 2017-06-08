@@ -66,9 +66,18 @@ namespace Nerdbank.GitVersioning.Tests
             ExtractEmbeddedResource($"repos.{repoArchiveName}.7z", archiveFilePath);
             try
             {
-                var extractor = new SevenZipExtractor(archiveFilePath);
-                extractor.ExtractAll(expandedFolderPath);
-                return new ExpandedRepo(expandedFolderPath);
+                for (int retryCount = 0; ; retryCount++)
+                {
+                    try
+                    {
+                        var extractor = new SevenZipExtractor(archiveFilePath);
+                        extractor.ExtractAll(expandedFolderPath);
+                        return new ExpandedRepo(expandedFolderPath);
+                    }
+                    catch (System.ComponentModel.Win32Exception) when (retryCount < 2)
+                    {
+                    }
+                }
             }
             finally
             {
