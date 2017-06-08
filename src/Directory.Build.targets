@@ -1,6 +1,0 @@
-<Project>
-  <ItemGroup>
-    <ProjectCapability Remove="DependenciesTree" />
-    <ProjectCapability Remove="LaunchProfiles" />
-  </ItemGroup>
-</Project>
