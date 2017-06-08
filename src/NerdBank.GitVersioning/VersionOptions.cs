@@ -172,7 +172,7 @@
             private const int DefaultNuGetPackageVersion = 2;
 
             /// <summary>
-            /// the default (uninitialized) instance.
+            /// The default (uninitialized) instance.
             /// </summary>
             private static readonly NuGetPackageVersionOptions DefaultInstance = new NuGetPackageVersionOptions();
 
