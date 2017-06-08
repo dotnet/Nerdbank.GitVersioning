@@ -169,7 +169,7 @@
             /// <summary>
             /// Default value for <see cref="SemVer"/>
             /// </summary>
-            private const int DefaultNuGetPackageVersion = 1;
+            private const float DefaultNuGetPackageVersion = 1.0f;
 
             /// <summary>
             /// The default (uninitialized) instance.
@@ -179,17 +179,8 @@
             /// <summary>
             /// Initializes a new instance of the <see cref="NuGetPackageVersionOptions" /> class.
             /// </summary>
-            public NuGetPackageVersionOptions() : this(DefaultNuGetPackageVersion)
+            public NuGetPackageVersionOptions()
             {
-            }
-
-            /// <summary>
-            /// Initializes a new instance of the <see cref="NuGetPackageVersionOptions"/> class
-            /// </summary>
-            /// <param name="semVer">Semantic Version Level</param>
-            public NuGetPackageVersionOptions(int semVer)
-            {
-                this.SemVer = semVer;
             }
 
             /// <summary>
@@ -197,7 +188,7 @@
             /// </summary>
             [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
             [DefaultValue(DefaultNuGetPackageVersion)]
-            public int SemVer { get; set; }
+            public float SemVer { get; set; } = DefaultNuGetPackageVersion;
 
             /// <inheritdoc />
             public override bool Equals(object obj) => this.Equals(obj as NuGetPackageVersionOptions);

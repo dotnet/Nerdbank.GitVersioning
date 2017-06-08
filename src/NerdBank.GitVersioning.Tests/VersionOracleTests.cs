@@ -204,7 +204,10 @@ public class VersionOracleTests : RepoTestBase
         VersionOptions workingCopyVersion = new VersionOptions
         {
             Version = SemanticVersion.Parse("7.8.9-foo.25"),
-            NuGetPackageVersion = new VersionOptions.NuGetPackageVersionOptions(2)
+            NuGetPackageVersion = new VersionOptions.NuGetPackageVersionOptions
+            {
+                SemVer = 2,
+            }
         };
         this.WriteVersionFile(workingCopyVersion);
         this.InitializeSourceControl();
@@ -219,7 +222,10 @@ public class VersionOracleTests : RepoTestBase
         VersionOptions workingCopyVersion = new VersionOptions
         {
             Version = SemanticVersion.Parse("7.8.9-foo.25"),
-            NuGetPackageVersion = new VersionOptions.NuGetPackageVersionOptions(2)
+            NuGetPackageVersion = new VersionOptions.NuGetPackageVersionOptions
+            {
+                SemVer = 2,
+            }
         };
         this.WriteVersionFile(workingCopyVersion);
         this.InitializeSourceControl();
