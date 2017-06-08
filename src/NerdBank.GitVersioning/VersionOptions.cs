@@ -20,11 +20,6 @@
         public const VersionPrecision DefaultVersionPrecision = VersionPrecision.Minor;
 
         /// <summary>
-        /// Default value for <see cref="PackageSemVerLevel"/>
-        /// </summary>
-        public const int DefaultNuGetPackageVersion = 2;
-
-        /// <summary>
         /// The JSON serializer settings to use.
         /// </summary>
         public static JsonSerializerSettings JsonSettings => new JsonSerializerSettings
@@ -166,19 +161,28 @@
 
         internal bool ShouldSerializeCloudBuild() => !(this.CloudBuild?.IsDefault ?? true);
 
-
+        /// <summary>
+        /// The class that contains settings for the <see cref="NuGetPackageVersion" /> property.
+        /// </summary>
         public class NuGetPackageVersionOptions : IEquatable<NuGetPackageVersionOptions>
         {
-            
+            /// <summary>
+            /// Default value for <see cref="SemVer"/>
+            /// </summary>
+            private const int DefaultNuGetPackageVersion = 2;
 
             /// <summary>
             /// the default (uninitialized) instance.
             /// </summary>
             private static readonly NuGetPackageVersionOptions DefaultInstance = new NuGetPackageVersionOptions();
 
+            /// <summary>
+            /// Initializes a new instance of the <see cref="NuGetPackageVersionOptions" /> class.
+            /// </summary>
             public NuGetPackageVersionOptions() : this(DefaultNuGetPackageVersion)
             {
             }
+
             /// <summary>
             /// Initializes a new instance of the <see cref="NuGetPackageVersionOptions"/> class
             /// </summary>
@@ -189,7 +193,7 @@
             }
 
             /// <summary>
-            /// Semantic Version Level
+            /// Gets or sets the version of SemVer (e.g. 1 or 2) that should be used when generating the package version.
             /// </summary>
             [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
             [DefaultValue(DefaultNuGetPackageVersion)]

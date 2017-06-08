@@ -41,15 +41,15 @@
     },
     "nugetPackageVersion": {
       "type": "object",
-      "description": "The SemVer level to use for NuGet package version strings.",
+      "description": "Details for how and what the generated version for NuGet packages will be.",
       "properties": {
         "semVer": {
           "type": "integer",
-          "description": "A semantic version level",
+          "description": "The version of SemVer (e.g. 1 or 2) that should be used when generating the package version.",
           "default": 2,
           "minimum": 1,
           "maximum": 2
-        } 
+        }
       }
     },
     "publicReleaseRefSpec": {
