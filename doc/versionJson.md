@@ -25,6 +25,9 @@ The content of the version.json file is a JSON serialized object with these prop
   "assemblyVersion": "x.y", // optional. Use when x.y for AssemblyVersionAttribute differs from the default version property.
   "buildNumberOffset": "zOffset", // optional. Use when you need to add/subtract a fixed value from the computed build number.
   "semVer1NumericIdentifierPadding": 4, // optional. Use when your -prerelease includes numeric identifiers and need semver1 support.
+  "nugetPackageVersion": {
+     "semVer": 1 // optional. Set to either 1 or 2 to control how the NuGet package version string is generated. Default is 1.
+  },
   "publicReleaseRefSpec": [
     "^refs/heads/master$", // we release out of master
     "^refs/tags/v\\d+\\.\\d+" // we also release tags starting with vN.N

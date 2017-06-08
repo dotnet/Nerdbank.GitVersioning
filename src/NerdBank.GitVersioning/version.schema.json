@@ -39,6 +39,19 @@
       "minimum": 1,
       "maximum": 6
     },
+    "nugetPackageVersion": {
+      "type": "object",
+      "description": "Details for how and what the generated version for NuGet packages will be.",
+      "properties": {
+        "semVer": {
+          "type": "integer",
+          "description": "The version of SemVer (e.g. 1 or 2) that should be used when generating the package version.",
+          "default": 1,
+          "minimum": 1,
+          "maximum": 2
+        }
+      }
+    },
     "publicReleaseRefSpec": {
       "type": "array",
       "description": "An array of regular expressions that may match a ref (branch or tag) that should be built with PublicRelease=true as the default value. The ref matched against is in its canonical form (e.g. refs/heads/master)",

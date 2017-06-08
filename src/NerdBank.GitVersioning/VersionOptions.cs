@@ -66,6 +66,12 @@
         public int? SemVer1NumericIdentifierPadding { get; set; }
 
         /// <summary>
+        /// Gets or sets the options around NuGet version strings
+        /// </summary>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public NuGetPackageVersionOptions NuGetPackageVersion { get; set; }
+
+        /// <summary>
         /// Gets or sets an array of regular expressions that describes branch or tag names that should
         /// be built with PublicRelease=true as the default value on build servers.
         /// </summary>
@@ -131,6 +137,7 @@
 
             return EqualityComparer<SemanticVersion>.Default.Equals(this.Version, other.Version)
                 && EqualityComparer<AssemblyVersionOptions>.Default.Equals(this.AssemblyVersion, other.AssemblyVersion)
+                && EqualityComparer<NuGetPackageVersionOptions>.Default.Equals(this.NuGetPackageVersion, other.NuGetPackageVersion)
                 && EqualityComparer<CloudBuildOptions>.Default.Equals(this.CloudBuild ?? CloudBuildOptions.DefaultInstance, other.CloudBuild ?? CloudBuildOptions.DefaultInstance)
                 && this.BuildNumberOffset == other.BuildNumberOffset;
         }
@@ -150,7 +157,60 @@
 
         internal bool ShouldSerializeAssemblyVersion() => !(this.AssemblyVersion?.IsDefault ?? true);
 
+        internal bool ShouldSerializeNuGetPackageVersion() => !(this.NuGetPackageVersion?.IsDefault ?? true);
+
         internal bool ShouldSerializeCloudBuild() => !(this.CloudBuild?.IsDefault ?? true);
+
+        /// <summary>
+        /// The class that contains settings for the <see cref="NuGetPackageVersion" /> property.
+        /// </summary>
+        public class NuGetPackageVersionOptions : IEquatable<NuGetPackageVersionOptions>
+        {
+            /// <summary>
+            /// Default value for <see cref="SemVer"/>
+            /// </summary>
+            private const float DefaultNuGetPackageVersion = 1.0f;
+
+            /// <summary>
+            /// The default (uninitialized) instance.
+            /// </summary>
+            public static readonly NuGetPackageVersionOptions DefaultInstance = new NuGetPackageVersionOptions();
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="NuGetPackageVersionOptions" /> class.
+            /// </summary>
+            public NuGetPackageVersionOptions()
+            {
+            }
+
+            /// <summary>
+            /// Gets or sets the version of SemVer (e.g. 1 or 2) that should be used when generating the package version.
+            /// </summary>
+            [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+            [DefaultValue(DefaultNuGetPackageVersion)]
+            public float SemVer { get; set; } = DefaultNuGetPackageVersion;
+
+            /// <inheritdoc />
+            public override bool Equals(object obj) => this.Equals(obj as NuGetPackageVersionOptions);
+
+            /// <inheritdoc />
+            public bool Equals(NuGetPackageVersionOptions other)
+            {
+                return other != null
+                       && this.SemVer == other.SemVer;
+            }
+
+            /// <inheritdoc />
+            public override int GetHashCode()
+            {
+                return this.SemVer.GetHashCode();
+            }
+
+            /// <summary>
+            /// Gets a value indicating whether this instance is equivalent to the default instance.
+            /// </summary>
+            internal bool IsDefault => this.Equals(DefaultInstance);
+        }
 
         /// <summary>
         /// Describes the details of how the AssemblyVersion value will be calculated.

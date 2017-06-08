@@ -242,7 +242,7 @@
         /// <summary>
         /// Gets the version to use for NuGet packages.
         /// </summary>
-        public string NuGetPackageVersion => this.SemVer1;
+        public string NuGetPackageVersion => (this.VersionOptions?.NuGetPackageVersion ?? VersionOptions.NuGetPackageVersionOptions.DefaultInstance).SemVer == 1 ? this.SemVer1 : this.SemVer2;
 
         /// <summary>
         /// Gets the version to use for NPM packages.
@@ -271,10 +271,20 @@
         private string SemVer1BuildMetadata =>
             this.PublicRelease ? string.Empty : $"-g{this.GitCommitIdShort}";
 
+        /// <summary>
+        /// Gets the build metadata that is appropriate for SemVer2 use.
+        /// </summary>
+        /// <remarks>
+        /// We always put the commit ID in the -prerelease tag for non-public releases.
+        /// But for public releases, we don't include it in the +buildMetadata section since it may be confusing for NuGet.
+        /// See https://github.com/AArnott/Nerdbank.GitVersioning/pull/132#issuecomment-307208561
+        /// </remarks>
         private string SemVer2BuildMetadata =>
-            FormatBuildMetadata(this.PublicRelease ? this.BuildMetadata : this.BuildMetadataWithCommitId);
+            (this.PublicRelease ? string.Empty : this.GitCommitIdShortForNonPublicPrereleaseTag) + FormatBuildMetadata(this.BuildMetadata);
 
         private string PrereleaseVersionSemVer1 => MakePrereleaseSemVer1Compliant(this.PrereleaseVersion, SemVer1NumericIdentifierPadding);
+
+        private string GitCommitIdShortForNonPublicPrereleaseTag => (string.IsNullOrEmpty(this.PrereleaseVersion) ? "-" : ".") + $"g{this.GitCommitIdShort}";
 
         private VersionOptions.CloudBuildNumberOptions CloudBuildNumberOptions { get; }
 

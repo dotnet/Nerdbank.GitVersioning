@@ -20,6 +20,11 @@
                 property.ShouldSerialize = instance => ((VersionOptions)instance).ShouldSerializeAssemblyVersion();
             }
 
+            if (property.DeclaringType == typeof(VersionOptions) && member.Name == nameof(VersionOptions.NuGetPackageVersion))
+            {
+                property.ShouldSerialize = instance => ((VersionOptions)instance).ShouldSerializeNuGetPackageVersion();
+            }
+
             if (property.DeclaringType == typeof(VersionOptions) && member.Name == nameof(VersionOptions.CloudBuild))
             {
                 property.ShouldSerialize = instance => ((VersionOptions)instance).ShouldSerializeCloudBuild();

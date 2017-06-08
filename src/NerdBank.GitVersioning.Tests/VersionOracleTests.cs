@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Linq;
 using LibGit2Sharp;
 using Nerdbank.GitVersioning;
 using Nerdbank.GitVersioning.Tests;
@@ -11,6 +12,8 @@ public class VersionOracleTests : RepoTestBase
         : base(logger)
     {
     }
+
+    private string CommitIdShort => this.Repo.Head.Commits.First().Id.Sha.Substring(0, 10);
 
     [Fact]
     public void Submodule_RecognizedWithCorrectVersion()
@@ -148,5 +151,86 @@ public class VersionOracleTests : RepoTestBase
         var oracle = VersionOracle.Create(this.RepoPath);
         oracle.PublicRelease = true;
         Assert.Equal("7.8.9-foo-025", oracle.SemVer1);
+    }
+
+    [Fact]
+    public void DefaultNuGetPackageVersionIsSemVer1PublicRelease()
+    {
+        VersionOptions workingCopyVersion = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("7.8.9-foo.25"),
+            SemVer1NumericIdentifierPadding = 2,
+        };
+        this.WriteVersionFile(workingCopyVersion);
+        this.InitializeSourceControl();
+        var oracle = VersionOracle.Create(this.RepoPath);
+        oracle.PublicRelease = true;
+        Assert.Equal($"7.8.9-foo-25", oracle.NuGetPackageVersion);
+    }
+
+    [Fact]
+    public void DefaultNuGetPackageVersionIsSemVer1NonPublicRelease()
+    {
+        VersionOptions workingCopyVersion = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("7.8.9-foo.25"),
+            SemVer1NumericIdentifierPadding = 2,
+        };
+        this.WriteVersionFile(workingCopyVersion);
+        this.InitializeSourceControl();
+        var oracle = VersionOracle.Create(this.RepoPath);
+        oracle.PublicRelease = false;
+        Assert.Equal($"7.8.9-foo-25-g{this.CommitIdShort}", oracle.NuGetPackageVersion);
+    }
+
+    [Fact]
+    public void NpmPackageVersionIsSemVer1()
+    {
+        VersionOptions workingCopyVersion = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("7.8.9-foo.25"),
+            SemVer1NumericIdentifierPadding = 2
+        };
+        this.WriteVersionFile(workingCopyVersion);
+        this.InitializeSourceControl();
+        var oracle = VersionOracle.Create(this.RepoPath);
+        oracle.PublicRelease = true;
+        Assert.Equal("7.8.9-foo-25", oracle.NpmPackageVersion);
+    }
+
+    [Fact]
+    public void CanSetSemVer2ForNuGetPackageVersionPublicRelease()
+    {
+        VersionOptions workingCopyVersion = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("7.8.9-foo.25"),
+            NuGetPackageVersion = new VersionOptions.NuGetPackageVersionOptions
+            {
+                SemVer = 2,
+            }
+        };
+        this.WriteVersionFile(workingCopyVersion);
+        this.InitializeSourceControl();
+        var oracle = VersionOracle.Create(this.RepoPath);
+        oracle.PublicRelease = true;
+        Assert.Equal($"7.8.9-foo.25", oracle.NuGetPackageVersion);
+    }
+
+    [Fact]
+    public void CanSetSemVer2ForNuGetPackageVersionNonPublicRelease()
+    {
+        VersionOptions workingCopyVersion = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("7.8.9-foo.25"),
+            NuGetPackageVersion = new VersionOptions.NuGetPackageVersionOptions
+            {
+                SemVer = 2,
+            }
+        };
+        this.WriteVersionFile(workingCopyVersion);
+        this.InitializeSourceControl();
+        var oracle = VersionOracle.Create(this.RepoPath);
+        oracle.PublicRelease = false;
+        Assert.Equal($"7.8.9-foo.25.g{this.CommitIdShort}", oracle.NuGetPackageVersion);
     }
 }

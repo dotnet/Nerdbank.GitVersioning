@@ -72,6 +72,8 @@ public class BuildIntegrationTests : RepoTestBase
         }
     }
 
+    private string CommitIdShort => this.Repo.Head.Commits.First().Id.Sha.Substring(0, 10);
+
     protected override void Dispose(bool disposing)
     {
         Environment.SetEnvironmentVariable("_NBGV_UnitTest", string.Empty);
@@ -578,11 +580,15 @@ public class BuildIntegrationTests : RepoTestBase
 
     [Theory]
     [PairwiseData]
-    public async Task BuildNumber_VariousOptions(bool isPublic, VersionOptions.CloudBuildNumberCommitWhere where, VersionOptions.CloudBuildNumberCommitWhen when, [CombinatorialValues(0, 1, 2)] int extraBuildMetadataCount)
+    public async Task BuildNumber_VariousOptions(bool isPublic, VersionOptions.CloudBuildNumberCommitWhere where, VersionOptions.CloudBuildNumberCommitWhen when, [CombinatorialValues(0, 1, 2)] int extraBuildMetadataCount, [CombinatorialValues(1, 2)] int semVer)
     {
         var versionOptions = BuildNumberVersionOptionsBasis;
         versionOptions.CloudBuild.BuildNumber.IncludeCommitId.Where = where;
         versionOptions.CloudBuild.BuildNumber.IncludeCommitId.When = when;
+        versionOptions.NuGetPackageVersion = new VersionOptions.NuGetPackageVersionOptions
+        {
+            SemVer = semVer,
+        };
         this.WriteVersionFile(versionOptions);
         this.InitializeSourceControl();
 
@@ -828,7 +834,7 @@ public class BuildIntegrationTests : RepoTestBase
     {
         int versionHeight = this.Repo.GetVersionHeight(relativeProjectDirectory);
         Version idAsVersion = this.Repo.GetIdAsVersion(relativeProjectDirectory);
-        string commitIdShort = this.Repo.Head.Commits.First().Id.Sha.Substring(0, 10);
+        string commitIdShort = this.CommitIdShort;
         Version version = this.Repo.GetIdAsVersion(relativeProjectDirectory);
         Version assemblyVersion = GetExpectedAssemblyVersion(versionOptions, version);
         var additionalBuildMetadata = from item in buildResult.BuildResult.ProjectStateAfterBuild.GetItems("BuildMetadata")
@@ -838,6 +844,8 @@ public class BuildIntegrationTests : RepoTestBase
         {
             expectedBuildMetadata += "." + string.Join(".", additionalBuildMetadata);
         }
+
+        string expectedBuildMetadataWithoutCommitId = additionalBuildMetadata.Any() ? $"+{string.Join(".", additionalBuildMetadata)}" : string.Empty;
 
         Assert.Equal($"{version}", buildResult.AssemblyFileVersion);
         Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{versionOptions.Version.Prerelease}{expectedBuildMetadata}", buildResult.AssemblyInformationalVersion);
@@ -858,10 +866,15 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal(versionOptions.Version.Prerelease, buildResult.PrereleaseVersion);
         Assert.Equal(expectedBuildMetadata, buildResult.SemVerBuildSuffix);
 
-        string pkgVersionSuffix = buildResult.PublicRelease
-            ? string.Empty
-            : $"-g{commitIdShort}";
-        Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{GetSemVer1PrereleaseTag(versionOptions)}{pkgVersionSuffix}", buildResult.NuGetPackageVersion);
+        // NuGet is now SemVer 2.0 and will pass additional build metadata if provided
+        bool semVer2 = (versionOptions?.NuGetPackageVersion ?? VersionOptions.NuGetPackageVersionOptions.DefaultInstance).SemVer == 2;
+        string pkgVersionSuffix = buildResult.PublicRelease ? string.Empty : $"-g{commitIdShort}";
+        if (semVer2)
+        {
+            pkgVersionSuffix += expectedBuildMetadataWithoutCommitId;
+        }
+
+        Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{GetSemVerAppropriatePrereleaseTag(versionOptions)}{pkgVersionSuffix}", buildResult.NuGetPackageVersion);
 
         var buildNumberOptions = versionOptions.CloudBuild?.BuildNumber ?? new VersionOptions.CloudBuildNumberOptions();
         if (buildNumberOptions.Enabled)
@@ -893,9 +906,11 @@ public class BuildIntegrationTests : RepoTestBase
         }
     }
 
-    private static string GetSemVer1PrereleaseTag(VersionOptions versionOptions)
+    private static string GetSemVerAppropriatePrereleaseTag(VersionOptions versionOptions)
     {
-        return versionOptions.Version.Prerelease?.Replace('.', '-');
+        return (versionOptions.NuGetPackageVersion ?? VersionOptions.NuGetPackageVersionOptions.DefaultInstance).SemVer == 1
+            ? versionOptions.Version.Prerelease?.Replace('.', '-')
+            : versionOptions.Version.Prerelease;
     }
 
     private async Task<BuildResults> BuildAsync(string target = Targets.GetBuildVersion, LoggerVerbosity logVerbosity = LoggerVerbosity.Detailed, bool assertSuccessfulBuild = true)
