@@ -174,7 +174,7 @@
             /// <summary>
             /// The default (uninitialized) instance.
             /// </summary>
-            private static readonly NuGetPackageVersionOptions DefaultInstance = new NuGetPackageVersionOptions();
+            public static readonly NuGetPackageVersionOptions DefaultInstance = new NuGetPackageVersionOptions();
 
             /// <summary>
             /// Initializes a new instance of the <see cref="NuGetPackageVersionOptions" /> class.

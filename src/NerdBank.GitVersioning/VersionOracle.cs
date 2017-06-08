@@ -242,7 +242,7 @@
         /// <summary>
         /// Gets the version to use for NuGet packages.
         /// </summary>
-        public string NuGetPackageVersion => this.VersionOptions?.NuGetPackageVersion?.SemVer == 1 ? this.SemVer1 : this.SemVer2;
+        public string NuGetPackageVersion => (this.VersionOptions?.NuGetPackageVersion ?? VersionOptions.NuGetPackageVersionOptions.DefaultInstance).SemVer == 1 ? this.SemVer1 : this.SemVer2;
 
         /// <summary>
         /// Gets the version to use for NPM packages.

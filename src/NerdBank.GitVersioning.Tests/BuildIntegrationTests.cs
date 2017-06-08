@@ -861,7 +861,7 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal(expectedBuildMetadata, buildResult.SemVerBuildSuffix);
 
         // NuGet is now SemVer 2.0 and will pass additional build metadata if provided
-        bool semVer1 = versionOptions?.NuGetPackageVersion?.SemVer == 1;
+        bool semVer1 = (versionOptions?.NuGetPackageVersion ?? VersionOptions.NuGetPackageVersionOptions.DefaultInstance).SemVer == 1;
         string pkgVersionSuffix = buildResult.PublicRelease
             ? (semVer1 ? string.Empty : expectedBuildMetadata)
             : (semVer1 ? $"-g{commitIdShort}" : $"-g{commitIdShort}{(additionalBuildMetadata.Any() ? "+" : string.Empty)}{string.Join(".", additionalBuildMetadata)}");
@@ -899,7 +899,7 @@ public class BuildIntegrationTests : RepoTestBase
 
     private static string GetSemVerAppropriatePrereleaseTag(VersionOptions versionOptions)
     {
-        return versionOptions.NuGetPackageVersion?.SemVer == 1
+        return (versionOptions.NuGetPackageVersion ?? VersionOptions.NuGetPackageVersionOptions.DefaultInstance).SemVer == 1
             ? versionOptions.Version.Prerelease?.Replace('.', '-')
             : versionOptions.Version.Prerelease;
     }
