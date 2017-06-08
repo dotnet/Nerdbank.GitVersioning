@@ -261,7 +261,7 @@
         /// when <see cref="PublicRelease"/> is <c>false</c>.
         /// </summary>
         public string SemVer2 =>
-            $"{this.Version.ToStringSafe(3)}{this.PrereleaseVersion}{this.SemVer1BuildMetadata}{this.SemVer2BuildMetadata}";
+            $"{this.Version.ToStringSafe(3)}{this.PrereleaseVersion}{this.SemVer2BuildMetadata}";
 
         /// <summary>
         /// Gets the minimum number of digits to use for numeric identifiers in SemVer 1.
@@ -276,10 +276,11 @@
         /// </summary>
         /// <remarks>
         /// We always put the commit ID in the -prerelease tag for non-public releases.
-        /// But for public releases, since SemVer2 allows it, we also tuck it into the build metadata.
+        /// But for public releases, we don't include it since it may be confusing for NuGet.
+        /// See https://github.com/AArnott/Nerdbank.GitVersioning/pull/132#issuecomment-307208561
         /// </remarks>
         private string SemVer2BuildMetadata =>
-            FormatBuildMetadata(this.PublicRelease ? this.BuildMetadataWithCommitId : this.BuildMetadata);
+            FormatBuildMetadata(this.PublicRelease ? this.BuildMetadata : this.BuildMetadataWithCommitId, true);
 
         private string PrereleaseVersionSemVer1 => MakePrereleaseSemVer1Compliant(this.PrereleaseVersion, SemVer1NumericIdentifierPadding);
 
@@ -287,8 +288,8 @@
 
         private int VersionHeightWithOffset => this.VersionHeight + this.VersionHeightOffset;
 
-        private static string FormatBuildMetadata(IEnumerable<string> identifiers) =>
-            (identifiers?.Any() ?? false) ? "+" + string.Join(".", identifiers) : string.Empty;
+        private static string FormatBuildMetadata(IEnumerable<string> identifiers, bool asSemVer2prerelease = false) =>
+            (identifiers?.Any() ?? false) ? (asSemVer2prerelease ? "." : "+") + string.Join(".", identifiers) : string.Empty;
 
         private static string FormatBuildMetadataSemVerV1(IEnumerable<string> identifiers) =>
             (identifiers?.Any() ?? false) ? "-" + string.Join("-", identifiers) : string.Empty;

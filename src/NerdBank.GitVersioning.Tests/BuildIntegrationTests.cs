@@ -281,7 +281,7 @@ public class BuildIntegrationTests : RepoTestBase
         this.AssertStandardProperties(VersionOptions.FromVersion(new Version(majorMinorVersion)), buildResult);
 
         Version version = this.Repo.Head.Commits.First().GetIdAsVersion();
-        Assert.Equal($"{version.Major}.{version.Minor}.{buildResult.GitVersionHeight}+g{this.CommitIdShort}", buildResult.NuGetPackageVersion);
+        Assert.Equal($"{version.Major}.{version.Minor}.{buildResult.GitVersionHeight}", buildResult.NuGetPackageVersion);
     }
 
     [Fact]
