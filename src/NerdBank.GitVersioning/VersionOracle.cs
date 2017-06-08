@@ -261,7 +261,7 @@
         /// when <see cref="PublicRelease"/> is <c>false</c>.
         /// </summary>
         public string SemVer2 =>
-            $"{this.Version.ToStringSafe(3)}{this.PrereleaseVersion}{this.SemVer2BuildMetadata}";
+            $"{this.Version.ToStringSafe(3)}{this.PrereleaseVersion}{this.SemVer1BuildMetadata}{this.SemVer2BuildMetadata}";
 
         /// <summary>
         /// Gets the minimum number of digits to use for numeric identifiers in SemVer 1.
@@ -271,8 +271,15 @@
         private string SemVer1BuildMetadata =>
             this.PublicRelease ? string.Empty : $"-g{this.GitCommitIdShort}";
 
+        /// <summary>
+        /// Gets the build metadata that is appropriate for SemVer2 use.
+        /// </summary>
+        /// <remarks>
+        /// We always put the commit ID in the -prerelease tag for non-public releases.
+        /// But for public releases, since SemVer2 allows it, we also tuck it into the build metadata.
+        /// </remarks>
         private string SemVer2BuildMetadata =>
-            FormatBuildMetadata(this.PublicRelease ? this.BuildMetadata : this.BuildMetadataWithCommitId);
+            FormatBuildMetadata(this.PublicRelease ? this.BuildMetadataWithCommitId : this.BuildMetadata);
 
         private string PrereleaseVersionSemVer1 => MakePrereleaseSemVer1Compliant(this.PrereleaseVersion, SemVer1NumericIdentifierPadding);
 

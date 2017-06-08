@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Linq;
 using LibGit2Sharp;
 using Nerdbank.GitVersioning;
 using Nerdbank.GitVersioning.Tests;
@@ -11,6 +12,8 @@ public class VersionOracleTests : RepoTestBase
         : base(logger)
     {
     }
+
+    private string CommitIdShort => this.Repo.Head.Commits.First().Id.Sha.Substring(0, 10);
 
     [Fact]
     public void Submodule_RecognizedWithCorrectVersion()
@@ -155,13 +158,13 @@ public class VersionOracleTests : RepoTestBase
     {
         VersionOptions workingCopyVersion = new VersionOptions
         {
-            Version = SemanticVersion.Parse("7.8.9-foo.25"),            
+            Version = SemanticVersion.Parse("7.8.9-foo.25"),
         };
         this.WriteVersionFile(workingCopyVersion);
         this.InitializeSourceControl();
         var oracle = VersionOracle.Create(this.RepoPath);
         oracle.PublicRelease = true;
-        Assert.Equal("7.8.9-foo.25", oracle.NuGetPackageVersion);
+        Assert.Equal($"7.8.9-foo.25+g{this.CommitIdShort}", oracle.NuGetPackageVersion);
     }
 
     [Fact]
@@ -192,6 +195,6 @@ public class VersionOracleTests : RepoTestBase
         this.InitializeSourceControl();
         var oracle = VersionOracle.Create(this.RepoPath);
         oracle.PublicRelease = true;
-        Assert.Equal("7.8.9-foo-25", oracle.NuGetPackageVersion);        
+        Assert.Equal("7.8.9-foo-25", oracle.NuGetPackageVersion);
     }
 }
