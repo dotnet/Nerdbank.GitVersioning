@@ -13,6 +13,7 @@
     <EmbeddedResource Include="Keys\*.snk" />
     <EmbeddedResource Include="Keys\*.pfx" />
     <EmbeddedResource Include="..\NerdBank.GitVersioning\version.schema.json" Link="version.schema.json" />
+    <EmbeddedResource Include="test.vcprj" />
     <EmbeddedResource Include="test.prj" />
     <EmbeddedResource Include="repos\submodules.7z" />
   </ItemGroup>
