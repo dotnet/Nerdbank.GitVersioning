@@ -24,6 +24,12 @@
 ------------------------------------------------------------------------------
 ";
 
+        private const string VersionStringDefineContent = @"#if defined(_UNICODE)
+#define NBGV_VERSION_STRING(x) L ##x
+#else
+#define NBGV_VERSION_STRING(x) x
+#endif";
+
         private const string VersionInfoContent = @"#ifdef RC_INVOKED
 
 #include <winres.h>
@@ -105,6 +111,9 @@ END
                 this.generator.StartFile();
 
                 this.generator.AddComment(FileHeaderComment);
+                this.generator.AddBlankLine();
+
+                this.generator.AddContent(VersionStringDefineContent);
                 this.generator.AddBlankLine();
 
                 this.CreateDefines();
@@ -271,9 +280,9 @@ END
 
             internal void AddDefine(string name, string value)
             {
-                var escapedValue = "\"" + value.Replace("\\", "\\\\") + "\"";
+                var escapedValue = value.Replace("\\", "\\\\");
 
-                this.codeBuilder.AppendLine($"#define {name} {escapedValue}");
+                this.codeBuilder.AppendLine($"#define {name} NBGV_VERSION_STRING(\"{escapedValue}\")");
             }
 
             internal void EndFile()
