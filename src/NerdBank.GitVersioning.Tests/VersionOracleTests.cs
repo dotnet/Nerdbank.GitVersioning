@@ -15,7 +15,7 @@ public class VersionOracleTests : RepoTestBase
 
     private string CommitIdShort => this.Repo.Head.Commits.First().Id.Sha.Substring(0, 10);
 
-    [Fact]
+    [Fact(Skip = "Unstable test. See issue #125")]
     public void Submodule_RecognizedWithCorrectVersion()
     {
         using (var expandedRepo = TestUtilities.ExtractRepoArchive("submodules"))
