@@ -12,7 +12,7 @@ public class VersionOracleTests : RepoTestBase
     {
     }
 
-    [Fact]
+    [Fact(Skip = "Unstable test. See issue #125")]
     public void Submodule_RecognizedWithCorrectVersion()
     {
         using (var expandedRepo = TestUtilities.ExtractRepoArchive("submodules"))
