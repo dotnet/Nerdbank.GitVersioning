@@ -5,9 +5,7 @@
     using System.Globalization;
     using System.IO;
     using System.Linq;
-    using System.Text;
     using System.Text.RegularExpressions;
-    using System.Threading.Tasks;
     using Validation;
 
     /// <summary>
@@ -21,9 +19,9 @@
         private static readonly Regex NumericIdentifierRegex = new Regex(@"(?<![\w-])(\d+)(?![\w-])");
 
         /// <summary>
-        /// The cloud build suppport, if any.
+        /// The 0.0 version.
         /// </summary>
-        private readonly ICloudBuild cloudBuild;
+        private static readonly Version Version0 = new Version(0, 0);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="VersionOracle"/> class.
@@ -51,24 +49,33 @@
         /// </summary>
         public VersionOracle(string projectDirectory, LibGit2Sharp.Repository repo, ICloudBuild cloudBuild)
         {
-            this.cloudBuild = cloudBuild;
-            this.VersionOptions =
-                VersionFile.GetVersion(repo, projectDirectory) ??
-                VersionFile.GetVersion(projectDirectory);
-
             var repoRoot = repo?.Info?.WorkingDirectory?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             var relativeRepoProjectDirectory = !string.IsNullOrWhiteSpace(repoRoot)
                 ? projectDirectory.Substring(repoRoot.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
                 : null;
 
             var commit = repo?.Head.Commits.FirstOrDefault();
+
+            var committedVersion = VersionFile.GetVersion(commit, relativeRepoProjectDirectory);
+
+            var workingVersion = VersionFile.GetVersion(projectDirectory);
+
+            this.VersionOptions = committedVersion ?? workingVersion;
+
             this.GitCommitId = commit?.Id.Sha ?? cloudBuild?.GitCommitId ?? null;
-            this.VersionHeight = repo?.GetVersionHeight(relativeRepoProjectDirectory) ?? 0;
+            this.VersionHeight = CalculateVersionHeight(relativeRepoProjectDirectory, commit, committedVersion, workingVersion);
             this.BuildingRef = cloudBuild?.BuildingTag ?? cloudBuild?.BuildingBranch ?? repo?.Head.CanonicalName;
 
             // Override the typedVersion with the special build number and revision components, when available.
-            this.Version = repo?.GetIdAsVersion(relativeRepoProjectDirectory, this.VersionHeight) ?? this.VersionOptions?.Version.Version;
-            this.Version = this.Version ?? new Version(0, 0);
+            if (repo != null)
+            {
+                this.Version = GetIdAsVersion(commit, committedVersion, workingVersion, this.VersionHeight);
+            }
+            else
+            {
+                this.Version = this.VersionOptions?.Version.Version ?? Version0;
+            }
+
             this.VersionHeightOffset = this.VersionOptions?.BuildNumberOffset ?? 0;
 
             this.PrereleaseVersion = ReplaceMacros(this.VersionOptions?.Version.Prerelease ?? string.Empty);
@@ -390,6 +397,42 @@
             semver1 = semver1.Replace('.', '-');
 
             return semver1;
+        }
+
+        private static int CalculateVersionHeight(string relativeRepoProjectDirectory, LibGit2Sharp.Commit headCommit, VersionOptions committedVersion, VersionOptions workingVersion)
+        {
+            var headCommitVersion = committedVersion?.Version?.Version ?? Version0;
+
+            if (IsVersionFileChangedInWorkingTree(committedVersion, workingVersion))
+            {
+                var workingCopyVersion = workingVersion?.Version?.Version;
+
+                if (workingCopyVersion == null || !workingCopyVersion.Equals(headCommitVersion))
+                {
+                    // The working copy has changed the major.minor version.
+                    // So by definition the version height is 0, since no commit represents it yet.
+                    return 0;
+                }
+            }
+
+            return headCommit?.GetHeight(c => c.CommitMatchesMajorMinorVersion(headCommitVersion, relativeRepoProjectDirectory)) ?? 0;
+        }
+
+        private static Version GetIdAsVersion(LibGit2Sharp.Commit headCommit, VersionOptions committedVersion, VersionOptions workingVersion, int versionHeight)
+        {
+            var version = IsVersionFileChangedInWorkingTree(committedVersion, workingVersion) ? workingVersion : committedVersion;
+
+            return headCommit.GetIdAsVersionHelper(version, versionHeight);
+        }
+
+        private static bool IsVersionFileChangedInWorkingTree(VersionOptions committedVersion, VersionOptions workingVersion)
+        {
+            if (workingVersion != null)
+            {
+                return !EqualityComparer<VersionOptions>.Default.Equals(workingVersion, committedVersion);
+            }
+
+            return false; // a missing working version is allowed and not a change.
         }
     }
 }
