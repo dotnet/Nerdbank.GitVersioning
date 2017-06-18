@@ -802,6 +802,29 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Empty(result.LoggedEvents.OfType<BuildWarningEventArgs>());
     }
 
+    /// <summary>
+    /// Create a native resource .dll and verify that its version
+    ///  information is set correctly.
+    /// </summary>
+    [Fact]
+    public async Task NativeVersionInfo_CreateNativeResourceDll()
+    {
+        this.testProject = this.CreateNativeProjectRootElement(this.projectDirectory, "test.vcxproj");
+        this.WriteVersionFile();
+        var result = await this.BuildAsync(Targets.Build, logVerbosity: LoggerVerbosity.Minimal);
+        Assert.Empty(result.LoggedEvents.OfType<BuildErrorEventArgs>());
+
+        string targetFile = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("TargetPath"));
+        Assert.True(File.Exists(targetFile));
+
+        var fileInfo = FileVersionInfo.GetVersionInfo(targetFile);
+        Assert.Equal("1.2", fileInfo.FileVersion);
+        Assert.Equal("1.2.0", fileInfo.ProductVersion);
+        Assert.Equal("test", fileInfo.InternalName);
+        Assert.Equal("NerdBank", fileInfo.CompanyName);
+        Assert.Equal($"Copyright (c) {DateTime.Now.Year}. All rights reserved.", fileInfo.LegalCopyright);
+    }
+
     private static Version GetExpectedAssemblyVersion(VersionOptions versionOptions, Version version)
     {
         // Function should be very similar to VersionOracle.GetAssemblyVersion()
@@ -952,6 +975,17 @@ public class BuildIntegrationTests : RepoTestBase
         }
     }
 
+    private ProjectRootElement CreateNativeProjectRootElement(string projectDirectory, string projectName)
+    {
+        using (var reader = XmlReader.Create(Assembly.GetExecutingAssembly().GetManifestResourceStream($"{ThisAssembly.RootNamespace}.test.vcprj")))
+        {
+            var pre = ProjectRootElement.Create(reader, this.projectCollection);
+            pre.FullPath = Path.Combine(projectDirectory, projectName);
+            pre.AddImport(Path.Combine(this.RepoPath, GitVersioningTargetsFileName));
+            return pre;
+        }
+    }
+
     private ProjectRootElement CreateProjectRootElement(string projectDirectory, string projectName)
     {
         using (var reader = XmlReader.Create(Assembly.GetExecutingAssembly().GetManifestResourceStream($"{ThisAssembly.RootNamespace}.test.prj")))
@@ -1003,9 +1037,11 @@ public class BuildIntegrationTests : RepoTestBase
 
     private static class Targets
     {
+        internal const string Build = "Build";
         internal const string GetBuildVersion = "GetBuildVersion";
         internal const string GetNuGetPackageVersion = "GetNuGetPackageVersion";
         internal const string GenerateAssemblyVersionInfo = "GenerateAssemblyVersionInfo";
+        internal const string GenerateNativeVersionInfo = "GenerateNativeVersionInfo";
     }
 
     private class BuildResults
