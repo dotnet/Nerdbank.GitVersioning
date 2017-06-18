@@ -822,7 +822,7 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal("1.2.0", fileInfo.ProductVersion);
         Assert.Equal("test", fileInfo.InternalName);
         Assert.Equal("NerdBank", fileInfo.CompanyName);
-        Assert.Equal("Copyright (c) 2017. All rights reserved.", fileInfo.LegalCopyright);
+        Assert.Equal($"Copyright (c) {DateTime.Now.Year}. All rights reserved.", fileInfo.LegalCopyright);
     }
 
     private static Version GetExpectedAssemblyVersion(VersionOptions versionOptions, Version version)
