@@ -432,7 +432,8 @@
                 return !EqualityComparer<VersionOptions>.Default.Equals(workingVersion, committedVersion);
             }
 
-            return false; // a missing working version is allowed and not a change.
+            // A missing working version is a change only if it was previously commited.
+            return committedVersion != null;
         }
     }
 }
