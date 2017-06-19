@@ -41,6 +41,11 @@
         public string GitRepoRoot { get; set; }
 
         /// <summary>
+        /// Gets or sets the optional override build number offset.
+        /// </summary>
+        public int OverrideBuildNumberOffset { get; set; } = int.MaxValue;
+
+        /// <summary>
         /// Gets or sets the path to the folder that contains the NB.GV .targets file.
         /// </summary>
         /// <remarks>
@@ -156,7 +161,8 @@
             try
             {
                 var cloudBuild = CloudBuild.Active;
-                var oracle = VersionOracle.Create(Directory.GetCurrentDirectory(), this.GitRepoRoot, cloudBuild);
+                var overrideBuildNumberOffset = (this.OverrideBuildNumberOffset == int.MaxValue) ? (int?)null : this.OverrideBuildNumberOffset;
+                var oracle = VersionOracle.Create(Directory.GetCurrentDirectory(), this.GitRepoRoot, cloudBuild, overrideBuildNumberOffset);
                 if (!string.IsNullOrEmpty(this.DefaultPublicRelease))
                 {
                     oracle.PublicRelease = string.Equals(this.DefaultPublicRelease, "true", StringComparison.OrdinalIgnoreCase);

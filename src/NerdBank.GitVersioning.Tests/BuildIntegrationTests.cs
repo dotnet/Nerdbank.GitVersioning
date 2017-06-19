@@ -383,6 +383,21 @@ public class BuildIntegrationTests : RepoTestBase
     }
 
     [Fact]
+    public async Task GetBuildVersion_OverrideBuildNumberOffset()
+    {
+        this.WriteVersionFile("14.0");
+        this.InitializeSourceControl();
+        var versionOptions = new VersionOptions
+        {
+            Version = new SemanticVersion(new Version(14, 1))
+        };
+        this.WriteVersionFile(versionOptions);
+        this.testProject.AddProperty("OverrideBuildNumberOffset", "10");
+        var buildResult = await this.BuildAsync();
+        Assert.Equal("14.1.11.31122", buildResult.AssemblyFileVersion);
+    }
+
+    [Fact]
     public async Task GetBuildVersion_Minus1BuildOffset_NotYetCommitted()
     {
         this.WriteVersionFile("14.0");
