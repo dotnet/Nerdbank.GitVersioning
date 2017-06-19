@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Linq;
 using LibGit2Sharp;
 using Nerdbank.GitVersioning;
@@ -14,6 +15,14 @@ public class VersionOracleTests : RepoTestBase
     }
 
     private string CommitIdShort => this.Repo.Head.Commits.First().Id.Sha.Substring(0, 10);
+
+    [Fact]
+    public void NotRepo()
+    {
+        // Seems safe to assume the system directory is not a repository.
+        var oracle = VersionOracle.Create(Environment.SystemDirectory);
+        Assert.Equal(0, oracle.VersionHeight);
+    }
 
     [Fact(Skip = "Unstable test. See issue #125")]
     public void Submodule_RecognizedWithCorrectVersion()
