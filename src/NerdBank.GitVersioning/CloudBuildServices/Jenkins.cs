@@ -1,10 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-
-namespace Nerdbank.GitVersioning.CloudBuildServices
+﻿namespace Nerdbank.GitVersioning.CloudBuildServices
 {
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Text;
+
     /// <remarks>
     /// The Jenkins-specific properties referenced here are documented here:
     /// https://wiki.jenkins-ci.org/display/JENKINS/Git+Plugin#GitPlugin-Environmentvariables
@@ -17,11 +17,15 @@ namespace Nerdbank.GitVersioning.CloudBuildServices
 
         public bool IsPullRequest => false;
 
-        public string BuildingBranch => CloudBuild.ShouldStartWith(Environment.GetEnvironmentVariable("GIT_BRANCH"), "refs/heads/");
+        public string BuildingBranch => CloudBuild.ShouldStartWith(Branch, "refs/heads/");
 
         public string GitCommitId => Environment.GetEnvironmentVariable("GIT_COMMIT");
 
-        public bool IsApplicable => !string.IsNullOrEmpty(this.GitCommitId);
+        public bool IsApplicable => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("JENKINS_URL"));
+
+        private static string Branch =>
+            Environment.GetEnvironmentVariable("GIT_LOCAL_BRANCH")
+                ?? Environment.GetEnvironmentVariable("GIT_BRANCH");
 
         public IReadOnlyDictionary<string, string> SetCloudBuildNumber(string buildNumber, TextWriter stdout, TextWriter stderr)
         {
@@ -47,7 +51,12 @@ namespace Nerdbank.GitVersioning.CloudBuildServices
         {
             var workspacePath = Environment.GetEnvironmentVariable("WORKSPACE");
 
-            var versionFilePath = Path.Combine(workspacePath, "version.txt");
+            if (string.IsNullOrEmpty(workspacePath))
+            {
+                return;
+            }
+
+            var versionFilePath = Path.Combine(workspacePath, "jenkins_build_number.txt");
 
             File.WriteAllText(versionFilePath, buildNumber, UTF8NoBOM);
         }
