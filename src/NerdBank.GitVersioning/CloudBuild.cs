@@ -17,6 +17,7 @@
             new VisualStudioTeamServices(),
             new TeamCity(),
             new AtlassianBamboo(), 
+            new Jenkins(),
         };
 
         /// <summary>
