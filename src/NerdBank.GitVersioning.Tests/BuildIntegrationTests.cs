@@ -436,6 +436,8 @@ public class BuildIntegrationTests : RepoTestBase
             new object[] { CloudBuild.AppVeyor.SetItem("APPVEYOR_REPO_BRANCH", branchName) },
             new object[] { CloudBuild.VSTS.SetItem("BUILD_SOURCEBRANCH", $"refs/heads/{branchName}") },
             new object[] { CloudBuild.VSTS.SetItem("BUILD_SOURCEBRANCH", branchName) }, // VSTS building a github repo
+            new object[] { CloudBuild.Teamcity.SetItem("BUILD_GIT_BRANCH", $"refs/heads/{branchName}") },
+            new object[] { CloudBuild.Teamcity.SetItem("BUILD_GIT_BRANCH", branchName) },
         };
     }
 
@@ -1028,11 +1030,16 @@ public class BuildIntegrationTests : RepoTestBase
             .Add("APPVEYOR_PULL_REQUEST_NUMBER", string.Empty)
             // VSTS
             .Add("SYSTEM_TEAMPROJECTID", string.Empty)
-            .Add("BUILD_SOURCEBRANCH", string.Empty);
+            .Add("BUILD_SOURCEBRANCH", string.Empty)
+            // Teamcity
+            .Add("BUILD_VCS_NUMBER", string.Empty)
+            .Add("BUILD_GIT_BRANCH", string.Empty);
         public static readonly ImmutableDictionary<string, string> VSTS = SuppressEnvironment
             .SetItem("SYSTEM_TEAMPROJECTID", "1");
         public static readonly ImmutableDictionary<string, string> AppVeyor = SuppressEnvironment
             .SetItem("APPVEYOR", "True");
+        public static readonly ImmutableDictionary<string, string> Teamcity = SuppressEnvironment
+            .SetItem("BUILD_VCS_NUMBER", "1");
     }
 
     private static class Targets
