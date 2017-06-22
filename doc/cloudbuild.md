@@ -21,7 +21,7 @@ you can activate features for some cloud build systems, as follows
 Cloud builds tend to associate some calendar date or monotonically increasing
 build number to each build. These build numbers are not very informative, if at all.
 Instead, Nerdbank.GitVersioning can automatically set your cloud build's
-build number to equal the semver version calculated during your build. 
+build number to equal the semver version calculated during your build.
 
 Enable this feature by setting the `cloudBuild.buildNumber.enabled` field
 in your `version.json` file to `true`, as shown below:
@@ -76,10 +76,12 @@ in your `version.json` file to `true`, as shown below:
 }
 ```
 
-### Teamcity Specifics
-Teamcity does not expose the build branch by default as an environment variable. This can be exposed by
+## CI Server specific configurations
+
+### TeamCity
+TeamCity does not expose the build branch by default as an environment variable. This can be exposed by
 adding an environment variable with the value of `%teamcity.build.vcs.branch.<vcsid>%` where `<vcsid>` is
-the root id described on the teamcity VCS roots page. Details on this variable can be found on the teamcity
-docs [Here.](https://confluence.jetbrains.com/display/TCD8/Predefined+Build+Parameters)
+the root id described on the TeamCity VCS roots page. Details on this variable can be found on the
+[TeamCity docs](https://confluence.jetbrains.com/display/TCD8/Predefined+Build+Parameters).
 
 [Issue37]: https://github.com/AArnott/Nerdbank.GitVersioning/issues/37
