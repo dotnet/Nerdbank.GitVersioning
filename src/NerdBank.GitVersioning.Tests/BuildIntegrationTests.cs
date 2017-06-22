@@ -437,7 +437,6 @@ public class BuildIntegrationTests : RepoTestBase
             new object[] { CloudBuild.VSTS.SetItem("BUILD_SOURCEBRANCH", $"refs/heads/{branchName}") },
             new object[] { CloudBuild.VSTS.SetItem("BUILD_SOURCEBRANCH", branchName) }, // VSTS building a github repo
             new object[] { CloudBuild.Teamcity.SetItem("BUILD_GIT_BRANCH", $"refs/heads/{branchName}") },
-            new object[] { CloudBuild.Teamcity.SetItem("BUILD_GIT_BRANCH", branchName) },
         };
     }
 

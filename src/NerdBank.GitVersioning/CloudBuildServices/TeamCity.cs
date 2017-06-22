@@ -24,8 +24,8 @@
 
         public IReadOnlyDictionary<string, string> SetCloudBuildVariable(string name, string value, TextWriter stdout, TextWriter stderr)
         {
-            (stdout ?? Console.Out).WriteLine($"##teamcity[setParameter name='GitVersion.{name}' value='{value}']");
-            (stdout ?? Console.Out).WriteLine($"##teamcity[setParameter name='system.GitVersion.{name}' value='{value}']");
+            (stdout ?? Console.Out).WriteLine($"##teamcity[setParameter name='{name}' value='{value}']");
+            (stdout ?? Console.Out).WriteLine($"##teamcity[setParameter name='system.{name}' value='{value}']");
 
             return new Dictionary<string, string>();
         }

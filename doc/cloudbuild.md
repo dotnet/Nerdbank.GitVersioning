@@ -76,4 +76,10 @@ in your `version.json` file to `true`, as shown below:
 }
 ```
 
+### Teamcity Specifics
+Teamcity does not expose the build branch by default as an environment variable. This can be exposed by
+adding an environment variable with the value of `%teamcity.build.vcs.branch.<vcsid>%` where `<vcsid>` is
+the root id described on the teamcity VCS roots page. Details on this variable can be found on the teamcity
+docs [Here.](https://confluence.jetbrains.com/display/TCD8/Predefined+Build+Parameters)
+
 [Issue37]: https://github.com/AArnott/Nerdbank.GitVersioning/issues/37
