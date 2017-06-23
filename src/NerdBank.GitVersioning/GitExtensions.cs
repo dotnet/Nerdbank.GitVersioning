@@ -33,13 +33,18 @@
         /// </summary>
         /// <param name="commit">The commit to measure the height of.</param>
         /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
+        /// <param name="baseVersion">Optional base version to calculate the height. If not specified, the base version will be calculated by scanning the repository.</param>
         /// <returns>The height of the commit. Always a positive integer.</returns>
-        public static int GetVersionHeight(this Commit commit, string repoRelativeProjectDirectory = null)
+        public static int GetVersionHeight(this Commit commit, string repoRelativeProjectDirectory = null, Version baseVersion = null)
         {
             Requires.NotNull(commit, nameof(commit));
             Requires.Argument(repoRelativeProjectDirectory == null || !Path.IsPathRooted(repoRelativeProjectDirectory), nameof(repoRelativeProjectDirectory), "Path should be relative to repo root.");
 
-            var baseVersion = VersionFile.GetVersion(commit, repoRelativeProjectDirectory)?.Version?.Version ?? Version0;
+            if (baseVersion == null)
+            {
+                baseVersion = VersionFile.GetVersion(commit, repoRelativeProjectDirectory)?.Version?.Version ?? Version0;
+            }
+
             int height = commit.GetHeight(c => CommitMatchesMajorMinorVersion(c, baseVersion, repoRelativeProjectDirectory));
             return height;
         }
@@ -170,7 +175,7 @@
         /// <param name="commit">The commit whose ID and position in history is to be encoded.</param>
         /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
         /// <param name="versionHeight">
-        /// The version height, previously calculated by a call to <see cref="GetVersionHeight(Commit, string)"/>
+        /// The version height, previously calculated by a call to <see cref="GetVersionHeight(Commit, string, Version)"/>
         /// with the same value for <paramref name="repoRelativeProjectDirectory"/>.
         /// </param>
         /// <returns>
@@ -188,7 +193,13 @@
             Requires.Argument(repoRelativeProjectDirectory == null || !Path.IsPathRooted(repoRelativeProjectDirectory), nameof(repoRelativeProjectDirectory), "Path should be relative to repo root.");
 
             var versionOptions = VersionFile.GetVersion(commit, repoRelativeProjectDirectory);
-            return GetIdAsVersionHelper(commit, versionOptions, repoRelativeProjectDirectory, versionHeight);
+
+            if (!versionHeight.HasValue)
+            {
+                versionHeight = GetVersionHeight(commit, repoRelativeProjectDirectory);
+            }
+
+            return GetIdAsVersionHelper(commit, versionOptions, versionHeight.Value);
         }
 
         /// <summary>
@@ -198,7 +209,7 @@
         /// <param name="repo">The repo whose ID and position in history is to be encoded.</param>
         /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
         /// <param name="versionHeight">
-        /// The version height, previously calculated by a call to <see cref="GetVersionHeight(Commit, string)"/>
+        /// The version height, previously calculated by a call to <see cref="GetVersionHeight(Commit, string, Version)"/>
         /// with the same value for <paramref name="repoRelativeProjectDirectory"/>.
         /// </param>
         /// <returns>
@@ -219,7 +230,13 @@
             if (IsVersionFileChangedInWorkingCopy(repo, repoRelativeProjectDirectory, out committedVersionOptions, out workingCopyVersionOptions))
             {
                 // Apply ordinary logic, but to the working copy version info.
-                Version result = GetIdAsVersionHelper(headCommit, workingCopyVersionOptions, repoRelativeProjectDirectory, versionHeight);
+                if (!versionHeight.HasValue)
+                {
+                    var baseVersion = workingCopyVersionOptions?.Version?.Version;
+                    versionHeight = GetVersionHeight(headCommit, repoRelativeProjectDirectory, baseVersion);
+                }
+
+                Version result = GetIdAsVersionHelper(headCommit, workingCopyVersionOptions, versionHeight.Value);
                 return result;
             }
 
@@ -367,7 +384,7 @@
         /// <param name="expectedVersion">The version to test for in the commit</param>
         /// <param name="repoRelativeProjectDirectory">The repo-relative directory from which <paramref name="expectedVersion"/> was originally calculated.</param>
         /// <returns><c>true</c> if the <paramref name="commit"/> matches the major and minor components of <paramref name="expectedVersion"/>.</returns>
-        private static bool CommitMatchesMajorMinorVersion(Commit commit, Version expectedVersion, string repoRelativeProjectDirectory)
+        internal static bool CommitMatchesMajorMinorVersion(this Commit commit, Version expectedVersion, string repoRelativeProjectDirectory)
         {
             Requires.NotNull(commit, nameof(commit));
             Requires.NotNull(expectedVersion, nameof(expectedVersion));
@@ -494,11 +511,7 @@
         /// </summary>
         /// <param name="commit">The commit whose ID and position in history is to be encoded.</param>
         /// <param name="versionOptions">The version options applicable at this point (either from commit or working copy).</param>
-        /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
-        /// <param name="versionHeight">
-        /// The version height, previously calculated by a call to <see cref="GetVersionHeight(Commit, string)"/>
-        /// with the same value for <paramref name="repoRelativeProjectDirectory"/>.
-        /// </param>
+        /// <param name="versionHeight">The version height, previously calculated by a call to <see cref="GetVersionHeight(Commit, string, Version)"/>.</param>
         /// <returns>
         /// A version whose <see cref="Version.Build"/> and
         /// <see cref="Version.Revision"/> components are calculated based on the commit.
@@ -509,7 +522,7 @@
         /// component is the first four bytes of the git commit id (forced to be a positive integer).
         /// </remarks>
         /// <returns></returns>
-        private static Version GetIdAsVersionHelper(Commit commit, VersionOptions versionOptions, string repoRelativeProjectDirectory, int? versionHeight)
+        internal static Version GetIdAsVersionHelper(this Commit commit, VersionOptions versionOptions, int versionHeight)
         {
             var baseVersion = versionOptions?.Version?.Version ?? Version0;
             int buildNumber = baseVersion.Build;
@@ -522,14 +535,8 @@
                 // The build number is set to the git height. This helps ensure that
                 // within a major.minor release, each patch has an incrementing integer.
                 // The revision is set to the first two bytes of the git commit ID.
-                if (!versionHeight.HasValue)
-                {
-                    versionHeight = commit != null
-                        ? commit.GetHeight(c => CommitMatchesMajorMinorVersion(c, baseVersion, repoRelativeProjectDirectory))
-                        : 0;
-                }
 
-                int adjustedVersionHeight = versionHeight.Value == 0 ? 0 : versionHeight.Value + (versionOptions?.BuildNumberOffset ?? 0);
+                int adjustedVersionHeight = versionHeight == 0 ? 0 : versionHeight + (versionOptions?.BuildNumberOffset ?? 0);
                 Verify.Operation(adjustedVersionHeight <= MaximumBuildNumberOrRevisionComponent, "Git height is {0}, which is greater than the maximum allowed {0}.", adjustedVersionHeight, MaximumBuildNumberOrRevisionComponent);
 
                 if (buildNumber < 0)

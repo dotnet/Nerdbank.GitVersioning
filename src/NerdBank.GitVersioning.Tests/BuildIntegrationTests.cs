@@ -436,6 +436,7 @@ public class BuildIntegrationTests : RepoTestBase
             new object[] { CloudBuild.AppVeyor.SetItem("APPVEYOR_REPO_BRANCH", branchName) },
             new object[] { CloudBuild.VSTS.SetItem("BUILD_SOURCEBRANCH", $"refs/heads/{branchName}") },
             new object[] { CloudBuild.VSTS.SetItem("BUILD_SOURCEBRANCH", branchName) }, // VSTS building a github repo
+            new object[] { CloudBuild.Teamcity.SetItem("BUILD_GIT_BRANCH", $"refs/heads/{branchName}") },
         };
     }
 
@@ -802,6 +803,29 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Empty(result.LoggedEvents.OfType<BuildWarningEventArgs>());
     }
 
+    /// <summary>
+    /// Create a native resource .dll and verify that its version
+    ///  information is set correctly.
+    /// </summary>
+    [Fact]
+    public async Task NativeVersionInfo_CreateNativeResourceDll()
+    {
+        this.testProject = this.CreateNativeProjectRootElement(this.projectDirectory, "test.vcxproj");
+        this.WriteVersionFile();
+        var result = await this.BuildAsync(Targets.Build, logVerbosity: LoggerVerbosity.Minimal);
+        Assert.Empty(result.LoggedEvents.OfType<BuildErrorEventArgs>());
+
+        string targetFile = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("TargetPath"));
+        Assert.True(File.Exists(targetFile));
+
+        var fileInfo = FileVersionInfo.GetVersionInfo(targetFile);
+        Assert.Equal("1.2", fileInfo.FileVersion);
+        Assert.Equal("1.2.0", fileInfo.ProductVersion);
+        Assert.Equal("test", fileInfo.InternalName);
+        Assert.Equal("NerdBank", fileInfo.CompanyName);
+        Assert.Equal($"Copyright (c) {DateTime.Now.Year}. All rights reserved.", fileInfo.LegalCopyright);
+    }
+
     private static Version GetExpectedAssemblyVersion(VersionOptions versionOptions, Version version)
     {
         // Function should be very similar to VersionOracle.GetAssemblyVersion()
@@ -952,6 +976,17 @@ public class BuildIntegrationTests : RepoTestBase
         }
     }
 
+    private ProjectRootElement CreateNativeProjectRootElement(string projectDirectory, string projectName)
+    {
+        using (var reader = XmlReader.Create(Assembly.GetExecutingAssembly().GetManifestResourceStream($"{ThisAssembly.RootNamespace}.test.vcprj")))
+        {
+            var pre = ProjectRootElement.Create(reader, this.projectCollection);
+            pre.FullPath = Path.Combine(projectDirectory, projectName);
+            pre.AddImport(Path.Combine(this.RepoPath, GitVersioningTargetsFileName));
+            return pre;
+        }
+    }
+
     private ProjectRootElement CreateProjectRootElement(string projectDirectory, string projectName)
     {
         using (var reader = XmlReader.Create(Assembly.GetExecutingAssembly().GetManifestResourceStream($"{ThisAssembly.RootNamespace}.test.prj")))
@@ -994,18 +1029,25 @@ public class BuildIntegrationTests : RepoTestBase
             .Add("APPVEYOR_PULL_REQUEST_NUMBER", string.Empty)
             // VSTS
             .Add("SYSTEM_TEAMPROJECTID", string.Empty)
-            .Add("BUILD_SOURCEBRANCH", string.Empty);
+            .Add("BUILD_SOURCEBRANCH", string.Empty)
+            // Teamcity
+            .Add("BUILD_VCS_NUMBER", string.Empty)
+            .Add("BUILD_GIT_BRANCH", string.Empty);
         public static readonly ImmutableDictionary<string, string> VSTS = SuppressEnvironment
             .SetItem("SYSTEM_TEAMPROJECTID", "1");
         public static readonly ImmutableDictionary<string, string> AppVeyor = SuppressEnvironment
             .SetItem("APPVEYOR", "True");
+        public static readonly ImmutableDictionary<string, string> Teamcity = SuppressEnvironment
+            .SetItem("BUILD_VCS_NUMBER", "1");
     }
 
     private static class Targets
     {
+        internal const string Build = "Build";
         internal const string GetBuildVersion = "GetBuildVersion";
         internal const string GetNuGetPackageVersion = "GetNuGetPackageVersion";
         internal const string GenerateAssemblyVersionInfo = "GenerateAssemblyVersionInfo";
+        internal const string GenerateNativeVersionInfo = "GenerateNativeVersionInfo";
     }
 
     private class BuildResults
