@@ -60,6 +60,7 @@
       BuildMetadata="@(BuildMetadata)"
       DefaultPublicRelease="$(PublicRelease)"
       GitRepoRoot="$(GitRepoRoot)"
+      OverrideBuildNumberOffset="$(OverrideBuildNumberOffset)"
       TargetsPath="$(MSBuildThisFileDirectory)">
 
       <Output TaskParameter="Version" PropertyName="BuildVersion" />

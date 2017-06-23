@@ -29,8 +29,9 @@
         /// <param name="projectDirectory"></param>
         /// <param name="gitRepoDirectory"></param>
         /// <param name="cloudBuild"></param>
+        /// <param name="overrideBuildNumberOffset"></param>
         /// <returns></returns>
-        public static VersionOracle Create(string projectDirectory, string gitRepoDirectory = null, ICloudBuild cloudBuild = null)
+        public static VersionOracle Create(string projectDirectory, string gitRepoDirectory = null, ICloudBuild cloudBuild = null, int? overrideBuildNumberOffset = null)
         {
             Requires.NotNull(projectDirectory, nameof(projectDirectory));
             if (string.IsNullOrEmpty(gitRepoDirectory))
@@ -40,14 +41,14 @@
 
             using (var git = OpenGitRepo(gitRepoDirectory))
             {
-                return new VersionOracle(projectDirectory, git, cloudBuild);
+                return new VersionOracle(projectDirectory, git, cloudBuild, overrideBuildNumberOffset);
             }
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="VersionOracle"/> class.
         /// </summary>
-        public VersionOracle(string projectDirectory, LibGit2Sharp.Repository repo, ICloudBuild cloudBuild)
+        public VersionOracle(string projectDirectory, LibGit2Sharp.Repository repo, ICloudBuild cloudBuild, int? overrideBuildNumberOffset = null)
         {
             var repoRoot = repo?.Info?.WorkingDirectory?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             var relativeRepoProjectDirectory = !string.IsNullOrWhiteSpace(repoRoot)
@@ -59,6 +60,19 @@
             var committedVersion = VersionFile.GetVersion(commit, relativeRepoProjectDirectory);
 
             var workingVersion = VersionFile.GetVersion(projectDirectory);
+
+            if (overrideBuildNumberOffset.HasValue)
+            {
+                if (committedVersion != null)
+                {
+                    committedVersion.BuildNumberOffset = overrideBuildNumberOffset.Value;
+                }
+
+                if (workingVersion != null)
+                {
+                    workingVersion.BuildNumberOffset = overrideBuildNumberOffset.Value;
+                }
+            }
 
             this.VersionOptions = committedVersion ?? workingVersion;
 
