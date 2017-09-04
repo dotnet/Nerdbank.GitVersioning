@@ -513,14 +513,24 @@ public class BuildIntegrationTests : RepoTestBase
 
             var buildResult = await this.BuildAsync();
             AssertStandardProperties(versionOptions, buildResult);
+
+            // Assert GitBuildVersion was set
             string conditionallyExpectedMessage = UnitTestCloudBuildPrefix + expectedMessage
                 .Replace("{NAME}", "GitBuildVersion")
                 .Replace("{VALUE}", buildResult.BuildVersion);
             Assert.Contains(alwaysExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
             Assert.Contains(conditionallyExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
 
+            // Assert GitBuildVersionSimple was set
+            conditionallyExpectedMessage = UnitTestCloudBuildPrefix + expectedMessage
+                .Replace("{NAME}", "GitBuildVersionSimple")
+                .Replace("{VALUE}", buildResult.BuildVersionSimple);
+            Assert.Contains(alwaysExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
+            Assert.Contains(conditionallyExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
+
             // Assert that project properties are also set.
             Assert.Equal(buildResult.BuildVersion, buildResult.GitBuildVersion);
+            Assert.Equal(buildResult.BuildVersionSimple, buildResult.GitBuildVersionSimple);
             Assert.Equal(buildResult.AssemblyInformationalVersion, buildResult.GitAssemblyInformationalVersion);
 
             // Assert that env variables were also set in context of the build.
@@ -530,12 +540,22 @@ public class BuildIntegrationTests : RepoTestBase
             this.WriteVersionFile(versionOptions);
             buildResult = await this.BuildAsync();
             AssertStandardProperties(versionOptions, buildResult);
+
+            // Assert GitBuildVersion was not set
             conditionallyExpectedMessage = UnitTestCloudBuildPrefix + expectedMessage
                 .Replace("{NAME}", "GitBuildVersion")
                 .Replace("{VALUE}", buildResult.BuildVersion);
             Assert.Contains(alwaysExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
             Assert.DoesNotContain(conditionallyExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
             Assert.NotEqual(buildResult.BuildVersion, buildResult.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitBuildVersion"));
+
+            // Assert GitBuildVersionSimple was not set
+            conditionallyExpectedMessage = UnitTestCloudBuildPrefix + expectedMessage
+                .Replace("{NAME}", "GitBuildVersionSimple")
+                .Replace("{VALUE}", buildResult.BuildVersionSimple);
+            Assert.Contains(alwaysExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
+            Assert.DoesNotContain(conditionallyExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
+            Assert.NotEqual(buildResult.BuildVersionSimple, buildResult.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitBuildVersionSimple"));
         }
     }
 
@@ -1104,6 +1124,7 @@ public class BuildIntegrationTests : RepoTestBase
         public string RootNamespace => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("RootNamespace");
 
         public string GitBuildVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitBuildVersion");
+        public string GitBuildVersionSimple => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitBuildVersionSimple");
         public string GitAssemblyInformationalVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitAssemblyInformationalVersion");
 
         public override string ToString()
