@@ -209,6 +209,7 @@
                 {
                     { "GitAssemblyInformationalVersion", this.AssemblyInformationalVersion },
                     { "GitBuildVersion", this.Version.ToString() },
+                    { "GitBuildVersionSimple", this.SimpleVersion.ToString() },
                 };
             }
         }

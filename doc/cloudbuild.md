@@ -59,6 +59,7 @@ range.
 | --- | --- | --- |
 | GitAssemblyInformationalVersion | AssemblyInformationalVersion | 1.3.1+g15e1898f47
 | GitBuildVersion | BuildVersion | 1.3.1.57621
+| GitBuildVersionSimple | BuildVersionSimple | 1.3.1
 
 This means you can use these variables in subsequent steps in your cloud build
 such as publishing artifacts, so that your richer version information can be
