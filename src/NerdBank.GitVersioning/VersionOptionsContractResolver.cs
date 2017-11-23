@@ -11,46 +11,61 @@
 
     internal class VersionOptionsContractResolver : CamelCasePropertyNamesContractResolver
     {
-        protected override JsonProperty CreateProperty(MemberInfo member, MemberSerialization memberSerialization)
+        internal static readonly IContractResolver IncludeDefaultsContractResolver = new VersionOptionsContractResolver();
+        internal static readonly IContractResolver ExcludeDefaultsContractResolver = new ExcludeDefaults();
+
+        protected VersionOptionsContractResolver()
         {
-            JsonProperty property = base.CreateProperty(member, memberSerialization);
+        }
 
-            if (property.DeclaringType == typeof(VersionOptions) && member.Name == nameof(VersionOptions.AssemblyVersion))
+        private class ExcludeDefaults : VersionOptionsContractResolver
+        {
+            protected override JsonProperty CreateProperty(MemberInfo member, MemberSerialization memberSerialization)
             {
-                property.ShouldSerialize = instance => ((VersionOptions)instance).ShouldSerializeAssemblyVersion();
-            }
+                JsonProperty property = base.CreateProperty(member, memberSerialization);
 
-            if (property.DeclaringType == typeof(VersionOptions) && member.Name == nameof(VersionOptions.NuGetPackageVersion))
-            {
-                property.ShouldSerialize = instance => ((VersionOptions)instance).ShouldSerializeNuGetPackageVersion();
-            }
+                if (property.DeclaringType == typeof(VersionOptions) && member.Name == nameof(VersionOptions.AssemblyVersion))
+                {
+                    property.ShouldSerialize = instance => !((VersionOptions)instance).AssemblyVersionOrDefault.IsDefault;
+                }
 
-            if (property.DeclaringType == typeof(VersionOptions) && member.Name == nameof(VersionOptions.CloudBuild))
-            {
-                property.ShouldSerialize = instance => ((VersionOptions)instance).ShouldSerializeCloudBuild();
-            }
+                if (property.DeclaringType == typeof(VersionOptions) && member.Name == nameof(VersionOptions.BuildNumberOffset))
+                {
+                    property.ShouldSerialize = instance => ((VersionOptions)instance).BuildNumberOffsetOrDefault != 0;
+                }
 
-            if (property.DeclaringType == typeof(VersionOptions.CloudBuildOptions) && member.Name == nameof(VersionOptions.CloudBuildOptions.SetVersionVariables))
-            {
-                property.ShouldSerialize = instance => ((VersionOptions.CloudBuildOptions)instance).ShouldSerializeSetVersionVariables();
-            }
+                if (property.DeclaringType == typeof(VersionOptions) && member.Name == nameof(VersionOptions.NuGetPackageVersion))
+                {
+                    property.ShouldSerialize = instance => !((VersionOptions)instance).NuGetPackageVersionOrDefault.IsDefault;
+                }
 
-            if (property.DeclaringType == typeof(VersionOptions.CloudBuildNumberOptions) && member.Name == nameof(VersionOptions.CloudBuildNumberOptions.IncludeCommitId))
-            {
-                property.ShouldSerialize = instance => ((VersionOptions.CloudBuildNumberOptions)instance).ShouldSerializeIncludeCommitId();
-            }
+                if (property.DeclaringType == typeof(VersionOptions) && member.Name == nameof(VersionOptions.CloudBuild))
+                {
+                    property.ShouldSerialize = instance => !((VersionOptions)instance).CloudBuildOrDefault.IsDefault;
+                }
 
-            if (property.DeclaringType == typeof(VersionOptions.CloudBuildNumberCommitIdOptions) && member.Name == nameof(VersionOptions.CloudBuildNumberCommitIdOptions.When))
-            {
-                property.ShouldSerialize = instance => ((VersionOptions.CloudBuildNumberCommitIdOptions)instance).ShouldSerializeWhen();
-            }
+                if (property.DeclaringType == typeof(VersionOptions.CloudBuildOptions) && member.Name == nameof(VersionOptions.CloudBuildOptions.SetVersionVariables))
+                {
+                    property.ShouldSerialize = instance => ((VersionOptions.CloudBuildOptions)instance).SetVersionVariablesOrDefault != VersionOptions.CloudBuildOptions.DefaultInstance.SetVersionVariables.Value;
+                }
 
-            if (property.DeclaringType == typeof(VersionOptions.CloudBuildNumberCommitIdOptions) && member.Name == nameof(VersionOptions.CloudBuildNumberCommitIdOptions.Where))
-            {
-                property.ShouldSerialize = instance => ((VersionOptions.CloudBuildNumberCommitIdOptions)instance).ShouldSerializeWhere();
-            }
+                if (property.DeclaringType == typeof(VersionOptions.CloudBuildNumberOptions) && member.Name == nameof(VersionOptions.CloudBuildNumberOptions.IncludeCommitId))
+                {
+                    property.ShouldSerialize = instance => !((VersionOptions.CloudBuildNumberOptions)instance).IncludeCommitIdOrDefault.IsDefault;
+                }
 
-            return property;
+                if (property.DeclaringType == typeof(VersionOptions.CloudBuildNumberCommitIdOptions) && member.Name == nameof(VersionOptions.CloudBuildNumberCommitIdOptions.When))
+                {
+                    property.ShouldSerialize = instance => ((VersionOptions.CloudBuildNumberCommitIdOptions)instance).WhenOrDefault != VersionOptions.CloudBuildNumberCommitIdOptions.DefaultInstance.When.Value;
+                }
+
+                if (property.DeclaringType == typeof(VersionOptions.CloudBuildNumberCommitIdOptions) && member.Name == nameof(VersionOptions.CloudBuildNumberCommitIdOptions.Where))
+                {
+                    property.ShouldSerialize = instance => ((VersionOptions.CloudBuildNumberCommitIdOptions)instance).WhereOrDefault != VersionOptions.CloudBuildNumberCommitIdOptions.DefaultInstance.Where.Value;
+                }
+
+                return property;
+            }
         }
     }
 }

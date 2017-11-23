@@ -2,11 +2,11 @@
   <PropertyGroup>
     <TargetFrameworks>netcoreapp1.0;net45</TargetFrameworks>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <DebugType Condition=" '$(Configuration)' == 'debug' ">Full</DebugType>
+    <DebugType>Full</DebugType>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="LibGit2Sharp" Version="0.24.7-g9fca61fdda" />
-    <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="10.0.2" />
     <PackageReference Include="System.Diagnostics.Process" Version="4.3.0" Condition=" '$(TargetFramework)' == 'netstandard1.3' " />
     <PackageReference Include="Validation" Version="2.3.7" />
     <PackageReference Include="Nerdbank.GitVersioning.LKG" Version="1.6.20-beta-gfea83a8c9e" />

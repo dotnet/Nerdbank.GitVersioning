@@ -926,7 +926,7 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal(expectedBuildMetadata, buildResult.SemVerBuildSuffix);
 
         // NuGet is now SemVer 2.0 and will pass additional build metadata if provided
-        bool semVer2 = (versionOptions?.NuGetPackageVersion ?? VersionOptions.NuGetPackageVersionOptions.DefaultInstance).SemVer == 2;
+        bool semVer2 = versionOptions?.NuGetPackageVersionOrDefault.SemVer == 2;
         string pkgVersionSuffix = buildResult.PublicRelease ? string.Empty : $"-g{commitIdShort}";
         if (semVer2)
         {
@@ -935,19 +935,19 @@ public class BuildIntegrationTests : RepoTestBase
 
         Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{GetSemVerAppropriatePrereleaseTag(versionOptions)}{pkgVersionSuffix}", buildResult.NuGetPackageVersion);
 
-        var buildNumberOptions = versionOptions.CloudBuild?.BuildNumber ?? new VersionOptions.CloudBuildNumberOptions();
-        if (buildNumberOptions.Enabled)
+        var buildNumberOptions = versionOptions.CloudBuildOrDefault.BuildNumberOrDefault;
+        if (buildNumberOptions.EnabledOrDefault)
         {
-            var commitIdOptions = buildNumberOptions.IncludeCommitId ?? new VersionOptions.CloudBuildNumberCommitIdOptions();
+            var commitIdOptions = buildNumberOptions.IncludeCommitIdOrDefault;
             var buildNumberSemVer = SemanticVersion.Parse(buildResult.CloudBuildNumber);
-            bool hasCommitData = commitIdOptions.When == VersionOptions.CloudBuildNumberCommitWhen.Always
-                || (commitIdOptions.When == VersionOptions.CloudBuildNumberCommitWhen.NonPublicReleaseOnly && !buildResult.PublicRelease);
-            Version expectedVersion = hasCommitData && commitIdOptions.Where == VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent
+            bool hasCommitData = commitIdOptions.WhenOrDefault == VersionOptions.CloudBuildNumberCommitWhen.Always
+                || (commitIdOptions.WhenOrDefault == VersionOptions.CloudBuildNumberCommitWhen.NonPublicReleaseOnly && !buildResult.PublicRelease);
+            Version expectedVersion = hasCommitData && commitIdOptions.WhereOrDefault == VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent
                 ? idAsVersion
                 : new Version(version.Major, version.Minor, version.Build);
             Assert.Equal(expectedVersion, buildNumberSemVer.Version);
             Assert.Equal(buildResult.PrereleaseVersion, buildNumberSemVer.Prerelease);
-            string expectedBuildNumberMetadata = hasCommitData && commitIdOptions.Where == VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata
+            string expectedBuildNumberMetadata = hasCommitData && commitIdOptions.WhereOrDefault == VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata
                 ? $"+g{commitIdShort}"
                 : string.Empty;
             if (additionalBuildMetadata.Any())
@@ -967,7 +967,7 @@ public class BuildIntegrationTests : RepoTestBase
 
     private static string GetSemVerAppropriatePrereleaseTag(VersionOptions versionOptions)
     {
-        return (versionOptions.NuGetPackageVersion ?? VersionOptions.NuGetPackageVersionOptions.DefaultInstance).SemVer == 1
+        return versionOptions.NuGetPackageVersionOrDefault.SemVer == 1
             ? versionOptions.Version.Prerelease?.Replace('.', '-')
             : versionOptions.Version.Prerelease;
     }
