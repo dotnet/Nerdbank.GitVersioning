@@ -1,5 +1,16 @@
 version: '{build}'
+branches:
+  only:
+  - master
+  - /^v\d+(?:\.\d+)?$/
+  - /[\b_]validate\b/
 skip_tags: true
+skip_commits:
+  files:
+  - doc/*
+  - readme.md
+nuget:
+  disable_publish_on_pr: true
 os: Visual Studio 2017
 configuration: Release
 cache:
