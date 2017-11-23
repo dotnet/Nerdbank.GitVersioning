@@ -298,8 +298,10 @@ public class VersionFileTests : RepoTestBase
     }
 
     [Theory]
-    [PairwiseData]
-    public void VersionJson_CanInherit(bool commitInSourceControl)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void VersionJson_Inheritance(bool commitInSourceControl, bool bareRepo)
     {
         if (commitInSourceControl)
         {
@@ -334,30 +336,39 @@ public class VersionFileTests : RepoTestBase
             },
             @"noInherit");
 
-        VersionOptions GetOption(string path) => commitInSourceControl ? VersionFile.GetVersion(this.Repo, path) : VersionFile.GetVersion(Path.Combine(this.RepoPath, path));
+        Repository operatingRepo = this.Repo;
+        if (bareRepo)
+        {
+            operatingRepo = new Repository(
+                Repository.Clone(this.RepoPath, CreateDirectoryForNewRepo(), new CloneOptions { IsBare = true }));
+        }
 
-        var level1Options = GetOption(string.Empty);
-        Assert.False(level1Options.Inherit);
+        using (operatingRepo)
+        {
+            VersionOptions GetOption(string path) => commitInSourceControl ? VersionFile.GetVersion(operatingRepo, path) : VersionFile.GetVersion(Path.Combine(this.RepoPath, path));
 
-        var level2Options = GetOption("foo");
+            var level1Options = GetOption(string.Empty);
+            Assert.False(level1Options.Inherit);
 
-        Assert.Equal(level1.Version.Version.Major, level2Options.Version.Version.Major);
-        Assert.Equal(level1.Version.Version.Minor, level2Options.Version.Version.Minor);
-        Assert.Equal(level2.AssemblyVersion.Precision, level2Options.AssemblyVersion.Precision);
-        Assert.True(level2Options.Inherit);
+            var level2Options = GetOption("foo");
+            Assert.Equal(level1.Version.Version.Major, level2Options.Version.Version.Major);
+            Assert.Equal(level1.Version.Version.Minor, level2Options.Version.Version.Minor);
+            Assert.Equal(level2.AssemblyVersion.Precision, level2Options.AssemblyVersion.Precision);
+            Assert.True(level2Options.Inherit);
 
-        var level3Options = GetOption(@"foo\bar");
-        Assert.Equal(level1.Version.Version.Major, level3Options.Version.Version.Major);
-        Assert.Equal(level1.Version.Version.Minor, level3Options.Version.Version.Minor);
-        Assert.Equal(level2.AssemblyVersion.Precision, level3Options.AssemblyVersion.Precision);
-        Assert.Equal(level2.AssemblyVersion.Precision, level3Options.AssemblyVersion.Precision);
-        Assert.Equal(level3.BuildNumberOffset, level3Options.BuildNumberOffset);
-        Assert.True(level3Options.Inherit);
+            var level3Options = GetOption(@"foo\bar");
+            Assert.Equal(level1.Version.Version.Major, level3Options.Version.Version.Major);
+            Assert.Equal(level1.Version.Version.Minor, level3Options.Version.Version.Minor);
+            Assert.Equal(level2.AssemblyVersion.Precision, level3Options.AssemblyVersion.Precision);
+            Assert.Equal(level2.AssemblyVersion.Precision, level3Options.AssemblyVersion.Precision);
+            Assert.Equal(level3.BuildNumberOffset, level3Options.BuildNumberOffset);
+            Assert.True(level3Options.Inherit);
 
-        var level2NoInheritOptions = GetOption("noInherit");
-        Assert.Equal(level2NoInherit.Version, level2NoInheritOptions.Version);
-        Assert.Equal(VersionOptions.DefaultVersionPrecision, level2NoInheritOptions.AssemblyVersionOrDefault.PrecisionOrDefault);
-        Assert.False(level2NoInheritOptions.Inherit);
+            var level2NoInheritOptions = GetOption("noInherit");
+            Assert.Equal(level2NoInherit.Version, level2NoInheritOptions.Version);
+            Assert.Equal(VersionOptions.DefaultVersionPrecision, level2NoInheritOptions.AssemblyVersionOrDefault.PrecisionOrDefault);
+            Assert.False(level2NoInheritOptions.Inherit);
+        }
     }
 
     private void AssertPathHasVersion(Commit commit, string absolutePath, VersionOptions expected)
