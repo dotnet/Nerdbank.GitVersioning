@@ -11,6 +11,13 @@
 
     internal class AssemblyVersionOptionsConverter : JsonConverter
     {
+        private readonly bool includeDefaults;
+
+        internal AssemblyVersionOptionsConverter(bool includeDefaults)
+        {
+            this.includeDefaults = includeDefaults;
+        }
+
         public override bool CanConvert(Type objectType)
         {
             return typeof(VersionOptions.AssemblyVersionOptions).GetTypeInfo().IsAssignableFrom(objectType.GetTypeInfo());
@@ -46,7 +53,7 @@
             var data = value as VersionOptions.AssemblyVersionOptions;
             if (data != null)
             {
-                if (data.Precision == VersionOptions.DefaultVersionPrecision)
+                if (data.PrecisionOrDefault == VersionOptions.DefaultVersionPrecision && !this.includeDefaults)
                 {
                     serializer.Serialize(writer, data.Version);
                     return;

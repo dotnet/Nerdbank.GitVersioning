@@ -88,8 +88,8 @@ public class VersionFileTests : RepoTestBase
         Assert.NotNull(options);
         Assert.Equal(version, options.Version?.ToString());
         Assert.Equal(assemblyVersion, options.AssemblyVersion?.Version?.ToString());
-        Assert.Equal(precision, options.AssemblyVersion?.Precision);
-        Assert.Equal(buildNumberOffset, options.BuildNumberOffset);
+        Assert.Equal(precision, options.AssemblyVersion?.PrecisionOrDefault);
+        Assert.Equal(buildNumberOffset, options.BuildNumberOffsetOrDefault);
         Assert.Equal(publicReleaseRefSpec, options.PublicReleaseRefSpec);
     }
 
@@ -114,16 +114,16 @@ public class VersionFileTests : RepoTestBase
     }
 
     [Theory]
-    [InlineData("2.3", null, VersionOptions.VersionPrecision.Minor, 0, @"{""version"":""2.3""}")]
-    [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Minor, 0, @"{""version"":""2.3"",""assemblyVersion"":""2.2""}")]
-    [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Minor, -1, @"{""version"":""2.3"",""assemblyVersion"":""2.2"",""buildNumberOffset"":-1}")]
-    [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Revision, -1, @"{""version"":""2.3"",""assemblyVersion"":{""version"":""2.2"",""precision"":""revision""},""buildNumberOffset"":-1}")]
-    public void SetVersion_WritesSimplestFile(string version, string assemblyVersion, VersionOptions.VersionPrecision precision, int buildNumberOffset, string expectedJson)
+    [InlineData("2.3", null, VersionOptions.VersionPrecision.Minor, 0, false, @"{""version"":""2.3""}")]
+    [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Minor, 0, false, @"{""version"":""2.3"",""assemblyVersion"":""2.2""}")]
+    [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Minor, -1, false, @"{""version"":""2.3"",""assemblyVersion"":""2.2"",""buildNumberOffset"":-1}")]
+    [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Revision, -1, false, @"{""version"":""2.3"",""assemblyVersion"":{""version"":""2.2"",""precision"":""revision""},""buildNumberOffset"":-1}")]
+    public void SetVersion_WritesSimplestFile(string version, string assemblyVersion, VersionOptions.VersionPrecision? precision, int? buildNumberOffset, bool inherit, string expectedJson)
     {
         var versionOptions = new VersionOptions
         {
             Version = SemanticVersion.Parse(version),
-            AssemblyVersion = new VersionOptions.AssemblyVersionOptions(assemblyVersion != null ? new Version(assemblyVersion) : null, precision),
+            AssemblyVersion = assemblyVersion != null || precision != null ? new VersionOptions.AssemblyVersionOptions(assemblyVersion != null ? new Version(assemblyVersion) : null, precision) : null,
             BuildNumberOffset = buildNumberOffset,
         };
         string pathWritten = VersionFile.SetVersion(this.RepoPath, versionOptions);
@@ -142,7 +142,7 @@ public class VersionFileTests : RepoTestBase
     [InlineData(@"{""cloudBuild"":{""setVersionVariables"":true}}", @"{}")]
     public void JsonMinification(string full, string minimal)
     {
-        var settings = VersionOptions.JsonSettings;
+        var settings = VersionOptions.GetJsonSettings();
         settings.Formatting = Formatting.None;
 
         // Assert that the two representations are equivalent.

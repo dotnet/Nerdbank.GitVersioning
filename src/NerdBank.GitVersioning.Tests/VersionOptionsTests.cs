@@ -15,7 +15,7 @@ public class VersionOptionsTests
         Assert.Equal(new Version(1, 2), vo.Version.Version);
         Assert.Equal("-pre", vo.Version.Prerelease);
         Assert.Null(vo.AssemblyVersion);
-        Assert.Equal(0, vo.BuildNumberOffset);
+        Assert.Equal(0, vo.BuildNumberOffsetOrDefault);
     }
 
     [Fact]
@@ -100,7 +100,7 @@ public class VersionOptionsTests
 
         var cbo2a = new VersionOptions.CloudBuildOptions
         {
-            SetVersionVariables = !cbo1a.SetVersionVariables,
+            SetVersionVariables = !cbo1a.SetVersionVariablesOrDefault,
         };
         Assert.NotEqual(cbo2a, cbo1a);
 
@@ -114,7 +114,7 @@ public class VersionOptionsTests
         {
             BuildNumber = new VersionOptions.CloudBuildNumberOptions
             {
-                Enabled = !(new VersionOptions.CloudBuildNumberOptions().Enabled),
+                Enabled = !cbo1a.BuildNumberOrDefault.EnabledOrDefault,
             },
         };
         Assert.NotEqual(cbo4a, cbo1a);
@@ -129,7 +129,7 @@ public class VersionOptionsTests
 
         var bno2a = new VersionOptions.CloudBuildNumberOptions
         {
-            Enabled = !bno1a.Enabled,
+            Enabled = !bno1a.EnabledOrDefault,
         };
         Assert.NotEqual(bno1a, bno2a);
 
@@ -149,20 +149,34 @@ public class VersionOptionsTests
     [Fact]
     public void CloudBuildNumberCommitIdOptions_Equality()
     {
-        var cio1a = new VersionOptions.CloudBuildNumberCommitIdOptions { };
+        var cio1a = new VersionOptions.CloudBuildNumberCommitIdOptions();
+        cio1a.Where = cio1a.WhereOrDefault;
+        cio1a.When = cio1a.WhenOrDefault;
         var cio1b = new VersionOptions.CloudBuildNumberCommitIdOptions { };
         Assert.Equal(cio1a, cio1b);
 
         var cio2a = new VersionOptions.CloudBuildNumberCommitIdOptions
         {
-            When = (VersionOptions.CloudBuildNumberCommitWhen)((int)cio1a.When + 1),
+            When = (VersionOptions.CloudBuildNumberCommitWhen)((int)cio1a.WhenOrDefault + 1),
         };
         Assert.NotEqual(cio1a, cio2a);
 
         var cio3a = new VersionOptions.CloudBuildNumberCommitIdOptions
         {
-            Where = (VersionOptions.CloudBuildNumberCommitWhere)((int)cio1a.Where + 1),
+            Where = (VersionOptions.CloudBuildNumberCommitWhere)((int)cio1a.WhereOrDefault + 1),
         };
         Assert.NotEqual(cio1a, cio3a);
+    }
+
+    [Fact]
+    public void CannotWriteToDefaultInstances()
+    {
+        var options = new VersionOptions();
+        Assert.Throws<InvalidOperationException>(() => options.AssemblyVersionOrDefault.Precision = VersionOptions.VersionPrecision.Revision);
+        Assert.Throws<InvalidOperationException>(() => options.CloudBuildOrDefault.BuildNumberOrDefault.Enabled = true);
+        Assert.Throws<InvalidOperationException>(() => options.CloudBuildOrDefault.BuildNumberOrDefault.IncludeCommitIdOrDefault.When = VersionOptions.CloudBuildNumberCommitWhen.Always);
+        Assert.Throws<InvalidOperationException>(() => options.CloudBuildOrDefault.BuildNumberOrDefault.IncludeCommitIdOrDefault.Where = VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata);
+        Assert.Throws<InvalidOperationException>(() => options.CloudBuildOrDefault.SetVersionVariables = true);
+        Assert.Throws<InvalidOperationException>(() => options.NuGetPackageVersionOrDefault.SemVer = 2);
     }
 }

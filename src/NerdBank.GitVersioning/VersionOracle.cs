@@ -90,11 +90,11 @@
                 this.Version = this.VersionOptions?.Version.Version ?? Version0;
             }
 
-            this.VersionHeightOffset = this.VersionOptions?.BuildNumberOffset ?? 0;
+            this.VersionHeightOffset = this.VersionOptions?.BuildNumberOffsetOrDefault ?? 0;
 
             this.PrereleaseVersion = ReplaceMacros(this.VersionOptions?.Version.Prerelease ?? string.Empty);
 
-            this.CloudBuildNumberOptions = this.VersionOptions?.CloudBuild?.BuildNumber ?? new VersionOptions.CloudBuildNumberOptions();
+            this.CloudBuildNumberOptions = this.VersionOptions?.CloudBuild?.BuildNumberOrDefault ?? VersionOptions.CloudBuildNumberOptions.DefaultInstance;
 
             if (!string.IsNullOrEmpty(this.BuildingRef) && this.VersionOptions?.PublicReleaseRefSpec?.Length > 0)
             {
@@ -110,11 +110,11 @@
         {
             get
             {
-                var commitIdOptions = this.CloudBuildNumberOptions.IncludeCommitId ?? new VersionOptions.CloudBuildNumberCommitIdOptions();
-                bool includeCommitInfo = commitIdOptions.When == VersionOptions.CloudBuildNumberCommitWhen.Always ||
-                    (commitIdOptions.When == VersionOptions.CloudBuildNumberCommitWhen.NonPublicReleaseOnly && !this.PublicRelease);
-                bool commitIdInRevision = includeCommitInfo && commitIdOptions.Where == VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent;
-                bool commitIdInBuildMetadata = includeCommitInfo && commitIdOptions.Where == VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata;
+                var commitIdOptions = this.CloudBuildNumberOptions.IncludeCommitIdOrDefault;
+                bool includeCommitInfo = commitIdOptions.WhenOrDefault == VersionOptions.CloudBuildNumberCommitWhen.Always ||
+                    (commitIdOptions.WhenOrDefault == VersionOptions.CloudBuildNumberCommitWhen.NonPublicReleaseOnly && !this.PublicRelease);
+                bool commitIdInRevision = includeCommitInfo && commitIdOptions.WhereOrDefault == VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent;
+                bool commitIdInBuildMetadata = includeCommitInfo && commitIdOptions.WhereOrDefault == VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata;
                 Version buildNumberVersion = commitIdInRevision ? this.Version : this.SimpleVersion;
                 string buildNumberMetadata = FormatBuildMetadata(commitIdInBuildMetadata ? this.BuildMetadataWithCommitId : this.BuildMetadata);
                 return buildNumberVersion + this.PrereleaseVersion + buildNumberMetadata;
@@ -124,7 +124,7 @@
         /// <summary>
         /// Gets a value indicating whether the cloud build number should be set.
         /// </summary>
-        public bool CloudBuildNumberEnabled => this.CloudBuildNumberOptions.Enabled;
+        public bool CloudBuildNumberEnabled => this.CloudBuildNumberOptions.EnabledOrDefault;
 
         /// <summary>
         /// Gets the build metadata identifiers, including the git commit ID as the first identifier if appropriate.
@@ -231,8 +231,8 @@
         /// <summary>
         /// Gets a value indicating whether to set cloud build version variables.
         /// </summary>
-        public bool CloudBuildVersionVarsEnabled => this.VersionOptions?.CloudBuild?.SetVersionVariables
-            ?? (new VersionOptions.CloudBuildOptions()).SetVersionVariables;
+        public bool CloudBuildVersionVarsEnabled => this.VersionOptions?.CloudBuildOrDefault.SetVersionVariablesOrDefault
+            ?? VersionOptions.CloudBuildOptions.DefaultInstance.SetVersionVariablesOrDefault;
 
         /// <summary>
         /// Gets a dictionary of cloud build variables that applies to this project,
@@ -264,7 +264,7 @@
         /// <summary>
         /// Gets the version to use for NuGet packages.
         /// </summary>
-        public string NuGetPackageVersion => (this.VersionOptions?.NuGetPackageVersion ?? VersionOptions.NuGetPackageVersionOptions.DefaultInstance).SemVer == 1 ? this.SemVer1 : this.SemVer2;
+        public string NuGetPackageVersion => this.VersionOptions?.NuGetPackageVersionOrDefault.SemVerOrDefault == 1 ? this.SemVer1 : this.SemVer2;
 
         /// <summary>
         /// Gets the version to use for NPM packages.
@@ -288,7 +288,7 @@
         /// <summary>
         /// Gets the minimum number of digits to use for numeric identifiers in SemVer 1.
         /// </summary>
-        public int SemVer1NumericIdentifierPadding => this.VersionOptions?.SemVer1NumericIdentifierPadding ?? 4;
+        public int SemVer1NumericIdentifierPadding => this.VersionOptions?.SemVer1NumericIdentifierPaddingOrDefault ?? 4;
 
         private string SemVer1BuildMetadata =>
             this.PublicRelease ? string.Empty : $"-g{this.GitCommitIdShort}";
@@ -370,8 +370,8 @@
             // If there is no repo, "version" could have uninitialized components (-1).
             version = version.EnsureNonNegativeComponents();
 
-            var assemblyVersion = versionOptions?.AssemblyVersion?.Version ?? new System.Version(version.Major, version.Minor);
-            var precision = versionOptions?.AssemblyVersion?.Precision ?? VersionOptions.DefaultVersionPrecision;
+            var assemblyVersion = versionOptions?.AssemblyVersionOrDefault.Version ?? new System.Version(version.Major, version.Minor);
+            var precision = versionOptions?.AssemblyVersionOrDefault.PrecisionOrDefault;
 
             assemblyVersion = new System.Version(
                 assemblyVersion.Major,

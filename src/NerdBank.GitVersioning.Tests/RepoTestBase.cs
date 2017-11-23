@@ -107,7 +107,7 @@
             }
 
             string versionFilePath = VersionFile.SetVersion(Path.Combine(this.RepoPath, relativeDirectory), versionData);
-            return this.CommitVersionFile(versionFilePath, versionData.Version.ToString());
+            return this.CommitVersionFile(versionFilePath, versionData.Version?.ToString());
         }
 
         protected Commit CommitVersionFile(string versionFilePath, string version)
@@ -129,7 +129,7 @@
                     }
                 }
 
-                return this.Repo.Commit($"Add/write {relativeFilePath} set to {version}", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
+                return this.Repo.Commit($"Add/write {relativeFilePath} set to {version ?? "Inherited"}", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
             }
 
             return null;

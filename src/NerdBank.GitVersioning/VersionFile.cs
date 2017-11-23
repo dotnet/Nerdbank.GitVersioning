@@ -176,7 +176,7 @@
             }
 
             string versionJsonPath = Path.Combine(projectDirectory, JsonFileName);
-            var jsonContent = JsonConvert.SerializeObject(version, VersionOptions.JsonSettings);
+            var jsonContent = JsonConvert.SerializeObject(version, VersionOptions.GetJsonSettings());
             File.WriteAllText(versionJsonPath, jsonContent);
             return versionJsonPath;
         }
@@ -243,14 +243,7 @@
             if (isJsonFile)
             {
                 string jsonContent = versionTextContent.ReadToEnd();
-                try
-                {
-                    return JsonConvert.DeserializeObject<VersionOptions>(jsonContent, VersionOptions.JsonSettings);
-                }
-                catch (JsonSerializationException)
-                {
-                    return null;
-                }
+                return TryReadVersionJsonContent(jsonContent);
             }
 
             string versionLine = versionTextContent.ReadLine();
@@ -270,6 +263,23 @@
             {
                 Version = semVer,
             };
+        }
+
+        /// <summary>
+        /// Tries to read a version.json file from the specified string, but favors returning null instead of throwing a <see cref="JsonSerializationException"/>.
+        /// </summary>
+        /// <param name="jsonContent">The content of the version.json file.</param>
+        /// <returns>The deserialized <see cref="VersionOptions"/> object, if deserialization was successful.</returns>
+        private static VersionOptions TryReadVersionJsonContent(string jsonContent)
+        {
+            try
+            {
+                return JsonConvert.DeserializeObject<VersionOptions>(jsonContent, VersionOptions.GetJsonSettings());
+            }
+            catch (JsonSerializationException)
+            {
+                return null;
+            }
         }
     }
 }
