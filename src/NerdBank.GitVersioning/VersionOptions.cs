@@ -119,11 +119,19 @@
         [JsonIgnore]
         public CloudBuildOptions CloudBuildOrDefault => this.CloudBuild ?? CloudBuildOptions.DefaultInstance;
 
+        /// <summary>
+        /// Gets or sets a value indicating whether this options object should inherit from an ancestor any settings that are not explicitly set in this one.
+        /// </summary>
+        /// <remarks>
+        /// When this is <c>true</c>, this object may not completely describe the options to be applied.
+        /// </remarks>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public bool Inherit { get; set; }
 
         /// <summary>
         /// Gets the debugger display for this instance.
         /// </summary>
-        private string DebuggerDisplay => this.Version?.ToString();
+        private string DebuggerDisplay => this.Version?.ToString() ?? (this.Inherit ? "Inheriting version info" : "(missing version)");
 
         /// <summary>
         /// Initializes a new instance of the <see cref="VersionOptions"/> class
@@ -195,7 +203,8 @@
                     && this.AssemblyVersion == null
                     && this.CloudBuild.IsDefault
                     && this.BuildNumberOffset == 0
-                    && !this.SemVer1NumericIdentifierPadding.HasValue;
+                    && !this.SemVer1NumericIdentifierPadding.HasValue
+                    && !this.Inherit;
             }
         }
 

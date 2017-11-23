@@ -67,6 +67,7 @@
             {
                 string fullDirectory = Path.Combine(repo.Info.WorkingDirectory, repoRelativeProjectDirectory ?? string.Empty);
                 var workingCopyVersion = GetVersion(fullDirectory);
+                return workingCopyVersion;
             }
 
             return GetVersion(repo.Head.Commits.FirstOrDefault(), repoRelativeProjectDirectory);
@@ -84,6 +85,7 @@
             string searchDirectory = projectDirectory;
             while (searchDirectory != null)
             {
+                string parentDirectory = Path.GetDirectoryName(searchDirectory);
                 string versionTxtPath = Path.Combine(searchDirectory, TxtFileName);
                 if (File.Exists(versionTxtPath))
                 {
@@ -100,17 +102,29 @@
                 string versionJsonPath = Path.Combine(searchDirectory, JsonFileName);
                 if (File.Exists(versionJsonPath))
                 {
-                    using (var sr = new StreamReader(File.OpenRead(versionJsonPath)))
+                    string versionJsonContent = File.ReadAllText(versionJsonPath);
+                    VersionOptions result = TryReadVersionJsonContent(versionJsonContent);
+                    if (result?.Inherit ?? false)
                     {
-                        var result = TryReadVersionFile(sr, isJsonFile: true);
-                        if (result != null)
+                        if (parentDirectory != null)
                         {
-                            return result;
+                            result = GetVersion(parentDirectory);
+                            if (result != null)
+                            {
+                                JsonConvert.PopulateObject(versionJsonContent, result, VersionOptions.GetJsonSettings());
+                                return result;
+                            }
                         }
+
+                        throw new InvalidOperationException($"\"{versionJsonPath}\" inherits from a parent directory version.json file but none exists.");
+                    }
+                    else if (result != null)
+                    {
+                        return result;
                     }
                 }
 
-                searchDirectory = Path.GetDirectoryName(searchDirectory);
+                searchDirectory = parentDirectory;
             }
 
             return null;
@@ -154,7 +168,7 @@
         {
             Requires.NotNullOrEmpty(projectDirectory, nameof(projectDirectory));
             Requires.NotNull(version, nameof(version));
-            Requires.Argument(version.Version != null, nameof(version), $"{nameof(VersionOptions.Version)} must be set.");
+            Requires.Argument(version.Version != null || version.Inherit, nameof(version), $"{nameof(VersionOptions.Version)} must be set for a root-level version.json file.");
 
             Directory.CreateDirectory(projectDirectory);
 
@@ -176,7 +190,7 @@
             }
 
             string versionJsonPath = Path.Combine(projectDirectory, JsonFileName);
-            var jsonContent = JsonConvert.SerializeObject(version, VersionOptions.GetJsonSettings());
+            var jsonContent = JsonConvert.SerializeObject(version, VersionOptions.GetJsonSettings(version.Inherit));
             File.WriteAllText(versionJsonPath, jsonContent);
             return versionJsonPath;
         }

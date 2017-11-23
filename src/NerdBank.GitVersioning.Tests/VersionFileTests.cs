@@ -115,6 +115,7 @@ public class VersionFileTests : RepoTestBase
 
     [Theory]
     [InlineData("2.3", null, VersionOptions.VersionPrecision.Minor, 0, false, @"{""version"":""2.3""}")]
+    [InlineData("2.3", null, VersionOptions.VersionPrecision.Minor, null, true, @"{""version"":""2.3"",""assemblyVersion"":{""precision"":""minor""},""inherit"":true}")]
     [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Minor, 0, false, @"{""version"":""2.3"",""assemblyVersion"":""2.2""}")]
     [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Minor, -1, false, @"{""version"":""2.3"",""assemblyVersion"":""2.2"",""buildNumberOffset"":-1}")]
     [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Revision, -1, false, @"{""version"":""2.3"",""assemblyVersion"":{""version"":""2.2"",""precision"":""revision""},""buildNumberOffset"":-1}")]
@@ -125,6 +126,7 @@ public class VersionFileTests : RepoTestBase
             Version = SemanticVersion.Parse(version),
             AssemblyVersion = assemblyVersion != null || precision != null ? new VersionOptions.AssemblyVersionOptions(assemblyVersion != null ? new Version(assemblyVersion) : null, precision) : null,
             BuildNumberOffset = buildNumberOffset,
+            Inherit = inherit,
         };
         string pathWritten = VersionFile.SetVersion(this.RepoPath, versionOptions);
         string actualFileContent = File.ReadAllText(pathWritten);
@@ -269,6 +271,93 @@ public class VersionFileTests : RepoTestBase
     public void GetVersion_String_MissingFile()
     {
         Assert.Null(VersionFile.GetVersion(this.RepoPath));
+    }
+
+    [Fact]
+    public void VersionJson_InheritButNoParentFileFound()
+    {
+        this.InitializeSourceControl();
+        this.WriteVersionFile(
+            new VersionOptions
+            {
+                Inherit = true,
+                Version = SemanticVersion.Parse("14.2"),
+            });
+        Assert.Throws<InvalidOperationException>(() => VersionFile.GetVersion(this.Repo));
+    }
+
+    [Fact]
+    public void VersionJson_DoNotInheritButNoVersionSpecified()
+    {
+        this.InitializeSourceControl();
+        Assert.Throws<ArgumentException>(() => this.WriteVersionFile(
+            new VersionOptions
+            {
+                Inherit = false,
+            }));
+    }
+
+    [Theory]
+    [PairwiseData]
+    public void VersionJson_CanInherit(bool commitInSourceControl)
+    {
+        if (commitInSourceControl)
+        {
+            this.InitializeSourceControl();
+        }
+
+        VersionOptions level1, level2, level3, level2NoInherit;
+        this.WriteVersionFile(
+            level1 = new VersionOptions
+            {
+                Version = SemanticVersion.Parse("14.2"),
+                AssemblyVersion = new VersionOptions.AssemblyVersionOptions { Precision = VersionOptions.VersionPrecision.Major },
+            });
+        this.WriteVersionFile(
+            level2 = new VersionOptions
+            {
+                Inherit = true,
+                AssemblyVersion = new VersionOptions.AssemblyVersionOptions { Precision = VersionOptions.VersionPrecision.Minor },
+            },
+            "foo");
+        this.WriteVersionFile(
+            level3 = new VersionOptions
+            {
+                Inherit = true,
+                BuildNumberOffset = 1,
+            },
+            @"foo\bar");
+        this.WriteVersionFile(
+            level2NoInherit = new VersionOptions
+            {
+                Version = SemanticVersion.Parse("10.1"),
+            },
+            @"noInherit");
+
+        VersionOptions GetOption(string path) => commitInSourceControl ? VersionFile.GetVersion(this.Repo, path) : VersionFile.GetVersion(Path.Combine(this.RepoPath, path));
+
+        var level1Options = GetOption(string.Empty);
+        Assert.False(level1Options.Inherit);
+
+        var level2Options = GetOption("foo");
+
+        Assert.Equal(level1.Version.Version.Major, level2Options.Version.Version.Major);
+        Assert.Equal(level1.Version.Version.Minor, level2Options.Version.Version.Minor);
+        Assert.Equal(level2.AssemblyVersion.Precision, level2Options.AssemblyVersion.Precision);
+        Assert.True(level2Options.Inherit);
+
+        var level3Options = GetOption(@"foo\bar");
+        Assert.Equal(level1.Version.Version.Major, level3Options.Version.Version.Major);
+        Assert.Equal(level1.Version.Version.Minor, level3Options.Version.Version.Minor);
+        Assert.Equal(level2.AssemblyVersion.Precision, level3Options.AssemblyVersion.Precision);
+        Assert.Equal(level2.AssemblyVersion.Precision, level3Options.AssemblyVersion.Precision);
+        Assert.Equal(level3.BuildNumberOffset, level3Options.BuildNumberOffset);
+        Assert.True(level3Options.Inherit);
+
+        var level2NoInheritOptions = GetOption("noInherit");
+        Assert.Equal(level2NoInherit.Version, level2NoInheritOptions.Version);
+        Assert.Equal(VersionOptions.DefaultVersionPrecision, level2NoInheritOptions.AssemblyVersionOrDefault.PrecisionOrDefault);
+        Assert.False(level2NoInheritOptions.Inherit);
     }
 
     private void AssertPathHasVersion(Commit commit, string absolutePath, VersionOptions expected)
