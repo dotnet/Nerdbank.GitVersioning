@@ -308,7 +308,7 @@ public class VersionFileTests : RepoTestBase
             this.InitializeSourceControl();
         }
 
-        VersionOptions level1, level2, level3, level2NoInherit;
+        VersionOptions level1, level2, level3, level2NoInherit, level2InheritButResetVersion;
         this.WriteVersionFile(
             level1 = new VersionOptions
             {
@@ -335,6 +335,13 @@ public class VersionFileTests : RepoTestBase
                 Version = SemanticVersion.Parse("10.1"),
             },
             @"noInherit");
+        this.WriteVersionFile(
+            level2InheritButResetVersion = new VersionOptions
+            {
+                Inherit = true,
+                Version = SemanticVersion.Parse("8.2"),
+            },
+            @"inheritWithVersion");
 
         Repository operatingRepo = this.Repo;
         if (bareRepo)
@@ -368,6 +375,25 @@ public class VersionFileTests : RepoTestBase
             Assert.Equal(level2NoInherit.Version, level2NoInheritOptions.Version);
             Assert.Equal(VersionOptions.DefaultVersionPrecision, level2NoInheritOptions.AssemblyVersionOrDefault.PrecisionOrDefault);
             Assert.False(level2NoInheritOptions.Inherit);
+
+            var level2InheritButResetVersionOptions = GetOption("inheritWithVersion");
+            Assert.Equal(level2InheritButResetVersion.Version, level2InheritButResetVersionOptions.Version);
+            Assert.True(level2InheritButResetVersionOptions.Inherit);
+
+            if (commitInSourceControl)
+            {
+                int totalCommits = operatingRepo.Head.Commits.Count();
+
+                // The version height should be the same for all those that inherit the version from the base,
+                // even though the inheriting files were introduced in successive commits.
+                Assert.Equal(totalCommits, operatingRepo.GetVersionHeight());
+                Assert.Equal(totalCommits, operatingRepo.GetVersionHeight("foo"));
+                Assert.Equal(totalCommits, operatingRepo.GetVersionHeight(@"foo\bar"));
+
+                // These either don't inherit, or inherit but reset versions, so the commits were reset.
+                Assert.Equal(2, operatingRepo.GetVersionHeight("noInherit"));
+                Assert.Equal(1, operatingRepo.GetVersionHeight("inheritWithVersion"));
+            }
         }
     }
 
