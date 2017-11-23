@@ -70,4 +70,18 @@ public class VersionSchemaTests
         json = JObject.Parse(@"{ ""version"": ""2.3.0-beta+height-{height}"" }");
         Assert.False(json.IsValid(this.schema));
     }
+
+    [Fact]
+    public void Inherit_AllowsOmissionOfVersion()
+    {
+        json = JObject.Parse(@"{ ""inherit"": false, ""version"": ""1.2"" }");
+        Assert.True(json.IsValid(this.schema));
+        json = JObject.Parse(@"{ ""inherit"": false }");
+        Assert.False(json.IsValid(this.schema));
+        json = JObject.Parse(@"{ }");
+        Assert.False(json.IsValid(this.schema));
+
+        json = JObject.Parse(@"{ ""inherit"": true }");
+        Assert.True(json.IsValid(this.schema));
+    }
 }
