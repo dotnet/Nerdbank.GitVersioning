@@ -21,7 +21,7 @@ The content of the version.json file is a JSON serialized object with these prop
 
 ```js
 {
-  "version": "x.y-prerelease", // required
+  "version": "x.y-prerelease", // required (unless the "inherit" field is set to true and a parent version.json file sets this.)
   "assemblyVersion": "x.y", // optional. Use when x.y for AssemblyVersionAttribute differs from the default version property.
   "buildNumberOffset": "zOffset", // optional. Use when you need to add/subtract a fixed value from the computed build number.
   "semVer1NumericIdentifierPadding": 4, // optional. Use when your -prerelease includes numeric identifiers and need semver1 support.
@@ -41,7 +41,8 @@ The content of the version.json file is a JSON serialized object with these prop
         "where": "buildMetadata"
       }
     }
-  }
+  },
+  "inherit": false // optional. Set to true in secondary version.json files used to tweak settings for subsets of projects.
 }
 ```
 
