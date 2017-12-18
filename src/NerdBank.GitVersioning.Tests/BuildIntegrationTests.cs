@@ -506,7 +506,7 @@ public class BuildIntegrationTests : RepoTestBase
             var versionOptions = new VersionOptions
             {
                 Version = SemanticVersion.Parse("1.0"),
-                CloudBuild = new VersionOptions.CloudBuildOptions { SetVersionVariables = true },
+                CloudBuild = new VersionOptions.CloudBuildOptions { SetAllVariables = true, SetVersionVariables = true },
             };
             this.WriteVersionFile(versionOptions);
             this.InitializeSourceControl();
@@ -532,6 +532,10 @@ public class BuildIntegrationTests : RepoTestBase
             Assert.Equal(buildResult.BuildVersion, buildResult.GitBuildVersion);
             Assert.Equal(buildResult.BuildVersionSimple, buildResult.GitBuildVersionSimple);
             Assert.Equal(buildResult.AssemblyInformationalVersion, buildResult.GitAssemblyInformationalVersion);
+
+            // Assert that some project properties were set as build properties prefaced with "NBGV_".
+            Assert.Equal(buildResult.GitCommitIdShort, buildResult.NBGV_GitCommitIdShort);
+            Assert.Equal(buildResult.NuGetPackageVersion, buildResult.NBGV_NuGetPackageVersion);
 
             // Assert that env variables were also set in context of the build.
             Assert.True(buildResult.LoggedEvents.Any(e => string.Equals(e.Message, $"n1=v1", StringComparison.OrdinalIgnoreCase)));
@@ -1126,6 +1130,10 @@ public class BuildIntegrationTests : RepoTestBase
         public string GitBuildVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitBuildVersion");
         public string GitBuildVersionSimple => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitBuildVersionSimple");
         public string GitAssemblyInformationalVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitAssemblyInformationalVersion");
+
+        // Just a sampling of other properties optionally set in cloud build.
+        public string NBGV_GitCommitIdShort => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("NBGV_GitCommitIdShort");
+        public string NBGV_NuGetPackageVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("NBGV_NuGetPackageVersion");
 
         public override string ToString()
         {

@@ -142,6 +142,7 @@ public class VersionFileTests : RepoTestBase
     [InlineData(@"{""cloudBuild"":{""buildNumber"":{""enabled"":true,""includeCommitId"":{""when"":""always"",""where"":""buildMetadata""}}}}", @"{""cloudBuild"":{""buildNumber"":{""enabled"":true,""includeCommitId"":{""when"":""always""}}}}")]
     [InlineData(@"{""cloudBuild"":{""buildNumber"":{""enabled"":true,""includeCommitId"":{""when"":""nonPublicReleaseOnly"",""where"":""fourthVersionComponent""}}}}", @"{""cloudBuild"":{""buildNumber"":{""enabled"":true,""includeCommitId"":{""where"":""fourthVersionComponent""}}}}")]
     [InlineData(@"{""cloudBuild"":{""setVersionVariables"":true}}", @"{}")]
+    [InlineData(@"{""cloudBuild"":{""setAllVariables"":false}}", @"{}")]
     public void JsonMinification(string full, string minimal)
     {
         var settings = VersionOptions.GetJsonSettings();

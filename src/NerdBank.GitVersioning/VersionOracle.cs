@@ -5,6 +5,7 @@
     using System.Globalization;
     using System.IO;
     using System.Linq;
+    using System.Reflection;
     using System.Text.RegularExpressions;
     using Validation;
 
@@ -124,11 +125,13 @@
         /// <summary>
         /// Gets a value indicating whether the cloud build number should be set.
         /// </summary>
+        [Ignore]
         public bool CloudBuildNumberEnabled => this.CloudBuildNumberOptions.EnabledOrDefault;
 
         /// <summary>
         /// Gets the build metadata identifiers, including the git commit ID as the first identifier if appropriate.
         /// </summary>
+        [Ignore]
         public IEnumerable<string> BuildMetadataWithCommitId
         {
             get
@@ -229,8 +232,44 @@
         public Version Version { get; }
 
         /// <summary>
+        /// Gets a value indicating whether to set all cloud build variables prefaced with "NBGV_".
+        /// </summary>
+        [Ignore]
+        public bool CloudBuildAllVarsEnabled => this.VersionOptions?.CloudBuildOrDefault.SetAllVariablesOrDefault
+            ?? VersionOptions.CloudBuildOptions.DefaultInstance.SetAllVariablesOrDefault;
+
+        /// <summary>
+        /// Gets a dictionary of all cloud build variables that applies to this project,
+        /// regardless of the current setting of <see cref="CloudBuildAllVarsEnabled"/>.
+        /// </summary>
+        [Ignore]
+        public IDictionary<string, string> CloudBuildAllVars
+        {
+            get
+            {
+                var variables = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+                var properties = this.GetType().GetTypeInfo().GetProperties(BindingFlags.Public | BindingFlags.DeclaredOnly | BindingFlags.Instance);
+                foreach (var property in properties)
+                {
+                    if (property.GetCustomAttribute<IgnoreAttribute>() == null)
+                    {
+                        var value = property.GetValue(this);
+                        if (value != null)
+                        {
+                            variables.Add($"NBGV_{property.Name}", value.ToString());
+                        }
+                    }
+                }
+
+                return variables;
+            }
+        }
+
+        /// <summary>
         /// Gets a value indicating whether to set cloud build version variables.
         /// </summary>
+        [Ignore]
         public bool CloudBuildVersionVarsEnabled => this.VersionOptions?.CloudBuildOrDefault.SetVersionVariablesOrDefault
             ?? VersionOptions.CloudBuildOptions.DefaultInstance.SetVersionVariablesOrDefault;
 
@@ -238,6 +277,7 @@
         /// Gets a dictionary of cloud build variables that applies to this project,
         /// regardless of the current setting of <see cref="CloudBuildVersionVarsEnabled"/>.
         /// </summary>
+        [Ignore]
         public IDictionary<string, string> CloudBuildVersionVars
         {
             get
@@ -254,6 +294,7 @@
         /// <summary>
         /// Gets the list of build metadata identifiers to include in semver version strings.
         /// </summary>
+        [Ignore]
         public List<string> BuildMetadata { get; } = new List<string>();
 
         /// <summary>
@@ -449,6 +490,11 @@
 
             // A missing working version is a change only if it was previously commited.
             return committedVersion != null;
+        }
+
+        [AttributeUsage(AttributeTargets.Property)]
+        private class IgnoreAttribute : Attribute
+        {
         }
     }
 }
