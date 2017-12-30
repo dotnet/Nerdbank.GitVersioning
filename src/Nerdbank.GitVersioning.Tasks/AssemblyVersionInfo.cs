@@ -85,7 +85,9 @@
                     ns.Types.Add(this.CreateThisAssemblyClass());
 
                     Directory.CreateDirectory(Path.GetDirectoryName(this.OutputFile));
-                    using (var file = File.OpenWrite(this.OutputFile))
+                    FileStream file = null;
+                    Utilities.FileOperationWithRetry(() => file = File.OpenWrite(this.OutputFile));
+                    using (file)
                     {
                         using (var fileWriter = new StreamWriter(file, new UTF8Encoding(true), 4096, leaveOpen: true))
                         {
@@ -213,7 +215,8 @@
                 this.CreateThisAssemblyClass();
 
                 Directory.CreateDirectory(Path.GetDirectoryName(this.OutputFile));
-                File.WriteAllText(this.OutputFile, this.generator.GetCode());
+                string fileContent = this.generator.GetCode();
+                Utilities.FileOperationWithRetry(() => File.WriteAllText(this.OutputFile, fileContent));
             }
 
             return !this.Log.HasLoggedErrors;
