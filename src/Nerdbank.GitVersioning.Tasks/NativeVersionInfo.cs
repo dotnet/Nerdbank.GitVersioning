@@ -145,13 +145,13 @@ END
                     break;
 
                 default:
-                    this.Log.LogError("Unsupported ConfigurationType '{0}'. Only 'Application' and 'DynamicLibrary' are supported at this time.", this.ConfigurationType);
+                    this.Log.LogError("Unsupported ConfigurationType '{0}' for '{1}'. Only 'Application' and 'DynamicLibrary' are supported at this time.", this.ConfigurationType, this.AssemblyName);
                     return;
             }
 
             if (!Version.TryParse(this.AssemblyFileVersion, out var fileVersion))
             {
-                this.Log.LogError("Cannot process AssemblyFileVersion '{0}' into a valid four part version.", this.AssemblyFileVersion);
+                this.Log.LogError("Cannot process AssemblyFileVersion '{0}' from '{1}' into a valid four part version.", this.AssemblyFileVersion, this.AssemblyName);
                 return;
             }
 
@@ -175,11 +175,11 @@ END
                     }
                     catch
                     {
-                        this.Log.LogError("Unknown AssemblyLanguage '{0}'. Cannot determine LCID for that culture.", this.AssemblyLanguage);
+                        this.Log.LogError("Unknown AssemblyLanguage '{0}' for '{1}'. Cannot determine LCID for that culture.", this.AssemblyLanguage, this.AssemblyName);
                         return;
                     }
 #else
-                    this.Log.LogError("Unknown AssemblyLanguage '{0}'. Must specify the language as an LCID.", this.AssemblyLanguage);
+                    this.Log.LogError("Unknown AssemblyLanguage '{0}' for '{1}'. Must specify the language as an LCID.", this.AssemblyLanguage, this.AssemblyName);
 #endif
                 }
             }
@@ -244,7 +244,7 @@ END
                 case "c++":
                     return new CodeGenerator();
                 default:
-                    this.Log.LogError("Code provider not available for language: {0}. No version info will be embedded into assembly.", this.CodeLanguage);
+                    this.Log.LogError("Code provider not available for language: {0}. No version info will be embedded into assembly `{1}`.", this.CodeLanguage, this.AssemblyName);
                     return null;
             }
         }
