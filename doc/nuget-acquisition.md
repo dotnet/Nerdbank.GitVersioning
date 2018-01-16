@@ -4,7 +4,7 @@ Install the Nerdbank.GitVersioning package using the Visual Studio
 NuGet Package Manager GUI, or the NuGet Package Manager Console: 
 
 ```
-Install-Package Nerdbank-GitVersioning
+Install-Package Nerdbank.GitVersioning
 ```
 
 If in a project that uses PackageReference for this package reference, you should manually add
@@ -14,7 +14,7 @@ If in a project that uses PackageReference for this package reference, you shoul
 After installing this NuGet package, you may need to configure the version generation logic
 in order for it to work properly.
 
-When using packagse.config, the configuration is handled automatically via the tools\Install.ps1 script.
+When using packages.config, the configuration is handled automatically via the tools\Install.ps1 script.
 When using project.json or PackageReference, you can run the script tools\Create-VersionFile.ps1 to help
 you create the version.json file and remove the old assembly attributes.
 
