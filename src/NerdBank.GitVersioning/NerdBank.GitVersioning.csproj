@@ -13,6 +13,6 @@
     <PackageReference Include="NuProj.Common" Version="0.11.14-beta" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\Shared\Utilities.cs" LinkBase="Shared" />
+    <Compile Include="..\Shared\**\*.cs" LinkBase="Shared" />
   </ItemGroup>
 </Project>
