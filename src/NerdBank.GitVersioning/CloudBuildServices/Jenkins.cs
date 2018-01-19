@@ -58,7 +58,7 @@
 
             var versionFilePath = Path.Combine(workspacePath, "jenkins_build_number.txt");
 
-            File.WriteAllText(versionFilePath, buildNumber, UTF8NoBOM);
+            Utilities.FileOperationWithRetry(() => File.WriteAllText(versionFilePath, buildNumber, UTF8NoBOM));
         }
     }
 }
