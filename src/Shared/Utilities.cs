@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Validation;
 
-namespace Nerdbank.GitVersioning.Tasks
+namespace Nerdbank.GitVersioning
 {
     internal static class Utilities
     {

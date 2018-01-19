@@ -12,4 +12,7 @@
     <ProjectReference Include="..\MSBuildExtensionTask\MSBuildExtensionTask.csproj" />
     <ProjectReference Include="..\NerdBank.GitVersioning\NerdBank.GitVersioning.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Shared\Utilities.cs" LinkBase="Shared" />
+  </ItemGroup>
 </Project>
