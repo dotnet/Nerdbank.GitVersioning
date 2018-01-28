@@ -14,6 +14,9 @@ Here is the content of a sample version.json file you may start with:
 The `$schema` field is optional but highly encouraged as it causes most JSON editors
 to add auto-completion and doc tips to help you author the file.
 
+Note that the capitalization of the `version.json` filename must be all lower-case
+when added to the git repo.
+
 ## File format
 
 The content of the version.json file is a JSON serialized object with these properties
