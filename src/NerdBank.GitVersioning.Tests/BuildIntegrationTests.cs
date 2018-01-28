@@ -484,14 +484,15 @@ public class BuildIntegrationTests : RepoTestBase
         {
             return new object[][]
             {
-                new object[] { CloudBuild.VSTS, "##vso[task.setvariable variable={NAME};]{VALUE}" },
+                new object[] { CloudBuild.VSTS, "##vso[task.setvariable variable={NAME};]{VALUE}", false },
+                new object[] { CloudBuild.VSTS, "##vso[task.setvariable variable={NAME};]{VALUE}", true },
             };
         }
     }
 
     [Theory]
     [MemberData(nameof(CloudBuildVariablesData))]
-    public async Task CloudBuildVariables_SetInCI(IReadOnlyDictionary<string, string> properties, string expectedMessage)
+    public async Task CloudBuildVariables_SetInCI(IReadOnlyDictionary<string, string> properties, string expectedMessage, bool setAllVariables)
     {
         using (ApplyEnvironmentVariables(properties))
         {
@@ -506,7 +507,7 @@ public class BuildIntegrationTests : RepoTestBase
             var versionOptions = new VersionOptions
             {
                 Version = SemanticVersion.Parse("1.0"),
-                CloudBuild = new VersionOptions.CloudBuildOptions { SetAllVariables = true, SetVersionVariables = true },
+                CloudBuild = new VersionOptions.CloudBuildOptions { SetAllVariables = setAllVariables, SetVersionVariables = true },
             };
             this.WriteVersionFile(versionOptions);
             this.InitializeSourceControl();
@@ -533,9 +534,18 @@ public class BuildIntegrationTests : RepoTestBase
             Assert.Equal(buildResult.BuildVersionSimple, buildResult.GitBuildVersionSimple);
             Assert.Equal(buildResult.AssemblyInformationalVersion, buildResult.GitAssemblyInformationalVersion);
 
-            // Assert that some project properties were set as build properties prefaced with "NBGV_".
-            Assert.Equal(buildResult.GitCommitIdShort, buildResult.NBGV_GitCommitIdShort);
-            Assert.Equal(buildResult.NuGetPackageVersion, buildResult.NBGV_NuGetPackageVersion);
+            if (setAllVariables)
+            {
+                // Assert that some project properties were set as build properties prefaced with "NBGV_".
+                Assert.Equal(buildResult.GitCommitIdShort, buildResult.NBGV_GitCommitIdShort);
+                Assert.Equal(buildResult.NuGetPackageVersion, buildResult.NBGV_NuGetPackageVersion);
+            }
+            else
+            {
+                // Assert that the NBGV_ prefixed properties are *not* set.
+                Assert.Equal(string.Empty, buildResult.NBGV_GitCommitIdShort);
+                Assert.Equal(string.Empty, buildResult.NBGV_NuGetPackageVersion);
+            }
 
             // Assert that env variables were also set in context of the build.
             Assert.True(buildResult.LoggedEvents.Any(e => string.Equals(e.Message, $"n1=v1", StringComparison.OrdinalIgnoreCase)));
