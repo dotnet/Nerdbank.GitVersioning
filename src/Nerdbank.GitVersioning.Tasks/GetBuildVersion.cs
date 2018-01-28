@@ -190,11 +190,32 @@
                 this.NuGetPackageVersion = oracle.NuGetPackageVersion;
                 this.NpmPackageVersion = oracle.NpmPackageVersion;
 
+                IEnumerable<ITaskItem> cloudBuildVersionVars = null;
                 if (oracle.CloudBuildVersionVarsEnabled)
                 {
-                    this.CloudBuildVersionVars = oracle.CloudBuildVersionVars
-                        .Select(item => new TaskItem(item.Key, new Dictionary<string, string> { { "Value", item.Value } }))
-                        .ToArray();
+                    cloudBuildVersionVars = oracle.CloudBuildVersionVars
+                        .Select(item => new TaskItem(item.Key, new Dictionary<string, string> { { "Value", item.Value } }));
+                }
+
+                if (oracle.CloudBuildAllVarsEnabled)
+                {
+                    var allVariables = oracle.CloudBuildAllVars
+                        .Select(item => new TaskItem(item.Key, new Dictionary<string, string> { { "Value", item.Value } }));
+
+                    if (cloudBuildVersionVars != null)
+                    {
+                        cloudBuildVersionVars = cloudBuildVersionVars
+                            .Union(allVariables);
+                    }
+                    else
+                    {
+                        cloudBuildVersionVars = allVariables;
+                    }
+                }
+
+                if (cloudBuildVersionVars != null)
+                {
+                    this.CloudBuildVersionVars = cloudBuildVersionVars.ToArray();
                 }
 
                 return !this.Log.HasLoggedErrors;

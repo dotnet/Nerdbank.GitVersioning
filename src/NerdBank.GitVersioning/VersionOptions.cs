@@ -458,11 +458,15 @@
             /// </summary>
             internal static readonly CloudBuildOptions DefaultInstance = new CloudBuildOptions(isReadOnly: true)
             {
+                setAllVariables = false,
                 setVersionVariables = true,
             };
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
             private readonly bool isReadOnly;
+
+            [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+            private bool? setAllVariables;
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
             private bool? setVersionVariables;
@@ -487,6 +491,15 @@
             }
 
             /// <summary>
+            /// Gets or sets a value indicating whether to elevate all build properties to cloud build variables prefaced with "NBGV_".
+            /// </summary>
+            public bool? SetAllVariables
+            {
+                get => this.setAllVariables;
+                set => this.SetIfNotReadOnly(ref this.setAllVariables, value);
+            }
+
+            /// <summary>
             /// Gets or sets a value indicating whether to elevate certain calculated version build properties to cloud build variables.
             /// </summary>
             public bool? SetVersionVariables
@@ -494,6 +507,12 @@
                 get => this.setVersionVariables;
                 set => this.SetIfNotReadOnly(ref this.setVersionVariables, value);
             }
+
+            /// <summary>
+            /// Gets a value indicating whether to elevate all build properties to cloud build variables prefaced with "NBGV_".
+            /// </summary>
+            [JsonIgnore]
+            public bool SetAllVariablesOrDefault => this.SetAllVariables ?? DefaultInstance.SetAllVariables.Value;
 
             /// <summary>
             /// Gets a value indicating whether to elevate certain calculated version build properties to cloud build variables.
@@ -562,13 +581,15 @@
                     }
 
                     return x.SetVersionVariablesOrDefault == y.SetVersionVariablesOrDefault
+                        && x.SetAllVariablesOrDefault == y.SetAllVariablesOrDefault
                         && CloudBuildNumberOptions.EqualWithDefaultsComparer.Singleton.Equals(x.BuildNumberOrDefault, y.BuildNumberOrDefault);
                 }
 
                 /// <inheritdoc />
                 public int GetHashCode(CloudBuildOptions obj)
                 {
-                    return obj.SetVersionVariablesOrDefault ? 1 : 0
+                    return (obj.SetVersionVariablesOrDefault ? 1 : 0)
+                        + (obj.SetAllVariablesOrDefault ? 1 : 0)
                         + obj.BuildNumberOrDefault.GetHashCode();
                 }
             }

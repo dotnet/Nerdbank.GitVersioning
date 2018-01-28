@@ -94,6 +94,11 @@
           "type": "object",
           "description": "Options that are applicable specifically to cloud builds (e.g. VSTS, AppVeyor, TeamCity)",
           "properties": {
+            "setAllVariables": {
+              "type": "boolean",
+              "default": false,
+              "description": "Elevates all build properties to cloud build variables prefaced with \"NBGV_\""
+            },
             "setVersionVariables": {
               "type": "boolean",
               "default": true,

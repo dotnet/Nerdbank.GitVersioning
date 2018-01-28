@@ -44,6 +44,11 @@
                     property.ShouldSerialize = instance => !((VersionOptions)instance).CloudBuildOrDefault.IsDefault;
                 }
 
+                if (property.DeclaringType == typeof(VersionOptions.CloudBuildOptions) && member.Name == nameof(VersionOptions.CloudBuildOptions.SetAllVariables))
+                {
+                    property.ShouldSerialize = instance => ((VersionOptions.CloudBuildOptions)instance).SetAllVariablesOrDefault != VersionOptions.CloudBuildOptions.DefaultInstance.SetAllVariables.Value;
+                }
+
                 if (property.DeclaringType == typeof(VersionOptions.CloudBuildOptions) && member.Name == nameof(VersionOptions.CloudBuildOptions.SetVersionVariables))
                 {
                     property.ShouldSerialize = instance => ((VersionOptions.CloudBuildOptions)instance).SetVersionVariablesOrDefault != VersionOptions.CloudBuildOptions.DefaultInstance.SetVersionVariables.Value;
