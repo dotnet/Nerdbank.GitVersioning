@@ -363,6 +363,11 @@
         {
             Requires.NotNullOrEmpty(repoRoot, nameof(repoRoot));
             var gitDir = FindGitDir(repoRoot);
+
+            // Override Config Search paths to empty path to avoid new Repository instance to lookup for Global\System .gitconfig file
+            LibGit2Sharp.GlobalSettings.SetConfigSearchPaths(LibGit2Sharp.ConfigurationLevel.Global, string.Empty);
+            LibGit2Sharp.GlobalSettings.SetConfigSearchPaths(LibGit2Sharp.ConfigurationLevel.System, string.Empty);
+
             return gitDir == null ? null : new LibGit2Sharp.Repository(gitDir);
         }
 
