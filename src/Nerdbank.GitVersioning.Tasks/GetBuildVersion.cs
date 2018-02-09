@@ -41,6 +41,12 @@
         public string GitRepoRoot { get; set; }
 
         /// <summary>
+        /// Gets or sets the project path relative to Git Root. This is the case where GitRepoRoot might be different from where project folder is getting built
+        /// If null or empty, default behavior will be to use Environment.CurrentDirectory and substring GitRepoRoot to search the GIT Tree for version.json
+        /// </summary>
+        public string GitProjectRelativePath { get; set; }
+
+        /// <summary>
         /// Gets or sets the optional override build number offset.
         /// </summary>
         public int OverrideBuildNumberOffset { get; set; } = int.MaxValue;
@@ -162,7 +168,7 @@
             {
                 var cloudBuild = CloudBuild.Active;
                 var overrideBuildNumberOffset = (this.OverrideBuildNumberOffset == int.MaxValue) ? (int?)null : this.OverrideBuildNumberOffset;
-                var oracle = VersionOracle.Create(Directory.GetCurrentDirectory(), this.GitRepoRoot, cloudBuild, overrideBuildNumberOffset);
+                var oracle = VersionOracle.Create(Directory.GetCurrentDirectory(), this.GitRepoRoot, cloudBuild, overrideBuildNumberOffset, this.GitProjectRelativePath);
                 if (!string.IsNullOrEmpty(this.DefaultPublicRelease))
                 {
                     oracle.PublicRelease = string.Equals(this.DefaultPublicRelease, "true", StringComparison.OrdinalIgnoreCase);

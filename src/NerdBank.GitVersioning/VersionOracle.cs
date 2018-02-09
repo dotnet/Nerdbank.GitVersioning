@@ -31,8 +31,9 @@
         /// <param name="gitRepoDirectory"></param>
         /// <param name="cloudBuild"></param>
         /// <param name="overrideBuildNumberOffset"></param>
+        /// <param name="gitProjectRelativePath"></param>
         /// <returns></returns>
-        public static VersionOracle Create(string projectDirectory, string gitRepoDirectory = null, ICloudBuild cloudBuild = null, int? overrideBuildNumberOffset = null)
+        public static VersionOracle Create(string projectDirectory, string gitRepoDirectory = null, ICloudBuild cloudBuild = null, int? overrideBuildNumberOffset = null, string gitProjectRelativePath = null)
         {
             Requires.NotNull(projectDirectory, nameof(projectDirectory));
             if (string.IsNullOrEmpty(gitRepoDirectory))
@@ -42,18 +43,20 @@
 
             using (var git = OpenGitRepo(gitRepoDirectory))
             {
-                return new VersionOracle(projectDirectory, git, cloudBuild, overrideBuildNumberOffset);
+                return new VersionOracle(projectDirectory, git, cloudBuild, overrideBuildNumberOffset, gitProjectRelativePath);
             }
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="VersionOracle"/> class.
         /// </summary>
-        public VersionOracle(string projectDirectory, LibGit2Sharp.Repository repo, ICloudBuild cloudBuild, int? overrideBuildNumberOffset = null)
+        public VersionOracle(string projectDirectory, LibGit2Sharp.Repository repo, ICloudBuild cloudBuild, int? overrideBuildNumberOffset = null, string gitProjectRelativePath = null)
         {
             var repoRoot = repo?.Info?.WorkingDirectory?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             var relativeRepoProjectDirectory = !string.IsNullOrWhiteSpace(repoRoot)
-                ? projectDirectory.Substring(repoRoot.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                ? ( !string.IsNullOrEmpty(gitProjectRelativePath) 
+                    ? gitProjectRelativePath.TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                    : projectDirectory.Substring(repoRoot.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) )
                 : null;
 
             var commit = repo?.Head.Commits.FirstOrDefault();
