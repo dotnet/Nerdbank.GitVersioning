@@ -257,7 +257,7 @@ public class VersionOracleTests : RepoTestBase
         };
 
         string childProjectRelativeDir = "ChildProject1";
-        string childProjectAbsoluteDir = string.Format(@"{0}\{1}", this.RepoPath, childProjectRelativeDir);
+        string childProjectAbsoluteDir = Path.Combine(this.RepoPath, childProjectRelativeDir);
         this.WriteVersionFile(rootVersion);
         this.WriteVersionFile(projectVersion, childProjectRelativeDir);
 
@@ -267,16 +267,16 @@ public class VersionOracleTests : RepoTestBase
         var oracle = VersionOracle.Create(this.RepoPath, this.RepoPath, null, null);
         Assert.Equal("1.1", oracle.MajorMinorVersion.ToString());
 
-        // Check ChildProject with projectRelativeDir , with Version file. Child Project version will be used.
+        // Check ChildProject with projectRelativeDir, with version file. Child project version will be used.
         oracle = VersionOracle.Create(childProjectAbsoluteDir, this.RepoPath, null, null, childProjectRelativeDir);
         Assert.Equal("2.2", oracle.MajorMinorVersion.ToString());
 
-        // Check ChildProject withOUT projectRelativeDir , with Version file. Child Project version will be used.
+        // Check ChildProject withOUT projectRelativeDir, with Version file. Child project version will be used.
         oracle = VersionOracle.Create(childProjectAbsoluteDir, this.RepoPath);
         Assert.Equal("2.2", oracle.MajorMinorVersion.ToString());
 
         // Check ChildProject withOUT Version file. Root version will be used.
-        oracle = VersionOracle.Create(string.Format(@"{0}\{1}", this.RepoPath, "otherChildProject"), this.RepoPath, null, null, "otherChildProject");
+        oracle = VersionOracle.Create(Path.Combine(this.RepoPath, "otherChildProject"), this.RepoPath, null, null, "otherChildProject");
         Assert.Equal("1.1", oracle.MajorMinorVersion.ToString());
     }
 }

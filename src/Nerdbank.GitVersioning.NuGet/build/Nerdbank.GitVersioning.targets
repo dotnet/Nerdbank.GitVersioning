@@ -65,7 +65,7 @@
       BuildMetadata="@(BuildMetadata)"
       DefaultPublicRelease="$(PublicRelease)"
       GitRepoRoot="$(GitRepoRoot)"
-      GitProjectRelativePath="$(GitProjectRelativePath)"
+      ProjectPathRelativeToGitRepoRoot="$(ProjectPathRelativeToGitRepoRoot)"
       OverrideBuildNumberOffset="$(OverrideBuildNumberOffset)"
       TargetsPath="$(MSBuildThisFileDirectory)">
 

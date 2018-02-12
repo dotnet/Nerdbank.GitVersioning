@@ -8,6 +8,7 @@
     using Microsoft.Build.Framework;
     using Microsoft.Build.Utilities;
     using MSBuildExtensionTask;
+    using Validation;
 
     public class GetBuildVersion : ContextAwareTask
     {
@@ -41,10 +42,18 @@
         public string GitRepoRoot { get; set; }
 
         /// <summary>
-        /// Gets or sets the project path relative to Git Root. This is the case where GitRepoRoot might be different from where project folder is getting built
-        /// If null or empty, default behavior will be to use Environment.CurrentDirectory and substring GitRepoRoot to search the GIT Tree for version.json
+        /// Gets or sets the relative path from the <see cref="GitRepoRoot"/> to the directory under it that contains the project being built.
         /// </summary>
-        public string GitProjectRelativePath { get; set; }
+        /// <value>
+        /// If not supplied, the directories from <see cref="GitRepoRoot"/> to <see cref="Environment.CurrentDirectory"/>
+        /// will be searched for version.json.
+        /// If supplied, the value <em>must</em> fall beneath the <see cref="GitRepoRoot"/> (i.e. this value should not contain "..\").
+        /// </value>
+        /// <remarks>
+        /// This property is useful when the project that MSBuild is building is not found under <see cref="GitRepoRoot"/> such that the
+        /// relative path can be calculated automatically.
+        /// </remarks>
+        public string ProjectPathRelativeToGitRepoRoot { get; set; }
 
         /// <summary>
         /// Gets or sets the optional override build number offset.
@@ -166,9 +175,19 @@
         {
             try
             {
+                if (!string.IsNullOrEmpty(this.ProjectPathRelativeToGitRepoRoot))
+                {
+                    Requires.Argument(Path.IsPathRooted(this.ProjectPathRelativeToGitRepoRoot), nameof(this.ProjectPathRelativeToGitRepoRoot), "Path must be relative.");
+                    Requires.Argument(!(
+                        this.ProjectPathRelativeToGitRepoRoot.Contains(".." + Path.DirectorySeparatorChar) || 
+                        this.ProjectPathRelativeToGitRepoRoot.Contains(".." + Path.AltDirectorySeparatorChar)),
+                        nameof(this.ProjectPathRelativeToGitRepoRoot),
+                        "Path must not use ..\\");
+                }
+
                 var cloudBuild = CloudBuild.Active;
                 var overrideBuildNumberOffset = (this.OverrideBuildNumberOffset == int.MaxValue) ? (int?)null : this.OverrideBuildNumberOffset;
-                var oracle = VersionOracle.Create(Directory.GetCurrentDirectory(), this.GitRepoRoot, cloudBuild, overrideBuildNumberOffset, this.GitProjectRelativePath);
+                var oracle = VersionOracle.Create(Directory.GetCurrentDirectory(), this.GitRepoRoot, cloudBuild, overrideBuildNumberOffset, this.ProjectPathRelativeToGitRepoRoot);
                 if (!string.IsNullOrEmpty(this.DefaultPublicRelease))
                 {
                     oracle.PublicRelease = string.Equals(this.DefaultPublicRelease, "true", StringComparison.OrdinalIgnoreCase);
