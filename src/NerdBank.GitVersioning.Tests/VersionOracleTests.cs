@@ -242,4 +242,41 @@ public class VersionOracleTests : RepoTestBase
         oracle.PublicRelease = false;
         Assert.Equal($"7.8.9-foo.25.g{this.CommitIdShort}", oracle.NuGetPackageVersion);
     }
+
+    [Fact]
+    public void CanUseGitProjectRelativePathWithGitRepoRoot()
+    {
+        VersionOptions rootVersion = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("1.1"),
+        };
+
+        VersionOptions projectVersion = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("2.2"),
+        };
+
+        string childProjectRelativeDir = "ChildProject1";
+        string childProjectAbsoluteDir = Path.Combine(this.RepoPath, childProjectRelativeDir);
+        this.WriteVersionFile(rootVersion);
+        this.WriteVersionFile(projectVersion, childProjectRelativeDir);
+
+        this.InitializeSourceControl();
+
+        // Check Root Version. Root version will be used
+        var oracle = VersionOracle.Create(this.RepoPath, this.RepoPath, null, null);
+        Assert.Equal("1.1", oracle.MajorMinorVersion.ToString());
+
+        // Check ChildProject with projectRelativeDir, with version file. Child project version will be used.
+        oracle = VersionOracle.Create(childProjectAbsoluteDir, this.RepoPath, null, null, childProjectRelativeDir);
+        Assert.Equal("2.2", oracle.MajorMinorVersion.ToString());
+
+        // Check ChildProject withOUT projectRelativeDir, with Version file. Child project version will be used.
+        oracle = VersionOracle.Create(childProjectAbsoluteDir, this.RepoPath);
+        Assert.Equal("2.2", oracle.MajorMinorVersion.ToString());
+
+        // Check ChildProject withOUT Version file. Root version will be used.
+        oracle = VersionOracle.Create(Path.Combine(this.RepoPath, "otherChildProject"), this.RepoPath, null, null, "otherChildProject");
+        Assert.Equal("1.1", oracle.MajorMinorVersion.ToString());
+    }
 }
