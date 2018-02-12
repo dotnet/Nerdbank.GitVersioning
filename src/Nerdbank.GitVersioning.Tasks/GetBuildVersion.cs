@@ -177,7 +177,7 @@
             {
                 if (!string.IsNullOrEmpty(this.ProjectPathRelativeToGitRepoRoot))
                 {
-                    Requires.Argument(Path.IsPathRooted(this.ProjectPathRelativeToGitRepoRoot), nameof(this.ProjectPathRelativeToGitRepoRoot), "Path must be relative.");
+                    Requires.Argument(!Path.IsPathRooted(this.ProjectPathRelativeToGitRepoRoot), nameof(this.ProjectPathRelativeToGitRepoRoot), "Path must be relative.");
                     Requires.Argument(!(
                         this.ProjectPathRelativeToGitRepoRoot.Contains(".." + Path.DirectorySeparatorChar) || 
                         this.ProjectPathRelativeToGitRepoRoot.Contains(".." + Path.AltDirectorySeparatorChar)),
