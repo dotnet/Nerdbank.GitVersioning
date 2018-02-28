@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net461</TargetFramework>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Authors>Chris Crutchfield, Andrew Arnott</Authors>
+    <Company>andarno</Company>
+    <Description>Cake wrapper for Nerdbank.GitVersioning.  Stamps your assemblies with semver 2.0 compliant git commit specific version information and provides NuGet versioning information as well.</Description>
+    <Copyright>Copyright © Andrew Arnott</Copyright>
+    <PackageTags>git commit versioning version assemblyinfo</PackageTags>
+    <PackageLicenseUrl>https://raw.githubusercontent.com/AArnott/Nerdbank.GitVersioning/39ac76891c/LICENSE.txt</PackageLicenseUrl>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <PackageProjectUrl>http://github.com/aarnott/Nerdbank.GitVersioning</PackageProjectUrl>
+    <SignAssembly>false</SignAssembly>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Cake.Core" Version="0.26.0" />
+    <PackageReference Include="Nerdbank.GitVersioning.LKG" Version="1.6.20-beta-gfea83a8c9e" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\NerdBank.GitVersioning\NerdBank.GitVersioning.csproj" PrivateAssets="true" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Content Include="$(OutputPath)\NerdBank.GitVersioning.dll">
+      <PackagePath>lib\$(TargetFramework)\</PackagePath>
+      <Pack>true</Pack>
+    </Content>
+	
+	<Content Include="$(OutputPath)\LibGit2Sharp.dll">
+      <PackagePath>lib\$(TargetFramework)</PackagePath>
+      <Pack>true</Pack>
+    </Content>
+    <Content Include="$(OutputPath)\lib\**\*">
+      <PackagePath>lib\$(TargetFramework)\lib</PackagePath>
+      <Pack>true</Pack>
+    </Content>
+	
+	<Content Include="$(OutputPath)\Newtonsoft.Json.dll">
+      <PackagePath>lib\$(TargetFramework)</PackagePath>
+      <Pack>true</Pack>
+    </Content>
+	
+	<Content Include="$(OutputPath)\Validation.dll">
+      <PackagePath>lib\$(TargetFramework)</PackagePath>
+      <Pack>true</Pack>
+    </Content>
+  </ItemGroup>
+
+</Project>

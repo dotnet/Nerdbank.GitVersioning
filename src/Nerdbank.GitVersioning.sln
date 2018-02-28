@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26228.9
+VisualStudioVersion = 15.0.27130.2010
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{5DD5E4FA-CB73-4610-85AB-557B54E96AA9}") = "Nerdbank.GitVersioning.NuGet", "Nerdbank.GitVersioning.NuGet\Nerdbank.GitVersioning.NuGet.nuproj", "{B7DE4122-9E90-43DE-BE44-454315CFAE99}"
 EndProject
@@ -26,6 +26,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nerdbank.GitVersioning.Tasks", "Nerdbank.GitVersioning.Tasks\Nerdbank.GitVersioning.Tasks.csproj", "{B2454569-6EDC-4FD4-9936-D2B2F2E10409}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MSBuildExtensionTask", "MSBuildExtensionTask\MSBuildExtensionTask.csproj", "{568CD02D-49C4-49DB-A34D-2DE9D7A0FE85}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cake.GitVersioning", "Cake.GitVersioning\Cake.GitVersioning.csproj", "{1F267A97-DFE3-4166-83B1-9D236B7A09BD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -99,8 +101,23 @@ Global
 		{568CD02D-49C4-49DB-A34D-2DE9D7A0FE85}.Release|x64.Build.0 = Release|Any CPU
 		{568CD02D-49C4-49DB-A34D-2DE9D7A0FE85}.Release|x86.ActiveCfg = Release|Any CPU
 		{568CD02D-49C4-49DB-A34D-2DE9D7A0FE85}.Release|x86.Build.0 = Release|Any CPU
+		{1F267A97-DFE3-4166-83B1-9D236B7A09BD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1F267A97-DFE3-4166-83B1-9D236B7A09BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1F267A97-DFE3-4166-83B1-9D236B7A09BD}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{1F267A97-DFE3-4166-83B1-9D236B7A09BD}.Debug|x64.Build.0 = Debug|Any CPU
+		{1F267A97-DFE3-4166-83B1-9D236B7A09BD}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{1F267A97-DFE3-4166-83B1-9D236B7A09BD}.Debug|x86.Build.0 = Debug|Any CPU
+		{1F267A97-DFE3-4166-83B1-9D236B7A09BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1F267A97-DFE3-4166-83B1-9D236B7A09BD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1F267A97-DFE3-4166-83B1-9D236B7A09BD}.Release|x64.ActiveCfg = Release|Any CPU
+		{1F267A97-DFE3-4166-83B1-9D236B7A09BD}.Release|x64.Build.0 = Release|Any CPU
+		{1F267A97-DFE3-4166-83B1-9D236B7A09BD}.Release|x86.ActiveCfg = Release|Any CPU
+		{1F267A97-DFE3-4166-83B1-9D236B7A09BD}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {03CE16EE-A939-43FB-B846-92EB3A797ECF}
 	EndGlobalSection
 EndGlobal
