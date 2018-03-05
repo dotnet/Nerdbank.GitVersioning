@@ -28,9 +28,11 @@ namespace Cake.GitVersioning
         [CakeMethodAlias]
         public static VersionOracle GitVersioningGetVersion(this ICakeContext context, string projectDirectory = ".")
         {
+            var fullProjectDirectory = (new DirectoryInfo(projectDirectory)).FullName;
+
             GitExtensions.HelpFindLibGit2NativeBinaries(Path.GetDirectoryName(Assembly.GetAssembly(typeof(GitVersioningAliases)).Location));
 
-            return VersionOracle.Create(projectDirectory, null, CloudBuild.Active);
+            return VersionOracle.Create(fullProjectDirectory, null, CloudBuild.Active);
         }
     }
 }
