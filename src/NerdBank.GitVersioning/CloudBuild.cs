@@ -18,6 +18,7 @@
             new TeamCity(),
             new AtlassianBamboo(), 
             new Jenkins(),
+            new GitLab(),
         };
 
         /// <summary>
