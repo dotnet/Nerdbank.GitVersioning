@@ -4,7 +4,7 @@
     using System.IO;
     using System.Linq;
     using System.Reflection;
-#if NETCOREAPP1_0
+#if NETCOREAPP2_0
     using System.Runtime.Loader;
 #endif
     using Microsoft.Build.Framework;
@@ -18,7 +18,7 @@
 
         public override bool Execute()
         {
-#if NETCOREAPP1_0
+#if NETCOREAPP2_0
             string taskAssemblyPath = new Uri(this.GetType().GetTypeInfo().Assembly.CodeBase).LocalPath;
             var ctxt = new CustomAssemblyLoader(this);
             Assembly inContextAssembly = ctxt.LoadFromAssemblyPath(taskAssemblyPath);
@@ -68,7 +68,7 @@
 
         protected abstract bool ExecuteInner();
 
-#if NETCOREAPP1_0
+#if NETCOREAPP2_0
         private class CustomAssemblyLoader : AssemblyLoadContext
         {
             private readonly ContextAwareTask loaderTask;

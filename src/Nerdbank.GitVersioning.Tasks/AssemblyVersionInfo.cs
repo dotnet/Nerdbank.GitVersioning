@@ -14,7 +14,7 @@
 
     public class AssemblyVersionInfo : Task
     {
-#if NET45
+#if NET461
         private static readonly CodeGeneratorOptions codeGeneratorOptions = new CodeGeneratorOptions
         {
             BlankLinesBetweenMembers = false,
@@ -70,7 +70,7 @@
 
         public string AssemblyConfiguration { get; set; }
 
-#if NET45
+#if NET461
         public override bool Execute()
         {
             if (CodeDomProvider.IsDefinedLanguage(this.CodeLanguage))

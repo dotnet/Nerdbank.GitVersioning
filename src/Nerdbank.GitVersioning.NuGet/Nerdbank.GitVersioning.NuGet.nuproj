@@ -17,6 +17,7 @@
     <NuProjPath>$(UserProfile)\.nuget\packages\NuProj\0.11.14-beta\tools\</NuProjPath>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <OutDir>..\..\bin\$(Configuration)\</OutDir>
   </PropertyGroup>
   <Import Project="$(NuProjPath)\NuProj.props" Condition="Exists('$(NuProjPath)\NuProj.props')" />
@@ -87,13 +88,13 @@
   <Target Name="FixCrossTargetingProjectReferences" AfterTargets="ResolveProjectReferences">
     <ItemGroup>
       <CrossTargetProjects Include="@(_MSBuildProjectReferenceExistent)">
-        <SetPlatform>TargetFramework=net45;%(_MSBuildProjectReferenceExistent.SetPlatform)</SetPlatform>
-        <SetTargetFramework>TargetFramework=net45;ProjectHasSingleTargetFramework=false</SetTargetFramework>
+        <SetPlatform>TargetFramework=net461;%(_MSBuildProjectReferenceExistent.SetPlatform)</SetPlatform>
+        <SetTargetFramework>TargetFramework=net461;ProjectHasSingleTargetFramework=false</SetTargetFramework>
         <TargetSubdirectory>MSBuildFull</TargetSubdirectory>
       </CrossTargetProjects>
       <CrossTargetProjects Include="@(_MSBuildProjectReferenceExistent)">
-        <SetPlatform>TargetFramework=netcoreapp1.0;%(_MSBuildProjectReferenceExistent.SetPlatform)</SetPlatform>
-        <SetTargetFramework>TargetFramework=netcoreapp1.0;ProjectHasSingleTargetFramework=false</SetTargetFramework>
+        <SetPlatform>TargetFramework=netcoreapp2.0;%(_MSBuildProjectReferenceExistent.SetPlatform)</SetPlatform>
+        <SetTargetFramework>TargetFramework=netcoreapp2.0;ProjectHasSingleTargetFramework=false</SetTargetFramework>
         <TargetSubdirectory>MSBuildCore</TargetSubdirectory>
       </CrossTargetProjects>
       <_MSBuildProjectReferenceExistent Remove="@(CrossTargetProjects)" />
@@ -102,7 +103,7 @@
     <!-- Build the default target of our P2P ref to ensure it builds. Hacky workaround.-->
     <MSBuild Projects="@(CrossTargetProjects)"
              BuildInParallel="true"
-             Properties="TargetFramework=netcoreapp1.0;ProjectHasSingleTargetFramework=false"
+             Properties="TargetFramework=netcoreapp2.0;ProjectHasSingleTargetFramework=false"
              Condition=" '$(BuildingInsideVisualStudio)' != 'true' " />
   </Target>
   <Target Name="SkipFrameworkAssemblies" AfterTargets="GetPackageFiles">

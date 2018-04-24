@@ -1,9 +1,9 @@
 {
   "frameworks": {
-    "net451": { }
+    "net461": { }
   },
   "dependencies": {
-    "LibGit2Sharp": "0.24.7-g9fca61fdda",
+    "LibGit2Sharp": "0.25.0",
     "Nerdbank.GitVersioning.LKG": {
       "version": "1.6.20-beta-gfea83a8c9e",
       "suppressParent": "none"

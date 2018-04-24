@@ -1,17 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp1.0;net45</TargetFrameworks>
+    <TargetFrameworks>netcoreapp2.0;net461</TargetFrameworks>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Nerdbank.GitVersioning.LKG" Version="1.6.20-beta-gfea83a8c9e" PrivateAssets="all" />
     <PackageReference Include="NuProj.Common" Version="0.11.14-beta" PrivateAssets="all" />
   </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' == 'net45' ">
+  <ItemGroup Condition="'$(TargetFramework)' == 'net461' ">
     <PackageReference Include="Microsoft.Build.Tasks.Core" Version="14.3" />
   </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' == 'netcoreapp1.0'">
+  <ItemGroup Condition="'$(TargetFramework)' == 'netcoreapp2.0'">
     <PackageReference Include="Microsoft.Build.Tasks.Core" Version="15.1.548" />
     <PackageReference Include="System.Runtime.Loader" Version="4.3.0" />
   </ItemGroup>

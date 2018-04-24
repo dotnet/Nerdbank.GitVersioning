@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp1.0;net45</TargetFrameworks>
+    <TargetFrameworks>netcoreapp2.0;net461</TargetFrameworks>
     <IsTool>true</IsTool>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
