@@ -77,6 +77,18 @@ in your `version.json` file to `true`, as shown below:
 }
 ```
 
+There are many more MSBuild variables that the build will set within the build. To make *all* these available as cloud variables (prefixed with `NBGV_`), you can set the `cloudBuild.setAllVariables` field to `true`:
+
+```json
+{
+  "version": "1.0",
+  "cloudBuild": {
+    "setVersionVariables": true,
+    "setAllVariables": true
+  }
+}
+```
+
 ## CI Server specific configurations
 
 ### TeamCity
