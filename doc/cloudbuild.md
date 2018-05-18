@@ -83,7 +83,7 @@ There are many more MSBuild variables that the build will set within the build. 
 {
   "version": "1.0",
   "cloudBuild": {
-    "setVersionVariables": true
+    "setVersionVariables": true,
     "setAllVariables": true
   }
 }
