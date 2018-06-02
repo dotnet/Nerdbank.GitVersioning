@@ -18,10 +18,9 @@ try {
         & "$toolsPath\Restore-NuGetPackages.ps1" -Path $_ -Verbosity Quiet
     }
 
-    & dotnet restore "$PSScriptRoot\src\Cake.GitVersioning\Cake.GitVersioning.csproj"
-
     # Restore VS2017 style to get the rest of the projects.
     msbuild "$PSScriptRoot\src\NerdBank.GitVersioning.Tests\NerdBank.GitVersioning.Tests.csproj" /t:restore /v:minimal /m /nologo
+    msbuild "$PSScriptRoot\src\Cake.GitVersioning\Cake.GitVersioning.csproj" /t:restore /v:minimal /m /nologo
 
     Write-Host "Restoring NPM packages..." -ForegroundColor Yellow
     Push-Location "$PSScriptRoot\src\nerdbank-gitversioning.npm"
