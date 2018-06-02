@@ -12,22 +12,32 @@
     <SignAssembly>false</SignAssembly>
   </PropertyGroup>
 
+  <!-- This is a tools package and should express no dependencies. -->
+  <ItemDefinitionGroup>
+    <ProjectReference>
+      <PrivateAssets>all</PrivateAssets>
+    </ProjectReference>
+    <PackageReference>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemDefinitionGroup>
+
   <ItemGroup>
     <PackageReference Include="Cake.Core" Version="0.26.0" />
     <PackageReference Include="Nerdbank.GitVersioning.LKG" Version="1.6.20-beta-gfea83a8c9e" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\NerdBank.GitVersioning\NerdBank.GitVersioning.csproj" PrivateAssets="true" />
+    <ProjectReference Include="..\NerdBank.GitVersioning\NerdBank.GitVersioning.csproj" />
   </ItemGroup>
-  
+
   <ItemGroup>
     <Content Include="$(OutputPath)\NerdBank.GitVersioning.dll">
       <PackagePath>lib\$(TargetFramework)\</PackagePath>
       <Pack>true</Pack>
     </Content>
-	
-	<Content Include="$(OutputPath)\LibGit2Sharp.dll">
+
+    <Content Include="$(OutputPath)\LibGit2Sharp.dll">
       <PackagePath>lib\$(TargetFramework)</PackagePath>
       <Pack>true</Pack>
     </Content>
@@ -35,13 +45,13 @@
       <PackagePath>lib\$(TargetFramework)\lib</PackagePath>
       <Pack>true</Pack>
     </Content>
-	
-	<Content Include="$(OutputPath)\Newtonsoft.Json.dll">
+
+    <Content Include="$(OutputPath)\Newtonsoft.Json.dll">
       <PackagePath>lib\$(TargetFramework)</PackagePath>
       <Pack>true</Pack>
     </Content>
-	
-	<Content Include="$(OutputPath)\Validation.dll">
+
+    <Content Include="$(OutputPath)\Validation.dll">
       <PackagePath>lib\$(TargetFramework)</PackagePath>
       <Pack>true</Pack>
     </Content>
