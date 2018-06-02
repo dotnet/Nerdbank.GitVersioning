@@ -10,6 +10,10 @@
     <PackageTags>git commit versioning version assemblyinfo</PackageTags>
     <PackageProjectUrl>http://github.com/aarnott/Nerdbank.GitVersioning</PackageProjectUrl>
     <SignAssembly>false</SignAssembly>
+
+    <!-- We include the whole OutputPath in this tools package. -->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PackBuildOutputs</TargetsForTfmSpecificContentInPackage>
   </PropertyGroup>
 
   <!-- This is a tools package and should express no dependencies. -->
@@ -31,31 +35,13 @@
     <ProjectReference Include="..\NerdBank.GitVersioning\NerdBank.GitVersioning.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Content Include="$(OutputPath)\NerdBank.GitVersioning.dll">
-      <PackagePath>lib\$(TargetFramework)\</PackagePath>
-      <Pack>true</Pack>
-    </Content>
-
-    <Content Include="$(OutputPath)\LibGit2Sharp.dll">
-      <PackagePath>lib\$(TargetFramework)</PackagePath>
-      <Pack>true</Pack>
-    </Content>
-    <Content Include="$(OutputPath)\lib\**\*">
-      <PackagePath>lib\$(TargetFramework)\lib</PackagePath>
-      <Pack>true</Pack>
-    </Content>
-
-    <Content Include="$(OutputPath)\Newtonsoft.Json.dll">
-      <PackagePath>lib\$(TargetFramework)</PackagePath>
-      <Pack>true</Pack>
-    </Content>
-
-    <Content Include="$(OutputPath)\Validation.dll">
-      <PackagePath>lib\$(TargetFramework)</PackagePath>
-      <Pack>true</Pack>
-    </Content>
-  </ItemGroup>
+  <Target Name="PackBuildOutputs" DependsOnTargets="SatelliteDllsProjectOutputGroup;DebugSymbolsProjectOutputGroup">
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="$(OutputPath)\**\*" Exclude="$(OutputPath)\**\*.xml;$(OutputPath)\**\*.pdb;$(OutputPath)\**\Cake.Core.dll">
+        <PackagePath>lib\$(TargetFramework)\</PackagePath>
+      </TfmSpecificPackageFile>
+    </ItemGroup>
+  </Target>
 
   <Target Name="SetNuSpecProperties" BeforeTargets="GenerateNuspec" DependsOnTargets="GetBuildVersion">
     <PropertyGroup>
