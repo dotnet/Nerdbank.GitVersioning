@@ -2,11 +2,11 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.IO;
     using System.Linq;
-    using System.Text;
+    using System.Reflection;
     using System.Text.RegularExpressions;
-    using System.Threading.Tasks;
     using Validation;
 
     /// <summary>
@@ -15,18 +15,19 @@
     public class VersionOracle
     {
         /// <summary>
-        /// The cloud build suppport, if any.
+        /// A regex that matches on numeric identifiers for prerelease or build metadata.
         /// </summary>
-        private readonly ICloudBuild cloudBuild;
+        private static readonly Regex NumericIdentifierRegex = new Regex(@"(?<![\w-])(\d+)(?![\w-])");
+
+        /// <summary>
+        /// The 0.0 version.
+        /// </summary>
+        private static readonly Version Version0 = new Version(0, 0);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="VersionOracle"/> class.
         /// </summary>
-        /// <param name="projectDirectory"></param>
-        /// <param name="gitRepoDirectory"></param>
-        /// <param name="cloudBuild"></param>
-        /// <returns></returns>
-        public static VersionOracle Create(string projectDirectory, string gitRepoDirectory = null, ICloudBuild cloudBuild = null)
+        public static VersionOracle Create(string projectDirectory, string gitRepoDirectory = null, ICloudBuild cloudBuild = null, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null)
         {
             Requires.NotNull(projectDirectory, nameof(projectDirectory));
             if (string.IsNullOrEmpty(gitRepoDirectory))
@@ -36,35 +37,62 @@
 
             using (var git = OpenGitRepo(gitRepoDirectory))
             {
-                return new VersionOracle(projectDirectory, git, cloudBuild);
+                return new VersionOracle(projectDirectory, git, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot);
             }
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="VersionOracle"/> class.
         /// </summary>
-        public VersionOracle(string projectDirectory, LibGit2Sharp.Repository repo, ICloudBuild cloudBuild)
+        public VersionOracle(string projectDirectory, LibGit2Sharp.Repository repo, ICloudBuild cloudBuild, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null)
         {
-            this.cloudBuild = cloudBuild;
-            this.VersionOptions =
-                VersionFile.GetVersion(repo, projectDirectory) ??
-                VersionFile.GetVersion(projectDirectory);
-
             var repoRoot = repo?.Info?.WorkingDirectory?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             var relativeRepoProjectDirectory = !string.IsNullOrWhiteSpace(repoRoot)
-                ? projectDirectory.Substring(repoRoot.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                ? (!string.IsNullOrEmpty(projectPathRelativeToGitRepoRoot)
+                    ? projectPathRelativeToGitRepoRoot
+                    : projectDirectory.Substring(repoRoot.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))
                 : null;
 
             var commit = repo?.Head.Commits.FirstOrDefault();
+
+            var committedVersion = VersionFile.GetVersion(commit, relativeRepoProjectDirectory);
+
+            var workingVersion = VersionFile.GetVersion(projectDirectory);
+
+            if (overrideBuildNumberOffset.HasValue)
+            {
+                if (committedVersion != null)
+                {
+                    committedVersion.BuildNumberOffset = overrideBuildNumberOffset.Value;
+                }
+
+                if (workingVersion != null)
+                {
+                    workingVersion.BuildNumberOffset = overrideBuildNumberOffset.Value;
+                }
+            }
+
+            this.VersionOptions = committedVersion ?? workingVersion;
+
             this.GitCommitId = commit?.Id.Sha ?? cloudBuild?.GitCommitId ?? null;
-            this.VersionHeight = repo?.GetVersionHeight(relativeRepoProjectDirectory) ?? 0;
+            this.VersionHeight = CalculateVersionHeight(relativeRepoProjectDirectory, commit, committedVersion, workingVersion);
             this.BuildingRef = cloudBuild?.BuildingTag ?? cloudBuild?.BuildingBranch ?? repo?.Head.CanonicalName;
 
             // Override the typedVersion with the special build number and revision components, when available.
-            this.Version = repo?.GetIdAsVersion(relativeRepoProjectDirectory, this.VersionHeight) ?? this.VersionOptions?.Version.Version;
-            this.Version = this.Version ?? new Version(0, 0);
+            if (repo != null)
+            {
+                this.Version = GetIdAsVersion(commit, committedVersion, workingVersion, this.VersionHeight);
+            }
+            else
+            {
+                this.Version = this.VersionOptions?.Version.Version ?? Version0;
+            }
 
-            this.CloudBuildNumberOptions = this.VersionOptions?.CloudBuild?.BuildNumber ?? new VersionOptions.CloudBuildNumberOptions();
+            this.VersionHeightOffset = this.VersionOptions?.BuildNumberOffsetOrDefault ?? 0;
+
+            this.PrereleaseVersion = ReplaceMacros(this.VersionOptions?.Version.Prerelease ?? string.Empty);
+
+            this.CloudBuildNumberOptions = this.VersionOptions?.CloudBuild?.BuildNumberOrDefault ?? VersionOptions.CloudBuildNumberOptions.DefaultInstance;
 
             if (!string.IsNullOrEmpty(this.BuildingRef) && this.VersionOptions?.PublicReleaseRefSpec?.Length > 0)
             {
@@ -80,11 +108,11 @@
         {
             get
             {
-                var commitIdOptions = this.CloudBuildNumberOptions.IncludeCommitId ?? new VersionOptions.CloudBuildNumberCommitIdOptions();
-                bool includeCommitInfo = commitIdOptions.When == VersionOptions.CloudBuildNumberCommitWhen.Always ||
-                    (commitIdOptions.When == VersionOptions.CloudBuildNumberCommitWhen.NonPublicReleaseOnly && !this.PublicRelease);
-                bool commitIdInRevision = includeCommitInfo && commitIdOptions.Where == VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent;
-                bool commitIdInBuildMetadata = includeCommitInfo && commitIdOptions.Where == VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata;
+                var commitIdOptions = this.CloudBuildNumberOptions.IncludeCommitIdOrDefault;
+                bool includeCommitInfo = commitIdOptions.WhenOrDefault == VersionOptions.CloudBuildNumberCommitWhen.Always ||
+                    (commitIdOptions.WhenOrDefault == VersionOptions.CloudBuildNumberCommitWhen.NonPublicReleaseOnly && !this.PublicRelease);
+                bool commitIdInRevision = includeCommitInfo && commitIdOptions.WhereOrDefault == VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent;
+                bool commitIdInBuildMetadata = includeCommitInfo && commitIdOptions.WhereOrDefault == VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata;
                 Version buildNumberVersion = commitIdInRevision ? this.Version : this.SimpleVersion;
                 string buildNumberMetadata = FormatBuildMetadata(commitIdInBuildMetadata ? this.BuildMetadataWithCommitId : this.BuildMetadata);
                 return buildNumberVersion + this.PrereleaseVersion + buildNumberMetadata;
@@ -94,11 +122,13 @@
         /// <summary>
         /// Gets a value indicating whether the cloud build number should be set.
         /// </summary>
-        public bool CloudBuildNumberEnabled => this.CloudBuildNumberOptions.Enabled;
+        [Ignore]
+        public bool CloudBuildNumberEnabled => this.CloudBuildNumberOptions.EnabledOrDefault;
 
         /// <summary>
         /// Gets the build metadata identifiers, including the git commit ID as the first identifier if appropriate.
         /// </summary>
+        [Ignore]
         public IEnumerable<string> BuildMetadataWithCommitId
         {
             get
@@ -145,7 +175,7 @@
         /// <summary>
         /// Gets the prerelease version information.
         /// </summary>
-        public string PrereleaseVersion => this.VersionOptions?.Version.Prerelease ?? string.Empty;
+        public string PrereleaseVersion { get; }
 
         /// <summary>
         /// Gets the version information without a Revision component.
@@ -155,7 +185,7 @@
                 : new Version(this.Version.Major, this.Version.Minor);
 
         /// <summary>
-        /// Gets the build number (git height + offset) for this version.
+        /// Gets the build number (i.e. third integer, or PATCH) for this version.
         /// </summary>
         public int BuildNumber => Math.Max(0, this.Version.Build);
 
@@ -184,6 +214,13 @@
         /// </summary>
         public int VersionHeight { get; }
 
+        /// <summary>
+        /// The offset to add to the <see cref="VersionHeight"/>
+        /// when calculating the integer to use as the <see cref="BuildNumber"/>
+        /// or elsewhere that the {height} macro is used.
+        /// </summary>
+        public int VersionHeightOffset { get; }
+
         private string BuildingRef { get; }
 
         /// <summary>
@@ -192,15 +229,52 @@
         public Version Version { get; }
 
         /// <summary>
+        /// Gets a value indicating whether to set all cloud build variables prefaced with "NBGV_".
+        /// </summary>
+        [Ignore]
+        public bool CloudBuildAllVarsEnabled => this.VersionOptions?.CloudBuildOrDefault.SetAllVariablesOrDefault
+            ?? VersionOptions.CloudBuildOptions.DefaultInstance.SetAllVariablesOrDefault;
+
+        /// <summary>
+        /// Gets a dictionary of all cloud build variables that applies to this project,
+        /// regardless of the current setting of <see cref="CloudBuildAllVarsEnabled"/>.
+        /// </summary>
+        [Ignore]
+        public IDictionary<string, string> CloudBuildAllVars
+        {
+            get
+            {
+                var variables = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+                var properties = this.GetType().GetTypeInfo().GetProperties(BindingFlags.Public | BindingFlags.DeclaredOnly | BindingFlags.Instance);
+                foreach (var property in properties)
+                {
+                    if (property.GetCustomAttribute<IgnoreAttribute>() == null)
+                    {
+                        var value = property.GetValue(this);
+                        if (value != null)
+                        {
+                            variables.Add($"NBGV_{property.Name}", value.ToString());
+                        }
+                    }
+                }
+
+                return variables;
+            }
+        }
+
+        /// <summary>
         /// Gets a value indicating whether to set cloud build version variables.
         /// </summary>
-        public bool CloudBuildVersionVarsEnabled => this.VersionOptions?.CloudBuild?.SetVersionVariables
-            ?? (new VersionOptions.CloudBuildOptions()).SetVersionVariables;
+        [Ignore]
+        public bool CloudBuildVersionVarsEnabled => this.VersionOptions?.CloudBuildOrDefault.SetVersionVariablesOrDefault
+            ?? VersionOptions.CloudBuildOptions.DefaultInstance.SetVersionVariablesOrDefault;
 
         /// <summary>
         /// Gets a dictionary of cloud build variables that applies to this project,
         /// regardless of the current setting of <see cref="CloudBuildVersionVarsEnabled"/>.
         /// </summary>
+        [Ignore]
         public IDictionary<string, string> CloudBuildVersionVars
         {
             get
@@ -209,6 +283,7 @@
                 {
                     { "GitAssemblyInformationalVersion", this.AssemblyInformationalVersion },
                     { "GitBuildVersion", this.Version.ToString() },
+                    { "GitBuildVersionSimple", this.SimpleVersion.ToString() },
                 };
             }
         }
@@ -216,6 +291,7 @@
         /// <summary>
         /// Gets the list of build metadata identifiers to include in semver version strings.
         /// </summary>
+        [Ignore]
         public List<string> BuildMetadata { get; } = new List<string>();
 
         /// <summary>
@@ -226,7 +302,7 @@
         /// <summary>
         /// Gets the version to use for NuGet packages.
         /// </summary>
-        public string NuGetPackageVersion => this.SemVer1;
+        public string NuGetPackageVersion => this.VersionOptions?.NuGetPackageVersionOrDefault.SemVerOrDefault == 1 ? this.SemVer1 : this.SemVer2;
 
         /// <summary>
         /// Gets the version to use for NPM packages.
@@ -238,7 +314,7 @@
         /// when <see cref="PublicRelease"/> is <c>false</c>.
         /// </summary>
         public string SemVer1 =>
-            $"{this.Version.ToStringSafe(3)}{this.PrereleaseVersion}{this.SemVer1BuildMetadata}";
+            $"{this.Version.ToStringSafe(3)}{this.PrereleaseVersionSemVer1}{this.SemVer1BuildMetadata}";
 
         /// <summary>
         /// Gets a SemVer 2.0 compliant string that represents this version, including a +gCOMMITID suffix
@@ -247,13 +323,32 @@
         public string SemVer2 =>
             $"{this.Version.ToStringSafe(3)}{this.PrereleaseVersion}{this.SemVer2BuildMetadata}";
 
+        /// <summary>
+        /// Gets the minimum number of digits to use for numeric identifiers in SemVer 1.
+        /// </summary>
+        public int SemVer1NumericIdentifierPadding => this.VersionOptions?.SemVer1NumericIdentifierPaddingOrDefault ?? 4;
+
         private string SemVer1BuildMetadata =>
             this.PublicRelease ? string.Empty : $"-g{this.GitCommitIdShort}";
 
+        /// <summary>
+        /// Gets the build metadata that is appropriate for SemVer2 use.
+        /// </summary>
+        /// <remarks>
+        /// We always put the commit ID in the -prerelease tag for non-public releases.
+        /// But for public releases, we don't include it in the +buildMetadata section since it may be confusing for NuGet.
+        /// See https://github.com/AArnott/Nerdbank.GitVersioning/pull/132#issuecomment-307208561
+        /// </remarks>
         private string SemVer2BuildMetadata =>
-            FormatBuildMetadata(this.PublicRelease ? this.BuildMetadata : this.BuildMetadataWithCommitId);
+            (this.PublicRelease ? string.Empty : this.GitCommitIdShortForNonPublicPrereleaseTag) + FormatBuildMetadata(this.BuildMetadata);
+
+        private string PrereleaseVersionSemVer1 => MakePrereleaseSemVer1Compliant(this.PrereleaseVersion, SemVer1NumericIdentifierPadding);
+
+        private string GitCommitIdShortForNonPublicPrereleaseTag => (string.IsNullOrEmpty(this.PrereleaseVersion) ? "-" : ".") + $"g{this.GitCommitIdShort}";
 
         private VersionOptions.CloudBuildNumberOptions CloudBuildNumberOptions { get; }
+
+        private int VersionHeightWithOffset => this.VersionHeight + this.VersionHeightOffset;
 
         private static string FormatBuildMetadata(IEnumerable<string> identifiers) =>
             (identifiers?.Any() ?? false) ? "+" + string.Join(".", identifiers) : string.Empty;
@@ -265,6 +360,11 @@
         {
             Requires.NotNullOrEmpty(repoRoot, nameof(repoRoot));
             var gitDir = FindGitDir(repoRoot);
+
+            // Override Config Search paths to empty path to avoid new Repository instance to lookup for Global\System .gitconfig file
+            LibGit2Sharp.GlobalSettings.SetConfigSearchPaths(LibGit2Sharp.ConfigurationLevel.Global, string.Empty);
+            LibGit2Sharp.GlobalSettings.SetConfigSearchPaths(LibGit2Sharp.ConfigurationLevel.System, string.Empty);
+
             return gitDir == null ? null : new LibGit2Sharp.Repository(gitDir);
         }
 
@@ -313,8 +413,8 @@
             // If there is no repo, "version" could have uninitialized components (-1).
             version = version.EnsureNonNegativeComponents();
 
-            var assemblyVersion = versionOptions?.AssemblyVersion?.Version ?? new System.Version(version.Major, version.Minor);
-            var precision = versionOptions?.AssemblyVersion?.Precision ?? VersionOptions.DefaultVersionPrecision;
+            var assemblyVersion = versionOptions?.AssemblyVersionOrDefault.Version ?? new System.Version(version.Major, version.Minor);
+            var precision = versionOptions?.AssemblyVersionOrDefault.PrecisionOrDefault;
 
             assemblyVersion = new System.Version(
                 assemblyVersion.Major,
@@ -322,6 +422,81 @@
                 precision >= VersionOptions.VersionPrecision.Build ? version.Build : 0,
                 precision >= VersionOptions.VersionPrecision.Revision ? version.Revision : 0);
             return assemblyVersion.EnsureNonNegativeComponents(4);
+        }
+
+        /// <summary>
+        /// Replaces any macros found in a prerelease or build metadata string.
+        /// </summary>
+        /// <param name="prereleaseOrBuildMetadata">The prerelease or build metadata.</param>
+        /// <returns>The specified string, with macros substituted for actual values.</returns>
+        private string ReplaceMacros(string prereleaseOrBuildMetadata) => prereleaseOrBuildMetadata?.Replace("{height}", this.VersionHeightWithOffset.ToString(CultureInfo.InvariantCulture));
+
+        /// <summary>
+        /// Converts a semver 2 compliant "-beta.5" prerelease tag to a semver 1 compatible one.
+        /// </summary>
+        /// <param name="prerelease">The semver 2 prerelease tag, including its leading hyphen.</param>
+        /// <param name="paddingSize">The minimum number of digits to use for any numeric identifier.</param>
+        /// <returns>A semver 1 compliant prerelease tag. For example "-beta-0005".</returns>
+        private static string MakePrereleaseSemVer1Compliant(string prerelease, int paddingSize)
+        {
+            if (string.IsNullOrEmpty(prerelease))
+            {
+                return prerelease;
+            }
+
+            string paddingFormatter = "{0:" + new string('0', paddingSize) + "}";
+
+            string semver1 = prerelease;
+
+            // Identify numeric identifiers and pad them.
+            Assumes.True(prerelease.StartsWith("-"));
+            semver1 = "-" + NumericIdentifierRegex.Replace(semver1.Substring(1), m => string.Format(CultureInfo.InvariantCulture, paddingFormatter, int.Parse(m.Groups[1].Value)));
+
+            semver1 = semver1.Replace('.', '-');
+
+            return semver1;
+        }
+
+        private static int CalculateVersionHeight(string relativeRepoProjectDirectory, LibGit2Sharp.Commit headCommit, VersionOptions committedVersion, VersionOptions workingVersion)
+        {
+            var headCommitVersion = committedVersion?.Version?.Version ?? Version0;
+
+            if (IsVersionFileChangedInWorkingTree(committedVersion, workingVersion))
+            {
+                var workingCopyVersion = workingVersion?.Version?.Version;
+
+                if (workingCopyVersion == null || !workingCopyVersion.Equals(headCommitVersion))
+                {
+                    // The working copy has changed the major.minor version.
+                    // So by definition the version height is 0, since no commit represents it yet.
+                    return 0;
+                }
+            }
+
+            return headCommit?.GetHeight(c => c.CommitMatchesMajorMinorVersion(headCommitVersion, relativeRepoProjectDirectory)) ?? 0;
+        }
+
+        private static Version GetIdAsVersion(LibGit2Sharp.Commit headCommit, VersionOptions committedVersion, VersionOptions workingVersion, int versionHeight)
+        {
+            var version = IsVersionFileChangedInWorkingTree(committedVersion, workingVersion) ? workingVersion : committedVersion;
+
+            return headCommit.GetIdAsVersionHelper(version, versionHeight);
+        }
+
+        private static bool IsVersionFileChangedInWorkingTree(VersionOptions committedVersion, VersionOptions workingVersion)
+        {
+            if (workingVersion != null)
+            {
+                return !EqualityComparer<VersionOptions>.Default.Equals(workingVersion, committedVersion);
+            }
+
+            // A missing working version is a change only if it was previously commited.
+            return committedVersion != null;
+        }
+
+        [AttributeUsage(AttributeTargets.Property)]
+        private class IgnoreAttribute : Attribute
+        {
         }
     }
 }

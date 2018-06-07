@@ -11,9 +11,7 @@
     using System.Text;
     using Microsoft.Build.Framework;
     using Microsoft.Build.Utilities;
-#if NET45
-    using PInvoke;
-#endif
+
     public class AssemblyVersionInfo : Task
     {
 #if NET45
@@ -87,7 +85,9 @@
                     ns.Types.Add(this.CreateThisAssemblyClass());
 
                     Directory.CreateDirectory(Path.GetDirectoryName(this.OutputFile));
-                    using (var file = File.OpenWrite(this.OutputFile))
+                    FileStream file = null;
+                    Utilities.FileOperationWithRetry(() => file = File.OpenWrite(this.OutputFile));
+                    using (file)
                     {
                         using (var fileWriter = new StreamWriter(file, new UTF8Encoding(true), 4096, leaveOpen: true))
                         {
@@ -121,7 +121,7 @@
 
             // Determine information about the public key used in the assembly name.
             string publicKey, publicKeyToken;
-            this.ReadKeyInfo(out publicKey, out publicKeyToken);
+            bool hasKeyInfo = this.TryReadKeyInfo(out publicKey, out publicKeyToken);
 
             // Define the constants.
             thisAssembly.Members.AddRange(CreateFields(new Dictionary<string, string>
@@ -130,58 +130,25 @@
                     { "AssemblyFileVersion", this.AssemblyFileVersion },
                     { "AssemblyInformationalVersion", this.AssemblyInformationalVersion },
                     { "AssemblyName", this.AssemblyName },
-                    { "PublicKey", publicKey },
-                    { "PublicKeyToken", publicKeyToken },
                     { "AssemblyTitle", this.AssemblyTitle },
                     { "AssemblyProduct", this.AssemblyProduct },
                     { "AssemblyCopyright", this.AssemblyCopyright },
                     { "AssemblyCompany", this.AssemblyCompany },
                     { "AssemblyConfiguration", this.AssemblyConfiguration }
                 }).ToArray());
+            if (hasKeyInfo)
+            {
+                thisAssembly.Members.AddRange(CreateFields(new Dictionary<string, string>
+                {
+                    { "PublicKey", publicKey },
+                    { "PublicKeyToken", publicKeyToken },
+                }).ToArray());
+            }
 
             // These properties should be defined even if they are empty.
             thisAssembly.Members.Add(CreateField("RootNamespace", this.RootNamespace));
 
             return thisAssembly;
-        }
-
-       private void ReadKeyInfo(out string publicKey, out string publicKeyToken)
-        {
-            byte[] publicKeyBytes = null;
-            if (!string.IsNullOrEmpty(this.AssemblyOriginatorKeyFile) && File.Exists(this.AssemblyOriginatorKeyFile))
-            {
-                if (Path.GetExtension(this.AssemblyOriginatorKeyFile).Equals(".snk", StringComparison.OrdinalIgnoreCase))
-                {
-                    byte[] keyBytes = File.ReadAllBytes(this.AssemblyOriginatorKeyFile);
-                    bool publicKeyOnly = keyBytes[0] != 0x07;
-                    publicKeyBytes = publicKeyOnly ? keyBytes : MSCorEE.StrongNameGetPublicKey(keyBytes);
-                }
-            }
-            else if (!string.IsNullOrEmpty(this.AssemblyKeyContainerName))
-            {
-                publicKeyBytes = MSCorEE.StrongNameGetPublicKey(this.AssemblyKeyContainerName);
-            }
-
-            if (publicKeyBytes != null && publicKeyBytes.Length > 0) // If .NET 2.0 isn't installed, we get byte[0] back.
-            {
-                publicKey = ToHex(publicKeyBytes);
-                publicKeyToken = ToHex(MSCorEE.StrongNameTokenFromPublicKey(publicKeyBytes));
-            }
-            else
-            {
-                if (publicKeyBytes != null)
-                {
-                    this.Log.LogWarning("Unable to emit public key fields in ThisAssembly class because .NET 2.0 isn't installed.");
-                }
-
-                publicKey = null;
-                publicKeyToken = null;
-            }
-        }
-
-        private static string ToHex(byte[] data)
-        {
-            return BitConverter.ToString(data).Replace("-", "").ToLowerInvariant();
         }
 
         private IEnumerable<CodeAttributeDeclaration> CreateAssemblyAttributes()
@@ -248,7 +215,8 @@
                 this.CreateThisAssemblyClass();
 
                 Directory.CreateDirectory(Path.GetDirectoryName(this.OutputFile));
-                File.WriteAllText(this.OutputFile, this.generator.GetCode());
+                string fileContent = this.generator.GetCode();
+                Utilities.FileOperationWithRetry(() => File.WriteAllText(this.OutputFile, fileContent));
             }
 
             return !this.Log.HasLoggedErrors;
@@ -276,9 +244,9 @@
         {
             this.generator.StartThisAssemblyClass();
 
-            ////// Determine information about the public key used in the assembly name.
-            ////string publicKey, publicKeyToken;
-            ////this.ReadKeyInfo(out publicKey, out publicKeyToken);
+            // Determine information about the public key used in the assembly name.
+            string publicKey, publicKeyToken;
+            bool hasKeyInfo = this.TryReadKeyInfo(out publicKey, out publicKeyToken);
 
             // Define the constants.
             var fields = new Dictionary<string, string>
@@ -287,14 +255,18 @@
                     { "AssemblyFileVersion", this.AssemblyFileVersion },
                     { "AssemblyInformationalVersion", this.AssemblyInformationalVersion },
                     { "AssemblyName", this.AssemblyName },
-                    ////{ "PublicKey", publicKey },
-                    ////{ "PublicKeyToken", publicKeyToken },
                     { "AssemblyTitle", this.AssemblyTitle },
                     { "AssemblyProduct", this.AssemblyProduct },
                     { "AssemblyCopyright", this.AssemblyCopyright },
                     { "AssemblyCompany", this.AssemblyCompany },
                     { "AssemblyConfiguration", this.AssemblyConfiguration }
                 };
+            if (hasKeyInfo)
+            {
+                fields.Add("PublicKey", publicKey);
+                fields.Add("PublicKeyToken", publicKeyToken);
+            }
+
             foreach (var pair in fields)
             {
                 if (!string.IsNullOrEmpty(pair.Value))
@@ -389,5 +361,79 @@
             }
         }
 #endif
+
+        private static string ToHex(byte[] data)
+        {
+            return BitConverter.ToString(data).Replace("-", "").ToLowerInvariant();
+        }
+
+        /// <summary>
+        /// Gets the public key from a key container.
+        /// </summary>
+        /// <param name="containerName">The name of the container.</param>
+        /// <returns>The public key.</returns>
+        private static byte[] GetPublicKeyFromKeyContainer(string containerName)
+        {
+            throw new NotImplementedException();
+        }
+
+        private static byte[] GetPublicKeyFromKeyPair(byte[] keyPair)
+        {
+            byte[] publicKey;
+            if (CryptoBlobParser.TryGetPublicKeyFromPrivateKeyBlob(keyPair, out publicKey))
+            {
+                return publicKey;
+            }
+            else
+            {
+                throw new ArgumentException("Invalid keypair");
+            }
+        }
+
+        private bool TryReadKeyInfo(out string publicKey, out string publicKeyToken)
+        {
+            try
+            {
+                byte[] publicKeyBytes = null;
+                if (!string.IsNullOrEmpty(this.AssemblyOriginatorKeyFile) && File.Exists(this.AssemblyOriginatorKeyFile))
+                {
+                    if (Path.GetExtension(this.AssemblyOriginatorKeyFile).Equals(".snk", StringComparison.OrdinalIgnoreCase))
+                    {
+                        byte[] keyBytes = File.ReadAllBytes(this.AssemblyOriginatorKeyFile);
+                        bool publicKeyOnly = keyBytes[0] != 0x07;
+                        publicKeyBytes = publicKeyOnly ? keyBytes : GetPublicKeyFromKeyPair(keyBytes);
+                    }
+                }
+                else if (!string.IsNullOrEmpty(this.AssemblyKeyContainerName))
+                {
+                    publicKeyBytes = GetPublicKeyFromKeyContainer(this.AssemblyKeyContainerName);
+                }
+
+                if (publicKeyBytes != null && publicKeyBytes.Length > 0) // If .NET 2.0 isn't installed, we get byte[0] back.
+                {
+                    publicKey = ToHex(publicKeyBytes);
+                    publicKeyToken = ToHex(CryptoBlobParser.GetStrongNameTokenFromPublicKey(publicKeyBytes));
+                }
+                else
+                {
+                    if (publicKeyBytes != null)
+                    {
+                        this.Log.LogWarning("Unable to emit public key fields in ThisAssembly class because .NET 2.0 isn't installed.");
+                    }
+
+                    publicKey = null;
+                    publicKeyToken = null;
+                    return false;
+                }
+
+                return true;
+            }
+            catch (NotImplementedException)
+            {
+                publicKey = null;
+                publicKeyToken = null;
+                return false;
+            }
+        }
     }
 }

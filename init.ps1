@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-Restores all NuGet, NPM and Typings packages necessary to build this repository. 
+Restores all NuGet, NPM and Typings packages necessary to build this repository.
 #>
 [CmdletBinding(SupportsShouldProcess)]
 Param(
@@ -18,12 +18,7 @@ try {
         & "$toolsPath\Restore-NuGetPackages.ps1" -Path $_ -Verbosity Quiet
     }
 
-    # Restore VS solution dependencies
-    gci "$PSScriptRoot\src" -rec |? { $_.FullName.EndsWith('.sln') } |% {
-        & "$toolsPath\Restore-NuGetPackages.ps1" -Path $_.FullName -Verbosity Quiet
-    }
-
-    # Restore VS2017 style as well, since nuget 3.3 doesn't support it.
+    # Restore VS2017 style to get the rest of the projects.
     msbuild "$PSScriptRoot\src\NerdBank.GitVersioning.Tests\NerdBank.GitVersioning.Tests.csproj" /t:restore /v:minimal /m /nologo
 
     Write-Host "Restoring NPM packages..." -ForegroundColor Yellow

@@ -134,6 +134,9 @@ packages
 *.nuget.targets
 project.lock.json
 
+# NPM
+package-lock.json
+
 ## TODO: If the tool you use requires repositories.config
 ## uncomment the next line
 #!packages/repositories.config

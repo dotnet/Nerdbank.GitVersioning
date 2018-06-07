@@ -7,6 +7,7 @@
     using System.Reflection;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Converters;
+    using Validation;
 
     /// <summary>
     /// Describes the various versions and options required for the build.
@@ -20,19 +21,9 @@
         public const VersionPrecision DefaultVersionPrecision = VersionPrecision.Minor;
 
         /// <summary>
-        /// The JSON serializer settings to use.
+        /// The default value for the <see cref="SemVer1NumericIdentifierPaddingOrDefault"/> property.
         /// </summary>
-        public static JsonSerializerSettings JsonSettings => new JsonSerializerSettings
-        {
-            Converters = new JsonConverter[] {
-                new VersionConverter(),
-                new SemanticVersionJsonConverter(),
-                new AssemblyVersionOptionsConverter(),
-                new StringEnumConverter() { CamelCaseText = true },
-            },
-            ContractResolver = new VersionOptionsContractResolver(),
-            Formatting = Formatting.Indented,
-        };
+        private const int DefaultSemVer1NumericIdentifierPadding = 4;
 
         /// <summary>
         /// Gets or sets the default version to use.
@@ -49,6 +40,14 @@
         public AssemblyVersionOptions AssemblyVersion { get; set; }
 
         /// <summary>
+        /// Gets the version to use particularly for the <see cref="AssemblyVersionAttribute"/>
+        /// instead of the default <see cref="Version"/>.
+        /// </summary>
+        /// <value>An instance of <see cref="System.Version"/> or <c>null</c> to simply use the default <see cref="Version"/>.</value>
+        [JsonIgnore]
+        public AssemblyVersionOptions AssemblyVersionOrDefault => this.AssemblyVersion ?? AssemblyVersionOptions.DefaultInstance;
+
+        /// <summary>
         /// Gets or sets a number to add to the git height when calculating the <see cref="Version.Build"/> number.
         /// </summary>
         /// <value>Any integer (0, positive, or negative).</value>
@@ -57,7 +56,42 @@
         /// resulting in a negative build number.
         /// </remarks>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public int BuildNumberOffset { get; set; }
+        public int? BuildNumberOffset { get; set; }
+
+        /// <summary>
+        /// Gets a number to add to the git height when calculating the <see cref="Version.Build"/> number.
+        /// </summary>
+        /// <value>Any integer (0, positive, or negative).</value>
+        /// <remarks>
+        /// An error will result if this value is negative with such a magnitude as to exceed the git height,
+        /// resulting in a negative build number.
+        /// </remarks>
+        [JsonIgnore]
+        public int BuildNumberOffsetOrDefault => this.BuildNumberOffset ?? 0;
+
+        /// <summary>
+        /// Gets or sets the minimum number of digits to use for numeric identifiers in SemVer 1.
+        /// </summary>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public int? SemVer1NumericIdentifierPadding { get; set; }
+
+        /// <summary>
+        /// Gets the minimum number of digits to use for numeric identifiers in SemVer 1.
+        /// </summary>
+        [JsonIgnore]
+        public int SemVer1NumericIdentifierPaddingOrDefault => this.SemVer1NumericIdentifierPadding ?? DefaultSemVer1NumericIdentifierPadding;
+
+        /// <summary>
+        /// Gets or sets the options around NuGet version strings
+        /// </summary>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public NuGetPackageVersionOptions NuGetPackageVersion { get; set; }
+
+        /// <summary>
+        /// Gets the options around NuGet version strings
+        /// </summary>
+        [JsonIgnore]
+        public NuGetPackageVersionOptions NuGetPackageVersionOrDefault => this.NuGetPackageVersion ?? NuGetPackageVersionOptions.DefaultInstance;
 
         /// <summary>
         /// Gets or sets an array of regular expressions that describes branch or tag names that should
@@ -67,15 +101,37 @@
         public string[] PublicReleaseRefSpec { get; set; }
 
         /// <summary>
+        /// Gets an array of regular expressions that describes branch or tag names that should
+        /// be built with PublicRelease=true as the default value on build servers.
+        /// </summary>
+        [JsonIgnore]
+        public string[] PublicReleaseRefSpecOrDefault => this.PublicReleaseRefSpec ?? new string[0];
+
+        /// <summary>
         /// Gets or sets the options around cloud build.
         /// </summary>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
         public CloudBuildOptions CloudBuild { get; set; }
 
         /// <summary>
+        /// Gets the options around cloud build.
+        /// </summary>
+        [JsonIgnore]
+        public CloudBuildOptions CloudBuildOrDefault => this.CloudBuild ?? CloudBuildOptions.DefaultInstance;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this options object should inherit from an ancestor any settings that are not explicitly set in this one.
+        /// </summary>
+        /// <remarks>
+        /// When this is <c>true</c>, this object may not completely describe the options to be applied.
+        /// </remarks>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public bool Inherit { get; set; }
+
+        /// <summary>
         /// Gets the debugger display for this instance.
         /// </summary>
-        private string DebuggerDisplay => this.Version?.ToString();
+        private string DebuggerDisplay => this.Version?.ToString() ?? (this.Inherit ? "Inheriting version info" : "(missing version)");
 
         /// <summary>
         /// Initializes a new instance of the <see cref="VersionOptions"/> class
@@ -93,6 +149,26 @@
         }
 
         /// <summary>
+        /// Gets the <see cref="JsonSerializerSettings"/> to use based on certain requirements.
+        /// </summary>
+        /// <param name="includeDefaults"></param>
+        /// <returns>The serializer settings to use.</returns>
+        public static JsonSerializerSettings GetJsonSettings(bool includeDefaults = false)
+        {
+            return new JsonSerializerSettings
+            {
+                Converters = new JsonConverter[] {
+                    new VersionConverter(),
+                    new SemanticVersionJsonConverter(),
+                    new AssemblyVersionOptionsConverter(includeDefaults),
+                    new StringEnumConverter() { CamelCaseText = true },
+                },
+                ContractResolver = includeDefaults ? VersionOptionsContractResolver.IncludeDefaultsContractResolver : VersionOptionsContractResolver.ExcludeDefaultsContractResolver,
+                Formatting = Formatting.Indented,
+            };
+        }
+
+        /// <summary>
         /// Checks equality against another object.
         /// </summary>
         /// <param name="obj">The other instance.</param>
@@ -106,28 +182,14 @@
         /// Gets a hash code for this instance.
         /// </summary>
         /// <returns>The hash code.</returns>
-        public override int GetHashCode()
-        {
-            return this.Version?.GetHashCode() ?? 0;
-        }
+        public override int GetHashCode() => EqualWithDefaultsComparer.Singleton.GetHashCode(this);
 
         /// <summary>
         /// Checks equality against another instance of this class.
         /// </summary>
         /// <param name="other">The other instance.</param>
         /// <returns><c>true</c> if the instances have equal values; <c>false</c> otherwise.</returns>
-        public bool Equals(VersionOptions other)
-        {
-            if (other == null)
-            {
-                return false;
-            }
-
-            return EqualityComparer<SemanticVersion>.Default.Equals(this.Version, other.Version)
-                && EqualityComparer<AssemblyVersionOptions>.Default.Equals(this.AssemblyVersion, other.AssemblyVersion)
-                && EqualityComparer<CloudBuildOptions>.Default.Equals(this.CloudBuild ?? CloudBuildOptions.DefaultInstance, other.CloudBuild ?? CloudBuildOptions.DefaultInstance)
-                && this.BuildNumberOffset == other.BuildNumberOffset;
-        }
+        public bool Equals(VersionOptions other) => EqualWithDefaultsComparer.Singleton.Equals(this, other);
 
         /// <summary>
         /// Gets a value indicating whether <see cref="Version"/> is
@@ -138,13 +200,120 @@
             get
             {
                 return this.Version != null
-                    && this.AssemblyVersion == null;
+                    && this.AssemblyVersion == null
+                    && this.CloudBuild.IsDefault
+                    && this.BuildNumberOffset == 0
+                    && !this.SemVer1NumericIdentifierPadding.HasValue
+                    && !this.Inherit;
             }
         }
 
-        internal bool ShouldSerializeAssemblyVersion() => !(this.AssemblyVersion?.IsDefault ?? true);
+        /// <summary>
+        /// The class that contains settings for the <see cref="NuGetPackageVersion" /> property.
+        /// </summary>
+        public class NuGetPackageVersionOptions : IEquatable<NuGetPackageVersionOptions>
+        {
+            /// <summary>
+            /// The default (uninitialized) instance.
+            /// </summary>
+            internal static readonly NuGetPackageVersionOptions DefaultInstance = new NuGetPackageVersionOptions(isReadOnly: true)
+            {
+                semVer = 1.0f,
+            };
 
-        internal bool ShouldSerializeCloudBuild() => !(this.CloudBuild?.IsDefault ?? true);
+            [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+            private readonly bool isReadOnly;
+
+            [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+            private float? semVer;
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="NuGetPackageVersionOptions" /> class.
+            /// </summary>
+            public NuGetPackageVersionOptions()
+                : this(isReadOnly: false)
+            {
+            }
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="NuGetPackageVersionOptions" /> class.
+            /// </summary>
+            protected NuGetPackageVersionOptions(bool isReadOnly)
+            {
+                this.isReadOnly = isReadOnly;
+            }
+
+            /// <summary>
+            /// Gets or sets the version of SemVer (e.g. 1 or 2) that should be used when generating the package version.
+            /// </summary>
+            [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+            public float? SemVer
+            {
+                get => this.semVer;
+                set => this.SetIfNotReadOnly(ref this.semVer, value);
+            }
+
+            /// <summary>
+            /// Gets the version of SemVer (e.g. 1 or 2) that should be used when generating the package version.
+            /// </summary>
+            [JsonIgnore]
+            public float? SemVerOrDefault => this.SemVer ?? DefaultInstance.SemVer;
+
+            /// <inheritdoc />
+            public override bool Equals(object obj) => this.Equals(obj as NuGetPackageVersionOptions);
+
+            /// <inheritdoc />
+            public bool Equals(NuGetPackageVersionOptions other) => EqualWithDefaultsComparer.Singleton.Equals(this, other);
+
+            /// <inheritdoc />
+            public override int GetHashCode() => EqualWithDefaultsComparer.Singleton.GetHashCode(this);
+
+            /// <summary>
+            /// Gets a value indicating whether this instance is equivalent to the default instance.
+            /// </summary>
+            internal bool IsDefault => this.Equals(DefaultInstance);
+
+            /// <summary>
+            /// Sets the value of a field if this instance is not marked as read only.
+            /// </summary>
+            /// <typeparam name="T">The type of the value stored by the field.</typeparam>
+            /// <param name="field">The field to change.</param>
+            /// <param name="value">The value to set.</param>
+            private void SetIfNotReadOnly<T>(ref T field, T value)
+            {
+                Verify.Operation(!this.isReadOnly, "This instance is read only.");
+                field = value;
+            }
+
+            internal class EqualWithDefaultsComparer : IEqualityComparer<NuGetPackageVersionOptions>
+            {
+                internal static readonly EqualWithDefaultsComparer Singleton = new EqualWithDefaultsComparer();
+
+                private EqualWithDefaultsComparer() { }
+
+                /// <inheritdoc />
+                public bool Equals(NuGetPackageVersionOptions x, NuGetPackageVersionOptions y)
+                {
+                    if (x == null ^ y == null)
+                    {
+                        return false;
+                    }
+
+                    if (x == null)
+                    {
+                        return true;
+                    }
+
+                    return x.SemVerOrDefault == y.SemVerOrDefault;
+                }
+
+                /// <inheritdoc />
+                public int GetHashCode(NuGetPackageVersionOptions obj)
+                {
+                    return obj.SemVerOrDefault.GetHashCode();
+                }
+            }
+        }
 
         /// <summary>
         /// Describes the details of how the AssemblyVersion value will be calculated.
@@ -154,12 +323,25 @@
             /// <summary>
             /// The default (uninitialized) instance.
             /// </summary>
-            private static readonly AssemblyVersionOptions DefaultInstance = new AssemblyVersionOptions();
+            internal static readonly AssemblyVersionOptions DefaultInstance = new AssemblyVersionOptions(isReadOnly: true)
+            {
+                precision = DefaultVersionPrecision,
+            };
+
+            [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+            private readonly bool isReadOnly;
+
+            [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+            private Version version;
+
+            [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+            private VersionPrecision? precision;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="AssemblyVersionOptions"/> class.
             /// </summary>
             public AssemblyVersionOptions()
+                : this(isReadOnly: false)
             {
             }
 
@@ -168,46 +350,102 @@
             /// </summary>
             /// <param name="version">The assembly version (with major.minor components).</param>
             /// <param name="precision">The additional version precision to add toward matching the AssemblyFileVersion.</param>
-            public AssemblyVersionOptions(Version version, VersionPrecision precision = DefaultVersionPrecision)
+            public AssemblyVersionOptions(Version version, VersionPrecision? precision = null)
+                : this(isReadOnly: false)
             {
                 this.Version = version;
                 this.Precision = precision;
             }
 
             /// <summary>
+            /// Initializes a new instance of the <see cref="AssemblyVersionOptions"/> class.
+            /// </summary>
+            protected AssemblyVersionOptions(bool isReadOnly)
+            {
+                this.isReadOnly = isReadOnly;
+            }
+
+            /// <summary>
             /// Gets or sets the major.minor components of the assembly version.
             /// </summary>
             [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-            public Version Version { get; set; }
+            public Version Version
+            {
+                get => this.version;
+                set => this.SetIfNotReadOnly(ref this.version, value);
+            }
 
             /// <summary>
             /// Gets or sets the additional version precision to add toward matching the AssemblyFileVersion.
             /// </summary>
             [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-            [DefaultValue(DefaultVersionPrecision)]
-            public VersionPrecision Precision { get; set; } = DefaultVersionPrecision;
+            public VersionPrecision? Precision
+            {
+                get => this.precision;
+                set => this.SetIfNotReadOnly(ref this.precision, value);
+            }
+
+            /// <summary>
+            /// Gets the additional version precision to add toward matching the AssemblyFileVersion.
+            /// </summary>
+            [JsonIgnore]
+            public VersionPrecision PrecisionOrDefault => this.Precision ?? DefaultVersionPrecision;
 
             /// <inheritdoc />
             public override bool Equals(object obj) => this.Equals(obj as AssemblyVersionOptions);
 
             /// <inheritdoc />
-            public bool Equals(AssemblyVersionOptions other)
-            {
-                return other != null
-                    && EqualityComparer<Version>.Default.Equals(this.Version, other.Version)
-                    && this.Precision == other.Precision;
-            }
+            public bool Equals(AssemblyVersionOptions other) => EqualWithDefaultsComparer.Singleton.Equals(this, other);
 
             /// <inheritdoc />
-            public override int GetHashCode()
-            {
-                return (this.Version?.GetHashCode() ?? 0) + (int)this.Precision;
-            }
+            public override int GetHashCode() => EqualWithDefaultsComparer.Singleton.GetHashCode(this);
 
             /// <summary>
             /// Gets a value indicating whether this instance is equivalent to the default instance.
             /// </summary>
             internal bool IsDefault => this.Equals(DefaultInstance);
+
+            /// <summary>
+            /// Sets the value of a field if this instance is not marked as read only.
+            /// </summary>
+            /// <typeparam name="T">The type of the value stored by the field.</typeparam>
+            /// <param name="field">The field to change.</param>
+            /// <param name="value">The value to set.</param>
+            private void SetIfNotReadOnly<T>(ref T field, T value)
+            {
+                Verify.Operation(!this.isReadOnly, "This instance is read only.");
+                field = value;
+            }
+
+            internal class EqualWithDefaultsComparer : IEqualityComparer<AssemblyVersionOptions>
+            {
+                internal static readonly EqualWithDefaultsComparer Singleton = new EqualWithDefaultsComparer();
+
+                private EqualWithDefaultsComparer() { }
+
+                /// <inheritdoc />
+                public bool Equals(AssemblyVersionOptions x, AssemblyVersionOptions y)
+                {
+                    if (x == null ^ y == null)
+                    {
+                        return false;
+                    }
+
+                    if (x == null)
+                    {
+                        return true;
+                    }
+
+                    return EqualityComparer<Version>.Default.Equals(x.Version, y.Version)
+                        && x.PrecisionOrDefault == y.PrecisionOrDefault;
+                }
+
+                /// <inheritdoc />
+                public int GetHashCode(AssemblyVersionOptions obj)
+                {
+                    return (obj.Version?.GetHashCode() ?? 0) + (int)obj.PrecisionOrDefault;
+                }
+            }
         }
 
         /// <summary>
@@ -218,49 +456,143 @@
             /// <summary>
             /// The default (uninitialized) instance.
             /// </summary>
-            internal static readonly CloudBuildOptions DefaultInstance = new CloudBuildOptions();
+            internal static readonly CloudBuildOptions DefaultInstance = new CloudBuildOptions(isReadOnly: true)
+            {
+                setAllVariables = false,
+                setVersionVariables = true,
+            };
+
+            [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+            private readonly bool isReadOnly;
+
+            [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+            private bool? setAllVariables;
+
+            [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+            private bool? setVersionVariables;
+
+            [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+            private CloudBuildNumberOptions buildNumber;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="CloudBuildOptions"/> class.
             /// </summary>
             public CloudBuildOptions()
+                : this(false)
             {
+            }
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="CloudBuildOptions"/> class.
+            /// </summary>
+            protected CloudBuildOptions(bool isReadOnly)
+            {
+                this.isReadOnly = isReadOnly;
+            }
+
+            /// <summary>
+            /// Gets or sets a value indicating whether to elevate all build properties to cloud build variables prefaced with "NBGV_".
+            /// </summary>
+            public bool? SetAllVariables
+            {
+                get => this.setAllVariables;
+                set => this.SetIfNotReadOnly(ref this.setAllVariables, value);
             }
 
             /// <summary>
             /// Gets or sets a value indicating whether to elevate certain calculated version build properties to cloud build variables.
             /// </summary>
-            public bool SetVersionVariables { get; set; } = true;
+            public bool? SetVersionVariables
+            {
+                get => this.setVersionVariables;
+                set => this.SetIfNotReadOnly(ref this.setVersionVariables, value);
+            }
 
             /// <summary>
-            /// Override the build number preset by the cloud build with one enriched with version information.
+            /// Gets a value indicating whether to elevate all build properties to cloud build variables prefaced with "NBGV_".
             /// </summary>
-            public CloudBuildNumberOptions BuildNumber { get; set; }
+            [JsonIgnore]
+            public bool SetAllVariablesOrDefault => this.SetAllVariables ?? DefaultInstance.SetAllVariables.Value;
 
-            internal bool ShouldSerializeSetVersionVariables() => this.SetVersionVariables != DefaultInstance.SetVersionVariables;
+            /// <summary>
+            /// Gets a value indicating whether to elevate certain calculated version build properties to cloud build variables.
+            /// </summary>
+            [JsonIgnore]
+            public bool SetVersionVariablesOrDefault => this.SetVersionVariables ?? DefaultInstance.SetVersionVariables.Value;
+
+            /// <summary>
+            /// Gets or sets options around how and whether to set the build number preset by the cloud build with one enriched with version information.
+            /// </summary>
+            public CloudBuildNumberOptions BuildNumber
+            {
+                get => this.buildNumber;
+                set => this.SetIfNotReadOnly(ref this.buildNumber, value);
+            }
+
+            /// <summary>
+            /// Gets options around how and whether to set the build number preset by the cloud build with one enriched with version information.
+            /// </summary>
+            [JsonIgnore]
+            public CloudBuildNumberOptions BuildNumberOrDefault => this.BuildNumber ?? CloudBuildNumberOptions.DefaultInstance;
 
             /// <inheritdoc />
             public override bool Equals(object obj) => this.Equals(obj as CloudBuildOptions);
 
             /// <inheritdoc />
-            public bool Equals(CloudBuildOptions other)
-            {
-                return other != null
-                    && this.SetVersionVariables == other.SetVersionVariables
-                    && EqualityComparer<CloudBuildNumberOptions>.Default.Equals(this.BuildNumber ?? CloudBuildNumberOptions.DefaultInstance, other.BuildNumber ?? CloudBuildNumberOptions.DefaultInstance);
-            }
+            public bool Equals(CloudBuildOptions other) => EqualWithDefaultsComparer.Singleton.Equals(this, other);
 
             /// <inheritdoc />
-            public override int GetHashCode()
-            {
-                return this.SetVersionVariables ? 1 : 0
-                    + this.BuildNumber?.GetHashCode() ?? 0;
-            }
+            public override int GetHashCode() => EqualWithDefaultsComparer.Singleton.GetHashCode(this);
 
             /// <summary>
             /// Gets a value indicating whether this instance is equivalent to the default instance.
             /// </summary>
             internal bool IsDefault => this.Equals(DefaultInstance);
+
+            /// <summary>
+            /// Sets the value of a field if this instance is not marked as read only.
+            /// </summary>
+            /// <typeparam name="T">The type of the value stored by the field.</typeparam>
+            /// <param name="field">The field to change.</param>
+            /// <param name="value">The value to set.</param>
+            private void SetIfNotReadOnly<T>(ref T field, T value)
+            {
+                Verify.Operation(!this.isReadOnly, "This instance is read only.");
+                field = value;
+            }
+
+            internal class EqualWithDefaultsComparer : IEqualityComparer<CloudBuildOptions>
+            {
+                internal static readonly EqualWithDefaultsComparer Singleton = new EqualWithDefaultsComparer();
+
+                private EqualWithDefaultsComparer() { }
+
+                /// <inheritdoc />
+                public bool Equals(CloudBuildOptions x, CloudBuildOptions y)
+                {
+                    if (x == null ^ y == null)
+                    {
+                        return false;
+                    }
+
+                    if (x == null)
+                    {
+                        return true;
+                    }
+
+                    return x.SetVersionVariablesOrDefault == y.SetVersionVariablesOrDefault
+                        && x.SetAllVariablesOrDefault == y.SetAllVariablesOrDefault
+                        && CloudBuildNumberOptions.EqualWithDefaultsComparer.Singleton.Equals(x.BuildNumberOrDefault, y.BuildNumberOrDefault);
+                }
+
+                /// <inheritdoc />
+                public int GetHashCode(CloudBuildOptions obj)
+                {
+                    return (obj.SetVersionVariablesOrDefault ? 1 : 0)
+                        + (obj.SetAllVariablesOrDefault ? 1 : 0)
+                        + obj.BuildNumberOrDefault.GetHashCode();
+                }
+            }
         }
 
         /// <summary>
@@ -271,49 +603,115 @@
             /// <summary>
             /// The default (uninitialized) instance.
             /// </summary>
-            internal static readonly CloudBuildNumberOptions DefaultInstance = new CloudBuildNumberOptions();
+            internal static readonly CloudBuildNumberOptions DefaultInstance = new CloudBuildNumberOptions(isReadOnly: true)
+            {
+                enabled = false,
+            };
+
+            [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+            private readonly bool isReadOnly;
+
+            [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+            private bool? enabled;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="CloudBuildNumberOptions"/> class.
             /// </summary>
             public CloudBuildNumberOptions()
+                : this(isReadOnly: false)
             {
+            }
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="CloudBuildNumberOptions"/> class.
+            /// </summary>
+            protected CloudBuildNumberOptions(bool isReadOnly)
+            {
+                this.isReadOnly = isReadOnly;
             }
 
             /// <summary>
             /// Gets or sets a value indicating whether to override the build number preset by the cloud build.
             /// </summary>
-            public bool Enabled { get; set; }
+            public bool? Enabled
+            {
+                get => this.enabled;
+                set => this.SetIfNotReadOnly(ref this.enabled, value);
+            }
 
             /// <summary>
-            /// Getse or sets when and where to include information about the git commit being built.
+            /// Gets a value indicating whether to override the build number preset by the cloud build.
+            /// </summary>
+            [JsonIgnore]
+            public bool EnabledOrDefault => this.Enabled ?? DefaultInstance.Enabled.Value;
+
+            /// <summary>
+            /// Gets or sets when and where to include information about the git commit being built.
             /// </summary>
             public CloudBuildNumberCommitIdOptions IncludeCommitId { get; set; }
 
-            internal bool ShouldSerializeIncludeCommitId() => !(this.IncludeCommitId?.IsDefault ?? true);
+            /// <summary>
+            /// Gets when and where to include information about the git commit being built.
+            /// </summary>
+            [JsonIgnore]
+            public CloudBuildNumberCommitIdOptions IncludeCommitIdOrDefault => this.IncludeCommitId ?? CloudBuildNumberCommitIdOptions.DefaultInstance;
 
             /// <inheritdoc />
             public override bool Equals(object obj) => this.Equals(obj as CloudBuildNumberOptions);
 
             /// <inheritdoc />
-            public bool Equals(CloudBuildNumberOptions other)
-            {
-                return other != null
-                    && this.Enabled == other.Enabled
-                    && EqualityComparer<CloudBuildNumberCommitIdOptions>.Default.Equals(this.IncludeCommitId ?? CloudBuildNumberCommitIdOptions.DefaultInstance, other.IncludeCommitId ?? CloudBuildNumberCommitIdOptions.DefaultInstance);
-            }
+            public bool Equals(CloudBuildNumberOptions other) => EqualWithDefaultsComparer.Singleton.Equals(this, other);
 
             /// <inheritdoc />
-            public override int GetHashCode()
-            {
-                return this.Enabled ? 1 : 0
-                    + this.IncludeCommitId?.GetHashCode() ?? 0;
-            }
+            public override int GetHashCode() => EqualWithDefaultsComparer.Singleton.GetHashCode(this);
 
             /// <summary>
             /// Gets a value indicating whether this instance is equivalent to the default instance.
             /// </summary>
             internal bool IsDefault => this.Equals(DefaultInstance);
+
+            /// <summary>
+            /// Sets the value of a field if this instance is not marked as read only.
+            /// </summary>
+            /// <typeparam name="T">The type of the value stored by the field.</typeparam>
+            /// <param name="field">The field to change.</param>
+            /// <param name="value">The value to set.</param>
+            private void SetIfNotReadOnly<T>(ref T field, T value)
+            {
+                Verify.Operation(!this.isReadOnly, "This instance is read only.");
+                field = value;
+            }
+
+            internal class EqualWithDefaultsComparer : IEqualityComparer<CloudBuildNumberOptions>
+            {
+                internal static readonly EqualWithDefaultsComparer Singleton = new EqualWithDefaultsComparer();
+
+                private EqualWithDefaultsComparer() { }
+
+                /// <inheritdoc />
+                public bool Equals(CloudBuildNumberOptions x, CloudBuildNumberOptions y)
+                {
+                    if (x == null ^ y == null)
+                    {
+                        return false;
+                    }
+
+                    if (x == null)
+                    {
+                        return true;
+                    }
+
+                    return x.EnabledOrDefault == y.EnabledOrDefault
+                        && CloudBuildNumberCommitIdOptions.EqualWithDefaultsComparer.Singleton.Equals(x.IncludeCommitIdOrDefault, y.IncludeCommitIdOrDefault);
+                }
+
+                /// <inheritdoc />
+                public int GetHashCode(CloudBuildNumberOptions obj)
+                {
+                    return obj.EnabledOrDefault ? 1 : 0
+                        + obj.IncludeCommitIdOrDefault.GetHashCode();
+                }
+            }
         }
 
         /// <summary>
@@ -324,50 +722,154 @@
             /// <summary>
             /// The default (uninitialized) instance.
             /// </summary>
-            internal static readonly CloudBuildNumberCommitIdOptions DefaultInstance = new CloudBuildNumberCommitIdOptions();
+            internal static readonly CloudBuildNumberCommitIdOptions DefaultInstance = new CloudBuildNumberCommitIdOptions(isReadOnly: true)
+            {
+                when = CloudBuildNumberCommitWhen.NonPublicReleaseOnly,
+                where = CloudBuildNumberCommitWhere.BuildMetadata,
+            };
+
+            [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+            private readonly bool isReadOnly;
+
+            [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+            private CloudBuildNumberCommitWhen? when;
+
+            [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+            private CloudBuildNumberCommitWhere? where;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="CloudBuildNumberCommitIdOptions"/> class.
             /// </summary>
             public CloudBuildNumberCommitIdOptions()
+                : this(isReadOnly: false)
             {
+            }
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="CloudBuildNumberCommitIdOptions"/> class.
+            /// </summary>
+            protected CloudBuildNumberCommitIdOptions(bool isReadOnly)
+            {
+                this.isReadOnly = isReadOnly;
             }
 
             /// <summary>
             /// Gets or sets the conditions when the commit ID is included in the build number.
             /// </summary>
-            public CloudBuildNumberCommitWhen When { get; set; } = CloudBuildNumberCommitWhen.NonPublicReleaseOnly;
+            public CloudBuildNumberCommitWhen? When
+            {
+                get => this.when;
+                set => this.SetIfNotReadOnly(ref this.when, value);
+            }
+
+            /// <summary>
+            /// Gets the conditions when the commit ID is included in the build number.
+            /// </summary>
+            [JsonIgnore]
+            public CloudBuildNumberCommitWhen WhenOrDefault => this.When ?? DefaultInstance.When.Value;
 
             /// <summary>
             /// Gets or sets the position to include the commit ID information.
             /// </summary>
-            public CloudBuildNumberCommitWhere Where { get; set; } = CloudBuildNumberCommitWhere.BuildMetadata;
+            public CloudBuildNumberCommitWhere? Where
+            {
+                get => this.where;
+                set => this.SetIfNotReadOnly(ref this.where, value);
+            }
 
-            internal bool ShouldSerializeWhen() => this.When != DefaultInstance.When;
-
-            internal bool ShouldSerializeWhere() => this.Where != DefaultInstance.Where;
+            /// <summary>
+            /// Gets the position to include the commit ID information.
+            /// </summary>
+            [JsonIgnore]
+            public CloudBuildNumberCommitWhere WhereOrDefault => this.Where ?? DefaultInstance.Where.Value;
 
             /// <inheritdoc />
             public override bool Equals(object obj) => this.Equals(obj as CloudBuildNumberCommitIdOptions);
 
             /// <inheritdoc />
-            public bool Equals(CloudBuildNumberCommitIdOptions other)
-            {
-                return other != null
-                    && this.When == other.When
-                    && this.Where == other.Where;
-            }
-
+            public bool Equals(CloudBuildNumberCommitIdOptions other) => EqualWithDefaultsComparer.Singleton.Equals(this, other);
             /// <inheritdoc />
-            public override int GetHashCode()
-            {
-                return (int)this.Where + (int)this.When * 0x10;
-            }
+            public override int GetHashCode() => EqualWithDefaultsComparer.Singleton.GetHashCode(this);
 
             /// <summary>
             /// Gets a value indicating whether this instance is equivalent to the default instance.
             /// </summary>
             internal bool IsDefault => this.Equals(DefaultInstance);
+
+            /// <summary>
+            /// Sets the value of a field if this instance is not marked as read only.
+            /// </summary>
+            /// <typeparam name="T">The type of the value stored by the field.</typeparam>
+            /// <param name="field">The field to change.</param>
+            /// <param name="value">The value to set.</param>
+            private void SetIfNotReadOnly<T>(ref T field, T value)
+            {
+                Verify.Operation(!this.isReadOnly, "This instance is read only.");
+                field = value;
+            }
+
+            internal class EqualWithDefaultsComparer : IEqualityComparer<CloudBuildNumberCommitIdOptions>
+            {
+                internal static readonly EqualWithDefaultsComparer Singleton = new EqualWithDefaultsComparer();
+
+                private EqualWithDefaultsComparer() { }
+
+                /// <inheritdoc />
+                public bool Equals(CloudBuildNumberCommitIdOptions x, CloudBuildNumberCommitIdOptions y)
+                {
+                    if (x == null ^ y == null)
+                    {
+                        return false;
+                    }
+
+                    if (x == null)
+                    {
+                        return true;
+                    }
+
+                    return x.WhenOrDefault == y.WhenOrDefault
+                        && x.WhereOrDefault == y.WhereOrDefault;
+                }
+
+                /// <inheritdoc />
+                public int GetHashCode(CloudBuildNumberCommitIdOptions obj)
+                {
+                    return (int)obj.WhereOrDefault + (int)obj.WhenOrDefault * 0x10;
+                }
+            }
+        }
+
+        private class EqualWithDefaultsComparer : IEqualityComparer<VersionOptions>
+        {
+            internal static readonly EqualWithDefaultsComparer Singleton = new EqualWithDefaultsComparer();
+
+            private EqualWithDefaultsComparer() { }
+
+            /// <inheritdoc />
+            public bool Equals(VersionOptions x, VersionOptions y)
+            {
+                if (x == null ^ y == null)
+                {
+                    return false;
+                }
+
+                if (x == null)
+                {
+                    return true;
+                }
+
+                return EqualityComparer<SemanticVersion>.Default.Equals(x.Version, y.Version)
+                    && AssemblyVersionOptions.EqualWithDefaultsComparer.Singleton.Equals(x.AssemblyVersionOrDefault, y.AssemblyVersionOrDefault)
+                    && NuGetPackageVersionOptions.EqualWithDefaultsComparer.Singleton.Equals(x.NuGetPackageVersionOrDefault, y.NuGetPackageVersionOrDefault)
+                    && CloudBuildOptions.EqualWithDefaultsComparer.Singleton.Equals(x.CloudBuildOrDefault, y.CloudBuildOrDefault)
+                    && x.BuildNumberOffset == y.BuildNumberOffset;
+            }
+
+            /// <inheritdoc />
+            public int GetHashCode(VersionOptions obj)
+            {
+                return obj.Version?.GetHashCode() ?? 0;
+            }
         }
 
         /// <summary>

@@ -2,18 +2,15 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.ComponentModel;
-    using System.Diagnostics;
+    using System.Globalization;
     using System.IO;
     using System.Linq;
-    using System.Runtime.InteropServices;
-    using System.Text;
-    using System.Text.RegularExpressions;
     using Microsoft.Build.Framework;
     using Microsoft.Build.Utilities;
-    using Nerdbank.GitVersioning;
+    using MSBuildExtensionTask;
+    using Validation;
 
-    public class GetBuildVersion : Task
+    public class GetBuildVersion : ContextAwareTask
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="GetBuildVersion"/> class.
@@ -43,6 +40,25 @@
         /// Gets or sets the path to the repo root. If null or empty, behavior defaults to using Environment.CurrentDirectory and searching upwards.
         /// </summary>
         public string GitRepoRoot { get; set; }
+
+        /// <summary>
+        /// Gets or sets the relative path from the <see cref="GitRepoRoot"/> to the directory under it that contains the project being built.
+        /// </summary>
+        /// <value>
+        /// If not supplied, the directories from <see cref="GitRepoRoot"/> to <see cref="Environment.CurrentDirectory"/>
+        /// will be searched for version.json.
+        /// If supplied, the value <em>must</em> fall beneath the <see cref="GitRepoRoot"/> (i.e. this value should not contain "..\").
+        /// </value>
+        /// <remarks>
+        /// This property is useful when the project that MSBuild is building is not found under <see cref="GitRepoRoot"/> such that the
+        /// relative path can be calculated automatically.
+        /// </remarks>
+        public string ProjectPathRelativeToGitRepoRoot { get; set; }
+
+        /// <summary>
+        /// Gets or sets the optional override build number offset.
+        /// </summary>
+        public int OverrideBuildNumberOffset { get; set; } = int.MaxValue;
 
         /// <summary>
         /// Gets or sets the path to the folder that contains the NB.GV .targets file.
@@ -153,14 +169,25 @@
         [Output]
         public ITaskItem[] CloudBuildVersionVars { get; private set; }
 
-        public override bool Execute()
+        protected override string UnmanagedDllDirectory => GitExtensions.FindLibGit2NativeBinaries(Path.Combine(this.TargetsPath, "MSBuildFull"));
+
+        protected override bool ExecuteInner()
         {
             try
             {
-                GitExtensions.TryHelpFindLibGit2NativeBinaries(this.TargetsPath);
+                if (!string.IsNullOrEmpty(this.ProjectPathRelativeToGitRepoRoot))
+                {
+                    Requires.Argument(!Path.IsPathRooted(this.ProjectPathRelativeToGitRepoRoot), nameof(this.ProjectPathRelativeToGitRepoRoot), "Path must be relative.");
+                    Requires.Argument(!(
+                        this.ProjectPathRelativeToGitRepoRoot.Contains(".." + Path.DirectorySeparatorChar) || 
+                        this.ProjectPathRelativeToGitRepoRoot.Contains(".." + Path.AltDirectorySeparatorChar)),
+                        nameof(this.ProjectPathRelativeToGitRepoRoot),
+                        "Path must not use ..\\");
+                }
 
                 var cloudBuild = CloudBuild.Active;
-                var oracle = VersionOracle.Create(Directory.GetCurrentDirectory(), this.GitRepoRoot, cloudBuild);
+                var overrideBuildNumberOffset = (this.OverrideBuildNumberOffset == int.MaxValue) ? (int?)null : this.OverrideBuildNumberOffset;
+                var oracle = VersionOracle.Create(Directory.GetCurrentDirectory(), this.GitRepoRoot, cloudBuild, overrideBuildNumberOffset, this.ProjectPathRelativeToGitRepoRoot);
                 if (!string.IsNullOrEmpty(this.DefaultPublicRelease))
                 {
                     oracle.PublicRelease = string.Equals(this.DefaultPublicRelease, "true", StringComparison.OrdinalIgnoreCase);
@@ -188,20 +215,41 @@
                 this.NuGetPackageVersion = oracle.NuGetPackageVersion;
                 this.NpmPackageVersion = oracle.NpmPackageVersion;
 
+                IEnumerable<ITaskItem> cloudBuildVersionVars = null;
                 if (oracle.CloudBuildVersionVarsEnabled)
                 {
-                    this.CloudBuildVersionVars = oracle.CloudBuildVersionVars
-                        .Select(item => new TaskItem(item.Key, new Dictionary<string, string> { { "Value", item.Value } }))
-                        .ToArray();
+                    cloudBuildVersionVars = oracle.CloudBuildVersionVars
+                        .Select(item => new TaskItem(item.Key, new Dictionary<string, string> { { "Value", item.Value } }));
                 }
+
+                if (oracle.CloudBuildAllVarsEnabled)
+                {
+                    var allVariables = oracle.CloudBuildAllVars
+                        .Select(item => new TaskItem(item.Key, new Dictionary<string, string> { { "Value", item.Value } }));
+
+                    if (cloudBuildVersionVars != null)
+                    {
+                        cloudBuildVersionVars = cloudBuildVersionVars
+                            .Union(allVariables);
+                    }
+                    else
+                    {
+                        cloudBuildVersionVars = allVariables;
+                    }
+                }
+
+                if (cloudBuildVersionVars != null)
+                {
+                    this.CloudBuildVersionVars = cloudBuildVersionVars.ToArray();
+                }
+
+                return !this.Log.HasLoggedErrors;
             }
             catch (ArgumentOutOfRangeException ex)
             {
                 Log.LogErrorFromException(ex);
                 return false;
             }
-
-            return true;
         }
     }
 }

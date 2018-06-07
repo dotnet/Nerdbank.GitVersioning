@@ -13,16 +13,14 @@
 
     public abstract class RepoTestBase : IDisposable
     {
+        private readonly List<string> repoDirectories = new List<string>();
+
         public RepoTestBase(ITestOutputHelper logger)
         {
             Requires.NotNull(logger, nameof(logger));
 
             this.Logger = logger;
-            do
-            {
-                this.RepoPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-            } while (Directory.Exists(this.RepoPath));
-            Directory.CreateDirectory(this.RepoPath);
+            this.RepoPath = this.CreateDirectoryForNewRepo();
         }
 
         protected ITestOutputHelper Logger { get; }
@@ -39,18 +37,34 @@
             GC.SuppressFinalize(this);
         }
 
+        protected string CreateDirectoryForNewRepo()
+        {
+            string repoPath;
+            do
+            {
+                repoPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+            } while (Directory.Exists(repoPath));
+            Directory.CreateDirectory(repoPath);
+
+            this.repoDirectories.Add(repoPath);
+            return repoPath;
+        }
+
         protected virtual void Dispose(bool disposing)
         {
             if (disposing)
             {
                 this.Repo?.Dispose();
-                try
+                foreach (string dir in this.repoDirectories)
                 {
-                    TestUtilities.DeleteDirectory(this.RepoPath);
-                }
-                catch (IOException)
-                {
-                    // This happens in AppVeyor a lot.
+                    try
+                    {
+                        TestUtilities.DeleteDirectory(dir);
+                    }
+                    catch (IOException)
+                    {
+                        // This happens in AppVeyor a lot.
+                    }
                 }
             }
         }
@@ -107,7 +121,7 @@
             }
 
             string versionFilePath = VersionFile.SetVersion(Path.Combine(this.RepoPath, relativeDirectory), versionData);
-            return this.CommitVersionFile(versionFilePath, versionData.Version.ToString());
+            return this.CommitVersionFile(versionFilePath, versionData.Version?.ToString());
         }
 
         protected Commit CommitVersionFile(string versionFilePath, string version)
@@ -129,7 +143,7 @@
                     }
                 }
 
-                return this.Repo.Commit($"Add/write {relativeFilePath} set to {version}", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
+                return this.Repo.Commit($"Add/write {relativeFilePath} set to {version ?? "Inherited"}", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
             }
 
             return null;

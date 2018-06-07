@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
   <PropertyGroup>
-    <VersionSourceFile>$(IntermediateOutputPath)\$(AssemblyName).Version$(DefaultLanguageSourceExtension)</VersionSourceFile>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+
+    <PrepareForBuildDependsOn>
+      GenerateNativeVersionInfo;
+      $(PrepareForBuildDependsOn);
+    </PrepareForBuildDependsOn>
 
     <PrepareResourcesDependsOn>
       GenerateAssemblyVersionInfo;
@@ -23,6 +28,11 @@
       $(GenerateNuspecDependsOn)
     </GenerateNuspecDependsOn>
 
+    <GetPackageVersionDependsOn>
+      GetBuildVersion;
+      $(GetPackageVersionDependsOn)
+    </GetPackageVersionDependsOn>
+    
     <!-- Suppress assembly version info generation if not obviously compiling an assembly. -->
     <GenerateAssemblyVersionInfo Condition=" '$(GenerateAssemblyVersionInfo)' == '' and '$(TargetExt)' != '.dll' and '$(TargetExt)' != '.exe'">false</GenerateAssemblyVersionInfo>
 
@@ -38,6 +48,7 @@
   </PropertyGroup>
 
   <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="Nerdbank.GitVersioning.Tasks.AssemblyVersionInfo"/>
+  <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="Nerdbank.GitVersioning.Tasks.NativeVersionInfo"/>
   <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="Nerdbank.GitVersioning.Tasks.SetCloudBuildVariables"/>
   <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="Nerdbank.GitVersioning.Tasks.GetBuildVersion"/>
   <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="Nerdbank.GitVersioning.Tasks.CompareFiles"/>
@@ -54,6 +65,8 @@
       BuildMetadata="@(BuildMetadata)"
       DefaultPublicRelease="$(PublicRelease)"
       GitRepoRoot="$(GitRepoRoot)"
+      ProjectPathRelativeToGitRepoRoot="$(ProjectPathRelativeToGitRepoRoot)"
+      OverrideBuildNumberOffset="$(OverrideBuildNumberOffset)"
       TargetsPath="$(MSBuildThisFileDirectory)">
 
       <Output TaskParameter="Version" PropertyName="BuildVersion" />
@@ -120,6 +133,7 @@
 
   <Target Name="GenerateAssemblyVersionInfo" DependsOnTargets="GetBuildVersion" Condition=" '$(GenerateAssemblyVersionInfo)' != 'false' ">
     <PropertyGroup>
+      <VersionSourceFile>$(IntermediateOutputPath)\$(AssemblyName).Version$(DefaultLanguageSourceExtension)</VersionSourceFile>
       <NewVersionSourceFile>$(VersionSourceFile).new</NewVersionSourceFile>
       <UltimateResourceFallbackLocation Condition=" '$(DevDivProjectSubType)' != 'portable' ">UltimateResourceFallbackLocation.MainAssembly</UltimateResourceFallbackLocation>
     </PropertyGroup>
@@ -140,7 +154,7 @@
                   AssemblyConfiguration="$(Configuration)"
                   EmitNonVersionCustomAttributes="$(NBGV_EmitNonVersionCustomAttributes)"
                   />
-    <!-- Avoid applying the newly generated AssemblyVersionInfo.cs file to the build 
+    <!-- Avoid applying the newly generated AssemblyVersionInfo.cs file to the build
          unless it has changed in order to allow for incremental building. -->
     <Nerdbank.GitVersioning.Tasks.CompareFiles OriginalItems="$(VersionSourceFile)" NewItems="$(NewVersionSourceFile)">
       <Output TaskParameter="AreChanged" PropertyName="AssemblyVersionInfoChanged" />
@@ -148,6 +162,39 @@
     <Copy Condition=" '$(AssemblyVersionInfoChanged)' == 'true' " SourceFiles="$(NewVersionSourceFile)" DestinationFiles="$(VersionSourceFile)" />
     <ItemGroup>
       <Compile Include="$(VersionSourceFile)" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="GenerateNativeVersionInfo" DependsOnTargets="GetBuildVersion" Condition=" '$(Language)'=='C++' and '$(GenerateAssemblyVersionInfo)' != 'false' ">
+    <PropertyGroup>
+      <VersionSourceFile>$(IntermediateOutputPath)\$(AssemblyName).Version.rc</VersionSourceFile>
+      <NewVersionSourceFile>$(VersionSourceFile).new</NewVersionSourceFile>
+    </PropertyGroup>
+    <MakeDir Directories="$(IntermediatePath)"/>
+    <Nerdbank.GitVersioning.Tasks.NativeVersionInfo
+                  OutputFile="$(NewVersionSourceFile)"
+                  CodeLanguage="$(Language)"
+                  ConfigurationType="$(ConfigurationType)"
+                  AssemblyName="$(AssemblyName)"
+                  AssemblyVersion="$(AssemblyVersion)"
+                  AssemblyFileVersion="$(AssemblyFileVersion)"
+                  AssemblyInformationalVersion="$(AssemblyInformationalVersion)"
+                  AssemblyTitle="$(AssemblyTitle)"
+                  AssemblyProduct="$(AssemblyProduct)"
+                  AssemblyCopyright="$(AssemblyCopyright)"
+                  AssemblyCompany="$(AssemblyCompany)"
+                  AssemblyLanguage="$(AssemblyLanguage)"
+                  AssemblyCodepage="$(AssemblyCodepage)"
+                  TargetFileName="$(TargetFileName)"
+                  />
+    <!-- Avoid applying the newly generated Version.rc file to the build
+         unless it has changed in order to allow for incremental building. -->
+    <Nerdbank.GitVersioning.Tasks.CompareFiles OriginalItems="$(VersionSourceFile)" NewItems="$(NewVersionSourceFile)">
+      <Output TaskParameter="AreChanged" PropertyName="_NativeVersionInfoChanged" />
+    </Nerdbank.GitVersioning.Tasks.CompareFiles>
+    <Copy Condition=" '$(_NativeVersionInfoChanged)' == 'true' " SourceFiles="$(NewVersionSourceFile)" DestinationFiles="$(VersionSourceFile)" />
+    <ItemGroup>
+      <ResourceCompile Include="$(VersionSourceFile)" />
     </ItemGroup>
   </Target>
 

@@ -72,6 +72,8 @@ public class BuildIntegrationTests : RepoTestBase
         }
     }
 
+    private string CommitIdShort => this.Repo.Head.Commits.First().Id.Sha.Substring(0, 10);
+
     protected override void Dispose(bool disposing)
     {
         Environment.SetEnvironmentVariable("_NBGV_UnitTest", string.Empty);
@@ -96,6 +98,20 @@ public class BuildIntegrationTests : RepoTestBase
         var buildResult = await this.BuildAsync();
         Assert.Equal("3.4", buildResult.BuildVersion);
         Assert.Equal("3.4.0", buildResult.AssemblyInformationalVersion);
+    }
+
+    [Fact]
+    public async Task GetBuildVersion_WithThreeVersionIntegers()
+    {
+        VersionOptions workingCopyVersion = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("7.8.9-beta.3"),
+            SemVer1NumericIdentifierPadding = 1,
+        };
+        this.WriteVersionFile(workingCopyVersion);
+        this.InitializeSourceControl();
+        var buildResult = await this.BuildAsync();
+        this.AssertStandardProperties(workingCopyVersion, buildResult);
     }
 
     [Fact]
@@ -367,6 +383,21 @@ public class BuildIntegrationTests : RepoTestBase
     }
 
     [Fact]
+    public async Task GetBuildVersion_OverrideBuildNumberOffset()
+    {
+        this.WriteVersionFile("14.0");
+        this.InitializeSourceControl();
+        var versionOptions = new VersionOptions
+        {
+            Version = new SemanticVersion(new Version(14, 1))
+        };
+        this.WriteVersionFile(versionOptions);
+        this.testProject.AddProperty("OverrideBuildNumberOffset", "10");
+        var buildResult = await this.BuildAsync();
+        Assert.Equal("14.1.11.31122", buildResult.AssemblyFileVersion);
+    }
+
+    [Fact]
     public async Task GetBuildVersion_Minus1BuildOffset_NotYetCommitted()
     {
         this.WriteVersionFile("14.0");
@@ -377,6 +408,21 @@ public class BuildIntegrationTests : RepoTestBase
             BuildNumberOffset = -1,
         };
         VersionFile.SetVersion(this.RepoPath, versionOptions);
+        var buildResult = await this.BuildAsync();
+        this.AssertStandardProperties(versionOptions, buildResult);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(21)]
+    public async Task GetBuildVersion_BuildNumberSpecifiedInVersionJson(int buildNumber)
+    {
+        var versionOptions = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("14.0." + buildNumber),
+        };
+        this.WriteVersionFile(versionOptions);
+        this.InitializeSourceControl();
         var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(versionOptions, buildResult);
     }
@@ -405,6 +451,7 @@ public class BuildIntegrationTests : RepoTestBase
             new object[] { CloudBuild.AppVeyor.SetItem("APPVEYOR_REPO_BRANCH", branchName) },
             new object[] { CloudBuild.VSTS.SetItem("BUILD_SOURCEBRANCH", $"refs/heads/{branchName}") },
             new object[] { CloudBuild.VSTS.SetItem("BUILD_SOURCEBRANCH", branchName) }, // VSTS building a github repo
+            new object[] { CloudBuild.Teamcity.SetItem("BUILD_GIT_BRANCH", $"refs/heads/{branchName}") },
         };
     }
 
@@ -437,14 +484,15 @@ public class BuildIntegrationTests : RepoTestBase
         {
             return new object[][]
             {
-                new object[] { CloudBuild.VSTS, "##vso[task.setvariable variable={NAME};]{VALUE}" },
+                new object[] { CloudBuild.VSTS, "##vso[task.setvariable variable={NAME};]{VALUE}", false },
+                new object[] { CloudBuild.VSTS, "##vso[task.setvariable variable={NAME};]{VALUE}", true },
             };
         }
     }
 
     [Theory]
     [MemberData(nameof(CloudBuildVariablesData))]
-    public async Task CloudBuildVariables_SetInCI(IReadOnlyDictionary<string, string> properties, string expectedMessage)
+    public async Task CloudBuildVariables_SetInCI(IReadOnlyDictionary<string, string> properties, string expectedMessage, bool setAllVariables)
     {
         using (ApplyEnvironmentVariables(properties))
         {
@@ -459,22 +507,45 @@ public class BuildIntegrationTests : RepoTestBase
             var versionOptions = new VersionOptions
             {
                 Version = SemanticVersion.Parse("1.0"),
-                CloudBuild = new VersionOptions.CloudBuildOptions { SetVersionVariables = true },
+                CloudBuild = new VersionOptions.CloudBuildOptions { SetAllVariables = setAllVariables, SetVersionVariables = true },
             };
             this.WriteVersionFile(versionOptions);
             this.InitializeSourceControl();
 
             var buildResult = await this.BuildAsync();
             AssertStandardProperties(versionOptions, buildResult);
+
+            // Assert GitBuildVersion was set
             string conditionallyExpectedMessage = UnitTestCloudBuildPrefix + expectedMessage
                 .Replace("{NAME}", "GitBuildVersion")
                 .Replace("{VALUE}", buildResult.BuildVersion);
             Assert.Contains(alwaysExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
             Assert.Contains(conditionallyExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
 
+            // Assert GitBuildVersionSimple was set
+            conditionallyExpectedMessage = UnitTestCloudBuildPrefix + expectedMessage
+                .Replace("{NAME}", "GitBuildVersionSimple")
+                .Replace("{VALUE}", buildResult.BuildVersionSimple);
+            Assert.Contains(alwaysExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
+            Assert.Contains(conditionallyExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
+
             // Assert that project properties are also set.
             Assert.Equal(buildResult.BuildVersion, buildResult.GitBuildVersion);
+            Assert.Equal(buildResult.BuildVersionSimple, buildResult.GitBuildVersionSimple);
             Assert.Equal(buildResult.AssemblyInformationalVersion, buildResult.GitAssemblyInformationalVersion);
+
+            if (setAllVariables)
+            {
+                // Assert that some project properties were set as build properties prefaced with "NBGV_".
+                Assert.Equal(buildResult.GitCommitIdShort, buildResult.NBGV_GitCommitIdShort);
+                Assert.Equal(buildResult.NuGetPackageVersion, buildResult.NBGV_NuGetPackageVersion);
+            }
+            else
+            {
+                // Assert that the NBGV_ prefixed properties are *not* set.
+                Assert.Equal(string.Empty, buildResult.NBGV_GitCommitIdShort);
+                Assert.Equal(string.Empty, buildResult.NBGV_NuGetPackageVersion);
+            }
 
             // Assert that env variables were also set in context of the build.
             Assert.True(buildResult.LoggedEvents.Any(e => string.Equals(e.Message, $"n1=v1", StringComparison.OrdinalIgnoreCase)));
@@ -483,12 +554,22 @@ public class BuildIntegrationTests : RepoTestBase
             this.WriteVersionFile(versionOptions);
             buildResult = await this.BuildAsync();
             AssertStandardProperties(versionOptions, buildResult);
+
+            // Assert GitBuildVersion was not set
             conditionallyExpectedMessage = UnitTestCloudBuildPrefix + expectedMessage
                 .Replace("{NAME}", "GitBuildVersion")
                 .Replace("{VALUE}", buildResult.BuildVersion);
             Assert.Contains(alwaysExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
             Assert.DoesNotContain(conditionallyExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
             Assert.NotEqual(buildResult.BuildVersion, buildResult.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitBuildVersion"));
+
+            // Assert GitBuildVersionSimple was not set
+            conditionallyExpectedMessage = UnitTestCloudBuildPrefix + expectedMessage
+                .Replace("{NAME}", "GitBuildVersionSimple")
+                .Replace("{VALUE}", buildResult.BuildVersionSimple);
+            Assert.Contains(alwaysExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
+            Assert.DoesNotContain(conditionallyExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
+            Assert.NotEqual(buildResult.BuildVersionSimple, buildResult.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitBuildVersionSimple"));
         }
     }
 
@@ -549,11 +630,15 @@ public class BuildIntegrationTests : RepoTestBase
 
     [Theory]
     [PairwiseData]
-    public async Task BuildNumber_VariousOptions(bool isPublic, VersionOptions.CloudBuildNumberCommitWhere where, VersionOptions.CloudBuildNumberCommitWhen when, [CombinatorialValues(0, 1, 2)] int extraBuildMetadataCount)
+    public async Task BuildNumber_VariousOptions(bool isPublic, VersionOptions.CloudBuildNumberCommitWhere where, VersionOptions.CloudBuildNumberCommitWhen when, [CombinatorialValues(0, 1, 2)] int extraBuildMetadataCount, [CombinatorialValues(1, 2)] int semVer)
     {
         var versionOptions = BuildNumberVersionOptionsBasis;
         versionOptions.CloudBuild.BuildNumber.IncludeCommitId.Where = where;
         versionOptions.CloudBuild.BuildNumber.IncludeCommitId.When = when;
+        versionOptions.NuGetPackageVersion = new VersionOptions.NuGetPackageVersionOptions
+        {
+            SemVer = semVer,
+        };
         this.WriteVersionFile(versionOptions);
         this.InitializeSourceControl();
 
@@ -767,6 +852,29 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Empty(result.LoggedEvents.OfType<BuildWarningEventArgs>());
     }
 
+    /// <summary>
+    /// Create a native resource .dll and verify that its version
+    ///  information is set correctly.
+    /// </summary>
+    [Fact]
+    public async Task NativeVersionInfo_CreateNativeResourceDll()
+    {
+        this.testProject = this.CreateNativeProjectRootElement(this.projectDirectory, "test.vcxproj");
+        this.WriteVersionFile();
+        var result = await this.BuildAsync(Targets.Build, logVerbosity: LoggerVerbosity.Minimal);
+        Assert.Empty(result.LoggedEvents.OfType<BuildErrorEventArgs>());
+
+        string targetFile = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("TargetPath"));
+        Assert.True(File.Exists(targetFile));
+
+        var fileInfo = FileVersionInfo.GetVersionInfo(targetFile);
+        Assert.Equal("1.2", fileInfo.FileVersion);
+        Assert.Equal("1.2.0", fileInfo.ProductVersion);
+        Assert.Equal("test", fileInfo.InternalName);
+        Assert.Equal("NerdBank", fileInfo.CompanyName);
+        Assert.Equal($"Copyright (c) {DateTime.Now.Year}. All rights reserved.", fileInfo.LegalCopyright);
+    }
+
     private static Version GetExpectedAssemblyVersion(VersionOptions versionOptions, Version version)
     {
         // Function should be very similar to VersionOracle.GetAssemblyVersion()
@@ -799,7 +907,7 @@ public class BuildIntegrationTests : RepoTestBase
     {
         int versionHeight = this.Repo.GetVersionHeight(relativeProjectDirectory);
         Version idAsVersion = this.Repo.GetIdAsVersion(relativeProjectDirectory);
-        string commitIdShort = this.Repo.Head.Commits.First().Id.Sha.Substring(0, 10);
+        string commitIdShort = this.CommitIdShort;
         Version version = this.Repo.GetIdAsVersion(relativeProjectDirectory);
         Version assemblyVersion = GetExpectedAssemblyVersion(versionOptions, version);
         var additionalBuildMetadata = from item in buildResult.BuildResult.ProjectStateAfterBuild.GetItems("BuildMetadata")
@@ -809,6 +917,8 @@ public class BuildIntegrationTests : RepoTestBase
         {
             expectedBuildMetadata += "." + string.Join(".", additionalBuildMetadata);
         }
+
+        string expectedBuildMetadataWithoutCommitId = additionalBuildMetadata.Any() ? $"+{string.Join(".", additionalBuildMetadata)}" : string.Empty;
 
         Assert.Equal($"{version}", buildResult.AssemblyFileVersion);
         Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{versionOptions.Version.Prerelease}{expectedBuildMetadata}", buildResult.AssemblyInformationalVersion);
@@ -829,24 +939,29 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal(versionOptions.Version.Prerelease, buildResult.PrereleaseVersion);
         Assert.Equal(expectedBuildMetadata, buildResult.SemVerBuildSuffix);
 
-        string pkgVersionSuffix = buildResult.PublicRelease
-            ? string.Empty
-            : $"-g{commitIdShort}";
-        Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{versionOptions.Version.Prerelease}{pkgVersionSuffix}", buildResult.NuGetPackageVersion);
-
-        var buildNumberOptions = versionOptions.CloudBuild?.BuildNumber ?? new VersionOptions.CloudBuildNumberOptions();
-        if (buildNumberOptions.Enabled)
+        // NuGet is now SemVer 2.0 and will pass additional build metadata if provided
+        bool semVer2 = versionOptions?.NuGetPackageVersionOrDefault.SemVer == 2;
+        string pkgVersionSuffix = buildResult.PublicRelease ? string.Empty : $"-g{commitIdShort}";
+        if (semVer2)
         {
-            var commitIdOptions = buildNumberOptions.IncludeCommitId ?? new VersionOptions.CloudBuildNumberCommitIdOptions();
+            pkgVersionSuffix += expectedBuildMetadataWithoutCommitId;
+        }
+
+        Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{GetSemVerAppropriatePrereleaseTag(versionOptions)}{pkgVersionSuffix}", buildResult.NuGetPackageVersion);
+
+        var buildNumberOptions = versionOptions.CloudBuildOrDefault.BuildNumberOrDefault;
+        if (buildNumberOptions.EnabledOrDefault)
+        {
+            var commitIdOptions = buildNumberOptions.IncludeCommitIdOrDefault;
             var buildNumberSemVer = SemanticVersion.Parse(buildResult.CloudBuildNumber);
-            bool hasCommitData = commitIdOptions.When == VersionOptions.CloudBuildNumberCommitWhen.Always
-                || (commitIdOptions.When == VersionOptions.CloudBuildNumberCommitWhen.NonPublicReleaseOnly && !buildResult.PublicRelease);
-            Version expectedVersion = hasCommitData && commitIdOptions.Where == VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent
+            bool hasCommitData = commitIdOptions.WhenOrDefault == VersionOptions.CloudBuildNumberCommitWhen.Always
+                || (commitIdOptions.WhenOrDefault == VersionOptions.CloudBuildNumberCommitWhen.NonPublicReleaseOnly && !buildResult.PublicRelease);
+            Version expectedVersion = hasCommitData && commitIdOptions.WhereOrDefault == VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent
                 ? idAsVersion
                 : new Version(version.Major, version.Minor, version.Build);
             Assert.Equal(expectedVersion, buildNumberSemVer.Version);
             Assert.Equal(buildResult.PrereleaseVersion, buildNumberSemVer.Prerelease);
-            string expectedBuildNumberMetadata = hasCommitData && commitIdOptions.Where == VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata
+            string expectedBuildNumberMetadata = hasCommitData && commitIdOptions.WhereOrDefault == VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata
                 ? $"+g{commitIdShort}"
                 : string.Empty;
             if (additionalBuildMetadata.Any())
@@ -862,6 +977,13 @@ public class BuildIntegrationTests : RepoTestBase
         {
             Assert.Equal(string.Empty, buildResult.CloudBuildNumber);
         }
+    }
+
+    private static string GetSemVerAppropriatePrereleaseTag(VersionOptions versionOptions)
+    {
+        return versionOptions.NuGetPackageVersionOrDefault.SemVer == 1
+            ? versionOptions.Version.Prerelease?.Replace('.', '-')
+            : versionOptions.Version.Prerelease;
     }
 
     private async Task<BuildResults> BuildAsync(string target = Targets.GetBuildVersion, LoggerVerbosity logVerbosity = LoggerVerbosity.Detailed, bool assertSuccessfulBuild = true)
@@ -900,6 +1022,17 @@ public class BuildIntegrationTests : RepoTestBase
                 var targetsFile = ProjectRootElement.Create(XmlReader.Create(stream), this.projectCollection);
                 targetsFile.FullPath = Path.Combine(this.RepoPath, name.Substring(prefix.Length));
             }
+        }
+    }
+
+    private ProjectRootElement CreateNativeProjectRootElement(string projectDirectory, string projectName)
+    {
+        using (var reader = XmlReader.Create(Assembly.GetExecutingAssembly().GetManifestResourceStream($"{ThisAssembly.RootNamespace}.test.vcprj")))
+        {
+            var pre = ProjectRootElement.Create(reader, this.projectCollection);
+            pre.FullPath = Path.Combine(projectDirectory, projectName);
+            pre.AddImport(Path.Combine(this.RepoPath, GitVersioningTargetsFileName));
+            return pre;
         }
     }
 
@@ -945,18 +1078,25 @@ public class BuildIntegrationTests : RepoTestBase
             .Add("APPVEYOR_PULL_REQUEST_NUMBER", string.Empty)
             // VSTS
             .Add("SYSTEM_TEAMPROJECTID", string.Empty)
-            .Add("BUILD_SOURCEBRANCH", string.Empty);
+            .Add("BUILD_SOURCEBRANCH", string.Empty)
+            // Teamcity
+            .Add("BUILD_VCS_NUMBER", string.Empty)
+            .Add("BUILD_GIT_BRANCH", string.Empty);
         public static readonly ImmutableDictionary<string, string> VSTS = SuppressEnvironment
             .SetItem("SYSTEM_TEAMPROJECTID", "1");
         public static readonly ImmutableDictionary<string, string> AppVeyor = SuppressEnvironment
             .SetItem("APPVEYOR", "True");
+        public static readonly ImmutableDictionary<string, string> Teamcity = SuppressEnvironment
+            .SetItem("BUILD_VCS_NUMBER", "1");
     }
 
     private static class Targets
     {
+        internal const string Build = "Build";
         internal const string GetBuildVersion = "GetBuildVersion";
         internal const string GetNuGetPackageVersion = "GetNuGetPackageVersion";
         internal const string GenerateAssemblyVersionInfo = "GenerateAssemblyVersionInfo";
+        internal const string GenerateNativeVersionInfo = "GenerateNativeVersionInfo";
     }
 
     private class BuildResults
@@ -998,7 +1138,12 @@ public class BuildIntegrationTests : RepoTestBase
         public string RootNamespace => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("RootNamespace");
 
         public string GitBuildVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitBuildVersion");
+        public string GitBuildVersionSimple => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitBuildVersionSimple");
         public string GitAssemblyInformationalVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitAssemblyInformationalVersion");
+
+        // Just a sampling of other properties optionally set in cloud build.
+        public string NBGV_GitCommitIdShort => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("NBGV_GitCommitIdShort");
+        public string NBGV_NuGetPackageVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("NBGV_NuGetPackageVersion");
 
         public override string ToString()
         {

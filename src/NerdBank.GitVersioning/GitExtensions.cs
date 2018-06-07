@@ -16,11 +16,6 @@
     public static class GitExtensions
     {
         /// <summary>
-        /// An AppDomain-wide variable used on 
-        /// </summary>
-        private static bool libgit2PathInitialized;
-
-        /// <summary>
         /// The 0.0 version.
         /// </summary>
         private static readonly Version Version0 = new Version(0, 0);
@@ -38,13 +33,18 @@
         /// </summary>
         /// <param name="commit">The commit to measure the height of.</param>
         /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
+        /// <param name="baseVersion">Optional base version to calculate the height. If not specified, the base version will be calculated by scanning the repository.</param>
         /// <returns>The height of the commit. Always a positive integer.</returns>
-        public static int GetVersionHeight(this Commit commit, string repoRelativeProjectDirectory = null)
+        public static int GetVersionHeight(this Commit commit, string repoRelativeProjectDirectory = null, Version baseVersion = null)
         {
             Requires.NotNull(commit, nameof(commit));
             Requires.Argument(repoRelativeProjectDirectory == null || !Path.IsPathRooted(repoRelativeProjectDirectory), nameof(repoRelativeProjectDirectory), "Path should be relative to repo root.");
 
-            var baseVersion = VersionFile.GetVersion(commit, repoRelativeProjectDirectory)?.Version?.Version ?? Version0;
+            if (baseVersion == null)
+            {
+                baseVersion = VersionFile.GetVersion(commit, repoRelativeProjectDirectory)?.Version?.Version ?? Version0;
+            }
+
             int height = commit.GetHeight(c => CommitMatchesMajorMinorVersion(c, baseVersion, repoRelativeProjectDirectory));
             return height;
         }
@@ -175,7 +175,7 @@
         /// <param name="commit">The commit whose ID and position in history is to be encoded.</param>
         /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
         /// <param name="versionHeight">
-        /// The version height, previously calculated by a call to <see cref="GetVersionHeight(Commit, string)"/>
+        /// The version height, previously calculated by a call to <see cref="GetVersionHeight(Commit, string, Version)"/>
         /// with the same value for <paramref name="repoRelativeProjectDirectory"/>.
         /// </param>
         /// <returns>
@@ -193,7 +193,13 @@
             Requires.Argument(repoRelativeProjectDirectory == null || !Path.IsPathRooted(repoRelativeProjectDirectory), nameof(repoRelativeProjectDirectory), "Path should be relative to repo root.");
 
             var versionOptions = VersionFile.GetVersion(commit, repoRelativeProjectDirectory);
-            return GetIdAsVersionHelper(commit, versionOptions, repoRelativeProjectDirectory, versionHeight);
+
+            if (!versionHeight.HasValue)
+            {
+                versionHeight = GetVersionHeight(commit, repoRelativeProjectDirectory);
+            }
+
+            return GetIdAsVersionHelper(commit, versionOptions, versionHeight.Value);
         }
 
         /// <summary>
@@ -203,7 +209,7 @@
         /// <param name="repo">The repo whose ID and position in history is to be encoded.</param>
         /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
         /// <param name="versionHeight">
-        /// The version height, previously calculated by a call to <see cref="GetVersionHeight(Commit, string)"/>
+        /// The version height, previously calculated by a call to <see cref="GetVersionHeight(Commit, string, Version)"/>
         /// with the same value for <paramref name="repoRelativeProjectDirectory"/>.
         /// </param>
         /// <returns>
@@ -224,7 +230,13 @@
             if (IsVersionFileChangedInWorkingCopy(repo, repoRelativeProjectDirectory, out committedVersionOptions, out workingCopyVersionOptions))
             {
                 // Apply ordinary logic, but to the working copy version info.
-                Version result = GetIdAsVersionHelper(headCommit, workingCopyVersionOptions, repoRelativeProjectDirectory, versionHeight);
+                if (!versionHeight.HasValue)
+                {
+                    var baseVersion = workingCopyVersionOptions?.Version?.Version;
+                    versionHeight = GetVersionHeight(headCommit, repoRelativeProjectDirectory, baseVersion);
+                }
+
+                Version result = GetIdAsVersionHelper(headCommit, workingCopyVersionOptions, versionHeight.Value);
                 return result;
             }
 
@@ -269,7 +281,7 @@
 
             var possibleCommits = from commit in GetCommitsReachableFromRefs(repo)
                                   where version.Revision == -1 || commit.Id.StartsWith(objectIdLeadingValue, objectIdMask)
-                                  let buildNumberOffset = VersionFile.GetVersion(commit)?.BuildNumberOffset ?? 0
+                                  let buildNumberOffset = VersionFile.GetVersion(commit)?.BuildNumberOffsetOrDefault ?? 0
                                   let versionHeight = commit.GetHeight(c => CommitMatchesMajorMinorVersion(c, version, repoRelativeProjectDirectory))
                                   where versionHeight == version.Build - buildNumberOffset
                                   select commit;
@@ -277,6 +289,7 @@
             return possibleCommits;
         }
 
+#if NET45
         /// <summary>
         /// Assists the operating system in finding the appropriate native libgit2 module.
         /// </summary>
@@ -308,28 +321,59 @@
         /// <returns><c>true</c> if the libgit2 native binaries have been found; <c>false</c> otherwise.</returns>
         public static bool TryHelpFindLibGit2NativeBinaries(string basePath, out string attemptedDirectory)
         {
-            attemptedDirectory = null;
-            if (!libgit2PathInitialized)
+            attemptedDirectory = FindLibGit2NativeBinaries(basePath);
+            if (Directory.Exists(attemptedDirectory))
             {
-#if !NET45
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-#endif
-                {
-                    attemptedDirectory = Path.Combine(basePath, "lib", "win32", IntPtr.Size == 4 ? "x86" : "x64");
-                    if (Directory.Exists(attemptedDirectory))
-                    {
-                        Environment.SetEnvironmentVariable("PATH", Environment.GetEnvironmentVariable("PATH") + Path.PathSeparator + attemptedDirectory);
-                    }
-                    else
-                    {
-                        return false;
-                    }
-                }
-
-                libgit2PathInitialized = true;
+                AddDirectoryToPath(attemptedDirectory);
+                return true;
             }
 
-            return libgit2PathInitialized;
+            return false;
+        }
+
+        /// <summary>
+        /// Add a directory to the PATH environment variable if it isn't already present.
+        /// </summary>
+        /// <param name="directory">The directory to be added.</param>
+        public static void AddDirectoryToPath(string directory)
+        {
+            Requires.NotNullOrEmpty(directory, nameof(directory));
+
+            string pathEnvVar = Environment.GetEnvironmentVariable("PATH");
+            string[] searchPaths = pathEnvVar.Split(Path.PathSeparator);
+            if (!searchPaths.Contains(directory, StringComparer.OrdinalIgnoreCase))
+            {
+                pathEnvVar += Path.PathSeparator + directory;
+                Environment.SetEnvironmentVariable("PATH", pathEnvVar);
+            }
+        }
+#endif
+
+        /// <summary>
+        /// Finds the directory that contains the appropriate native libgit2 module.
+        /// </summary>
+        /// <param name="basePath">The path to the directory that contains the lib folder.</param>
+        /// <returns>Receives the directory that native binaries are expected.</returns>
+        public static string FindLibGit2NativeBinaries(string basePath)
+        {
+#if !NET45
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+#endif
+            {
+                return Path.Combine(basePath, "lib", "win32", IntPtr.Size == 4 ? "x86" : "x64");
+            }
+#if !NET45
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                return Path.Combine(basePath, "lib", "linux", IntPtr.Size == 4 ? "x86" : "x86_64");
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                return Path.Combine(basePath, "lib", "osx");
+            }
+
+            return null;
+#endif
         }
 
         /// <summary>
@@ -340,7 +384,7 @@
         /// <param name="expectedVersion">The version to test for in the commit</param>
         /// <param name="repoRelativeProjectDirectory">The repo-relative directory from which <paramref name="expectedVersion"/> was originally calculated.</param>
         /// <returns><c>true</c> if the <paramref name="commit"/> matches the major and minor components of <paramref name="expectedVersion"/>.</returns>
-        private static bool CommitMatchesMajorMinorVersion(Commit commit, Version expectedVersion, string repoRelativeProjectDirectory)
+        internal static bool CommitMatchesMajorMinorVersion(this Commit commit, Version expectedVersion, string repoRelativeProjectDirectory)
         {
             Requires.NotNull(commit, nameof(commit));
             Requires.NotNull(expectedVersion, nameof(expectedVersion));
@@ -467,11 +511,7 @@
         /// </summary>
         /// <param name="commit">The commit whose ID and position in history is to be encoded.</param>
         /// <param name="versionOptions">The version options applicable at this point (either from commit or working copy).</param>
-        /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
-        /// <param name="versionHeight">
-        /// The version height, previously calculated by a call to <see cref="GetVersionHeight(Commit, string)"/>
-        /// with the same value for <paramref name="repoRelativeProjectDirectory"/>.
-        /// </param>
+        /// <param name="versionHeight">The version height, previously calculated by a call to <see cref="GetVersionHeight(Commit, string, Version)"/>.</param>
         /// <returns>
         /// A version whose <see cref="Version.Build"/> and
         /// <see cref="Version.Revision"/> components are calculated based on the commit.
@@ -482,29 +522,37 @@
         /// component is the first four bytes of the git commit id (forced to be a positive integer).
         /// </remarks>
         /// <returns></returns>
-        private static Version GetIdAsVersionHelper(Commit commit, VersionOptions versionOptions, string repoRelativeProjectDirectory, int? versionHeight)
+        internal static Version GetIdAsVersionHelper(this Commit commit, VersionOptions versionOptions, int versionHeight)
         {
             var baseVersion = versionOptions?.Version?.Version ?? Version0;
+            int buildNumber = baseVersion.Build;
+            int revision = baseVersion.Revision;
 
-            // The compiler (due to WinPE header requirements) only allows 16-bit version components,
-            // and forbids 0xffff as a value.
-            // The build number is set to the git height. This helps ensure that
-            // within a major.minor release, each patch has an incrementing integer.
-            // The revision is set to the first two bytes of the git commit ID.
-            if (!versionHeight.HasValue)
+            if (revision < 0)
             {
-                versionHeight = commit != null
-                    ? commit.GetHeight(c => CommitMatchesMajorMinorVersion(c, baseVersion, repoRelativeProjectDirectory))
-                    : 0;
+                // The compiler (due to WinPE header requirements) only allows 16-bit version components,
+                // and forbids 0xffff as a value.
+                // The build number is set to the git height. This helps ensure that
+                // within a major.minor release, each patch has an incrementing integer.
+                // The revision is set to the first two bytes of the git commit ID.
+
+                int adjustedVersionHeight = versionHeight == 0 ? 0 : versionHeight + (versionOptions?.BuildNumberOffset ?? 0);
+                Verify.Operation(adjustedVersionHeight <= MaximumBuildNumberOrRevisionComponent, "Git height is {0}, which is greater than the maximum allowed {0}.", adjustedVersionHeight, MaximumBuildNumberOrRevisionComponent);
+
+                if (buildNumber < 0)
+                {
+                    buildNumber = adjustedVersionHeight;
+                    revision = commit != null
+                        ? Math.Min(MaximumBuildNumberOrRevisionComponent, commit.GetTruncatedCommitIdAsUInt16())
+                        : 0;
+                }
+                else
+                {
+                    revision = adjustedVersionHeight;
+                }
             }
 
-            int build = versionHeight.Value == 0 ? 0 : versionHeight.Value + (versionOptions?.BuildNumberOffset ?? 0);
-            Verify.Operation(build <= MaximumBuildNumberOrRevisionComponent, "Git height is {0}, which is greater than the maximum allowed {0}.", build, MaximumBuildNumberOrRevisionComponent);
-            int revision = commit != null
-                ? Math.Min(MaximumBuildNumberOrRevisionComponent, commit.GetTruncatedCommitIdAsUInt16())
-                : 0;
-
-            return new Version(baseVersion.Major, baseVersion.Minor, build, revision);
+            return new Version(baseVersion.Major, baseVersion.Minor, buildNumber, revision);
         }
 
         /// <summary>

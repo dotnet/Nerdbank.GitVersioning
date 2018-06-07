@@ -1,8 +1,5 @@
-# DNX or dotnet CLI
+# dotnet CLI
 
-Sorry. DNX and dotnet CLI don't support extensible versioning systems. 
+The dotnet CLI works very much like [full MSBuild](msbuild.md). Just use `dotnet build` instead of `msbuild.exe`.
 
-Related issues:
-
-* [DNX#3178](https://github.com/aspnet/dnx/issues/3178)
-* [dotnet-CLI#551](https://github.com/dotnet/cli/issues/551)
+[DNX never supported extensible versioning systems](https://github.com/aspnet/dnx/issues/3178). But DNX is dead now, so you probably don't care.

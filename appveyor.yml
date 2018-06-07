@@ -1,5 +1,16 @@
-version: 99.0.{build}
+version: '{build}'
+branches:
+  only:
+  - master
+  - /^v\d+(?:\.\d+)?$/
+  - /[\b_]validate\b/
 skip_tags: true
+skip_commits:
+  files:
+  - doc/*
+  - readme.md
+nuget:
+  disable_publish_on_pr: true
 os: Visual Studio 2017
 configuration: Release
 cache:
@@ -22,6 +33,10 @@ before_build:
 build_script:
 - ps: >-
     .\build.ps1
+test:
+  assemblies:
+    only:
+    - NerdBank.GitVersioning.Tests.dll
 artifacts:
 - path: bin\**\*.nupkg
 - path: bin\js\*.tgz
