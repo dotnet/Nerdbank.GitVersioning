@@ -12,7 +12,7 @@ This package adds precise, semver-compatible git commit information
 to every assembly, VSIX, NuGet and NPM package, and more.
 It implicitly supports all cloud build services and CI server software
 because it simply uses git itself and integrates naturally in MSBuild, gulp
-and other build scripts. 
+and other build scripts.
 
 What sets this package apart from other git-based versioning projects is:
 
@@ -28,7 +28,7 @@ You can install Nerdbank.GitVersioning into your projects via NuGet or NPM.
 * [NuGet installation instructions](doc/nuget-acquisition.md)
 * [NPM installation instructions](doc/npm-acquisition.md)
 
-You must also create [a version.json file](doc/versionJson.md) in your repo.
+You must also create [a version.json file](doc/versionJson.md) in your repo. See [migration notes](doc/migrating.md) if your repo already has a version.txt or version.json file from using another system.
 
 ## How to leverage version stamping and runtime information
 
@@ -59,7 +59,7 @@ the git 'height' of the version, and the git commit ID.
 ### Version generation
 
 Given the same settings as used in the discussion above, a NuGet or NPM package may be
-assigned this version: 
+assigned this version:
 
     1.0.24-alpha-g9a7eb6c819
 
@@ -86,7 +86,7 @@ The git commit ID does not represent an alphanumerically sortable identifier
 in semver, and thus delivers a poor package update experience for NuGet package
 consumers. Incrementing the PATCH with each public release ensures that users
 who want to update to your latest NuGet package will reliably get the latest
-version. 
+version.
 
 The git height is guaranteed to always increase with each release within a given major.minor version,
 assuming that each release builds on a previous release. And the height automatically resets when
@@ -98,14 +98,14 @@ It could be, but the git height serves as a pseudo-identifier already and the
 git commit id would just make it harder for users to type in the version
 number if they ever had to.
 
-Note that the git commit ID is *always* included in the 
+Note that the git commit ID is *always* included in the
 `AssemblyInformationVersionAttribute` so one can always match a binary to the
 exact version of source code that produced it.
 
 ### How do I translate from a version to a git commit and vice versa?
 
 A pair of Powershell scripts are included in the Nerdbank.GitVersioning NuGet package
-that can help you to translate between the two representations. 
+that can help you to translate between the two representations.
 
     tools\Get-CommitId.ps1
     tools\Get-Version.ps1
