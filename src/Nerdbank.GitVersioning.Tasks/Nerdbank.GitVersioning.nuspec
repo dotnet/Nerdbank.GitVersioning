@@ -9,7 +9,7 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <developmentDependency>true</developmentDependency>
     <licenseUrl>$LicenseUrl$</licenseUrl>
-    <projectUrl>http://github.com/aarnott/Nerdbank.GitVersioning</projectUrl>
+    <projectUrl>https://github.com/aarnott/Nerdbank.GitVersioning</projectUrl>
     <description>Stamps your assemblies with semver 2.0 compliant git commit specific version information and provides NuGet versioning information as well.</description>
     <tags>git commit versioning version assemblyinfo</tags>
   </metadata>
