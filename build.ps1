@@ -15,7 +15,7 @@ Param(
     [string]$MsBuildVerbosity = 'minimal'
 )
 
-$msbuildCommandLine = "msbuild `"$PSScriptRoot\src\Nerdbank.GitVersioning.sln`" /m /verbosity:$MsBuildVerbosity /nologo /p:Platform=`"Any CPU`""
+$msbuildCommandLine = "msbuild `"$PSScriptRoot\src\Nerdbank.GitVersioning.sln`" /m /verbosity:$MsBuildVerbosity /nologo /p:Platform=`"Any CPU`" /t:build,pack"
 
 if (Test-Path "C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll") {
     $msbuildCommandLine += " /logger:`"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll`""

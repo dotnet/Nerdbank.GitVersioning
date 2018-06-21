@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>Nerdbank.GitVersioning</id>
+    <version>$version$</version>
+    <title>Nerdbank.GitVersioning</title>
+    <authors>Andrew Arnott</authors>
+    <owners>aarnott</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <developmentDependency>true</developmentDependency>
+    <licenseUrl>$LicenseUrl$</licenseUrl>
+    <projectUrl>http://github.com/aarnott/Nerdbank.GitVersioning</projectUrl>
+    <description>Stamps your assemblies with semver 2.0 compliant git commit specific version information and provides NuGet versioning information as well.</description>
+    <tags>git commit versioning version assemblyinfo</tags>
+  </metadata>
+  <files>
+    <file src="$BaseOutputPath$net45\LibGit2Sharp.dll" target="build\MSBuildFull\LibGit2Sharp.dll" />
+    <file src="$BaseOutputPath$net45\LibGit2Sharp.dll.config" target="build\MSBuildFull\LibGit2Sharp.dll.config" />
+    <file src="$BaseOutputPath$net45\MSBuildExtensionTask.dll" target="build\MSBuildFull\MSBuildExtensionTask.dll" />
+    <file src="$BaseOutputPath$net45\NerdBank.GitVersioning.dll" target="build\MSBuildFull\NerdBank.GitVersioning.dll" />
+    <file src="$BaseOutputPath$net45\Nerdbank.GitVersioning.Tasks.dll" target="build\MSBuildFull\Nerdbank.GitVersioning.Tasks.dll" />
+    <file src="$BaseOutputPath$net45\Newtonsoft.Json.dll" target="build\MSBuildFull\Newtonsoft.Json.dll" />
+    <file src="$BaseOutputPath$net45\Validation.dll" target="build\MSBuildFull\Validation.dll" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\win7-x64\native\git2-1196807.dll" target="build\MSBuildFull\lib\win32\x64\git2-1196807.dll" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\win7-x64\native\git2-1196807.dll" target="build\MSBuildCore\lib\win32\x64\git2-1196807.dll" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\win7-x64\native\git2-1196807.pdb" target="build\MSBuildFull\lib\win32\x64\git2-1196807.pdb" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\win7-x64\native\git2-1196807.pdb" target="build\MSBuildCore\lib\win32\x64\git2-1196807.pdb" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\win7-x86\native\git2-1196807.dll" target="build\MSBuildFull\lib\win32\x86\git2-1196807.dll" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\win7-x86\native\git2-1196807.dll" target="build\MSBuildCore\lib\win32\x86\git2-1196807.dll" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\win7-x86\native\git2-1196807.pdb" target="build\MSBuildFull\lib\win32\x86\git2-1196807.pdb" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\win7-x86\native\git2-1196807.pdb" target="build\MSBuildCore\lib\win32\x86\git2-1196807.pdb" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\osx\native\libgit2-1196807.dylib" target="build\MSBuildFull\lib\osx\libgit2-1196807.dylib" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\osx\native\libgit2-1196807.dylib" target="build\MSBuildCore\lib\osx\libgit2-1196807.dylib" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\linux-x64\native\libgit2-1196807.so" target="build\MSBuildFull\lib\linux\x86_64\libgit2-1196807.so" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\linux-x64\native\libgit2-1196807.so" target="build\MSBuildCore\lib\linux\x86_64\libgit2-1196807.so" />
+    <file src="$LibGit2SharpNativeBinaries$libgit2\LibGit2Sharp.dll.config" target="build\MSBuildCore\LibGit2Sharp.dll.config" />
+    <file src="$BaseOutputPath$netcoreapp1.0\LibGit2Sharp.dll" target="build\MSBuildCore\LibGit2Sharp.dll" />
+    <file src="$BaseOutputPath$netcoreapp1.0\MSBuildExtensionTask.dll" target="build\MSBuildCore\MSBuildExtensionTask.dll" />
+    <file src="$BaseOutputPath$netcoreapp1.0\NerdBank.GitVersioning.dll" target="build\MSBuildCore\NerdBank.GitVersioning.dll" />
+    <file src="$BaseOutputPath$netcoreapp1.0\Nerdbank.GitVersioning.Tasks.dll" target="build\MSBuildCore\Nerdbank.GitVersioning.Tasks.dll" />
+    <file src="$BaseOutputPath$netcoreapp1.0\Newtonsoft.Json.dll" target="build\MSBuildCore\Newtonsoft.Json.dll" />
+    <file src="$BaseOutputPath$netcoreapp1.0\Validation.dll" target="build\MSBuildCore\Validation.dll" />
+
+    <file src="build\Nerdbank.GitVersioning.targets" target="build\Nerdbank.GitVersioning.targets" />
+    <file src="buildCrossTargeting\Nerdbank.GitVersioning.targets" target="buildCrossTargeting\Nerdbank.GitVersioning.targets" />
+    <file src="tools\Create-VersionFile.ps1" target="tools\Create-VersionFile.ps1" />
+    <file src="tools\Get-CommitId.ps1" target="tools\Get-CommitId.ps1" />
+    <file src="tools\Get-Version.ps1" target="tools\Get-Version.ps1" />
+    <file src="tools\Install.ps1" target="tools\Install.ps1" />
+    <file src="readme.txt" target="readme.txt" />
+  </files>
+</package>

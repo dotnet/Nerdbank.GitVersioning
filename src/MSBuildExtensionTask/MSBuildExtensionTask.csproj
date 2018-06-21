@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFrameworks>netcoreapp1.0;net45</TargetFrameworks>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
