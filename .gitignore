@@ -50,6 +50,7 @@ dlldata.c
 *.tmp
 *.tmp_proj
 *.log
+*.binlog
 *.vspscc
 *.vssscc
 .builds
@@ -133,6 +134,9 @@ packages
 *.nuget.props
 *.nuget.targets
 project.lock.json
+
+# NPM
+package-lock.json
 
 ## TODO: If the tool you use requires repositories.config
 ## uncomment the next line
