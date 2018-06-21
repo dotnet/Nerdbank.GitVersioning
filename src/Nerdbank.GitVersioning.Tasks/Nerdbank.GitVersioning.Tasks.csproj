@@ -90,7 +90,6 @@
 
   <ItemGroup>
     <PackageReference Include="Nerdbank.GitVersioning.LKG" Version="1.6.20-beta-gfea83a8c9e" />
-    <PackageReference Include="NuProj.Common" Version="0.11.14-beta" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\MSBuildExtensionTask\MSBuildExtensionTask.csproj" />
