@@ -8,7 +8,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <EmbeddedResource Include="..\Nerdbank.GitVersioning.NuGet\build\*.targets">
+    <EmbeddedResource Include="..\Nerdbank.GitVersioning.Tasks\build\Nerdbank.GitVersioning.targets">
       <Visible>false</Visible>
       <Link>Targets\%(FileName)%(Extension)</Link>
     </EmbeddedResource>
