@@ -19,7 +19,7 @@
 
     <!-- We're going to include it by virtue of sending the whole bin dir to the build folder. -->
     <IncludeBuildOutput>false</IncludeBuildOutput>
-
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PackBuildOutputs</TargetsForTfmSpecificContentInPackage>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
@@ -29,39 +29,26 @@
     </PropertyGroup>
   </Target>
 
-  <Target Name="CollectRuntimeOutputs" BeforeTargets="_GetPackageFiles">
+  <Target Name="PackBuildOutputs" DependsOnTargets="SatelliteDllsProjectOutputGroup;DebugSymbolsProjectOutputGroup">
+    <PropertyGroup>
+      <BuildSubDir Condition=" '$(TargetFramework)' == 'netcoreapp1.0' ">MSBuildCore\</BuildSubDir>
+      <BuildSubDir Condition=" '$(TargetFramework)' == 'net45' ">MSBuildFull\</BuildSubDir>
+    </PropertyGroup>
+    <Error Text="Unrecognized TargetFramework" Condition=" '$(BuildSubDir)' == '' " />
     <ItemGroup>
-      <Content Include="$(OutputPath)net45\*.dll;$(OutputPath)net45\*.dll.config"
-               Exclude="$(OutputPath)net45\Microsoft.Build.*.dll">
-        <Pack>true</Pack>
-        <PackagePath>build\MSBuildFull\</PackagePath>
-      </Content>
-      <Content Include="$(OutputPath)netcoreapp1.0\LibGit2Sharp.dll*"
-               Include="$(OutputPath)netcoreapp1.0\MSBuildExtensionTask.dll"
-               Include="$(OutputPath)netcoreapp1.0\Nerdbank.GitVersioning.*dll"
-               Include="$(OutputPath)netcoreapp1.0\Newtonsoft.Json.dll"
-               Include="$(OutputPath)netcoreapp1.0\Validation.dll"
-               >
-        <Pack>true</Pack>
-        <PackagePath>build\MSBuildCore\</PackagePath>
-      </Content>
-    </ItemGroup>
-    <MSBuild Projects="$(MSBuildProjectFullPath)"
-             Targets="GetLibGitNativeBinaries"
-             BuildInParallel="$(BuildInParallel)"
-             Properties="TargetFramework=%(_TargetFrameworks.Identity);BuildProjectReferences=false;">
-      <Output TaskParameter="TargetOutputs" ItemName="None" />
-    </MSBuild>
-  </Target>
-
-  <Target Name="GetLibGitNativeBinaries" Outputs="@(LibGitNativeBinaries)">
-    <!-- Package up the libgit2 native binaries -->
-    <ItemGroup>
-      <!-- Adapt the copy behavior  -->
-      <LibGitNativeBinaries Include="@(None)" Condition=" '%(None.CopyToOutputDirectory)' == 'PreserveNewest' ">
-        <Pack>true</Pack>
-        <PackagePath>build\%(None.Link)</PackagePath>
-      </LibGitNativeBinaries>
+      <TfmSpecificPackageFile Include="
+                        $(OutputPath)LibGit2Sharp.dll*;
+                        $(OutputPath)MSBuildExtensionTask.dll;
+                        $(OutputPath)Nerdbank.GitVersioning.*dll;
+                        $(OutputPath)Newtonsoft.Json.dll;
+                        $(OutputPath)Validation.dll;
+               ">
+        <PackagePath>build\$(BuildSubDir)</PackagePath>
+      </TfmSpecificPackageFile>
+      <!-- Package up the libgit2 native binaries -->
+      <TfmSpecificPackageFile Include="@(None)" Condition=" '%(None.CopyToOutputDirectory)' == 'PreserveNewest' ">
+        <PackagePath>build\$(BuildSubDir)%(None.Link)</PackagePath>
+      </TfmSpecificPackageFile>
     </ItemGroup>
   </Target>
 
