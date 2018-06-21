@@ -3,14 +3,7 @@
     <TargetFrameworks>netcoreapp1.0;net45</TargetFrameworks>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
-    <PackageId>Nerdbank.GitVersioning</PackageId>
-    <title>Nerdbank.GitVersioning</title>
-    <authors>Andrew Arnott</authors>
-    <owners>andarno</owners>
-    <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <PackageProjectUrl>http://github.com/aarnott/Nerdbank.GitVersioning</PackageProjectUrl>
-    <description>Stamps your assemblies with semver 2.0 compliant git commit specific version information and provides NuGet versioning information as well.</description>
-    <PackageTags>git commit versioning version assemblyinfo</PackageTags>
+    <NuSpecFile>Nerdbank.GitVersioning.nuspec</NuSpecFile>
 
     <NoPackageAnalysis>true</NoPackageAnalysis>
 
@@ -26,6 +19,8 @@
   <Target Name="SetNuSpecProperties" BeforeTargets="GenerateNuspec" DependsOnTargets="GetBuildVersion">
     <PropertyGroup>
       <PackageLicenseUrl>https://raw.githubusercontent.com/AArnott/Nerdbank.GitVersioning/$(GitCommitIdShort)/LICENSE.txt</PackageLicenseUrl>
+      <LibGit2SharpNativeBinaries>$(NuGetPackageRoot)libgit2sharp.nativebinaries\1.0.165\</LibGit2SharpNativeBinaries>
+      <NuspecProperties>$(NuspecProperties);LicenseUrl=$(PackageLicenseUrl);Version=$(Version);BaseOutputPath=$(OutputPath);LibGit2SharpNativeBinaries=$(LibGit2SharpNativeBinaries)</NuspecProperties>
     </PropertyGroup>
   </Target>
 
