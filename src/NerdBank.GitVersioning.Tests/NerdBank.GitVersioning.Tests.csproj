@@ -5,6 +5,7 @@
     <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
     <DebugType>full</DebugType>
     <SignAssembly>false</SignAssembly>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="..\Nerdbank.GitVersioning.NuGet\build\*.targets">
