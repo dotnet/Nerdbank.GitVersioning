@@ -3,6 +3,8 @@
     <TargetFrameworks>netcoreapp1.0;net45</TargetFrameworks>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <DebugType>Full</DebugType>
+    <IsPackable>false</IsPackable>
+    <PackageId>Nerdbank.GitVersioning.Core</PackageId>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="LibGit2Sharp" Version="0.24.7-g9fca61fdda" PrivateAssets="None" />

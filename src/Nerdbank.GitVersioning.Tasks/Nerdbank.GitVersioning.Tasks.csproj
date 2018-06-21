@@ -1,16 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>netstandard1.3;net45</TargetFrameworks>
+    <TargetFrameworks>netcoreapp1.0;net45</TargetFrameworks>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
-    <id>Nerdbank.GitVersioning</id>
+    <PackageId>Nerdbank.GitVersioning</PackageId>
     <title>Nerdbank.GitVersioning</title>
     <authors>Andrew Arnott</authors>
     <owners>andarno</owners>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <PackageProjectUrl>http://github.com/aarnott/Nerdbank.GitVersioning</PackageProjectUrl>
     <description>Stamps your assemblies with semver 2.0 compliant git commit specific version information and provides NuGet versioning information as well.</description>
-    <summary>Stamps your assemblies with semver 2.0 compliant git commit specific version information and provides NuGet versioning information as well.</summary>
     <PackageTags>git commit versioning version assemblyinfo</PackageTags>
 
     <NoPackageAnalysis>true</NoPackageAnalysis>
@@ -32,11 +31,17 @@
 
   <Target Name="CollectRuntimeOutputs" BeforeTargets="_GetPackageFiles">
     <ItemGroup>
-      <Content Include="$(OutputPath)net45\*.dll;$(OutputPath)net45\*.dll.config">
+      <Content Include="$(OutputPath)net45\*.dll;$(OutputPath)net45\*.dll.config"
+               Exclude="$(OutputPath)net45\Microsoft.Build.*.dll">
         <Pack>true</Pack>
         <PackagePath>build\MSBuildFull\</PackagePath>
       </Content>
-      <Content Include="$(OutputPath)netstandard1.3\*.dll;$(OutputPath)*.json">
+      <Content Include="$(OutputPath)netcoreapp1.0\LibGit2Sharp.dll*"
+               Include="$(OutputPath)netcoreapp1.0\MSBuildExtensionTask.dll"
+               Include="$(OutputPath)netcoreapp1.0\Nerdbank.GitVersioning.*dll"
+               Include="$(OutputPath)netcoreapp1.0\Newtonsoft.Json.dll"
+               Include="$(OutputPath)netcoreapp1.0\Validation.dll"
+               >
         <Pack>true</Pack>
         <PackagePath>build\MSBuildCore\</PackagePath>
       </Content>
