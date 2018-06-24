@@ -220,6 +220,15 @@
     </PropertyGroup>
   </Target>
 
+  <!-- Support for ASP.NET Core 2.1 Razor view assemblies -->
+  <Target Name="AddVersionFile"
+          BeforeTargets="PrepareForRazorCompile"
+          DependsOnTargets="GenerateAssemblyVersionInfo">
+    <ItemGroup>
+      <RazorCompile Include="$(VersionSourceFile)" />
+    </ItemGroup>
+  </Target>
+
   <!-- Workaround till https://github.com/NuGet/NuGet.Client/issues/1064 is merged and used. -->
   <Target Name="_NBGV_CalculateNuSpecVersionHelper"
           BeforeTargets="GenerateNuspec"
