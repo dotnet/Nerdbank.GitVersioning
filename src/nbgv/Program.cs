@@ -36,72 +36,78 @@ namespace Nerdbank.GitVersioning.Tool
             NoMatchingVersion,
         }
 
-
         private static ExitCodes exitCode;
 
         public static int Main(string[] args)
         {
+            var commandText = string.Empty;
+            var projectPath = string.Empty;
+            var versionJsonRoot = string.Empty;
+            var version = string.Empty;
+            IReadOnlyList<string> cloudVariables = Array.Empty<string>();
+            var format = string.Empty;
+            bool quiet = false;
+
+            ArgumentCommand<string> install = null;
+            ArgumentCommand<string> getVersion = null;
+            ArgumentCommand<string> setVersion = null;
+            ArgumentCommand<string> tag = null;
+            ArgumentCommand<string> getCommits = null;
+            ArgumentCommand<string> cloud = null;
+
             ArgumentSyntax.Parse(args, syntax =>
             {
-                var commandText = string.Empty;
-                var projectPath = string.Empty;
-                var versionJsonRoot = string.Empty;
-                var version = string.Empty;
-                IReadOnlyList<string> cloudVariables = Array.Empty<string>();
-                var format = string.Empty;
-                bool quiet = false;
-
-                var install = syntax.DefineCommand("install", ref commandText, "Prepares a project to have version stamps applied using Nerdbank.GitVersioning.");
+                install = syntax.DefineCommand("install", ref commandText, "Prepares a project to have version stamps applied using Nerdbank.GitVersioning.");
                 syntax.DefineOption("p|path", ref versionJsonRoot, "The path to the directory that should contain the version.json file. The default is the root of the git repo.");
                 syntax.DefineOption("v|version", ref version, $"The initial version to set. The default is {DefaultVersionSpec}.");
 
-                var getVersion = syntax.DefineCommand("get-version", ref commandText, "Gets the version information for a project.");
+                getVersion = syntax.DefineCommand("get-version", ref commandText, "Gets the version information for a project.");
                 syntax.DefineOption("p|project", ref projectPath, "The path to the project or project directory. The default is the current directory.");
                 syntax.DefineOption("f|format", ref format, $"The format to write the version information. Allowed values are: text, json. The default is {DefaultVersionInfoFormat}.");
 
-                var setVersion = syntax.DefineCommand("set-version", ref commandText, "Updates the version stamp that is applied to a project.");
+                setVersion = syntax.DefineCommand("set-version", ref commandText, "Updates the version stamp that is applied to a project.");
                 syntax.DefineOption("p|project", ref projectPath, "The path to the project or project directory. The default is the root directory of the repo that spans the current directory, or an existing version.json file, if applicable.");
                 syntax.DefineParameter("version", ref version, "The version to set.");
 
-                var tag = syntax.DefineCommand("tag", ref commandText, "Creates a git tag to mark a version.");
+                tag = syntax.DefineCommand("tag", ref commandText, "Creates a git tag to mark a version.");
                 syntax.DefineOption("p|project", ref projectPath, "The path to the project or project directory. The default is the root directory of the repo that spans the current directory, or an existing version.json file, if applicable.");
                 syntax.DefineParameter("versionOrRef", ref version, $"The a.b.c[.d] version or git ref to be tagged. If not specified, {DefaultRef} is used.");
 
-                var getCommits = syntax.DefineCommand("get-commits", ref commandText, "Gets the commit(s) that match a given version.");
+                getCommits = syntax.DefineCommand("get-commits", ref commandText, "Gets the commit(s) that match a given version.");
                 syntax.DefineOption("p|project", ref projectPath, "The path to the project or project directory. The default is the root directory of the repo that spans the current directory, or an existing version.json file, if applicable.");
                 syntax.DefineOption("q|quiet", ref quiet, "Use minimal output.");
                 syntax.DefineParameter("version", ref version, "The a.b.c[.d] version to find.");
 
-                var cloud = syntax.DefineCommand("cloud", ref commandText, "Communicates with the ambient cloud build to set the build number and/or other cloud build variables.");
+                cloud = syntax.DefineCommand("cloud", ref commandText, "Communicates with the ambient cloud build to set the build number and/or other cloud build variables.");
                 syntax.DefineOption("p|project", ref projectPath, "The path to the project or project directory used to calculate the version. The default is the current directory. Ignored if the -v option is specified.");
                 syntax.DefineOption("v|version", ref version, "The string to use for the cloud build number. If not specified, the computed version will be used.");
                 syntax.DefineOptionList("d|define", ref cloudVariables, "Additional cloud build variables to define. Each should be in the NAME=VALUE syntax.");
-
-                if (install.IsActive)
-                {
-                    exitCode = OnInstallCommand(versionJsonRoot, version);
-                }
-                else if (getVersion.IsActive)
-                {
-                    exitCode = OnGetVersionCommand(projectPath, format);
-                }
-                else if (setVersion.IsActive)
-                {
-                    exitCode = OnSetVersionCommand(projectPath, version);
-                }
-                else if (tag.IsActive)
-                {
-                    exitCode = OnTagCommand(projectPath, version);
-                }
-                else if (getCommits.IsActive)
-                {
-                    exitCode = OnGetCommitsCommand(projectPath, version, quiet);
-                }
-                else if (cloud.IsActive)
-                {
-                    exitCode = OnCloudCommand(projectPath, version, cloudVariables);
-                }
             });
+
+            if (install.IsActive)
+            {
+                exitCode = OnInstallCommand(versionJsonRoot, version);
+            }
+            else if (getVersion.IsActive)
+            {
+                exitCode = OnGetVersionCommand(projectPath, format);
+            }
+            else if (setVersion.IsActive)
+            {
+                exitCode = OnSetVersionCommand(projectPath, version);
+            }
+            else if (tag.IsActive)
+            {
+                exitCode = OnTagCommand(projectPath, version);
+            }
+            else if (getCommits.IsActive)
+            {
+                exitCode = OnGetCommitsCommand(projectPath, version, quiet);
+            }
+            else if (cloud.IsActive)
+            {
+                exitCode = OnCloudCommand(projectPath, version, cloudVariables);
+            }
 
             return (int)exitCode;
         }
