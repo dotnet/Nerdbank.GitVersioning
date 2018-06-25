@@ -2,7 +2,7 @@
 
 Perform a one-time install of the `nbgv` tool using the following dotnet CLI command:
 
-```cmd
+```ps1
 dotnet tool install -g nbgv
 ```
 
@@ -10,12 +10,22 @@ You may then use the `nbgv` tool to install Nerdbank.GitVersioning into your rep
 
 Install Nerdbank.GitVersioning into your repo using this command from within your repo:
 
-```cmd
+```ps1
 nbgv install
 ```
 
 This will create your initial `version.json` file.
 It will also add/modify your `Directory.Build.props` file in the root of your repo to add the `PackageReference` to the latest `Nerdbank.GitVersioning` package available on nuget.org.
+
+## CI Builds
+
+If scripting for running in a CI build where global impact from installing a tool is undesirable, you can localize the tool installation:
+
+```ps1
+dotnet tool install --tool-path . nbgv
+```
+
+At this point you can launch the tool using `.\nbgv` in your build script.
 
 ## Learn more
 
