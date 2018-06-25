@@ -1,13 +1,15 @@
 ﻿namespace Nerdbank.GitVersioning
 {
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Converters;
-    using Newtonsoft.Json.Serialization;
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using Validation;
     using System.Linq;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Converters;
+    using Newtonsoft.Json.Linq;
+    using Newtonsoft.Json.Serialization;
+    using Validation;
+
     /// <summary>
     /// Extension methods for interacting with the version.txt file.
     /// </summary>
@@ -122,7 +124,15 @@
         /// </summary>
         /// <param name="projectDirectory">The path to the directory which may (or its ancestors may) define the version.txt file.</param>
         /// <returns>The version information read from the file, or <c>null</c> if the file wasn't found.</returns>
-        public static VersionOptions GetVersion(string projectDirectory)
+        public static VersionOptions GetVersion(string projectDirectory) => GetVersion(projectDirectory, out string _);
+
+        /// <summary>
+        /// Reads the version.txt file and returns the <see cref="Version"/> and prerelease tag from it.
+        /// </summary>
+        /// <param name="projectDirectory">The path to the directory which may (or its ancestors may) define the version.txt file.</param>
+        /// <param name="actualDirectory">Set to the actual directory that the version file was found in, which may be <paramref name="projectDirectory"/> or one of its ancestors.</param>
+        /// <returns>The version information read from the file, or <c>null</c> if the file wasn't found.</returns>
+        public static VersionOptions GetVersion(string projectDirectory, out string actualDirectory)
         {
             Requires.NotNullOrEmpty(projectDirectory, nameof(projectDirectory));
 
@@ -138,6 +148,7 @@
                         var result = TryReadVersionFile(sr, isJsonFile: false);
                         if (result != null)
                         {
+                            actualDirectory = searchDirectory;
                             return result;
                         }
                     }
@@ -156,6 +167,7 @@
                             if (result != null)
                             {
                                 JsonConvert.PopulateObject(versionJsonContent, result, VersionOptions.GetJsonSettings());
+                                actualDirectory = searchDirectory;
                                 return result;
                             }
                         }
@@ -164,6 +176,7 @@
                     }
                     else if (result != null)
                     {
+                        actualDirectory = searchDirectory;
                         return result;
                     }
                 }
@@ -171,6 +184,7 @@
                 searchDirectory = parentDirectory;
             }
 
+            actualDirectory = null;
             return null;
         }
 

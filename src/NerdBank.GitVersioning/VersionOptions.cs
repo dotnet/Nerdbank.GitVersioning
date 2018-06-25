@@ -25,6 +25,12 @@
         /// </summary>
         private const int DefaultSemVer1NumericIdentifierPadding = 4;
 
+        /////// <summary>
+        /////// The $schema field that should be serialized when writing
+        /////// </summary>
+        ////[JsonProperty(PropertyName = "$schema")]
+        ////private string Schema => "https://raw.githubusercontent.com/AArnott/Nerdbank.GitVersioning/master/src/NerdBank.GitVersioning/version.schema.json";
+
         /// <summary>
         /// Gets or sets the default version to use.
         /// </summary>
