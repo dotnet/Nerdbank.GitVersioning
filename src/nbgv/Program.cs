@@ -34,6 +34,7 @@ namespace Nerdbank.GitVersioning.Tool
             NoCloudBuildEnvDetected,
             UnsupportedFormat,
             NoMatchingVersion,
+            BadGitRef,
         }
 
         private static ExitCodes exitCode;
@@ -64,6 +65,7 @@ namespace Nerdbank.GitVersioning.Tool
                 getVersion = syntax.DefineCommand("get-version", ref commandText, "Gets the version information for a project.");
                 syntax.DefineOption("p|project", ref projectPath, "The path to the project or project directory. The default is the current directory.");
                 syntax.DefineOption("f|format", ref format, $"The format to write the version information. Allowed values are: text, json. The default is {DefaultVersionInfoFormat}.");
+                syntax.DefineParameter("commit-ish", ref version, $"The commit/ref to get the version information for. The default is {DefaultRef}.");
 
                 setVersion = syntax.DefineCommand("set-version", ref commandText, "Updates the version stamp that is applied to a project.");
                 syntax.DefineOption("p|project", ref projectPath, "The path to the project or project directory. The default is the root directory of the repo that spans the current directory, or an existing version.json file, if applicable.");
@@ -90,7 +92,7 @@ namespace Nerdbank.GitVersioning.Tool
             }
             else if (getVersion.IsActive)
             {
-                exitCode = OnGetVersionCommand(projectPath, format);
+                exitCode = OnGetVersionCommand(projectPath, format, version);
             }
             else if (setVersion.IsActive)
             {
@@ -207,15 +209,42 @@ namespace Nerdbank.GitVersioning.Tool
             return ExitCodes.OK;
         }
 
-        private static ExitCodes OnGetVersionCommand(string projectPath, string format)
+        private static ExitCodes OnGetVersionCommand(string projectPath, string format, string versionOrRef)
         {
             if (string.IsNullOrEmpty(format))
             {
                 format = DefaultVersionInfoFormat;
             }
 
+            if (string.IsNullOrEmpty(versionOrRef))
+            {
+                versionOrRef = DefaultRef;
+            }
+
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(projectPath);
-            var oracle = VersionOracle.Create(searchPath);
+
+            var repository = GitExtensions.OpenGitRepo(searchPath);
+            if (repository == null)
+            {
+                Console.Error.WriteLine("No git repo found at or above: \"{0}\"", searchPath);
+                return ExitCodes.NoGitRepo;
+            }
+
+            LibGit2Sharp.GitObject refObject = null;
+            try
+            {
+                repository.RevParse(versionOrRef, out var reference, out refObject);
+            }
+            catch (LibGit2Sharp.NotFoundException) { }
+
+            var commit = refObject as LibGit2Sharp.Commit;
+            if (commit == null)
+            {
+                Console.Error.WriteLine("rev-parse produced no commit for {0}", versionOrRef);
+                return ExitCodes.BadGitRef;
+            }
+
+            var oracle = new VersionOracle(searchPath, repository, commit, CloudBuild.Active);
             switch (format.ToLowerInvariant())
             {
                 case "text":
