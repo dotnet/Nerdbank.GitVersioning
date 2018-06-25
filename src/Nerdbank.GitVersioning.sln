@@ -9,6 +9,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		..\.gitignore = ..\.gitignore
 		..\appveyor.yml = ..\appveyor.yml
 		..\build.ps1 = ..\build.ps1
+		Directory.Build.props = Directory.Build.props
 		..\init.ps1 = ..\init.ps1
 		nuget.config = nuget.config
 		..\readme.md = ..\readme.md
@@ -25,7 +26,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nerdbank.GitVersioning.Task
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MSBuildExtensionTask", "MSBuildExtensionTask\MSBuildExtensionTask.csproj", "{568CD02D-49C4-49DB-A34D-2DE9D7A0FE85}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "nbgv", "nbgv\nbgv.csproj", "{EF4DAF23-6CE9-48C5-84C5-80AC80D3D07D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "nbgv", "nbgv\nbgv.csproj", "{EF4DAF23-6CE9-48C5-84C5-80AC80D3D07D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -16,9 +16,8 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
-  <Target Name="SetNuSpecProperties" BeforeTargets="GenerateNuspec" DependsOnTargets="GetBuildVersion">
+  <Target Name="SetNuSpecPropertiesFinal" BeforeTargets="GenerateNuspec" DependsOnTargets="GetBuildVersion;SetNuSpecProperties">
     <PropertyGroup>
-      <PackageLicenseUrl>https://raw.githubusercontent.com/AArnott/Nerdbank.GitVersioning/$(GitCommitIdShort)/LICENSE.txt</PackageLicenseUrl>
       <LibGit2SharpNativeBinaries>$(NuGetPackageRoot)libgit2sharp.nativebinaries\1.0.165\</LibGit2SharpNativeBinaries>
       <NuspecProperties>$(NuspecProperties);LicenseUrl=$(PackageLicenseUrl);Version=$(Version);BaseOutputPath=$(OutputPath);LibGit2SharpNativeBinaries=$(LibGit2SharpNativeBinaries)</NuspecProperties>
     </PropertyGroup>

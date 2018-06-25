@@ -37,7 +37,7 @@
 
             using (var git = GitExtensions.OpenGitRepo(gitRepoDirectory))
             {
-                return new VersionOracle(projectDirectory, git, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot);
+                return new VersionOracle(projectDirectory, git, null, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot);
             }
         }
 
@@ -45,6 +45,14 @@
         /// Initializes a new instance of the <see cref="VersionOracle"/> class.
         /// </summary>
         public VersionOracle(string projectDirectory, LibGit2Sharp.Repository repo, ICloudBuild cloudBuild, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null)
+            : this(projectDirectory, repo, null, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="VersionOracle"/> class.
+        /// </summary>
+        public VersionOracle(string projectDirectory, LibGit2Sharp.Repository repo, LibGit2Sharp.Commit head, ICloudBuild cloudBuild, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null)
         {
             var repoRoot = repo?.Info?.WorkingDirectory?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             var relativeRepoProjectDirectory = !string.IsNullOrWhiteSpace(repoRoot)
@@ -53,11 +61,11 @@
                     : projectDirectory.Substring(repoRoot.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))
                 : null;
 
-            var commit = repo?.Head.Commits.FirstOrDefault();
+            var commit = head ?? repo?.Head.Commits.FirstOrDefault();
 
             var committedVersion = VersionFile.GetVersion(commit, relativeRepoProjectDirectory);
 
-            var workingVersion = VersionFile.GetVersion(projectDirectory);
+            var workingVersion = head != null ? VersionFile.GetVersion(head, relativeRepoProjectDirectory) : VersionFile.GetVersion(projectDirectory);
 
             if (overrideBuildNumberOffset.HasValue)
             {
