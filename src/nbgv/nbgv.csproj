@@ -11,7 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NuGet.PackageManagement" Version="4.7.0" />
+    <PackageReference Include="NuGet.PackageManagement" Version="4.7.0" NoWarn="NU1701" />
     <PackageReference Include="NuGet.Resolver" Version="4.7.0" />
     <PackageReference Include="System.CommandLine" Version="0.1.0-preview2-180503-2" />
     <PackageReference Include="Nerdbank.GitVersioning.LKG" Version="1.6.20-beta-gfea83a8c9e" PrivateAssets="all" />
