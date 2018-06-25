@@ -199,12 +199,12 @@
         }
 
         /// <summary>
-        /// Writes the version.txt file to a directory within a repo with the specified version information.
+        /// Writes the version.json file to a directory within a repo with the specified version information.
         /// </summary>
         /// <param name="projectDirectory">
-        /// The path to the directory in which to write the version.txt file.
+        /// The path to the directory in which to write the version.json file.
         /// The file's impact will be all descendent projects and directories from this specified directory,
-        /// except where any of those directories have their own version.txt file.
+        /// except where any of those directories have their own version.json file.
         /// </param>
         /// <param name="version">The version information to write to the file.</param>
         /// <returns>The path to the file written.</returns>
