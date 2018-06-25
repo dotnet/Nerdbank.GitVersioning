@@ -377,6 +377,23 @@
         }
 
         /// <summary>
+        /// Opens a <see cref="Repository"/> found at or above a specified path.
+        /// </summary>
+        /// <param name="pathUnderGitRepo">The path at or beneath the git repo root.</param>
+        /// <returns>The <see cref="Repository"/> found for the specified path, or <c>null</c> if no git repo is found.</returns>
+        public static Repository OpenGitRepo(string pathUnderGitRepo)
+        {
+            Requires.NotNullOrEmpty(pathUnderGitRepo, nameof(pathUnderGitRepo));
+            var gitDir = FindGitDir(pathUnderGitRepo);
+
+            // Override Config Search paths to empty path to avoid new Repository instance to lookup for Global\System .gitconfig file
+            GlobalSettings.SetConfigSearchPaths(ConfigurationLevel.Global, string.Empty);
+            GlobalSettings.SetConfigSearchPaths(ConfigurationLevel.System, string.Empty);
+
+            return gitDir == null ? null : new Repository(gitDir);
+        }
+
+        /// <summary>
         /// Tests whether a commit is of a specified version, comparing major and minor components
         /// with the version.txt file defined by that commit.
         /// </summary>
@@ -392,6 +409,46 @@
             var commitVersionData = VersionFile.GetVersion(commit, repoRelativeProjectDirectory);
             Version majorMinorFromFile = commitVersionData?.Version?.Version ?? Version0;
             return majorMinorFromFile?.Major == expectedVersion.Major && majorMinorFromFile?.Minor == expectedVersion.Minor;
+        }
+
+        private static string FindGitDir(string startingDir)
+        {
+            while (startingDir != null)
+            {
+                var dirOrFilePath = Path.Combine(startingDir, ".git");
+                if (Directory.Exists(dirOrFilePath))
+                {
+                    return dirOrFilePath;
+                }
+                else if (File.Exists(dirOrFilePath))
+                {
+                    var relativeGitDirPath = ReadGitDirFromFile(dirOrFilePath);
+                    if (!string.IsNullOrWhiteSpace(relativeGitDirPath))
+                    {
+                        var fullGitDirPath = Path.GetFullPath(Path.Combine(startingDir, relativeGitDirPath));
+                        if (Directory.Exists(fullGitDirPath))
+                        {
+                            return fullGitDirPath;
+                        }
+                    }
+                }
+
+                startingDir = Path.GetDirectoryName(startingDir);
+            }
+
+            return null;
+        }
+
+        private static string ReadGitDirFromFile(string fileName)
+        {
+            const string expectedPrefix = "gitdir: ";
+            var firstLineOfFile = File.ReadLines(fileName).FirstOrDefault();
+            if (firstLineOfFile?.StartsWith(expectedPrefix) ?? false)
+            {
+                return firstLineOfFile.Substring(expectedPrefix.Length); // strip off the prefix, leaving just the path
+            }
+
+            return null;
         }
 
         /// <summary>

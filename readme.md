@@ -25,6 +25,7 @@ What sets this package apart from other git-based versioning projects is:
 
 You can install Nerdbank.GitVersioning into your projects via NuGet or NPM.
 
+* Use the [nbgv .NET Core CLI tool](doc/nbgv-cli.md) (recommended)
 * [NuGet installation instructions](doc/nuget-acquisition.md)
 * [NPM installation instructions](doc/npm-acquisition.md)
 

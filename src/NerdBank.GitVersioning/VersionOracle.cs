@@ -35,9 +35,9 @@
                 gitRepoDirectory = projectDirectory;
             }
 
-            using (var git = OpenGitRepo(gitRepoDirectory))
+            using (var git = GitExtensions.OpenGitRepo(gitRepoDirectory))
             {
-                return new VersionOracle(projectDirectory, git, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot);
+                return new VersionOracle(projectDirectory, git, null, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot);
             }
         }
 
@@ -45,6 +45,14 @@
         /// Initializes a new instance of the <see cref="VersionOracle"/> class.
         /// </summary>
         public VersionOracle(string projectDirectory, LibGit2Sharp.Repository repo, ICloudBuild cloudBuild, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null)
+            : this(projectDirectory, repo, null, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="VersionOracle"/> class.
+        /// </summary>
+        public VersionOracle(string projectDirectory, LibGit2Sharp.Repository repo, LibGit2Sharp.Commit head, ICloudBuild cloudBuild, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null)
         {
             var repoRoot = repo?.Info?.WorkingDirectory?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             var relativeRepoProjectDirectory = !string.IsNullOrWhiteSpace(repoRoot)
@@ -53,11 +61,11 @@
                     : projectDirectory.Substring(repoRoot.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))
                 : null;
 
-            var commit = repo?.Head.Commits.FirstOrDefault();
+            var commit = head ?? repo?.Head.Commits.FirstOrDefault();
 
             var committedVersion = VersionFile.GetVersion(commit, relativeRepoProjectDirectory);
 
-            var workingVersion = VersionFile.GetVersion(projectDirectory);
+            var workingVersion = head != null ? VersionFile.GetVersion(head, relativeRepoProjectDirectory) : VersionFile.GetVersion(projectDirectory);
 
             if (overrideBuildNumberOffset.HasValue)
             {
@@ -355,58 +363,6 @@
 
         private static string FormatBuildMetadataSemVerV1(IEnumerable<string> identifiers) =>
             (identifiers?.Any() ?? false) ? "-" + string.Join("-", identifiers) : string.Empty;
-
-        private static LibGit2Sharp.Repository OpenGitRepo(string repoRoot)
-        {
-            Requires.NotNullOrEmpty(repoRoot, nameof(repoRoot));
-            var gitDir = FindGitDir(repoRoot);
-
-            // Override Config Search paths to empty path to avoid new Repository instance to lookup for Global\System .gitconfig file
-            LibGit2Sharp.GlobalSettings.SetConfigSearchPaths(LibGit2Sharp.ConfigurationLevel.Global, string.Empty);
-            LibGit2Sharp.GlobalSettings.SetConfigSearchPaths(LibGit2Sharp.ConfigurationLevel.System, string.Empty);
-
-            return gitDir == null ? null : new LibGit2Sharp.Repository(gitDir);
-        }
-
-        private static string FindGitDir(string startingDir)
-        {
-            while (startingDir != null)
-            {
-                var dirOrFilePath = Path.Combine(startingDir, ".git");
-                if (Directory.Exists(dirOrFilePath))
-                {
-                    return dirOrFilePath;
-                }
-                else if (File.Exists(dirOrFilePath))
-                {
-                    var relativeGitDirPath = ReadGitDirFromFile(dirOrFilePath);
-                    if (!string.IsNullOrWhiteSpace(relativeGitDirPath))
-                    {
-                        var fullGitDirPath = Path.GetFullPath(Path.Combine(startingDir, relativeGitDirPath));
-                        if (Directory.Exists(fullGitDirPath))
-                        {
-                            return fullGitDirPath;
-                        }
-                    }
-                }
-
-                startingDir = Path.GetDirectoryName(startingDir);
-            }
-
-            return null;
-        }
-
-        private static string ReadGitDirFromFile(string fileName)
-        {
-            const string expectedPrefix = "gitdir: ";
-            var firstLineOfFile = File.ReadLines(fileName).FirstOrDefault();
-            if (firstLineOfFile?.StartsWith(expectedPrefix) ?? false)
-            {
-                return firstLineOfFile.Substring(expectedPrefix.Length); // strip off the prefix, leaving just the path
-            }
-
-            return null;
-        }
 
         private static Version GetAssemblyVersion(Version version, VersionOptions versionOptions)
         {

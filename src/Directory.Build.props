@@ -5,5 +5,15 @@
     <OutputPath>$(MSBuildThisFileDirectory)..\bin\$(MSBuildProjectName)\$(Configuration)\</OutputPath>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)strongname.snk</AssemblyOriginatorKeyFile>
+
+    <authors>Andrew Arnott</authors>
+    <owners>aarnott</owners>
+    <PackageTags>git commit versioning version assemblyinfo</PackageTags>
   </PropertyGroup>
+
+  <Target Name="SetNuSpecProperties" BeforeTargets="GenerateNuspec" DependsOnTargets="GetBuildVersion">
+    <PropertyGroup>
+      <PackageLicenseUrl>https://raw.githubusercontent.com/AArnott/Nerdbank.GitVersioning/$(GitCommitIdShort)/LICENSE.txt</PackageLicenseUrl>
+    </PropertyGroup>
+  </Target>
 </Project>

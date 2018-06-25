@@ -1,7 +1,7 @@
-# Nerdbank.GitVersioning installation via NuGet 
+# Nerdbank.GitVersioning installation via NuGet
 
 Install the Nerdbank.GitVersioning package using the Visual Studio
-NuGet Package Manager GUI, or the NuGet Package Manager Console: 
+NuGet Package Manager GUI, or the NuGet Package Manager Console:
 
 ```
 Install-Package Nerdbank.GitVersioning
@@ -57,7 +57,7 @@ Note: After first installing the package, you need to commit the version file so
 it will be picked up during the build's version generation. If you build prior to committing,
 the version number produced will be 0.0.x.
 
-# Next steps 
+# Next steps
 
-You must also create [a version.json file](versionJson.md) in your repo. 
+You must also create [a version.json file](versionJson.md) in your repo.
 Learn more about [how .NET projects are stamped with version information](dotnet.md).
