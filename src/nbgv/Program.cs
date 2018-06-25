@@ -164,23 +164,28 @@ namespace Nerdbank.GitVersioning.Tool
             MSBuild.Project propsFile;
             if (File.Exists(directoryBuildPropsPath))
             {
-                propsFile = MSBuild.Project.FromFile(directoryBuildPropsPath, null);
+                propsFile = new MSBuild.Project(directoryBuildPropsPath);
             }
             else
             {
                 propsFile = new MSBuild.Project();
             }
 
-            propsFile.AddItem(
-                "PackageReference",
-                "Nerdbank.GitVersioning",
-                new Dictionary<string, string>
-                {
-                    { "Version", "2.1.23" }, // TODO: use the latest version... somehow...
-                    { "PrivateAssets", "all" },
-                });
+            const string PackageReferenceItemType = "PackageReference";
+            const string PackageId = "Nerdbank.GitVersioning";
+            if (!propsFile.GetItemsByEvaluatedInclude(PackageId).Any(i => i.ItemType == "PackageReference"))
+            {
+                propsFile.AddItem(
+                    PackageReferenceItemType,
+                    PackageId,
+                    new Dictionary<string, string>
+                    {
+                        { "Version", "2.1.23" }, // TODO: use the latest version... somehow...
+                        { "PrivateAssets", "all" },
+                    });
 
-            propsFile.Save(directoryBuildPropsPath);
+                propsFile.Save(directoryBuildPropsPath);
+            }
 
             LibGit2Sharp.Commands.Stage(repository, directoryBuildPropsPath);
 
