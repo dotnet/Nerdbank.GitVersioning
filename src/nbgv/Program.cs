@@ -35,6 +35,7 @@ namespace Nerdbank.GitVersioning.Tool
             UnsupportedFormat,
             NoMatchingVersion,
             BadGitRef,
+            NoVersionJsonFound,
         }
 
         private static ExitCodes exitCode;
@@ -367,6 +368,12 @@ namespace Nerdbank.GitVersioning.Tool
             }
 
             var oracle = new VersionOracle(searchPath, repository, commit, CloudBuild.Active);
+            if (!oracle.VersionFileFound)
+            {
+                Console.Error.WriteLine("No version.json file found in or above \"{0}\" in commit {1}.", searchPath, commit.Sha);
+                return ExitCodes.NoVersionJsonFound;
+            }
+
             oracle.PublicRelease = true; // assume a public release so we don't get a redundant -gCOMMITID in the tag name
             string tagName = $"v{oracle.SemVer2}";
             repository.Tags.Add(tagName, commit);

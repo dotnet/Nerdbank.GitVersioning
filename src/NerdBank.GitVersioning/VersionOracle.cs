@@ -154,6 +154,11 @@
         }
 
         /// <summary>
+        /// Gets a value indicating whether a version.json or version.txt file was found.
+        /// </summary>
+        public bool VersionFileFound => this.VersionOptions != null;
+
+        /// <summary>
         /// Gets the version options used to initialize this instance.
         /// </summary>
         private VersionOptions VersionOptions { get; }
