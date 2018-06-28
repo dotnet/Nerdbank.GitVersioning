@@ -36,6 +36,7 @@ namespace Nerdbank.GitVersioning.Tool
             NoMatchingVersion,
             BadGitRef,
             NoVersionJsonFound,
+            TagConflict,
         }
 
         private static ExitCodes exitCode;
@@ -376,7 +377,18 @@ namespace Nerdbank.GitVersioning.Tool
 
             oracle.PublicRelease = true; // assume a public release so we don't get a redundant -gCOMMITID in the tag name
             string tagName = $"v{oracle.SemVer2}";
-            repository.Tags.Add(tagName, commit);
+            try
+            {
+                repository.Tags.Add(tagName, commit);
+            }
+            catch (LibGit2Sharp.NameConflictException)
+            {
+                var taggedCommit = repository.Tags[tagName].Target as LibGit2Sharp.Commit;
+                bool correctTag = taggedCommit?.Sha == commit.Sha;
+                Console.Error.WriteLine("The tag {0} is already defined ({1}).", tagName, correctTag ? "to the right commit" : $"expected {commit.Sha} but was on {taggedCommit.Sha}");
+                return correctTag ? ExitCodes.OK : ExitCodes.TagConflict;
+            }
+
             Console.WriteLine("{0} tag created at {1}.", tagName, commit.Sha);
             Console.WriteLine("Remember to push to a remote: git push origin {0}", tagName);
 
