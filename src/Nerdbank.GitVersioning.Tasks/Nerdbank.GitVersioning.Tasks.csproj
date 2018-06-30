@@ -18,7 +18,7 @@
 
   <Target Name="SetNuSpecPropertiesFinal" BeforeTargets="GenerateNuspec" DependsOnTargets="GetBuildVersion;SetNuSpecProperties">
     <PropertyGroup>
-      <LibGit2SharpNativeBinaries>$(NuGetPackageRoot)libgit2sharp.nativebinaries\1.0.165\</LibGit2SharpNativeBinaries>
+      <LibGit2SharpNativeBinaries>$(NuGetPackageRoot)libgit2sharp.nativebinaries\1.0.210\</LibGit2SharpNativeBinaries>
       <NuspecProperties>$(NuspecProperties);LicenseUrl=$(PackageLicenseUrl);Version=$(Version);BaseOutputPath=$(OutputPath);LibGit2SharpNativeBinaries=$(LibGit2SharpNativeBinaries)</NuspecProperties>
     </PropertyGroup>
   </Target>
