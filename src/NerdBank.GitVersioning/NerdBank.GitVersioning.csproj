@@ -7,7 +7,7 @@
     <PackageId>Nerdbank.GitVersioning.Core</PackageId>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="LibGit2Sharp" Version="0.25.0" PrivateAssets="none" />
+    <PackageReference Include="LibGit2Sharp" Version="0.25.2" PrivateAssets="none" />
     <PackageReference Include="Newtonsoft.Json" Version="10.0.2" />
     <PackageReference Include="System.Diagnostics.Tools" Version="4.3.0" Condition=" '$(TargetFramework)' == 'netcoreapp2.0' " />
     <PackageReference Include="Validation" Version="2.3.7" />
