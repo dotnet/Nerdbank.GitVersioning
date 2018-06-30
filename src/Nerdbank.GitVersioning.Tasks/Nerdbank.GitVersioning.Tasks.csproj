@@ -25,8 +25,8 @@
 
   <Target Name="PackBuildOutputs" DependsOnTargets="SatelliteDllsProjectOutputGroup;DebugSymbolsProjectOutputGroup">
     <PropertyGroup>
-      <BuildSubDir Condition=" '$(TargetFramework)' == 'netcoreapp1.0' ">MSBuildCore\</BuildSubDir>
-      <BuildSubDir Condition=" '$(TargetFramework)' == 'net45' ">MSBuildFull\</BuildSubDir>
+      <BuildSubDir Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">MSBuildCore\</BuildSubDir>
+      <BuildSubDir Condition=" '$(TargetFramework)' == 'net461' ">MSBuildFull\</BuildSubDir>
     </PropertyGroup>
     <Error Text="Unrecognized TargetFramework" Condition=" '$(BuildSubDir)' == '' " />
     <ItemGroup>
