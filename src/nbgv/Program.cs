@@ -37,6 +37,7 @@ namespace Nerdbank.GitVersioning.Tool
             BadGitRef,
             NoVersionJsonFound,
             TagConflict,
+            NoCloudBuildProviderMatch,
         }
 
         private static ExitCodes exitCode;
@@ -50,6 +51,7 @@ namespace Nerdbank.GitVersioning.Tool
             IReadOnlyList<string> cloudVariables = Array.Empty<string>();
             var format = string.Empty;
             bool quiet = false;
+            var cisystem = string.Empty;
 
             ArgumentCommand<string> install = null;
             ArgumentCommand<string> getVersion = null;
@@ -85,6 +87,7 @@ namespace Nerdbank.GitVersioning.Tool
                 cloud = syntax.DefineCommand("cloud", ref commandText, "Communicates with the ambient cloud build to set the build number and/or other cloud build variables.");
                 syntax.DefineOption("p|project", ref projectPath, "The path to the project or project directory used to calculate the version. The default is the current directory. Ignored if the -v option is specified.");
                 syntax.DefineOption("v|version", ref version, "The string to use for the cloud build number. If not specified, the computed version will be used.");
+                syntax.DefineOption("c|ci-system", ref cisystem, "Force activation for a particular CI system. If not specified, auto-detection will be used. Supported values are: " + string.Join(", ", CloudProviderNames));
                 syntax.DefineOptionList("d|define", ref cloudVariables, "Additional cloud build variables to define. Each should be in the NAME=VALUE syntax.");
             });
 
@@ -110,7 +113,7 @@ namespace Nerdbank.GitVersioning.Tool
             }
             else if (cloud.IsActive)
             {
-                exitCode = OnCloudCommand(projectPath, version, cloudVariables);
+                exitCode = OnCloudCommand(projectPath, version, cisystem, cloudVariables);
             }
 
             return (int)exitCode;
@@ -419,7 +422,7 @@ namespace Nerdbank.GitVersioning.Tool
             return ExitCodes.OK;
         }
 
-        private static ExitCodes OnCloudCommand(string projectPath, string version, IReadOnlyList<string> cloudVariables)
+        private static ExitCodes OnCloudCommand(string projectPath, string version, string cisystem, IReadOnlyList<string> cloudVariables)
         {
             var variables = new Dictionary<string, string>();
             foreach (string def in cloudVariables)
@@ -441,6 +444,18 @@ namespace Nerdbank.GitVersioning.Tool
             }
 
             ICloudBuild activeCloudBuild = CloudBuild.Active;
+            if (!string.IsNullOrEmpty(cisystem))
+            {
+                int matchingIndex = Array.FindIndex(CloudProviderNames, m => string.Equals(m, cisystem, StringComparison.OrdinalIgnoreCase));
+                if (matchingIndex == -1)
+                {
+                    Console.Error.WriteLine("No cloud provider found by the name: \"{0}\"", cisystem);
+                    return ExitCodes.NoCloudBuildProviderMatch;
+                }
+
+                activeCloudBuild = CloudBuild.SupportedCloudBuilds[matchingIndex];
+            }
+
             if (activeCloudBuild != null)
             {
                 activeCloudBuild.SetCloudBuildNumber(version, Console.Out, Console.Error);
@@ -519,5 +534,7 @@ namespace Nerdbank.GitVersioning.Tool
                 }
             }
         }
+
+        private static string[] CloudProviderNames => CloudBuild.SupportedCloudBuilds.Select(cb => cb.GetType().Name).ToArray();
     }
 }
