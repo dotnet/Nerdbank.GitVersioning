@@ -52,6 +52,8 @@ namespace Nerdbank.GitVersioning.Tool
             var format = string.Empty;
             bool quiet = false;
             var cisystem = string.Empty;
+            bool cloudBuildCommonVars = false;
+            bool cloudBuildAllVars = false;
 
             ArgumentCommand<string> install = null;
             ArgumentCommand<string> getVersion = null;
@@ -88,6 +90,8 @@ namespace Nerdbank.GitVersioning.Tool
                 syntax.DefineOption("p|project", ref projectPath, "The path to the project or project directory used to calculate the version. The default is the current directory. Ignored if the -v option is specified.");
                 syntax.DefineOption("v|version", ref version, "The string to use for the cloud build number. If not specified, the computed version will be used.");
                 syntax.DefineOption("c|ci-system", ref cisystem, "Force activation for a particular CI system. If not specified, auto-detection will be used. Supported values are: " + string.Join(", ", CloudProviderNames));
+                syntax.DefineOption("a|all-vars", ref cloudBuildAllVars, false, "Defines ALL version variables as cloud build variables, with a \"NBGV_\" prefix.");
+                syntax.DefineOption("g|common-vars", ref cloudBuildCommonVars, false, "Defines a few common version variables as cloud build variables, with a \"Git\" prefix (e.g. GitBuildVersion, GitBuildVersionSimple, GitAssemblyInformationalVersion).");
                 syntax.DefineOptionList("d|define", ref cloudVariables, "Additional cloud build variables to define. Each should be in the NAME=VALUE syntax.");
             });
 
@@ -113,7 +117,7 @@ namespace Nerdbank.GitVersioning.Tool
             }
             else if (cloud.IsActive)
             {
-                exitCode = OnCloudCommand(projectPath, version, cisystem, cloudVariables);
+                exitCode = OnCloudCommand(projectPath, version, cisystem, cloudBuildAllVars, cloudBuildCommonVars, cloudVariables);
             }
 
             return (int)exitCode;
@@ -422,25 +426,13 @@ namespace Nerdbank.GitVersioning.Tool
             return ExitCodes.OK;
         }
 
-        private static ExitCodes OnCloudCommand(string projectPath, string version, string cisystem, IReadOnlyList<string> cloudVariables)
+        private static ExitCodes OnCloudCommand(string projectPath, string version, string cisystem, bool cloudBuildAllVars, bool cloudBuildCommonVars, IReadOnlyList<string> cloudVariables)
         {
-            var variables = new Dictionary<string, string>();
-            foreach (string def in cloudVariables)
+            string searchPath = GetSpecifiedOrCurrentDirectoryPath(projectPath);
+            if (!Directory.Exists(searchPath))
             {
-                string[] split = def.Split(new char[] { '=' }, 2);
-                if (split.Length < 2)
-                {
-                    Console.Error.WriteLine($"\"{def}\" is not in the NAME=VALUE syntax required for cloud variables.");
-                    return ExitCodes.BadCloudVariable;
-                }
-
-                if (variables.ContainsKey(split[0]))
-                {
-                    Console.Error.WriteLine($"Cloud build variable \"{split[0]}\" specified more than once.");
-                    return ExitCodes.DuplicateCloudVariable;
-                }
-
-                variables.Add(split[0], split[1]);
+                Console.Error.WriteLine("\"{0}\" is not an existing directory.", searchPath);
+                return ExitCodes.NoGitRepo;
             }
 
             ICloudBuild activeCloudBuild = CloudBuild.Active;
@@ -456,22 +448,51 @@ namespace Nerdbank.GitVersioning.Tool
                 activeCloudBuild = CloudBuild.SupportedCloudBuilds[matchingIndex];
             }
 
-            string searchPath = GetSpecifiedOrCurrentDirectoryPath(projectPath);
-            if (!Directory.Exists(searchPath))
+            var oracle = VersionOracle.Create(searchPath, cloudBuild: activeCloudBuild);
+            var variables = new Dictionary<string, string>();
+            if (cloudBuildAllVars)
             {
-                Console.Error.WriteLine("\"{0}\" is not an existing directory.", searchPath);
-                return ExitCodes.NoGitRepo;
+                foreach (var pair in oracle.CloudBuildAllVars)
+                {
+                    variables.Add(pair.Key, pair.Value);
+                }
+            }
+
+            if (cloudBuildCommonVars)
+            {
+                foreach (var pair in oracle.CloudBuildVersionVars)
+                {
+                    variables.Add(pair.Key, pair.Value);
+                }
+            }
+
+            foreach (string def in cloudVariables)
+            {
+                string[] split = def.Split(new char[] { '=' }, 2);
+                if (split.Length < 2)
+                {
+                    Console.Error.WriteLine($"\"{def}\" is not in the NAME=VALUE syntax required for cloud variables.");
+                    return ExitCodes.BadCloudVariable;
+                }
+
+                if (variables.ContainsKey(split[0]))
+                {
+                    Console.Error.WriteLine($"Cloud build variable \"{split[0]}\" specified more than once.");
+                    return ExitCodes.DuplicateCloudVariable;
+                }
+
+                variables[split[0]] = split[1];
             }
 
             if (activeCloudBuild != null)
             {
                 if (string.IsNullOrEmpty(version))
                 {
-                    var oracle = VersionOracle.Create(searchPath, cloudBuild: activeCloudBuild);
                     version = oracle.CloudBuildNumber;
                 }
 
                 activeCloudBuild.SetCloudBuildNumber(version, Console.Out, Console.Error);
+
                 foreach (var pair in variables)
                 {
                     activeCloudBuild.SetCloudBuildVariable(pair.Key, pair.Value, Console.Out, Console.Error);
