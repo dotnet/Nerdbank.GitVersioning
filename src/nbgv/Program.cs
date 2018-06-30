@@ -456,8 +456,21 @@ namespace Nerdbank.GitVersioning.Tool
                 activeCloudBuild = CloudBuild.SupportedCloudBuilds[matchingIndex];
             }
 
+            string searchPath = GetSpecifiedOrCurrentDirectoryPath(projectPath);
+            if (!Directory.Exists(searchPath))
+            {
+                Console.Error.WriteLine("\"{0}\" is not an existing directory.", searchPath);
+                return ExitCodes.NoGitRepo;
+            }
+
             if (activeCloudBuild != null)
             {
+                if (string.IsNullOrEmpty(version))
+                {
+                    var oracle = VersionOracle.Create(searchPath, cloudBuild: activeCloudBuild);
+                    version = oracle.CloudBuildNumber;
+                }
+
                 activeCloudBuild.SetCloudBuildNumber(version, Console.Out, Console.Error);
                 foreach (var pair in variables)
                 {
