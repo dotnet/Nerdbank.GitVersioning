@@ -14,7 +14,7 @@ in MSBuild, gulp and other build scripts.
 ## Optional features
 
 By specifying certain `cloudBuild` options in your `version.json` file,
-you can activate features for some cloud build systems, as follows
+you can activate features for some cloud build systems, as follows:
 
 ### Automatically match cloud build numbers to to your git version
 
@@ -73,6 +73,39 @@ in your `version.json` file to `true`, as shown below:
   "version": "1.0",
   "cloudBuild": {
     "setVersionVariables": true
+  }
+}
+```
+
+There are many more MSBuild variables that the build will set within the build. To make *all* these available as cloud variables (prefixed with `NBGV_`), you can set the `cloudBuild.setAllVariables` field to `true`:
+
+```json
+{
+  "version": "1.0",
+  "cloudBuild": {
+    "setVersionVariables": true,
+    "setAllVariables": true
+  }
+}
+```
+
+Setting both of these fields to `true` means that a few variables will be defined in the cloud build server twice -- one set with the names in the table above and the other (full) set using the `NBGV_` prefix.
+
+### Set cloud build variables from just one project
+
+While each individual MSBuild project has its own version computed, the versions across projects are usually the same so long as you have one `version.json` file at the root of your repo. If you choose to enable setting of cloud build variables in that root version.json file, each project that builds will take a turn setting those cloud build variables. This is perhaps more work than is necessary, and when some projects compute versions differently it can lead to inconsistently defined cloud build variables, based on non-deterministic build ordering of your projects.
+
+You can reduce log message noise and control for non-deterministic cloud build variables by *not* setting any of the `cloudBuild` options in your root version.json file, and instead defining an additional `version.json` file inside just *one* project directory that inherits from the base one, like this:
+
+```json
+{
+  "inherit": true,
+  "cloudBuild": {
+    "buildNumber": {
+      "enabled": true
+    },
+    "setVersionVariables": true,
+    "setAllVariables": true
   }
 }
 ```

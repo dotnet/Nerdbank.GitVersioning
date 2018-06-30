@@ -32,7 +32,7 @@
       GetBuildVersion;
       $(GetPackageVersionDependsOn)
     </GetPackageVersionDependsOn>
-    
+
     <!-- Suppress assembly version info generation if not obviously compiling an assembly. -->
     <GenerateAssemblyVersionInfo Condition=" '$(GenerateAssemblyVersionInfo)' == '' and '$(TargetExt)' != '.dll' and '$(TargetExt)' != '.exe'">false</GenerateAssemblyVersionInfo>
 
@@ -218,6 +218,15 @@
       <Version>$(NuGetPackageVersion)</Version>
       <NuSpecProperties>$(NuSpecProperties);$(NuGetProperties);GitCommitIdShort=$(GitCommitIdShort)</NuSpecProperties>
     </PropertyGroup>
+  </Target>
+
+  <!-- Support for ASP.NET Core 2.1 Razor view assemblies -->
+  <Target Name="AddVersionFile"
+          BeforeTargets="PrepareForRazorCompile"
+          DependsOnTargets="GenerateAssemblyVersionInfo">
+    <ItemGroup>
+      <RazorCompile Include="$(VersionSourceFile)" />
+    </ItemGroup>
   </Target>
 
   <!-- Workaround till https://github.com/NuGet/NuGet.Client/issues/1064 is merged and used. -->

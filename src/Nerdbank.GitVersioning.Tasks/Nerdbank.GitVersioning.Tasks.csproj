@@ -1,12 +1,94 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>netcoreapp2.0;net461</TargetFrameworks>
-    <IsTool>true</IsTool>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+    <NuSpecFile>Nerdbank.GitVersioning.nuspec</NuSpecFile>
+
+    <NoPackageAnalysis>true</NoPackageAnalysis>
+
+    <!-- Note that https://github.com/NuGet/Home/issues/4694 prevents this from actually working. -->
+    <developmentDependency>true</developmentDependency>
+
+    <!-- We're going to include it by virtue of sending the whole bin dir to the build folder. -->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PackBuildOutputs</TargetsForTfmSpecificContentInPackage>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
+
+  <Target Name="SetNuSpecPropertiesFinal" BeforeTargets="GenerateNuspec" DependsOnTargets="GetBuildVersion;SetNuSpecProperties">
+    <PropertyGroup>
+      <LibGit2SharpNativeBinaries>$(NuGetPackageRoot)libgit2sharp.nativebinaries\1.0.165\</LibGit2SharpNativeBinaries>
+      <NuspecProperties>$(NuspecProperties);LicenseUrl=$(PackageLicenseUrl);Version=$(Version);BaseOutputPath=$(OutputPath);LibGit2SharpNativeBinaries=$(LibGit2SharpNativeBinaries)</NuspecProperties>
+    </PropertyGroup>
+  </Target>
+
+  <Target Name="PackBuildOutputs" DependsOnTargets="SatelliteDllsProjectOutputGroup;DebugSymbolsProjectOutputGroup">
+    <PropertyGroup>
+      <BuildSubDir Condition=" '$(TargetFramework)' == 'netcoreapp1.0' ">MSBuildCore\</BuildSubDir>
+      <BuildSubDir Condition=" '$(TargetFramework)' == 'net45' ">MSBuildFull\</BuildSubDir>
+    </PropertyGroup>
+    <Error Text="Unrecognized TargetFramework" Condition=" '$(BuildSubDir)' == '' " />
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="
+                        $(OutputPath)LibGit2Sharp.dll*;
+                        $(OutputPath)MSBuildExtensionTask.dll;
+                        $(OutputPath)Nerdbank.GitVersioning.*dll;
+                        $(OutputPath)Newtonsoft.Json.dll;
+                        $(OutputPath)Validation.dll;
+               ">
+        <PackagePath>build\$(BuildSubDir)</PackagePath>
+      </TfmSpecificPackageFile>
+      <!-- Package up the libgit2 native binaries -->
+      <TfmSpecificPackageFile Include="@(None)" Condition=" '%(None.CopyToOutputDirectory)' == 'PreserveNewest' ">
+        <PackagePath>build\$(BuildSubDir)%(None.Link)</PackagePath>
+      </TfmSpecificPackageFile>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="ExpandForNpmPackage" DependsOnTargets="GenerateNuSpec" AfterTargets="GenerateNuSpec">
+    <PropertyGroup>
+      <NpmPackageLayoutDir>..\nerdbank-gitversioning.npm\out\nbgv.nuget\</NpmPackageLayoutDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <NpmPackageLayout Include="@(_PackageFiles)">
+        <TargetPath Condition=" '%(_PackageFiles.PackagePath)' != '' ">$(NpmPackageLayoutDir)$([System.IO.Path]::GetDirectoryName('%(_PackageFiles.PackagePath)'))\%(FileName)%(Extension)</TargetPath>
+        <TargetPath Condition=" '%(_PackageFiles.PackagePath)' == '' ">$(NpmPackageLayoutDir)%(FileName)%(Extension)</TargetPath>
+      </NpmPackageLayout>
+    </ItemGroup>
+    <Copy SourceFiles="@(NpmPackageLayout)" DestinationFiles="@(NpmPackageLayout->'%(TargetPath)')" />
+  </Target>
+
+  <ItemGroup>
+    <None Include="build\**">
+      <Pack>true</Pack>
+      <PackagePath>build\</PackagePath>
+    </None>
+    <None Include="buildCrossTargeting\**">
+      <Pack>true</Pack>
+      <PackagePath>buildCrossTargeting\</PackagePath>
+    </None>
+    <None Include="tools\**">
+      <Pack>true</Pack>
+      <PackagePath>tools\</PackagePath>
+    </None>
+    <None Include="readme.txt">
+      <Pack>true</Pack>
+      <PackagePath>readme.txt</PackagePath>
+    </None>
+  </ItemGroup>
+
+  <ItemDefinitionGroup>
+    <PackageReference>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <ProjectReference>
+      <PrivateAssets>all</PrivateAssets>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+
   <ItemGroup>
     <PackageReference Include="Nerdbank.GitVersioning.LKG" Version="1.6.20-beta-gfea83a8c9e" />
-    <PackageReference Include="NuProj.Common" Version="0.11.14-beta" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\MSBuildExtensionTask\MSBuildExtensionTask.csproj" />
