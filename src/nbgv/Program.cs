@@ -89,9 +89,9 @@ namespace Nerdbank.GitVersioning.Tool
                 cloud = syntax.DefineCommand("cloud", ref commandText, "Communicates with the ambient cloud build to set the build number and/or other cloud build variables.");
                 syntax.DefineOption("p|project", ref projectPath, "The path to the project or project directory used to calculate the version. The default is the current directory. Ignored if the -v option is specified.");
                 syntax.DefineOption("v|version", ref version, "The string to use for the cloud build number. If not specified, the computed version will be used.");
-                syntax.DefineOption("c|ci-system", ref cisystem, "Force activation for a particular CI system. If not specified, auto-detection will be used. Supported values are: " + string.Join(", ", CloudProviderNames));
+                syntax.DefineOption("s|ci-system", ref cisystem, "Force activation for a particular CI system. If not specified, auto-detection will be used. Supported values are: " + string.Join(", ", CloudProviderNames));
                 syntax.DefineOption("a|all-vars", ref cloudBuildAllVars, false, "Defines ALL version variables as cloud build variables, with a \"NBGV_\" prefix.");
-                syntax.DefineOption("g|common-vars", ref cloudBuildCommonVars, false, "Defines a few common version variables as cloud build variables, with a \"Git\" prefix (e.g. GitBuildVersion, GitBuildVersionSimple, GitAssemblyInformationalVersion).");
+                syntax.DefineOption("c|common-vars", ref cloudBuildCommonVars, false, "Defines a few common version variables as cloud build variables, with a \"Git\" prefix (e.g. GitBuildVersion, GitBuildVersionSimple, GitAssemblyInformationalVersion).");
                 syntax.DefineOptionList("d|define", ref cloudVariables, "Additional cloud build variables to define. Each should be in the NAME=VALUE syntax.");
             });
 
