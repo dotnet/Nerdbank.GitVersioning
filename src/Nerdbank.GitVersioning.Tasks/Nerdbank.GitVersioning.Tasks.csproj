@@ -82,9 +82,6 @@
     <PackageReference>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <ProjectReference>
-      <PrivateAssets>all</PrivateAssets>
-    </ProjectReference>
   </ItemDefinitionGroup>
 
   <ItemGroup>
