@@ -34,7 +34,17 @@
 
         public IReadOnlyDictionary<string, string> SetCloudBuildVariable(string name, string value, TextWriter stdout, TextWriter stderr)
         {
-            return new Dictionary<string, string>();
+            // Gitlab uses env vars for conveying build parameters
+            Environment.SetEnvironmentVariable(name, value);
+
+            // Log this var to the console to assist CI debug
+            (stdout ?? Console.Out).WriteLine($"##Cloud Build Variable name={name}, value={value}");
+
+            // Return the pair as our result
+            return new Dictionary<string, string>
+            {
+                { name, value }
+            };
         }
     }
 }
