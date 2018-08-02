@@ -539,12 +539,22 @@ namespace Nerdbank.GitVersioning.Tool
 
         private static string GetSpecifiedOrCurrentDirectoryPath(string versionJsonRoot)
         {
-            return Path.GetFullPath(string.IsNullOrEmpty(versionJsonRoot) ? "." : versionJsonRoot);
+            return ShouldHaveTrailingDirectorySeparator(Path.GetFullPath(string.IsNullOrEmpty(versionJsonRoot) ? "." : versionJsonRoot));
         }
 
         private static string GetRepoRelativePath(string searchPath, LibGit2Sharp.Repository repository)
         {
             return searchPath.Substring(repository.Info.WorkingDirectory.Length);
+        }
+
+        private static string ShouldHaveTrailingDirectorySeparator(string path)
+        {
+            if (path.EndsWith(Path.DirectorySeparatorChar) || path.EndsWith(Path.AltDirectorySeparatorChar))
+            {
+                return path;
+            }
+
+            return path + Path.DirectorySeparatorChar;
         }
 
         private static void PrintCommits(bool quiet, string projectDirectory, LibGit2Sharp.Repository repository, List<LibGit2Sharp.Commit> candidateCommits, bool includeOptions = false)
