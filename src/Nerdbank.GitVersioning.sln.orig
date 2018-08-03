@@ -26,11 +26,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nerdbank.GitVersioning.Task
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MSBuildExtensionTask", "MSBuildExtensionTask\MSBuildExtensionTask.csproj", "{568CD02D-49C4-49DB-A34D-2DE9D7A0FE85}"
 EndProject
-<<<<<<< HEAD
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cake.GitVersioning", "Cake.GitVersioning\Cake.GitVersioning.csproj", "{1F267A97-DFE3-4166-83B1-9D236B7A09BD}"
-=======
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "nbgv", "nbgv\nbgv.csproj", "{EF4DAF23-6CE9-48C5-84C5-80AC80D3D07D}"
->>>>>>> 7827ebe66c2a628ae05a25d2bcb9831f1be4e075
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -56,7 +54,6 @@ Global
 		{568CD02D-49C4-49DB-A34D-2DE9D7A0FE85}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{568CD02D-49C4-49DB-A34D-2DE9D7A0FE85}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{568CD02D-49C4-49DB-A34D-2DE9D7A0FE85}.Release|Any CPU.Build.0 = Release|Any CPU
-<<<<<<< HEAD
 		{568CD02D-49C4-49DB-A34D-2DE9D7A0FE85}.Release|x64.ActiveCfg = Release|Any CPU
 		{568CD02D-49C4-49DB-A34D-2DE9D7A0FE85}.Release|x64.Build.0 = Release|Any CPU
 		{568CD02D-49C4-49DB-A34D-2DE9D7A0FE85}.Release|x86.ActiveCfg = Release|Any CPU
@@ -73,21 +70,15 @@ Global
 		{1F267A97-DFE3-4166-83B1-9D236B7A09BD}.Release|x64.Build.0 = Release|Any CPU
 		{1F267A97-DFE3-4166-83B1-9D236B7A09BD}.Release|x86.ActiveCfg = Release|Any CPU
 		{1F267A97-DFE3-4166-83B1-9D236B7A09BD}.Release|x86.Build.0 = Release|Any CPU
-=======
 		{EF4DAF23-6CE9-48C5-84C5-80AC80D3D07D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{EF4DAF23-6CE9-48C5-84C5-80AC80D3D07D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EF4DAF23-6CE9-48C5-84C5-80AC80D3D07D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EF4DAF23-6CE9-48C5-84C5-80AC80D3D07D}.Release|Any CPU.Build.0 = Release|Any CPU
->>>>>>> 7827ebe66c2a628ae05a25d2bcb9831f1be4e075
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-<<<<<<< HEAD
-		SolutionGuid = {03CE16EE-A939-43FB-B846-92EB3A797ECF}
-=======
 		SolutionGuid = {4CF7AA29-5BBD-4294-9C92-DA689CF57200}
->>>>>>> 7827ebe66c2a628ae05a25d2bcb9831f1be4e075
 	EndGlobalSection
 EndGlobal

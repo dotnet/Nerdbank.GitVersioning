@@ -65,8 +65,8 @@
 
                 if (isUnitTest)
                 {
-                    PipeOutputToMSBuildLog(testStdOut.ToString(), warning: false);
-                    PipeOutputToMSBuildLog(testStdErr.ToString(), warning: true);
+                    this.PipeOutputToMSBuildLog(testStdOut.ToString(), warning: false);
+                    this.PipeOutputToMSBuildLog(testStdErr.ToString(), warning: true);
                 }
             }
             else

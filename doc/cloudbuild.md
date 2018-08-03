@@ -14,7 +14,7 @@ in MSBuild, gulp and other build scripts.
 ## Optional features
 
 By specifying certain `cloudBuild` options in your `version.json` file,
-you can activate features for some cloud build systems, as follows
+you can activate features for some cloud build systems, as follows:
 
 ### Automatically match cloud build numbers to to your git version
 
@@ -73,6 +73,58 @@ in your `version.json` file to `true`, as shown below:
   "version": "1.0",
   "cloudBuild": {
     "setVersionVariables": true
+  }
+}
+```
+
+There are many more MSBuild variables that the build will set within the build. To make *all* these available as cloud variables (prefixed with `NBGV_`), you can set the `cloudBuild.setAllVariables` field to `true`:
+
+```json
+{
+  "version": "1.0",
+  "cloudBuild": {
+    "setVersionVariables": true,
+    "setAllVariables": true
+  }
+}
+```
+
+Setting both of these fields to `true` means that a few variables will be defined in the cloud build server twice -- one set with the names in the table above and the other (full) set using the `NBGV_` prefix.
+
+### Set cloud build variables only once in a build
+
+While each individual MSBuild project has its own version computed, the versions across projects are usually the same so long as you have one `version.json` file at the root of your repo. If you choose to enable setting of cloud build variables in that root version.json file, each project that builds will take a turn setting those cloud build variables. This is perhaps more work than is necessary, and when some projects compute versions differently it can lead to inconsistently defined cloud build variables, based on non-deterministic build ordering of your projects.
+
+You can reduce log message noise and control for non-deterministic cloud build variables by *not* setting any of the `cloudBuild` options in your root version.json file. Two options are described below to set the cloud build number and variables just once in your build.
+
+#### Set the cloud build number as a build step
+
+The [nbgv CLI tool](nbgv-cli.md) can be used to set the cloud build number and variables. Your CI build script should include these two commands:
+
+```cmd
+dotnet tool install --tool-path . nbgv
+.\nbgv cloud
+```
+
+The above will set just the cloud build number, but switches to the `nbgv cloud` command will cause other build variables to also be set.
+
+See a working sample in [a VSTS YAML file](https://github.com/Humanizr/Humanizer/blob/604ebcc5ed0215aa8fb511ac5424239659f570a0/.vsts-shared.yml#L5-L15).
+
+https://github.com/Humanizr/Humanizer/blob/604ebcc5ed0215aa8fb511ac5424239659f570a0/.vsts-shared.yml#L5-L15
+
+#### Set them from just one project
+
+After ensuring that your root version.json file does *not* set `cloudBuild.buildNumber.enabled=true`, define an additional `version.json` file inside just *one* project directory that inherits from the base one, like this:
+
+```json
+{
+  "inherit": true,
+  "cloudBuild": {
+    "buildNumber": {
+      "enabled": true
+    },
+    "setVersionVariables": true,
+    "setAllVariables": true
   }
 }
 ```
