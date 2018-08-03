@@ -1,6 +1,5 @@
 # VersionOptions.PublicReleaseRefSpec Property
-> Gets or sets an array of regular expressions that describes branch or tag names that should
-            be built with PublicRelease=true as the default value on build servers.
+> Gets or sets an array of regular expressions that describes branch or tag names that should be built with PublicRelease=true as the default value on build servers.
 
 **Namespace:** Nerdbank.GitVersioning
 

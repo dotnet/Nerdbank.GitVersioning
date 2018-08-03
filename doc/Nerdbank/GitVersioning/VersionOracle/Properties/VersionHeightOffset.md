@@ -1,7 +1,5 @@
 # VersionOracle.VersionHeightOffset Property
-> The offset to add to the 
-            when calculating the integer to use as the 
-            or elsewhere that the {height} macro is used.
+> The offset to add to the when calculating the integer to use as the or elsewhere that the {height} macro is used.
 
 **Namespace:** Nerdbank.GitVersioning
 

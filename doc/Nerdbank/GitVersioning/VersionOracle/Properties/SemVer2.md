@@ -1,6 +1,5 @@
 # VersionOracle.SemVer2 Property
-> Gets a SemVer 2.0 compliant string that represents this version, including a +gCOMMITID suffix
-            when  is false.
+> Gets a SemVer 2.0 compliant string that represents this version, including a +gCOMMITID suffix when  is false.
 
 **Namespace:** Nerdbank.GitVersioning
 

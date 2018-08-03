@@ -1,6 +1,5 @@
 # VersionOracle.CloudBuildVersionVars Property
-> Gets a dictionary of cloud build variables that applies to this project,
-            regardless of the current setting of .
+> Gets a dictionary of cloud build variables that applies to this project, regardless of the current setting of .
 
 **Namespace:** Nerdbank.GitVersioning
 

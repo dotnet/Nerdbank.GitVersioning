@@ -1,7 +1,5 @@
 # GitExtensions.GetVersionHeight(Branch, String) Method
-> Gets the number of commits in the longest single path between
-            the specified commit and the most distant ancestor (inclusive)
-            that set the version to the value at the tip of the .
+> Gets the number of commits in the longest single path between the specified commit and the most distant ancestor (inclusive) that set the version to the value at the tip of the .
 
 **Namespace:** Nerdbank.GitVersioning
 

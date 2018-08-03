@@ -1,6 +1,5 @@
 # VersionOracle.PublicRelease Property
-> Gets or sets a value indicating whether the project is building
-            in PublicRelease mode.
+> Gets or sets a value indicating whether the project is building in PublicRelease mode.
 
 **Namespace:** Nerdbank.GitVersioning
 

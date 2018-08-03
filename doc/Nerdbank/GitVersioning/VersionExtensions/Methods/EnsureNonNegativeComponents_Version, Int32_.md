@@ -1,6 +1,5 @@
 # VersionExtensions.EnsureNonNegativeComponents(Version, Int32) Method
-> Returns a  instance where the specified number of components
-            are guaranteed to be non-negative. Any applicable negative components are converted to zeros.
+> Returns a  instance where the specified number of components are guaranteed to be non-negative. Any applicable negative components are converted to zeros.
 
 **Namespace:** Nerdbank.GitVersioning
 

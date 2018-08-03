@@ -13,5 +13,4 @@ get;
 }
 ~~~~
 ## Remarks
-An error will result if this value is negative with such a magnitude as to exceed the git height,
-            resulting in a negative build number.
+An error will result if this value is negative with such a magnitude as to exceed the git height, resulting in a negative build number.

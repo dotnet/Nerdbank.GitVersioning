@@ -1,8 +1,5 @@
 # GitExtensions.GetVersionHeight(Repository, String) Method
-> Gets the number of commits in the longest single path between
-            HEAD in a repo and the most distant ancestor (inclusive)
-            that set the version to the value in the working copy
-            (or HEAD for bare repositories).
+> Gets the number of commits in the longest single path between HEAD in a repo and the most distant ancestor (inclusive) that set the version to the value in the working copy (or HEAD for bare repositories).
 
 **Namespace:** Nerdbank.GitVersioning
 

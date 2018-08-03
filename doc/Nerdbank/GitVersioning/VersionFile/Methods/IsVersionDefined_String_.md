@@ -1,6 +1,5 @@
 # VersionFile.IsVersionDefined(String) Method
-> Checks whether the version.txt file is defined in the specified project directory
-            or one of its ancestors.
+> Checks whether the version.txt file is defined in the specified project directory or one of its ancestors.
 
 **Namespace:** Nerdbank.GitVersioning
 

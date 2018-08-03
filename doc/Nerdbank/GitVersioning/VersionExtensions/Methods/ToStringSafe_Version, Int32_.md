@@ -1,6 +1,5 @@
 # VersionExtensions.ToStringSafe(Version, Int32) Method
-> Converts the value of the current System.Version object to its equivalent System.String
-            representation. A specified count indicates the number of components to return.
+> Converts the value of the current System.Version object to its equivalent System.String representation. A specified count indicates the number of components to return.
 
 **Namespace:** Nerdbank.GitVersioning
 

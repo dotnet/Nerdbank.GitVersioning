@@ -1,6 +1,5 @@
 # VersionOptions.FromVersion(Version, String) Method
-> Initializes a new instance of the  class
-            with  initialized with the specified parameters.
+> Initializes a new instance of the  class with  initialized with the specified parameters.
 
 **Namespace:** Nerdbank.GitVersioning
 

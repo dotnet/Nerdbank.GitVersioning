@@ -20,8 +20,7 @@ public static class VersionFile
 |[GetVersion(Repository, String)](/doc/Nerdbank/GitVersioning/VersionFile/Methods/GetVersion_Repository%2c%20String_.md)|Reads the version.txt file and returns the  and prerelease tag from it.|
 |[GetVersion(String)](/doc/Nerdbank/GitVersioning/VersionFile/Methods/GetVersion_String_.md)|Reads the version.txt file and returns the  and prerelease tag from it.|
 |[IsVersionDefined(Commit, String)](/doc/Nerdbank/GitVersioning/VersionFile/Methods/IsVersionDefined_Commit%2c%20String_.md)|Checks whether the version.txt file is defined in the specified commit.|
-|[IsVersionDefined(String)](/doc/Nerdbank/GitVersioning/VersionFile/Methods/IsVersionDefined_String_.md)|Checks whether the version.txt file is defined in the specified project directory
-            or one of its ancestors.|
+|[IsVersionDefined(String)](/doc/Nerdbank/GitVersioning/VersionFile/Methods/IsVersionDefined_String_.md)|Checks whether the version.txt file is defined in the specified project directory or one of its ancestors.|
 |[SetVersion(String, VersionOptions)](/doc/Nerdbank/GitVersioning/VersionFile/Methods/SetVersion_String%2c%20VersionOptions_.md)|Writes the version.json file to a directory within a repo with the specified version information.|
 |[SetVersion(String, Version, String)](/doc/Nerdbank/GitVersioning/VersionFile/Methods/SetVersion_String%2c%20Version%2c%20String_.md)|Writes the version.txt file to a directory within a repo with the specified version information.|
 ## Fields

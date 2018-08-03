@@ -1,6 +1,5 @@
 # GitExtensions.GetTruncatedCommitIdAsUInt16(Commit) Method
-> Takes the first 2 bytes of a commit ID (i.e. first 4 characters of its hex-encoded SHA)
-            and returns them as an 16-bit unsigned integer.
+> Takes the first 2 bytes of a commit ID (i.e. first 4 characters of its hex-encoded SHA) and returns them as an 16-bit unsigned integer.
 
 **Namespace:** Nerdbank.GitVersioning
 
