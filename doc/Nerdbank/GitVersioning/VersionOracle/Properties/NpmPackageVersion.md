@@ -8,6 +8,6 @@
 ~~~~csharp
 public string NpmPackageVersion
 {
-	get;
+get;
 }
 ~~~~

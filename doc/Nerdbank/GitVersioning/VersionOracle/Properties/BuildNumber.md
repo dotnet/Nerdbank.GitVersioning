@@ -8,6 +8,6 @@
 ~~~~csharp
 public int BuildNumber
 {
-	get;
+get;
 }
 ~~~~

@@ -10,6 +10,6 @@
 [Nerdbank.GitVersioning.VersionOracle.Ignore]
 public System.Collections.Generic.IDictionary<string, string> CloudBuildAllVars
 {
-	get;
+get;
 }
 ~~~~

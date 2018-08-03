@@ -9,7 +9,7 @@
 [Nerdbank.GitVersioning.VersionOracle.Ignore]
 public System.Collections.Generic.List<string> BuildMetadata
 {
-	[System.Runtime.CompilerServices.CompilerGenerated]
-	get;
+[System.Runtime.CompilerServices.CompilerGenerated]
+get;
 }
 ~~~~

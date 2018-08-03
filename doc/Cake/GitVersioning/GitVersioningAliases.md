@@ -12,7 +12,7 @@
 ## Syntax
 ~~~~csharp
 [Cake.Core.Annotations.CakeAliasCategory("Git Versioning")]
-	public static class GitVersioningAliases
+public static class GitVersioningAliases
 ~~~~
 ## Methods
 |Name|Description|

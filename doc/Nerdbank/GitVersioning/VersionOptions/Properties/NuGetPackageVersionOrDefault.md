@@ -9,6 +9,6 @@
 [JsonIgnore]
 public Nerdbank.GitVersioning.VersionOptions.NuGetPackageVersionOptions NuGetPackageVersionOrDefault
 {
-	get;
+get;
 }
 ~~~~

@@ -9,10 +9,10 @@
 [JsonProperty(/*Could not decode attribute arguments.*/)]
 public bool Inherit
 {
-	[System.Runtime.CompilerServices.CompilerGenerated]
-	get;
-	[System.Runtime.CompilerServices.CompilerGenerated]
-	set;
+[System.Runtime.CompilerServices.CompilerGenerated]
+get;
+[System.Runtime.CompilerServices.CompilerGenerated]
+set;
 }
 ~~~~
 ## Remarks

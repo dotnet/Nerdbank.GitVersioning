@@ -10,6 +10,6 @@
 [JsonIgnore]
 public Nerdbank.GitVersioning.VersionOptions.AssemblyVersionOptions AssemblyVersionOrDefault
 {
-	get;
+get;
 }
 ~~~~

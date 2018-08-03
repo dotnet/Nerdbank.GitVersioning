@@ -8,6 +8,6 @@
 ~~~~csharp
 public System.Version SimpleVersion
 {
-	get;
+get;
 }
 ~~~~

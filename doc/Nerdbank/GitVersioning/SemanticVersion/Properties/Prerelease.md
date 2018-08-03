@@ -8,9 +8,9 @@
 ~~~~csharp
 public string Prerelease
 {
-	[System.Runtime.CompilerServices.CompilerGenerated]
-	get;
-	[System.Runtime.CompilerServices.CompilerGenerated]
-	private set;
+[System.Runtime.CompilerServices.CompilerGenerated]
+get;
+[System.Runtime.CompilerServices.CompilerGenerated]
+private set;
 }
 ~~~~

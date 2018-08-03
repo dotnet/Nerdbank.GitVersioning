@@ -8,6 +8,6 @@
 ~~~~csharp
 public bool VersionFileFound
 {
-	get;
+get;
 }
 ~~~~

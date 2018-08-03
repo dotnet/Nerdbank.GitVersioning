@@ -9,9 +9,9 @@
 [JsonProperty(/*Could not decode attribute arguments.*/)]
 public Nerdbank.GitVersioning.SemanticVersion Version
 {
-	[System.Runtime.CompilerServices.CompilerGenerated]
-	get;
-	[System.Runtime.CompilerServices.CompilerGenerated]
-	set;
+[System.Runtime.CompilerServices.CompilerGenerated]
+get;
+[System.Runtime.CompilerServices.CompilerGenerated]
+set;
 }
 ~~~~

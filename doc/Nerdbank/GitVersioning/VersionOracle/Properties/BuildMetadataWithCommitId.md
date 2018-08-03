@@ -9,6 +9,6 @@
 [Nerdbank.GitVersioning.VersionOracle.Ignore]
 public System.Collections.Generic.IEnumerable<string> BuildMetadataWithCommitId
 {
-	get;
+get;
 }
 ~~~~

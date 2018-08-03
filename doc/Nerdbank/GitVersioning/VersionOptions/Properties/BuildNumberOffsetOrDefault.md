@@ -9,7 +9,7 @@
 [JsonIgnore]
 public int BuildNumberOffsetOrDefault
 {
-	get;
+get;
 }
 ~~~~
 ## Remarks

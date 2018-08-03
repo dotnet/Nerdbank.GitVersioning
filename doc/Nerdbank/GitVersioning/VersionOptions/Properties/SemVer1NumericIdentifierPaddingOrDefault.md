@@ -9,6 +9,6 @@
 [JsonIgnore]
 public int SemVer1NumericIdentifierPaddingOrDefault
 {
-	get;
+get;
 }
 ~~~~

@@ -8,7 +8,7 @@
 ~~~~csharp
 public string GitCommitId
 {
-	[System.Runtime.CompilerServices.CompilerGenerated]
-	get;
+[System.Runtime.CompilerServices.CompilerGenerated]
+get;
 }
 ~~~~

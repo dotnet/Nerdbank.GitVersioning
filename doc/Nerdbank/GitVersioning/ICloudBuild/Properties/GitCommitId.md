@@ -8,6 +8,6 @@
 ~~~~csharp
 string GitCommitId
 {
-	get;
+get;
 }
 ~~~~

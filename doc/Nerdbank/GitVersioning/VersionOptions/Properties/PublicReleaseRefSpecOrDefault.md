@@ -10,6 +10,6 @@
 [JsonIgnore]
 public string[] PublicReleaseRefSpecOrDefault
 {
-	get;
+get;
 }
 ~~~~

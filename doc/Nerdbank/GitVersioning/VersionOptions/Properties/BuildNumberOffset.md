@@ -9,10 +9,10 @@
 [JsonProperty(/*Could not decode attribute arguments.*/)]
 public int? BuildNumberOffset
 {
-	[System.Runtime.CompilerServices.CompilerGenerated]
-	get;
-	[System.Runtime.CompilerServices.CompilerGenerated]
-	set;
+[System.Runtime.CompilerServices.CompilerGenerated]
+get;
+[System.Runtime.CompilerServices.CompilerGenerated]
+set;
 }
 ~~~~
 ## Remarks

@@ -8,6 +8,6 @@
 ~~~~csharp
 bool IsApplicable
 {
-	get;
+get;
 }
 ~~~~

@@ -8,7 +8,7 @@
 ~~~~csharp
 public string PrereleaseVersion
 {
-	[System.Runtime.CompilerServices.CompilerGenerated]
-	get;
+[System.Runtime.CompilerServices.CompilerGenerated]
+get;
 }
 ~~~~

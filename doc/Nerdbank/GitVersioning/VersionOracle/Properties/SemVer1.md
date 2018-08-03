@@ -9,6 +9,6 @@
 ~~~~csharp
 public string SemVer1
 {
-	get;
+get;
 }
 ~~~~

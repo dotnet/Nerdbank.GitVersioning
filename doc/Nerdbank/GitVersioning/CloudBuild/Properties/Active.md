@@ -8,6 +8,6 @@
 ~~~~csharp
 public static Nerdbank.GitVersioning.ICloudBuild Active
 {
-	get;
+get;
 }
 ~~~~

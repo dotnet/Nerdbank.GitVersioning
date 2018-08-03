@@ -8,6 +8,6 @@
 ~~~~csharp
 public System.Version MajorMinorVersion
 {
-	get;
+get;
 }
 ~~~~

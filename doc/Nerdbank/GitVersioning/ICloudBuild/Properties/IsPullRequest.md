@@ -8,6 +8,6 @@
 ~~~~csharp
 bool IsPullRequest
 {
-	get;
+get;
 }
 ~~~~

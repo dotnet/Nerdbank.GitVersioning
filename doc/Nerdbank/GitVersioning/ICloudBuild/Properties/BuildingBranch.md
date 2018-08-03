@@ -8,6 +8,6 @@
 ~~~~csharp
 string BuildingBranch
 {
-	get;
+get;
 }
 ~~~~

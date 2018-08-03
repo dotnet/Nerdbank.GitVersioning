@@ -9,6 +9,6 @@
 [Nerdbank.GitVersioning.VersionOracle.Ignore]
 public bool CloudBuildVersionVarsEnabled
 {
-	get;
+get;
 }
 ~~~~

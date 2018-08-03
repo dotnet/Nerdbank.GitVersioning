@@ -9,9 +9,9 @@
 ~~~~csharp
 public bool PublicRelease
 {
-	[System.Runtime.CompilerServices.CompilerGenerated]
-	get;
-	[System.Runtime.CompilerServices.CompilerGenerated]
-	set;
+[System.Runtime.CompilerServices.CompilerGenerated]
+get;
+[System.Runtime.CompilerServices.CompilerGenerated]
+set;
 }
 ~~~~

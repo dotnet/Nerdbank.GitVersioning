@@ -8,6 +8,6 @@
 ~~~~csharp
 public string BuildMetadataFragment
 {
-	get;
+get;
 }
 ~~~~

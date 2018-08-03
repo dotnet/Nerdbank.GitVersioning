@@ -8,6 +8,6 @@
 ~~~~csharp
 public int SemVer1NumericIdentifierPadding
 {
-	get;
+get;
 }
 ~~~~

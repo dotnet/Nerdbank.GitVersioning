@@ -8,6 +8,6 @@
 ~~~~csharp
 string BuildingTag
 {
-	get;
+get;
 }
 ~~~~

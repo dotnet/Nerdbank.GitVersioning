@@ -10,7 +10,7 @@
 ~~~~csharp
 public int VersionHeight
 {
-	[System.Runtime.CompilerServices.CompilerGenerated]
-	get;
+[System.Runtime.CompilerServices.CompilerGenerated]
+get;
 }
 ~~~~
