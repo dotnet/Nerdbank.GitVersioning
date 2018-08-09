@@ -31,7 +31,7 @@ public class VersionOracle
 |[GitCommitId](/doc/Nerdbank/GitVersioning/VersionOracle/Properties/GitCommitId.md)|Gets the Git revision control commit id for HEAD (the current source code version).|
 |[GitCommitIdShort](/doc/Nerdbank/GitVersioning/VersionOracle/Properties/GitCommitIdShort.md)|Gets the first several characters of the Git revision control commit id for HEAD (the current source code version).|
 |[VersionHeight](/doc/Nerdbank/GitVersioning/VersionOracle/Properties/VersionHeight.md)|Gets the number of commits in the longest single path between the specified commit and the most distant ancestor (inclusive) that set the version to the value at HEAD.|
-|[VersionHeightOffset](/doc/Nerdbank/GitVersioning/VersionOracle/Properties/VersionHeightOffset.md)|The offset to add to the when calculating the integer to use as the or elsewhere that the {height} macro is used.|
+|[VersionHeightOffset](/doc/Nerdbank/GitVersioning/VersionOracle/Properties/VersionHeightOffset.md)|The offset to add to the  when calculating the integer to use as the  or elsewhere that the {height} macro is used.|
 |[Version](/doc/Nerdbank/GitVersioning/VersionOracle/Properties/Version.md)|Gets the version for this project, with up to 4 components.|
 |[CloudBuildAllVarsEnabled](/doc/Nerdbank/GitVersioning/VersionOracle/Properties/CloudBuildAllVarsEnabled.md)|Gets a value indicating whether to set all cloud build variables prefaced with "NBGV_".|
 |[CloudBuildAllVars](/doc/Nerdbank/GitVersioning/VersionOracle/Properties/CloudBuildAllVars.md)|Gets a dictionary of all cloud build variables that applies to this project, regardless of the current setting of .|

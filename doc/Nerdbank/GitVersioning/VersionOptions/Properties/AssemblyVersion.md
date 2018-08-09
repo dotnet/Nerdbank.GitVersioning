@@ -1,5 +1,5 @@
 # VersionOptions.AssemblyVersion Property
-> Gets or sets the version to use particularly for the instead of the default .
+> Gets or sets the version to use particularly for the  instead of the default .
 
 **Namespace:** Nerdbank.GitVersioning
 

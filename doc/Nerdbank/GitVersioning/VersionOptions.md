@@ -17,8 +17,8 @@
 |Name|Description|
 |---|---|
 |[Version](/doc/Nerdbank/GitVersioning/VersionOptions/Properties/Version.md)|Gets or sets the default version to use.|
-|[AssemblyVersion](/doc/Nerdbank/GitVersioning/VersionOptions/Properties/AssemblyVersion.md)|Gets or sets the version to use particularly for the instead of the default .|
-|[AssemblyVersionOrDefault](/doc/Nerdbank/GitVersioning/VersionOptions/Properties/AssemblyVersionOrDefault.md)|Gets the version to use particularly for the instead of the default .|
+|[AssemblyVersion](/doc/Nerdbank/GitVersioning/VersionOptions/Properties/AssemblyVersion.md)|Gets or sets the version to use particularly for the  instead of the default .|
+|[AssemblyVersionOrDefault](/doc/Nerdbank/GitVersioning/VersionOptions/Properties/AssemblyVersionOrDefault.md)|Gets the version to use particularly for the  instead of the default .|
 |[BuildNumberOffset](/doc/Nerdbank/GitVersioning/VersionOptions/Properties/BuildNumberOffset.md)|Gets or sets a number to add to the git height when calculating the  number.|
 |[BuildNumberOffsetOrDefault](/doc/Nerdbank/GitVersioning/VersionOptions/Properties/BuildNumberOffsetOrDefault.md)|Gets a number to add to the git height when calculating the  number.|
 |[SemVer1NumericIdentifierPadding](/doc/Nerdbank/GitVersioning/VersionOptions/Properties/SemVer1NumericIdentifierPadding.md)|Gets or sets the minimum number of digits to use for numeric identifiers in SemVer 1.|
