@@ -7,7 +7,7 @@
     <PackageId>Nerdbank.GitVersioning.Core</PackageId>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="DotNetMDDocs" Version="0.111.0" PrivateAssets="all" />
+    <PackageReference Include="DotNetMDDocs" Version="0.111.0" PrivateAssets="all" Condition=" '$(GenerateMarkdownApiDocs)' == 'true' " />
     <PackageReference Include="LibGit2Sharp" Version="0.24.7-g9fca61fdda" PrivateAssets="None" />
     <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
     <PackageReference Include="System.Diagnostics.Process" Version="4.3.0" Condition=" '$(TargetFramework)' == 'netstandard1.3' " />
