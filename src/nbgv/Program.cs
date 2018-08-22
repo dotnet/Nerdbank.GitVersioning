@@ -37,6 +37,7 @@ namespace Nerdbank.GitVersioning.Tool
             BadGitRef,
             NoVersionJsonFound,
             TagConflict,
+            NoCloudBuildProviderMatch,
         }
 
         private static ExitCodes exitCode;
@@ -50,6 +51,9 @@ namespace Nerdbank.GitVersioning.Tool
             IReadOnlyList<string> cloudVariables = Array.Empty<string>();
             var format = string.Empty;
             bool quiet = false;
+            var cisystem = string.Empty;
+            bool cloudBuildCommonVars = false;
+            bool cloudBuildAllVars = false;
 
             ArgumentCommand<string> install = null;
             ArgumentCommand<string> getVersion = null;
@@ -85,6 +89,9 @@ namespace Nerdbank.GitVersioning.Tool
                 cloud = syntax.DefineCommand("cloud", ref commandText, "Communicates with the ambient cloud build to set the build number and/or other cloud build variables.");
                 syntax.DefineOption("p|project", ref projectPath, "The path to the project or project directory used to calculate the version. The default is the current directory. Ignored if the -v option is specified.");
                 syntax.DefineOption("v|version", ref version, "The string to use for the cloud build number. If not specified, the computed version will be used.");
+                syntax.DefineOption("s|ci-system", ref cisystem, "Force activation for a particular CI system. If not specified, auto-detection will be used. Supported values are: " + string.Join(", ", CloudProviderNames));
+                syntax.DefineOption("a|all-vars", ref cloudBuildAllVars, false, "Defines ALL version variables as cloud build variables, with a \"NBGV_\" prefix.");
+                syntax.DefineOption("c|common-vars", ref cloudBuildCommonVars, false, "Defines a few common version variables as cloud build variables, with a \"Git\" prefix (e.g. GitBuildVersion, GitBuildVersionSimple, GitAssemblyInformationalVersion).");
                 syntax.DefineOptionList("d|define", ref cloudVariables, "Additional cloud build variables to define. Each should be in the NAME=VALUE syntax.");
             });
 
@@ -110,7 +117,7 @@ namespace Nerdbank.GitVersioning.Tool
             }
             else if (cloud.IsActive)
             {
-                exitCode = OnCloudCommand(projectPath, version, cloudVariables);
+                exitCode = OnCloudCommand(projectPath, version, cisystem, cloudBuildAllVars, cloudBuildCommonVars, cloudVariables);
             }
 
             return (int)exitCode;
@@ -419,9 +426,46 @@ namespace Nerdbank.GitVersioning.Tool
             return ExitCodes.OK;
         }
 
-        private static ExitCodes OnCloudCommand(string projectPath, string version, IReadOnlyList<string> cloudVariables)
+        private static ExitCodes OnCloudCommand(string projectPath, string version, string cisystem, bool cloudBuildAllVars, bool cloudBuildCommonVars, IReadOnlyList<string> cloudVariables)
         {
+            string searchPath = GetSpecifiedOrCurrentDirectoryPath(projectPath);
+            if (!Directory.Exists(searchPath))
+            {
+                Console.Error.WriteLine("\"{0}\" is not an existing directory.", searchPath);
+                return ExitCodes.NoGitRepo;
+            }
+
+            ICloudBuild activeCloudBuild = CloudBuild.Active;
+            if (!string.IsNullOrEmpty(cisystem))
+            {
+                int matchingIndex = Array.FindIndex(CloudProviderNames, m => string.Equals(m, cisystem, StringComparison.OrdinalIgnoreCase));
+                if (matchingIndex == -1)
+                {
+                    Console.Error.WriteLine("No cloud provider found by the name: \"{0}\"", cisystem);
+                    return ExitCodes.NoCloudBuildProviderMatch;
+                }
+
+                activeCloudBuild = CloudBuild.SupportedCloudBuilds[matchingIndex];
+            }
+
+            var oracle = VersionOracle.Create(searchPath, cloudBuild: activeCloudBuild);
             var variables = new Dictionary<string, string>();
+            if (cloudBuildAllVars)
+            {
+                foreach (var pair in oracle.CloudBuildAllVars)
+                {
+                    variables.Add(pair.Key, pair.Value);
+                }
+            }
+
+            if (cloudBuildCommonVars)
+            {
+                foreach (var pair in oracle.CloudBuildVersionVars)
+                {
+                    variables.Add(pair.Key, pair.Value);
+                }
+            }
+
             foreach (string def in cloudVariables)
             {
                 string[] split = def.Split(new char[] { '=' }, 2);
@@ -437,13 +481,18 @@ namespace Nerdbank.GitVersioning.Tool
                     return ExitCodes.DuplicateCloudVariable;
                 }
 
-                variables.Add(split[0], split[1]);
+                variables[split[0]] = split[1];
             }
 
-            ICloudBuild activeCloudBuild = CloudBuild.Active;
             if (activeCloudBuild != null)
             {
+                if (string.IsNullOrEmpty(version))
+                {
+                    version = oracle.CloudBuildNumber;
+                }
+
                 activeCloudBuild.SetCloudBuildNumber(version, Console.Out, Console.Error);
+
                 foreach (var pair in variables)
                 {
                     activeCloudBuild.SetCloudBuildVariable(pair.Key, pair.Value, Console.Out, Console.Error);
@@ -490,12 +539,22 @@ namespace Nerdbank.GitVersioning.Tool
 
         private static string GetSpecifiedOrCurrentDirectoryPath(string versionJsonRoot)
         {
-            return Path.GetFullPath(string.IsNullOrEmpty(versionJsonRoot) ? "." : versionJsonRoot);
+            return ShouldHaveTrailingDirectorySeparator(Path.GetFullPath(string.IsNullOrEmpty(versionJsonRoot) ? "." : versionJsonRoot));
         }
 
         private static string GetRepoRelativePath(string searchPath, LibGit2Sharp.Repository repository)
         {
             return searchPath.Substring(repository.Info.WorkingDirectory.Length);
+        }
+
+        private static string ShouldHaveTrailingDirectorySeparator(string path)
+        {
+            if (path.EndsWith(Path.DirectorySeparatorChar) || path.EndsWith(Path.AltDirectorySeparatorChar))
+            {
+                return path;
+            }
+
+            return path + Path.DirectorySeparatorChar;
         }
 
         private static void PrintCommits(bool quiet, string projectDirectory, LibGit2Sharp.Repository repository, List<LibGit2Sharp.Commit> candidateCommits, bool includeOptions = false)
@@ -519,5 +578,7 @@ namespace Nerdbank.GitVersioning.Tool
                 }
             }
         }
+
+        private static string[] CloudProviderNames => CloudBuild.SupportedCloudBuilds.Select(cb => cb.GetType().Name).ToArray();
     }
 }

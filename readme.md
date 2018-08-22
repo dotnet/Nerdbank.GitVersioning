@@ -28,6 +28,7 @@ You can install Nerdbank.GitVersioning into your projects via NuGet or NPM.
 * Use the [nbgv .NET Core CLI tool](doc/nbgv-cli.md) (recommended)
 * [NuGet installation instructions](doc/nuget-acquisition.md)
 * [NPM installation instructions](doc/npm-acquisition.md)
+* [Cake Build installation instructions](doc/cake.md)
 
 You must also create [a version.json file](doc/versionJson.md) in your repo. See [migration notes](doc/migrating.md) if your repo already has a version.txt or version.json file from using another system.
 
@@ -49,6 +50,7 @@ for these build systems:
 * [gulp](doc/gulp.md)
 * [DNX](doc/dotnet-cli.md)
 * [dotnet CLI](doc/dotnet-cli.md)
+* [Cake Build](doc/cake.md)
 
 Also some special [cloud build considerations](doc/cloudbuild.md).
 

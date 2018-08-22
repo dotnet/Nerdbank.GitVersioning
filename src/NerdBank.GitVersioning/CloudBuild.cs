@@ -12,7 +12,7 @@
         /// <summary>
         /// An array of cloud build systems we support.
         /// </summary>
-        private static readonly ICloudBuild[] SupportedCloudBuilds = new ICloudBuild[] {
+        public static readonly ICloudBuild[] SupportedCloudBuilds = new ICloudBuild[] {
             new AppVeyor(),
             new VisualStudioTeamServices(),
             new TeamCity(),

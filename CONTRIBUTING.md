@@ -53,37 +53,6 @@ efficiency improvement and no outwardly observable change is expected.
 In the master branch, all tests should always pass. Added tests that fail should be marked as Skip
 via `[Fact(Skip = "Test does not pass yet")]` or similar message to keep our test pass rate at 100%.
 
-## Self-service releases for contributors
-
-As soon as you send a pull request, a build is executed and updated NuGet packages
-are published to this Package Feed:
-
-    https://ci.appveyor.com/nuget/nerdbank-gitversioning
-
-By adding this URL to your package sources you can immediately install your version
-of the NuGet packages to your project. This can be done by adding a nuget.config file
-with the following content to the root of your project's repo:
-
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<configuration>
-    <packageSources>
-        <add key="Nerdbank.GitVersioning CI" value="https://ci.appveyor.com/nuget/nerdbank-gitversioning" />
-    </packageSources>
-</configuration>
-```
-
-You can then install the package(s) while you have your new "Nerdbank.GitVersioning CI" package source selected:
-
-```powershell
-Install-Package Nerdbank.GitVersioning -Pre -Version 0.1.41-g02f355c05d
-```
-
-Take care to set the package version such that it exactly matches the AppVeyor build
-for your pull request. You can get the version number by reviewing the result of the
-validation build for your pull request, clicking ARTIFACTS, and noting the version
-of the produced packages.
-
  [VS]: https://www.visualstudio.com/downloads/
  [NodeJs]: https://nodejs.org
  [NodeJsTools]: https://www.visualstudio.com/vs/node-js/

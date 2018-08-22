@@ -289,6 +289,7 @@
                 case "visual basic":
                 case "visualbasic":
                 case "vb":
+                    return new VisualBasicCodeGenerator();
                 default:
                     this.Log.LogError("Code provider not available for language: {0}. No version info will be embedded into assembly.", this.CodeLanguage);
                     return null;
@@ -358,6 +359,34 @@
             internal override void EndThisAssemblyClass()
             {
                 this.codeBuilder.AppendLine("}");
+            }
+        }
+
+        private class VisualBasicCodeGenerator : CodeGenerator
+        {
+            internal override void AddComment(string comment)
+            {
+                this.AddCodeComment(comment, "'");
+            }
+
+            internal override void DeclareAttribute(Type type, string arg)
+            {
+                this.codeBuilder.AppendLine($"<Assembly: {type.FullName}(\"{arg}\")>");
+            }
+
+            internal override void StartThisAssemblyClass()
+            {
+                this.codeBuilder.AppendLine("Partial Friend NotInheritable Class ThisAssembly");
+            }
+
+            internal override void AddThisAssemblyMember(string name, string value)
+            {
+                this.codeBuilder.AppendLine($"    Friend Const {name} As String = \"{value}\"");
+            }
+
+            internal override void EndThisAssemblyClass()
+            {
+                this.codeBuilder.AppendLine("End Class");
             }
         }
 #endif
