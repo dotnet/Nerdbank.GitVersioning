@@ -7,6 +7,7 @@
     <authors>Andrew Arnott</authors>
     <owners>aarnott</owners>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <releaseNotes>https://github.com/AArnott/Nerdbank.GitVersioning/releases</releaseNotes>
     <developmentDependency>true</developmentDependency>
     <licenseUrl>$LicenseUrl$</licenseUrl>
     <projectUrl>https://github.com/aarnott/Nerdbank.GitVersioning</projectUrl>
