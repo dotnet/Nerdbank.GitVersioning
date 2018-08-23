@@ -18,7 +18,7 @@
 
   <Target Name="SetNuSpecPropertiesFinal" BeforeTargets="GenerateNuspec" DependsOnTargets="GetBuildVersion;SetNuSpecProperties">
     <PropertyGroup>
-      <LibGit2SharpNativeBinaries>$(NuGetPackageRoot)libgit2sharp.nativebinaries\1.0.210\</LibGit2SharpNativeBinaries>
+      <LibGit2SharpNativeBinaries>$(NuGetPackageRoot)libgit2sharp.nativebinaries\1.0.217\</LibGit2SharpNativeBinaries>
       <NuspecProperties>$(NuspecProperties);LicenseUrl=$(PackageLicenseUrl);Version=$(Version);BaseOutputPath=$(OutputPath);LibGit2SharpNativeBinaries=$(LibGit2SharpNativeBinaries)</NuspecProperties>
     </PropertyGroup>
   </Target>
@@ -40,8 +40,8 @@
         <PackagePath>build\$(BuildSubDir)</PackagePath>
       </TfmSpecificPackageFile>
       <!-- Package up the libgit2 native binaries -->
-      <TfmSpecificPackageFile Include="@(None)" Condition=" '%(None.CopyToOutputDirectory)' == 'PreserveNewest' ">
-        <PackagePath>build\$(BuildSubDir)%(None.Link)</PackagePath>
+      <TfmSpecificPackageFile Include="@(ContentWithTargetPath)" Condition=" '%(ContentWithTargetPath.CopyToOutputDirectory)' == 'PreserveNewest' ">
+        <PackagePath>build\$(BuildSubDir)%(ContentWithTargetPath.TargetPath)</PackagePath>
       </TfmSpecificPackageFile>
     </ItemGroup>
   </Target>
