@@ -264,7 +264,11 @@ namespace Nerdbank.GitVersioning.Tool
                     Console.WriteLine("NPM package Version:          {0}", oracle.NpmPackageVersion);
                     break;
                 case "json":
-                    Console.WriteLine(JsonConvert.SerializeObject(oracle, Formatting.Indented));
+                    var converters = new JsonConverter[]
+                    {
+                        new Newtonsoft.Json.Converters.VersionConverter(),
+                    };
+                    Console.WriteLine(JsonConvert.SerializeObject(oracle, Formatting.Indented, converters));
                     break;
                 default:
                     Console.Error.WriteLine("Unsupported format: {0}", format);
