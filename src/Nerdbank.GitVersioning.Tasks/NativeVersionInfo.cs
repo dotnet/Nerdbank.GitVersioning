@@ -166,7 +166,7 @@ END
             {
                 if (!int.TryParse(this.AssemblyLanguage, out lcid))
                 {
-#if NET45
+#if NET461
                     try
                     {
                         var cultureInfo = new CultureInfo(this.AssemblyLanguage);

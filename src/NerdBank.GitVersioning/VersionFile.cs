@@ -1,13 +1,13 @@
 ﻿namespace Nerdbank.GitVersioning
 {
-    using System;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Linq;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Converters;
     using Newtonsoft.Json.Linq;
     using Newtonsoft.Json.Serialization;
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Linq;
     using Validation;
 
     /// <summary>
@@ -48,7 +48,7 @@
             {
                 string parentDirectory = searchDirectory.Length > 0 ? Path.GetDirectoryName(searchDirectory) : null;
 
-                string candidatePath = Path.Combine(searchDirectory, TxtFileName);
+                string candidatePath = Path.Combine(searchDirectory, TxtFileName).Replace('\\', '/');
                 var versionTxtBlob = commit.Tree[candidatePath]?.Target as LibGit2Sharp.Blob;
                 if (versionTxtBlob != null)
                 {
@@ -59,7 +59,7 @@
                     }
                 }
 
-                candidatePath = Path.Combine(searchDirectory, JsonFileName);
+                candidatePath = Path.Combine(searchDirectory, JsonFileName).Replace('\\', '/');
                 var versionJsonBlob = commit.Tree[candidatePath]?.Target as LibGit2Sharp.Blob;
                 if (versionJsonBlob != null)
                 {

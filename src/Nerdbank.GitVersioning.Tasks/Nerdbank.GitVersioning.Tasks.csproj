@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp1.0;net45</TargetFrameworks>
+    <TargetFrameworks>netcoreapp2.0;net461</TargetFrameworks>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
     <NuSpecFile>Nerdbank.GitVersioning.nuspec</NuSpecFile>
@@ -18,15 +18,15 @@
 
   <Target Name="SetNuSpecPropertiesFinal" BeforeTargets="GenerateNuspec" DependsOnTargets="GetBuildVersion;SetNuSpecProperties">
     <PropertyGroup>
-      <LibGit2SharpNativeBinaries>$(NuGetPackageRoot)libgit2sharp.nativebinaries\1.0.165\</LibGit2SharpNativeBinaries>
+      <LibGit2SharpNativeBinaries>$(NuGetPackageRoot)libgit2sharp.nativebinaries\1.0.217\</LibGit2SharpNativeBinaries>
       <NuspecProperties>$(NuspecProperties);LicenseUrl=$(PackageLicenseUrl);Version=$(Version);BaseOutputPath=$(OutputPath);LibGit2SharpNativeBinaries=$(LibGit2SharpNativeBinaries)</NuspecProperties>
     </PropertyGroup>
   </Target>
 
   <Target Name="PackBuildOutputs" DependsOnTargets="SatelliteDllsProjectOutputGroup;DebugSymbolsProjectOutputGroup">
     <PropertyGroup>
-      <BuildSubDir Condition=" '$(TargetFramework)' == 'netcoreapp1.0' ">MSBuildCore\</BuildSubDir>
-      <BuildSubDir Condition=" '$(TargetFramework)' == 'net45' ">MSBuildFull\</BuildSubDir>
+      <BuildSubDir Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">MSBuildCore\</BuildSubDir>
+      <BuildSubDir Condition=" '$(TargetFramework)' == 'net461' ">MSBuildFull\</BuildSubDir>
     </PropertyGroup>
     <Error Text="Unrecognized TargetFramework" Condition=" '$(BuildSubDir)' == '' " />
     <ItemGroup>
@@ -40,8 +40,8 @@
         <PackagePath>build\$(BuildSubDir)</PackagePath>
       </TfmSpecificPackageFile>
       <!-- Package up the libgit2 native binaries -->
-      <TfmSpecificPackageFile Include="@(None)" Condition=" '%(None.CopyToOutputDirectory)' == 'PreserveNewest' ">
-        <PackagePath>build\$(BuildSubDir)%(None.Link)</PackagePath>
+      <TfmSpecificPackageFile Include="@(ContentWithTargetPath)" Condition=" '%(ContentWithTargetPath.CopyToOutputDirectory)' == 'PreserveNewest' ">
+        <PackagePath>build\$(BuildSubDir)%(ContentWithTargetPath.TargetPath)</PackagePath>
       </TfmSpecificPackageFile>
     </ItemGroup>
   </Target>
