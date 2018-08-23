@@ -62,3 +62,9 @@ gulp.task('default', ['package'], function() {
 gulp.task('watch', ['tsc'], function() {
     return gulp.watch('**/*.ts', ['tsc']);
 });
+
+gulp.task('test', ['tsc'], async function() {
+    var nbgv = require('./out');
+    var v = await nbgv.getVersion();
+    console.log(v);
+});

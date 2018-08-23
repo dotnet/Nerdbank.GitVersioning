@@ -5,7 +5,7 @@ import * as path from 'path';
 var camelCase = require('camel-case')
 import {execAsync} from './asyncprocess';
 
-const nbgvPath = 'nbgv.nuget';
+const nbgvPath = 'nbgv.cli';
 
 /**
  * The various aspects of a version that can be calculated.
@@ -42,25 +42,16 @@ export interface IGitVersion {
  */
 export async function getVersion(projectDirectory?: string): Promise<IGitVersion> {
     projectDirectory = projectDirectory || '.';
-    var getVersionScriptPath = path.join(__dirname, nbgvPath, "tools", "Get-Version.ps1");
-    var versionText = await execAsync(`powershell -ExecutionPolicy Bypass -Command "& '${getVersionScriptPath}' -ProjectDirectory '${projectDirectory}'"`)
+    var getVersionScriptPath = path.join(__dirname, nbgvPath, "tools", "netcoreapp2.1", "any", "nbgv.dll");
+    var versionText = await execAsync(`dotnet "${getVersionScriptPath}" get-version --project "${projectDirectory}" --format json`)
     if (versionText.stderr) {
         throw versionText.stderr;
     }
 
-    var varsRegEx = /^(\w+)\s*: (.+)/mg;
-    var match;
+    var directResult = JSON.parse(versionText.stdout);
     var result = {};
-    while (match = varsRegEx.exec(versionText.stdout)) {
-        // Do a few type casts if appropriate.
-        let value = match[2];
-        if (value.toUpperCase() === 'TRUE') {
-            value = true;
-        } else if (value.toUpperCase() === 'FALSE') {
-            value = false;
-        }
-
-        result[camelCase(match[1])] = value;
+    for (var field in directResult) {
+        result[camelCase(field)] = directResult[field];
     }
 
     return <IGitVersion>result;
@@ -69,7 +60,7 @@ export async function getVersion(projectDirectory?: string): Promise<IGitVersion
 /**
  * Sets an NPM package version based on the git height and version.json.
  * @param packageDirectory The directory of the package about to be published.
- * @param srcDirectory The directory of the source code behind the package, if different than the packageDirectory. 
+ * @param srcDirectory The directory of the source code behind the package, if different than the packageDirectory.
  */
 export async function setPackageVersion(packageDirectory?: string, srcDirectory?: string) {
     packageDirectory = packageDirectory || '.';
@@ -85,7 +76,7 @@ export async function setPackageVersion(packageDirectory?: string, srcDirectory?
 /**
  * Sets the package version to 0.0.0-placeholder, so as to obviously indicate
  * that the version isn't set in the source code version of package.json.
- * @param srcDirectory The directory of the source code behind the package, if different. 
+ * @param srcDirectory The directory of the source code behind the package, if different.
  */
 export async function resetPackageVersionPlaceholder(srcDirectory?: string) {
     srcDirectory = srcDirectory || '.';
