@@ -4,7 +4,7 @@ You can invoke Nerdbank.GitVersioning from a gulp task to get
 version information and even to automatically stamp your NPM packages.
 
 The following gulp script will update your package.json file's version
-property with the package version to build.  
+property with the package version to build.
 
 ```js
 var gulp = require('gulp');
@@ -58,7 +58,7 @@ gulp.task('package', ['setPackageVersion'], function() {
 gulp.task('default', ['package'], function() {
 });
 
-``` 
+```
 
 When you run your gulp script, the out directory will contain a package
 with a package.json file with a specific version field, such as:
