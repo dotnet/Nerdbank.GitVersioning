@@ -12,6 +12,17 @@
 
     public abstract class ContextAwareTask : Task
     {
+#if NETCOREAPP2_0
+        /// <summary>
+        /// Our custom <see cref="AssemblyLoadContext"/> that we create to host our Task.
+        /// </summary>
+        /// <remarks>
+        /// We only create *one* of these, and reuse it for subsequent task invocations,
+        /// because creating multiple of them hit https://github.com/dotnet/coreclr/issues/19654
+        /// </remarks>
+        private static CustomAssemblyLoader Loader;
+#endif
+
         protected virtual string ManagedDllDirectory => Path.GetDirectoryName(new Uri(this.GetType().GetTypeInfo().Assembly.CodeBase).LocalPath);
 
         protected virtual string UnmanagedDllDirectory => null;
@@ -20,8 +31,13 @@
         {
 #if NETCOREAPP2_0
             string taskAssemblyPath = new Uri(this.GetType().GetTypeInfo().Assembly.CodeBase).LocalPath;
-            var ctxt = new CustomAssemblyLoader(this);
-            Assembly inContextAssembly = ctxt.LoadFromAssemblyPath(taskAssemblyPath);
+            if (Loader == null)
+            {
+                Loader = new CustomAssemblyLoader();
+            }
+
+            Loader.LoaderTask = this;
+            Assembly inContextAssembly = Loader.LoadFromAssemblyPath(taskAssemblyPath);
             Type innerTaskType = inContextAssembly.GetType(this.GetType().FullName);
             object innerTask = Activator.CreateInstance(innerTaskType);
 
@@ -71,24 +87,29 @@
 #if NETCOREAPP2_0
         private class CustomAssemblyLoader : AssemblyLoadContext
         {
-            private readonly ContextAwareTask loaderTask;
+            private ContextAwareTask loaderTask;
 
-            internal CustomAssemblyLoader(ContextAwareTask loaderTask)
+            internal CustomAssemblyLoader()
             {
-                this.loaderTask = loaderTask;
+            }
+
+            internal ContextAwareTask LoaderTask
+            {
+                get => this.loaderTask;
+                set => this.loaderTask = value;
             }
 
             protected override Assembly Load(AssemblyName assemblyName)
             {
-                // Always load libgit2sharp in the default context.
-                // Something about the p/invoke done in that library with its custom marshaler
-                // doesn't sit well with Core CLR 2.x.
-                // See https://github.com/AArnott/Nerdbank.GitVersioning/issues/215 and https://github.com/dotnet/coreclr/issues/19654
-                AssemblyLoadContext preferredContext = assemblyName.Name.Equals("libgit2sharp", StringComparison.OrdinalIgnoreCase) ? Default : this;
+                if (this.loaderTask == null)
+                {
+                    throw new InvalidOperationException(nameof(this.loaderTask) + " must be set first.");
+                }
+
                 string assemblyPath = Path.Combine(this.loaderTask.ManagedDllDirectory, assemblyName.Name) + ".dll";
                 if (File.Exists(assemblyPath))
                 {
-                    return preferredContext.LoadFromAssemblyPath(assemblyPath);
+                    return this.LoadFromAssemblyPath(assemblyPath);
                 }
 
                 return Default.LoadFromAssemblyName(assemblyName);
@@ -96,6 +117,11 @@
 
             protected override IntPtr LoadUnmanagedDll(string unmanagedDllName)
             {
+                if (this.loaderTask == null)
+                {
+                    throw new InvalidOperationException(nameof(this.loaderTask) + " must be set first.");
+                }
+
                 string unmanagedDllPath = Directory.EnumerateFiles(
                     this.loaderTask.UnmanagedDllDirectory,
                     $"{unmanagedDllName}.*").Concat(
