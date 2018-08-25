@@ -5,6 +5,7 @@
     using System.Globalization;
     using System.IO;
     using System.Linq;
+    using System.Reflection;
     using Microsoft.Build.Framework;
     using Microsoft.Build.Utilities;
     using MSBuildExtensionTask;
@@ -169,7 +170,7 @@
         [Output]
         public ITaskItem[] CloudBuildVersionVars { get; private set; }
 
-        protected override string UnmanagedDllDirectory => GitExtensions.FindLibGit2NativeBinaries(Path.Combine(this.TargetsPath, "MSBuildFull"));
+        protected override string UnmanagedDllDirectory => GitExtensions.FindLibGit2NativeBinaries(this.TargetsPath);
 
         protected override bool ExecuteInner()
         {
@@ -179,7 +180,7 @@
                 {
                     Requires.Argument(!Path.IsPathRooted(this.ProjectPathRelativeToGitRepoRoot), nameof(this.ProjectPathRelativeToGitRepoRoot), "Path must be relative.");
                     Requires.Argument(!(
-                        this.ProjectPathRelativeToGitRepoRoot.Contains(".." + Path.DirectorySeparatorChar) || 
+                        this.ProjectPathRelativeToGitRepoRoot.Contains(".." + Path.DirectorySeparatorChar) ||
                         this.ProjectPathRelativeToGitRepoRoot.Contains(".." + Path.AltDirectorySeparatorChar)),
                         nameof(this.ProjectPathRelativeToGitRepoRoot),
                         "Path must not use ..\\");
