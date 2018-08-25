@@ -22,18 +22,12 @@
     <file src="$BaseOutputPath$net461\Nerdbank.GitVersioning.Tasks.dll" target="build\MSBuildFull\Nerdbank.GitVersioning.Tasks.dll" />
     <file src="$BaseOutputPath$net461\Newtonsoft.Json.dll" target="build\MSBuildFull\Newtonsoft.Json.dll" />
     <file src="$BaseOutputPath$net461\Validation.dll" target="build\MSBuildFull\Validation.dll" />
-    <file src="$LibGit2SharpNativeBinaries$runtimes\win7-x64\native\git2-6311e88.dll" target="build\MSBuildFull\lib\win32\x64\git2-6311e88.dll" />
-    <file src="$LibGit2SharpNativeBinaries$runtimes\win7-x64\native\git2-6311e88.dll" target="build\MSBuildCore\lib\win32\x64\git2-6311e88.dll" />
-    <file src="$LibGit2SharpNativeBinaries$runtimes\win7-x64\native\git2-6311e88.pdb" target="build\MSBuildFull\lib\win32\x64\git2-6311e88.pdb" />
-    <file src="$LibGit2SharpNativeBinaries$runtimes\win7-x64\native\git2-6311e88.pdb" target="build\MSBuildCore\lib\win32\x64\git2-6311e88.pdb" />
-    <file src="$LibGit2SharpNativeBinaries$runtimes\win7-x86\native\git2-6311e88.dll" target="build\MSBuildFull\lib\win32\x86\git2-6311e88.dll" />
-    <file src="$LibGit2SharpNativeBinaries$runtimes\win7-x86\native\git2-6311e88.dll" target="build\MSBuildCore\lib\win32\x86\git2-6311e88.dll" />
-    <file src="$LibGit2SharpNativeBinaries$runtimes\win7-x86\native\git2-6311e88.pdb" target="build\MSBuildFull\lib\win32\x86\git2-6311e88.pdb" />
-    <file src="$LibGit2SharpNativeBinaries$runtimes\win7-x86\native\git2-6311e88.pdb" target="build\MSBuildCore\lib\win32\x86\git2-6311e88.pdb" />
-    <file src="$LibGit2SharpNativeBinaries$runtimes\osx\native\libgit2-6311e88.dylib" target="build\MSBuildFull\lib\osx\libgit2-6311e88.dylib" />
-    <file src="$LibGit2SharpNativeBinaries$runtimes\osx\native\libgit2-6311e88.dylib" target="build\MSBuildCore\lib\osx\libgit2-6311e88.dylib" />
-    <file src="$LibGit2SharpNativeBinaries$runtimes\linux-x64\native\libgit2-6311e88.so" target="build\MSBuildFull\lib\linux\x86_64\libgit2-6311e88.so" />
-    <file src="$LibGit2SharpNativeBinaries$runtimes\linux-x64\native\libgit2-6311e88.so" target="build\MSBuildCore\lib\linux\x86_64\libgit2-6311e88.so" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\win7-x64\native\git2-6311e88.dll" target="build\lib\win32\x64\git2-6311e88.dll" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\win7-x64\native\git2-6311e88.pdb" target="build\lib\win32\x64\git2-6311e88.pdb" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\win7-x86\native\git2-6311e88.dll" target="build\lib\win32\x86\git2-6311e88.dll" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\win7-x86\native\git2-6311e88.pdb" target="build\lib\win32\x86\git2-6311e88.pdb" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\osx\native\libgit2-6311e88.dylib" target="build\lib\osx\libgit2-6311e88.dylib" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\linux-x64\native\libgit2-6311e88.so" target="build\lib\linux\x86_64\libgit2-6311e88.so" />
     <file src="$LibGit2SharpNativeBinaries$libgit2\LibGit2Sharp.dll.config" target="build\MSBuildCore\LibGit2Sharp.dll.config" />
     <file src="$BaseOutputPath$netcoreapp2.0\LibGit2Sharp.dll" target="build\MSBuildCore\LibGit2Sharp.dll" />
     <file src="$BaseOutputPath$netcoreapp2.0\MSBuildExtensionTask.dll" target="build\MSBuildCore\MSBuildExtensionTask.dll" />
