@@ -80,10 +80,15 @@
 
             protected override Assembly Load(AssemblyName assemblyName)
             {
+                // Always load libgit2sharp in the default context.
+                // Something about the p/invoke done in that library with its custom marshaler
+                // doesn't sit well with Core CLR 2.x.
+                // See https://github.com/AArnott/Nerdbank.GitVersioning/issues/215 and https://github.com/dotnet/coreclr/issues/19654
+                AssemblyLoadContext preferredContext = assemblyName.Name.Equals("libgit2sharp", StringComparison.OrdinalIgnoreCase) ? Default : this;
                 string assemblyPath = Path.Combine(this.loaderTask.ManagedDllDirectory, assemblyName.Name) + ".dll";
                 if (File.Exists(assemblyPath))
                 {
-                    return LoadFromAssemblyPath(assemblyPath);
+                    return preferredContext.LoadFromAssemblyPath(assemblyPath);
                 }
 
                 return Default.LoadFromAssemblyName(assemblyName);

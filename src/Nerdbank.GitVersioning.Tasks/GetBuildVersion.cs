@@ -247,7 +247,7 @@
             }
             catch (ArgumentOutOfRangeException ex)
             {
-                Log.LogErrorFromException(ex);
+                this.Log.LogErrorFromException(ex);
                 return false;
             }
         }
