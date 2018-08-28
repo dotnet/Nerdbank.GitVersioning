@@ -34,6 +34,18 @@ and stamps the version into that folder.
 ```js
 const outDir = 'out';
 
+const cp = require('child_process');
+function execAsync(command, options) {
+    return new Promise((resolve, reject) => cp.exec(command, options, (error, stdout, stderr) => {
+        if (error) {
+            reject(error);
+        }
+        else {
+            resolve({ stdout: stdout, stderr: stderr });
+        }
+    }));
+}
+
 gulp.task('copyPackageContents', function() {
     return gulp
         .src([
@@ -52,7 +64,7 @@ gulp.task('setPackageVersion', ['copyPackageContents'], function() {
 });
 
 gulp.task('package', ['setPackageVersion'], function() {
-    return ap.execAsync(`npm pack "${path.join(__dirname, outDir)}"`, { cwd: outDir });
+    return execAsync(`npm pack "${path.join(__dirname, outDir)}"`, { cwd: outDir });
 });
 
 gulp.task('default', ['package'], function() {
