@@ -27,7 +27,7 @@
         /// <summary>
         /// Initializes a new instance of the <see cref="VersionOracle"/> class.
         /// </summary>
-        public static VersionOracle Create(string projectDirectory, string gitRepoDirectory = null, ICloudBuild cloudBuild = null, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null)
+        public static VersionOracle Create(string projectDirectory, string gitRepoDirectory = null, ICloudBuild cloudBuild = null, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null, bool ignoreCommitsWithoutChangesInProjectDirectory = false)
         {
             Requires.NotNull(projectDirectory, nameof(projectDirectory));
             if (string.IsNullOrEmpty(gitRepoDirectory))
@@ -37,7 +37,7 @@
 
             using (var git = GitExtensions.OpenGitRepo(gitRepoDirectory))
             {
-                return new VersionOracle(projectDirectory, git, null, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot);
+                return new VersionOracle(projectDirectory, git, null, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot, ignoreCommitsWithoutChangesInProjectDirectory);
             }
         }
 
@@ -52,7 +52,7 @@
         /// <summary>
         /// Initializes a new instance of the <see cref="VersionOracle"/> class.
         /// </summary>
-        public VersionOracle(string projectDirectory, LibGit2Sharp.Repository repo, LibGit2Sharp.Commit head, ICloudBuild cloudBuild, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null)
+        public VersionOracle(string projectDirectory, LibGit2Sharp.Repository repo, LibGit2Sharp.Commit head, ICloudBuild cloudBuild, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null, bool ignoreCommitsWithoutChangesInProjectDirectory = false)
         {
             var repoRoot = repo?.Info?.WorkingDirectory?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             var relativeRepoProjectDirectory = !string.IsNullOrWhiteSpace(repoRoot)
@@ -83,7 +83,7 @@
             this.VersionOptions = committedVersion ?? workingVersion;
 
             this.GitCommitId = commit?.Id.Sha ?? cloudBuild?.GitCommitId ?? null;
-            this.VersionHeight = CalculateVersionHeight(relativeRepoProjectDirectory, commit, committedVersion, workingVersion);
+            this.VersionHeight = CalculateVersionHeight(relativeRepoProjectDirectory, commit, committedVersion, workingVersion, ignoreCommitsWithoutChangesInProjectDirectory);
             this.BuildingRef = cloudBuild?.BuildingTag ?? cloudBuild?.BuildingBranch ?? repo?.Head.CanonicalName;
 
             // Override the typedVersion with the special build number and revision components, when available.
@@ -418,7 +418,7 @@
             return semver1;
         }
 
-        private static int CalculateVersionHeight(string relativeRepoProjectDirectory, LibGit2Sharp.Commit headCommit, VersionOptions committedVersion, VersionOptions workingVersion)
+        private static int CalculateVersionHeight(string relativeRepoProjectDirectory, LibGit2Sharp.Commit headCommit, VersionOptions committedVersion, VersionOptions workingVersion, bool ignoreCommitsWithoutChangesInProjectDirectory)
         {
             var headCommitVersion = committedVersion?.Version?.Version ?? Version0;
 
@@ -434,7 +434,9 @@
                 }
             }
 
-            return headCommit?.GetHeight(c => c.CommitMatchesMajorMinorVersion(headCommitVersion, relativeRepoProjectDirectory)) ?? 0;
+            return headCommit?.GetHeight(
+                ignoreCommitsWithoutChangesInProjectDirectory ? new[] { relativeRepoProjectDirectory } : null, 
+                c => c.CommitMatchesMajorMinorVersion(headCommitVersion, relativeRepoProjectDirectory)) ?? 0;
         }
 
         private static Version GetIdAsVersion(LibGit2Sharp.Commit headCommit, VersionOptions committedVersion, VersionOptions workingVersion, int versionHeight)

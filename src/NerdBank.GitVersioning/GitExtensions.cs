@@ -45,7 +45,7 @@
                 baseVersion = VersionFile.GetVersion(commit, repoRelativeProjectDirectory)?.Version?.Version ?? Version0;
             }
 
-            int height = commit.GetHeight(c => CommitMatchesMajorMinorVersion(c, baseVersion, repoRelativeProjectDirectory));
+            int height = commit.GetHeight(null, c => CommitMatchesMajorMinorVersion(c, baseVersion, repoRelativeProjectDirectory));
             return height;
         }
 
@@ -100,19 +100,24 @@
         /// the specified commit and the most distant ancestor (inclusive).
         /// </summary>
         /// <param name="commit">The commit to measure the height of.</param>
+        /// <param name="pathFilters">
+        /// An array of paths to filter the changes in commits on. If a commit,
+        /// after filtering, contains no changes, the commit does not contribute to the height.
+        /// May be null to disable filtering.</param>
         /// <param name="continueStepping">
         /// A function that returns <c>false</c> when we reach a commit that
         /// should not be included in the height calculation.
         /// May be null to count the height to the original commit.
         /// </param>
         /// <returns>The height of the commit. Always a positive integer.</returns>
-        public static int GetHeight(this Commit commit, Func<Commit, bool> continueStepping = null)
+        public static int GetHeight(this Commit commit, string[] pathFilters = null, Func<Commit, bool> continueStepping = null)
         {
             Requires.NotNull(commit, nameof(commit));
 
             var heights = new Dictionary<ObjectId, int>();
-            return GetCommitHeight(commit, heights, continueStepping);
+            return GetCommitHeight(commit, heights, pathFilters, continueStepping);
         }
+
 
         /// <summary>
         /// Gets the number of commits in the longest single path between
@@ -127,7 +132,7 @@
         /// <returns>The height of the branch.</returns>
         public static int GetHeight(this Branch branch, Func<Commit, bool> continueStepping = null)
         {
-            return GetHeight(branch.Commits.First(), continueStepping);
+            return GetHeight(branch.Commits.First(), null, continueStepping);
         }
 
         /// <summary>
@@ -282,7 +287,7 @@
             var possibleCommits = from commit in GetCommitsReachableFromRefs(repo)
                                   where version.Revision == -1 || commit.Id.StartsWith(objectIdLeadingValue, objectIdMask)
                                   let buildNumberOffset = VersionFile.GetVersion(commit)?.BuildNumberOffsetOrDefault ?? 0
-                                  let versionHeight = commit.GetHeight(c => CommitMatchesMajorMinorVersion(c, version, repoRelativeProjectDirectory))
+                                  let versionHeight = commit.GetHeight(null, c => CommitMatchesMajorMinorVersion(c, version, repoRelativeProjectDirectory))
                                   where versionHeight == version.Build - buildNumberOffset
                                   select commit;
 
@@ -488,13 +493,17 @@
         /// </summary>
         /// <param name="commit">The commit to measure the height of.</param>
         /// <param name="heights">A cache of commits and their heights.</param>
+        /// <param name="pathFilters">
+        /// An array of paths to filter the changes in commits on. If a commit,
+        /// after filtering, contains no changes, the commit does not contribute to the height.
+        /// May be null to disable filtering.</param>
         /// <param name="continueStepping">
         /// A function that returns <c>false</c> when we reach a commit that
         /// should not be included in the height calculation.
         /// May be null to count the height to the original commit.
         /// </param>
         /// <returns>The height of the branch.</returns>
-        private static int GetCommitHeight(Commit commit, Dictionary<ObjectId, int> heights, Func<Commit, bool> continueStepping)
+        private static int GetCommitHeight(Commit commit, Dictionary<ObjectId, int> heights, string[] pathFilters, Func<Commit, bool> continueStepping)
         {
             Requires.NotNull(commit, nameof(commit));
             Requires.NotNull(heights, nameof(heights));
@@ -505,10 +514,20 @@
                 height = 0;
                 if (continueStepping == null || continueStepping(commit))
                 {
-                    height = 1;
+                    if (pathFilters != null)
+                    {
+                        var repo = ((IBelongToARepository)commit)
+                            .Repository;
+
+                        if (commit.Parents.SelectMany(parent => repo.Diff.Compare<TreeChanges>(parent.Tree, commit.Tree, pathFilters)).Any())
+                            height = 1;
+                    }
+                    else
+                        height = 1;
+
                     if (commit.Parents.Any())
                     {
-                        height += commit.Parents.Max(p => GetCommitHeight(p, heights, continueStepping));
+                        height += commit.Parents.Max(p => GetCommitHeight(p, heights, pathFilters, continueStepping));
                     }
                 }
 

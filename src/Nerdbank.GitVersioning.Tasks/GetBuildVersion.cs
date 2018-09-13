@@ -38,6 +38,12 @@
         public string DefaultPublicRelease { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether only commits that contain changes
+        /// in the project path contribute to git version height.
+        /// </summary>
+        public string SkipCommitsWithoutChangesInPath { get; set; }
+
+        /// <summary>
         /// Gets or sets the path to the repo root. If null or empty, behavior defaults to using Environment.CurrentDirectory and searching upwards.
         /// </summary>
         public string GitRepoRoot { get; set; }
@@ -77,7 +83,7 @@
         /// </summary>
         [Output]
         public bool PublicRelease { get; private set; }
-
+        
         /// <summary>
         /// Gets the version string to use in the compiled assemblies.
         /// </summary>
@@ -188,7 +194,7 @@
 
                 var cloudBuild = CloudBuild.Active;
                 var overrideBuildNumberOffset = (this.OverrideBuildNumberOffset == int.MaxValue) ? (int?)null : this.OverrideBuildNumberOffset;
-                var oracle = VersionOracle.Create(Directory.GetCurrentDirectory(), this.GitRepoRoot, cloudBuild, overrideBuildNumberOffset, this.ProjectPathRelativeToGitRepoRoot);
+                var oracle = VersionOracle.Create(Directory.GetCurrentDirectory(), this.GitRepoRoot, cloudBuild, overrideBuildNumberOffset, this.ProjectPathRelativeToGitRepoRoot, string.Equals(this.SkipCommitsWithoutChangesInPath, "true", StringComparison.OrdinalIgnoreCase));
                 if (!string.IsNullOrEmpty(this.DefaultPublicRelease))
                 {
                     oracle.PublicRelease = string.Equals(this.DefaultPublicRelease, "true", StringComparison.OrdinalIgnoreCase);
