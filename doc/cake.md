@@ -6,6 +6,6 @@ Add `#addin Cake.GitVersioning` to the top of your Cake Build script.  See [here
 Task("GetVersion")
     .Does(() =>
 {
-    Information(GetVersioningGetVersion().SemVer2)
+    Information(GitVersioningGetVersion().SemVer2)
 });
 ~~~~
