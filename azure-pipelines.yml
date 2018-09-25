@@ -53,7 +53,7 @@ jobs:
   - task: VSBuild@1
     inputs:
       vsVersion: 15.0
-      msbuildArgs: /t:build,pack /m /v:m /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
+      msbuildArgs: /t:build,pack /m /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
       platform: $(BuildPlatform)
       configuration: $(BuildConfiguration)
     displayName: Build Visual Studio solution
@@ -61,7 +61,7 @@ jobs:
   - task: gulp@0
     displayName: gulp
     inputs:
-      workingDirectory: src\nerdbank-gitversioning.npm
+      gulpfile: src\nerdbank-gitversioning.npm\gulpfile.js
 
   - script: dotnet test src/Nerdbank.GitVersioning.Tests --no-build -c $(BuildConfiguration)
     displayName: Testing
