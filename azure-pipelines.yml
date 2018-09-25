@@ -63,6 +63,12 @@ jobs:
     inputs:
       gulpfile: src\nerdbank-gitversioning.npm\gulpfile.js
 
+# Our unit tests use MSBuild 14
+  - powershell: Invoke-WebRequest https://download.microsoft.com/download/E/E/D/EEDF18A8-4AED-4CE0-BEBE-70A83094FC5A/BuildTools_Full.exe -OutFile msbuild14.exe
+    displayName: Downloading MSBuild 14
+  - script: start /wait msbuild14.exe /q /full /log "$(Build.ArtifactStagingDirectory)\build_logs\msbuild14.log"
+    displayName: Installing MSBuild 14
+
   - script: dotnet test src/Nerdbank.GitVersioning.Tests --no-build -c $(BuildConfiguration)
     displayName: Run tests
     continueOnError: true
