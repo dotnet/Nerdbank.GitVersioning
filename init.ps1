@@ -29,12 +29,10 @@ try {
     }
 
     Write-Host "Successfully restored all dependencies" -ForegroundColor Yellow
-}
-catch {
-    Write-Error "Aborting script due to error"
-    exit $lastexitcode
-}
-finally {
+} catch {
+    # we have the try so that PS fails when we get failure exit codes from build steps.
+    throw;
+} finally {
     $env:Platform=$oldPlatform
     Pop-Location
 }
