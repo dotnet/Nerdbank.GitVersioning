@@ -1,0 +1,77 @@
+trigger:
+  branches:
+    include: ["master", "pipelines"]
+  paths:
+    exclude: ["doc", "*.md", ".appveyor.yml", ".travis.yml"]
+
+variables:
+  TreatWarningsAsErrors: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  BuildConfiguration: Release
+  BuildPlatform: Any CPU
+
+resources:
+  containers:
+  - container: xenial
+    image: andrewarnott/linux-buildagent
+
+jobs:
+- job: Windows
+  pool: Hosted VS2017
+  steps:
+  - script: |
+      git config --global user.name ci
+      git config --global user.email me@ci.com
+    displayName: Configure git commit author for testing
+  - script: |
+      dotnet tool install --tool-path . nbgv
+      .\nbgv cloud -p src
+    displayName: Set build number
+    condition: ne(variables['system.pullrequest.isfork'], true)
+  - script: dotnet --info
+    displayName: Show dotnet SDK info
+#  - script: npm install npm -g
+#    displayName: Installing NPM
+  - task: PowerShell@2
+    inputs:
+      targetType: filePath
+      filePath: ./init.ps1
+    displayName: Running init.ps1
+  - task: PowerShell@2
+    inputs:
+      targetType: filePath
+      filePath: ./build.ps1
+    displayName: Running build.ps1
+  - script: dotnet test src/Nerdbank.GitVersioning.Tests --no-build -c $(BuildConfiguration)
+    displayName: Testing
+
+  - task: CopyFiles@1
+    inputs:
+      Contents: |
+        bin\**\*.nupkg
+        bin\js\*.tgz
+      TargetFolder: $(Build.ArtifactStagingDirectory)/deployables
+      flattenFolders: true
+    displayName: Collecting deployable artifacts
+  - task: PublishBuildArtifacts@1
+    inputs:
+      PathtoPublish: $(Build.ArtifactStagingDirectory)/deployables
+      ArtifactName: deployables
+      ArtifactType: Container
+    displayName: Publish deployables artifacts
+    condition: and(succeeded(), ne(variables['system.pullrequest.isfork'], true))
+
+#- job: Linux
+#  pool:
+#    vmImage: Ubuntu 16.04
+#  container: xenial
+#  variables:
+#    GitLinkEnabled: false
+#  steps:
+#
+#- job: macOS
+#  pool:
+#    vmImage: macOS 10.13
+#  variables:
+#    GitLinkEnabled: false
+#  steps:
