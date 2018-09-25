@@ -32,10 +32,7 @@ jobs:
     displayName: Show dotnet SDK info
 #  - script: npm install npm -g
 #    displayName: Installing NPM
-  - task: PowerShell@2
-    inputs:
-      targetType: filePath
-      filePath: ./init.ps1
+  - script: init.cmd
     displayName: Running init.ps1
   - task: PowerShell@2
     inputs:
