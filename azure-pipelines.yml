@@ -56,15 +56,16 @@ jobs:
       msbuildArgs: /t:build,pack /m /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
       platform: $(BuildPlatform)
       configuration: $(BuildConfiguration)
-    displayName: Build Visual Studio solution
+    displayName: Build NuGet package and tests
 
   - task: gulp@0
-    displayName: gulp
+    displayName: Build nerdbank-gitversioning NPM package
     inputs:
       gulpfile: src\nerdbank-gitversioning.npm\gulpfile.js
 
   - script: dotnet test src/Nerdbank.GitVersioning.Tests --no-build -c $(BuildConfiguration)
-    displayName: Testing
+    displayName: Run tests
+    continueOnError: true
 
   - task: CopyFiles@1
     inputs:
