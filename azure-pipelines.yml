@@ -30,21 +30,39 @@ jobs:
     condition: ne(variables['system.pullrequest.isfork'], true)
   - script: dotnet --info
     displayName: Show dotnet SDK info
-#  - script: npm install npm -g
-#    displayName: Installing NPM
-  - script: |
-      type init.ps1
-      init
-#  - task: PowerShell@2
-#    inputs:
-#      targetType: filePath
-#      filePath: ./init.ps1
-#    displayName: Running init.ps1
-  - task: PowerShell@2
+
+  - task: DotNetCoreCLI@2
+    displayName: Restore NuGet packages
     inputs:
-      targetType: filePath
-      filePath: ./build.ps1
-    displayName: Running build.ps1
+      command: restore
+      verbosityRestore: normal # detailed, normal, minimal
+      projects: src/**/*.sln
+      feedsToUse: config
+      nugetConfigPath: src/nuget.config
+
+  - task: geeklearningio.gl-vsts-tasks-yarn.yarn-installer-task.YarnInstaller@2
+    displayName: 'Use Yarn 1.x'
+  - task: geeklearningio.gl-vsts-tasks-yarn.yarn-task.Yarn@2
+    displayName: 'Yarn install'
+    inputs:
+      ProjectDirectory: 'src/nerdbank-gitversioning.npm'
+  - script: .\node_modules\.bin\typings install
+    displayName: Install Typings
+    workingDirectory: src\nerdbank-gitversioning.npm
+
+  - task: VSBuild@1
+    inputs:
+      vsVersion: 15.0
+      msbuildArgs: /t:build,pack /m /v:m /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
+      platform: $(BuildPlatform)
+      configuration: $(BuildConfiguration)
+    displayName: Build Visual Studio solution
+
+  - task: gulp@0
+    displayName: gulp
+    inputs:
+      workingDirectory: src\nerdbank-gitversioning.npm
+
   - script: dotnet test src/Nerdbank.GitVersioning.Tests --no-build -c $(BuildConfiguration)
     displayName: Testing
 
@@ -63,6 +81,13 @@ jobs:
       ArtifactType: Container
     displayName: Publish deployables artifacts
     condition: and(succeeded(), ne(variables['system.pullrequest.isfork'], true))
+  - task: PublishBuildArtifacts@1
+    inputs:
+      PathtoPublish: $(Build.ArtifactStagingDirectory)/build_logs
+      ArtifactName: build_logs
+      ArtifactType: Container
+    displayName: Publish build_logs artifacts
+    condition: and(succeededOrFailed(), ne(variables['system.pullrequest.isfork'], true))
 
 #- job: Linux
 #  pool:
