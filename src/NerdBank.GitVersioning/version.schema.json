@@ -31,7 +31,7 @@
         "version": {
           "type": "string",
           "description": "The major.minor-pre version to use as the basis for version calculations. If {height} is not used in this value and the value has fewer than the full major.minor.build.revision specified, \".{height}\" will be appended by the build.",
-          "pattern": "^v?(?<major>0|[1-9][0-9]*)\\.(?<minor>0|[1-9][0-9]*)(?:\\.(?<patch>0|[1-9][0-9]*)(?:\\.(?<revision>0|[1-9][0-9]*))?)?(?<prerelease>-(?:[\\da-z\\-]+|\\{height\\})(?:\\.(?:[\\da-z\\-]+|\\{height\\}))*)?(?<buildMetadata>\\+(?:[\\da-z\\-]+|\\{height\\})(?:\\.(?:[\\da-z\\-]+|\\{height\\}))*)?$"
+          "pattern": "^v?(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:\\.(0|[1-9][0-9]*)(?:\\.(0|[1-9][0-9]*))?)?(-(?:[\\da-z\\-]+|\\{height\\})(?:\\.(?:[\\da-z\\-]+|\\{height\\}))*)?(\\+(?:[\\da-z\\-]+|\\{height\\})(?:\\.(?:[\\da-z\\-]+|\\{height\\}))*)?$"
         },
         "inherit": {
           "type": "boolean",
