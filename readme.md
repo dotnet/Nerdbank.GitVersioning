@@ -1,6 +1,6 @@
 ﻿# Nerdbank.GitVersioning
 
-[![Build status](https://ci.appveyor.com/api/projects/status/94wwito7ifg57d65/branch/master?svg=true)](https://ci.appveyor.com/project/AArnott/nerdbank-gitversioning/branch/master)
+[![Build Status](https://dev.azure.com/andrewarnott/OSS/_apis/build/status/Nerdbank.GitVersioning)](https://dev.azure.com/andrewarnott/OSS/_build/latest?definitionId=18)
 [![NuGet package](https://img.shields.io/nuget/v/Nerdbank.GitVersioning.svg)](https://nuget.org/packages/Nerdbank.GitVersioning)
 [![NuGet downloads](https://img.shields.io/nuget/dt/Nerdbank.GitVersioning.svg)](https://nuget.org/packages/Nerdbank.GitVersioning)
 [![NPM package](https://img.shields.io/npm/v/nerdbank-gitversioning.svg)](https://www.npmjs.com/package/nerdbank-gitversioning)
