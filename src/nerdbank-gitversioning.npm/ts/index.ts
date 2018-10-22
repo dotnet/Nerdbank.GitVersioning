@@ -1,9 +1,8 @@
 'use strict';
 
-import * as fs from 'fs';
 import * as path from 'path';
 var camelCase = require('camel-case')
-import {execAsync} from './asyncprocess';
+import { execAsync } from './asyncprocess';
 
 const nbgvPath = 'nbgv.cli';
 
@@ -61,13 +60,15 @@ export async function getVersion(projectDirectory?: string): Promise<IGitVersion
  * Sets an NPM package version based on the git height and version.json.
  * @param packageDirectory The directory of the package about to be published.
  * @param srcDirectory The directory of the source code behind the package, if different than the packageDirectory.
+ * @param semVer The version of semver to use in the package versioning.
  */
-export async function setPackageVersion(packageDirectory?: string, srcDirectory?: string) {
+export async function setPackageVersion(packageDirectory?: string, srcDirectory?: string, semVer: 1 | 2 = 1) {
     packageDirectory = packageDirectory || '.';
     srcDirectory = srcDirectory || packageDirectory;
     const gitVersion = await getVersion(srcDirectory);
-    console.log(`Setting package version to ${gitVersion.semVer1}`);
-    var result = await execAsync(`npm version ${gitVersion.semVer1} --no-git-tag-version`, { cwd: packageDirectory });
+    const version = semVer === 1 ? gitVersion.semVer1 : gitVersion.semVer2;
+    console.log(`Setting package version to ${version}`);
+    var result = await execAsync(`npm version ${version} --no-git-tag-version`, { cwd: packageDirectory });
     if (result.stderr) {
         console.log(result.stderr);
     }
