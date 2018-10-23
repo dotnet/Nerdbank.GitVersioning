@@ -15,7 +15,7 @@ var tsProject = ts.createProject('tsconfig.json', {
 });
 
 gulp.task('tsc', function () {
-    var tsResult = gulp.src(['*.ts', 'ts/**/*.ts', 'typings/**/*.ts', 'node_modules/@types/**/index.d.ts'])
+    var tsResult = gulp.src(['*.ts', 'ts/**/*.ts', 'node_modules/@types/**/index.d.ts'])
         // .pipe(tslint())
         .pipe(sourcemaps.init())
         .pipe(ts(tsProject));
