@@ -19,11 +19,6 @@ try {
         if ($PSCmdlet.ShouldProcess("$PSScriptRoot\src\nerdbank-gitversioning.npm", "npm install")) {
             npm install --loglevel error
         }
-
-        Write-Host "Restoring Typings..." -ForegroundColor Yellow
-        if ($PSCmdlet.ShouldProcess("$PSScriptRoot\src\nerdbank-gitversioning.npm", "typings install")) {
-            .\node_modules\.bin\typings install
-        }
     } finally {
         Pop-Location
     }
