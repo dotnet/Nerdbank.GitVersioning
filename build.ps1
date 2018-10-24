@@ -36,7 +36,7 @@ try {
 
     if ($PSCmdlet.ShouldProcess("$PSScriptRoot\src\nerdbank-gitversioning.npm", "gulp")) {
         cd "$PSScriptRoot\src\nerdbank-gitversioning.npm"
-        .\node_modules\.bin\gulp.cmd
+        npm run build
         if ($LASTEXITCODE -ne 0) {
             throw "Node build failed"
         }
