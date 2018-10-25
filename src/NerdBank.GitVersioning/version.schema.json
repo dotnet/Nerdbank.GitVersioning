@@ -61,6 +61,11 @@
           "description": "A number to add to the git height when calculating the build number.",
           "default": 0
         },
+        "compareFullVersion": {
+          "type": "boolean",
+          "description": "Compare the whole version string when calculating the value of {height}.",
+          "default": false
+        },
         "semVer1NumericIdentifierPadding": {
           "type": "integer",
           "description": "The minimum number of digits to use for numeric identifiers in SemVer 1.",

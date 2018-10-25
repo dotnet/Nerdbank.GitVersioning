@@ -411,6 +411,17 @@
             return majorMinorFromFile?.Major == expectedVersion.Major && majorMinorFromFile?.Minor == expectedVersion.Minor;
         }
 
+        internal static bool CommitMatchesFormat(this Commit commit, SemanticVersion expectedVersion, string repoRelativeProjectDirectory)
+        {
+            Requires.NotNull(commit, nameof(commit));
+            Requires.NotNull(expectedVersion, nameof(expectedVersion));
+
+            var commitVersionData = VersionFile.GetVersion(commit, repoRelativeProjectDirectory);
+            var majorMinorFromFile = commitVersionData?.Version;
+            return majorMinorFromFile.Equals(expectedVersion);
+        }
+
+
         private static string FindGitDir(string startingDir)
         {
             while (startingDir != null)

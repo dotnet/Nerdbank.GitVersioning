@@ -2,7 +2,6 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.ComponentModel;
     using System.Diagnostics;
     using System.Reflection;
     using Newtonsoft.Json;
@@ -63,6 +62,12 @@
         /// </remarks>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
         public int? BuildNumberOffset { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the build number is reset when the label changes.
+        /// </summary>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public bool CompareFullVersion { get; set; } = false;
 
         /// <summary>
         /// Gets a number to add to the git height when calculating the <see cref="Version.Build"/> number.

@@ -82,6 +82,32 @@ public class VersionOracleTests : RepoTestBase
         Assert.Equal(0, oracle.VersionHeightOffset);
     }
 
+    [Theory]
+    [InlineData("0.1", "0.2")]
+    [InlineData("0.1.0+{height}", "0.1.5+{height}")]
+    [InlineData("0.1.5-alpha0.{height}", "0.1.5-alpha1.{height}")]
+    [InlineData("0.1.5-beta.{height}", "0.1.5-beta1.{height}")]
+    public void CompareFullVersionResetsHeight(string initial, string next)
+    {
+        var options = new VersionOptions
+        {
+            Version = SemanticVersion.Parse(initial),
+            CompareFullVersion = true
+        };
+        this.WriteVersionFile(options);
+        this.InitializeSourceControl();
+        this.AddCommits(10);
+
+        var oracle = VersionOracle.Create(this.RepoPath);
+        Assert.Equal(11, oracle.VersionHeight);
+
+        options.Version = SemanticVersion.Parse(next);
+
+        this.WriteVersionFile(options);
+        oracle = VersionOracle.Create(this.RepoPath);
+        Assert.Equal(1, oracle.VersionHeight);
+    }
+
     [Fact]
     public void HeightInPrerelease()
     {

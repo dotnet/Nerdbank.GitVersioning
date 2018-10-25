@@ -434,7 +434,14 @@
                 }
             }
 
-            return headCommit?.GetHeight(c => c.CommitMatchesMajorMinorVersion(headCommitVersion, relativeRepoProjectDirectory)) ?? 0;
+            if (committedVersion != null && committedVersion.CompareFullVersion)
+            {
+                return headCommit?.GetHeight(c => c.CommitMatchesFormat(committedVersion?.Version, relativeRepoProjectDirectory)) ?? 0;
+            }
+            else
+            {
+                return headCommit?.GetHeight(c => c.CommitMatchesMajorMinorVersion(headCommitVersion, relativeRepoProjectDirectory)) ?? 0;
+            }
         }
 
         private static Version GetIdAsVersion(LibGit2Sharp.Commit headCommit, VersionOptions committedVersion, VersionOptions workingVersion, int versionHeight)
