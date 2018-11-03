@@ -85,9 +85,10 @@ jobs:
 
   - task: CopyFiles@1
     inputs:
+      sourceFolder: $(System.DefaultWorkingDirectory)/bin
       Contents: |
-        $(System.DefaultWorkingDirectory)/bin/**/*.nupkg
-        $(System.DefaultWorkingDirectory)/bin/js/*.tgz
+        Nerdbank.GitVersioning.Tasks\$(BuildConfiguration)\*.nupkg
+        js\*.tgz
       TargetFolder: $(Build.ArtifactStagingDirectory)/deployables
       flattenFolders: true
     displayName: Collecting deployable artifacts
