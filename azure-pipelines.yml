@@ -79,6 +79,7 @@ jobs:
       testFiltercriteria: TestCategory!=FailsOnAzurePipelines
       platform: $(BuildPlatform)
       configuration: $(BuildConfiguration)
+    continueOnError: true
 
 #  - script: dotnet test src/Nerdbank.GitVersioning.Tests --no-build -c $(BuildConfiguration) --filter "TestCategory!=FailsOnAzurePipelines"
 #    displayName: Run tests

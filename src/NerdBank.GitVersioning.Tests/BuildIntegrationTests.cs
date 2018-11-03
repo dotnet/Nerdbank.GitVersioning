@@ -491,6 +491,7 @@ public class BuildIntegrationTests : RepoTestBase
     }
 
     [Theory]
+    [Trait("TestCategory", "FailsOnAzurePipelines")]
     [MemberData(nameof(CloudBuildVariablesData))]
     public async Task CloudBuildVariables_SetInCI(IReadOnlyDictionary<string, string> properties, string expectedMessage, bool setAllVariables)
     {
