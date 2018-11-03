@@ -108,11 +108,14 @@ jobs:
     displayName: Publish build_logs artifacts
     condition: and(succeededOrFailed(), ne(variables['system.pullrequest.isfork'], true))
 
-#- job: Linux
-#  pool:
-#    vmImage: Ubuntu 16.04
-#  container: xenial
-#  steps:
+- job: Linux
+  dependsOn: Windows
+  condition: succeeded()
+  pool:
+    vmImage: Ubuntu 16.04
+  container: xenial
+  steps:
+   - template: xplattest-pipeline.yml
 
 - job: macOS
   dependsOn: Windows
@@ -120,18 +123,4 @@ jobs:
   pool:
     vmImage: macOS 10.13
   steps:
-  - checkout: none # skip checking out the default repository resource
-  - task: DownloadBuildArtifacts@0
-    displayName: Download Build Artifacts
-    inputs:
-      artifactName: deployables
-      downloadPath: $(System.DefaultWorkingDirectory)
-  - task: Bash@3
-    displayName: Consume NB.GV from .NET Core build
-    inputs:
-      targetType: inline
-      failOnStderr: true
-      script: |
-        dotnet new classlib -o lib
-        dotnet add lib package nerdbank.gitversioning -s deployables -v $([[ $(find deployables/*nupkg -printf "%f\n") =~ Nerdbank.GitVersioning\.(.*)\.nupkg ]] && echo "${BASH_REMATCH[1]}")
-        dotnet build lib
+  - template: xplattest-pipeline.yml
