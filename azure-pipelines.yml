@@ -75,7 +75,7 @@ jobs:
   - task: VSTest@2
     displayName: Run tests
     inputs:
-      searchFolder: src/Nerdbank.GitVersioning.Tests
+      searchFolder: bin/Nerdbank.GitVersioning.Tests
       testFiltercriteria: TestCategory!=FailsOnAzurePipelines
       platform: $(BuildPlatform)
       configuration: $(BuildConfiguration)
@@ -111,8 +111,6 @@ jobs:
 #  pool:
 #    vmImage: Ubuntu 16.04
 #  container: xenial
-#  variables:
-#    GitLinkEnabled: false
 #  steps:
 
 - job: macOS
@@ -120,8 +118,6 @@ jobs:
   condition: succeeded()
   pool:
     vmImage: macOS 10.13
-  variables:
-    GitLinkEnabled: false
   steps:
   - checkout: none # skip checking out the default repository resource
   - task: DownloadBuildArtifacts@0
@@ -129,9 +125,12 @@ jobs:
     inputs:
       artifactName: deployables
       downloadPath: $(System.DefaultWorkingDirectory)
-  - script: dotnet new classlib -o lib
-    displayName: Create .NET Core class library
-  - script: dotnet add lib package nerdbank.gitversioning -s deployables -v $([[ $(find deployables/*nupkg -printf "%f\n") =~ Nerdbank.GitVersioning\.(.*)\.nupkg ]] && echo "${BASH_REMATCH[1]}")
-    displayName: Install NB.GV into class library
-  - script: dotnet build lib
-    displayName: Test NB.GV within .NET Core build
+  - task: Bash@3
+    displayName: Consume NB.GV from .NET Core build
+    inputs:
+      targetType: inline
+      failOnStderr: true
+      script: |
+        dotnet new classlib -o lib
+        dotnet add lib package nerdbank.gitversioning -s deployables -v $([[ $(find deployables/*nupkg -printf "%f\n") =~ Nerdbank.GitVersioning\.(.*)\.nupkg ]] && echo "${BASH_REMATCH[1]}")
+        dotnet build lib
