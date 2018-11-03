@@ -115,7 +115,7 @@ jobs:
     vmImage: Ubuntu 16.04
   container: xenial
   steps:
-  - bash: sudo apt update && sudo apt install git
+  - bash: sudo apt update && sudo apt-get install -y git
     displayName: Install git
   - template: azure-pipelines/xplattest-pipeline.yml
 
@@ -124,6 +124,4 @@ jobs:
   pool:
     vmImage: macOS 10.13
   steps:
-#  - bash: brew install git
-#    displayName: Install git
   - template: azure-pipelines/xplattest-pipeline.yml
