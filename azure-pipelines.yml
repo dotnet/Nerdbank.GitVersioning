@@ -19,13 +19,16 @@ jobs:
 - job: Windows
   pool: Hosted VS2017
   steps:
+  - checkout: self
+    clean: true
+    submodules: false
   - script: |
       git config --global user.name ci
       git config --global user.email me@ci.com
     displayName: Configure git commit author for testing
   - script: |
       dotnet tool install --tool-path . nbgv
-      .\nbgv cloud -p src
+      .\nbgv cloud -p src -a
     displayName: Set build number
     condition: ne(variables['system.pullrequest.isfork'], true)
   - script: dotnet --info
@@ -83,8 +86,8 @@ jobs:
   - task: CopyFiles@1
     inputs:
       Contents: |
-        bin\**\*.nupkg
-        bin\js\*.tgz
+        $(System.DefaultWorkingDirectory)/bin/**/*.nupkg
+        $(System.DefaultWorkingDirectory)/bin/js/*.tgz
       TargetFolder: $(Build.ArtifactStagingDirectory)/deployables
       flattenFolders: true
     displayName: Collecting deployable artifacts
@@ -110,10 +113,22 @@ jobs:
 #  variables:
 #    GitLinkEnabled: false
 #  steps:
-#
-#- job: macOS
-#  pool:
-#    vmImage: macOS 10.13
-#  variables:
-#    GitLinkEnabled: false
-#  steps:
+
+- job: macOS
+  dependsOn: Windows
+  condition: succeeded()
+  pool:
+    vmImage: macOS 10.13
+  variables:
+    GitLinkEnabled: false
+  steps:
+  - checkout: none # skip checking out the default repository resource
+  - task: DownloadBuildArtifacts@0
+    displayName: Download Build Artifacts
+    inputs:
+      artifactName: deployables
+      downloadPath: $(System.DefaultWorkingDirectory)
+  - script: |
+      dotnet new classlib
+      dotnet add package nerdbank.gitversioning -s . -v $(NBGV_NuGetPackageVersion)
+      dotnet build
