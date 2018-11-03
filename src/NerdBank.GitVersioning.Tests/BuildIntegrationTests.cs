@@ -785,6 +785,7 @@ public class BuildIntegrationTests : RepoTestBase
     }
 
     [Fact]
+    [Trait("TestCategory", "FailsOnAzurePipelines")]
     public async Task AssemblyInfo_IncrementalBuild()
     {
         this.WriteVersionFile(prerelease: "-beta");
