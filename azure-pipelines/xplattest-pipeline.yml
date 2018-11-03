@@ -1,8 +1,18 @@
 steps:
 - checkout: none # skip checking out the default repository resource
+#- task: DownloadBuildArtifacts@0
+#  displayName: Download Build Artifacts
+#  inputs:
+#    artifactName: deployables
+#    downloadPath: $(System.DefaultWorkingDirectory)
 - task: DownloadBuildArtifacts@0
   displayName: Download Build Artifacts
   inputs:
+    buildType: specific
+    project: OSS
+    pipeline: Nerdbank.GitVersioning
+    buildVersionToDownload: specific
+    buildId: 481
     artifactName: deployables
     downloadPath: $(System.DefaultWorkingDirectory)
 - task: Bash@3

@@ -20,6 +20,7 @@ resources:
 jobs:
 - job: Windows
   pool: Hosted VS2017
+  condition: false
   steps:
   - checkout: self
     clean: true
@@ -111,8 +112,8 @@ jobs:
     condition: and(succeededOrFailed(), ne(variables['system.pullrequest.isfork'], true))
 
 - job: Ubuntu Xenial
-  dependsOn: Windows
-  condition: succeeded()
+#  dependsOn: Windows
+#  condition: succeeded()
   pool:
     vmImage: Ubuntu 16.04
   container: xenial
@@ -122,8 +123,8 @@ jobs:
   - template: azure-pipelines/xplattest-pipeline.yml
 
 - job: Ubuntu Bionic
-  dependsOn: Windows
-  condition: succeeded()
+#  dependsOn: Windows
+#  condition: succeeded()
   pool:
     vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
   container: bionic
@@ -133,8 +134,8 @@ jobs:
   - template: azure-pipelines/xplattest-pipeline.yml
 
 - job: macOS
-  dependsOn: Windows
-  condition: succeeded()
+#  dependsOn: Windows
+#  condition: succeeded()
   pool:
     vmImage: macOS 10.13
   steps:
