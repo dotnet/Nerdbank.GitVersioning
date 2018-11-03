@@ -26,7 +26,7 @@ steps:
       cd lib &&
       echo '{"version":"42.42"}' > version.json &&
       git init &&
-      git add lib.csproj nuget.config version.json Class1.cs &&
+      git add lib.csproj version.json Class1.cs &&
       dotnet add package nerdbank.gitversioning -v $NBGV_NuGetPackageVersion &&
       git commit -m "Initial commit" &&
       dotnet pack -c debug &&
