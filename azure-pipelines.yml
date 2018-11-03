@@ -14,6 +14,8 @@ resources:
   containers:
   - container: xenial
     image: andrewarnott/linux-buildagent
+  - container: bionic
+    image: microsoft/dotnet:2.1-sdk-bionic
 
 jobs:
 - job: Windows
@@ -108,12 +110,23 @@ jobs:
     displayName: Publish build_logs artifacts
     condition: and(succeededOrFailed(), ne(variables['system.pullrequest.isfork'], true))
 
-- job: Linux
+- job: Ubuntu Xenial
   dependsOn: Windows
   condition: succeeded()
   pool:
     vmImage: Ubuntu 16.04
   container: xenial
+  steps:
+  - bash: sudo apt update && sudo apt-get install -y git
+    displayName: Install git
+  - template: azure-pipelines/xplattest-pipeline.yml
+
+- job: Ubuntu Bionic
+  dependsOn: Windows
+  condition: succeeded()
+  pool:
+    vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
+  container: bionic
   steps:
   - bash: sudo apt update && sudo apt-get install -y git
     displayName: Install git
