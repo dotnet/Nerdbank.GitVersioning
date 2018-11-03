@@ -51,9 +51,6 @@ jobs:
     displayName: 'Yarn install'
     inputs:
       ProjectDirectory: 'src/nerdbank-gitversioning.npm'
-  - script: .\node_modules\.bin\typings install
-    displayName: Install Typings
-    workingDirectory: src\nerdbank-gitversioning.npm
 
   - task: VSBuild@1
     inputs:
