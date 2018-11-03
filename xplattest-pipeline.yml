@@ -11,6 +11,7 @@ steps:
     targetType: inline
     failOnStderr: true
     script: |
+      find --help
       PkgFileName=$(find deployables/*nupkg -printf "%f\n")
       NBGV_NuGetPackageVersion=$([[ $NBGV_NuGetPackageVersion =~ Nerdbank.GitVersioning\.(.*)\.nupkg ]] && echo "${BASH_REMATCH[1]}")
       echo "Using Nerdbank.GitVersioning $NBGV_NuGetPackageVersion in a new .NET Core project"
