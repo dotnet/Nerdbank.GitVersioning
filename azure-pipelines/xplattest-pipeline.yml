@@ -21,9 +21,9 @@ steps:
 
       NBGV_NuGetPackageVersion=$([[ $PkgFileName =~ Nerdbank.GitVersioning\.(.*)\.nupkg ]] && echo "${BASH_REMATCH[1]}")
 
+      echo "<configuration><packageSources><clear /><add key='local' value='deployables' /></packageSources></configuration>" > nuget.config &&
       dotnet new classlib -o lib &&
       cd lib &&
-      echo "<configuration><packageSources><clear /><add key='local' value='deployables' /></packageSources></configuration>" > nuget.config &&
       echo '{"version":"42.42"}' > version.json &&
       git init &&
       git add lib.csproj nuget.config version.json Class1.cs &&
