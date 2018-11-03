@@ -15,7 +15,7 @@ steps:
 
       git config --global user.email me@ci.com
 
-      PkgFileName=$(ls deployables/*nupkg)
+      PkgFileName=$(ls deployables/Nerdbank.GitVersioning.*nupkg)
 
       NBGV_NuGetPackageVersion=$([[ $PkgFileName =~ Nerdbank.GitVersioning\.(.*)\.nupkg ]] && echo "${BASH_REMATCH[1]}")
 

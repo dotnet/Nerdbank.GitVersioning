@@ -87,7 +87,7 @@ jobs:
     inputs:
       sourceFolder: $(System.DefaultWorkingDirectory)/bin
       Contents: |
-        Nerdbank.GitVersioning.Tasks\$(BuildConfiguration)\*.nupkg
+        **\*.nupkg
         js\*.tgz
       TargetFolder: $(Build.ArtifactStagingDirectory)/deployables
       flattenFolders: true
