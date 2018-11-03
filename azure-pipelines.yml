@@ -111,7 +111,7 @@ jobs:
     displayName: Publish build_logs artifacts
     condition: and(succeededOrFailed(), ne(variables['system.pullrequest.isfork'], true))
 
-- job: Ubuntu Xenial
+- job: Ubuntu_Xenial
 #  dependsOn: Windows
 #  condition: succeeded()
   pool:
@@ -122,7 +122,7 @@ jobs:
     displayName: Install git
   - template: azure-pipelines/xplattest-pipeline.yml
 
-- job: Ubuntu Bionic
+- job: Ubuntu_Bionic
 #  dependsOn: Windows
 #  condition: succeeded()
   pool:
