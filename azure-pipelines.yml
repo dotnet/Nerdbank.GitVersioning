@@ -115,7 +115,7 @@ jobs:
     vmImage: Ubuntu 16.04
   container: xenial
   steps:
-   - template: xplattest-pipeline.yml
+   - template: azure-pipelines/xplattest-pipeline.yml
 
 - job: macOS
   dependsOn: Windows
@@ -123,4 +123,4 @@ jobs:
   pool:
     vmImage: macOS 10.13
   steps:
-  - template: xplattest-pipeline.yml
+  - template: azure-pipelines/xplattest-pipeline.yml

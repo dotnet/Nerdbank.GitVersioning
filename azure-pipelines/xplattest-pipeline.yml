@@ -1,0 +1,16 @@
+steps:
+- checkout: none # skip checking out the default repository resource
+- task: DownloadBuildArtifacts@0
+  displayName: Download Build Artifacts
+  inputs:
+    artifactName: deployables
+    downloadPath: $(System.DefaultWorkingDirectory)
+- bash: |
+    brew install findutils
+    gfind
+  condition: eq( variables.Agent.OS, 'Darwin' )
+- task: Bash@3
+  displayName: Consume NB.GV from .NET Core build
+  inputs:
+    failOnStderr: true
+    script: $(System.DefaultWorkingDirectory)/azure-pipelines/test.sh
