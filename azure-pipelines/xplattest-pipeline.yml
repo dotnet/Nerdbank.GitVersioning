@@ -5,12 +5,21 @@ steps:
   inputs:
     artifactName: deployables
     downloadPath: $(System.DefaultWorkingDirectory)
-- bash: |
-    brew install findutils
-    gfind
-  condition: eq( variables.Agent.OS, 'Darwin' )
 - task: Bash@3
   displayName: Consume NB.GV from .NET Core build
   inputs:
     failOnStderr: true
-    script: $(System.DefaultWorkingDirectory)/azure-pipelines/test.sh
+    targetType: inline
+    script: |
+      if hash gfind 2>/dev/null; then
+        # OSX
+        PkgFileName=$(gfind deployables/*nupkg -printf "%f\n")
+      else
+        # Linux
+        PkgFileName=$(find deployables/*nupkg -printf "%f\n")
+      fi
+
+      NBGV_NuGetPackageVersion=$([[ $PkgFileName =~ Nerdbank.GitVersioning\.(.*)\.nupkg ]] && echo "${BASH_REMATCH[1]}")
+      dotnet new classlib -o lib
+      dotnet add lib package nerdbank.gitversioning -s deployables -v $NBGV_NuGetPackageVersion
+      dotnet build lib

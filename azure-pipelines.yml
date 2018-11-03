@@ -123,4 +123,5 @@ jobs:
   pool:
     vmImage: macOS 10.13
   steps:
+  - bash: brew install findutils
   - template: azure-pipelines/xplattest-pipeline.yml
