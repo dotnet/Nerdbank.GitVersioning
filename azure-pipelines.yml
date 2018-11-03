@@ -129,8 +129,6 @@ jobs:
     vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
   container: bionic
   steps:
-  - bash: sudo apt update && sudo apt-get install -y git
-    displayName: Install git
   - template: azure-pipelines/xplattest-pipeline.yml
 
 - job: macOS
