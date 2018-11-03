@@ -34,4 +34,4 @@ steps:
       dotnet add package nerdbank.gitversioning -v $NBGV_NuGetPackageVersion &&
       git commit -m "Initial commit" &&
       dotnet pack -c debug &&
-      if [ ! -f "bin/debug/lib.42.42.1.nupkg" ]; then exit 1; fi
+      if ! ls bin/debug/lib.42.42.1*.nupkg 1> /dev/null 2>&1; then exit 1; fi
