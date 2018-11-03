@@ -18,7 +18,6 @@ resources:
 jobs:
 - job: Windows
   pool: Hosted VS2017
-  condition: false
   steps:
   - checkout: self
     clean: true
@@ -110,7 +109,8 @@ jobs:
     condition: and(succeededOrFailed(), ne(variables['system.pullrequest.isfork'], true))
 
 - job: Linux
-#  dependsOn: Windows
+  dependsOn: Windows
+  condition: succeeded()
   pool:
     vmImage: Ubuntu 16.04
   container: xenial
@@ -120,7 +120,8 @@ jobs:
   - template: azure-pipelines/xplattest-pipeline.yml
 
 - job: macOS
-#  dependsOn: Windows
+  dependsOn: Windows
+  condition: succeeded()
   pool:
     vmImage: macOS 10.13
   steps:
