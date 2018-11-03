@@ -69,9 +69,16 @@ jobs:
   - script: start /wait msbuild14.exe /q /full /log "$(Build.ArtifactStagingDirectory)\build_logs\msbuild14.log"
     displayName: Installing MSBuild 14
 
-  - script: dotnet test src/Nerdbank.GitVersioning.Tests --no-build -c $(BuildConfiguration)
+  - task: VSTest@2
     displayName: Run tests
-    continueOnError: true
+    inputs:
+      searchFolder: src/Nerdbank.GitVersioning.Tests
+      testFiltercriteria: TestCategory!=FailsOnAzurePipelines
+      platform: $(BuildPlatform)
+      configuration: $(BuildConfiguration)
+
+#  - script: dotnet test src/Nerdbank.GitVersioning.Tests --no-build -c $(BuildConfiguration) --filter "TestCategory!=FailsOnAzurePipelines"
+#    displayName: Run tests
 
   - task: CopyFiles@1
     inputs:
