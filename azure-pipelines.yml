@@ -124,8 +124,6 @@ jobs:
   pool:
     vmImage: macOS 10.13
   steps:
-  - bash: brew install findutils
-    displayName: Install GNU find
 #  - bash: brew install git
 #    displayName: Install git
   - template: azure-pipelines/xplattest-pipeline.yml

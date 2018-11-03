@@ -21,13 +21,7 @@ steps:
     failOnStderr: true
     targetType: inline
     script: >
-      if hash gfind 2>/dev/null; then
-        # OSX
-        PkgFileName=$(gfind deployables/*nupkg -printf "%f\n")
-      else
-        # Linux
-        PkgFileName=$(find deployables/*nupkg -printf "%f\n")
-      fi
+      PkgFileName=$(ls deployables/*nupkg)
 
       NBGV_NuGetPackageVersion=$([[ $PkgFileName =~ Nerdbank.GitVersioning\.(.*)\.nupkg ]] && echo "${BASH_REMATCH[1]}")
 
