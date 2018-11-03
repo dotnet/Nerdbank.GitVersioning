@@ -72,17 +72,17 @@ jobs:
 #  - script: start /wait msbuild14.exe /q /full /log "$(Build.ArtifactStagingDirectory)\build_logs\msbuild14.log"
 #    displayName: Installing MSBuild 14
 
-  - task: VSTest@2
-    displayName: Run tests
-    inputs:
-      searchFolder: bin/Nerdbank.GitVersioning.Tests
-      testFiltercriteria: TestCategory!=FailsOnAzurePipelines
-      platform: $(BuildPlatform)
-      configuration: $(BuildConfiguration)
-    continueOnError: true
-
-#  - script: dotnet test src/Nerdbank.GitVersioning.Tests --no-build -c $(BuildConfiguration) --filter "TestCategory!=FailsOnAzurePipelines"
+#  - task: VSTest@2
 #    displayName: Run tests
+#    inputs:
+#      searchFolder: bin/Nerdbank.GitVersioning.Tests
+#      testFiltercriteria: TestCategory!=FailsOnAzurePipelines
+#      platform: $(BuildPlatform)
+#      configuration: $(BuildConfiguration)
+#    continueOnError: true
+
+  - script: dotnet test src/Nerdbank.GitVersioning.Tests --no-build -c $(BuildConfiguration) --filter "TestCategory!=FailsOnAzurePipelines"
+    displayName: Run tests
 
   - task: CopyFiles@1
     inputs:
@@ -115,7 +115,9 @@ jobs:
     vmImage: Ubuntu 16.04
   container: xenial
   steps:
-   - template: azure-pipelines/xplattest-pipeline.yml
+#  - bash: apt install git
+#    displayName: Install git
+  - template: azure-pipelines/xplattest-pipeline.yml
 
 - job: macOS
   dependsOn: Windows
@@ -124,4 +126,7 @@ jobs:
     vmImage: macOS 10.13
   steps:
   - bash: brew install findutils
+    displayName: Install GNU find
+#  - bash: brew install git
+#    displayName: Install git
   - template: azure-pipelines/xplattest-pipeline.yml

@@ -10,7 +10,7 @@ steps:
   inputs:
     failOnStderr: true
     targetType: inline
-    script: |
+    script: >
       if hash gfind 2>/dev/null; then
         # OSX
         PkgFileName=$(gfind deployables/*nupkg -printf "%f\n")
@@ -20,6 +20,14 @@ steps:
       fi
 
       NBGV_NuGetPackageVersion=$([[ $PkgFileName =~ Nerdbank.GitVersioning\.(.*)\.nupkg ]] && echo "${BASH_REMATCH[1]}")
-      dotnet new classlib -o lib
-      dotnet add lib package nerdbank.gitversioning -s deployables -v $NBGV_NuGetPackageVersion
-      dotnet build lib
+
+      dotnet new classlib -o lib &&
+      cd lib &&
+      echo "<configuration><packageSources><clear /><add key='local' value='deployables' /></packageSources></configuration>" > nuget.config &&
+      echo '{"version":"42.42"}' > version.json &&
+      git init &&
+      git add lib.csproj nuget.config version.json Class1.cs &&
+      dotnet add package nerdbank.gitversioning -v $NBGV_NuGetPackageVersion &&
+      git commit -m "Initial commit" &&
+      dotnet pack -c debug &&
+      if [ ! -f "bin/debug/lib.42.42.1.nupkg" ]; then exit 1; fi
