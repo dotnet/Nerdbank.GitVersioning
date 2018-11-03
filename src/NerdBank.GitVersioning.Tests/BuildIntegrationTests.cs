@@ -491,6 +491,7 @@ public class BuildIntegrationTests : RepoTestBase
     }
 
     [Theory]
+    [Trait("TestCategory", "FailsOnAzurePipelines")]
     [MemberData(nameof(CloudBuildVariablesData))]
     public async Task CloudBuildVariables_SetInCI(IReadOnlyDictionary<string, string> properties, string expectedMessage, bool setAllVariables)
     {
@@ -785,6 +786,7 @@ public class BuildIntegrationTests : RepoTestBase
     }
 
     [Fact]
+    [Trait("TestCategory", "FailsOnAzurePipelines")]
     public async Task AssemblyInfo_IncrementalBuild()
     {
         this.WriteVersionFile(prerelease: "-beta");
@@ -857,6 +859,7 @@ public class BuildIntegrationTests : RepoTestBase
     ///  information is set correctly.
     /// </summary>
     [Fact]
+    [Trait("TestCategory", "FailsOnAzurePipelines")]
     public async Task NativeVersionInfo_CreateNativeResourceDll()
     {
         this.testProject = this.CreateNativeProjectRootElement(this.projectDirectory, "test.vcxproj");

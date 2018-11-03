@@ -1,0 +1,139 @@
+trigger:
+  branches:
+    include: ["master"]
+  paths:
+    exclude: ["doc", "*.md", ".appveyor.yml", ".travis.yml"]
+
+variables:
+  TreatWarningsAsErrors: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  BuildConfiguration: Release
+  BuildPlatform: Any CPU
+
+resources:
+  containers:
+  - container: xenial
+    image: andrewarnott/linux-buildagent
+  - container: bionic
+    image: microsoft/dotnet:2.1-sdk-bionic
+
+jobs:
+- job: Windows
+  pool: Hosted VS2017
+  steps:
+  - checkout: self
+    clean: true
+    submodules: false
+  - script: |
+      git config --global user.name ci
+      git config --global user.email me@ci.com
+    displayName: Configure git commit author for testing
+  - script: |
+      dotnet tool install --tool-path . nbgv
+      .\nbgv cloud -p src -a
+    displayName: Set build number
+    condition: ne(variables['system.pullrequest.isfork'], true)
+  - script: dotnet --info
+    displayName: Show dotnet SDK info
+
+  - task: DotNetCoreCLI@2
+    displayName: Restore NuGet packages
+    inputs:
+      command: restore
+      verbosityRestore: normal # detailed, normal, minimal
+      projects: src/**/*.sln
+      feedsToUse: config
+      nugetConfigPath: src/nuget.config
+
+  - task: geeklearningio.gl-vsts-tasks-yarn.yarn-installer-task.YarnInstaller@2
+    displayName: 'Use Yarn 1.x'
+  - task: geeklearningio.gl-vsts-tasks-yarn.yarn-task.Yarn@2
+    displayName: 'Yarn install'
+    inputs:
+      ProjectDirectory: 'src/nerdbank-gitversioning.npm'
+  - script: .\node_modules\.bin\typings install
+    displayName: Install Typings
+    workingDirectory: src\nerdbank-gitversioning.npm
+
+  - task: VSBuild@1
+    inputs:
+      vsVersion: 15.0
+      msbuildArgs: /t:build,pack /m /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
+      platform: $(BuildPlatform)
+      configuration: $(BuildConfiguration)
+    displayName: Build NuGet package and tests
+
+  - task: gulp@0
+    displayName: Build nerdbank-gitversioning NPM package
+    inputs:
+      gulpfile: src\nerdbank-gitversioning.npm\gulpfile.js
+
+# Our unit tests use MSBuild 14
+#  - powershell: Invoke-WebRequest https://download.microsoft.com/download/E/E/D/EEDF18A8-4AED-4CE0-BEBE-70A83094FC5A/BuildTools_Full.exe -OutFile msbuild14.exe
+#    displayName: Downloading MSBuild 14
+#  - script: start /wait msbuild14.exe /q /full /log "$(Build.ArtifactStagingDirectory)\build_logs\msbuild14.log"
+#    displayName: Installing MSBuild 14
+
+#  - task: VSTest@2
+#    displayName: Run tests
+#    inputs:
+#      searchFolder: bin/Nerdbank.GitVersioning.Tests
+#      testFiltercriteria: TestCategory!=FailsOnAzurePipelines
+#      platform: $(BuildPlatform)
+#      configuration: $(BuildConfiguration)
+#    continueOnError: true
+
+  - script: dotnet test src/Nerdbank.GitVersioning.Tests --no-build -c $(BuildConfiguration) --filter "TestCategory!=FailsOnAzurePipelines"
+    displayName: Run tests
+
+  - task: CopyFiles@1
+    inputs:
+      sourceFolder: $(System.DefaultWorkingDirectory)/bin
+      Contents: |
+        Nerdbank.GitVersioning.Tasks\$(BuildConfiguration)\*.nupkg
+        js\*.tgz
+      TargetFolder: $(Build.ArtifactStagingDirectory)/deployables
+      flattenFolders: true
+    displayName: Collecting deployable artifacts
+  - task: PublishBuildArtifacts@1
+    inputs:
+      PathtoPublish: $(Build.ArtifactStagingDirectory)/deployables
+      ArtifactName: deployables
+      ArtifactType: Container
+    displayName: Publish deployables artifacts
+    condition: and(succeeded(), ne(variables['system.pullrequest.isfork'], true))
+  - task: PublishBuildArtifacts@1
+    inputs:
+      PathtoPublish: $(Build.ArtifactStagingDirectory)/build_logs
+      ArtifactName: build_logs
+      ArtifactType: Container
+    displayName: Publish build_logs artifacts
+    condition: and(succeededOrFailed(), ne(variables['system.pullrequest.isfork'], true))
+
+- job: Ubuntu_Xenial
+  dependsOn: Windows
+  condition: succeeded()
+  pool:
+    vmImage: Ubuntu 16.04
+  container: xenial
+  steps:
+  - bash: sudo apt update && sudo apt-get install -y git
+    displayName: Install git
+  - template: azure-pipelines/xplattest-pipeline.yml
+
+- job: Ubuntu_Bionic
+  dependsOn: Windows
+  condition: succeeded()
+  pool:
+    vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
+  container: bionic
+  steps:
+  - template: azure-pipelines/xplattest-pipeline.yml
+
+- job: macOS
+  dependsOn: Windows
+  condition: succeeded()
+  pool:
+    vmImage: macOS 10.13
+  steps:
+  - template: azure-pipelines/xplattest-pipeline.yml

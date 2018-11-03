@@ -1,0 +1,31 @@
+steps:
+- checkout: none # skip checking out the default repository resource
+- task: DownloadBuildArtifacts@0
+  displayName: Download Build Artifacts
+  inputs:
+    artifactName: deployables
+    downloadPath: $(System.DefaultWorkingDirectory)
+- task: Bash@3
+  displayName: Consume NB.GV from .NET Core build
+  inputs:
+    failOnStderr: true
+    targetType: inline
+    script: >
+      git config --global user.name ci
+
+      git config --global user.email me@ci.com
+
+      PkgFileName=$(ls deployables/*nupkg)
+
+      NBGV_NuGetPackageVersion=$([[ $PkgFileName =~ Nerdbank.GitVersioning\.(.*)\.nupkg ]] && echo "${BASH_REMATCH[1]}")
+
+      echo "<configuration><packageSources><clear /><add key='local' value='deployables' /></packageSources></configuration>" > nuget.config &&
+      dotnet new classlib -o lib &&
+      cd lib &&
+      echo '{"version":"42.42"}' > version.json &&
+      git init &&
+      git add lib.csproj version.json Class1.cs &&
+      dotnet add package nerdbank.gitversioning -v $NBGV_NuGetPackageVersion &&
+      git commit -m "Initial commit" &&
+      dotnet pack -c debug &&
+      if ! ls bin/debug/lib.42.42.1*.nupkg 1> /dev/null 2>&1; then exit 1; fi
