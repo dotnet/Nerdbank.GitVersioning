@@ -21,6 +21,10 @@ steps:
     failOnStderr: true
     targetType: inline
     script: >
+      git config --global user.name ci
+
+      git config --global user.email me@ci.com
+
       PkgFileName=$(ls deployables/*nupkg)
 
       NBGV_NuGetPackageVersion=$([[ $PkgFileName =~ Nerdbank.GitVersioning\.(.*)\.nupkg ]] && echo "${BASH_REMATCH[1]}")
