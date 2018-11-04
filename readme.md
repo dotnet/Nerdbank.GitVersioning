@@ -32,6 +32,8 @@ You can install Nerdbank.GitVersioning into your projects via NuGet or NPM.
 
 You must also create [a version.json file](doc/versionJson.md) in your repo. See [migration notes](doc/migrating.md) if your repo already has a version.txt or version.json file from using another system.
 
+[Prereqs may apply for certain linux distros](doc/prereqs.md).
+
 ## How to leverage version stamping and runtime information
 
 See relevant documentation for any of these topics:
