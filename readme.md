@@ -102,7 +102,7 @@ git commit id would just make it harder for users to type in the version
 number if they ever had to.
 
 Note that the git commit ID is *always* included in the
-`AssemblyInformationVersionAttribute` so one can always match a binary to the
+`AssemblyInformationalVersionAttribute` so one can always match a binary to the
 exact version of source code that produced it.
 
 ### How do I translate from a version to a git commit and vice versa?
