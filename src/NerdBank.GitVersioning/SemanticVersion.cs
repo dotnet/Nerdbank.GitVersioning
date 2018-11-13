@@ -26,7 +26,7 @@
         /// <remarks>
         /// Keep in sync with the regex for the version field found in the version.schema.json file.
         /// </remarks>
-        private static readonly Regex PrereleasePattern = new Regex("-(?:[\\da-z\\-]+|\\{height\\})(?:\\.(?:[\\da-z\\-]+|\\{height\\}))*", RegexOptions.IgnoreCase);
+        private static readonly Regex PrereleasePattern = new Regex("-(?:[\\da-z\\-]+|\\{height\\})(?:(\\.|(?<=-))(?:[\\da-z\\-]+|\\{height\\}))*", RegexOptions.IgnoreCase);
 
         /// <summary>
         /// The regex pattern that build metadata must match.

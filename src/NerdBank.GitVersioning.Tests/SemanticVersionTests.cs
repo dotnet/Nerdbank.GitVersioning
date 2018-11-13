@@ -98,6 +98,24 @@ public class SemanticVersionTests
         Assert.Equal("+build", result.BuildMetadata);
     }
 
+    [Theory]
+    [InlineData(".")]
+    [InlineData("-")]
+    public void TryParse_WithHeight(char splitter)
+    {
+        var pre = "-alpha1" + splitter + "{height}";
+        var version = "1.2.3.4" + pre;
+
+        SemanticVersion result;
+        Assert.True(SemanticVersion.TryParse(version, out result));
+        Assert.Equal(1, result.Version.Major);
+        Assert.Equal(2, result.Version.Minor);
+        Assert.Equal(3, result.Version.Build);
+        Assert.Equal(4, result.Version.Revision);
+        Assert.Equal(pre, result.Prerelease);
+
+    }
+
     [Fact]
     public void Parse()
     {
