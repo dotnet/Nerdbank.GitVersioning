@@ -363,12 +363,12 @@
 
             internal override void AddThisAssemblyMember(string name, string value)
             {
-                this.codeBuilder.AppendLine($"  static member {name} = \"{value}\"");
+                this.codeBuilder.AppendLine($"  static member internal {name} = \"{value}\"");
             }
 
             internal override void StartNamespace(string ns)
             {
-                this.codeBuilder.AppendLine($"namespace {ns}");
+                this.codeBuilder.AppendLine($"namespace {ns}.Properties");
             }
 
             internal override void DeclareAttribute(Type type, string arg)
@@ -383,7 +383,7 @@
 
             internal override void StartThisAssemblyClass()
             {
-                this.codeBuilder.AppendLine("do()\r\ntype ThisAssembly() =");
+                this.codeBuilder.AppendLine("do()\r\ntype internal ThisAssembly() =");
             }
         }
 

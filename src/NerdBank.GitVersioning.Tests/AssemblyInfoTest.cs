@@ -18,7 +18,7 @@ namespace NerdBank.GitVersioning.Tests
             info.AssemblyFileVersion = "1.3";
             info.AssemblyVersion = "1.3.0";
             info.CodeLanguage = "f#";
-
+            
             var built = info.BuildCode();
 
             var expected = @"//------------------------------------------------------------------------------
@@ -31,16 +31,16 @@ namespace NerdBank.GitVersioning.Tests
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace AssemblyInfo
+namespace AssemblyInfo.Properties
 [<assembly: System.Reflection.AssemblyVersionAttribute(""1.3.0"")>]
 [<assembly: System.Reflection.AssemblyFileVersionAttribute(""1.3"")>]
 [<assembly: System.Reflection.AssemblyInformationalVersionAttribute("""")>]
 do()
-type ThisAssembly() =
-  static member AssemblyVersion = ""1.3.0""
-  static member AssemblyFileVersion = ""1.3""
-  static member AssemblyCompany = ""company""
-  static member RootNamespace = """"
+type internal ThisAssembly() =
+  static member internal AssemblyVersion = ""1.3.0""
+  static member internal AssemblyFileVersion = ""1.3""
+  static member internal AssemblyCompany = ""company""
+  static member internal RootNamespace = """"
 do()
 ";
             Assert.Equal(expected, built);
