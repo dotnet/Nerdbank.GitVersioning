@@ -108,7 +108,7 @@
         protected Commit WriteVersionFile(string version = "1.2", string prerelease = "", string relativeDirectory = null)
         {
             var versionData = VersionOptions.FromVersion(new System.Version(version), prerelease);
-            return WriteVersionFile(versionData, relativeDirectory);
+            return this.WriteVersionFile(versionData, relativeDirectory);
         }
 
         protected Commit WriteVersionFile(VersionOptions versionData, string relativeDirectory = null)

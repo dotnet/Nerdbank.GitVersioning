@@ -441,7 +441,7 @@ public class BuildIntegrationTests : RepoTestBase
         // Just build "master", which doesn't conform to the regex.
         var buildResult = await this.BuildAsync();
         Assert.False(buildResult.PublicRelease);
-        AssertStandardProperties(versionOptions, buildResult);
+        this.AssertStandardProperties(versionOptions, buildResult);
     }
 
     public static IEnumerable<object[]> CloudBuildOfBranch(string branchName)
@@ -474,7 +474,7 @@ public class BuildIntegrationTests : RepoTestBase
         {
             var buildResult = await this.BuildAsync();
             Assert.True(buildResult.PublicRelease);
-            AssertStandardProperties(versionOptions, buildResult);
+            this.AssertStandardProperties(versionOptions, buildResult);
         }
     }
 
@@ -514,7 +514,7 @@ public class BuildIntegrationTests : RepoTestBase
             this.InitializeSourceControl();
 
             var buildResult = await this.BuildAsync();
-            AssertStandardProperties(versionOptions, buildResult);
+            this.AssertStandardProperties(versionOptions, buildResult);
 
             // Assert GitBuildVersion was set
             string conditionallyExpectedMessage = UnitTestCloudBuildPrefix + expectedMessage
@@ -554,7 +554,7 @@ public class BuildIntegrationTests : RepoTestBase
             versionOptions.CloudBuild.SetVersionVariables = false;
             this.WriteVersionFile(versionOptions);
             buildResult = await this.BuildAsync();
-            AssertStandardProperties(versionOptions, buildResult);
+            this.AssertStandardProperties(versionOptions, buildResult);
 
             // Assert GitBuildVersion was not set
             conditionallyExpectedMessage = UnitTestCloudBuildPrefix + expectedMessage
@@ -613,7 +613,7 @@ public class BuildIntegrationTests : RepoTestBase
         using (ApplyEnvironmentVariables(properties))
         {
             var buildResult = await this.BuildAsync();
-            AssertStandardProperties(versionOptions, buildResult);
+            this.AssertStandardProperties(versionOptions, buildResult);
             expectedBuildNumberMessage = expectedBuildNumberMessage.Replace("{CLOUDBUILDNUMBER}", buildResult.CloudBuildNumber);
             Assert.Contains(UnitTestCloudBuildPrefix + expectedBuildNumberMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
         }
@@ -623,7 +623,7 @@ public class BuildIntegrationTests : RepoTestBase
         using (ApplyEnvironmentVariables(properties))
         {
             var buildResult = await this.BuildAsync();
-            AssertStandardProperties(versionOptions, buildResult);
+            this.AssertStandardProperties(versionOptions, buildResult);
             expectedBuildNumberMessage = expectedBuildNumberMessage.Replace("{CLOUDBUILDNUMBER}", buildResult.CloudBuildNumber);
             Assert.DoesNotContain(UnitTestCloudBuildPrefix + expectedBuildNumberMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
         }
@@ -650,7 +650,7 @@ public class BuildIntegrationTests : RepoTestBase
         }
 
         var buildResult = await this.BuildAsync();
-        AssertStandardProperties(versionOptions, buildResult);
+        this.AssertStandardProperties(versionOptions, buildResult);
     }
 
     [Fact]
@@ -671,7 +671,7 @@ public class BuildIntegrationTests : RepoTestBase
             Commands.Checkout(this.Repo, releaseBranch);
             var buildResult = await this.BuildAsync();
             Assert.True(buildResult.PublicRelease);
-            AssertStandardProperties(versionOptions, buildResult);
+            this.AssertStandardProperties(versionOptions, buildResult);
         }
     }
 
@@ -1154,7 +1154,7 @@ public class BuildIntegrationTests : RepoTestBase
 
             foreach (var property in this.GetType().GetRuntimeProperties().OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase))
             {
-                if (property.DeclaringType == this.GetType() && property.Name != nameof(BuildResult))
+                if (property.DeclaringType == this.GetType() && property.Name != nameof(this.BuildResult))
                 {
                     sb.AppendLine($"{property.Name} = {property.GetValue(this)}");
                 }

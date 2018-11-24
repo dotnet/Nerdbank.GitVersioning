@@ -159,13 +159,24 @@
             if (this.EmitNonVersionCustomAttributes)
             {
                 if (!string.IsNullOrEmpty(this.AssemblyTitle))
+                {
                     yield return DeclareAttribute(typeof(AssemblyTitleAttribute), this.AssemblyTitle);
+                }
+
                 if (!string.IsNullOrEmpty(this.AssemblyProduct))
+                {
                     yield return DeclareAttribute(typeof(AssemblyProductAttribute), this.AssemblyProduct);
+                }
+
                 if (!string.IsNullOrEmpty(this.AssemblyCompany))
+                {
                     yield return DeclareAttribute(typeof(AssemblyCompanyAttribute), this.AssemblyCompany);
+                }
+
                 if (!string.IsNullOrEmpty(this.AssemblyCopyright))
+                {
                     yield return DeclareAttribute(typeof(AssemblyCopyrightAttribute), this.AssemblyCopyright);
+                }
             }
         }
 
@@ -230,13 +241,24 @@
             if (this.EmitNonVersionCustomAttributes)
             {
                 if (!string.IsNullOrEmpty(this.AssemblyTitle))
+                {
                     this.generator.DeclareAttribute(typeof(AssemblyTitleAttribute), this.AssemblyTitle);
+                }
+
                 if (!string.IsNullOrEmpty(this.AssemblyProduct))
+                {
                     this.generator.DeclareAttribute(typeof(AssemblyProductAttribute), this.AssemblyProduct);
+                }
+
                 if (!string.IsNullOrEmpty(this.AssemblyCompany))
+                {
                     this.generator.DeclareAttribute(typeof(AssemblyCompanyAttribute), this.AssemblyCompany);
+                }
+
                 if (!string.IsNullOrEmpty(this.AssemblyCopyright))
+                {
                     this.generator.DeclareAttribute(typeof(AssemblyCopyrightAttribute), this.AssemblyCopyright);
+                }
             }
         }
 

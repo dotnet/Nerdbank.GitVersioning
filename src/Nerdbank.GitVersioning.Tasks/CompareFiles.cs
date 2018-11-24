@@ -32,24 +32,24 @@
         /// Same as <see cref="AreSame"/>, but opposite.
         /// </summary>
         [Output]
-        public bool AreChanged { get { return !AreSame; } }
+        public bool AreChanged { get { return !this.AreSame; } }
 
         public override bool Execute()
         {
-            AreSame = AreFilesIdentical();
+            this.AreSame = this.AreFilesIdentical();
             return true;
         }
 
         private bool AreFilesIdentical()
         {
-            if (OriginalItems.Length != NewItems.Length)
+            if (this.OriginalItems.Length != this.NewItems.Length)
             {
                 return false;
             }
 
-            for (int i = 0; i < OriginalItems.Length; i++)
+            for (int i = 0; i < this.OriginalItems.Length; i++)
             {
-                if (!IsContentOfFilesTheSame(OriginalItems[i].ItemSpec, NewItems[i].ItemSpec))
+                if (!this.IsContentOfFilesTheSame(this.OriginalItems[i].ItemSpec, this.NewItems[i].ItemSpec))
                 {
                     return false;
                 }
