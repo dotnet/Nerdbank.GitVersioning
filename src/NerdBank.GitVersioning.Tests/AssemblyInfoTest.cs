@@ -15,8 +15,8 @@ namespace NerdBank.GitVersioning.Tests
         {
             var info = new AssemblyVersionInfo();
             info.AssemblyCompany = "company";
-            info.AssemblyFileVersion = "1.3";
-            info.AssemblyVersion = "1.3.0";
+            info.AssemblyFileVersion = "1.3.1.0";
+            info.AssemblyVersion = "1.3.0.0";
             info.CodeLanguage = "f#";
             
             var built = info.BuildCode();
@@ -31,14 +31,14 @@ namespace NerdBank.GitVersioning.Tests
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace AssemblyInfo.Properties
-[<assembly: System.Reflection.AssemblyVersionAttribute(""1.3.0"")>]
-[<assembly: System.Reflection.AssemblyFileVersionAttribute(""1.3"")>]
+namespace AssemblyInfo
+[<assembly: System.Reflection.AssemblyVersionAttribute(""1.3.0.0"")>]
+[<assembly: System.Reflection.AssemblyFileVersionAttribute(""1.3.1.0"")>]
 [<assembly: System.Reflection.AssemblyInformationalVersionAttribute("""")>]
 do()
 type internal ThisAssembly() =
-  static member internal AssemblyVersion = ""1.3.0""
-  static member internal AssemblyFileVersion = ""1.3""
+  static member internal AssemblyVersion = ""1.3.0.0""
+  static member internal AssemblyFileVersion = ""1.3.1.0""
   static member internal AssemblyCompany = ""company""
   static member internal RootNamespace = """"
 do()

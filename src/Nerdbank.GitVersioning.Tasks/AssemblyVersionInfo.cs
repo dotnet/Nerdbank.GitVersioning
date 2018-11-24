@@ -34,7 +34,7 @@
 ";
 
         private CodeGenerator generator;
-        
+
         [Required]
         public string CodeLanguage { get; set; }
 
@@ -104,6 +104,10 @@
                 {
                     Directory.CreateDirectory(Path.GetDirectoryName(this.OutputFile));
                     Utilities.FileOperationWithRetry(() => File.WriteAllText(this.OutputFile, fileContent));
+                }
+                else
+                {
+                    this.Log.LogError("CodeDomProvider not available for language: {0}. No version info will be embedded into assembly.", this.CodeLanguage);
                 }
             }
 
@@ -215,6 +219,7 @@
                 Directory.CreateDirectory(Path.GetDirectoryName(this.OutputFile));
                 Utilities.FileOperationWithRetry(() => File.WriteAllText(this.OutputFile, fileContent));
             }
+
             return !this.Log.HasLoggedErrors;
         }
 
@@ -227,12 +232,12 @@
             {
                 this.generator.AddComment(FileHeaderComment);
                 this.generator.AddBlankLine();
-                this.generator.StartNamespace(this.RootNamespace ?? "AssemblyInfo");
+                this.generator.EmitNamespaceIfRequired(this.RootNamespace ?? "AssemblyInfo");
                 this.GenerateAssemblyAttributes();
                 this.GenerateThisAssemblyClass();
-                this.generator.EndNamespace();
                 return this.generator.GetCode();
             }
+
             return null;
         }
 
@@ -294,6 +299,7 @@
 
             this.generator.EndThisAssemblyClass();
         }
+
         private CodeGenerator CreateGenerator()
         {
             switch (this.CodeLanguage.ToLowerInvariant())
@@ -307,7 +313,6 @@
                 case "f#":
                     return new FSharpCodeGenerator();
                 default:
-                    this.Log.LogError("Code provider not available for language: {0}. No version info will be embedded into assembly.", this.CodeLanguage);
                     return null;
             }
         }
@@ -331,9 +336,11 @@
 
             internal abstract void EndThisAssemblyClass();
 
-            internal virtual void StartNamespace(string ns) { }
-
-            internal virtual void EndNamespace() { }
+            /// <summary>
+            /// Gives languages that *require* a namespace a chance to emit such.
+            /// </summary>
+            /// <param name="ns">The RootNamespace of the project.</param>
+            internal virtual void EmitNamespaceIfRequired(string ns) { }
 
             internal string GetCode() => this.codeBuilder.ToString();
 
@@ -366,9 +373,9 @@
                 this.codeBuilder.AppendLine($"  static member internal {name} = \"{value}\"");
             }
 
-            internal override void StartNamespace(string ns)
+            internal override void EmitNamespaceIfRequired(string ns)
             {
-                this.codeBuilder.AppendLine($"namespace {ns}.Properties");
+                this.codeBuilder.AppendLine($"namespace {ns}");
             }
 
             internal override void DeclareAttribute(Type type, string arg)
@@ -442,7 +449,6 @@
                 this.codeBuilder.AppendLine("End Class");
             }
         }
-//#endif
 
         private static string ToHex(byte[] data)
         {
