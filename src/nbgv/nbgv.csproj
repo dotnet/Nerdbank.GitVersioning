@@ -6,7 +6,6 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp2.1</TargetFramework>
     <RootNamespace>Nerdbank.GitVersioning.Tool</RootNamespace>
-    <LangVersion>7.3</LangVersion>
     <Description>A .NET Core Tool that can install, read and set version information based on git history, using Nerdbank.GitVersioning.</Description>
   </PropertyGroup>
 
