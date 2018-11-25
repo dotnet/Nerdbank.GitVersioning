@@ -254,13 +254,13 @@ public class GitExtensionsTests : RepoTestBase
     [InlineData("2.5", "2.0", 0)]
     [InlineData("2.5", "2.0", 5)]
     [InlineData("2.5", "2.0", -1)]
-    public void GetIdAsVersion_Roundtrip(string version, string assemblyVersion, int buildNumberOffset)
+    public void GetIdAsVersion_Roundtrip(string version, string assemblyVersion, int versionHeightOffset)
     {
         this.WriteVersionFile(new VersionOptions
         {
             Version = SemanticVersion.Parse(version),
             AssemblyVersion = new VersionOptions.AssemblyVersionOptions(new Version(assemblyVersion)),
-            BuildNumberOffset = buildNumberOffset,
+            VersionHeightOffset = versionHeightOffset,
         });
 
         Commit[] commits = new Commit[16]; // create enough that statistically we'll likely hit interesting bits as MSB and LSB
@@ -293,7 +293,7 @@ public class GitExtensionsTests : RepoTestBase
         {
             Version = SemanticVersion.Parse("1.2"),
             AssemblyVersion = null,
-            BuildNumberOffset = startingOffset,
+            VersionHeightOffset = startingOffset,
         };
         this.WriteVersionFile(versionOptions);
 
@@ -301,7 +301,7 @@ public class GitExtensionsTests : RepoTestBase
         Version[] versions = new Version[commits.Length];
         for (int i = 0; i < commits.Length; i += 2)
         {
-            versionOptions.BuildNumberOffset += offsetStepChange;
+            versionOptions.VersionHeightOffset += offsetStepChange;
             commits[i] = this.WriteVersionFile(versionOptions);
             versions[i] = commits[i].GetIdAsVersion();
 

@@ -458,7 +458,7 @@
             {
                 int expectedVersionHeight = ReadVersionPosition(version, position.Value);
 
-                var actualVersionOffset = versionOptions.BuildNumberOffsetOrDefault;
+                var actualVersionOffset = versionOptions.VersionHeightOffsetOrDefault;
                 var actualVersionHeight = commit.GetHeight(c => CommitMatchesVersion(c, version, repoRelativeProjectDirectory));
                 return expectedVersionHeight != actualVersionHeight + actualVersionOffset;
             }
@@ -678,7 +678,7 @@
             // and forbids 0xffff as a value.
             if (versionHeightPosition.HasValue)
             {
-                int adjustedVersionHeight = versionHeight == 0 ? 0 : versionHeight + (versionOptions?.BuildNumberOffset ?? 0);
+                int adjustedVersionHeight = versionHeight == 0 ? 0 : versionHeight + (versionOptions?.VersionHeightOffset ?? 0);
                 Verify.Operation(adjustedVersionHeight <= MaximumBuildNumberOrRevisionComponent, "Git height is {0}, which is greater than the maximum allowed {0}.", adjustedVersionHeight, MaximumBuildNumberOrRevisionComponent);
                 switch (versionHeightPosition.Value)
                 {

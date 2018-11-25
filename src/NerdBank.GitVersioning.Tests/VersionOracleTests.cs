@@ -123,7 +123,7 @@ public class VersionOracleTests : RepoTestBase
         VersionOptions workingCopyVersion = new VersionOptions
         {
             Version = SemanticVersion.Parse("7.8.9-beta.{height}.foo"),
-            BuildNumberOffset = 2,
+            VersionHeightOffset = 2,
         };
         this.WriteVersionFile(workingCopyVersion);
         this.InitializeSourceControl();
@@ -144,7 +144,7 @@ public class VersionOracleTests : RepoTestBase
         VersionOptions workingCopyVersion = new VersionOptions
         {
             Version = SemanticVersion.Parse("7.8.9-beta+another.{height}.foo"),
-            BuildNumberOffset = 2,
+            VersionHeightOffset = 2,
         };
         this.WriteVersionFile(workingCopyVersion);
         this.InitializeSourceControl();
@@ -172,7 +172,7 @@ public class VersionOracleTests : RepoTestBase
         VersionOptions workingCopyVersion = new VersionOptions
         {
             Version = SemanticVersion.Parse(semVer2),
-            BuildNumberOffset = 2,
+            VersionHeightOffset = 2,
         };
         this.WriteVersionFile(workingCopyVersion);
         this.InitializeSourceControl();
@@ -187,7 +187,7 @@ public class VersionOracleTests : RepoTestBase
         VersionOptions workingCopyVersion = new VersionOptions
         {
             Version = SemanticVersion.Parse("7.8.9-foo.25"),
-            BuildNumberOffset = 2,
+            VersionHeightOffset = 2,
             SemVer1NumericIdentifierPadding = 3,
         };
         this.WriteVersionFile(workingCopyVersion);

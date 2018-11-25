@@ -56,9 +56,14 @@
             }
           ]
         },
-        "buildNumberOffset": {
+        "versionHeightOffset": {
           "type": "integer",
           "description": "A number to add to the git height when calculating the version height (which typically appears as the 3rd integer in a computed version). May be negative, but not of greater magnitude than the original git height.",
+          "default": 0
+        },
+        "buildNumberOffset": {
+          "type": "integer",
+          "description": "OBSOLETE by v3.0. Use \"versionHeightOffset\" instead. A number to add to the git height when calculating the version height (which typically appears as the 3rd integer in a computed version). May be negative, but not of greater magnitude than the original git height.",
           "default": 0
         },
         "semVer1NumericIdentifierPadding": {

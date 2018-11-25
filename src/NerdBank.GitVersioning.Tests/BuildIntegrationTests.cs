@@ -375,7 +375,7 @@ public class BuildIntegrationTests : RepoTestBase
         var versionOptions = new VersionOptions
         {
             Version = new SemanticVersion(new Version(14, 1)),
-            BuildNumberOffset = 5,
+            VersionHeightOffset = 5,
         };
         this.WriteVersionFile(versionOptions);
         var buildResult = await this.BuildAsync();
@@ -405,7 +405,7 @@ public class BuildIntegrationTests : RepoTestBase
         var versionOptions = new VersionOptions
         {
             Version = new SemanticVersion(new Version(14, 1)),
-            BuildNumberOffset = -1,
+            VersionHeightOffset = -1,
         };
         VersionFile.SetVersion(this.RepoPath, versionOptions);
         var buildResult = await this.BuildAsync();

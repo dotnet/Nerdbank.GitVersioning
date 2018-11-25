@@ -57,7 +57,7 @@
         /// <summary>
         /// Initializes a new instance of the <see cref="VersionOracle"/> class.
         /// </summary>
-        public VersionOracle(string projectDirectory, LibGit2Sharp.Repository repo, LibGit2Sharp.Commit head, ICloudBuild cloudBuild, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null)
+        public VersionOracle(string projectDirectory, LibGit2Sharp.Repository repo, LibGit2Sharp.Commit head, ICloudBuild cloudBuild, int? overrideVersionHeightOffset = null, string projectPathRelativeToGitRepoRoot = null)
         {
             var repoRoot = repo?.Info?.WorkingDirectory?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             var relativeRepoProjectDirectory = !string.IsNullOrWhiteSpace(repoRoot)
@@ -72,16 +72,16 @@
 
             var workingVersion = head != null ? VersionFile.GetVersion(head, relativeRepoProjectDirectory) : VersionFile.GetVersion(projectDirectory);
 
-            if (overrideBuildNumberOffset.HasValue)
+            if (overrideVersionHeightOffset.HasValue)
             {
                 if (committedVersion != null)
                 {
-                    committedVersion.BuildNumberOffset = overrideBuildNumberOffset.Value;
+                    committedVersion.VersionHeightOffset = overrideVersionHeightOffset.Value;
                 }
 
                 if (workingVersion != null)
                 {
-                    workingVersion.BuildNumberOffset = overrideBuildNumberOffset.Value;
+                    workingVersion.VersionHeightOffset = overrideVersionHeightOffset.Value;
                 }
             }
 
@@ -101,7 +101,7 @@
                 this.Version = this.VersionOptions?.Version.Version ?? Version0;
             }
 
-            this.VersionHeightOffset = this.VersionOptions?.BuildNumberOffsetOrDefault ?? 0;
+            this.VersionHeightOffset = this.VersionOptions?.VersionHeightOffsetOrDefault ?? 0;
 
             this.PrereleaseVersion = this.ReplaceMacros(this.VersionOptions?.Version.Prerelease ?? string.Empty);
 

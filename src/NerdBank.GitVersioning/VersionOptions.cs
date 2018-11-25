@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel;
     using System.Diagnostics;
     using System.Reflection;
     using Newtonsoft.Json;
@@ -63,6 +64,20 @@
         public AssemblyVersionOptions AssemblyVersionOrDefault => this.AssemblyVersion ?? AssemblyVersionOptions.DefaultInstance;
 
         /// <summary>
+        /// Gets or sets a number to add to the git height when calculating the version height,
+        /// which typically is used in the <see cref="Version.Build"/> portion of the computed version.
+        /// </summary>
+        /// <value>Any integer (0, positive, or negative).</value>
+        /// <remarks>
+        /// An error will result if this value is negative with such a magnitude as to exceed the git height,
+        /// resulting in a negative build number.
+        /// </remarks>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        [Obsolete("Use " + nameof(VersionHeightOffset) + " instead.")]
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public int? BuildNumberOffset { get; set; }
+
+        /// <summary>
         /// Gets or sets a number to add to the git height when calculating the <see cref="Version.Build"/> number.
         /// </summary>
         /// <value>Any integer (0, positive, or negative).</value>
@@ -71,10 +86,13 @@
         /// resulting in a negative build number.
         /// </remarks>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public int? BuildNumberOffset { get; set; }
-
-        /// <summary>
-        /// </summary>
+        public int? VersionHeightOffset
+        {
+#pragma warning disable CS0618
+            get => this.BuildNumberOffset;
+            set => this.BuildNumberOffset = value;
+#pragma warning restore CS0618
+        }
 
         /// <summary>
         /// Gets a number to add to the git height when calculating the <see cref="Version.Build"/> number.
@@ -85,7 +103,25 @@
         /// resulting in a negative build number.
         /// </remarks>
         [JsonIgnore]
+        [Obsolete("Use " + nameof(VersionHeightOffsetOrDefault) + " instead.")]
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public int BuildNumberOffsetOrDefault => this.BuildNumberOffset ?? 0;
+
+        /// <summary>
+        /// Gets a number to add to the git height when calculating the <see cref="Version.Build"/> number.
+        /// </summary>
+        /// <value>Any integer (0, positive, or negative).</value>
+        /// <remarks>
+        /// An error will result if this value is negative with such a magnitude as to exceed the git height,
+        /// resulting in a negative build number.
+        /// </remarks>
+        [JsonIgnore]
+        public int VersionHeightOffsetOrDefault
+        {
+#pragma warning disable CS0618
+            get => this.BuildNumberOffsetOrDefault;
+#pragma warning restore CS0618
+        }
 
         /// <summary>
         /// Gets or sets the minimum number of digits to use for numeric identifiers in SemVer 1.
@@ -270,7 +306,7 @@
                 return this.Version != null
                     && this.AssemblyVersion == null
                     && this.CloudBuild.IsDefault
-                    && this.BuildNumberOffset == 0
+                    && this.VersionHeightOffset == 0
                     && !this.SemVer1NumericIdentifierPadding.HasValue
                     && !this.Inherit;
             }
@@ -930,7 +966,7 @@
                     && AssemblyVersionOptions.EqualWithDefaultsComparer.Singleton.Equals(x.AssemblyVersionOrDefault, y.AssemblyVersionOrDefault)
                     && NuGetPackageVersionOptions.EqualWithDefaultsComparer.Singleton.Equals(x.NuGetPackageVersionOrDefault, y.NuGetPackageVersionOrDefault)
                     && CloudBuildOptions.EqualWithDefaultsComparer.Singleton.Equals(x.CloudBuildOrDefault, y.CloudBuildOrDefault)
-                    && x.BuildNumberOffset == y.BuildNumberOffset;
+                    && x.VersionHeightOffset == y.VersionHeightOffset;
             }
 
             /// <inheritdoc />
