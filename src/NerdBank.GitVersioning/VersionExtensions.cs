@@ -69,5 +69,22 @@
         {
             return version.EnsureNonNegativeComponents(fieldCount).ToString(fieldCount);
         }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Version"/> class,
+        /// allowing for the last two integers to possibly be -1.
+        /// </summary>
+        /// <param name="major">The major version.</param>
+        /// <param name="minor">The minor version.</param>
+        /// <param name="build">The build version.</param>
+        /// <param name="revision">The revision.</param>
+        /// <returns></returns>
+        internal static Version Create(int major, int minor, int build, int revision)
+        {
+            return
+                build == -1 ? new Version(major, minor) :
+                revision == -1 ? new Version(major, minor, build) :
+                new Version(major, minor, build, revision);
+        }
     }
 }

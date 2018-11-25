@@ -77,10 +77,11 @@ public class VersionFileTests : RepoTestBase
     [Theory]
     [InlineData("2.3", null, null, 0, null, @"{""version"":""2.3""}")]
     [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Minor, 0, null, @"{""version"":""2.3"",""assemblyVersion"":""2.2""}")]
+    [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Minor, -1, new[] { "refs/heads/master" }, @"{""version"":""2.3"",""assemblyVersion"":""2.2"",""versionHeightOffset"":-1,""publicReleaseRefSpec"":[""refs/heads/master""]}")]
     [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Minor, -1, new[] { "refs/heads/master" }, @"{""version"":""2.3"",""assemblyVersion"":""2.2"",""buildNumberOffset"":-1,""publicReleaseRefSpec"":[""refs/heads/master""]}")]
     [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Minor, 0, null, @"{""version"":""2.3"",""assemblyVersion"":{""version"":""2.2""}}")]
     [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Revision, 0, null, @"{""version"":""2.3"",""assemblyVersion"":{""version"":""2.2"", ""precision"":""revision""}}")]
-    public void GetVersion_JsonCompatibility(string version, string assemblyVersion, object precision, int buildNumberOffset, string[] publicReleaseRefSpec, string json)
+    public void GetVersion_JsonCompatibility(string version, string assemblyVersion, object precision, int versionHeightOffset, string[] publicReleaseRefSpec, string json)
     {
         File.WriteAllText(Path.Combine(this.RepoPath, VersionFile.JsonFileName), json);
 
@@ -89,7 +90,7 @@ public class VersionFileTests : RepoTestBase
         Assert.Equal(version, options.Version?.ToString());
         Assert.Equal(assemblyVersion, options.AssemblyVersion?.Version?.ToString());
         Assert.Equal(precision, options.AssemblyVersion?.PrecisionOrDefault);
-        Assert.Equal(buildNumberOffset, options.BuildNumberOffsetOrDefault);
+        Assert.Equal(versionHeightOffset, options.VersionHeightOffsetOrDefault);
         Assert.Equal(publicReleaseRefSpec, options.PublicReleaseRefSpec);
     }
 
@@ -117,15 +118,15 @@ public class VersionFileTests : RepoTestBase
     [InlineData("2.3", null, VersionOptions.VersionPrecision.Minor, 0, false, @"{""version"":""2.3""}")]
     [InlineData("2.3", null, VersionOptions.VersionPrecision.Minor, null, true, @"{""version"":""2.3"",""assemblyVersion"":{""precision"":""minor""},""inherit"":true}")]
     [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Minor, 0, false, @"{""version"":""2.3"",""assemblyVersion"":""2.2""}")]
-    [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Minor, -1, false, @"{""version"":""2.3"",""assemblyVersion"":""2.2"",""buildNumberOffset"":-1}")]
-    [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Revision, -1, false, @"{""version"":""2.3"",""assemblyVersion"":{""version"":""2.2"",""precision"":""revision""},""buildNumberOffset"":-1}")]
-    public void SetVersion_WritesSimplestFile(string version, string assemblyVersion, VersionOptions.VersionPrecision? precision, int? buildNumberOffset, bool inherit, string expectedJson)
+    [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Minor, -1, false, @"{""version"":""2.3"",""assemblyVersion"":""2.2"",""versionHeightOffset"":-1}")]
+    [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Revision, -1, false, @"{""version"":""2.3"",""assemblyVersion"":{""version"":""2.2"",""precision"":""revision""},""versionHeightOffset"":-1}")]
+    public void SetVersion_WritesSimplestFile(string version, string assemblyVersion, VersionOptions.VersionPrecision? precision, int? versionHeightOffset, bool inherit, string expectedJson)
     {
         var versionOptions = new VersionOptions
         {
             Version = SemanticVersion.Parse(version),
             AssemblyVersion = assemblyVersion != null || precision != null ? new VersionOptions.AssemblyVersionOptions(assemblyVersion != null ? new Version(assemblyVersion) : null, precision) : null,
-            BuildNumberOffset = buildNumberOffset,
+            VersionHeightOffset = versionHeightOffset,
             Inherit = inherit,
         };
         string pathWritten = VersionFile.SetVersion(this.RepoPath, versionOptions);
@@ -327,7 +328,7 @@ public class VersionFileTests : RepoTestBase
             level3 = new VersionOptions
             {
                 Inherit = true,
-                BuildNumberOffset = 1,
+                VersionHeightOffset = 1,
             },
             @"foo\bar");
         this.WriteVersionFile(
@@ -369,7 +370,7 @@ public class VersionFileTests : RepoTestBase
             Assert.Equal(level1.Version.Version.Minor, level3Options.Version.Version.Minor);
             Assert.Equal(level2.AssemblyVersion.Precision, level3Options.AssemblyVersion.Precision);
             Assert.Equal(level2.AssemblyVersion.Precision, level3Options.AssemblyVersion.Precision);
-            Assert.Equal(level3.BuildNumberOffset, level3Options.BuildNumberOffset);
+            Assert.Equal(level3.VersionHeightOffset, level3Options.VersionHeightOffset);
             Assert.True(level3Options.Inherit);
 
             var level2NoInheritOptions = GetOption("noInherit");

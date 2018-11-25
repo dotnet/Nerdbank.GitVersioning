@@ -82,20 +82,55 @@ public class VersionOracleTests : RepoTestBase
         Assert.Equal(0, oracle.VersionHeightOffset);
     }
 
+    [Theory]
+    [InlineData("0.1", "0.2")]
+    [InlineData("0.1.0+{height}", "0.1.5+{height}")]
+    [InlineData("0.1.5-alpha0.{height}", "0.1.5-alpha1.{height}")]
+    [InlineData("0.1.5-beta.{height}", "0.1.5-beta1.{height}")]
+    [InlineData("0.1.5-alpha.{height}", "0.1.5-beta.{height}")]
+    [InlineData("0.1.5-alpha.1.{height}", "0.1.5-beta.1.{height}")]
+    public void VersionHeightResetsWithVersionSpecChanges(string initial, string next)
+    {
+        var options = new VersionOptions
+        {
+            Version = SemanticVersion.Parse(initial),
+        };
+        this.WriteVersionFile(options);
+        this.InitializeSourceControl();
+        this.AddCommits(10);
+
+        var oracle = VersionOracle.Create(this.RepoPath);
+        Assert.Equal(11, oracle.VersionHeight);
+        Assert.Equal(11, this.Repo.Head.GetVersionHeight());
+
+        options.Version = SemanticVersion.Parse(next);
+
+        this.WriteVersionFile(options);
+        oracle = VersionOracle.Create(this.RepoPath);
+        Assert.Equal(1, oracle.VersionHeight);
+        Assert.Equal(1, this.Repo.Head.GetVersionHeight());
+
+        foreach (var commit in this.Repo.Head.Commits)
+        {
+            var versionFromId = commit.GetIdAsVersion();
+            Assert.Contains(commit, this.Repo.GetCommitsFromVersion(versionFromId));
+        }
+    }
+
     [Fact]
     public void HeightInPrerelease()
     {
         VersionOptions workingCopyVersion = new VersionOptions
         {
             Version = SemanticVersion.Parse("7.8.9-beta.{height}.foo"),
-            BuildNumberOffset = 2,
+            VersionHeightOffset = 2,
         };
         this.WriteVersionFile(workingCopyVersion);
         this.InitializeSourceControl();
         var oracle = VersionOracle.Create(this.RepoPath);
         Assert.Equal("7.8", oracle.MajorMinorVersion.ToString());
         Assert.Equal(9, oracle.BuildNumber);
-        Assert.Equal(oracle.VersionHeight + oracle.VersionHeightOffset, oracle.Version.Revision);
+        Assert.Equal(-1, oracle.Version.Revision);
 
         Assert.Equal("-beta." + (oracle.VersionHeight + oracle.VersionHeightOffset) + ".foo", oracle.PrereleaseVersion);
 
@@ -109,7 +144,7 @@ public class VersionOracleTests : RepoTestBase
         VersionOptions workingCopyVersion = new VersionOptions
         {
             Version = SemanticVersion.Parse("7.8.9-beta+another.{height}.foo"),
-            BuildNumberOffset = 2,
+            VersionHeightOffset = 2,
         };
         this.WriteVersionFile(workingCopyVersion);
         this.InitializeSourceControl();
@@ -137,7 +172,7 @@ public class VersionOracleTests : RepoTestBase
         VersionOptions workingCopyVersion = new VersionOptions
         {
             Version = SemanticVersion.Parse(semVer2),
-            BuildNumberOffset = 2,
+            VersionHeightOffset = 2,
         };
         this.WriteVersionFile(workingCopyVersion);
         this.InitializeSourceControl();
@@ -152,7 +187,7 @@ public class VersionOracleTests : RepoTestBase
         VersionOptions workingCopyVersion = new VersionOptions
         {
             Version = SemanticVersion.Parse("7.8.9-foo.25"),
-            BuildNumberOffset = 2,
+            VersionHeightOffset = 2,
             SemVer1NumericIdentifierPadding = 3,
         };
         this.WriteVersionFile(workingCopyVersion);
