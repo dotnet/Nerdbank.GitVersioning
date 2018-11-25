@@ -26,62 +26,62 @@ public class VersionSchemaTests
     [Fact]
     public void VersionField_BasicScenarios()
     {
-        json = JObject.Parse(@"{ ""version"": ""2.3"" }");
-        Assert.True(json.IsValid(this.schema));
-        json = JObject.Parse(@"{ ""version"": ""2.3-beta"" }");
-        Assert.True(json.IsValid(this.schema));
-        json = JObject.Parse(@"{ ""version"": ""2.3-beta-final"" }");
-        Assert.True(json.IsValid(this.schema));
-        json = JObject.Parse(@"{ ""version"": ""2.3-beta.2"" }");
-        Assert.True(json.IsValid(this.schema));
-        json = JObject.Parse(@"{ ""version"": ""2.3-beta.0"" }");
-        Assert.True(json.IsValid(this.schema));
-        json = JObject.Parse(@"{ ""version"": ""2.3-beta.01"" }");
-        Assert.True(json.IsValid(this.schema));
-        json = JObject.Parse(@"{ ""version"": ""1.2.3"" }");
-        Assert.True(json.IsValid(this.schema));
-        json = JObject.Parse(@"{ ""version"": ""1.2.3.4"" }");
-        Assert.True(json.IsValid(this.schema));
+        this.json = JObject.Parse(@"{ ""version"": ""2.3"" }");
+        Assert.True(this.json.IsValid(this.schema));
+        this.json = JObject.Parse(@"{ ""version"": ""2.3-beta"" }");
+        Assert.True(this.json.IsValid(this.schema));
+        this.json = JObject.Parse(@"{ ""version"": ""2.3-beta-final"" }");
+        Assert.True(this.json.IsValid(this.schema));
+        this.json = JObject.Parse(@"{ ""version"": ""2.3-beta.2"" }");
+        Assert.True(this.json.IsValid(this.schema));
+        this.json = JObject.Parse(@"{ ""version"": ""2.3-beta.0"" }");
+        Assert.True(this.json.IsValid(this.schema));
+        this.json = JObject.Parse(@"{ ""version"": ""2.3-beta.01"" }");
+        Assert.True(this.json.IsValid(this.schema));
+        this.json = JObject.Parse(@"{ ""version"": ""1.2.3"" }");
+        Assert.True(this.json.IsValid(this.schema));
+        this.json = JObject.Parse(@"{ ""version"": ""1.2.3.4"" }");
+        Assert.True(this.json.IsValid(this.schema));
 
-        json = JObject.Parse(@"{ ""version"": ""02.3"" }");
-        Assert.False(json.IsValid(this.schema));
-        json = JObject.Parse(@"{ ""version"": ""2.03"" }");
-        Assert.False(json.IsValid(this.schema));
+        this.json = JObject.Parse(@"{ ""version"": ""02.3"" }");
+        Assert.False(this.json.IsValid(this.schema));
+        this.json = JObject.Parse(@"{ ""version"": ""2.03"" }");
+        Assert.False(this.json.IsValid(this.schema));
     }
 
     [Fact]
     public void VersionField_HeightMacroPlacement()
     {
         // Valid uses
-        json = JObject.Parse(@"{ ""version"": ""2.3.0-{height}"" }");
-        Assert.True(json.IsValid(this.schema));
-        json = JObject.Parse(@"{ ""version"": ""2.3.0-{height}.beta"" }");
-        Assert.True(json.IsValid(this.schema));
-        json = JObject.Parse(@"{ ""version"": ""2.3.0-beta.{height}"" }");
-        Assert.True(json.IsValid(this.schema));
-        json = JObject.Parse(@"{ ""version"": ""2.3.0-beta+{height}"" }");
-        Assert.True(json.IsValid(this.schema));
+        this.json = JObject.Parse(@"{ ""version"": ""2.3.0-{height}"" }");
+        Assert.True(this.json.IsValid(this.schema));
+        this.json = JObject.Parse(@"{ ""version"": ""2.3.0-{height}.beta"" }");
+        Assert.True(this.json.IsValid(this.schema));
+        this.json = JObject.Parse(@"{ ""version"": ""2.3.0-beta.{height}"" }");
+        Assert.True(this.json.IsValid(this.schema));
+        this.json = JObject.Parse(@"{ ""version"": ""2.3.0-beta+{height}"" }");
+        Assert.True(this.json.IsValid(this.schema));
 
         // Invalid uses
-        json = JObject.Parse(@"{ ""version"": ""2.3.{height}-beta"" }");
-        Assert.False(json.IsValid(this.schema));
-        json = JObject.Parse(@"{ ""version"": ""2.3.0-beta-{height}"" }");
-        Assert.False(json.IsValid(this.schema));
-        json = JObject.Parse(@"{ ""version"": ""2.3.0-beta+height-{height}"" }");
-        Assert.False(json.IsValid(this.schema));
+        this.json = JObject.Parse(@"{ ""version"": ""2.3.{height}-beta"" }");
+        Assert.False(this.json.IsValid(this.schema));
+        this.json = JObject.Parse(@"{ ""version"": ""2.3.0-beta-{height}"" }");
+        Assert.False(this.json.IsValid(this.schema));
+        this.json = JObject.Parse(@"{ ""version"": ""2.3.0-beta+height-{height}"" }");
+        Assert.False(this.json.IsValid(this.schema));
     }
 
     [Fact]
     public void Inherit_AllowsOmissionOfVersion()
     {
-        json = JObject.Parse(@"{ ""inherit"": false, ""version"": ""1.2"" }");
-        Assert.True(json.IsValid(this.schema));
-        json = JObject.Parse(@"{ ""inherit"": false }");
-        Assert.False(json.IsValid(this.schema));
-        json = JObject.Parse(@"{ }");
-        Assert.False(json.IsValid(this.schema));
+        this.json = JObject.Parse(@"{ ""inherit"": false, ""version"": ""1.2"" }");
+        Assert.True(this.json.IsValid(this.schema));
+        this.json = JObject.Parse(@"{ ""inherit"": false }");
+        Assert.False(this.json.IsValid(this.schema));
+        this.json = JObject.Parse(@"{ }");
+        Assert.False(this.json.IsValid(this.schema));
 
-        json = JObject.Parse(@"{ ""inherit"": true }");
-        Assert.True(json.IsValid(this.schema));
+        this.json = JObject.Parse(@"{ ""inherit"": true }");
+        Assert.True(this.json.IsValid(this.schema));
     }
 }

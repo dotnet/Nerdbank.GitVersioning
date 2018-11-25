@@ -9,10 +9,13 @@ var del = require('del');
 var path = require('path');
 
 const outDir = 'out';
-var tsProject = ts.createProject('tsconfig.json', { declarationFiles: true });
+var tsProject = ts.createProject('tsconfig.json', {
+    declarationFiles: true,
+    typescript: require('typescript'),
+});
 
-gulp.task('tsc', function() {
-    var tsResult = gulp.src(['*.ts', 'ts/**/*.ts', 'typings/**/*.ts'])
+gulp.task('tsc', function () {
+    var tsResult = gulp.src(['*.ts', 'ts/**/*.ts', 'node_modules/@types/**/index.d.ts'])
         // .pipe(tslint())
         .pipe(sourcemaps.init())
         .pipe(ts(tsProject));
@@ -25,7 +28,7 @@ gulp.task('tsc', function() {
     ]);
 });
 
-gulp.task('copyPackageContents', ['tsc'], function() {
+gulp.task('copyPackageContents', ['tsc'], function () {
     return gulp
         .src([
             'package.json',
@@ -35,35 +38,35 @@ gulp.task('copyPackageContents', ['tsc'], function() {
         .pipe(gulp.dest(outDir));
 });
 
-gulp.task('setPackageVersion', ['copyPackageContents'], function() {
+gulp.task('setPackageVersion', ['copyPackageContents'], function () {
     var nbgv = require(`./${outDir}`);
     return nbgv.setPackageVersion(outDir, '.');
 });
 
-gulp.task('package', ['setPackageVersion'], function() {
+gulp.task('package', ['setPackageVersion'], function () {
     var afs = require('./out/asyncio');
-    var binDir =  '../../bin/js';
+    var binDir = '../../bin/js';
     return afs.mkdirIfNotExistAsync(binDir)
-        .then(function() {
+        .then(function () {
             var ap = require('./out/asyncprocess');
             return ap.execAsync(`npm pack "${path.join(__dirname, outDir)}"`, { cwd: binDir });
         });
 });
 
-gulp.task('clean', function() {
+gulp.task('clean', function () {
     return del([
         outDir
     ])
 });
 
-gulp.task('default', ['package'], function() {
+gulp.task('default', ['package'], function () {
 });
 
-gulp.task('watch', ['tsc'], function() {
+gulp.task('watch', ['tsc'], function () {
     return gulp.watch('**/*.ts', ['tsc']);
 });
 
-gulp.task('test', ['tsc'], async function() {
+gulp.task('test', ['tsc'], async function () {
     var nbgv = require('./out');
     var v = await nbgv.getVersion();
     console.log(v);

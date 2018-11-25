@@ -1,14 +1,18 @@
 {
-    "compilerOptions": {
-        "target": "es6",
-        "declaration": true,
-        "module": "commonjs",
-        "sourceMap": true,
-        "noImplicitAny": false,
-        "outDir": "js"
-    },
-    "exclude": [
-        "node_modules",
-        "js"
-    ]
+  "compilerOptions": {
+    "target": "es6",
+    "declaration": true,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "sourceMap": true,
+    "noImplicitAny": false,
+    "outDir": "js"
+  },
+  "types": [
+    "node"
+  ],
+  "exclude": [
+    "node_modules",
+    "js"
+  ]
 }

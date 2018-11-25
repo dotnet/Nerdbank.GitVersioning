@@ -98,7 +98,7 @@
 
             this.VersionHeightOffset = this.VersionOptions?.BuildNumberOffsetOrDefault ?? 0;
 
-            this.PrereleaseVersion = ReplaceMacros(this.VersionOptions?.Version.Prerelease ?? string.Empty);
+            this.PrereleaseVersion = this.ReplaceMacros(this.VersionOptions?.Version.Prerelease ?? string.Empty);
 
             this.CloudBuildNumberOptions = this.VersionOptions?.CloudBuild?.BuildNumberOrDefault ?? VersionOptions.CloudBuildNumberOptions.DefaultInstance;
 
@@ -186,9 +186,14 @@
         public bool PublicRelease { get; set; }
 
         /// <summary>
-        /// Gets the prerelease version information.
+        /// Gets the prerelease version information, including a leading hyphen.
         /// </summary>
         public string PrereleaseVersion { get; }
+
+        /// <summary>
+        /// Gets the prerelease version information, omitting the leading hyphen, if any.
+        /// </summary>
+        public string PrereleaseVersionNoLeadingHyphen => this.PrereleaseVersion?.TrimStart('-');
 
         /// <summary>
         /// Gets the version information without a Revision component.
@@ -203,12 +208,27 @@
         public int BuildNumber => Math.Max(0, this.Version.Build);
 
         /// <summary>
-        /// Gets or sets the major.minor version string.
+        /// Gets the <see cref="Version.Revision"/> component of the <see cref="Version"/>.
+        /// </summary>
+        public int VersionRevision => this.Version.Revision;
+
+        /// <summary>
+        /// Gets the major.minor version string.
         /// </summary>
         /// <value>
         /// The x.y string (no build number or revision number).
         /// </value>
         public Version MajorMinorVersion => new Version(this.Version.Major, this.Version.Minor);
+
+        /// <summary>
+        /// Gets the <see cref="Version.Major"/> component of the <see cref="Version"/>.
+        /// </summary>
+        public int VersionMajor => this.Version.Major;
+
+        /// <summary>
+        /// Gets the <see cref="Version.Minor"/> component of the <see cref="Version"/>.
+        /// </summary>
+        public int VersionMinor => this.Version.Minor;
 
         /// <summary>
         /// Gets the Git revision control commit id for HEAD (the current source code version).
@@ -355,7 +375,7 @@
         private string SemVer2BuildMetadata =>
             (this.PublicRelease ? string.Empty : this.GitCommitIdShortForNonPublicPrereleaseTag) + FormatBuildMetadata(this.BuildMetadata);
 
-        private string PrereleaseVersionSemVer1 => MakePrereleaseSemVer1Compliant(this.PrereleaseVersion, SemVer1NumericIdentifierPadding);
+        private string PrereleaseVersionSemVer1 => MakePrereleaseSemVer1Compliant(this.PrereleaseVersion, this.SemVer1NumericIdentifierPadding);
 
         private string GitCommitIdShortForNonPublicPrereleaseTag => (string.IsNullOrEmpty(this.PrereleaseVersion) ? "-" : ".") + $"g{this.GitCommitIdShort}";
 
