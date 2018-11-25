@@ -193,7 +193,7 @@ public class VersionOracleTests : RepoTestBase
     }
 
     [Fact]
-    public void NpmPackageVersionIsSemVer1()
+    public void NpmPackageVersionIsSemVer2()
     {
         VersionOptions workingCopyVersion = new VersionOptions
         {
@@ -204,7 +204,7 @@ public class VersionOracleTests : RepoTestBase
         this.InitializeSourceControl();
         var oracle = VersionOracle.Create(this.RepoPath);
         oracle.PublicRelease = true;
-        Assert.Equal("7.8.9-foo-25", oracle.NpmPackageVersion);
+        Assert.Equal("7.8.9-foo.25", oracle.NpmPackageVersion);
     }
 
     [Fact]
