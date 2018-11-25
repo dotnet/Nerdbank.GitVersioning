@@ -58,13 +58,8 @@
         },
         "buildNumberOffset": {
           "type": "integer",
-          "description": "A number to add to the git height when calculating the build number.",
+          "description": "A number to add to the git height when calculating the version height (which typically appears as the 3rd integer in a computed version). May be negative, but not of greater magnitude than the original git height.",
           "default": 0
-        },
-        "compareFullVersion": {
-          "type": "boolean",
-          "description": "Compare the whole version string when calculating the value of {height}.",
-          "default": false
         },
         "semVer1NumericIdentifierPadding": {
           "type": "integer",

@@ -20,6 +20,16 @@
         public const VersionPrecision DefaultVersionPrecision = VersionPrecision.Minor;
 
         /// <summary>
+        /// The placeholder that may appear in the <see cref="Version"/> property's <see cref="SemanticVersion.Prerelease"/>
+        /// to specify where the version height should appear in a computed semantic version.
+        /// </summary>
+        /// <remarks>
+        /// When this macro does not appear in the string, the version height is set as the first unspecified integer of the 4-integer version.
+        /// If all 4 integers in a version are specified, and the macro does not appear, the version height isn't inserted anywhere.
+        /// </remarks>
+        public const string VersionHeightPlaceholder = "{height}";
+
+        /// <summary>
         /// The default value for the <see cref="SemVer1NumericIdentifierPaddingOrDefault"/> property.
         /// </summary>
         private const int DefaultSemVer1NumericIdentifierPadding = 4;
@@ -64,10 +74,7 @@
         public int? BuildNumberOffset { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether the build number is reset when the label changes.
         /// </summary>
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public bool CompareFullVersion { get; set; } = false;
 
         /// <summary>
         /// Gets a number to add to the git height when calculating the <see cref="Version.Build"/> number.
@@ -138,6 +145,56 @@
         /// </remarks>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
         public bool Inherit { get; set; }
+
+        /// <summary>
+        /// Gets the position in a computed version that the version height should appear.
+        /// </summary>
+        [JsonIgnore]
+        internal SemanticVersion.Position? VersionHeightPosition
+        {
+            get
+            {
+                if (this.Version?.Prerelease?.Contains(VersionHeightPlaceholder) ?? false)
+                {
+                    return SemanticVersion.Position.Prerelease;
+                }
+                else if (this.Version?.Version.Build == -1)
+                {
+                    return SemanticVersion.Position.Build;
+                }
+                else if (this.Version?.Version.Revision == -1)
+                {
+                    return SemanticVersion.Position.Revision;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets the position in a computed version that the first 16 bits of a git commit ID should appear, if any.
+        /// </summary>
+        [JsonIgnore]
+        internal SemanticVersion.Position? GitCommitIdPosition
+        {
+            get
+            {
+                // We can only store the git commit ID info after there was a place to put the version height.
+                // We don't want to store the commit ID (which is effectively a random integer) in the revision slot
+                // if the version height does not appear, or only appears later (in the -prerelease tag) since that
+                // would mess up version ordering.
+                if (this.VersionHeightPosition == SemanticVersion.Position.Build)
+                {
+                    return SemanticVersion.Position.Revision;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+        }
 
         /// <summary>
         /// Gets the debugger display for this instance.

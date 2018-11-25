@@ -87,12 +87,13 @@ public class VersionOracleTests : RepoTestBase
     [InlineData("0.1.0+{height}", "0.1.5+{height}")]
     [InlineData("0.1.5-alpha0.{height}", "0.1.5-alpha1.{height}")]
     [InlineData("0.1.5-beta.{height}", "0.1.5-beta1.{height}")]
-    public void CompareFullVersionResetsHeight(string initial, string next)
+    [InlineData("0.1.5-alpha.{height}", "0.1.5-beta.{height}")]
+    [InlineData("0.1.5-alpha.1.{height}", "0.1.5-beta.1.{height}")]
+    public void VersionHeightResetsWithVersionSpecChanges(string initial, string next)
     {
         var options = new VersionOptions
         {
             Version = SemanticVersion.Parse(initial),
-            CompareFullVersion = true
         };
         this.WriteVersionFile(options);
         this.InitializeSourceControl();
@@ -100,12 +101,20 @@ public class VersionOracleTests : RepoTestBase
 
         var oracle = VersionOracle.Create(this.RepoPath);
         Assert.Equal(11, oracle.VersionHeight);
+        Assert.Equal(11, this.Repo.Head.GetVersionHeight());
 
         options.Version = SemanticVersion.Parse(next);
 
         this.WriteVersionFile(options);
         oracle = VersionOracle.Create(this.RepoPath);
         Assert.Equal(1, oracle.VersionHeight);
+        Assert.Equal(1, this.Repo.Head.GetVersionHeight());
+
+        foreach (var commit in this.Repo.Head.Commits)
+        {
+            var versionFromId = commit.GetIdAsVersion();
+            Assert.Contains(commit, this.Repo.GetCommitsFromVersion(versionFromId));
+        }
     }
 
     [Fact]
@@ -121,7 +130,7 @@ public class VersionOracleTests : RepoTestBase
         var oracle = VersionOracle.Create(this.RepoPath);
         Assert.Equal("7.8", oracle.MajorMinorVersion.ToString());
         Assert.Equal(9, oracle.BuildNumber);
-        Assert.Equal(oracle.VersionHeight + oracle.VersionHeightOffset, oracle.Version.Revision);
+        Assert.Equal(-1, oracle.Version.Revision);
 
         Assert.Equal("-beta." + (oracle.VersionHeight + oracle.VersionHeightOffset) + ".foo", oracle.PrereleaseVersion);
 
