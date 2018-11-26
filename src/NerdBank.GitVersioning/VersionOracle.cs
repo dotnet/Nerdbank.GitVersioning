@@ -98,7 +98,7 @@
 
             this.VersionHeightOffset = this.VersionOptions?.BuildNumberOffsetOrDefault ?? 0;
 
-            this.PrereleaseVersion = this.ReplaceMacros(this.VersionOptions?.Version.Prerelease ?? string.Empty);
+            this.PrereleaseVersion = this.ReplaceMacros(this.VersionOptions?.Version?.Prerelease ?? string.Empty);
 
             this.CloudBuildNumberOptions = this.VersionOptions?.CloudBuild?.BuildNumberOrDefault ?? VersionOptions.CloudBuildNumberOptions.DefaultInstance;
 
