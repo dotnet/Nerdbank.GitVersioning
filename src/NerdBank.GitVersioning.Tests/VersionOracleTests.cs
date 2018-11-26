@@ -279,4 +279,14 @@ public class VersionOracleTests : RepoTestBase
         oracle = VersionOracle.Create(Path.Combine(this.RepoPath, "otherChildProject"), this.RepoPath, null, null, "otherChildProject");
         Assert.Equal("1.1", oracle.MajorMinorVersion.ToString());
     }
+
+    [Fact]
+    public void VersionJsonWithoutVersion()
+    {
+        File.WriteAllText(Path.Combine(this.RepoPath, VersionFile.JsonFileName), "{}");
+        this.InitializeSourceControl();
+        var oracle = VersionOracle.Create(this.RepoPath);
+        Assert.Equal(0, oracle.Version.Major);
+        Assert.Equal(0, oracle.Version.Minor);
+    }
 }
