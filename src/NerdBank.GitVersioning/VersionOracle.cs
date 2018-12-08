@@ -103,7 +103,7 @@
 
             this.VersionHeightOffset = this.VersionOptions?.VersionHeightOffsetOrDefault ?? 0;
 
-            this.PrereleaseVersion = this.ReplaceMacros(this.VersionOptions?.Version.Prerelease ?? string.Empty);
+            this.PrereleaseVersion = this.ReplaceMacros(this.VersionOptions?.Version?.Prerelease ?? string.Empty);
 
             this.CloudBuildNumberOptions = this.VersionOptions?.CloudBuild?.BuildNumberOrDefault ?? VersionOptions.CloudBuildNumberOptions.DefaultInstance;
 
@@ -345,7 +345,7 @@
         /// <summary>
         /// Gets the version to use for NPM packages.
         /// </summary>
-        public string NpmPackageVersion => this.SemVer1;
+        public string NpmPackageVersion => this.SemVer2;
 
         /// <summary>
         /// Gets a SemVer 1.0 compliant string that represents this version, including the -gCOMMITID suffix

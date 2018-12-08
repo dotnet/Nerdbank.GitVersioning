@@ -50,7 +50,7 @@ The content of the version.json file is a JSON serialized object with these prop
 ```
 
 The `x` and `y` variables are for your use to specify a version that is meaningful
-to your customers. Consider using [semantic versioning][semver] for guidance.
+to your customers. Consider using [semantic versioning](https://semver.org/) for guidance.
 You may optionally supply a third integer in the version (i.e. x.y.z),
 in which case the git version height is specified as the fourth integer,
 which only appears in certain version representations.
