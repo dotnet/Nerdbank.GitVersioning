@@ -676,13 +676,15 @@ public class BuildIntegrationTests : RepoTestBase
     }
 
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(true, false)]
-    [InlineData(false, true)]
-    [InlineData(true, true)]
-    public async Task AssemblyInfo(bool isVB, bool includeNonVersionAttributes)
+    [PairwiseData]
+    public async Task AssemblyInfo(bool isVB, bool includeNonVersionAttributes, bool gitRepo)
     {
         this.WriteVersionFile();
+        if (gitRepo)
+        {
+            this.InitializeSourceControl();
+        }
+
         if (isVB)
         {
             this.MakeItAVBProject();
@@ -738,6 +740,7 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal(result.AssemblyProduct, thisAssemblyClass.GetField("AssemblyProduct", fieldFlags)?.GetValue(null));
         Assert.Equal(result.AssemblyCompany, thisAssemblyClass.GetField("AssemblyCompany", fieldFlags)?.GetValue(null));
         Assert.Equal(result.AssemblyCopyright, thisAssemblyClass.GetField("AssemblyCopyright", fieldFlags)?.GetValue(null));
+        Assert.Equal(result.GitCommitId, thisAssemblyClass.GetField("GitCommitId", fieldFlags)?.GetValue(null) ?? string.Empty);
 
         // Verify that it doesn't have key fields
         Assert.Null(thisAssemblyClass.GetField("PublicKey", fieldFlags));

@@ -67,6 +67,8 @@
 
         public string AssemblyConfiguration { get; set; }
 
+        public string GitCommitId { get; set; }
+
 #if NET461
         public override bool Execute()
         {
@@ -141,7 +143,8 @@
                     { "AssemblyProduct", this.AssemblyProduct },
                     { "AssemblyCopyright", this.AssemblyCopyright },
                     { "AssemblyCompany", this.AssemblyCompany },
-                    { "AssemblyConfiguration", this.AssemblyConfiguration }
+                    { "AssemblyConfiguration", this.AssemblyConfiguration },
+                    { "GitCommitId", this.GitCommitId },
                 }).ToArray());
             if (hasKeyInfo)
             {
@@ -300,7 +303,8 @@
                     { "AssemblyProduct", this.AssemblyProduct },
                     { "AssemblyCopyright", this.AssemblyCopyright },
                     { "AssemblyCompany", this.AssemblyCompany },
-                    { "AssemblyConfiguration", this.AssemblyConfiguration }
+                    { "AssemblyConfiguration", this.AssemblyConfiguration },
+                    { "GitCommitId", this.GitCommitId },
                 };
             if (hasKeyInfo)
             {
