@@ -25,7 +25,7 @@ If scripting for running in a CI build where global impact from installing a too
 dotnet tool install --tool-path . nbgv
 ```
 
-At this point you can launch the tool using `.\nbgv` in your build script.
+At this point you can launch the tool using `./nbgv` in your build script.
 
 ## Learn more
 
