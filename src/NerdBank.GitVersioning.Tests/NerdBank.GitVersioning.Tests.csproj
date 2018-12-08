@@ -6,6 +6,7 @@
     <DebugType>full</DebugType>
     <SignAssembly>false</SignAssembly>
     <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="..\Nerdbank.GitVersioning.Tasks\build\Nerdbank.GitVersioning.targets">
