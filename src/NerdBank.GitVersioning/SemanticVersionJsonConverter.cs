@@ -24,6 +24,10 @@
                 {
                     return value;
                 }
+                else
+                {
+                    throw new FormatException($"The value \"{reader.Value}\" is not a valid semantic version.");
+                }
             }
 
             throw new NotSupportedException();

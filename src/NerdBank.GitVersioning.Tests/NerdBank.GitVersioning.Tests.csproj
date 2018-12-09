@@ -6,6 +6,7 @@
     <DebugType>full</DebugType>
     <SignAssembly>false</SignAssembly>
     <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="..\Nerdbank.GitVersioning.Tasks\build\Nerdbank.GitVersioning.targets">
@@ -20,6 +21,7 @@
     <EmbeddedResource Include="repos\submodules.7z" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\MSBuildExtensionTask\MSBuildExtensionTask.csproj" />
     <ProjectReference Include="..\Nerdbank.GitVersioning.Tasks\Nerdbank.GitVersioning.Tasks.csproj" />
     <ProjectReference Include="..\NerdBank.GitVersioning\NerdBank.GitVersioning.csproj" />
   </ItemGroup>

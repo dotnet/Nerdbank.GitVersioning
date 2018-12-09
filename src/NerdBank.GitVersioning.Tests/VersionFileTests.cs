@@ -231,10 +231,10 @@ public class VersionFileTests : RepoTestBase
         this.InitializeSourceControl();
         var commit = this.Repo.Head.Commits.First();
 
-        AssertPathHasVersion(commit, subDirABC, subdirVersionSpec);
-        AssertPathHasVersion(commit, subDirAB, subdirVersionSpec);
-        AssertPathHasVersion(commit, subDirA, rootVersionSpec);
-        AssertPathHasVersion(commit, this.RepoPath, rootVersionSpec);
+        this.AssertPathHasVersion(commit, subDirABC, subdirVersionSpec);
+        this.AssertPathHasVersion(commit, subDirAB, subdirVersionSpec);
+        this.AssertPathHasVersion(commit, subDirA, rootVersionSpec);
+        this.AssertPathHasVersion(commit, this.RepoPath, rootVersionSpec);
     }
 
     [Fact]
@@ -262,10 +262,10 @@ public class VersionFileTests : RepoTestBase
         this.InitializeSourceControl();
         var commit = this.Repo.Head.Commits.First();
 
-        AssertPathHasVersion(commit, subDirABC, subdirVersionSpec);
-        AssertPathHasVersion(commit, subDirAB, subdirVersionSpec);
-        AssertPathHasVersion(commit, subDirA, rootVersionSpec);
-        AssertPathHasVersion(commit, this.RepoPath, rootVersionSpec);
+        this.AssertPathHasVersion(commit, subDirABC, subdirVersionSpec);
+        this.AssertPathHasVersion(commit, subDirAB, subdirVersionSpec);
+        this.AssertPathHasVersion(commit, subDirA, rootVersionSpec);
+        this.AssertPathHasVersion(commit, this.RepoPath, rootVersionSpec);
     }
 
     [Fact]
@@ -348,7 +348,7 @@ public class VersionFileTests : RepoTestBase
         if (bareRepo)
         {
             operatingRepo = new Repository(
-                Repository.Clone(this.RepoPath, CreateDirectoryForNewRepo(), new CloneOptions { IsBare = true }));
+                Repository.Clone(this.RepoPath, this.CreateDirectoryForNewRepo(), new CloneOptions { IsBare = true }));
         }
 
         using (operatingRepo)

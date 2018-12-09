@@ -1,8 +1,8 @@
 trigger:
   branches:
-    include: ["master"]
+    include: ["master", "develop"]
   paths:
-    exclude: ["doc", "*.md", ".appveyor.yml", ".travis.yml"]
+    exclude: ["doc", "*.md"]
 
 variables:
   TreatWarningsAsErrors: true
@@ -109,7 +109,7 @@ jobs:
 
 - job: Ubuntu_Xenial
   dependsOn: Windows
-  condition: succeeded()
+  condition: and(succeeded(), ne(variables['system.pullrequest.isfork'], true))
   pool:
     vmImage: Ubuntu 16.04
   container: xenial
@@ -120,7 +120,7 @@ jobs:
 
 - job: Ubuntu_Bionic
   dependsOn: Windows
-  condition: succeeded()
+  condition: and(succeeded(), ne(variables['system.pullrequest.isfork'], true))
   pool:
     vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
   container: bionic
@@ -129,7 +129,7 @@ jobs:
 
 - job: macOS
   dependsOn: Windows
-  condition: succeeded()
+  condition: and(succeeded(), ne(variables['system.pullrequest.isfork'], true))
   pool:
     vmImage: macOS 10.13
   steps:

@@ -33,6 +33,10 @@
     <file src="$LibGit2SharpNativeBinaries$runtimes\osx\native\libgit2-8e0b172.dylib" target="build\MSBuildFull\lib\osx\libgit2-8e0b172.dylib" />
     <file src="$LibGit2SharpNativeBinaries$runtimes\linux-x64\native\libgit2-8e0b172.so" target="build\MSBuildFull\lib\linux\x86_64\libgit2-8e0b172.so" />
 
+    <!-- Additional copies to work with our own ps1 scripts (https://github.com/AArnott/Nerdbank.GitVersioning/issues/248) -->
+    <file src="$LibGit2SharpNativeBinaries$runtimes\win7-x64\native\git2-6311e88.dll" target="build\MSBuildFull\lib\win32\x64\git2-6311e88.dll" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\win7-x86\native\git2-6311e88.dll" target="build\MSBuildFull\lib\win32\x86\git2-6311e88.dll" />
+
     <file src="$LibGit2SharpNativeBinaries$libgit2\LibGit2Sharp.dll.config" target="build\MSBuildCore\LibGit2Sharp.dll.config" />
     <file src="$BaseOutputPath$netcoreapp2.0\LibGit2Sharp.dll" target="build\MSBuildCore\LibGit2Sharp.dll" />
     <file src="$BaseOutputPath$netcoreapp2.0\MSBuildExtensionTask.dll" target="build\MSBuildCore\MSBuildExtensionTask.dll" />

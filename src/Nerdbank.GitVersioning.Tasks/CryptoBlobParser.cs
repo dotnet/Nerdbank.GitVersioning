@@ -153,12 +153,12 @@ namespace Nerdbank.GitVersioning.Tasks
 
             public bool IsSet
             {
-                get { return _flags != 0; }
+                get { return this._flags != 0; }
             }
 
             public AlgorithmId(uint flags)
             {
-                _flags = flags;
+                this._flags = flags;
             }
         }
     }

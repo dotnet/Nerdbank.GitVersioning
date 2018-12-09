@@ -98,7 +98,7 @@
 
             this.VersionHeightOffset = this.VersionOptions?.BuildNumberOffsetOrDefault ?? 0;
 
-            this.PrereleaseVersion = this.ReplaceMacros(this.VersionOptions?.Version.Prerelease ?? string.Empty);
+            this.PrereleaseVersion = this.ReplaceMacros(this.VersionOptions?.Version?.Prerelease ?? string.Empty);
 
             this.CloudBuildNumberOptions = this.VersionOptions?.CloudBuild?.BuildNumberOrDefault ?? VersionOptions.CloudBuildNumberOptions.DefaultInstance;
 
@@ -143,7 +143,7 @@
             {
                 if (!string.IsNullOrEmpty(this.GitCommitId))
                 {
-                    yield return $"g{this.GitCommitId.Substring(0, 10)}";
+                    yield return this.GitCommitId.Substring(0, 10);
                 }
 
                 foreach (string identifier in this.BuildMetadata)
@@ -340,7 +340,7 @@
         /// <summary>
         /// Gets the version to use for NPM packages.
         /// </summary>
-        public string NpmPackageVersion => this.SemVer1;
+        public string NpmPackageVersion => this.SemVer2;
 
         /// <summary>
         /// Gets a SemVer 1.0 compliant string that represents this version, including the -gCOMMITID suffix
@@ -362,7 +362,7 @@
         public int SemVer1NumericIdentifierPadding => this.VersionOptions?.SemVer1NumericIdentifierPaddingOrDefault ?? 4;
 
         private string SemVer1BuildMetadata =>
-            this.PublicRelease ? string.Empty : $"-g{this.GitCommitIdShort}";
+            this.PublicRelease ? string.Empty : $"-{this.GitCommitIdShort}";
 
         /// <summary>
         /// Gets the build metadata that is appropriate for SemVer2 use.
@@ -377,7 +377,7 @@
 
         private string PrereleaseVersionSemVer1 => MakePrereleaseSemVer1Compliant(this.PrereleaseVersion, this.SemVer1NumericIdentifierPadding);
 
-        private string GitCommitIdShortForNonPublicPrereleaseTag => (string.IsNullOrEmpty(this.PrereleaseVersion) ? "-" : ".") + $"g{this.GitCommitIdShort}";
+        private string GitCommitIdShortForNonPublicPrereleaseTag => (string.IsNullOrEmpty(this.PrereleaseVersion) ? "-" : ".") + this.GitCommitIdShort;
 
         private VersionOptions.CloudBuildNumberOptions CloudBuildNumberOptions { get; }
 

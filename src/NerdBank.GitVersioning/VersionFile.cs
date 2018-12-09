@@ -69,7 +69,19 @@
                         versionJsonContent = sr.ReadToEnd();
                     }
 
-                    VersionOptions result = TryReadVersionJsonContent(versionJsonContent);
+                    VersionOptions result;
+                    try
+                    {
+                        result = TryReadVersionJsonContent(versionJsonContent);
+                    }
+                    catch (FormatException ex)
+                    {
+                        throw new FormatException(
+                            $"Failure while reading {JsonFileName} from commit {commit.Sha}. " +
+                            "Fix this commit with rebase if this is an error, or review this doc on how to migrate to Nerdbank.GitVersioning: " +
+                            "https://github.com/AArnott/Nerdbank.GitVersioning/blob/master/doc/migrating.md", ex);
+                    }
+
                     if (result?.Inherit ?? false)
                     {
                         if (parentDirectory != null)

@@ -93,6 +93,12 @@ namespace Nerdbank.GitVersioning.Tool
                 syntax.DefineOption("a|all-vars", ref cloudBuildAllVars, false, "Defines ALL version variables as cloud build variables, with a \"NBGV_\" prefix.");
                 syntax.DefineOption("c|common-vars", ref cloudBuildCommonVars, false, "Defines a few common version variables as cloud build variables, with a \"Git\" prefix (e.g. GitBuildVersion, GitBuildVersionSimple, GitAssemblyInformationalVersion).");
                 syntax.DefineOptionList("d|define", ref cloudVariables, "Additional cloud build variables to define. Each should be in the NAME=VALUE syntax.");
+
+                if (syntax.ActiveCommand == null)
+                {
+                    Console.WriteLine(syntax.GetHelpText());
+                    Console.WriteLine("Use -h, --help, or -? after a command to get more help about a particular command.");
+                }
             });
 
             if (install.IsActive)

@@ -176,7 +176,7 @@ public class BuildIntegrationTests : RepoTestBase
         Assumes.True(repo.Index[VersionFile.JsonFileName] == null);
         var buildResult = await this.BuildAsync();
         Assert.Equal("3.4.0." + repo.Head.Commits.First().GetIdAsVersion().Revision, buildResult.BuildVersion);
-        Assert.Equal("3.4.0+g" + repo.Head.Commits.First().Id.Sha.Substring(0, 10), buildResult.AssemblyInformationalVersion);
+        Assert.Equal("3.4.0+" + repo.Head.Commits.First().Id.Sha.Substring(0, 10), buildResult.AssemblyInformationalVersion);
     }
 
     [Fact]
@@ -201,7 +201,7 @@ public class BuildIntegrationTests : RepoTestBase
         repo.Commit("empty", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         var buildResult = await this.BuildAsync();
         Assert.Equal("0.0.1." + repo.Head.Commits.First().GetIdAsVersion().Revision, buildResult.BuildVersion);
-        Assert.Equal("0.0.1+g" + repo.Head.Commits.First().Id.Sha.Substring(0, 10), buildResult.AssemblyInformationalVersion);
+        Assert.Equal("0.0.1+" + repo.Head.Commits.First().Id.Sha.Substring(0, 10), buildResult.AssemblyInformationalVersion);
     }
 
     [Fact]
@@ -441,7 +441,7 @@ public class BuildIntegrationTests : RepoTestBase
         // Just build "master", which doesn't conform to the regex.
         var buildResult = await this.BuildAsync();
         Assert.False(buildResult.PublicRelease);
-        AssertStandardProperties(versionOptions, buildResult);
+        this.AssertStandardProperties(versionOptions, buildResult);
     }
 
     public static IEnumerable<object[]> CloudBuildOfBranch(string branchName)
@@ -474,7 +474,7 @@ public class BuildIntegrationTests : RepoTestBase
         {
             var buildResult = await this.BuildAsync();
             Assert.True(buildResult.PublicRelease);
-            AssertStandardProperties(versionOptions, buildResult);
+            this.AssertStandardProperties(versionOptions, buildResult);
         }
     }
 
@@ -514,7 +514,7 @@ public class BuildIntegrationTests : RepoTestBase
             this.InitializeSourceControl();
 
             var buildResult = await this.BuildAsync();
-            AssertStandardProperties(versionOptions, buildResult);
+            this.AssertStandardProperties(versionOptions, buildResult);
 
             // Assert GitBuildVersion was set
             string conditionallyExpectedMessage = UnitTestCloudBuildPrefix + expectedMessage
@@ -554,7 +554,7 @@ public class BuildIntegrationTests : RepoTestBase
             versionOptions.CloudBuild.SetVersionVariables = false;
             this.WriteVersionFile(versionOptions);
             buildResult = await this.BuildAsync();
-            AssertStandardProperties(versionOptions, buildResult);
+            this.AssertStandardProperties(versionOptions, buildResult);
 
             // Assert GitBuildVersion was not set
             conditionallyExpectedMessage = UnitTestCloudBuildPrefix + expectedMessage
@@ -613,7 +613,7 @@ public class BuildIntegrationTests : RepoTestBase
         using (ApplyEnvironmentVariables(properties))
         {
             var buildResult = await this.BuildAsync();
-            AssertStandardProperties(versionOptions, buildResult);
+            this.AssertStandardProperties(versionOptions, buildResult);
             expectedBuildNumberMessage = expectedBuildNumberMessage.Replace("{CLOUDBUILDNUMBER}", buildResult.CloudBuildNumber);
             Assert.Contains(UnitTestCloudBuildPrefix + expectedBuildNumberMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
         }
@@ -623,7 +623,7 @@ public class BuildIntegrationTests : RepoTestBase
         using (ApplyEnvironmentVariables(properties))
         {
             var buildResult = await this.BuildAsync();
-            AssertStandardProperties(versionOptions, buildResult);
+            this.AssertStandardProperties(versionOptions, buildResult);
             expectedBuildNumberMessage = expectedBuildNumberMessage.Replace("{CLOUDBUILDNUMBER}", buildResult.CloudBuildNumber);
             Assert.DoesNotContain(UnitTestCloudBuildPrefix + expectedBuildNumberMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
         }
@@ -650,7 +650,7 @@ public class BuildIntegrationTests : RepoTestBase
         }
 
         var buildResult = await this.BuildAsync();
-        AssertStandardProperties(versionOptions, buildResult);
+        this.AssertStandardProperties(versionOptions, buildResult);
     }
 
     [Fact]
@@ -671,7 +671,7 @@ public class BuildIntegrationTests : RepoTestBase
             Commands.Checkout(this.Repo, releaseBranch);
             var buildResult = await this.BuildAsync();
             Assert.True(buildResult.PublicRelease);
-            AssertStandardProperties(versionOptions, buildResult);
+            this.AssertStandardProperties(versionOptions, buildResult);
         }
     }
 
@@ -915,7 +915,7 @@ public class BuildIntegrationTests : RepoTestBase
         Version assemblyVersion = GetExpectedAssemblyVersion(versionOptions, version);
         var additionalBuildMetadata = from item in buildResult.BuildResult.ProjectStateAfterBuild.GetItems("BuildMetadata")
                                       select item.EvaluatedInclude;
-        var expectedBuildMetadata = $"+g{commitIdShort}";
+        var expectedBuildMetadata = $"+{commitIdShort}";
         if (additionalBuildMetadata.Any())
         {
             expectedBuildMetadata += "." + string.Join(".", additionalBuildMetadata);
@@ -944,7 +944,7 @@ public class BuildIntegrationTests : RepoTestBase
 
         // NuGet is now SemVer 2.0 and will pass additional build metadata if provided
         bool semVer2 = versionOptions?.NuGetPackageVersionOrDefault.SemVer == 2;
-        string pkgVersionSuffix = buildResult.PublicRelease ? string.Empty : $"-g{commitIdShort}";
+        string pkgVersionSuffix = buildResult.PublicRelease ? string.Empty : $"-{commitIdShort}";
         if (semVer2)
         {
             pkgVersionSuffix += expectedBuildMetadataWithoutCommitId;
@@ -965,7 +965,7 @@ public class BuildIntegrationTests : RepoTestBase
             Assert.Equal(expectedVersion, buildNumberSemVer.Version);
             Assert.Equal(buildResult.PrereleaseVersion, buildNumberSemVer.Prerelease);
             string expectedBuildNumberMetadata = hasCommitData && commitIdOptions.WhereOrDefault == VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata
-                ? $"+g{commitIdShort}"
+                ? $"+{commitIdShort}"
                 : string.Empty;
             if (additionalBuildMetadata.Any())
             {
@@ -1154,7 +1154,7 @@ public class BuildIntegrationTests : RepoTestBase
 
             foreach (var property in this.GetType().GetRuntimeProperties().OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase))
             {
-                if (property.DeclaringType == this.GetType() && property.Name != nameof(BuildResult))
+                if (property.DeclaringType == this.GetType() && property.Name != nameof(this.BuildResult))
                 {
                     sb.AppendLine($"{property.Name} = {property.GetValue(this)}");
                 }
