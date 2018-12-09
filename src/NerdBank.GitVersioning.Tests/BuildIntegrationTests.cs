@@ -176,7 +176,7 @@ public class BuildIntegrationTests : RepoTestBase
         Assumes.True(repo.Index[VersionFile.JsonFileName] == null);
         var buildResult = await this.BuildAsync();
         Assert.Equal("3.4.0." + repo.Head.Commits.First().GetIdAsVersion().Revision, buildResult.BuildVersion);
-        Assert.Equal("3.4.0+" + repo.Head.Commits.First().Id.Sha.Substring(0, 10), buildResult.AssemblyInformationalVersion);
+        Assert.Equal("3.4.0+g" + repo.Head.Commits.First().Id.Sha.Substring(0, 10), buildResult.AssemblyInformationalVersion);
     }
 
     [Fact]
@@ -201,7 +201,7 @@ public class BuildIntegrationTests : RepoTestBase
         repo.Commit("empty", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         var buildResult = await this.BuildAsync();
         Assert.Equal("0.0.1." + repo.Head.Commits.First().GetIdAsVersion().Revision, buildResult.BuildVersion);
-        Assert.Equal("0.0.1+" + repo.Head.Commits.First().Id.Sha.Substring(0, 10), buildResult.AssemblyInformationalVersion);
+        Assert.Equal("0.0.1+g" + repo.Head.Commits.First().Id.Sha.Substring(0, 10), buildResult.AssemblyInformationalVersion);
     }
 
     [Fact]
@@ -915,7 +915,7 @@ public class BuildIntegrationTests : RepoTestBase
         Version assemblyVersion = GetExpectedAssemblyVersion(versionOptions, version);
         var additionalBuildMetadata = from item in buildResult.BuildResult.ProjectStateAfterBuild.GetItems("BuildMetadata")
                                       select item.EvaluatedInclude;
-        var expectedBuildMetadata = $"+{commitIdShort}";
+        var expectedBuildMetadata = $"+g{commitIdShort}";
         if (additionalBuildMetadata.Any())
         {
             expectedBuildMetadata += "." + string.Join(".", additionalBuildMetadata);
@@ -944,7 +944,7 @@ public class BuildIntegrationTests : RepoTestBase
 
         // NuGet is now SemVer 2.0 and will pass additional build metadata if provided
         bool semVer2 = versionOptions?.NuGetPackageVersionOrDefault.SemVer == 2;
-        string pkgVersionSuffix = buildResult.PublicRelease ? string.Empty : $"-{commitIdShort}";
+        string pkgVersionSuffix = buildResult.PublicRelease ? string.Empty : $"-g{commitIdShort}";
         if (semVer2)
         {
             pkgVersionSuffix += expectedBuildMetadataWithoutCommitId;
@@ -965,7 +965,7 @@ public class BuildIntegrationTests : RepoTestBase
             Assert.Equal(expectedVersion, buildNumberSemVer.Version);
             Assert.Equal(buildResult.PrereleaseVersion, buildNumberSemVer.Prerelease);
             string expectedBuildNumberMetadata = hasCommitData && commitIdOptions.WhereOrDefault == VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata
-                ? $"+{commitIdShort}"
+                ? $"+g{commitIdShort}"
                 : string.Empty;
             if (additionalBuildMetadata.Any())
             {
