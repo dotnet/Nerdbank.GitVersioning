@@ -4,40 +4,27 @@
     using System.IO;
     using System.Linq;
     using System.Reflection;
-#if NETCOREAPP2_0
+#if NETCOREAPP
     using System.Runtime.Loader;
 #endif
     using Microsoft.Build.Framework;
     using Microsoft.Build.Utilities;
+#if NETCOREAPP
+    using Nerdbank.GitVersioning;
+#endif
 
     public abstract class ContextAwareTask : Task
     {
-#if NETCOREAPP2_0
-        /// <summary>
-        /// Our custom <see cref="AssemblyLoadContext"/> that we create to host our Task.
-        /// </summary>
-        /// <remarks>
-        /// We only create *one* of these, and reuse it for subsequent task invocations,
-        /// because creating multiple of them hit https://github.com/dotnet/coreclr/issues/19654
-        /// </remarks>
-        private static CustomAssemblyLoader Loader;
-#endif
-
         protected virtual string ManagedDllDirectory => Path.GetDirectoryName(new Uri(this.GetType().GetTypeInfo().Assembly.CodeBase).LocalPath);
 
         protected virtual string UnmanagedDllDirectory => null;
 
         public override bool Execute()
         {
-#if NETCOREAPP2_0
+#if NETCOREAPP
             string taskAssemblyPath = new Uri(this.GetType().GetTypeInfo().Assembly.CodeBase).LocalPath;
-            if (Loader == null)
-            {
-                Loader = new CustomAssemblyLoader();
-            }
 
-            Loader.LoaderTask = this;
-            Assembly inContextAssembly = Loader.LoadFromAssemblyPath(taskAssemblyPath);
+            Assembly inContextAssembly = GitLoaderContext.Instance.LoadFromAssemblyPath(taskAssemblyPath);
             Type innerTaskType = inContextAssembly.GetType(this.GetType().FullName);
             object innerTask = Activator.CreateInstance(innerTaskType);
 
@@ -83,60 +70,5 @@
         }
 
         protected abstract bool ExecuteInner();
-
-#if NETCOREAPP2_0
-        private class CustomAssemblyLoader : AssemblyLoadContext
-        {
-            private ContextAwareTask loaderTask;
-
-            internal CustomAssemblyLoader()
-            {
-            }
-
-            internal ContextAwareTask LoaderTask
-            {
-                get => this.loaderTask;
-                set => this.loaderTask = value;
-            }
-
-            protected override Assembly Load(AssemblyName assemblyName)
-            {
-                if (this.loaderTask == null)
-                {
-                    throw new InvalidOperationException(nameof(this.loaderTask) + " must be set first.");
-                }
-
-                string assemblyPath = Path.Combine(this.loaderTask.ManagedDllDirectory, assemblyName.Name) + ".dll";
-                if (File.Exists(assemblyPath))
-                {
-                    return this.LoadFromAssemblyPath(assemblyPath);
-                }
-
-                return Default.LoadFromAssemblyName(assemblyName);
-            }
-
-            protected override IntPtr LoadUnmanagedDll(string unmanagedDllName)
-            {
-                if (this.loaderTask == null)
-                {
-                    throw new InvalidOperationException(nameof(this.loaderTask) + " must be set first.");
-                }
-
-                string unmanagedDllPath = Directory.EnumerateFiles(
-                    this.loaderTask.UnmanagedDllDirectory,
-                    $"{unmanagedDllName}.*").Concat(
-                        Directory.EnumerateFiles(
-                            this.loaderTask.UnmanagedDllDirectory,
-                            $"lib{unmanagedDllName}.*"))
-                    .FirstOrDefault();
-                if (unmanagedDllPath != null)
-                {
-                    return this.LoadUnmanagedDllFromPath(unmanagedDllPath);
-                }
-
-                return base.LoadUnmanagedDll(unmanagedDllName);
-            }
-        }
-#endif
     }
 }
