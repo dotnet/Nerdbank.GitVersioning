@@ -143,7 +143,7 @@
             {
                 if (!string.IsNullOrEmpty(this.GitCommitId))
                 {
-                    yield return $"g{this.GitCommitId.Substring(0, 10)}";
+                    yield return this.GitCommitId.Substring(0, 10);
                 }
 
                 foreach (string identifier in this.BuildMetadata)
@@ -335,7 +335,7 @@
         /// <summary>
         /// Gets the version to use for NuGet packages.
         /// </summary>
-        public string NuGetPackageVersion => this.VersionOptions?.NuGetPackageVersionOrDefault.SemVerOrDefault == 1 ? this.SemVer1 : this.SemVer2;
+        public string NuGetPackageVersion => this.VersionOptions?.NuGetPackageVersionOrDefault.SemVerOrDefault == 1 ? this.NuGetSemVer1 : this.SemVer2;
 
         /// <summary>
         /// Gets the version to use for NPM packages.
@@ -343,14 +343,14 @@
         public string NpmPackageVersion => this.SemVer2;
 
         /// <summary>
-        /// Gets a SemVer 1.0 compliant string that represents this version, including the -gCOMMITID suffix
+        /// Gets a SemVer 1.0 compliant string that represents this version, including the -COMMITID suffix
         /// when <see cref="PublicRelease"/> is <c>false</c>.
         /// </summary>
         public string SemVer1 =>
             $"{this.Version.ToStringSafe(3)}{this.PrereleaseVersionSemVer1}{this.SemVer1BuildMetadata}";
 
         /// <summary>
-        /// Gets a SemVer 2.0 compliant string that represents this version, including a +gCOMMITID suffix
+        /// Gets a SemVer 2.0 compliant string that represents this version, including a +COMMITID suffix
         /// when <see cref="PublicRelease"/> is <c>false</c>.
         /// </summary>
         public string SemVer2 =>
@@ -361,8 +361,30 @@
         /// </summary>
         public int SemVer1NumericIdentifierPadding => this.VersionOptions?.SemVer1NumericIdentifierPaddingOrDefault ?? 4;
 
-        private string SemVer1BuildMetadata =>
+        /// <summary>
+        /// Gets the build metadata, compliant to the NuGet-compatible subset of SemVer 1.0.
+        /// </summary>
+        /// <remarks>
+        /// When adding the git commit ID in a -prerelease tag, prefix a `g` because
+        /// older NuGet clients (the ones that support only a subset of semver 1.0)
+        /// cannot handle prerelease tags that begin with a number (which a git commit ID might).
+        /// See <see href="https://github.com/AArnott/Nerdbank.GitVersioning/issues/260#issuecomment-445511898">this discussion</see>.
+        /// </remarks>
+        private string NuGetSemVer1BuildMetadata =>
             this.PublicRelease ? string.Empty : $"-g{this.GitCommitIdShort}";
+
+        /// <summary>
+        /// Gets the build metadata, compliant to SemVer 1.0.
+        /// </summary>
+        private string SemVer1BuildMetadata =>
+            this.PublicRelease ? string.Empty : this.GitCommitIdShort;
+
+        /// <summary>
+        /// Gets a SemVer 1.0 compliant string that represents this version, including the -gCOMMITID suffix
+        /// when <see cref="PublicRelease"/> is <c>false</c>.
+        /// </summary>
+        private string NuGetSemVer1 =>
+            $"{this.Version.ToStringSafe(3)}{this.PrereleaseVersionSemVer1}{this.NuGetSemVer1BuildMetadata}";
 
         /// <summary>
         /// Gets the build metadata that is appropriate for SemVer2 use.
@@ -377,7 +399,7 @@
 
         private string PrereleaseVersionSemVer1 => MakePrereleaseSemVer1Compliant(this.PrereleaseVersion, this.SemVer1NumericIdentifierPadding);
 
-        private string GitCommitIdShortForNonPublicPrereleaseTag => (string.IsNullOrEmpty(this.PrereleaseVersion) ? "-" : ".") + $"g{this.GitCommitIdShort}";
+        private string GitCommitIdShortForNonPublicPrereleaseTag => (string.IsNullOrEmpty(this.PrereleaseVersion) ? "-" : ".") + this.GitCommitIdShort;
 
         private VersionOptions.CloudBuildNumberOptions CloudBuildNumberOptions { get; }
 
