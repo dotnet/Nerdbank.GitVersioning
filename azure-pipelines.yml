@@ -58,7 +58,7 @@ jobs:
     inputs:
       ProjectDirectory: 'src/nerdbank-gitversioning.npm'
 
-  - script: dotnet build -c $(BuildConfiguration) --no-restore /t:build,pack src
+  - script: dotnet build src -c $(BuildConfiguration) --no-restore /t:build,pack /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
     displayName: Build NuGet package and tests
 
   - task: gulp@0
