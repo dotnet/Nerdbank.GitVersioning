@@ -15,7 +15,7 @@ resources:
   - container: xenial
     image: andrewarnott/linux-buildagent
   - container: bionic
-    image: andrewarnott/dotnet:2.1-sdk-bionic
+    image: microsoft/dotnet:2.1-sdk-bionic
 
 jobs:
 - job: Windows

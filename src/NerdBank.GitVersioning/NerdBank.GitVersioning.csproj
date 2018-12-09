@@ -9,6 +9,7 @@
   <ItemGroup>
     <PackageReference Include="DotNetMDDocs" Version="0.111.0" PrivateAssets="all" Condition=" '$(GenerateMarkdownApiDocs)' == 'true' " />
     <PackageReference Include="LibGit2Sharp" Version="0.26.0-preview-0070" PrivateAssets="none" />
+    <PackageReference Include="Microsoft.DotNet.PlatformAbstractions" Version="2.1.0" />
     <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
     <PackageReference Include="System.Diagnostics.Tools" Version="4.3.0" Condition=" '$(TargetFramework)' == 'netcoreapp2.0' " />
     <PackageReference Include="Validation" Version="2.4.18" />
