@@ -1,10 +1,15 @@
 steps:
 - checkout: none # skip checking out the default repository resource
+
+- script: dotnet --info
+  displayName: Show dotnet SDK info
+
 - task: DownloadBuildArtifacts@0
   displayName: Download Build Artifacts
   inputs:
     artifactName: deployables
     downloadPath: $(System.DefaultWorkingDirectory)
+
 - task: Bash@3
   displayName: Consume NB.GV from .NET Core build
   inputs:
