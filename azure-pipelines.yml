@@ -33,6 +33,12 @@ jobs:
       .\nbgv cloud -p src -a
     displayName: Set build number
     condition: ne(variables['system.pullrequest.isfork'], true)
+
+  - task: DotNetCoreInstaller@0
+    displayName: Install .NET Core SDK 2.1.400
+    inputs:
+      packageType: sdk
+      version: 2.1.400
   - script: dotnet --info
     displayName: Show dotnet SDK info
 
