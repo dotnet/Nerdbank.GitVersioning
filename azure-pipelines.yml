@@ -52,12 +52,7 @@ jobs:
     inputs:
       ProjectDirectory: 'src/nerdbank-gitversioning.npm'
 
-  - task: VSBuild@1
-    inputs:
-      vsVersion: 15.0
-      msbuildArgs: /t:build,pack /m /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
-      platform: $(BuildPlatform)
-      configuration: $(BuildConfiguration)
+  - script: dotnet build -c $(BuildConfiguration) --no-restore /t:build,pack src
     displayName: Build NuGet package and tests
 
   - task: gulp@0
