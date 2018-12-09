@@ -14,10 +14,4 @@
     <PackageTags>git commit versioning version assemblyinfo</PackageTags>
     <PackageProjectUrl>https://github.com/aarnott/Nerdbank.GitVersioning</PackageProjectUrl>
   </PropertyGroup>
-
-  <Target Name="SetNuSpecProperties" BeforeTargets="GenerateNuspec" DependsOnTargets="GetBuildVersion">
-    <PropertyGroup>
-      <PackageLicenseUrl>https://raw.githubusercontent.com/AArnott/Nerdbank.GitVersioning/$(GitCommitIdShort)/LICENSE.txt</PackageLicenseUrl>
-    </PropertyGroup>
-  </Target>
 </Project>
