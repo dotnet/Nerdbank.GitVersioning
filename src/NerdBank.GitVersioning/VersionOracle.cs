@@ -143,7 +143,7 @@
             {
                 if (!string.IsNullOrEmpty(this.GitCommitId))
                 {
-                    yield return this.GitCommitId.Substring(0, 10);
+                    yield return $"g{this.GitCommitId.Substring(0, 10)}";
                 }
 
                 foreach (string identifier in this.BuildMetadata)
@@ -362,7 +362,7 @@
         public int SemVer1NumericIdentifierPadding => this.VersionOptions?.SemVer1NumericIdentifierPaddingOrDefault ?? 4;
 
         private string SemVer1BuildMetadata =>
-            this.PublicRelease ? string.Empty : $"-{this.GitCommitIdShort}";
+            this.PublicRelease ? string.Empty : $"-g{this.GitCommitIdShort}";
 
         /// <summary>
         /// Gets the build metadata that is appropriate for SemVer2 use.
@@ -377,7 +377,7 @@
 
         private string PrereleaseVersionSemVer1 => MakePrereleaseSemVer1Compliant(this.PrereleaseVersion, this.SemVer1NumericIdentifierPadding);
 
-        private string GitCommitIdShortForNonPublicPrereleaseTag => (string.IsNullOrEmpty(this.PrereleaseVersion) ? "-" : ".") + this.GitCommitIdShort;
+        private string GitCommitIdShortForNonPublicPrereleaseTag => (string.IsNullOrEmpty(this.PrereleaseVersion) ? "-" : ".") + $"g{this.GitCommitIdShort}";
 
         private VersionOptions.CloudBuildNumberOptions CloudBuildNumberOptions { get; }
 
