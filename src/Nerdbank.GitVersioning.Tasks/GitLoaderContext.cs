@@ -17,13 +17,10 @@ namespace Nerdbank.GitVersioning
 
         protected override Assembly Load(AssemblyName assemblyName)
         {
-            if (assemblyName.Name == "LibGit2Sharp")
-            {
-                var path = Path.Combine(Path.GetDirectoryName(typeof(GitLoaderContext).Assembly.Location), assemblyName.Name + ".dll");
-                return LoadFromAssemblyPath(path);
-            }
-
-            return Default.LoadFromAssemblyName(assemblyName);
+            var path = Path.Combine(Path.GetDirectoryName(typeof(GitLoaderContext).Assembly.Location), assemblyName.Name + ".dll");
+            return File.Exists(path)
+                ? LoadFromAssemblyPath(path)
+                : Default.LoadFromAssemblyName(assemblyName);
         }
 
         protected override IntPtr LoadUnmanagedDll(string unmanagedDllName)
@@ -56,7 +53,7 @@ namespace Nerdbank.GitVersioning
         internal static string GetNativeLibraryDirectory()
         {
             var dir = Path.GetDirectoryName(typeof(GitLoaderContext).Assembly.Location);
-            return Path.Combine(dir, "runtimes", RuntimeIdMap.GetNativeLibraryDirectoryName(RuntimeEnvironment.GetRuntimeIdentifier()), "native");
+            return Path.Combine(dir, "..", "runtimes", RuntimeIdMap.GetNativeLibraryDirectoryName(RuntimeEnvironment.GetRuntimeIdentifier()), "native");
         }
 
         private static string GetNativeLibraryExtension()
