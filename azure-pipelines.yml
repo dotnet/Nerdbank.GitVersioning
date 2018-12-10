@@ -92,6 +92,7 @@ jobs:
       searchFolder: $(Build.ArtifactStagingDirectory)\TestLogs
       buildPlatform: $(BuildPlatform)
       buildConfiguration: $(BuildConfiguration)
+    condition: always()
 
   - task: CopyFiles@1
     inputs:
