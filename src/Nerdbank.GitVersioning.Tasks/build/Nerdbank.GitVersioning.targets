@@ -152,6 +152,7 @@
                   AssemblyCopyright="$(AssemblyCopyright)"
                   AssemblyCompany="$(AssemblyCompany)"
                   AssemblyConfiguration="$(Configuration)"
+                  GitCommitId="$(GitCommitId)"
                   EmitNonVersionCustomAttributes="$(NBGV_EmitNonVersionCustomAttributes)"
                   />
     <!-- Avoid applying the newly generated AssemblyVersionInfo.cs file to the build

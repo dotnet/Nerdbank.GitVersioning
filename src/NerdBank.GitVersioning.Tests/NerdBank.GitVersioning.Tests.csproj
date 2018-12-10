@@ -6,6 +6,7 @@
     <DebugType>full</DebugType>
     <SignAssembly>false</SignAssembly>
     <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="..\Nerdbank.GitVersioning.Tasks\build\Nerdbank.GitVersioning.targets">
@@ -20,7 +21,6 @@
     <EmbeddedResource Include="repos\submodules.7z" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\MSBuildExtensionTask\MSBuildExtensionTask.csproj" />
     <ProjectReference Include="..\Nerdbank.GitVersioning.Tasks\Nerdbank.GitVersioning.Tasks.csproj" />
     <ProjectReference Include="..\NerdBank.GitVersioning\NerdBank.GitVersioning.csproj" />
   </ItemGroup>
@@ -36,7 +36,11 @@
     <PackageReference Include="Nerdbank.GitVersioning.LKG" Version="1.6.20-beta-gfea83a8c9e" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.3.1" />
   </ItemGroup>
-  <ItemGroup>
-    <Service Include="{82a7f48d-3b50-4b1e-b82e-3ada8210c358}" />
+  <ItemGroup Condition="'$(TargetFramework)' == 'net461' ">
+    <PackageReference Include="Microsoft.Build.Tasks.Core" Version="14.3" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'netcoreapp2.0'">
+    <PackageReference Include="Microsoft.Build.Tasks.Core" Version="15.1.548" />
+    <PackageReference Include="System.Runtime.Loader" Version="4.3.0" />
   </ItemGroup>
 </Project>

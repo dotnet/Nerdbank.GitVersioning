@@ -275,7 +275,7 @@ public class VersionOracleTests : RepoTestBase
         this.InitializeSourceControl();
         var oracle = VersionOracle.Create(this.RepoPath);
         oracle.PublicRelease = false;
-        Assert.Equal($"7.8.9-foo.25.g{this.CommitIdShort}", oracle.NuGetPackageVersion);
+        Assert.Equal($"7.8.9-foo.25.{this.CommitIdShort}", oracle.NuGetPackageVersion);
     }
 
     [Fact]

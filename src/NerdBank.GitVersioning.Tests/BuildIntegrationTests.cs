@@ -176,7 +176,7 @@ public class BuildIntegrationTests : RepoTestBase
         Assumes.True(repo.Index[VersionFile.JsonFileName] == null);
         var buildResult = await this.BuildAsync();
         Assert.Equal("3.4.0." + repo.Head.Commits.First().GetIdAsVersion().Revision, buildResult.BuildVersion);
-        Assert.Equal("3.4.0+g" + repo.Head.Commits.First().Id.Sha.Substring(0, 10), buildResult.AssemblyInformationalVersion);
+        Assert.Equal("3.4.0+" + repo.Head.Commits.First().Id.Sha.Substring(0, 10), buildResult.AssemblyInformationalVersion);
     }
 
     [Fact]
@@ -201,7 +201,7 @@ public class BuildIntegrationTests : RepoTestBase
         repo.Commit("empty", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         var buildResult = await this.BuildAsync();
         Assert.Equal("0.0.0." + repo.Head.Commits.First().GetIdAsVersion().Revision, buildResult.BuildVersion);
-        Assert.Equal("0.0.0+g" + repo.Head.Commits.First().Id.Sha.Substring(0, 10), buildResult.AssemblyInformationalVersion);
+        Assert.Equal("0.0.0+" + repo.Head.Commits.First().Id.Sha.Substring(0, 10), buildResult.AssemblyInformationalVersion);
     }
 
     [Fact]
@@ -676,13 +676,15 @@ public class BuildIntegrationTests : RepoTestBase
     }
 
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(true, false)]
-    [InlineData(false, true)]
-    [InlineData(true, true)]
-    public async Task AssemblyInfo(bool isVB, bool includeNonVersionAttributes)
+    [PairwiseData]
+    public async Task AssemblyInfo(bool isVB, bool includeNonVersionAttributes, bool gitRepo)
     {
         this.WriteVersionFile();
+        if (gitRepo)
+        {
+            this.InitializeSourceControl();
+        }
+
         if (isVB)
         {
             this.MakeItAVBProject();
@@ -738,6 +740,7 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal(result.AssemblyProduct, thisAssemblyClass.GetField("AssemblyProduct", fieldFlags)?.GetValue(null));
         Assert.Equal(result.AssemblyCompany, thisAssemblyClass.GetField("AssemblyCompany", fieldFlags)?.GetValue(null));
         Assert.Equal(result.AssemblyCopyright, thisAssemblyClass.GetField("AssemblyCopyright", fieldFlags)?.GetValue(null));
+        Assert.Equal(result.GitCommitId, thisAssemblyClass.GetField("GitCommitId", fieldFlags)?.GetValue(null) ?? string.Empty);
 
         // Verify that it doesn't have key fields
         Assert.Null(thisAssemblyClass.GetField("PublicKey", fieldFlags));
@@ -915,7 +918,7 @@ public class BuildIntegrationTests : RepoTestBase
         Version assemblyVersion = GetExpectedAssemblyVersion(versionOptions, version);
         var additionalBuildMetadata = from item in buildResult.BuildResult.ProjectStateAfterBuild.GetItems("BuildMetadata")
                                       select item.EvaluatedInclude;
-        var expectedBuildMetadata = $"+g{commitIdShort}";
+        var expectedBuildMetadata = $"+{commitIdShort}";
         if (additionalBuildMetadata.Any())
         {
             expectedBuildMetadata += "." + string.Join(".", additionalBuildMetadata);
@@ -944,7 +947,8 @@ public class BuildIntegrationTests : RepoTestBase
 
         // NuGet is now SemVer 2.0 and will pass additional build metadata if provided
         bool semVer2 = versionOptions?.NuGetPackageVersionOrDefault.SemVer == 2;
-        string pkgVersionSuffix = buildResult.PublicRelease ? string.Empty : $"-g{commitIdShort}";
+        string semVer1CommitPrefix = semVer2 ? string.Empty : "g";
+        string pkgVersionSuffix = buildResult.PublicRelease ? string.Empty : $"-{semVer1CommitPrefix}{commitIdShort}";
         if (semVer2)
         {
             pkgVersionSuffix += expectedBuildMetadataWithoutCommitId;
@@ -965,7 +969,7 @@ public class BuildIntegrationTests : RepoTestBase
             Assert.Equal(expectedVersion, buildNumberSemVer.Version);
             Assert.Equal(buildResult.PrereleaseVersion, buildNumberSemVer.Prerelease);
             string expectedBuildNumberMetadata = hasCommitData && commitIdOptions.WhereOrDefault == VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata
-                ? $"+g{commitIdShort}"
+                ? $"+{commitIdShort}"
                 : string.Empty;
             if (additionalBuildMetadata.Any())
             {
@@ -1054,6 +1058,8 @@ public class BuildIntegrationTests : RepoTestBase
     {
         var csharpImport = this.testProject.Imports.Single(i => i.Project.Contains("CSharp"));
         csharpImport.Project = @"$(MSBuildToolsPath)\Microsoft.VisualBasic.targets";
+        var isVbProperty = this.testProject.Properties.Single(p => p.Name == "IsVB");
+        isVbProperty.Value = "true";
     }
 
     private struct RestoreEnvironmentVariables : IDisposable
