@@ -81,8 +81,17 @@ jobs:
 #      configuration: $(BuildConfiguration)
 #    continueOnError: true
 
-  - script: dotnet test src/Nerdbank.GitVersioning.Tests --no-build -c $(BuildConfiguration) --filter "TestCategory!=FailsOnAzurePipelines"
+  - script: dotnet test src/Nerdbank.GitVersioning.Tests --no-build -c $(BuildConfiguration) --filter "TestCategory!=FailsOnAzurePipelines" --logger "trx;LogFileName=$(Build.ArtifactStagingDirectory)\TestLogs\TestResults.trx"
     displayName: Run tests
+
+  - task: PublishTestResults@2
+    displayName: Publish test results
+    inputs:
+      testResultsFormat: VSTest
+      testResultsFiles: '*.trx'
+      searchFolder: $(Build.ArtifactStagingDirectory)\TestLogs
+      buildPlatform: $(BuildPlatform)
+      buildConfiguration: $(BuildConfiguration)
 
   - task: CopyFiles@1
     inputs:
