@@ -945,16 +945,25 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal(versionOptions.Version.Prerelease, buildResult.PrereleaseVersion);
         Assert.Equal(expectedBuildMetadata, buildResult.SemVerBuildSuffix);
 
-        // NuGet is now SemVer 2.0 and will pass additional build metadata if provided
-        bool semVer2 = versionOptions?.NuGetPackageVersionOrDefault.SemVer == 2;
-        string semVer1CommitPrefix = semVer2 ? string.Empty : "g";
-        string pkgVersionSuffix = buildResult.PublicRelease ? string.Empty : $"-{semVer1CommitPrefix}{commitIdShort}";
-        if (semVer2)
+        string GetPkgVersionSuffix(bool useSemVer2)
         {
-            pkgVersionSuffix += expectedBuildMetadataWithoutCommitId;
+            string semVer1CommitPrefix = useSemVer2 ? string.Empty : "g";
+            string pkgVersionSuffix = buildResult.PublicRelease ? string.Empty : $"-{semVer1CommitPrefix}{commitIdShort}";
+            if (useSemVer2)
+            {
+                pkgVersionSuffix += expectedBuildMetadataWithoutCommitId;
+            }
+
+            return pkgVersionSuffix;
         }
 
-        Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{GetSemVerAppropriatePrereleaseTag(versionOptions)}{pkgVersionSuffix}", buildResult.NuGetPackageVersion);
+        // NuGet is now SemVer 2.0 and will pass additional build metadata if provided
+        string nugetPkgVersionSuffix = GetPkgVersionSuffix(useSemVer2: versionOptions?.NuGetPackageVersionOrDefault.SemVer == 2);
+        Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{GetSemVerAppropriatePrereleaseTag(versionOptions)}{nugetPkgVersionSuffix}", buildResult.NuGetPackageVersion);
+
+        // Chocolatey only supports SemVer 1.0
+        string chocolateyPkgVersionSuffix = GetPkgVersionSuffix(useSemVer2: false);
+        Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{GetSemVerAppropriatePrereleaseTag(versionOptions)}{chocolateyPkgVersionSuffix}", buildResult.ChocolateyPackageVersion);
 
         var buildNumberOptions = versionOptions.CloudBuildOrDefault.BuildNumberOrDefault;
         if (buildNumberOptions.EnabledOrDefault)
@@ -1137,6 +1146,7 @@ public class BuildIntegrationTests : RepoTestBase
         public string AssemblyFileVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyFileVersion");
         public string AssemblyVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyVersion");
         public string NuGetPackageVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("NuGetPackageVersion");
+        public string ChocolateyPackageVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("ChocolateyPackageVersion");
         public string CloudBuildNumber => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("CloudBuildNumber");
         public string AssemblyName => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyName");
         public string AssemblyTitle => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyTitle");

@@ -86,6 +86,7 @@
       <Output TaskParameter="CloudBuildNumber" PropertyName="CloudBuildNumber" Condition=" '$(CloudBuildNumber)' == '' "/>
       <Output TaskParameter="BuildMetadataFragment" PropertyName="SemVerBuildSuffix" />
       <Output TaskParameter="NuGetPackageVersion" PropertyName="NuGetPackageVersion" />
+      <Output TaskParameter="ChocolateyPackageVersion" PropertyName="ChocolateyPackageVersion" />
       <Output TaskParameter="NuGetPackageVersion" PropertyName="Version" />
       <Output TaskParameter="NuGetPackageVersion" PropertyName="PackageVersion" />
       <Output TaskParameter="NPMPackageVersion" PropertyName="NPMPackageVersion" />

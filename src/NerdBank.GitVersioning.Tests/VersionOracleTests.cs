@@ -177,6 +177,7 @@ public class VersionOracleTests : RepoTestBase
         Assert.True(Regex.IsMatch(oracle.SemVer1, @"^2.3.1-[^g]{10}$"));
         Assert.True(Regex.IsMatch(oracle.SemVer2, @"^2.3.1-[^g]{10}$"));
         Assert.True(Regex.IsMatch(oracle.NuGetPackageVersion, @"^2.3.1-g[a-f0-9]{10}$"));
+        Assert.True(Regex.IsMatch(oracle.ChocolateyPackageVersion, @"^2.3.1-g[a-f0-9]{10}$"));
     }
 
     [Fact]
