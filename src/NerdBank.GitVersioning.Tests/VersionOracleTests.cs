@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using LibGit2Sharp;
 using Nerdbank.GitVersioning;
 using Nerdbank.GitVersioning.Tests;
@@ -160,6 +161,22 @@ public class VersionOracleTests : RepoTestBase
         var oracle = VersionOracle.Create(this.RepoPath);
         oracle.PublicRelease = true;
         Assert.Equal("7.8.9-foo-025", oracle.SemVer1);
+    }
+
+    [Fact]
+    public void SemVerStableNonPublicVersion()
+    {
+        var workingCopyVersion = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("2.3"),
+        };
+        this.WriteVersionFile(workingCopyVersion);
+        this.InitializeSourceControl();
+        var oracle = VersionOracle.Create(this.RepoPath);
+        oracle.PublicRelease = false;
+        Assert.True(Regex.IsMatch(oracle.SemVer1, @"^2.3.1-[^g]{10}$"));
+        Assert.True(Regex.IsMatch(oracle.SemVer2, @"^2.3.1-[^g]{10}$"));
+        Assert.True(Regex.IsMatch(oracle.NuGetPackageVersion, @"^2.3.1-g[a-f0-9]{10}$"));
     }
 
     [Fact]

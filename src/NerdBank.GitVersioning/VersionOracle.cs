@@ -377,7 +377,7 @@
         /// Gets the build metadata, compliant to SemVer 1.0.
         /// </summary>
         private string SemVer1BuildMetadata =>
-            this.PublicRelease ? string.Empty : this.GitCommitIdShort;
+            this.PublicRelease ? string.Empty : $"-{this.GitCommitIdShort}";
 
         /// <summary>
         /// Gets a SemVer 1.0 compliant string that represents this version, including the -gCOMMITID suffix
