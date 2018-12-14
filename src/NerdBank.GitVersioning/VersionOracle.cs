@@ -338,6 +338,14 @@
         public string NuGetPackageVersion => this.VersionOptions?.NuGetPackageVersionOrDefault.SemVerOrDefault == 1 ? this.NuGetSemVer1 : this.SemVer2;
 
         /// <summary>
+        /// Gets the version to use for Chocolatey packages.
+        /// </summary>
+        /// <remarks>
+        /// This always returns the NuGet subset of SemVer 1.0.
+        /// </remarks>
+        public string ChocolateyPackageVersion => this.NuGetSemVer1;
+
+        /// <summary>
         /// Gets the version to use for NPM packages.
         /// </summary>
         public string NpmPackageVersion => this.SemVer2;
