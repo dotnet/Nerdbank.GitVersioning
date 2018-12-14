@@ -153,6 +153,9 @@
         public string NuGetPackageVersion { get; private set; }
 
         [Output]
+        public string ChocolateyPackageVersion { get; private set; }
+
+        [Output]
         public string NpmPackageVersion { get; private set; }
 
         /// <summary>
@@ -214,6 +217,7 @@
                 this.BuildMetadataFragment = oracle.BuildMetadataFragment;
                 this.CloudBuildNumber = oracle.CloudBuildNumberEnabled ? oracle.CloudBuildNumber : null;
                 this.NuGetPackageVersion = oracle.NuGetPackageVersion;
+                this.ChocolateyPackageVersion = oracle.ChocolateyPackageVersion;
                 this.NpmPackageVersion = oracle.NpmPackageVersion;
 
                 IEnumerable<ITaskItem> cloudBuildVersionVars = null;
