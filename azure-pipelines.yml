@@ -36,10 +36,10 @@ jobs:
     condition: ne(variables['system.pullrequest.isfork'], true)
 
   - task: DotNetCoreInstaller@0
-    displayName: Install .NET Core SDK 2.1.400
+    displayName: Install .NET Core SDK 3.0.100-preview
     inputs:
       packageType: sdk
-      version: 2.1.400
+      version: 3.0.100-preview-009812
   - script: dotnet --info
     displayName: Show dotnet SDK info
 
