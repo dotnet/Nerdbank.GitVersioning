@@ -108,9 +108,9 @@ dotnet tool install --tool-path . nbgv
 
 The above will set just the cloud build number, but switches to the `nbgv cloud` command will cause other build variables to also be set.
 
-See a working sample in [a VSTS YAML file](https://github.com/Humanizr/Humanizer/blob/604ebcc5ed0215aa8fb511ac5424239659f570a0/.vsts-shared.yml#L5-L15).
+See a working sample in [a VSTS YAML file](https://github.com/Humanizr/Humanizer/blob/11bd9fd99c151f2e84eb9d4fa082a6c077504c9f/azure-pipelines.yml#L21-L29).
 
-https://github.com/Humanizr/Humanizer/blob/604ebcc5ed0215aa8fb511ac5424239659f570a0/.vsts-shared.yml#L5-L15
+https://github.com/Humanizr/Humanizer/blob/11bd9fd99c151f2e84eb9d4fa082a6c077504c9f/azure-pipelines.yml#L21-L29
 
 #### Set them from just one project
 
