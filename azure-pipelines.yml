@@ -35,10 +35,10 @@ jobs:
     displayName: Set build number
 
   - task: DotNetCoreInstaller@0
-    displayName: Install .NET Core SDK 2.1.400
+    displayName: Install .NET Core SDK 2.1.500
     inputs:
       packageType: sdk
-      version: 2.1.400
+      version: 2.1.500
   - script: dotnet --info
     displayName: Show dotnet SDK info
 
