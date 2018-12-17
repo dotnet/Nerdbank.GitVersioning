@@ -13,5 +13,12 @@
     <owners>aarnott</owners>
     <PackageTags>git commit versioning version assemblyinfo</PackageTags>
     <PackageProjectUrl>https://github.com/aarnott/Nerdbank.GitVersioning</PackageProjectUrl>
+
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0-beta-63127-02" PrivateAssets="All" />
+  </ItemGroup>
 </Project>

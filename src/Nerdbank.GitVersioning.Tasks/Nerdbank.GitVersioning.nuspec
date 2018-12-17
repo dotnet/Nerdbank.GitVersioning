@@ -13,6 +13,7 @@
     <projectUrl>https://github.com/aarnott/Nerdbank.GitVersioning</projectUrl>
     <description>Stamps your assemblies with semver 2.0 compliant git commit specific version information and provides NuGet versioning information as well.</description>
     <tags>git commit versioning version assemblyinfo</tags>
+    <repository type="git" url="https://github.com/AArnott/Nerdbank.GitVersioning.git" commit="$commit$" />
   </metadata>
   <files>
     <file src="$BaseOutputPath$net461\LibGit2Sharp.dll" target="build\MSBuildFull\LibGit2Sharp.dll" />
