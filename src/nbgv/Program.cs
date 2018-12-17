@@ -38,6 +38,7 @@ namespace Nerdbank.GitVersioning.Tool
             NoVersionJsonFound,
             TagConflict,
             NoCloudBuildProviderMatch,
+            BadVariable,
         }
 
         private static ExitCodes exitCode;
@@ -50,6 +51,7 @@ namespace Nerdbank.GitVersioning.Tool
             var version = string.Empty;
             IReadOnlyList<string> cloudVariables = Array.Empty<string>();
             var format = string.Empty;
+            string singleVariable = null;
             bool quiet = false;
             var cisystem = string.Empty;
             bool cloudBuildCommonVars = false;
@@ -71,6 +73,7 @@ namespace Nerdbank.GitVersioning.Tool
                 getVersion = syntax.DefineCommand("get-version", ref commandText, "Gets the version information for a project.");
                 syntax.DefineOption("p|project", ref projectPath, "The path to the project or project directory. The default is the current directory.");
                 syntax.DefineOption("f|format", ref format, $"The format to write the version information. Allowed values are: text, json. The default is {DefaultVersionInfoFormat}.");
+                syntax.DefineOption("v|variable", ref singleVariable, "The name of just one version property to print to stdout. When specified, the output is always in raw text. Useful in scripts.");
                 syntax.DefineParameter("commit-ish", ref version, $"The commit/ref to get the version information for. The default is {DefaultRef}.");
 
                 setVersion = syntax.DefineCommand("set-version", ref commandText, "Updates the version stamp that is applied to a project.");
@@ -107,7 +110,7 @@ namespace Nerdbank.GitVersioning.Tool
             }
             else if (getVersion.IsActive)
             {
-                exitCode = OnGetVersionCommand(projectPath, format, version);
+                exitCode = OnGetVersionCommand(projectPath, format, singleVariable, version);
             }
             else if (setVersion.IsActive)
             {
@@ -224,7 +227,7 @@ namespace Nerdbank.GitVersioning.Tool
             return ExitCodes.OK;
         }
 
-        private static ExitCodes OnGetVersionCommand(string projectPath, string format, string versionOrRef)
+        private static ExitCodes OnGetVersionCommand(string projectPath, string format, string singleVariable, string versionOrRef)
         {
             if (string.IsNullOrEmpty(format))
             {
@@ -260,25 +263,45 @@ namespace Nerdbank.GitVersioning.Tool
             }
 
             var oracle = new VersionOracle(searchPath, repository, commit, CloudBuild.Active);
-            switch (format.ToLowerInvariant())
+            if (string.IsNullOrEmpty(singleVariable))
             {
-                case "text":
-                    Console.WriteLine("Version:                      {0}", oracle.Version);
-                    Console.WriteLine("AssemblyVersion:              {0}", oracle.AssemblyVersion);
-                    Console.WriteLine("AssemblyInformationalVersion: {0}", oracle.AssemblyInformationalVersion);
-                    Console.WriteLine("NuGet package Version:        {0}", oracle.NuGetPackageVersion);
-                    Console.WriteLine("NPM package Version:          {0}", oracle.NpmPackageVersion);
-                    break;
-                case "json":
-                    var converters = new JsonConverter[]
-                    {
+                switch (format.ToLowerInvariant())
+                {
+                    case "text":
+                        Console.WriteLine("Version:                      {0}", oracle.Version);
+                        Console.WriteLine("AssemblyVersion:              {0}", oracle.AssemblyVersion);
+                        Console.WriteLine("AssemblyInformationalVersion: {0}", oracle.AssemblyInformationalVersion);
+                        Console.WriteLine("NuGet package Version:        {0}", oracle.NuGetPackageVersion);
+                        Console.WriteLine("NPM package Version:          {0}", oracle.NpmPackageVersion);
+                        break;
+                    case "json":
+                        var converters = new JsonConverter[]
+                        {
                         new Newtonsoft.Json.Converters.VersionConverter(),
-                    };
-                    Console.WriteLine(JsonConvert.SerializeObject(oracle, Formatting.Indented, converters));
-                    break;
-                default:
-                    Console.Error.WriteLine("Unsupported format: {0}", format);
+                        };
+                        Console.WriteLine(JsonConvert.SerializeObject(oracle, Formatting.Indented, converters));
+                        break;
+                    default:
+                        Console.Error.WriteLine("Unsupported format: {0}", format);
+                        return ExitCodes.UnsupportedFormat;
+                }
+            }
+            else
+            {
+                if (format != "text")
+                {
+                    Console.Error.WriteLine("Format must be \"text\" when querying for an individual variable's value.");
                     return ExitCodes.UnsupportedFormat;
+                }
+
+                var property = oracle.GetType().GetProperty(singleVariable);
+                if (property == null)
+                {
+                    Console.Error.WriteLine("Variable \"{0}\" not a version property.", singleVariable);
+                    return ExitCodes.BadVariable;
+                }
+
+                Console.WriteLine(property.GetValue(oracle));
             }
 
             return ExitCodes.OK;
