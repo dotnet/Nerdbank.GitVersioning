@@ -189,7 +189,7 @@ namespace Nerdbank.GitVersioning.Tool
             }
             else
             {
-                string versionJsonPath = VersionFile.SetVersion(versionJsonRoot, options);
+                string versionJsonPath = VersionFile.SetVersion(versionJsonRoot, options, includeSchemaProperty: true);
                 LibGit2Sharp.Commands.Stage(repository, versionJsonPath);
             }
 
