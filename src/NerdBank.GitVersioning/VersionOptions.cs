@@ -25,11 +25,11 @@
         /// </summary>
         private const int DefaultSemVer1NumericIdentifierPadding = 4;
 
-        /////// <summary>
-        /////// The $schema field that should be serialized when writing
-        /////// </summary>
-        ////[JsonProperty(PropertyName = "$schema")]
-        ////private string Schema => "https://raw.githubusercontent.com/AArnott/Nerdbank.GitVersioning/master/src/NerdBank.GitVersioning/version.schema.json";
+        /// <summary>
+        /// The $schema field that should be serialized when writing
+        /// </summary>
+        [JsonProperty(PropertyName = "$schema")]
+        public string Schema => "https://raw.githubusercontent.com/AArnott/Nerdbank.GitVersioning/master/src/NerdBank.GitVersioning/version.schema.json";
 
         /// <summary>
         /// Gets or sets the default version to use.
@@ -156,10 +156,19 @@
 
         /// <summary>
         /// Gets the <see cref="JsonSerializerSettings"/> to use based on certain requirements.
+        /// The $schema property is not serialized when using this overload.
         /// </summary>
-        /// <param name="includeDefaults"></param>
+        /// <param name="includeDefaults">A value indicating whether default values should be serialized.</param>
         /// <returns>The serializer settings to use.</returns>
-        public static JsonSerializerSettings GetJsonSettings(bool includeDefaults = false)
+        public static JsonSerializerSettings GetJsonSettings(bool includeDefaults) => GetJsonSettings(includeDefaults, includeSchemaProperty: false);
+
+        /// <summary>
+        /// Gets the <see cref="JsonSerializerSettings"/> to use based on certain requirements.
+        /// </summary>
+        /// <param name="includeDefaults">A value indicating whether default values should be serialized.</param>
+        /// <param name="includeSchemaProperty">A value indicating whether the $schema property should be serialized.</param>
+        /// <returns>The serializer settings to use.</returns>
+        public static JsonSerializerSettings GetJsonSettings(bool includeDefaults = false, bool includeSchemaProperty = false)
         {
             return new JsonSerializerSettings
             {
@@ -169,7 +178,11 @@
                     new AssemblyVersionOptionsConverter(includeDefaults),
                     new StringEnumConverter() { CamelCaseText = true },
                 },
-                ContractResolver = includeDefaults ? VersionOptionsContractResolver.IncludeDefaultsContractResolver : VersionOptionsContractResolver.ExcludeDefaultsContractResolver,
+                ContractResolver = new VersionOptionsContractResolver
+                {
+                    IncludeDefaults = includeDefaults,
+                    IncludeSchemaProperty = includeSchemaProperty,
+                },
                 Formatting = Formatting.Indented,
             };
         }

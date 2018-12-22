@@ -394,7 +394,7 @@ public class BuildIntegrationTests : RepoTestBase
         this.WriteVersionFile(versionOptions);
         this.testProject.AddProperty("OverrideBuildNumberOffset", "10");
         var buildResult = await this.BuildAsync();
-        Assert.Equal("14.1.11.31122", buildResult.AssemblyFileVersion);
+        Assert.StartsWith("14.1.11.", buildResult.AssemblyFileVersion);
     }
 
     [Fact]
