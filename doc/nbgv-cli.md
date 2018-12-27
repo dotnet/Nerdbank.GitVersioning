@@ -33,7 +33,7 @@ There are several more sub-commands and switches to each to help you build and m
 
 Use the `--help` switch on the `nbgv` command or one of its sub-commands to learn about the sub-commands available and how to use them. For example, this is the basic usage help text:
 
-```cmd
+```
 nbgv --help
 usage: nbgv <command> [<args>]
 
