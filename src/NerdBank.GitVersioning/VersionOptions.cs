@@ -953,5 +953,151 @@
             /// </summary>
             FourthVersionComponent,
         }
+
+        /// <summary>
+        /// Encapsulates settings for the "prepare-release" command
+        /// </summary>
+        public class ReleaseOptions : IEquatable<ReleaseOptions>
+        {
+            /// <summary>
+            /// The default (uninitialized) instance.
+            /// </summary>
+            internal static readonly ReleaseOptions DefaultInstance = new ReleaseOptions(isReadOnly: true)
+            {
+                branchName = "release/v{0}", //TODO: Use something like {version} instead of {0} which would be more consistent with the {height} in the version
+                versionIncrement = ReleaseVersionIncrement.Minor
+            };
+
+            [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+            private readonly bool isReadOnly;
+
+            [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+            private string branchName;
+
+            [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+            private ReleaseVersionIncrement? versionIncrement;
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="ReleaseOptions"/> class
+            /// </summary>
+            public ReleaseOptions() : this(isReadOnly: false)
+            {
+            }
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="ReleaseOptions"/> class
+            /// </summary>
+            protected ReleaseOptions(bool isReadOnly)
+            {
+                this.isReadOnly = isReadOnly;
+            }
+
+            /// <summary>
+            /// Gets or sets the branch name template for release branches
+            /// </summary>
+            [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+            public string BranchName
+            {
+                get => this.branchName;
+                set => this.SetIfNotReadOnly(ref this.branchName, value);
+            }
+
+            /// <summary>
+            /// Gets the set branch name template for release branches 
+            /// </summary>
+            [JsonIgnore]
+            public string BranchNameOrDefault => this.BranchName ?? DefaultInstance.BranchName;
+
+
+            /// <summary>
+            /// Gets or sets the setting specifying how to increment the version when creating a release
+            /// </summary>
+            [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+            public ReleaseVersionIncrement? VersionIncrement
+            {
+                get => this.versionIncrement;
+                set => this.SetIfNotReadOnly(ref this.versionIncrement, value);
+            }
+
+            /// <summary>
+            /// Gets or sets the setting specifying how to increment the version when creating a release
+            /// </summary>
+            [JsonIgnore]
+            public ReleaseVersionIncrement VersionIncrementOrDefault => this.VersionIncrement ?? DefaultInstance.VersionIncrement.Value;
+
+            /// <inheritdoc />
+            public override bool Equals(object obj) => this.Equals(obj as ReleaseOptions);
+
+            /// <inheritdoc />
+            public bool Equals(ReleaseOptions other) => EqualWithDefaultsComparer.Singleton.Equals(this, other);
+
+            /// <inheritdoc />
+            public override int GetHashCode() => EqualWithDefaultsComparer.Singleton.GetHashCode(this);
+
+            /// <summary>
+            /// Gets a value indicating whether this instance is equivalent to the default instance.
+            /// </summary>
+            internal bool IsDefault => this.Equals(DefaultInstance);
+
+            /// <summary>
+            /// Sets the value of a field if this instance is not marked as read only.
+            /// </summary>
+            /// <typeparam name="T">The type of the value stored by the field.</typeparam>
+            /// <param name="field">The field to change.</param>
+            /// <param name="value">The value to set.</param>
+            private void SetIfNotReadOnly<T>(ref T field, T value)
+            {
+                Verify.Operation(!this.isReadOnly, "This instance is read only.");
+                field = value;
+            }
+
+            internal class EqualWithDefaultsComparer : IEqualityComparer<ReleaseOptions>
+            {
+                internal static readonly EqualWithDefaultsComparer Singleton = new EqualWithDefaultsComparer();
+
+                private EqualWithDefaultsComparer() { }
+
+                /// <inheritdoc />
+                public bool Equals(ReleaseOptions x, ReleaseOptions y)
+                {
+                    if (x == null ^ y == null)
+                    {
+                        return false;
+                    }
+
+                    if (x == null)
+                    {
+                        return true;
+                    }
+
+                    return StringComparer.Ordinal.Equals(x.BranchName, y.BranchName) &&
+                           x.VersionIncrement == y.VersionIncrement;
+                }
+
+                /// <inheritdoc />
+                public int GetHashCode(ReleaseOptions obj)
+                {
+                    return obj != null
+                        ? (StringComparer.Ordinal.GetHashCode(obj.BranchName) + (int)obj.VersionIncrement)
+                        : 0;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Possible increments of the version after creating release branches
+        /// </summary>
+        public enum ReleaseVersionIncrement
+        {
+            /// <summary>
+            /// Increment the major version after creating a release branch
+            /// </summary>
+            Major,
+
+            /// <summary>
+            /// Increment the minor version after creating a release branch
+            /// </summary>
+            Minor
+        }
     }
 }
