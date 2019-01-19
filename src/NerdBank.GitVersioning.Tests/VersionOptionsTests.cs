@@ -178,7 +178,8 @@ public class VersionOptionsTests
         Assert.Throws<InvalidOperationException>(() => options.CloudBuildOrDefault.BuildNumberOrDefault.IncludeCommitIdOrDefault.Where = VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata);
         Assert.Throws<InvalidOperationException>(() => options.CloudBuildOrDefault.SetVersionVariables = true);
         Assert.Throws<InvalidOperationException>(() => options.NuGetPackageVersionOrDefault.SemVer = 2);
-        //TODO
+        Assert.Throws<InvalidOperationException>(() => options.ReleaseOrDefault.BranchName = "BranchName");
+        Assert.Throws<InvalidOperationException>(() => options.ReleaseOrDefault.VersionIncrement = VersionOptions.ReleaseVersionIncrement.Major);
     }
 
 

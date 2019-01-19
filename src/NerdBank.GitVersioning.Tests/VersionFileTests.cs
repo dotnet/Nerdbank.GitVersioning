@@ -143,6 +143,12 @@ public class VersionFileTests : RepoTestBase
     [InlineData(@"{""cloudBuild"":{""buildNumber"":{""enabled"":true,""includeCommitId"":{""when"":""nonPublicReleaseOnly"",""where"":""fourthVersionComponent""}}}}", @"{""cloudBuild"":{""buildNumber"":{""enabled"":true,""includeCommitId"":{""where"":""fourthVersionComponent""}}}}")]
     [InlineData(@"{""cloudBuild"":{""setVersionVariables"":true}}", @"{}")]
     [InlineData(@"{""cloudBuild"":{""setAllVariables"":false}}", @"{}")]
+    [InlineData(@"{""release"":{""increment"":""minor""}}", @"{}")]
+    [InlineData(@"{""release"":{""branchName"":""release/v{0}""}}", @"{}")]
+    [InlineData(@"{""release"":{""branchName"":""release/v{0}"",""versionIncrement"":""minor""}}", @"{}")]
+    [InlineData(@"{""release"":{""versionIncrement"":""major""}}", @"{""release"":{""versionIncrement"":""major""}}")]
+    [InlineData(@"{""release"":{""branchName"":""someName""}}", @"{""release"":{""branchName"":""someName""}}")]
+    [InlineData(@"{""release"":{""branchName"":""someName"",""versionIncrement"":""major""}}", @"{""release"":{""branchName"":""someName"",""versionIncrement"":""major""}}")]
     public void JsonMinification(string full, string minimal)
     {
         var settings = VersionOptions.GetJsonSettings();

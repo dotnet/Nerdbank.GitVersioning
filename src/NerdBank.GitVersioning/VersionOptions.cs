@@ -126,6 +126,18 @@
         public CloudBuildOptions CloudBuildOrDefault => this.CloudBuild ?? CloudBuildOptions.DefaultInstance;
 
         /// <summary>
+        /// Gets or sets the options for the prepare-release command
+        /// </summary>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public ReleaseOptions Release { get; set; }
+
+        /// <summary>
+        /// Gets the options for the prepare-release command
+        /// </summary>
+        [JsonIgnore]
+        public ReleaseOptions ReleaseOrDefault => this.Release ?? ReleaseOptions.DefaultInstance;
+
+        /// <summary>
         /// Gets or sets a value indicating whether this options object should inherit from an ancestor any settings that are not explicitly set in this one.
         /// </summary>
         /// <remarks>
@@ -1024,7 +1036,7 @@
             /// </summary>
             [JsonIgnore]
             public ReleaseVersionIncrement VersionIncrementOrDefault => this.VersionIncrement ?? DefaultInstance.VersionIncrement.Value;
-
+            
             /// <inheritdoc />
             public override bool Equals(object obj) => this.Equals(obj as ReleaseOptions);
 
@@ -1070,15 +1082,15 @@
                         return true;
                     }
 
-                    return StringComparer.Ordinal.Equals(x.BranchName, y.BranchName) &&
-                           x.VersionIncrement == y.VersionIncrement;
+                    return StringComparer.Ordinal.Equals(x.BranchNameOrDefault, y.BranchNameOrDefault) &&
+                           x.VersionIncrementOrDefault == y.VersionIncrementOrDefault;
                 }
 
                 /// <inheritdoc />
                 public int GetHashCode(ReleaseOptions obj)
                 {
                     return obj != null
-                        ? (StringComparer.Ordinal.GetHashCode(obj.BranchName) + (int)obj.VersionIncrement)
+                        ? (StringComparer.Ordinal.GetHashCode(obj.BranchNameOrDefault) + (int)obj.VersionIncrementOrDefault)
                         : 0;
                 }
             }

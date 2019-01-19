@@ -114,6 +114,21 @@
                 {
                     property.ShouldSerialize = instance => ((VersionOptions.CloudBuildNumberCommitIdOptions)instance).WhereOrDefault != VersionOptions.CloudBuildNumberCommitIdOptions.DefaultInstance.Where.Value;
                 }
+                
+                if (property.DeclaringType == typeof(VersionOptions) && member.Name == nameof(VersionOptions.Release))
+                {
+                    property.ShouldSerialize = instance => !((VersionOptions)instance).ReleaseOrDefault.IsDefault;
+                }
+                
+                if (property.DeclaringType == typeof(VersionOptions.ReleaseOptions) && member.Name == nameof(VersionOptions.ReleaseOptions.BranchName))
+                {
+                    property.ShouldSerialize = instance => ((VersionOptions.ReleaseOptions)instance).BranchNameOrDefault != VersionOptions.ReleaseOptions.DefaultInstance.BranchName;
+                }
+
+                if (property.DeclaringType == typeof(VersionOptions.ReleaseOptions) && member.Name == nameof(VersionOptions.ReleaseOptions.VersionIncrement))
+                {
+                    property.ShouldSerialize = instance => ((VersionOptions.ReleaseOptions)instance).VersionIncrementOrDefault != VersionOptions.ReleaseOptions.DefaultInstance.VersionIncrement.Value;
+                }
             }
 
             return property;
