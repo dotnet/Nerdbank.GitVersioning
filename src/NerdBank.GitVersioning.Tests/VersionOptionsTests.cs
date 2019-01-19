@@ -178,5 +178,36 @@ public class VersionOptionsTests
         Assert.Throws<InvalidOperationException>(() => options.CloudBuildOrDefault.BuildNumberOrDefault.IncludeCommitIdOrDefault.Where = VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata);
         Assert.Throws<InvalidOperationException>(() => options.CloudBuildOrDefault.SetVersionVariables = true);
         Assert.Throws<InvalidOperationException>(() => options.NuGetPackageVersionOrDefault.SemVer = 2);
+        //TODO
+    }
+
+
+    [Fact]
+    public void ReleaseOptions_Equality()
+    {
+        var releaseOptions1 = new VersionOptions.ReleaseOptions() { };
+        var releaseOptions2 = new VersionOptions.ReleaseOptions() { };
+        var releaseOptions3 = new VersionOptions.ReleaseOptions()
+        {
+            BranchName = "branchName",
+            VersionIncrement = VersionOptions.ReleaseVersionIncrement.Major
+        };
+        var releaseOptions4 = new VersionOptions.ReleaseOptions()
+        {
+            BranchName = "branchName",
+            VersionIncrement = VersionOptions.ReleaseVersionIncrement.Major
+        };
+        var releaseOptions5 = new VersionOptions.ReleaseOptions()
+        {
+            BranchName = "branchName",
+            VersionIncrement = VersionOptions.ReleaseVersionIncrement.Minor
+        };
+
+        Assert.Equal(releaseOptions1, releaseOptions2);
+        Assert.Equal(releaseOptions3, releaseOptions4);
+
+        Assert.NotEqual(releaseOptions1, releaseOptions3);
+        Assert.NotEqual(releaseOptions1, releaseOptions5);
+        Assert.NotEqual(releaseOptions3, releaseOptions5);
     }
 }
