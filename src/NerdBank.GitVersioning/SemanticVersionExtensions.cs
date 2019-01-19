@@ -1,7 +1,7 @@
-﻿using System;
-
-namespace Nerdbank.GitVersioning
+﻿namespace Nerdbank.GitVersioning
 {
+    using System;
+
     /// <summary>
     /// Extension methods for <see cref="SemanticVersion"/>
     /// </summary>
