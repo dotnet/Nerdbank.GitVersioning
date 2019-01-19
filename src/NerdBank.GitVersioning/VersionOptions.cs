@@ -977,7 +977,8 @@
             internal static readonly ReleaseOptions DefaultInstance = new ReleaseOptions(isReadOnly: true)
             {
                 branchName = "release/v{0}", //TODO: Use something like {version} instead of {0} which would be more consistent with the {height} in the version
-                versionIncrement = ReleaseVersionIncrement.Minor
+                versionIncrement = ReleaseVersionIncrement.Minor,
+                firstUnstableTag = "alpha"
             };
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -988,6 +989,9 @@
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
             private ReleaseVersionIncrement? versionIncrement;
+
+            [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+            private string firstUnstableTag;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="ReleaseOptions"/> class
@@ -1036,7 +1040,23 @@
             /// </summary>
             [JsonIgnore]
             public ReleaseVersionIncrement VersionIncrementOrDefault => this.VersionIncrement ?? DefaultInstance.VersionIncrement.Value;
-            
+
+            /// <summary>
+            /// Gets or sets the first/default prerelease tag for new versions
+            /// </summary>
+            [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+            public string FirstUnstableTag
+            {
+                get => this.firstUnstableTag;
+                set => this.SetIfNotReadOnly(ref this.firstUnstableTag, value);
+            }
+
+            /// <summary>
+            /// Gets or sets the first/default prerelease tag for new versions
+            /// </summary>
+            [JsonIgnore]
+            public string FirstUnstableTagOrDefault => this.FirstUnstableTag ?? DefaultInstance.FirstUnstableTag;
+
             /// <inheritdoc />
             public override bool Equals(object obj) => this.Equals(obj as ReleaseOptions);
 
@@ -1083,15 +1103,23 @@
                     }
 
                     return StringComparer.Ordinal.Equals(x.BranchNameOrDefault, y.BranchNameOrDefault) &&
-                           x.VersionIncrementOrDefault == y.VersionIncrementOrDefault;
+                           x.VersionIncrementOrDefault == y.VersionIncrementOrDefault &&
+                           StringComparer.Ordinal.Equals(x.FirstUnstableTagOrDefault, y.FirstUnstableTagOrDefault);
                 }
 
                 /// <inheritdoc />
                 public int GetHashCode(ReleaseOptions obj)
                 {
-                    return obj != null
-                        ? (StringComparer.Ordinal.GetHashCode(obj.BranchNameOrDefault) + (int)obj.VersionIncrementOrDefault)
-                        : 0;
+                    if (obj == null)
+                        return 0;
+
+                    unchecked
+                    {
+                        var hash = StringComparer.Ordinal.GetHashCode(obj.BranchNameOrDefault) * 397;
+                        hash ^= (int)obj.VersionIncrementOrDefault;
+                        hash ^= StringComparer.Ordinal.GetHashCode(obj.FirstUnstableTagOrDefault);
+                        return hash;
+                    }                    
                 }
             }
         }

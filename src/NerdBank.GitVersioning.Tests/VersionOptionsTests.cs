@@ -180,35 +180,50 @@ public class VersionOptionsTests
         Assert.Throws<InvalidOperationException>(() => options.NuGetPackageVersionOrDefault.SemVer = 2);
         Assert.Throws<InvalidOperationException>(() => options.ReleaseOrDefault.BranchName = "BranchName");
         Assert.Throws<InvalidOperationException>(() => options.ReleaseOrDefault.VersionIncrement = VersionOptions.ReleaseVersionIncrement.Major);
+        Assert.Throws<InvalidOperationException>(() => options.ReleaseOrDefault.FirstUnstableTag = "-tag");
     }
 
 
     [Fact]
     public void ReleaseOptions_Equality()
     {
-        var releaseOptions1 = new VersionOptions.ReleaseOptions() { };
-        var releaseOptions2 = new VersionOptions.ReleaseOptions() { };
-        var releaseOptions3 = new VersionOptions.ReleaseOptions()
+        var ro1 = new VersionOptions.ReleaseOptions() { };
+        var ro2 = new VersionOptions.ReleaseOptions() { };
+        var ro3 = new VersionOptions.ReleaseOptions()
         {
             BranchName = "branchName",
             VersionIncrement = VersionOptions.ReleaseVersionIncrement.Major
         };
-        var releaseOptions4 = new VersionOptions.ReleaseOptions()
+        var ro4 = new VersionOptions.ReleaseOptions()
         {
             BranchName = "branchName",
             VersionIncrement = VersionOptions.ReleaseVersionIncrement.Major
         };
-        var releaseOptions5 = new VersionOptions.ReleaseOptions()
+        var ro5 = new VersionOptions.ReleaseOptions()
         {
             BranchName = "branchName",
-            VersionIncrement = VersionOptions.ReleaseVersionIncrement.Minor
+            VersionIncrement = VersionOptions.ReleaseVersionIncrement.Minor,            
+        };
+        var ro6 = new VersionOptions.ReleaseOptions()
+        {
+            BranchName = "branchName",
+            VersionIncrement = VersionOptions.ReleaseVersionIncrement.Minor,
+            FirstUnstableTag = "tag"
+        };
+        var ro7 = new VersionOptions.ReleaseOptions()
+        {
+            BranchName = "branchName",
+            VersionIncrement = VersionOptions.ReleaseVersionIncrement.Minor,
+            FirstUnstableTag = "tag"
         };
 
-        Assert.Equal(releaseOptions1, releaseOptions2);
-        Assert.Equal(releaseOptions3, releaseOptions4);
+        Assert.Equal(ro1, ro2);
+        Assert.Equal(ro3, ro4);
+        Assert.Equal(ro3, ro4);
 
-        Assert.NotEqual(releaseOptions1, releaseOptions3);
-        Assert.NotEqual(releaseOptions1, releaseOptions5);
-        Assert.NotEqual(releaseOptions3, releaseOptions5);
+        Assert.NotEqual(ro1, ro3);
+        Assert.NotEqual(ro1, ro5);
+        Assert.NotEqual(ro3, ro5);
+        Assert.NotEqual(ro5, ro6);
     }
 }

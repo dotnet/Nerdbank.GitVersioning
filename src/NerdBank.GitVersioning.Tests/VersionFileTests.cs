@@ -145,10 +145,14 @@ public class VersionFileTests : RepoTestBase
     [InlineData(@"{""cloudBuild"":{""setAllVariables"":false}}", @"{}")]
     [InlineData(@"{""release"":{""increment"":""minor""}}", @"{}")]
     [InlineData(@"{""release"":{""branchName"":""release/v{0}""}}", @"{}")]
-    [InlineData(@"{""release"":{""branchName"":""release/v{0}"",""versionIncrement"":""minor""}}", @"{}")]
+    [InlineData(@"{""release"":{""firstUnstableTag"":""alpha""}}", @"{}")]
+    [InlineData(@"{""release"":{""firstUnstableTag"":""tag""}}", @"{""release"":{""firstUnstableTag"":""tag""}}")]
+    [InlineData(@"{""release"":{""branchName"":""release/v{0}"",""versionIncrement"":""minor"",""firstUnstableTag"":""alpha""}}", @"{}")]
     [InlineData(@"{""release"":{""versionIncrement"":""major""}}", @"{""release"":{""versionIncrement"":""major""}}")]
     [InlineData(@"{""release"":{""branchName"":""someName""}}", @"{""release"":{""branchName"":""someName""}}")]
     [InlineData(@"{""release"":{""branchName"":""someName"",""versionIncrement"":""major""}}", @"{""release"":{""branchName"":""someName"",""versionIncrement"":""major""}}")]
+    [InlineData(@"{""release"":{""branchName"":""someName"",""versionIncrement"":""major"",""firstUnstableTag"":""alpha""}}", @"{""release"":{""branchName"":""someName"",""versionIncrement"":""major""}}")]
+    [InlineData(@"{""release"":{""branchName"":""someName"",""versionIncrement"":""major"",""firstUnstableTag"":""pre""}}", @"{""release"":{""branchName"":""someName"",""versionIncrement"":""major"",""firstUnstableTag"":""pre""}}")]
     public void JsonMinification(string full, string minimal)
     {
         var settings = VersionOptions.GetJsonSettings();
