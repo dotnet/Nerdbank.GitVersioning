@@ -134,6 +134,24 @@
               }
             }
           }
+        },
+        "release": {
+          "description": "Settings for the prepare-release command",
+          "type": "object",
+          "properties": {
+            "branchName": {
+              "description": "Defines the format of release branch names. Format must incluse a placeholder '{0}' for the version",
+              "type": "string",
+              "pattern": ".*\\{0\\}.*"
+            },
+            "versionIncrement": {
+              "type": "string",
+              "description": "Specifies how the version on the current branch is updated when creating a release branch",
+              "enum": [ "major", "minor" ],
+              "default": "minor"
+            }
+          },
+          "additionalProperties": false
         }
       }
     },
