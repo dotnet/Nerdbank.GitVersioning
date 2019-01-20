@@ -893,6 +893,7 @@
                     && AssemblyVersionOptions.EqualWithDefaultsComparer.Singleton.Equals(x.AssemblyVersionOrDefault, y.AssemblyVersionOrDefault)
                     && NuGetPackageVersionOptions.EqualWithDefaultsComparer.Singleton.Equals(x.NuGetPackageVersionOrDefault, y.NuGetPackageVersionOrDefault)
                     && CloudBuildOptions.EqualWithDefaultsComparer.Singleton.Equals(x.CloudBuildOrDefault, y.CloudBuildOrDefault)
+                    && ReleaseOptions.EqualWithDefaultsComparer.Singleton.Equals(x.ReleaseOrDefault, y.ReleaseOrDefault)
                     && x.BuildNumberOffset == y.BuildNumberOffset;
             }
 
