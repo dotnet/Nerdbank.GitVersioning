@@ -59,8 +59,7 @@
         /// Prepares a release for the specified directory by creating a release branch and incrementing the version in the current branch.
         /// </summary>
         /// <exception cref="ReleasePreparationException">Thrown when the release could not be created.</exception>
-        //TODO: prerelease tag parameter
-        public static void PrepareRelease(string projectDirectory, TextWriter stdout = null, TextWriter stderr = null)
+        public static void PrepareRelease(string projectDirectory, string releaseUnstableTag = null, TextWriter stdout = null, TextWriter stderr = null)
         {
             stdout = stdout ?? Console.Out;
             stderr = stderr ?? Console.Error;
@@ -93,7 +92,12 @@
 
             // update version in release branch    
             Commands.Checkout(repository, releaseBranch);
-            UpdateVersion(projectDirectory, repository, version => new SemanticVersion(version.Version));
+            UpdateVersion(projectDirectory, repository,
+                version =>
+                    string.IsNullOrEmpty(releaseUnstableTag)
+                        ? new SemanticVersion(version.Version)
+                        : version.SetFirstPrereleaseTag(releaseUnstableTag)
+            );
             
             // update version on main branch
             Commands.Checkout(repository, mainBranchName);

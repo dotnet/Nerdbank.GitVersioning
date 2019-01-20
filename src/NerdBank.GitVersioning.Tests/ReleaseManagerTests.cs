@@ -98,12 +98,14 @@ public class ReleaseManagerTests : RepoTestBase
     }
 
     [Theory]
-    [InlineData("1.2-pre", "1.2", "1.3-pre", ReleaseVersionIncrement.Minor, null, "pre")]
-    [InlineData("1.2-pre", "1.2", "2.2-pre", ReleaseVersionIncrement.Major, null, "pre")]
-    [InlineData("1.2-pre", "1.2", "1.3-pre", ReleaseVersionIncrement.Minor, "v{0}", "pre")]
-    [InlineData("1.2-pre+metadata", "1.2", "1.3-pre+metadata", ReleaseVersionIncrement.Minor, null, "pre")]
-    [InlineData("1.2-rc.{height}", "1.2", "1.3-beta.{height}", ReleaseVersionIncrement.Minor, null, "beta")]
-    [InlineData("1.2-rc.{height}", "1.2", "1.3-beta.{height}", ReleaseVersionIncrement.Minor, null, "-beta")]
+    [InlineData("1.2-pre", "1.2", "1.3-pre", ReleaseVersionIncrement.Minor, null, "pre", null)]
+    [InlineData("1.2-pre", "1.2", "2.2-pre", ReleaseVersionIncrement.Major, null, "pre", null)]
+    [InlineData("1.2-pre", "1.2", "1.3-pre", ReleaseVersionIncrement.Minor, "v{0}", "pre", null)]
+    [InlineData("1.2-pre+metadata", "1.2", "1.3-pre+metadata", ReleaseVersionIncrement.Minor, null, "pre", null)]
+    [InlineData("1.2-rc.{height}", "1.2", "1.3-beta.{height}", ReleaseVersionIncrement.Minor, null, "beta", null)]
+    [InlineData("1.2-rc.{height}", "1.2", "1.3-beta.{height}", ReleaseVersionIncrement.Minor, null, "-beta", null)]
+    [InlineData("1.2-beta.{height}", "1.2-rc.{height}", "1.3-alpha.{height}", ReleaseVersionIncrement.Minor, null, "alpha", "rc")]
+    [InlineData("1.2-beta", "1.2-rc", "1.3-alpha", ReleaseVersionIncrement.Minor, null, "alpha", "rc")]
     //TODO: more test cases (different release settings)
     public void PrepareRelease_OnMaster(
         string initialVersion, 
@@ -111,7 +113,8 @@ public class ReleaseManagerTests : RepoTestBase
         string nextVersion, 
         ReleaseVersionIncrement versionIncrement, 
         string releaseBranchName,
-        string firstUnstableTag)
+        string firstUnstableTag,
+        string releaseUnstableTag)
     {
         releaseBranchName = releaseBranchName ?? new ReleaseOptions().BranchNameOrDefault;
 
@@ -155,12 +158,12 @@ public class ReleaseManagerTests : RepoTestBase
             }
         };
 
-        var expectedBranchName = string.Format(releaseBranchName, releaseVersion);
+        var expectedBranchName = string.Format(releaseBranchName, expectedVersionOptionsReleaseBranch.Version.Version);
         var initialBranchName = this.Repo.Head.FriendlyName;
         var tipBeforeRelease = this.Repo.Head.Tip;
 
         // prepare release
-        ReleaseManager.PrepareRelease(this.RepoPath);
+        ReleaseManager.PrepareRelease(this.RepoPath, releaseUnstableTag);
 
         // check if a branch was created
         Assert.Contains(this.Repo.Branches, branch => branch.FriendlyName == expectedBranchName);
