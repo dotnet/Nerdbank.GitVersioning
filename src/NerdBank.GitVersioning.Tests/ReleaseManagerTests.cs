@@ -72,11 +72,15 @@ public class ReleaseManagerTests : RepoTestBase
     }
 
     [Theory]
-    [InlineData("1.2-pre", "1.2", "1.3-pre", ReleaseVersionIncrement.Minor)]
-    [InlineData("1.2-pre", "1.2", "2.2-pre", ReleaseVersionIncrement.Major)]
+    [InlineData("1.2-pre", "1.2", "1.3-pre", ReleaseVersionIncrement.Minor, null)]
+    [InlineData("1.2-pre", "1.2", "2.2-pre", ReleaseVersionIncrement.Major, null)]
+    [InlineData("1.2-pre", "1.2", "1.3-pre", ReleaseVersionIncrement.Minor, "v{0}")]
+    [InlineData("1.2-pre+metadata", "1.2", "1.3-pre+metadata", ReleaseVersionIncrement.Minor, null)]
     //TODO: more test cases (different release settings)
-    public void PrepareRelease_OnMaster(string initialVersion, string releaseVersion, string nextVersion, ReleaseVersionIncrement versionIncrement)
+    public void PrepareRelease_OnMaster(string initialVersion, string releaseVersion, string nextVersion, ReleaseVersionIncrement versionIncrement, string releaseBranchName)
     {
+        releaseBranchName = releaseBranchName ?? new ReleaseOptions().BranchNameOrDefault;
+
         // create and configure repository
         this.InitializeSourceControl();
         this.Repo.Config.Set("user.name", this.Signer.Name, ConfigurationLevel.Local);
@@ -88,7 +92,8 @@ public class ReleaseManagerTests : RepoTestBase
             Version = SemanticVersion.Parse(initialVersion),
             Release = new ReleaseOptions()
             {
-                VersionIncrement = versionIncrement
+                VersionIncrement = versionIncrement,
+                BranchName = releaseBranchName
             }
         };
         this.WriteVersionFile(initialVersionOptions);
@@ -98,7 +103,8 @@ public class ReleaseManagerTests : RepoTestBase
             Version = SemanticVersion.Parse(releaseVersion),
             Release = new ReleaseOptions()
             {
-                VersionIncrement = versionIncrement
+                VersionIncrement = versionIncrement,
+                BranchName = releaseBranchName
             }
         };
 
@@ -107,11 +113,12 @@ public class ReleaseManagerTests : RepoTestBase
             Version = SemanticVersion.Parse(nextVersion),
             Release = new ReleaseOptions()
             {
-                VersionIncrement = versionIncrement
+                VersionIncrement = versionIncrement,
+                BranchName = releaseBranchName
             }
         };
 
-        var expectedBranchName = string.Format(initialVersionOptions.ReleaseOrDefault.BranchNameOrDefault, releaseVersion);
+        var expectedBranchName = string.Format(releaseBranchName, releaseVersion);
         var initialBranchName = this.Repo.Head.FriendlyName;
         var tipBeforeRelease = this.Repo.Head.Tip;
 
