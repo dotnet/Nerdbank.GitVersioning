@@ -18,35 +18,36 @@
             if (increment != VersionOptions.ReleaseVersionIncrement.Major && increment != VersionOptions.ReleaseVersionIncrement.Minor)
                 throw new ArgumentException($"Unexpected increment value '{increment}'", nameof(increment));
 
-            var majorIncrement = increment == VersionOptions.ReleaseVersionIncrement.Major ? 1 : 0;
-            var minorIncrement = increment == VersionOptions.ReleaseVersionIncrement.Minor ? 1 : 0;
+            var major = currentVersion.Version.Major;
+            var minor = currentVersion.Version.Minor;
+
+            if(increment == VersionOptions.ReleaseVersionIncrement.Major)
+            {
+                major += 1;
+                minor = 0;
+            }
+            else
+            {
+                minor += 1;
+            }
             
             // use the appropriate constructor for the new version object
             // depending on whether the current versions has 2, 3 or 4 segments
             Version newVersion;
             if (currentVersion.Version.Build >= 0 && currentVersion.Version.Revision > 0)
-            {
+            {                
                 // 4 segment version
-                newVersion = new Version(
-                    currentVersion.Version.Major + majorIncrement,
-                    currentVersion.Version.Minor + minorIncrement,
-                    currentVersion.Version.Build,
-                    currentVersion.Version.Revision);
+                newVersion = new Version(major, minor, 0, 0);
             }
             else if (currentVersion.Version.Build >= 0)
             {
                 // 3 segment version
-                newVersion = new Version(
-                    currentVersion.Version.Major + majorIncrement,
-                    currentVersion.Version.Minor + minorIncrement,
-                    currentVersion.Version.Build);
+                newVersion = new Version(major, minor, 0);
             }
             else
             {
                 // 2 segment version
-                newVersion = new Version(
-                    currentVersion.Version.Major + majorIncrement,
-                    currentVersion.Version.Minor + minorIncrement);
+                newVersion = new Version(major, minor);
             }
             
             return new SemanticVersion(newVersion, currentVersion.Prerelease, currentVersion.BuildMetadata);

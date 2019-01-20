@@ -177,7 +177,7 @@ public class ReleaseManagerTests : RepoTestBase
 
     [Theory]
     [InlineData("1.2-pre", null, ReleaseVersionIncrement.Minor, "pre", null, "1.2", "1.3-pre")]
-    [InlineData("1.2-pre", null, ReleaseVersionIncrement.Major, "pre", null, "1.2", "2.2-pre")]
+    [InlineData("1.2-pre", null, ReleaseVersionIncrement.Major, "pre", null, "1.2", "2.0-pre")]
     [InlineData("1.2-pre", "v{0}", ReleaseVersionIncrement.Minor, "pre", null, "1.2", "1.3-pre")]
     [InlineData("1.2-pre+metadata", null, ReleaseVersionIncrement.Minor, "pre", null, "1.2+metadata", "1.3-pre+metadata")]
     [InlineData("1.2-rc.{height}", null, ReleaseVersionIncrement.Minor, "beta", null, "1.2", "1.3-beta.{height}")]
