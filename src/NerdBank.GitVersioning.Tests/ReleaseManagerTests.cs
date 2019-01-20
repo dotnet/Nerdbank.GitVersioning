@@ -47,6 +47,13 @@ public class ReleaseManagerTests : RepoTestBase
     }
 
     [Fact]
+    public void PrepareRelease_NoVersionFile()
+    {
+        this.InitializeSourceControl();
+        this.AssertError(() => ReleaseManager.PrepareRelease(this.RepoPath), ReleasePreparationError.NoVersionFile);
+    }
+
+    [Fact]
     public void PrepareRelease_InvalidBranchNameSetting()
     {
         this.InitializeSourceControl();
@@ -62,8 +69,7 @@ public class ReleaseManagerTests : RepoTestBase
         };
         this.WriteVersionFile(versionOptions);
 
-
-        AssertError(() => ReleaseManager.PrepareRelease(this.RepoPath), ReleasePreparationError.InvalidBranchNameSetting);
+        this.AssertError(() => ReleaseManager.PrepareRelease(this.RepoPath), ReleasePreparationError.InvalidBranchNameSetting);
     }
 
     [Theory]

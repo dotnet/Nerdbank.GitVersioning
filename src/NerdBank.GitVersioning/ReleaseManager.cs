@@ -30,7 +30,11 @@
             /// <summary>
             /// The "branchName" setting in "version.json" is invalid
             /// </summary>
-            InvalidBranchNameSetting
+            InvalidBranchNameSetting,
+            /// <summary>
+            /// version.json/version.txt not found
+            /// </summary>
+            NoVersionFile
         }
 
         /// <summary>
@@ -61,88 +65,106 @@
             stdout = stdout ?? Console.Out;
             stderr = stderr ?? Console.Error;
             
-            // get the current version
-            var currentVersionOptions = VersionFile.GetVersion(projectDirectory);
-
             // open the git repository
-            var repository = GitExtensions.OpenGitRepo(projectDirectory);
-            if(repository == null)
-            {
-                stderr.WriteLine($"No git repository found above directory '{projectDirectory}'");
-                throw new ReleasePreparationException(ReleasePreparationError.NoGitRepo);
-            }
+            var repository = GetRepository(projectDirectory, stdout, stderr);
             
-            // abort if there are any pending changes
-            if(repository.RetrieveStatus().IsDirty)
+            // get the current version
+            var versionOptions = VersionFile.GetVersion(projectDirectory);
+            if(versionOptions == null)
             {
-                stderr.WriteLine($"Uncommitted changes in directory '{projectDirectory}'");
-                throw new ReleasePreparationException(ReleasePreparationError.UncommittedChanges);
+                stderr.WriteLine($"Failed to load version file for directory '{projectDirectory}'");
+                throw new ReleasePreparationException(ReleasePreparationError.NoVersionFile);
             }
 
-            var releaseBranchName = GetReleaseBranchName(currentVersionOptions);
-            var currentBranch = repository.Branches.Single(x => x.IsCurrentRepositoryHead);
+            var releaseOptions = versionOptions.ReleaseOrDefault;
+
+            var releaseBranchName = GetReleaseBranchName(versionOptions, stdout, stderr);
+            var mainBranchName = repository.Branches.Single(x => x.IsCurrentRepositoryHead);
 
             // check if the current branch is the release branch
-            if (currentBranch.FriendlyName.Equals(releaseBranchName, StringComparison.OrdinalIgnoreCase))
+            if (mainBranchName.FriendlyName.Equals(releaseBranchName, StringComparison.OrdinalIgnoreCase))
             {
                 //TODO: only update the version. For now, this is an error
                 throw new ReleasePreparationException(ReleasePreparationError.OnReleaseBranch);
             }
 
-            // create release branch
-            
+            // create release branch            
             var releaseBranch = repository.CreateBranch(releaseBranchName);
 
             // update version in release branch    
-            var releaseVersion = VersionFile.GetVersion(projectDirectory);
-            releaseVersion.Version = new SemanticVersion(releaseVersion.Version.Version);
             Commands.Checkout(repository, releaseBranch);
-            var filePath = VersionFile.SetVersion(projectDirectory, releaseVersion);
-            Commands.Stage(repository, filePath);
-
-            var signature = repository.Config.BuildSignature(DateTimeOffset.Now);
-            if(signature == null)
+            UpdateVersion(projectDirectory, repository, version => new SemanticVersion(version.Version));
+            
+            // update version on main branch
+            Commands.Checkout(repository, mainBranchName);
+            UpdateVersion(projectDirectory, repository,
+                version => version
+                    .Increment(releaseOptions.VersionIncrementOrDefault)
+                    .SetFirstPrereleaseTag(releaseOptions.FirstUnstableTagOrDefault)
+            );
+            
+            // Merge release branch back to main branch
+            var mergeOptions = new MergeOptions()
             {
-                //TODO
-            }
-            repository.Commit($"Create release branch for version '{releaseVersion.Version}'", signature, signature);
-
-            // switch back to previous branch
-            Commands.Checkout(repository, currentBranch);
-
-            // edit version on current branch
-            var newVersion = VersionFile.GetVersion(projectDirectory);
-            newVersion.Version = newVersion
-                .Version
-                .Increment(currentVersionOptions.ReleaseOrDefault.VersionIncrementOrDefault)
-                .SetFirstPrereleaseTag(currentVersionOptions.ReleaseOrDefault.FirstUnstableTagOrDefault);
-
-            filePath = VersionFile.SetVersion(projectDirectory, newVersion);
-            Commands.Stage(repository, filePath);
-            repository.Commit($"Set version to {newVersion.Version}", signature, signature);
-
-            // Merge release branch back to initial branch
-            var mergeResult = repository.Merge(
-                releaseBranch, 
-                signature, 
-                new MergeOptions()
-                {
-                    CommitOnSuccess = true,
-                    MergeFileFavor = MergeFileFavor.Ours
-                });
+                CommitOnSuccess = true,
+                MergeFileFavor = MergeFileFavor.Ours
+            };
+            repository.Merge(releaseBranch, GetSignature(repository), mergeOptions);
         }
 
 
-        private static string GetReleaseBranchName(VersionOptions versionOptions)
+        private static string GetReleaseBranchName(VersionOptions versionOptions, TextWriter stdout, TextWriter stderr)
         {
             var branchNameFormat = versionOptions.ReleaseOrDefault.BranchNameOrDefault;
 
             if(string.IsNullOrEmpty(branchNameFormat) || !branchNameFormat.Contains("{0}"))
             {
+                stderr.WriteLine($"Invalid 'branchName' setting '{branchNameFormat}'. Missing version placeholder '{{0}}'");
                 throw new ReleasePreparationException(ReleasePreparationError.InvalidBranchNameSetting);
             }
             
             return string.Format(branchNameFormat, versionOptions.Version.Version);                        
+        }
+
+        private static void UpdateVersion(string projectDirectory, Repository repository, Func<SemanticVersion, SemanticVersion> updateAction)
+        {
+            var signature = GetSignature(repository);
+
+            var versionOptions = VersionFile.GetVersion(projectDirectory);
+            versionOptions.Version = updateAction(versionOptions.Version);
+            var filePath = VersionFile.SetVersion(projectDirectory, versionOptions);
+            
+            Commands.Stage(repository, filePath);
+            repository.Commit($"Set version to '{versionOptions.Version}'", signature, signature);
+        }
+
+        private static Signature GetSignature(Repository repository)
+        {
+            var signature = repository.Config.BuildSignature(DateTimeOffset.Now);
+            if (signature == null)
+            {
+                //TODO
+            }
+            return signature;
+        }
+
+        private static Repository GetRepository(string projectDirectory, TextWriter stdput, TextWriter stderr)
+        {
+            var repository = GitExtensions.OpenGitRepo(projectDirectory);
+            if (repository == null)
+            {
+                stderr.WriteLine($"No git repository found above directory '{projectDirectory}'");
+                throw new ReleasePreparationException(ReleasePreparationError.NoGitRepo);
+            }
+
+            // abort if there are any pending changes
+            if (repository.RetrieveStatus().IsDirty)
+            {
+                stderr.WriteLine($"Uncommitted changes in directory '{projectDirectory}'");
+                throw new ReleasePreparationException(ReleasePreparationError.UncommittedChanges);
+            }
+
+            return repository;
         }
     }
 }
