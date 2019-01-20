@@ -46,6 +46,26 @@ public class ReleaseManagerTests : RepoTestBase
         this.AssertError(() => ReleaseManager.PrepareRelease(this.RepoPath), ReleasePreparationError.UncommittedChanges);
     }
 
+    [Fact]
+    public void PrepareRelease_InvalidBranchNameSetting()
+    {
+        this.InitializeSourceControl();
+
+        // create version.json
+        var versionOptions = new VersionOptions()
+        {
+            Version = SemanticVersion.Parse("1.2-pre"),
+            Release = new ReleaseOptions()
+            {
+                BranchName = "nameWithoutPlaceholder",
+            }
+        };
+        this.WriteVersionFile(versionOptions);
+
+
+        AssertError(() => ReleaseManager.PrepareRelease(this.RepoPath), ReleasePreparationError.InvalidBranchNameSetting);
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("v{0}")]

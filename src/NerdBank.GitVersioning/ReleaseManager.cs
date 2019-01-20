@@ -26,7 +26,11 @@
             /// <summary>
             /// The current branch is already a release branch
             /// </summary>
-            OnReleaseBranch
+            OnReleaseBranch,
+            /// <summary>
+            /// The "branchName" setting in "version.json" is invalid
+            /// </summary>
+            InvalidBranchNameSetting
         }
 
         /// <summary>
@@ -131,9 +135,14 @@
 
         private static string GetReleaseBranchName(VersionOptions versionOptions)
         {
-            //TODO: Check format
-            return String.Format(versionOptions.ReleaseOrDefault.BranchNameOrDefault, versionOptions.Version.Version);                        
-        }
+            var branchNameFormat = versionOptions.ReleaseOrDefault.BranchNameOrDefault;
 
+            if(string.IsNullOrEmpty(branchNameFormat) || !branchNameFormat.Contains("{0}"))
+            {
+                throw new ReleasePreparationException(ReleasePreparationError.InvalidBranchNameSetting);
+            }
+            
+            return string.Format(branchNameFormat, versionOptions.Version.Version);                        
+        }
     }
 }
