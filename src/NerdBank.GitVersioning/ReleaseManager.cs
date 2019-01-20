@@ -20,7 +20,7 @@
             /// </summary>
             NoGitRepo,
             /// <summary>
-            /// There are pending changes in the proejct directory
+            /// There are pending changes in the project directory
             /// </summary>
             UncommittedChanges,
             /// <summary>
@@ -40,7 +40,7 @@
             public ReleasePreparationError Error { get; }
 
             /// <summary>
-            /// Initializes a new instance ogf <see cref="ReleasePreparationException"/>
+            /// Initializes a new instance of <see cref="ReleasePreparationException"/>
             /// </summary>
             /// <param name="error">The error that occurred.</param>
             public ReleasePreparationException(ReleasePreparationError error) => this.Error = error;
@@ -71,7 +71,7 @@
             // abort if there are any pending changes
             if(repository.RetrieveStatus().IsDirty)
             {
-                stderr.WriteLine($"Uncommited changes in directory '{projectDirectory}'");
+                stderr.WriteLine($"Uncommitted changes in directory '{projectDirectory}'");
                 throw new ReleasePreparationException(ReleasePreparationError.UncommittedChanges);
             }
 
@@ -106,7 +106,13 @@
             // switch back to previous branch
             Commands.Checkout(repository, currentBranch);
 
-            //TODO: edit version on master current branch
+            // edit version on master current branch
+            var newVersion = VersionFile.GetVersion(projectDirectory);
+            newVersion.Version = newVersion.Version.Increment(currentVersionOptions.ReleaseOrDefault.VersionIncrementOrDefault);
+            filePath = VersionFile.SetVersion(projectDirectory, newVersion);
+            Commands.Stage(repository, filePath);
+            repository.Commit($"Set version to {newVersion.Version}", signature, signature);
+
 
             //TODO: Merge back release branch 
         }

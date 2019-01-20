@@ -22,11 +22,11 @@
             var minorIncrement = increment == VersionOptions.ReleaseVersionIncrement.Minor ? 1 : 0;
             
             // use the appropriate constructor for the new version object
-            // dependening on whether the current versions has 2, 3 or 4 segements
+            // depending on whether the current versions has 2, 3 or 4 segments
             Version newVersion;
             if (currentVersion.Version.Build >= 0 && currentVersion.Version.Revision > 0)
             {
-                // 4 segement version
+                // 4 segment version
                 newVersion = new Version(
                     currentVersion.Version.Major + majorIncrement,
                     currentVersion.Version.Minor + minorIncrement,
@@ -35,7 +35,7 @@
             }
             else if (currentVersion.Version.Build >= 0)
             {
-                // 3 segement version
+                // 3 segment version
                 newVersion = new Version(
                     currentVersion.Version.Major + majorIncrement,
                     currentVersion.Version.Minor + minorIncrement,

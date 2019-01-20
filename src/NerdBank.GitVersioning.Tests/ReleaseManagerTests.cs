@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using LibGit2Sharp;
 using Nerdbank.GitVersioning;
 using Nerdbank.GitVersioning.Tests;
@@ -20,10 +17,7 @@ public class ReleaseManagerTests : RepoTestBase
     [Fact]
     public void PrepareRelease_NoGitRepo()
     {
-        this.AssertError(
-            () => ReleaseManager.PrepareRelease(this.RepoPath),
-            ReleasePreparationError.NoGitRepo
-        );        
+        this.AssertError(() => ReleaseManager.PrepareRelease(this.RepoPath), ReleasePreparationError.NoGitRepo);        
     }
 
     [Fact]
@@ -33,10 +27,7 @@ public class ReleaseManagerTests : RepoTestBase
 
         File.WriteAllText(Path.Combine(this.RepoPath, "file1.txt"), "");
 
-        this.AssertError(
-            () => ReleaseManager.PrepareRelease(this.RepoPath),
-            ReleasePreparationError.UncommittedChanges
-        );  
+        this.AssertError(() => ReleaseManager.PrepareRelease(this.RepoPath), ReleasePreparationError.UncommittedChanges);  
     }
 
     [Fact]
@@ -50,10 +41,7 @@ public class ReleaseManagerTests : RepoTestBase
         Commands.Stage(this.Repo, filePath);
 
 
-        this.AssertError(
-            () => ReleaseManager.PrepareRelease(this.RepoPath),
-            ReleasePreparationError.UncommittedChanges
-        );
+        this.AssertError(() => ReleaseManager.PrepareRelease(this.RepoPath), ReleasePreparationError.UncommittedChanges);
     }
 
     [Theory]
@@ -78,12 +66,7 @@ public class ReleaseManagerTests : RepoTestBase
         var branch = this.Repo.CreateBranch(String.Format(releaseBranchFormat, version));
         Commands.Checkout(this.Repo, branch);
 
-
-        this.AssertError(
-            () => ReleaseManager.PrepareRelease(this.RepoPath),
-            ReleasePreparationError.OnReleaseBranch
-        );
-
+        this.AssertError(() => ReleaseManager.PrepareRelease(this.RepoPath), ReleasePreparationError.OnReleaseBranch);
     }
 
     [Fact]
@@ -91,13 +74,14 @@ public class ReleaseManagerTests : RepoTestBase
     public void PrepareRelease_OnMaster()
     {
         var version = SemanticVersion.Parse("1.2-pre");
+        var nextVersion = SemanticVersion.Parse("1.3-pre");
 
         // create and configure repository
         this.InitializeSourceControl();
         this.Repo.Config.Set("user.name", this.Signer.Name, ConfigurationLevel.Local);
         this.Repo.Config.Set("user.email", this.Signer.Email, ConfigurationLevel.Local);
         
-        // cretae version.json
+        // create version.json
         var versionOptions = new VersionOptions()
         {
             Version = version,
@@ -105,22 +89,34 @@ public class ReleaseManagerTests : RepoTestBase
         };
         this.WriteVersionFile(versionOptions);
 
-        var expectedBranchName = String.Format(versionOptions.ReleaseOrDefault.BranchNameOrDefault, version.Version);
+        var expectedBranchName = string.Format(versionOptions.ReleaseOrDefault.BranchNameOrDefault, version.Version);
+
+        var tipBeforeRelease = this.Repo.Branches["master"].Tip;
 
         // prepare release
         ReleaseManager.PrepareRelease(this.RepoPath);
 
         // check if a branch was created
-        Assert.Contains(this.Repo.Branches, branch => branch.FriendlyName == expectedBranchName);
-        var masterBranch = this.Repo.Branches.Single(branch => branch.FriendlyName == "master");
-        var releaseBranch = this.Repo.Branches.Single(branch => branch.FriendlyName == expectedBranchName);
+        Assert.Contains(this.Repo.Branches, branch => branch.FriendlyName == expectedBranchName);        
+        
+        // check if release branch contains a new commit 
+        // parent of new commit must be the commit before preparing the release
+        var releaseBranch = this.Repo.Branches[expectedBranchName];
+        Assert.NotEqual(releaseBranch.Tip.Id, tipBeforeRelease.Id);
+        Assert.Equal(releaseBranch.Tip.Parents.Single().Id, tipBeforeRelease.Id);
 
-        // check if if release branch contains a new commit
-        Assert.NotEqual(releaseBranch.Tip.Sha, masterBranch.Tip.Sha);
+        // check if master branch contains a new commit
+        var masterBranch = this.Repo.Branches["master"];
+        Assert.NotEqual(masterBranch.Tip.Id, tipBeforeRelease.Id);
+        Assert.Equal(masterBranch.Tip.Parents.Single().Id, tipBeforeRelease.Id);
 
         // check version on release branch
         var releaseBranchVersion = VersionFile.GetVersion(releaseBranch.Tip);
         Assert.Equal(version.Version.ToString(), releaseBranchVersion.Version.ToString());
+
+        // check version on master branch
+        var masterBranchVersion = VersionFile.GetVersion(masterBranch.Tip);
+        Assert.Equal(nextVersion.ToString(), masterBranchVersion.Version.ToString());
     }
 
 
