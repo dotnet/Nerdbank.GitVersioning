@@ -51,5 +51,34 @@
             
             return new SemanticVersion(newVersion, currentVersion.Prerelease, currentVersion.BuildMetadata);
         }
+        
+        /// <summary>
+        /// Sets the first prerelease tag of the specified semantic version to the specified value.
+        /// </summary>
+        /// <param name="version">The version which's prerelease tag to modify.</param>
+        /// <param name="newFirstTag">The new prerelease tag.</param>
+        /// <returns>Returns a new instance of <see cref="SemanticVersion"/> with the updated prerelease tag</returns>
+        public static SemanticVersion SetFirstPrereleaseTag(this SemanticVersion version, string newFirstTag)
+        {
+            string preRelease;
+            if(string.IsNullOrEmpty(version.Prerelease))
+            {
+                preRelease = newFirstTag; 
+            }
+            else if(version.Prerelease.Contains("."))
+            {
+                preRelease = newFirstTag + version.Prerelease.Substring(version.Prerelease.IndexOf("."));
+            }
+            else
+            {
+                preRelease = newFirstTag;
+            }        
+
+            if (!string.IsNullOrEmpty(preRelease) && !preRelease.StartsWith("-"))
+                preRelease = "-" + preRelease;
+
+            return new SemanticVersion(version.Version, preRelease, version.BuildMetadata);            
+        }
+
     }
 }
