@@ -70,6 +70,7 @@
         }
 
 
+        //TODO: Parameter to explicitly specify the next version
         /// <summary>
         /// Prepares a release for the specified directory by creating a release branch and incrementing the version in the current branch.
         /// </summary>
@@ -161,7 +162,7 @@
             var filePath = VersionFile.SetVersion(projectDirectory, versionOptions);
             
             Commands.Stage(repository, filePath);
-            repository.Commit($"Set version to '{versionOptions.Version}'", signature, signature);
+            repository.Commit($"Set version to '{versionOptions.Version}'", signature, signature, new CommitOptions() { AllowEmptyCommit = true } );
         }
 
         private static Signature GetSignature(Repository repository)
