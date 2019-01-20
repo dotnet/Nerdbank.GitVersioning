@@ -72,12 +72,20 @@ public class ReleaseManagerTests : RepoTestBase
     }
 
     [Theory]
-    [InlineData("1.2-pre", "1.2", "1.3-pre", ReleaseVersionIncrement.Minor, null)]
-    [InlineData("1.2-pre", "1.2", "2.2-pre", ReleaseVersionIncrement.Major, null)]
-    [InlineData("1.2-pre", "1.2", "1.3-pre", ReleaseVersionIncrement.Minor, "v{0}")]
-    [InlineData("1.2-pre+metadata", "1.2", "1.3-pre+metadata", ReleaseVersionIncrement.Minor, null)]
+    [InlineData("1.2-pre", "1.2", "1.3-pre", ReleaseVersionIncrement.Minor, null, "pre")]
+    [InlineData("1.2-pre", "1.2", "2.2-pre", ReleaseVersionIncrement.Major, null, "pre")]
+    [InlineData("1.2-pre", "1.2", "1.3-pre", ReleaseVersionIncrement.Minor, "v{0}", "pre")]
+    [InlineData("1.2-pre+metadata", "1.2", "1.3-pre+metadata", ReleaseVersionIncrement.Minor, null, "pre")]
+    [InlineData("1.2-rc.{height}", "1.2", "1.3-beta.{height}", ReleaseVersionIncrement.Minor, null, "beta")]
+    [InlineData("1.2-rc.{height}", "1.2", "1.3-beta.{height}", ReleaseVersionIncrement.Minor, null, "-beta")]
     //TODO: more test cases (different release settings)
-    public void PrepareRelease_OnMaster(string initialVersion, string releaseVersion, string nextVersion, ReleaseVersionIncrement versionIncrement, string releaseBranchName)
+    public void PrepareRelease_OnMaster(
+        string initialVersion, 
+        string releaseVersion, 
+        string nextVersion, 
+        ReleaseVersionIncrement versionIncrement, 
+        string releaseBranchName,
+        string firstUnstableTag)
     {
         releaseBranchName = releaseBranchName ?? new ReleaseOptions().BranchNameOrDefault;
 
@@ -93,7 +101,8 @@ public class ReleaseManagerTests : RepoTestBase
             Release = new ReleaseOptions()
             {
                 VersionIncrement = versionIncrement,
-                BranchName = releaseBranchName
+                BranchName = releaseBranchName,
+                FirstUnstableTag = firstUnstableTag
             }
         };
         this.WriteVersionFile(initialVersionOptions);
@@ -104,7 +113,8 @@ public class ReleaseManagerTests : RepoTestBase
             Release = new ReleaseOptions()
             {
                 VersionIncrement = versionIncrement,
-                BranchName = releaseBranchName
+                BranchName = releaseBranchName,
+                FirstUnstableTag = firstUnstableTag
             }
         };
 
@@ -114,7 +124,8 @@ public class ReleaseManagerTests : RepoTestBase
             Release = new ReleaseOptions()
             {
                 VersionIncrement = versionIncrement,
-                BranchName = releaseBranchName
+                BranchName = releaseBranchName,
+                FirstUnstableTag = firstUnstableTag
             }
         };
 

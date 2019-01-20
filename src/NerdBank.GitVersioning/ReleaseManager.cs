@@ -106,9 +106,13 @@
             // switch back to previous branch
             Commands.Checkout(repository, currentBranch);
 
-            // edit version on master current branch
+            // edit version on current branch
             var newVersion = VersionFile.GetVersion(projectDirectory);
-            newVersion.Version = newVersion.Version.Increment(currentVersionOptions.ReleaseOrDefault.VersionIncrementOrDefault);
+            newVersion.Version = newVersion
+                .Version
+                .Increment(currentVersionOptions.ReleaseOrDefault.VersionIncrementOrDefault)
+                .SetFirstPrereleaseTag(currentVersionOptions.ReleaseOrDefault.FirstUnstableTagOrDefault);
+
             filePath = VersionFile.SetVersion(projectDirectory, newVersion);
             Commands.Stage(repository, filePath);
             repository.Commit($"Set version to {newVersion.Version}", signature, signature);
