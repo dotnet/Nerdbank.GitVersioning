@@ -55,40 +55,51 @@
         }
 
 
+        private readonly TextWriter stdout;
+        private readonly TextWriter stderr;
+
+        /// <summary>
+        /// Initializes a new instance of <see cref="ReleaseManager"/>
+        /// </summary>
+        /// <param name="stdout">The <see cref="TextWriter"/> to write output to.</param>
+        /// <param name="stderr">The <see cref="TextWriter"/> to write error messages to to.</param>
+        public ReleaseManager(TextWriter stdout = null, TextWriter stderr = null)
+        {
+            this.stdout = stdout ?? Console.Out;
+            this.stderr = stderr ?? Console.Error;
+        }
+
+
         /// <summary>
         /// Prepares a release for the specified directory by creating a release branch and incrementing the version in the current branch.
         /// </summary>
         /// <exception cref="ReleasePreparationException">Thrown when the release could not be created.</exception>
-        public static void PrepareRelease(string projectDirectory, string releaseUnstableTag = null, TextWriter stdout = null, TextWriter stderr = null)
+        public void PrepareRelease(string projectDirectory, string releaseUnstableTag = null)
         {
-            stdout = stdout ?? Console.Out;
-            stderr = stderr ?? Console.Error;
-            
             // open the git repository
-            var repository = GetRepository(projectDirectory, stdout, stderr);
+            var repository = this.GetRepository(projectDirectory);
             
             // get the current version
             var versionOptions = VersionFile.GetVersion(projectDirectory);
             if(versionOptions == null)
             {
-                stderr.WriteLine($"Failed to load version file for directory '{projectDirectory}'");
+                this.stderr.WriteLine($"Failed to load version file for directory '{projectDirectory}'");
                 throw new ReleasePreparationException(ReleasePreparationError.NoVersionFile);
             }
 
             var releaseOptions = versionOptions.ReleaseOrDefault;
 
-            var releaseBranchName = GetReleaseBranchName(versionOptions, stdout, stderr);
+            var releaseBranchName = this.GetReleaseBranchName(versionOptions);
             var mainBranchName = repository.Branches.Single(x => x.IsCurrentRepositoryHead);
 
             // check if the current branch is the release branch
             if (mainBranchName.FriendlyName.Equals(releaseBranchName, StringComparison.OrdinalIgnoreCase))
             {
-                UpdateVersion(projectDirectory, repository,
+                this.UpdateVersion(projectDirectory, repository,
                     version =>
                         string.IsNullOrEmpty(releaseUnstableTag)
                             ? version.WithoutPrepreleaseTags()
-                            : version.SetFirstPrereleaseTag(releaseUnstableTag),
-                stdout, stderr);
+                            : version.SetFirstPrereleaseTag(releaseUnstableTag));
                 return;
             }
 
@@ -97,20 +108,18 @@
 
             // update version in release branch    
             Commands.Checkout(repository, releaseBranch);
-            UpdateVersion(projectDirectory, repository,
+            this.UpdateVersion(projectDirectory, repository,
                 version =>
                     string.IsNullOrEmpty(releaseUnstableTag)
                         ? version.WithoutPrepreleaseTags()
-                        : version.SetFirstPrereleaseTag(releaseUnstableTag),
-            stdout, stderr);
+                        : version.SetFirstPrereleaseTag(releaseUnstableTag));
             
             // update version on main branch
             Commands.Checkout(repository, mainBranchName);
-            UpdateVersion(projectDirectory, repository,
+            this.UpdateVersion(projectDirectory, repository,
                 version => version
                     .Increment(releaseOptions.VersionIncrementOrDefault)
-                    .SetFirstPrereleaseTag(releaseOptions.FirstUnstableTagOrDefault),
-            stdout, stderr);
+                    .SetFirstPrereleaseTag(releaseOptions.FirstUnstableTagOrDefault));
             
             // Merge release branch back to main branch
             var mergeOptions = new MergeOptions()
@@ -122,20 +131,20 @@
         }
 
 
-        private static string GetReleaseBranchName(VersionOptions versionOptions, TextWriter stdout, TextWriter stderr)
+        private string GetReleaseBranchName(VersionOptions versionOptions)
         {
             var branchNameFormat = versionOptions.ReleaseOrDefault.BranchNameOrDefault;
 
             if(string.IsNullOrEmpty(branchNameFormat) || !branchNameFormat.Contains("{0}"))
             {
-                stderr.WriteLine($"Invalid 'branchName' setting '{branchNameFormat}'. Missing version placeholder '{{0}}'");
+                this.stderr.WriteLine($"Invalid 'branchName' setting '{branchNameFormat}'. Missing version placeholder '{{0}}'");
                 throw new ReleasePreparationException(ReleasePreparationError.InvalidBranchNameSetting);
             }
             
             return string.Format(branchNameFormat, versionOptions.Version.Version);                        
         }
 
-        private static void UpdateVersion(string projectDirectory, Repository repository, Func<SemanticVersion, SemanticVersion> updateAction, TextWriter stdout, TextWriter stderr)
+        private void UpdateVersion(string projectDirectory, Repository repository, Func<SemanticVersion, SemanticVersion> updateAction)
         {
             var signature = GetSignature(repository);
 
@@ -145,7 +154,7 @@
 
             if(IsVersionDecrement(oldVersion, newVersion))
             {
-                stderr.WriteLine($"Cannot change version from {oldVersion} to {newVersion} because {newVersion} is older than {oldVersion}");
+                this.stderr.WriteLine($"Cannot change version from {oldVersion} to {newVersion} because {newVersion} is older than {oldVersion}");
                 throw new ReleasePreparationException(ReleasePreparationError.VersionDecrement);
             }
             versionOptions.Version = newVersion;
@@ -165,19 +174,19 @@
             return signature;
         }
 
-        private static Repository GetRepository(string projectDirectory, TextWriter stdput, TextWriter stderr)
+        private Repository GetRepository(string projectDirectory)
         {
             var repository = GitExtensions.OpenGitRepo(projectDirectory);
             if (repository == null)
             {
-                stderr.WriteLine($"No git repository found above directory '{projectDirectory}'");
+                this.stderr.WriteLine($"No git repository found above directory '{projectDirectory}'");
                 throw new ReleasePreparationException(ReleasePreparationError.NoGitRepo);
             }
 
             // abort if there are any pending changes
             if (repository.RetrieveStatus().IsDirty)
             {
-                stderr.WriteLine($"Uncommitted changes in directory '{projectDirectory}'");
+                this.stderr.WriteLine($"Uncommitted changes in directory '{projectDirectory}'");
                 throw new ReleasePreparationException(ReleasePreparationError.UncommittedChanges);
             }
 

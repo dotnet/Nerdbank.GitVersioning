@@ -20,7 +20,7 @@ public class ReleaseManagerTests : RepoTestBase
     [Fact]
     public void PrepareRelease_NoGitRepo()
     {
-        this.AssertError(() => ReleaseManager.PrepareRelease(this.RepoPath), ReleasePreparationError.NoGitRepo);        
+        this.AssertError(() => new ReleaseManager().PrepareRelease(this.RepoPath), ReleasePreparationError.NoGitRepo);        
     }
 
     [Fact]
@@ -30,7 +30,7 @@ public class ReleaseManagerTests : RepoTestBase
 
         File.WriteAllText(Path.Combine(this.RepoPath, "file1.txt"), "");
 
-        this.AssertError(() => ReleaseManager.PrepareRelease(this.RepoPath), ReleasePreparationError.UncommittedChanges);  
+        this.AssertError(() => new ReleaseManager().PrepareRelease(this.RepoPath), ReleasePreparationError.UncommittedChanges);  
     }
 
     [Fact]
@@ -43,14 +43,14 @@ public class ReleaseManagerTests : RepoTestBase
 
         Commands.Stage(this.Repo, filePath);
     
-        this.AssertError(() => ReleaseManager.PrepareRelease(this.RepoPath), ReleasePreparationError.UncommittedChanges);
+        this.AssertError(() => new ReleaseManager().PrepareRelease(this.RepoPath), ReleasePreparationError.UncommittedChanges);
     }
 
     [Fact]
     public void PrepareRelease_NoVersionFile()
     {
         this.InitializeSourceControl();
-        this.AssertError(() => ReleaseManager.PrepareRelease(this.RepoPath), ReleasePreparationError.NoVersionFile);
+        this.AssertError(() => new ReleaseManager().PrepareRelease(this.RepoPath), ReleasePreparationError.NoVersionFile);
     }
 
     [Fact]
@@ -69,7 +69,7 @@ public class ReleaseManagerTests : RepoTestBase
         };
         this.WriteVersionFile(versionOptions);
 
-        this.AssertError(() => ReleaseManager.PrepareRelease(this.RepoPath), ReleasePreparationError.InvalidBranchNameSetting);
+        this.AssertError(() => new ReleaseManager().PrepareRelease(this.RepoPath), ReleasePreparationError.InvalidBranchNameSetting);
     }
 
     [Theory]
@@ -116,7 +116,7 @@ public class ReleaseManagerTests : RepoTestBase
         var branchName = string.Format(releaseBranchName, initialVersionOptions.Version.Version);        
         Commands.Checkout(this.Repo, this.Repo.CreateBranch(branchName));
 
-        ReleaseManager.PrepareRelease(this.RepoPath, releaseUnstableTag);
+        new ReleaseManager().PrepareRelease(this.RepoPath, releaseUnstableTag);
 
         // TODO: Check if a commit was created
         
@@ -148,7 +148,7 @@ public class ReleaseManagerTests : RepoTestBase
         var branchName = string.Format(versionOptions.ReleaseOrDefault.BranchNameOrDefault, versionOptions.Version.Version);
         Commands.Checkout(this.Repo, this.Repo.CreateBranch(branchName));
 
-        this.AssertError(() => ReleaseManager.PrepareRelease(this.RepoPath, releaseUnstableTag), ReleasePreparationError.VersionDecrement);
+        this.AssertError(() => new ReleaseManager().PrepareRelease(this.RepoPath, releaseUnstableTag), ReleasePreparationError.VersionDecrement);
     }
 
 
@@ -218,7 +218,7 @@ public class ReleaseManagerTests : RepoTestBase
         var tipBeforeRelease = this.Repo.Head.Tip;
 
         // prepare release
-        ReleaseManager.PrepareRelease(this.RepoPath, releaseUnstableTag);
+        new ReleaseManager().PrepareRelease(this.RepoPath, releaseUnstableTag);
 
         // check if a branch was created
         Assert.Contains(this.Repo.Branches, branch => branch.FriendlyName == expectedBranchName);
@@ -279,7 +279,7 @@ public class ReleaseManagerTests : RepoTestBase
         this.WriteVersionFile(versionOptions);
 
         // switch to release branch        
-        this.AssertError(() => ReleaseManager.PrepareRelease(this.RepoPath, releaseUnstableTag), ReleasePreparationError.VersionDecrement);
+        this.AssertError(() => new ReleaseManager().PrepareRelease(this.RepoPath, releaseUnstableTag), ReleasePreparationError.VersionDecrement);
     }
 
 
