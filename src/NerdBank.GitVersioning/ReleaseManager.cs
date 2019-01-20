@@ -113,8 +113,15 @@
             Commands.Stage(repository, filePath);
             repository.Commit($"Set version to {newVersion.Version}", signature, signature);
 
-
-            //TODO: Merge back release branch 
+            // Merge release branch back to initial branch
+            var mergeResult = repository.Merge(
+                releaseBranch, 
+                signature, 
+                new MergeOptions()
+                {
+                    CommitOnSuccess = true,
+                    MergeFileFavor = MergeFileFavor.Ours
+                });
         }
 
 

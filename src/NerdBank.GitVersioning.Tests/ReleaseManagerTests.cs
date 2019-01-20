@@ -105,10 +105,19 @@ public class ReleaseManagerTests : RepoTestBase
         Assert.NotEqual(releaseBranch.Tip.Id, tipBeforeRelease.Id);
         Assert.Equal(releaseBranch.Tip.Parents.Single().Id, tipBeforeRelease.Id);
 
-        // check if master branch contains a new commit
+        // check if master branch contains new commits
+        // - one commit that updates the version (parent must be the commit before preparing the release)
+        // - one commit merging the release branch back to master and resolving the conflict
         var masterBranch = this.Repo.Branches["master"];
-        Assert.NotEqual(masterBranch.Tip.Id, tipBeforeRelease.Id);
-        Assert.Equal(masterBranch.Tip.Parents.Single().Id, tipBeforeRelease.Id);
+
+        var mergeCommit = masterBranch.Tip;
+        Assert.Equal(2, mergeCommit.Parents.Count());
+        Assert.Contains(mergeCommit.Parents, c => c.Id == releaseBranch.Tip.Id);
+        Assert.Contains(mergeCommit.Parents, c => c.Id != releaseBranch.Tip.Id);
+
+        var updateVersionCommit = mergeCommit.Parents.Single(c => c.Id != releaseBranch.Tip.Id);
+        Assert.Single(updateVersionCommit.Parents);
+        Assert.Equal(updateVersionCommit.Parents.Single().Id, tipBeforeRelease.Id);
 
         // check version on release branch
         var releaseBranchVersion = VersionFile.GetVersion(releaseBranch.Tip);
