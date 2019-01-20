@@ -30,7 +30,11 @@
             /// <summary>
             /// version.json/version.txt not found
             /// </summary>
-            NoVersionFile            
+            NoVersionFile,
+            /// <summary>
+            /// Updating the version would result in a version lower than the previous version
+            /// </summary>
+            VersionDecrement
         }
 
         /// <summary>
@@ -83,8 +87,8 @@
                     version =>
                         string.IsNullOrEmpty(releaseUnstableTag)
                             ? version.WithoutPrepreleaseTags()
-                            : version.SetFirstPrereleaseTag(releaseUnstableTag)
-                );
+                            : version.SetFirstPrereleaseTag(releaseUnstableTag),
+                stdout, stderr);
                 return;
             }
 
@@ -97,16 +101,16 @@
                 version =>
                     string.IsNullOrEmpty(releaseUnstableTag)
                         ? version.WithoutPrepreleaseTags()
-                        : version.SetFirstPrereleaseTag(releaseUnstableTag)
-            );
+                        : version.SetFirstPrereleaseTag(releaseUnstableTag),
+            stdout, stderr);
             
             // update version on main branch
             Commands.Checkout(repository, mainBranchName);
             UpdateVersion(projectDirectory, repository,
                 version => version
                     .Increment(releaseOptions.VersionIncrementOrDefault)
-                    .SetFirstPrereleaseTag(releaseOptions.FirstUnstableTagOrDefault)
-            );
+                    .SetFirstPrereleaseTag(releaseOptions.FirstUnstableTagOrDefault),
+            stdout, stderr);
             
             // Merge release branch back to main branch
             var mergeOptions = new MergeOptions()
@@ -131,12 +135,20 @@
             return string.Format(branchNameFormat, versionOptions.Version.Version);                        
         }
 
-        private static void UpdateVersion(string projectDirectory, Repository repository, Func<SemanticVersion, SemanticVersion> updateAction)
+        private static void UpdateVersion(string projectDirectory, Repository repository, Func<SemanticVersion, SemanticVersion> updateAction, TextWriter stdout, TextWriter stderr)
         {
             var signature = GetSignature(repository);
 
             var versionOptions = VersionFile.GetVersion(projectDirectory);
-            versionOptions.Version = updateAction(versionOptions.Version);
+            var oldVersion = versionOptions.Version;
+            var newVersion = updateAction(oldVersion);
+
+            if(IsVersionDecrement(oldVersion, newVersion))
+            {
+                stderr.WriteLine($"Cannot change version from {oldVersion} to {newVersion} because {newVersion} is older than {oldVersion}");
+                throw new ReleasePreparationException(ReleasePreparationError.VersionDecrement);
+            }
+            versionOptions.Version = newVersion;
             var filePath = VersionFile.SetVersion(projectDirectory, versionOptions);
             
             Commands.Stage(repository, filePath);
@@ -170,6 +182,24 @@
             }
 
             return repository;
+        }
+
+        private static bool IsVersionDecrement(SemanticVersion oldVersion, SemanticVersion newVersion)
+        {
+            if (newVersion.Version > oldVersion.Version)
+            {
+                return false;
+            }
+            else if (newVersion.Version == oldVersion.Version)
+            {
+                return string.IsNullOrEmpty(oldVersion.Prerelease) &&
+                      !string.IsNullOrEmpty(newVersion.Prerelease);
+            }
+            else
+            {
+                // newVersion.Version < oldVersion.Version
+                return true;
+            }
         }
     }
 }

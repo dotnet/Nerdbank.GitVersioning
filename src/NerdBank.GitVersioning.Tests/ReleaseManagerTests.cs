@@ -125,8 +125,32 @@ public class ReleaseManagerTests : RepoTestBase
             var actualVersionOptions = VersionFile.GetVersion(this.Repo.Branches[branchName].Tip);
             Assert.Equal(expectedVersionOptions, actualVersionOptions);
         }
-
     }
+
+    [Theory]
+    [InlineData("1.2", "rc")]
+    [InlineData("1.2+metadata", "rc")]
+    public void PrepeareRelease_OnReleaseBranch_VersionDecrement(string currentVersion, string releaseUnstableTag)
+    {
+        // create and configure repository
+        this.InitializeSourceControl();
+        this.Repo.Config.Set("user.name", this.Signer.Name, ConfigurationLevel.Local);
+        this.Repo.Config.Set("user.email", this.Signer.Email, ConfigurationLevel.Local);
+
+        var versionOptions = new VersionOptions()
+        {
+            Version = SemanticVersion.Parse(currentVersion)
+        };
+
+        this.WriteVersionFile(versionOptions);
+
+        // switch to release branch
+        var branchName = string.Format(versionOptions.ReleaseOrDefault.BranchNameOrDefault, versionOptions.Version.Version);
+        Commands.Checkout(this.Repo, this.Repo.CreateBranch(branchName));
+
+        this.AssertError(() => ReleaseManager.PrepareRelease(this.RepoPath, releaseUnstableTag), ReleasePreparationError.VersionDecrement);
+    }
+
 
     [Theory]
     [InlineData("1.2-pre", "1.2", "1.3-pre", ReleaseVersionIncrement.Minor, null, "pre", null)]
@@ -236,6 +260,28 @@ public class ReleaseManagerTests : RepoTestBase
             Assert.Equal(expectedVersionOptionsCurrentBrach, currentBranchVersion);
         }
     }
+
+    [Theory]
+    [InlineData("1.2", "rc")]
+    [InlineData("1.2+metadata", "rc")]
+    public void PrepareRelease_OnMaster_VersionDecrement(string currentVersion, string releaseUnstableTag)
+    {
+        // create and configure repository
+        this.InitializeSourceControl();
+        this.Repo.Config.Set("user.name", this.Signer.Name, ConfigurationLevel.Local);
+        this.Repo.Config.Set("user.email", this.Signer.Email, ConfigurationLevel.Local);
+
+        var versionOptions = new VersionOptions()
+        {
+            Version = SemanticVersion.Parse(currentVersion)
+        };
+
+        this.WriteVersionFile(versionOptions);
+
+        // switch to release branch        
+        this.AssertError(() => ReleaseManager.PrepareRelease(this.RepoPath, releaseUnstableTag), ReleasePreparationError.VersionDecrement);
+    }
+
 
 
     private void AssertError(Action testCode, ReleasePreparationError expectedError)
