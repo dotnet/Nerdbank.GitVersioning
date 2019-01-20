@@ -24,17 +24,13 @@
             /// </summary>
             UncommittedChanges,
             /// <summary>
-            /// The current branch is already a release branch
-            /// </summary>
-            OnReleaseBranch,
-            /// <summary>
             /// The "branchName" setting in "version.json" is invalid
             /// </summary>
             InvalidBranchNameSetting,
             /// <summary>
             /// version.json/version.txt not found
             /// </summary>
-            NoVersionFile
+            NoVersionFile            
         }
 
         /// <summary>
@@ -83,8 +79,13 @@
             // check if the current branch is the release branch
             if (mainBranchName.FriendlyName.Equals(releaseBranchName, StringComparison.OrdinalIgnoreCase))
             {
-                //TODO: only update the version. For now, this is an error
-                throw new ReleasePreparationException(ReleasePreparationError.OnReleaseBranch);
+                UpdateVersion(projectDirectory, repository,
+                    version =>
+                        string.IsNullOrEmpty(releaseUnstableTag)
+                            ? version.WithoutPrepreleaseTags()
+                            : version.SetFirstPrereleaseTag(releaseUnstableTag)
+                );
+                return;
             }
 
             // create release branch            
@@ -95,7 +96,7 @@
             UpdateVersion(projectDirectory, repository,
                 version =>
                     string.IsNullOrEmpty(releaseUnstableTag)
-                        ? new SemanticVersion(version.Version)
+                        ? version.WithoutPrepreleaseTags()
                         : version.SetFirstPrereleaseTag(releaseUnstableTag)
             );
             

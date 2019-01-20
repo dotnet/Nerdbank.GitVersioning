@@ -60,6 +60,8 @@
         /// <returns>Returns a new instance of <see cref="SemanticVersion"/> with the updated prerelease tag</returns>
         public static SemanticVersion SetFirstPrereleaseTag(this SemanticVersion version, string newFirstTag)
         {
+            newFirstTag = newFirstTag ?? "";
+
             string preRelease;
             if(string.IsNullOrEmpty(version.Prerelease))
             {
@@ -80,5 +82,14 @@
             return new SemanticVersion(version.Version, preRelease, version.BuildMetadata);            
         }
 
+        /// <summary>
+        /// Removes all prerelease tags from the semantic version.
+        /// </summary>
+        /// <param name="version">The version to remove the prerelease tags from.</param>
+        /// <returns>Returns a new instance <see cref="SemanticVersion"/> which does not contain any prerelease tags.</returns>
+        public static SemanticVersion WithoutPrepreleaseTags(this SemanticVersion version)
+        {
+            return new SemanticVersion(version.Version, null, version.BuildMetadata);
+        }
     }
 }

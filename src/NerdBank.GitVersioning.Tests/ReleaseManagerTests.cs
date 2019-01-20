@@ -73,40 +73,71 @@ public class ReleaseManagerTests : RepoTestBase
     }
 
     [Theory]
-    [InlineData(null)]
-    [InlineData("v{0}")]
-    public void PrepareRelease_OnReleaseBranch(string releaseBranchFormat)
+    [InlineData("1.2-rc", null, null, "1.2")]
+    [InlineData("1.2-rc", "v{0}", null, "1.2")]
+    [InlineData("1.2-rc.{height}", null, null, "1.2")]
+    [InlineData("1.2-rc.{height}", "v{0}", null, "1.2")]
+    [InlineData("1.2-rc.{height}+metadata", null, null, "1.2+metadata")]
+    [InlineData("1.2-beta", null, "rc", "1.2-rc")]
+    [InlineData("1.2-beta", "v{0}", "rc", "1.2-rc")]
+    [InlineData("1.2-beta.{height}", null, "rc", "1.2-rc.{height}")]
+    [InlineData("1.2-beta.{height}", "v{0}", "rc", "1.2-rc.{height}")]
+    [InlineData("1.2-beta.{height}+metadata", null, "rc", "1.2-rc.{height}+metadata")]
+    public void PrepareRelease_OnReleaseBranch(string currentVersion, string releaseBranchName, string releaseUnstableTag, string expectedVersion)
     {
-        var version = "1.2";
-        releaseBranchFormat = releaseBranchFormat ?? new ReleaseOptions().BranchNameOrDefault;
+        releaseBranchName = releaseBranchName ?? new ReleaseOptions().BranchNameOrDefault;
 
+        // create and configure repository
         this.InitializeSourceControl();
-        this.WriteVersionFile(new VersionOptions()
+        this.Repo.Config.Set("user.name", this.Signer.Name, ConfigurationLevel.Local);
+        this.Repo.Config.Set("user.email", this.Signer.Email, ConfigurationLevel.Local);
+
+        var initialVersionOptions = new VersionOptions()
         {
-            Version = new SemanticVersion(version),
+            Version = SemanticVersion.Parse(currentVersion),
             Release = new ReleaseOptions()
             {
-                BranchName = releaseBranchFormat
+                BranchName = releaseBranchName
             }
-        });
+        };
+
+        var expectedVersionOptions = new VersionOptions()
+        {
+            Version = SemanticVersion.Parse(expectedVersion),
+            Release = new ReleaseOptions()
+            {
+                BranchName = releaseBranchName
+            }
+        };
+
+        this.WriteVersionFile(initialVersionOptions);
+
+        // switch to release branch
+        var branchName = string.Format(releaseBranchName, initialVersionOptions.Version.Version);        
+        Commands.Checkout(this.Repo, this.Repo.CreateBranch(branchName));
+
+        ReleaseManager.PrepareRelease(this.RepoPath, releaseUnstableTag);
+
+        // TODO: Check if a commit was created
         
+        // check version on release branch
+        {
+            var actualVersionOptions = VersionFile.GetVersion(this.Repo.Branches[branchName].Tip);
+            Assert.Equal(expectedVersionOptions, actualVersionOptions);
+        }
 
-        var branch = this.Repo.CreateBranch(string.Format(releaseBranchFormat, version));
-        Commands.Checkout(this.Repo, branch);
-
-        this.AssertError(() => ReleaseManager.PrepareRelease(this.RepoPath), ReleasePreparationError.OnReleaseBranch);
     }
 
     [Theory]
     [InlineData("1.2-pre", "1.2", "1.3-pre", ReleaseVersionIncrement.Minor, null, "pre", null)]
     [InlineData("1.2-pre", "1.2", "2.2-pre", ReleaseVersionIncrement.Major, null, "pre", null)]
     [InlineData("1.2-pre", "1.2", "1.3-pre", ReleaseVersionIncrement.Minor, "v{0}", "pre", null)]
-    [InlineData("1.2-pre+metadata", "1.2", "1.3-pre+metadata", ReleaseVersionIncrement.Minor, null, "pre", null)]
+    [InlineData("1.2-pre+metadata", "1.2+metadata", "1.3-pre+metadata", ReleaseVersionIncrement.Minor, null, "pre", null)]
     [InlineData("1.2-rc.{height}", "1.2", "1.3-beta.{height}", ReleaseVersionIncrement.Minor, null, "beta", null)]
     [InlineData("1.2-rc.{height}", "1.2", "1.3-beta.{height}", ReleaseVersionIncrement.Minor, null, "-beta", null)]
     [InlineData("1.2-beta.{height}", "1.2-rc.{height}", "1.3-alpha.{height}", ReleaseVersionIncrement.Minor, null, "alpha", "rc")]
     [InlineData("1.2-beta", "1.2-rc", "1.3-alpha", ReleaseVersionIncrement.Minor, null, "alpha", "rc")]
-    //TODO: more test cases (different release settings)
+    [InlineData("1.2-beta+metadata", "1.2-rc+metadata", "1.3-alpha+metadata", ReleaseVersionIncrement.Minor, null, "alpha", "rc")]
     public void PrepareRelease_OnMaster(
         string initialVersion, 
         string releaseVersion, 
