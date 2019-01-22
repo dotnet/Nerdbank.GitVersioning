@@ -85,6 +85,30 @@ public class ReleaseManagerTests : RepoTestBase
         this.AssertError(() => new ReleaseManager().PrepareRelease(this.RepoPath), ReleasePreparationError.InvalidBranchNameSetting);
     }
 
+    [Fact]
+    public void PrepareRelease_ReleaseBranchAlreadyExists()
+    {
+        this.InitializeSourceControl();
+
+        // create version.json
+        var versionOptions = new VersionOptions()
+        {
+            Version = SemanticVersion.Parse("1.2-pre"),
+            Release = new ReleaseOptions()
+            {
+                BranchName = "release/v{0}",
+            }
+        };
+
+        this.WriteVersionFile(versionOptions);
+
+        this.Repo.CreateBranch("release/v1.2");
+
+        // running PrepareRelease should result in an error 
+        // because the branchName does not have a placeholder for the version
+        this.AssertError(() => new ReleaseManager().PrepareRelease(this.RepoPath), ReleasePreparationError.BranchAlreadyExists);
+    }
+
     [Theory]
     // base test cases
     [InlineData("1.2-beta",          null, null, "release/v1.2", "1.2"            )]

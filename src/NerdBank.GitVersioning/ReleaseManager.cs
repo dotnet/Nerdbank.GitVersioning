@@ -34,7 +34,11 @@
             /// <summary>
             /// Updating the version would result in a version lower than the previous version
             /// </summary>
-            VersionDecrement
+            VersionDecrement,
+            /// <summary>
+            /// Cannot create a branch because it already exists
+            /// </summary>
+            BranchAlreadyExists
         }
 
         /// <summary>
@@ -114,6 +118,13 @@
                             ? version.WithoutPrepreleaseTags()
                             : version.SetFirstPrereleaseTag(releaseUnstableTag));
                 return;
+            }
+
+            // check if the release branch already exists
+            if(repository.Branches[releaseBranchName] != null)
+            {
+                this.stderr.WriteLine($"Cannot create branch '{releaseBranchName}' because it already exists");
+                throw new ReleasePreparationException(ReleasePreparationError.BranchAlreadyExists);
             }
 
             // create release branch and update version 

@@ -40,7 +40,8 @@ namespace Nerdbank.GitVersioning.Tool
             NoCloudBuildProviderMatch,
             BadVariable,
             UncommittedChanges,
-            InvalidBranchNameSetting
+            InvalidBranchNameSetting,
+            BranchAlreadyExists
         }
 
         private static ExitCodes exitCode;
@@ -596,7 +597,9 @@ namespace Nerdbank.GitVersioning.Tool
                     case ReleaseManager.ReleasePreparationError.NoVersionFile:
                         return ExitCodes.NoVersionJsonFound;
                     case ReleaseManager.ReleasePreparationError.VersionDecrement:
-                        return ExitCodes.InvalidVersionSpec;                        
+                        return ExitCodes.InvalidVersionSpec;
+                    case ReleaseManager.ReleasePreparationError.BranchAlreadyExists:
+                        return ExitCodes.BranchAlreadyExists;                        
                     default:
                         throw new InvalidOperationException($"Unimplemented case in switch statement: ReleasePreparationError.{ex.Error}");
                 }
