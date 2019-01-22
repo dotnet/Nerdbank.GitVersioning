@@ -105,7 +105,7 @@ public class ReleaseManagerTests : RepoTestBase
         this.Repo.CreateBranch("release/v1.2");
 
         // running PrepareRelease should result in an error 
-        // because the branchName does not have a placeholder for the version
+        // because the release branch already exists
         this.AssertError(() => new ReleaseManager().PrepareRelease(this.RepoPath), ReleasePreparationError.BranchAlreadyExists);
     }
 
