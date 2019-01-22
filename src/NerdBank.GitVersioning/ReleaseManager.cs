@@ -75,7 +75,18 @@
         /// Prepares a release for the specified directory by creating a release branch and incrementing the version in the current branch.
         /// </summary>
         /// <exception cref="ReleasePreparationException">Thrown when the release could not be created.</exception>
-        public void PrepareRelease(string projectDirectory, string releaseUnstableTag = null)
+        /// <param name="projectDirectory">
+        /// The path to the directory which may (or its ancestors may) define the version file.
+        /// </param>
+        /// <param name="releaseUnstableTag">
+        /// The prerelease tag to add to the version on the release branch. Pass <c>null</c> to omit/remove the prerelease tag.
+        /// </param>
+        /// <param name="nextVersion">
+        /// The next version to save to the version file on the current branch. Pass <c>null</c> to automatically determine the next
+        /// version based on the current version and the <c>versionIncrement</c> setting in <c>version.json</c>.
+        /// Parameter will be ignored if the current branch is a release branch.
+        /// </param>
+        public void PrepareRelease(string projectDirectory, string releaseUnstableTag = null, SemanticVersion nextVersion = null)
         {
             // open the git repository
             var repository = this.GetRepository(projectDirectory);
@@ -118,9 +129,11 @@
             // update version on main branch
             Commands.Checkout(repository, mainBranchName);
             this.UpdateVersion(projectDirectory, repository,
-                version => version
-                    .Increment(releaseOptions.VersionIncrementOrDefault)
-                    .SetFirstPrereleaseTag(releaseOptions.FirstUnstableTagOrDefault));
+                version => 
+                    nextVersion ?? 
+                    version
+                        .Increment(releaseOptions.VersionIncrementOrDefault)
+                        .SetFirstPrereleaseTag(releaseOptions.FirstUnstableTagOrDefault));
             
             // Merge release branch back to main branch
             var mergeOptions = new MergeOptions()
