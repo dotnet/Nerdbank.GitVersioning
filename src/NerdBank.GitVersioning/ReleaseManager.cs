@@ -107,6 +107,7 @@
             // check if the current branch is the release branch
             if (mainBranchName.FriendlyName.Equals(releaseBranchName, StringComparison.OrdinalIgnoreCase))
             {
+                this.stdout.WriteLine($"Current branch '{releaseBranchName}' is a release branch. Updating version");
                 this.UpdateVersion(projectDirectory, repository,
                     version =>
                         string.IsNullOrEmpty(releaseUnstableTag)
@@ -115,18 +116,18 @@
                 return;
             }
 
-            // create release branch            
+            // create release branch and update version 
+            this.stdout.WriteLine($"Creating release branch '{releaseBranchName}'");
             var releaseBranch = repository.CreateBranch(releaseBranchName);
-
-            // update version in release branch    
             Commands.Checkout(repository, releaseBranch);
             this.UpdateVersion(projectDirectory, repository,
                 version =>
                     string.IsNullOrEmpty(releaseUnstableTag)
                         ? version.WithoutPrepreleaseTags()
                         : version.SetFirstPrereleaseTag(releaseUnstableTag));
-            
+
             // update version on main branch
+            this.stdout.WriteLine($"Updating version on branch '{mainBranchName}'");
             Commands.Checkout(repository, mainBranchName);
             this.UpdateVersion(projectDirectory, repository,
                 version => 
@@ -134,8 +135,9 @@
                     version
                         .Increment(releaseOptions.VersionIncrementOrDefault)
                         .SetFirstPrereleaseTag(releaseOptions.FirstUnstableTagOrDefault));
-            
+
             // Merge release branch back to main branch
+            this.stdout.WriteLine($"Merging branch '{releaseBranchName}' into '{mainBranchName}' ");
             var mergeOptions = new MergeOptions()
             {
                 CommitOnSuccess = true,
@@ -171,6 +173,9 @@
                 this.stderr.WriteLine($"Cannot change version from {oldVersion} to {newVersion} because {newVersion} is older than {oldVersion}");
                 throw new ReleasePreparationException(ReleasePreparationError.VersionDecrement);
             }
+
+            this.stdout.WriteLine($"Setting version to {newVersion}");
+
             versionOptions.Version = newVersion;
             var filePath = VersionFile.SetVersion(projectDirectory, versionOptions);
             
