@@ -57,7 +57,7 @@
             /// <param name="error">The error that occurred.</param>
             public ReleasePreparationException(ReleasePreparationError error) => this.Error = error;
         }
-
+        
 
         private readonly TextWriter stdout;
         private readonly TextWriter stderr;
@@ -197,7 +197,7 @@
         }
 
         private static Signature GetSignature(Repository repository)
-        {
+        {   
             var signature = repository.Config.BuildSignature(DateTimeOffset.Now);
             if (signature == null)
             {
@@ -208,7 +208,9 @@
 
         private Repository GetRepository(string projectDirectory)
         {
-            var repository = GitExtensions.OpenGitRepo(projectDirectory);
+            // open git repo and use default configuration (in order to commit we need a configured user name and email
+            // which is most likely configured on a user/system level rather than the repo level
+            var repository = GitExtensions.OpenGitRepo(projectDirectory, useDefaultConfigSearchPaths: true);
             if (repository == null)
             {
                 this.stderr.WriteLine($"No git repository found above directory '{projectDirectory}'");
