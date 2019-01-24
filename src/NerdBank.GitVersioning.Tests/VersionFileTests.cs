@@ -318,7 +318,7 @@ public class VersionFileTests : RepoTestBase
 
         Assert.NotNull(versionOptions.Release);
         Assert.NotNull(versionOptions.Release.BranchName);
-        Assert.Equal("someValue{0}", versionOptions.Release.BranchName);
+        Assert.Equal("someValue{version}", versionOptions.Release.BranchName);
     }
 
     [Fact]
