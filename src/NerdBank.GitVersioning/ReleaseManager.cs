@@ -106,10 +106,10 @@
             var releaseOptions = versionOptions.ReleaseOrDefault;
 
             var releaseBranchName = this.GetReleaseBranchName(versionOptions);
-            var mainBranchName = repository.Branches.Single(x => x.IsCurrentRepositoryHead);
+            var mainBranchName = repository.Branches.Single(x => x.IsCurrentRepositoryHead).FriendlyName;
 
             // check if the current branch is the release branch
-            if (mainBranchName.FriendlyName.Equals(releaseBranchName, StringComparison.OrdinalIgnoreCase))
+            if (mainBranchName.Equals(releaseBranchName, StringComparison.OrdinalIgnoreCase))
             {
                 this.stdout.WriteLine($"Current branch '{releaseBranchName}' is a release branch. Updating version");
                 this.UpdateVersion(projectDirectory, repository,
