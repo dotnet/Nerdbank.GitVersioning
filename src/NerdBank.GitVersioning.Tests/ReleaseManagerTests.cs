@@ -96,7 +96,7 @@ public class ReleaseManagerTests : RepoTestBase
             Version = SemanticVersion.Parse("1.2-pre"),
             Release = new ReleaseOptions()
             {
-                BranchName = "release/v{0}",
+                BranchName = "release/v{version}",
             }
         };
 
@@ -116,10 +116,10 @@ public class ReleaseManagerTests : RepoTestBase
     [InlineData("1.2-beta",          null, "rc", "release/v1.2", "1.2-rc"         )]
     [InlineData("1.2-beta.{height}", null, "rc", "release/v1.2", "1.2-rc.{height}")]
     // modify release.branchName
-    [InlineData("1.2-beta",          "v{0}release", null, "v1.2release", "1.2"            )]
-    [InlineData("1.2-beta.{height}", "v{0}release", null, "v1.2release", "1.2"            )]
-    [InlineData("1.2-beta",          "v{0}release", "rc", "v1.2release", "1.2-rc"         )]
-    [InlineData("1.2-beta.{height}", "v{0}release", "rc", "v1.2release", "1.2-rc.{height}")]    
+    [InlineData("1.2-beta",          "v{version}release", null, "v1.2release", "1.2"            )]
+    [InlineData("1.2-beta.{height}", "v{version}release", null, "v1.2release", "1.2"            )]
+    [InlineData("1.2-beta",          "v{version}release", "rc", "v1.2release", "1.2-rc"         )]
+    [InlineData("1.2-beta.{height}", "v{version}release", "rc", "v1.2release", "1.2-rc.{height}")]    
     public void PrepareRelease_ReleaseBranch(string initialVersion, string releaseOptionsBranchName, string releaseUnstableTag, string releaseBranchName, string resultingVersion)
     {
         releaseOptionsBranchName = releaseOptionsBranchName ?? new ReleaseOptions().BranchNameOrDefault;
@@ -176,9 +176,9 @@ public class ReleaseManagerTests : RepoTestBase
     }
 
     [Theory]
-    [InlineData("1.2", "rc")]
-    [InlineData("1.2+metadata", "rc")]
-    public void PrepeareRelease_ReleaseBranchWithVersionDecrement(string initialVersion, string releaseUnstableTag)
+    [InlineData("1.2",          "rc", "release/v{version}", "release/v1.2")]
+    [InlineData("1.2+metadata", "rc", "release/v{version}", "release/v1.2")]
+    public void PrepeareRelease_ReleaseBranchWithVersionDecrement(string initialVersion, string releaseUnstableTag, string releaseOptionsBranchName, string branchName)
     {
         // create and configure repository
         this.InitializeSourceControl();
@@ -190,7 +190,6 @@ public class ReleaseManagerTests : RepoTestBase
         this.WriteVersionFile(versionOptions);
 
         // switch to release branch
-        var branchName = string.Format(versionOptions.ReleaseOrDefault.BranchNameOrDefault, versionOptions.Version.Version);
         Commands.Checkout(this.Repo, this.Repo.CreateBranch(branchName));
 
         // running PrepareRelease should result in an error 
@@ -206,10 +205,10 @@ public class ReleaseManagerTests : RepoTestBase
     [InlineData("1.2-beta.{height}", null, null, null, null, null, "release/v1.2", "1.2",             "1.3-alpha.{height}" )]   
     [InlineData("1.2-beta.{height}", null, null, null, "rc", null, "release/v1.2", "1.2-rc.{height}", "1.3-alpha.{height}" )]
     // modify release.branchName
-    [InlineData("1.2-beta",          "v{0}release", ReleaseVersionIncrement.Minor, "alpha", null, null, "v1.2release", "1.2",             "1.3-alpha"          )]    
-    [InlineData("1.2-beta",          "v{0}release", ReleaseVersionIncrement.Minor, "alpha", "rc", null, "v1.2release", "1.2-rc",          "1.3-alpha"          )]
-    [InlineData("1.2-beta.{height}", "v{0}release", ReleaseVersionIncrement.Minor, "alpha", null, null, "v1.2release", "1.2",             "1.3-alpha.{height}" )]   
-    [InlineData("1.2-beta.{height}", "v{0}release", ReleaseVersionIncrement.Minor, "alpha", "rc", null, "v1.2release", "1.2-rc.{height}", "1.3-alpha.{height}" )]
+    [InlineData("1.2-beta",          "v{version}release", ReleaseVersionIncrement.Minor, "alpha", null, null, "v1.2release", "1.2",             "1.3-alpha"          )]    
+    [InlineData("1.2-beta",          "v{version}release", ReleaseVersionIncrement.Minor, "alpha", "rc", null, "v1.2release", "1.2-rc",          "1.3-alpha"          )]
+    [InlineData("1.2-beta.{height}", "v{version}release", ReleaseVersionIncrement.Minor, "alpha", null, null, "v1.2release", "1.2",             "1.3-alpha.{height}" )]   
+    [InlineData("1.2-beta.{height}", "v{version}release", ReleaseVersionIncrement.Minor, "alpha", "rc", null, "v1.2release", "1.2-rc.{height}", "1.3-alpha.{height}" )]
     // modify release.versionIncrement
     [InlineData("1.2-beta",          null,   ReleaseVersionIncrement.Major, "alpha", null, null, "release/v1.2", "1.2",             "2.0-alpha"          )]    
     [InlineData("1.2-beta",          null,   ReleaseVersionIncrement.Major, "alpha", "rc", null, "release/v1.2", "1.2-rc",          "2.0-alpha"          )]

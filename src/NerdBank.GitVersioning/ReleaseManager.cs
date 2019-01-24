@@ -162,13 +162,15 @@
         {
             var branchNameFormat = versionOptions.ReleaseOrDefault.BranchNameOrDefault;
 
-            if(string.IsNullOrEmpty(branchNameFormat) || !branchNameFormat.Contains("{0}"))
+            // ensure there is a '{version}' placeholder in the branch name
+            if(string.IsNullOrEmpty(branchNameFormat) || !branchNameFormat.Contains("{version}"))
             {
-                this.stderr.WriteLine($"Invalid 'branchName' setting '{branchNameFormat}'. Missing version placeholder '{{0}}'");
+                this.stderr.WriteLine($"Invalid 'branchName' setting '{branchNameFormat}'. Missing version placeholder '{{version}}'");
                 throw new ReleasePreparationException(ReleasePreparationError.InvalidBranchNameSetting);
             }
-            
-            return string.Format(branchNameFormat, versionOptions.Version.Version);                        
+
+            // replace the "{version}" placeholder with the actual version
+            return branchNameFormat.Replace("{version}", versionOptions.Version.Version.ToString());
         }
 
         private void UpdateVersion(string projectDirectory, Repository repository, Func<SemanticVersion, SemanticVersion> updateAction)

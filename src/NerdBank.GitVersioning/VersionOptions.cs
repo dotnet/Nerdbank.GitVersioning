@@ -977,7 +977,7 @@
             /// </summary>
             internal static readonly ReleaseOptions DefaultInstance = new ReleaseOptions(isReadOnly: true)
             {
-                branchName = "release/v{0}", //TODO: Use something like {version} instead of {0} which would be more consistent with the {height} in the version
+                branchName = "release/v{version}", 
                 versionIncrement = ReleaseVersionIncrement.Minor,
                 firstUnstableTag = "alpha"
             };
