@@ -278,6 +278,49 @@ public class VersionFileTests : RepoTestBase
         this.AssertPathHasVersion(commit, this.RepoPath, rootVersionSpec);
     }
 
+
+    [Fact]
+    public void GetVersion_ReadReleaseSettings_VersionIncrement()
+    {
+        var json = @"{ ""version"" : ""1.2"", ""release"" : { ""versionIncrement"" : ""major""  } }";
+        var path = Path.Combine(this.RepoPath, "version.json");
+        File.WriteAllText(path, json);
+
+        var versionOptions = VersionFile.GetVersion(this.RepoPath);
+
+        Assert.NotNull(versionOptions.Release);        
+        Assert.NotNull(versionOptions.Release.VersionIncrement);        
+        Assert.Equal(VersionOptions.ReleaseVersionIncrement.Major, versionOptions.Release.VersionIncrement);
+    }
+
+    [Fact]
+    public void GetVersion_ReadReleaseSettings_FirstUnstableTag()
+    {
+        var json = @"{ ""version"" : ""1.2"", ""release"" : { ""firstUnstableTag"" : ""preview""  } }";
+        var path = Path.Combine(this.RepoPath, "version.json");
+        File.WriteAllText(path, json);
+
+        var versionOptions = VersionFile.GetVersion(this.RepoPath);
+
+        Assert.NotNull(versionOptions.Release);
+        Assert.NotNull(versionOptions.Release.FirstUnstableTag);
+        Assert.Equal("preview", versionOptions.Release.FirstUnstableTag);
+    }
+
+    [Fact]
+    public void GetVersion_ReadReleaseSettings_BranchName()
+    {
+        var json = @"{ ""version"" : ""1.2"", ""release"" : { ""branchName"" : ""someValue{0}""  } }";
+        var path = Path.Combine(this.RepoPath, "version.json");
+        File.WriteAllText(path, json);
+
+        var versionOptions = VersionFile.GetVersion(this.RepoPath);
+
+        Assert.NotNull(versionOptions.Release);
+        Assert.NotNull(versionOptions.Release.BranchName);
+        Assert.Equal("someValue{0}", versionOptions.Release.BranchName);
+    }
+
     [Fact]
     public void GetVersion_String_MissingFile()
     {
