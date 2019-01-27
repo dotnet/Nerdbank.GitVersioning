@@ -45,6 +45,11 @@ The content of the version.json file is a JSON serialized object with these prop
       }
     }
   },
+  "release" : {
+    "branchName" : "release/v{version}",
+    "versionIncrement" : "minor",
+    "firstUnstableTag" : "alpha"
+  }
   "inherit": false // optional. Set to true in secondary version.json files used to tweak settings for subsets of projects.
 }
 ```
