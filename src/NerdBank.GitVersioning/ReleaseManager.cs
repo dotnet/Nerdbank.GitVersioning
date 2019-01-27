@@ -78,7 +78,6 @@
         }
 
 
-        //TODO: Parameter to explicitly specify the next version
         /// <summary>
         /// Prepares a release for the specified directory by creating a release branch and incrementing the version in the current branch.
         /// </summary>
