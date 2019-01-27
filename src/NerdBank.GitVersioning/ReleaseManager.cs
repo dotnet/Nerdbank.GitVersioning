@@ -38,7 +38,11 @@
             /// <summary>
             /// Cannot create a branch because it already exists
             /// </summary>
-            BranchAlreadyExists
+            BranchAlreadyExists,
+            /// <summary>
+            /// Cannot create a commit because user name and user email are not configured (either at the repo or global level)
+            /// </summary>
+            UserNotConfigured
         }
 
         /// <summary>
@@ -175,7 +179,7 @@
 
         private void UpdateVersion(string projectDirectory, Repository repository, Func<SemanticVersion, SemanticVersion> updateAction)
         {
-            var signature = GetSignature(repository);
+            var signature = this.GetSignature(repository);
 
             var versionOptions = VersionFile.GetVersion(projectDirectory);
             var oldVersion = versionOptions.Version;
@@ -196,12 +200,13 @@
             repository.Commit($"Set version to '{versionOptions.Version}'", signature, signature, new CommitOptions() { AllowEmptyCommit = true } );
         }
 
-        private static Signature GetSignature(Repository repository)
+        private Signature GetSignature(Repository repository)
         {   
             var signature = repository.Config.BuildSignature(DateTimeOffset.Now);
             if (signature == null)
             {
-                //TODO
+                this.stderr.WriteLine("Cannot create commits in this repo because git user name and email are not configured.");
+                throw new ReleasePreparationException(ReleasePreparationError.UserNotConfigured);
             }
             return signature;
         }
