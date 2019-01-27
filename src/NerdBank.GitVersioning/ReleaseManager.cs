@@ -229,6 +229,9 @@
                 throw new ReleasePreparationException(ReleasePreparationError.UncommittedChanges);
             }
 
+            // check if repo is configured so we can create commits
+            _ = this.GetSignature(repository);
+
             return repository;
         }
 
