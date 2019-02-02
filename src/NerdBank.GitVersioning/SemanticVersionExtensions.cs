@@ -1,11 +1,12 @@
 ﻿namespace Nerdbank.GitVersioning
 {
     using System;
+    using Validation;
 
     /// <summary>
     /// Extension methods for <see cref="SemanticVersion"/>
     /// </summary>
-    public static class SemanticVersionExtensions
+    internal static class SemanticVersionExtensions
     {
         /// <summary>
         /// Gets a new semantic with the specified version component (major/minor) incremented.
@@ -13,29 +14,31 @@
         /// <param name="currentVersion">The version to increment.</param>
         /// <param name="increment">Specifies whether to increment the major or minor version.</param>
         /// <returns>Returns a new <see cref="SemanticVersion"/> object with either the major or minor version incremented by 1.</returns>
-        public static SemanticVersion Increment(this SemanticVersion currentVersion, VersionOptions.ReleaseVersionIncrement increment)
+        internal static SemanticVersion Increment(this SemanticVersion currentVersion, VersionOptions.ReleaseVersionIncrement increment)
         {
-            if (increment != VersionOptions.ReleaseVersionIncrement.Major && increment != VersionOptions.ReleaseVersionIncrement.Minor)
-                throw new ArgumentException($"Unexpected increment value '{increment}'", nameof(increment));
+            Requires.NotNull(currentVersion, nameof(currentVersion));
 
             var major = currentVersion.Version.Major;
             var minor = currentVersion.Version.Minor;
 
-            if(increment == VersionOptions.ReleaseVersionIncrement.Major)
+            switch (increment)
             {
-                major += 1;
-                minor = 0;
+                case VersionOptions.ReleaseVersionIncrement.Major:
+                    major += 1;
+                    minor = 0;
+                    break;
+                case VersionOptions.ReleaseVersionIncrement.Minor:
+                    minor += 1;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(increment));
             }
-            else
-            {
-                minor += 1;
-            }
-            
+
             // use the appropriate constructor for the new version object
             // depending on whether the current versions has 2, 3 or 4 segments
             Version newVersion;
             if (currentVersion.Version.Build >= 0 && currentVersion.Version.Revision > 0)
-            {                
+            {
                 // 4 segment version
                 newVersion = new Version(major, minor, 0, 0);
             }
@@ -49,38 +52,40 @@
                 // 2 segment version
                 newVersion = new Version(major, minor);
             }
-            
+
             return new SemanticVersion(newVersion, currentVersion.Prerelease, currentVersion.BuildMetadata);
         }
-        
+
         /// <summary>
         /// Sets the first prerelease tag of the specified semantic version to the specified value.
         /// </summary>
         /// <param name="version">The version which's prerelease tag to modify.</param>
-        /// <param name="newFirstTag">The new prerelease tag.</param>
+        /// <param name="newFirstTag">The new prerelease tag. The leading hyphen may be specified or omitted.</param>
         /// <returns>Returns a new instance of <see cref="SemanticVersion"/> with the updated prerelease tag</returns>
-        public static SemanticVersion SetFirstPrereleaseTag(this SemanticVersion version, string newFirstTag)
+        internal static SemanticVersion SetFirstPrereleaseTag(this SemanticVersion version, string newFirstTag)
         {
+            Requires.NotNull(version, nameof(version));
+
             newFirstTag = newFirstTag ?? "";
 
             string preRelease;
-            if(string.IsNullOrEmpty(version.Prerelease))
+            if (string.IsNullOrEmpty(version.Prerelease))
             {
-                preRelease = newFirstTag; 
+                preRelease = newFirstTag;
             }
-            else if(version.Prerelease.Contains("."))
+            else if (version.Prerelease.Contains("."))
             {
                 preRelease = newFirstTag + version.Prerelease.Substring(version.Prerelease.IndexOf("."));
             }
             else
             {
                 preRelease = newFirstTag;
-            }        
+            }
 
             if (!string.IsNullOrEmpty(preRelease) && !preRelease.StartsWith("-"))
                 preRelease = "-" + preRelease;
 
-            return new SemanticVersion(version.Version, preRelease, version.BuildMetadata);            
+            return new SemanticVersion(version.Version, preRelease, version.BuildMetadata);
         }
 
         /// <summary>
@@ -88,7 +93,7 @@
         /// </summary>
         /// <param name="version">The version to remove the prerelease tags from.</param>
         /// <returns>Returns a new instance <see cref="SemanticVersion"/> which does not contain any prerelease tags.</returns>
-        public static SemanticVersion WithoutPrepreleaseTags(this SemanticVersion version)
+        internal static SemanticVersion WithoutPrepreleaseTags(this SemanticVersion version)
         {
             return new SemanticVersion(version.Version, null, version.BuildMetadata);
         }

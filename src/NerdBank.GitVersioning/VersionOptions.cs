@@ -997,7 +997,8 @@
             /// <summary>
             /// Initializes a new instance of the <see cref="ReleaseOptions"/> class
             /// </summary>
-            public ReleaseOptions() : this(isReadOnly: false)
+            public ReleaseOptions()
+                : this(isReadOnly: false)
             {
             }
 
@@ -1025,7 +1026,6 @@
             [JsonIgnore]
             public string BranchNameOrDefault => this.BranchName ?? DefaultInstance.BranchName;
 
-
             /// <summary>
             /// Gets or sets the setting specifying how to increment the version when creating a release
             /// </summary>
@@ -1037,13 +1037,13 @@
             }
 
             /// <summary>
-            /// Gets or sets the setting specifying how to increment the version when creating a release
+            /// Gets or sets the setting specifying how to increment the version when creating a release.
             /// </summary>
             [JsonIgnore]
             public ReleaseVersionIncrement VersionIncrementOrDefault => this.VersionIncrement ?? DefaultInstance.VersionIncrement.Value;
 
             /// <summary>
-            /// Gets or sets the first/default prerelease tag for new versions
+            /// Gets or sets the first/default prerelease tag for new versions.
             /// </summary>
             [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
             public string FirstUnstableTag
@@ -1053,7 +1053,7 @@
             }
 
             /// <summary>
-            /// Gets or sets the first/default prerelease tag for new versions
+            /// Gets or sets the first/default prerelease tag for new versions.
             /// </summary>
             [JsonIgnore]
             public string FirstUnstableTagOrDefault => this.FirstUnstableTag ?? DefaultInstance.FirstUnstableTag;

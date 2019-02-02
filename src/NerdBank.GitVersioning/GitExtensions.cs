@@ -387,7 +387,7 @@
             Requires.NotNullOrEmpty(pathUnderGitRepo, nameof(pathUnderGitRepo));
             var gitDir = FindGitDir(pathUnderGitRepo);
 
-            if(useDefaultConfigSearchPaths)
+            if (useDefaultConfigSearchPaths)
             {
                 // pass null to reset to defaults
                 GlobalSettings.SetConfigSearchPaths(ConfigurationLevel.Global, null);
@@ -399,7 +399,7 @@
                 GlobalSettings.SetConfigSearchPaths(ConfigurationLevel.Global, string.Empty);
                 GlobalSettings.SetConfigSearchPaths(ConfigurationLevel.System, string.Empty);
             }
-            
+
             return gitDir == null ? null : new Repository(gitDir);
         }
 

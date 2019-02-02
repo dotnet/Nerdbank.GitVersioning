@@ -9,6 +9,9 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="..\Nerdbank.GitVersioning\SemanticVersionExtensions.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <EmbeddedResource Include="..\Nerdbank.GitVersioning.Tasks\build\Nerdbank.GitVersioning.targets">
       <Visible>false</Visible>
       <Link>Targets\%(FileName)%(Extension)</Link>

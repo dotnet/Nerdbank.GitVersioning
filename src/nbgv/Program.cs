@@ -42,7 +42,7 @@ namespace Nerdbank.GitVersioning.Tool
             UncommittedChanges,
             InvalidBranchNameSetting,
             BranchAlreadyExists,
-            UserNotConfigured
+            UserNotConfigured,
         }
 
         private static ExitCodes exitCode;
@@ -60,7 +60,7 @@ namespace Nerdbank.GitVersioning.Tool
             var cisystem = string.Empty;
             bool cloudBuildCommonVars = false;
             bool cloudBuildAllVars = false;
-            string releasePreReleasetag = null;
+            string releasePreReleaseTag = null;
             string releaseNextVersion = null;
 
             ArgumentCommand<string> install = null;
@@ -107,7 +107,7 @@ namespace Nerdbank.GitVersioning.Tool
                 prepareRelease = syntax.DefineCommand("prepare-release", ref commandText, "Prepares a release by creating a release branch for the current version and adjusting the version on the current branch.");
                 syntax.DefineOption("p|project", ref projectPath, "The path to the project or project directory. The default is the current directory.");
                 syntax.DefineOption("nextVersion", ref releaseNextVersion, "The version to set for the current branch. If omitted, the next version is determined automatically by incrementing the current version.");
-                syntax.DefineParameter("tag", ref releasePreReleasetag, "The prerelease to use on the release branch. Omit to not use any prerelease tags on the release branch.");
+                syntax.DefineParameter("tag", ref releasePreReleaseTag, "The prerelease tag to apply on the release branch (if any). If not specified, any existing prerelease tag will be removed. The preceding hyphen may be omitted.");
 
                 if (syntax.ActiveCommand == null)
                 {
@@ -140,9 +140,9 @@ namespace Nerdbank.GitVersioning.Tool
             {
                 exitCode = OnCloudCommand(projectPath, version, cisystem, cloudBuildAllVars, cloudBuildCommonVars, cloudVariables);
             }
-            else if(prepareRelease.IsActive)
+            else if (prepareRelease.IsActive)
             {
-                exitCode = OnPrepareReleaseCommand(projectPath, releasePreReleasetag, releaseNextVersion);
+                exitCode = OnPrepareReleaseCommand(projectPath, releasePreReleaseTag, releaseNextVersion);
             }
 
             return (int)exitCode;
@@ -568,9 +568,9 @@ namespace Nerdbank.GitVersioning.Tool
 
             // parse nextVersion if parameter was specified
             SemanticVersion nextVersionParsed = default;
-            if(!string.IsNullOrEmpty(nextVersion))
+            if (!string.IsNullOrEmpty(nextVersion))
             {
-                if(!SemanticVersion.TryParse(nextVersion, out nextVersionParsed))
+                if (!SemanticVersion.TryParse(nextVersion, out nextVersionParsed))
                 {
                     Console.Error.WriteLine($"\"{nextVersion}\" is not a semver-compliant version spec.");
                     return ExitCodes.InvalidVersionSpec;
@@ -590,7 +590,7 @@ namespace Nerdbank.GitVersioning.Tool
                 switch (ex.Error)
                 {
                     case ReleaseManager.ReleasePreparationError.NoGitRepo:
-                        return ExitCodes.NoGitRepo;                        
+                        return ExitCodes.NoGitRepo;
                     case ReleaseManager.ReleasePreparationError.UncommittedChanges:
                         return ExitCodes.UncommittedChanges;
                     case ReleaseManager.ReleasePreparationError.InvalidBranchNameSetting:
@@ -604,7 +604,7 @@ namespace Nerdbank.GitVersioning.Tool
                     case ReleaseManager.ReleasePreparationError.UserNotConfigured:
                         return ExitCodes.UserNotConfigured;
                     default:
-                        throw new InvalidOperationException($"Unimplemented case in switch statement: ReleasePreparationError.{ex.Error}");
+                        throw new InvalidOperationException($"Unimplemented case in switch statement. ReleasePreparationError: {ex.Error}");
                 }
             }
         }
