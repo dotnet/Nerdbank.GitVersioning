@@ -1,6 +1,7 @@
 ﻿namespace Nerdbank.GitVersioning
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using System.Linq;
     using LibGit2Sharp;
@@ -203,17 +204,24 @@
                 throw new ReleasePreparationException(ReleasePreparationError.VersionDecrement);
             }
 
-            this.stdout.WriteLine($"Setting version to {newVersion}.");
-
-            versionOptions.Version = newVersion;
-            var filePath = VersionFile.SetVersion(projectDirectory, versionOptions, includeSchemaProperty: true);
-
-            Commands.Stage(repository, filePath);
-
-            // Author a commit only if we effectively changed something.
-            if (!repository.Head.Tip.Tree.Equals(repository.Index.WriteToTree()))
+            if (EqualityComparer<SemanticVersion>.Default.Equals(versionOptions.Version, newVersion))
             {
-                repository.Commit($"Set version to '{versionOptions.Version}'", signature, signature, new CommitOptions() { AllowEmptyCommit = false });
+                this.stdout.WriteLine($"Version already set to {newVersion}.");
+            }
+            else
+            {
+                this.stdout.WriteLine($"Setting version to {newVersion}...");
+
+                versionOptions.Version = newVersion;
+                var filePath = VersionFile.SetVersion(projectDirectory, versionOptions, includeSchemaProperty: true);
+
+                Commands.Stage(repository, filePath);
+
+                // Author a commit only if we effectively changed something.
+                if (!repository.Head.Tip.Tree.Equals(repository.Index.WriteToTree()))
+                {
+                    repository.Commit($"Set version to '{versionOptions.Version}'", signature, signature, new CommitOptions() { AllowEmptyCommit = false });
+                }
             }
         }
 
