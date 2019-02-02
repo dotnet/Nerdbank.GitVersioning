@@ -977,7 +977,7 @@
             /// </summary>
             internal static readonly ReleaseOptions DefaultInstance = new ReleaseOptions(isReadOnly: true)
             {
-                branchName = "release/v{version}", 
+                branchName = "v{version}",
                 versionIncrement = ReleaseVersionIncrement.Minor,
                 firstUnstableTag = "alpha"
             };
@@ -1020,7 +1020,7 @@
             }
 
             /// <summary>
-            /// Gets the set branch name template for release branches 
+            /// Gets the set branch name template for release branches
             /// </summary>
             [JsonIgnore]
             public string BranchNameOrDefault => this.BranchName ?? DefaultInstance.BranchName;
@@ -1120,7 +1120,7 @@
                         hash ^= (int)obj.VersionIncrementOrDefault;
                         hash ^= StringComparer.Ordinal.GetHashCode(obj.FirstUnstableTagOrDefault);
                         return hash;
-                    }                    
+                    }
                 }
             }
         }

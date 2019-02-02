@@ -144,10 +144,10 @@ public class VersionFileTests : RepoTestBase
     [InlineData(@"{""cloudBuild"":{""setVersionVariables"":true}}", @"{}")]
     [InlineData(@"{""cloudBuild"":{""setAllVariables"":false}}", @"{}")]
     [InlineData(@"{""release"":{""increment"":""minor""}}", @"{}")]
-    [InlineData(@"{""release"":{""branchName"":""release/v{version}""}}", @"{}")]
+    [InlineData(@"{""release"":{""branchName"":""v{version}""}}", @"{}")]
     [InlineData(@"{""release"":{""firstUnstableTag"":""alpha""}}", @"{}")]
     [InlineData(@"{""release"":{""firstUnstableTag"":""tag""}}", @"{""release"":{""firstUnstableTag"":""tag""}}")]
-    [InlineData(@"{""release"":{""branchName"":""release/v{version}"",""versionIncrement"":""minor"",""firstUnstableTag"":""alpha""}}", @"{}")]
+    [InlineData(@"{""release"":{""branchName"":""v{version}"",""versionIncrement"":""minor"",""firstUnstableTag"":""alpha""}}", @"{}")]
     [InlineData(@"{""release"":{""versionIncrement"":""major""}}", @"{""release"":{""versionIncrement"":""major""}}")]
     [InlineData(@"{""release"":{""branchName"":""someName""}}", @"{""release"":{""branchName"":""someName""}}")]
     [InlineData(@"{""release"":{""branchName"":""someName"",""versionIncrement"":""major""}}", @"{""release"":{""branchName"":""someName"",""versionIncrement"":""major""}}")]
@@ -288,8 +288,8 @@ public class VersionFileTests : RepoTestBase
 
         var versionOptions = VersionFile.GetVersion(this.RepoPath);
 
-        Assert.NotNull(versionOptions.Release);        
-        Assert.NotNull(versionOptions.Release.VersionIncrement);        
+        Assert.NotNull(versionOptions.Release);
+        Assert.NotNull(versionOptions.Release.VersionIncrement);
         Assert.Equal(VersionOptions.ReleaseVersionIncrement.Major, versionOptions.Release.VersionIncrement);
     }
 

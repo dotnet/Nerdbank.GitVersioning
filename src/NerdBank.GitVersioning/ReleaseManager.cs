@@ -6,7 +6,7 @@
     using LibGit2Sharp;
 
     /// <summary>
-    /// Methods for creating releases 
+    /// Methods for creating releases
     /// </summary>
     public class ReleaseManager
     {
@@ -61,7 +61,7 @@
             /// <param name="error">The error that occurred.</param>
             public ReleasePreparationException(ReleasePreparationError error) => this.Error = error;
         }
-        
+
 
         private readonly TextWriter stdout;
         private readonly TextWriter stderr;
@@ -97,7 +97,7 @@
         {
             // open the git repository
             var repository = this.GetRepository(projectDirectory);
-            
+
             // get the current version
             var versionOptions = VersionFile.GetVersion(projectDirectory);
             if(versionOptions == null)
@@ -130,7 +130,7 @@
                 throw new ReleasePreparationException(ReleasePreparationError.BranchAlreadyExists);
             }
 
-            // create release branch and update version 
+            // create release branch and update version
             this.stdout.WriteLine($"Creating release branch '{releaseBranchName}'");
             var releaseBranch = repository.CreateBranch(releaseBranchName);
             Commands.Checkout(repository, releaseBranch);
@@ -144,8 +144,8 @@
             this.stdout.WriteLine($"Updating version on branch '{mainBranchName}'");
             Commands.Checkout(repository, mainBranchName);
             this.UpdateVersion(projectDirectory, repository,
-                version => 
-                    nextVersion ?? 
+                version =>
+                    nextVersion ??
                     version
                         .Increment(releaseOptions.VersionIncrementOrDefault)
                         .SetFirstPrereleaseTag(releaseOptions.FirstUnstableTagOrDefault));
@@ -194,13 +194,13 @@
 
             versionOptions.Version = newVersion;
             var filePath = VersionFile.SetVersion(projectDirectory, versionOptions);
-            
+
             Commands.Stage(repository, filePath);
             repository.Commit($"Set version to '{versionOptions.Version}'", signature, signature, new CommitOptions() { AllowEmptyCommit = true } );
         }
 
         private Signature GetSignature(Repository repository)
-        {   
+        {
             var signature = repository.Config.BuildSignature(DateTimeOffset.Now);
             if (signature == null)
             {
