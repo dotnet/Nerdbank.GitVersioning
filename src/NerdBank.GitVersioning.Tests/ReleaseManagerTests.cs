@@ -302,22 +302,37 @@ public class ReleaseManagerTests : RepoTestBase
         // parent of new commit must be the commit before preparing the release
         var releaseBranch = this.Repo.Branches[expectedBranchName];
         {
-            Assert.NotEqual(releaseBranch.Tip.Id, tipBeforePrepareRelease.Id);
-            Assert.Equal(releaseBranch.Tip.Parents.Single().Id, tipBeforePrepareRelease.Id);
+            // If the original branch had no -prerelease tag, the release branch has no commit to author.
+            if (string.IsNullOrEmpty(initialVersionOptions.Version.Prerelease))
+            {
+                Assert.Equal(releaseBranch.Tip.Id, tipBeforePrepareRelease.Id);
+            }
+            else
+            {
+                Assert.NotEqual(releaseBranch.Tip.Id, tipBeforePrepareRelease.Id);
+                Assert.Equal(releaseBranch.Tip.Parents.Single().Id, tipBeforePrepareRelease.Id);
+            }
         }
 
-        // check if current branch contains new commits
-        // - one commit that updates the version (parent must be the commit before preparing the release)
-        // - one commit merging the release branch back to master and resolving the conflict
+        if (string.IsNullOrEmpty(initialVersionOptions.Version.Prerelease))
         {
+            // Verify that one commit was authored.
+            var incrementCommit = this.Repo.Head.Tip;
+            Assert.Single(incrementCommit.Parents);
+            Assert.Equal(tipBeforePrepareRelease.Id, incrementCommit.Parents.Single().Id);
+        }
+        else
+        {
+            // check if current branch contains new commits
+            // - one commit that updates the version (parent must be the commit before preparing the release)
+            // - one commit merging the release branch back to master and resolving the conflict
             var mergeCommit = this.Repo.Head.Tip;
             Assert.Equal(2, mergeCommit.Parents.Count());
-            Assert.Contains(mergeCommit.Parents, c => c.Id == releaseBranch.Tip.Id);
-            Assert.Contains(mergeCommit.Parents, c => c.Id != releaseBranch.Tip.Id);
+            Assert.Equal(releaseBranch.Tip.Id, mergeCommit.Parents.Skip(1).First().Id);
 
-            var updateVersionCommit = mergeCommit.Parents.Single(c => c.Id != releaseBranch.Tip.Id);
+            var updateVersionCommit = mergeCommit.Parents.First();
             Assert.Single(updateVersionCommit.Parents);
-            Assert.Equal(updateVersionCommit.Parents.Single().Id, tipBeforePrepareRelease.Id);
+            Assert.Equal(tipBeforePrepareRelease.Id, updateVersionCommit.Parents.First().Id);
         }
 
         // check version on release branch

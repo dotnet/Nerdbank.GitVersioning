@@ -163,7 +163,7 @@
             var mergeOptions = new MergeOptions()
             {
                 CommitOnSuccess = true,
-                MergeFileFavor = MergeFileFavor.Ours
+                MergeFileFavor = MergeFileFavor.Ours,
             };
             repository.Merge(releaseBranch, this.GetSignature(repository), mergeOptions);
         }
@@ -209,7 +209,12 @@
             var filePath = VersionFile.SetVersion(projectDirectory, versionOptions);
 
             Commands.Stage(repository, filePath);
-            repository.Commit($"Set version to '{versionOptions.Version}'", signature, signature, new CommitOptions() { AllowEmptyCommit = true });
+
+            // Author a commit only if we effectively changed something.
+            if (!repository.Head.Tip.Tree.Equals(repository.Index.WriteToTree()))
+            {
+                repository.Commit($"Set version to '{versionOptions.Version}'", signature, signature, new CommitOptions() { AllowEmptyCommit = false });
+            }
         }
 
         private Signature GetSignature(Repository repository)
