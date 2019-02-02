@@ -206,7 +206,7 @@
             this.stdout.WriteLine($"Setting version to {newVersion}.");
 
             versionOptions.Version = newVersion;
-            var filePath = VersionFile.SetVersion(projectDirectory, versionOptions);
+            var filePath = VersionFile.SetVersion(projectDirectory, versionOptions, includeSchemaProperty: true);
 
             Commands.Stage(repository, filePath);
 
