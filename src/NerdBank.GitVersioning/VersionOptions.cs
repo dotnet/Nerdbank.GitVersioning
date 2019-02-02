@@ -126,6 +126,18 @@
         public CloudBuildOptions CloudBuildOrDefault => this.CloudBuild ?? CloudBuildOptions.DefaultInstance;
 
         /// <summary>
+        /// Gets or sets the options for the prepare-release command
+        /// </summary>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public ReleaseOptions Release { get; set; }
+
+        /// <summary>
+        /// Gets the options for the prepare-release command
+        /// </summary>
+        [JsonIgnore]
+        public ReleaseOptions ReleaseOrDefault => this.Release ?? ReleaseOptions.DefaultInstance;
+
+        /// <summary>
         /// Gets or sets a value indicating whether this options object should inherit from an ancestor any settings that are not explicitly set in this one.
         /// </summary>
         /// <remarks>
@@ -881,6 +893,7 @@
                     && AssemblyVersionOptions.EqualWithDefaultsComparer.Singleton.Equals(x.AssemblyVersionOrDefault, y.AssemblyVersionOrDefault)
                     && NuGetPackageVersionOptions.EqualWithDefaultsComparer.Singleton.Equals(x.NuGetPackageVersionOrDefault, y.NuGetPackageVersionOrDefault)
                     && CloudBuildOptions.EqualWithDefaultsComparer.Singleton.Equals(x.CloudBuildOrDefault, y.CloudBuildOrDefault)
+                    && ReleaseOptions.EqualWithDefaultsComparer.Singleton.Equals(x.ReleaseOrDefault, y.ReleaseOrDefault)
                     && x.BuildNumberOffset == y.BuildNumberOffset;
             }
 
@@ -952,6 +965,180 @@
             /// The commit ID appears as the 4th integer in the version (e.g. 1.2.3.23523).
             /// </summary>
             FourthVersionComponent,
+        }
+
+        /// <summary>
+        /// Encapsulates settings for the "prepare-release" command
+        /// </summary>
+        public class ReleaseOptions : IEquatable<ReleaseOptions>
+        {
+            /// <summary>
+            /// The default (uninitialized) instance.
+            /// </summary>
+            internal static readonly ReleaseOptions DefaultInstance = new ReleaseOptions(isReadOnly: true)
+            {
+                branchName = "v{version}",
+                versionIncrement = ReleaseVersionIncrement.Minor,
+                firstUnstableTag = "alpha"
+            };
+
+            [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+            private readonly bool isReadOnly;
+
+            [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+            private string branchName;
+
+            [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+            private ReleaseVersionIncrement? versionIncrement;
+
+            [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+            private string firstUnstableTag;
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="ReleaseOptions"/> class
+            /// </summary>
+            public ReleaseOptions()
+                : this(isReadOnly: false)
+            {
+            }
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="ReleaseOptions"/> class
+            /// </summary>
+            protected ReleaseOptions(bool isReadOnly)
+            {
+                this.isReadOnly = isReadOnly;
+            }
+
+            /// <summary>
+            /// Gets or sets the branch name template for release branches
+            /// </summary>
+            [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+            public string BranchName
+            {
+                get => this.branchName;
+                set => this.SetIfNotReadOnly(ref this.branchName, value);
+            }
+
+            /// <summary>
+            /// Gets the set branch name template for release branches
+            /// </summary>
+            [JsonIgnore]
+            public string BranchNameOrDefault => this.BranchName ?? DefaultInstance.BranchName;
+
+            /// <summary>
+            /// Gets or sets the setting specifying how to increment the version when creating a release
+            /// </summary>
+            [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+            public ReleaseVersionIncrement? VersionIncrement
+            {
+                get => this.versionIncrement;
+                set => this.SetIfNotReadOnly(ref this.versionIncrement, value);
+            }
+
+            /// <summary>
+            /// Gets or sets the setting specifying how to increment the version when creating a release.
+            /// </summary>
+            [JsonIgnore]
+            public ReleaseVersionIncrement VersionIncrementOrDefault => this.VersionIncrement ?? DefaultInstance.VersionIncrement.Value;
+
+            /// <summary>
+            /// Gets or sets the first/default prerelease tag for new versions.
+            /// </summary>
+            [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+            public string FirstUnstableTag
+            {
+                get => this.firstUnstableTag;
+                set => this.SetIfNotReadOnly(ref this.firstUnstableTag, value);
+            }
+
+            /// <summary>
+            /// Gets or sets the first/default prerelease tag for new versions.
+            /// </summary>
+            [JsonIgnore]
+            public string FirstUnstableTagOrDefault => this.FirstUnstableTag ?? DefaultInstance.FirstUnstableTag;
+
+            /// <inheritdoc />
+            public override bool Equals(object obj) => this.Equals(obj as ReleaseOptions);
+
+            /// <inheritdoc />
+            public bool Equals(ReleaseOptions other) => EqualWithDefaultsComparer.Singleton.Equals(this, other);
+
+            /// <inheritdoc />
+            public override int GetHashCode() => EqualWithDefaultsComparer.Singleton.GetHashCode(this);
+
+            /// <summary>
+            /// Gets a value indicating whether this instance is equivalent to the default instance.
+            /// </summary>
+            internal bool IsDefault => this.Equals(DefaultInstance);
+
+            /// <summary>
+            /// Sets the value of a field if this instance is not marked as read only.
+            /// </summary>
+            /// <typeparam name="T">The type of the value stored by the field.</typeparam>
+            /// <param name="field">The field to change.</param>
+            /// <param name="value">The value to set.</param>
+            private void SetIfNotReadOnly<T>(ref T field, T value)
+            {
+                Verify.Operation(!this.isReadOnly, "This instance is read only.");
+                field = value;
+            }
+
+            internal class EqualWithDefaultsComparer : IEqualityComparer<ReleaseOptions>
+            {
+                internal static readonly EqualWithDefaultsComparer Singleton = new EqualWithDefaultsComparer();
+
+                private EqualWithDefaultsComparer() { }
+
+                /// <inheritdoc />
+                public bool Equals(ReleaseOptions x, ReleaseOptions y)
+                {
+                    if (x == null ^ y == null)
+                    {
+                        return false;
+                    }
+
+                    if (x == null)
+                    {
+                        return true;
+                    }
+
+                    return StringComparer.Ordinal.Equals(x.BranchNameOrDefault, y.BranchNameOrDefault) &&
+                           x.VersionIncrementOrDefault == y.VersionIncrementOrDefault &&
+                           StringComparer.Ordinal.Equals(x.FirstUnstableTagOrDefault, y.FirstUnstableTagOrDefault);
+                }
+
+                /// <inheritdoc />
+                public int GetHashCode(ReleaseOptions obj)
+                {
+                    if (obj == null)
+                        return 0;
+
+                    unchecked
+                    {
+                        var hash = StringComparer.Ordinal.GetHashCode(obj.BranchNameOrDefault) * 397;
+                        hash ^= (int)obj.VersionIncrementOrDefault;
+                        hash ^= StringComparer.Ordinal.GetHashCode(obj.FirstUnstableTagOrDefault);
+                        return hash;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Possible increments of the version after creating release branches
+        /// </summary>
+        public enum ReleaseVersionIncrement
+        {
+            /// <summary>
+            /// Increment the major version after creating a release branch
+            /// </summary>
+            Major,
+
+            /// <summary>
+            /// Increment the minor version after creating a release branch
+            /// </summary>
+            Minor
         }
     }
 }

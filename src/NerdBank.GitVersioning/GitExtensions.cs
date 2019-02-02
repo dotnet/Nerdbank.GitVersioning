@@ -380,15 +380,25 @@
         /// Opens a <see cref="Repository"/> found at or above a specified path.
         /// </summary>
         /// <param name="pathUnderGitRepo">The path at or beneath the git repo root.</param>
+        /// <param name="useDefaultConfigSearchPaths">Specifies whether to use default settings for looking up global and system settings.</param>
         /// <returns>The <see cref="Repository"/> found for the specified path, or <c>null</c> if no git repo is found.</returns>
-        public static Repository OpenGitRepo(string pathUnderGitRepo)
+        public static Repository OpenGitRepo(string pathUnderGitRepo, bool useDefaultConfigSearchPaths = false)
         {
             Requires.NotNullOrEmpty(pathUnderGitRepo, nameof(pathUnderGitRepo));
             var gitDir = FindGitDir(pathUnderGitRepo);
 
-            // Override Config Search paths to empty path to avoid new Repository instance to lookup for Global\System .gitconfig file
-            GlobalSettings.SetConfigSearchPaths(ConfigurationLevel.Global, string.Empty);
-            GlobalSettings.SetConfigSearchPaths(ConfigurationLevel.System, string.Empty);
+            if (useDefaultConfigSearchPaths)
+            {
+                // pass null to reset to defaults
+                GlobalSettings.SetConfigSearchPaths(ConfigurationLevel.Global, null);
+                GlobalSettings.SetConfigSearchPaths(ConfigurationLevel.System, null);
+            }
+            else
+            {
+                // Override Config Search paths to empty path to avoid new Repository instance to lookup for Global\System .gitconfig file
+                GlobalSettings.SetConfigSearchPaths(ConfigurationLevel.Global, string.Empty);
+                GlobalSettings.SetConfigSearchPaths(ConfigurationLevel.System, string.Empty);
+            }
 
             return gitDir == null ? null : new Repository(gitDir);
         }

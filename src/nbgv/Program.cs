@@ -14,6 +14,7 @@ namespace Nerdbank.GitVersioning.Tool
     using NuGet.Protocol;
     using NuGet.Protocol.Core.Types;
     using NuGet.Resolver;
+    using Validation;
     using MSBuild = Microsoft.Build.Evaluation;
 
     internal class Program
@@ -39,6 +40,11 @@ namespace Nerdbank.GitVersioning.Tool
             TagConflict,
             NoCloudBuildProviderMatch,
             BadVariable,
+            UncommittedChanges,
+            InvalidBranchNameSetting,
+            BranchAlreadyExists,
+            UserNotConfigured,
+            DetachedHead,
         }
 
         private static ExitCodes exitCode;
@@ -56,6 +62,8 @@ namespace Nerdbank.GitVersioning.Tool
             var cisystem = string.Empty;
             bool cloudBuildCommonVars = false;
             bool cloudBuildAllVars = false;
+            string releasePreReleaseTag = null;
+            string releaseNextVersion = null;
 
             ArgumentCommand<string> install = null;
             ArgumentCommand<string> getVersion = null;
@@ -63,6 +71,7 @@ namespace Nerdbank.GitVersioning.Tool
             ArgumentCommand<string> tag = null;
             ArgumentCommand<string> getCommits = null;
             ArgumentCommand<string> cloud = null;
+            ArgumentCommand<string> prepareRelease = null;
 
             ArgumentSyntax.Parse(args, syntax =>
             {
@@ -97,6 +106,11 @@ namespace Nerdbank.GitVersioning.Tool
                 syntax.DefineOption("c|common-vars", ref cloudBuildCommonVars, false, "Defines a few common version variables as cloud build variables, with a \"Git\" prefix (e.g. GitBuildVersion, GitBuildVersionSimple, GitAssemblyInformationalVersion).");
                 syntax.DefineOptionList("d|define", ref cloudVariables, "Additional cloud build variables to define. Each should be in the NAME=VALUE syntax.");
 
+                prepareRelease = syntax.DefineCommand("prepare-release", ref commandText, "Prepares a release by creating a release branch for the current version and adjusting the version on the current branch.");
+                syntax.DefineOption("p|project", ref projectPath, "The path to the project or project directory. The default is the current directory.");
+                syntax.DefineOption("nextVersion", ref releaseNextVersion, "The version to set for the current branch. If omitted, the next version is determined automatically by incrementing the current version.");
+                syntax.DefineParameter("tag", ref releasePreReleaseTag, "The prerelease tag to apply on the release branch (if any). If not specified, any existing prerelease tag will be removed. The preceding hyphen may be omitted.");
+
                 if (syntax.ActiveCommand == null)
                 {
                     Console.WriteLine(syntax.GetHelpText());
@@ -127,6 +141,10 @@ namespace Nerdbank.GitVersioning.Tool
             else if (cloud.IsActive)
             {
                 exitCode = OnCloudCommand(projectPath, version, cisystem, cloudBuildAllVars, cloudBuildCommonVars, cloudVariables);
+            }
+            else if (prepareRelease.IsActive)
+            {
+                exitCode = OnPrepareReleaseCommand(projectPath, releasePreReleaseTag, releaseNextVersion);
             }
 
             return (int)exitCode;
@@ -537,6 +555,62 @@ namespace Nerdbank.GitVersioning.Tool
             {
                 Console.Error.WriteLine("No cloud build detected.");
                 return ExitCodes.NoCloudBuildEnvDetected;
+            }
+        }
+
+        private static ExitCodes OnPrepareReleaseCommand(string projectPath, string prereleaseTag, string nextVersion)
+        {
+            // validate project path property
+            string searchPath = GetSpecifiedOrCurrentDirectoryPath(projectPath);
+            if (!Directory.Exists(searchPath))
+            {
+                Console.Error.WriteLine($"\"{searchPath}\" is not an existing directory.");
+                return ExitCodes.NoGitRepo;
+            }
+
+            // parse nextVersion if parameter was specified
+            SemanticVersion nextVersionParsed = default;
+            if (!string.IsNullOrEmpty(nextVersion))
+            {
+                if (!SemanticVersion.TryParse(nextVersion, out nextVersionParsed))
+                {
+                    Console.Error.WriteLine($"\"{nextVersion}\" is not a semver-compliant version spec.");
+                    return ExitCodes.InvalidVersionSpec;
+                }
+            }
+
+            // run prepare-release
+            try
+            {
+                var releaseManager = new ReleaseManager(Console.Out, Console.Error);
+                releaseManager.PrepareRelease(searchPath, prereleaseTag, nextVersionParsed);
+                return ExitCodes.OK;
+            }
+            catch (ReleaseManager.ReleasePreparationException ex)
+            {
+                // map error codes
+                switch (ex.Error)
+                {
+                    case ReleaseManager.ReleasePreparationError.NoGitRepo:
+                        return ExitCodes.NoGitRepo;
+                    case ReleaseManager.ReleasePreparationError.UncommittedChanges:
+                        return ExitCodes.UncommittedChanges;
+                    case ReleaseManager.ReleasePreparationError.InvalidBranchNameSetting:
+                        return ExitCodes.InvalidBranchNameSetting;
+                    case ReleaseManager.ReleasePreparationError.NoVersionFile:
+                        return ExitCodes.NoVersionJsonFound;
+                    case ReleaseManager.ReleasePreparationError.VersionDecrement:
+                        return ExitCodes.InvalidVersionSpec;
+                    case ReleaseManager.ReleasePreparationError.BranchAlreadyExists:
+                        return ExitCodes.BranchAlreadyExists;
+                    case ReleaseManager.ReleasePreparationError.UserNotConfigured:
+                        return ExitCodes.UserNotConfigured;
+                    case ReleaseManager.ReleasePreparationError.DetachedHead:
+                        return ExitCodes.DetachedHead;
+                    default:
+                        Report.Fail($"{nameof(ReleaseManager.ReleasePreparationError)}: {ex.Error}");
+                        return (ExitCodes)(-1);
+                }
             }
         }
 
