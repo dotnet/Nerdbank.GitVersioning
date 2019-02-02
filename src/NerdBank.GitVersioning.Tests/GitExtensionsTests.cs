@@ -325,7 +325,7 @@ public class GitExtensionsTests : RepoTestBase
             Assert.Contains(commits[i], matchingCommits);
             if (!allowCollisions)
             {
-                Assert.Single(matchingCommits);
+                Assert.Equal(1, matchingCommits.Count);
             }
         }
     }
@@ -397,13 +397,10 @@ public class GitExtensionsTests : RepoTestBase
         Assert.Equal(2, v2.Build);
     }
 
-    [SkippableFact] // Skippable, only run test on specific machine
+    ////[Fact] // Manual, per machine test
     public void TestBiggerRepo()
     {
-        var testBiggerRepoPath = @"C:\Users\andrew\git\NerdBank.GitVersioning";
-        Skip.If(!Directory.Exists(testBiggerRepoPath));
-
-        using (this.Repo = new Repository(testBiggerRepoPath))
+        using (this.Repo = new Repository(@"C:\Users\andrew\git\NerdBank.GitVersioning"))
         {
             foreach (var commit in this.Repo.Head.Commits)
             {
