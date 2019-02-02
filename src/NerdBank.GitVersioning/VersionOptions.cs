@@ -7,6 +7,7 @@
     using System.Reflection;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Converters;
+    using Newtonsoft.Json.Serialization;
     using Validation;
 
     /// <summary>
@@ -176,7 +177,7 @@
                     new VersionConverter(),
                     new SemanticVersionJsonConverter(),
                     new AssemblyVersionOptionsConverter(includeDefaults),
-                    new StringEnumConverter() { CamelCaseText = true },
+                    new StringEnumConverter() { NamingStrategy = new CamelCaseNamingStrategy() },
                 },
                 ContractResolver = new VersionOptionsContractResolver
                 {
