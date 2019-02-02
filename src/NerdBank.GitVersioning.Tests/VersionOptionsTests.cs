@@ -63,7 +63,7 @@ public class VersionOptionsTests
         var avo1a = new VersionOptions.AssemblyVersionOptions { };
         var avo1b = new VersionOptions.AssemblyVersionOptions { };
         Assert.Equal(avo1a, avo1b);
-        Assert.NotEqual(avo1a, null);
+        Assert.NotNull(avo1a);
 
         var avo2a = new VersionOptions.AssemblyVersionOptions
         {

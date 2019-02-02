@@ -549,7 +549,7 @@ public class BuildIntegrationTests : RepoTestBase
             }
 
             // Assert that env variables were also set in context of the build.
-            Assert.True(buildResult.LoggedEvents.Any(e => string.Equals(e.Message, $"n1=v1", StringComparison.OrdinalIgnoreCase)));
+            Assert.Contains(buildResult.LoggedEvents, e => string.Equals(e.Message, $"n1=v1", StringComparison.OrdinalIgnoreCase));
 
             versionOptions.CloudBuild.SetVersionVariables = false;
             this.WriteVersionFile(versionOptions);
@@ -814,7 +814,7 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal(BuildResultCode.Failure, result.BuildResult.OverallResult);
         string versionCsFilePath = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"));
         Assert.False(File.Exists(versionCsFilePath));
-        Assert.Equal(1, result.LoggedEvents.OfType<BuildErrorEventArgs>().Count());
+        Assert.Single(result.LoggedEvents.OfType<BuildErrorEventArgs>());
     }
 
     /// <summary>

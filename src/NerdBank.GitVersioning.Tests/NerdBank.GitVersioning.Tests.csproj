@@ -38,6 +38,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Xunit.SkippableFact" Version="1.3.12" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net461' ">
     <PackageReference Include="Microsoft.Build.Tasks.Core" Version="15.9.20" />
