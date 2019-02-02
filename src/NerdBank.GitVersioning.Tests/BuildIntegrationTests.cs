@@ -862,7 +862,6 @@ public class BuildIntegrationTests : RepoTestBase
     ///  information is set correctly.
     /// </summary>
     [Fact]
-    [Trait("TestCategory", "FailsOnAzurePipelines")]
     public async Task NativeVersionInfo_CreateNativeResourceDll()
     {
         this.testProject = this.CreateNativeProjectRootElement(this.projectDirectory, "test.vcxproj");
