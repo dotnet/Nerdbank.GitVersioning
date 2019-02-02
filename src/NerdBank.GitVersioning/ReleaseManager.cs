@@ -130,16 +130,15 @@
 
             var releaseBranchName = this.GetReleaseBranchName(versionOptions);
             var originalBranchName = repository.Head.FriendlyName;
+            var releaseVersion = string.IsNullOrEmpty(releaseUnstableTag)
+                ? versionOptions.Version.WithoutPrepreleaseTags()
+                : versionOptions.Version.SetFirstPrereleaseTag(releaseUnstableTag);
 
             // check if the current branch is the release branch
             if (string.Equals(originalBranchName, releaseBranchName, StringComparison.OrdinalIgnoreCase))
             {
-                this.stdout.WriteLine($"Current branch '{releaseBranchName}' is a release branch. Updating version...");
-                this.UpdateVersion(projectDirectory, repository,
-                    version =>
-                        string.IsNullOrEmpty(releaseUnstableTag)
-                            ? version.WithoutPrepreleaseTags()
-                            : version.SetFirstPrereleaseTag(releaseUnstableTag));
+                this.stdout.WriteLine($"{releaseBranchName} branch advanced from {versionOptions.Version} to {releaseVersion}.");
+                this.UpdateVersion(projectDirectory, repository, versionOptions.Version, releaseVersion);
                 return;
             }
 
@@ -151,27 +150,21 @@
             }
 
             // create release branch and update version
-            this.stdout.WriteLine($"Creating release branch '{releaseBranchName}'...");
             var releaseBranch = repository.CreateBranch(releaseBranchName);
             Commands.Checkout(repository, releaseBranch);
-            this.UpdateVersion(projectDirectory, repository,
-                version =>
-                    string.IsNullOrEmpty(releaseUnstableTag)
-                        ? version.WithoutPrepreleaseTags()
-                        : version.SetFirstPrereleaseTag(releaseUnstableTag));
+            this.UpdateVersion(projectDirectory, repository, versionOptions.Version, releaseVersion);
+            this.stdout.WriteLine($"{releaseBranchName} branch now tracks v{releaseVersion} stabilization and release.");
 
             // update version on main branch
-            this.stdout.WriteLine($"Updating version on branch '{originalBranchName}'...");
             Commands.Checkout(repository, originalBranchName);
-            this.UpdateVersion(projectDirectory, repository,
-                version =>
-                    nextVersion ??
-                    version
+            var nextDevVersion = nextVersion ??
+                    versionOptions.Version
                         .Increment(releaseOptions.VersionIncrementOrDefault)
-                        .SetFirstPrereleaseTag(releaseOptions.FirstUnstableTagOrDefault));
+                        .SetFirstPrereleaseTag(releaseOptions.FirstUnstableTagOrDefault);
+            this.UpdateVersion(projectDirectory, repository, versionOptions.Version, nextDevVersion);
+            this.stdout.WriteLine($"{originalBranchName} branch now tracks v{nextDevVersion} development.");
 
             // Merge release branch back to main branch
-            this.stdout.WriteLine($"Merging branch '{releaseBranchName}' into '{originalBranchName}'...");
             var mergeOptions = new MergeOptions()
             {
                 CommitOnSuccess = true,
@@ -197,17 +190,13 @@
             return branchNameFormat.Replace("{version}", versionOptions.Version.Version.ToString());
         }
 
-        private void UpdateVersion(string projectDirectory, Repository repository, Func<SemanticVersion, SemanticVersion> updateAction)
+        private void UpdateVersion(string projectDirectory, Repository repository, SemanticVersion oldVersion, SemanticVersion newVersion)
         {
             Requires.NotNull(projectDirectory, nameof(projectDirectory));
             Requires.NotNull(repository, nameof(repository));
-            Requires.NotNull(updateAction, nameof(updateAction));
 
             var signature = this.GetSignature(repository);
-
-            var versionOptions = VersionFile.GetVersion(projectDirectory);
-            var oldVersion = versionOptions.Version;
-            var newVersion = updateAction(oldVersion);
+            var versionOptions = VersionFile.GetVersion(repository, projectDirectory);
 
             if (IsVersionDecrement(oldVersion, newVersion))
             {
@@ -215,14 +204,8 @@
                 throw new ReleasePreparationException(ReleasePreparationError.VersionDecrement);
             }
 
-            if (EqualityComparer<SemanticVersion>.Default.Equals(versionOptions.Version, newVersion))
+            if (!EqualityComparer<SemanticVersion>.Default.Equals(versionOptions.Version, newVersion))
             {
-                this.stdout.WriteLine($"Version already set to {newVersion}.");
-            }
-            else
-            {
-                this.stdout.WriteLine($"Setting version to {newVersion}...");
-
                 versionOptions.Version = newVersion;
                 var filePath = VersionFile.SetVersion(projectDirectory, versionOptions, includeSchemaProperty: true);
 
