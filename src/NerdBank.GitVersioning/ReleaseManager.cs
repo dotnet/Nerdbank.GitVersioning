@@ -51,6 +51,11 @@
             /// Cannot create a commit because user name and user email are not configured (either at the repo or global level)
             /// </summary>
             UserNotConfigured,
+
+            /// <summary>
+            /// HEAD is detached. A branch must be checked out first.
+            /// </summary>
+            DetachedHead,
         }
 
         /// <summary>
@@ -106,6 +111,12 @@
 
             // open the git repository
             var repository = this.GetRepository(projectDirectory);
+
+            if (repository.Info.IsHeadDetached)
+            {
+                this.stderr.WriteLine("Detached head. Check out a branch first.");
+                throw new ReleasePreparationException(ReleasePreparationError.DetachedHead);
+            }
 
             // get the current version
             var versionOptions = VersionFile.GetVersion(projectDirectory);

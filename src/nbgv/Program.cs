@@ -14,6 +14,7 @@ namespace Nerdbank.GitVersioning.Tool
     using NuGet.Protocol;
     using NuGet.Protocol.Core.Types;
     using NuGet.Resolver;
+    using Validation;
     using MSBuild = Microsoft.Build.Evaluation;
 
     internal class Program
@@ -43,6 +44,7 @@ namespace Nerdbank.GitVersioning.Tool
             InvalidBranchNameSetting,
             BranchAlreadyExists,
             UserNotConfigured,
+            DetachedHead,
         }
 
         private static ExitCodes exitCode;
@@ -603,8 +605,11 @@ namespace Nerdbank.GitVersioning.Tool
                         return ExitCodes.BranchAlreadyExists;
                     case ReleaseManager.ReleasePreparationError.UserNotConfigured:
                         return ExitCodes.UserNotConfigured;
+                    case ReleaseManager.ReleasePreparationError.DetachedHead:
+                        return ExitCodes.DetachedHead;
                     default:
-                        throw new InvalidOperationException($"Unimplemented case in switch statement. ReleasePreparationError: {ex.Error}");
+                        Report.Fail($"{nameof(ReleaseManager.ReleasePreparationError)}: {ex.Error}");
+                        return (ExitCodes)(-1);
                 }
             }
         }

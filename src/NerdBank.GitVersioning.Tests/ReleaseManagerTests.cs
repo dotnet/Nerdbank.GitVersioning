@@ -370,6 +370,16 @@ public class ReleaseManagerTests : RepoTestBase
             ReleasePreparationError.VersionDecrement);
     }
 
+    [Fact]
+    public void PrepareRelease_DetachedHead()
+    {
+        this.InitializeSourceControl();
+        this.WriteVersionFile("1.0", "-alpha");
+        Commands.Checkout(this.Repo, this.Repo.Head.Commits.First());
+        var ex = Assert.Throws<ReleasePreparationException>(() => new ReleaseManager().PrepareRelease(this.RepoPath));
+        Assert.Equal(ReleasePreparationError.DetachedHead, ex.Error);
+    }
+
     private void AssertError(Action testCode, ReleasePreparationError expectedError)
     {
         var ex = Assert.Throws<ReleasePreparationException>(testCode);
