@@ -33,13 +33,12 @@ jobs:
       dotnet tool install --tool-path . nbgv
       .\nbgv cloud -p src -a
     displayName: Set build number
-    condition: ne(variables['system.pullrequest.isfork'], true)
 
   - task: DotNetCoreInstaller@0
-    displayName: Install .NET Core SDK 2.1.400
+    displayName: Install .NET Core SDK 2.1.500
     inputs:
       packageType: sdk
-      version: 2.1.400
+      version: 2.1.500
   - script: dotnet --info
     displayName: Show dotnet SDK info
 
@@ -110,18 +109,16 @@ jobs:
       ArtifactName: deployables
       ArtifactType: Container
     displayName: Publish deployables artifacts
-    condition: and(succeeded(), ne(variables['system.pullrequest.isfork'], true))
   - task: PublishBuildArtifacts@1
     inputs:
       PathtoPublish: $(Build.ArtifactStagingDirectory)/build_logs
       ArtifactName: build_logs
       ArtifactType: Container
     displayName: Publish build_logs artifacts
-    condition: and(succeededOrFailed(), ne(variables['system.pullrequest.isfork'], true))
+    condition: succeededOrFailed()
 
 - job: Ubuntu_Xenial
   dependsOn: Windows
-  condition: and(succeeded(), ne(variables['system.pullrequest.isfork'], true))
   pool:
     vmImage: Ubuntu 16.04
   container: xenial
@@ -132,7 +129,6 @@ jobs:
 
 - job: Ubuntu_Bionic
   dependsOn: Windows
-  condition: and(succeeded(), ne(variables['system.pullrequest.isfork'], true))
   pool:
     vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
   container: bionic
@@ -141,7 +137,6 @@ jobs:
 
 - job: macOS
   dependsOn: Windows
-  condition: and(succeeded(), ne(variables['system.pullrequest.isfork'], true))
   pool:
     vmImage: macOS 10.13
   variables:

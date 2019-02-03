@@ -133,7 +133,7 @@
             {
                 Assumes.True(versionFilePath.StartsWith(this.RepoPath, StringComparison.OrdinalIgnoreCase));
                 var relativeFilePath = versionFilePath.Substring(this.RepoPath.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-                this.Repo.Index.Add(relativeFilePath);
+                Commands.Stage(this.Repo, relativeFilePath);
                 if (Path.GetExtension(relativeFilePath) == ".json")
                 {
                     string txtFilePath = relativeFilePath.Substring(0, relativeFilePath.Length - 4) + "txt";

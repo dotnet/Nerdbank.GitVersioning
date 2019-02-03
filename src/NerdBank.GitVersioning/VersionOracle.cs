@@ -343,6 +343,14 @@
         public string NuGetPackageVersion => this.VersionOptions?.NuGetPackageVersionOrDefault.SemVerOrDefault == 1 ? this.NuGetSemVer1 : this.SemVer2;
 
         /// <summary>
+        /// Gets the version to use for Chocolatey packages.
+        /// </summary>
+        /// <remarks>
+        /// This always returns the NuGet subset of SemVer 1.0.
+        /// </remarks>
+        public string ChocolateyPackageVersion => this.NuGetSemVer1;
+
+        /// <summary>
         /// Gets the version to use for NPM packages.
         /// </summary>
         public string NpmPackageVersion => this.SemVer2;
@@ -382,7 +390,7 @@
         /// Gets the build metadata, compliant to SemVer 1.0.
         /// </summary>
         private string SemVer1BuildMetadata =>
-            this.PublicRelease ? string.Empty : this.GitCommitIdShort;
+            this.PublicRelease ? string.Empty : $"-{this.GitCommitIdShort}";
 
         /// <summary>
         /// Gets a SemVer 1.0 compliant string that represents this version, including the -gCOMMITID suffix

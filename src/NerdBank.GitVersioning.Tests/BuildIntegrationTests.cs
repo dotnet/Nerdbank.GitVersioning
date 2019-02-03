@@ -394,7 +394,7 @@ public class BuildIntegrationTests : RepoTestBase
         this.WriteVersionFile(versionOptions);
         this.testProject.AddProperty("OverrideBuildNumberOffset", "10");
         var buildResult = await this.BuildAsync();
-        Assert.Equal("14.1.11.31122", buildResult.AssemblyFileVersion);
+        Assert.StartsWith("14.1.11.", buildResult.AssemblyFileVersion);
     }
 
     [Fact]
@@ -549,7 +549,7 @@ public class BuildIntegrationTests : RepoTestBase
             }
 
             // Assert that env variables were also set in context of the build.
-            Assert.True(buildResult.LoggedEvents.Any(e => string.Equals(e.Message, $"n1=v1", StringComparison.OrdinalIgnoreCase)));
+            Assert.Contains(buildResult.LoggedEvents, e => string.Equals(e.Message, $"n1=v1", StringComparison.OrdinalIgnoreCase));
 
             versionOptions.CloudBuild.SetVersionVariables = false;
             this.WriteVersionFile(versionOptions);
@@ -814,7 +814,7 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal(BuildResultCode.Failure, result.BuildResult.OverallResult);
         string versionCsFilePath = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"));
         Assert.False(File.Exists(versionCsFilePath));
-        Assert.Equal(1, result.LoggedEvents.OfType<BuildErrorEventArgs>().Count());
+        Assert.Single(result.LoggedEvents.OfType<BuildErrorEventArgs>());
     }
 
     /// <summary>
@@ -862,7 +862,6 @@ public class BuildIntegrationTests : RepoTestBase
     ///  information is set correctly.
     /// </summary>
     [Fact]
-    [Trait("TestCategory", "FailsOnAzurePipelines")]
     public async Task NativeVersionInfo_CreateNativeResourceDll()
     {
         this.testProject = this.CreateNativeProjectRootElement(this.projectDirectory, "test.vcxproj");
@@ -945,16 +944,25 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal(versionOptions.Version.Prerelease, buildResult.PrereleaseVersion);
         Assert.Equal(expectedBuildMetadata, buildResult.SemVerBuildSuffix);
 
-        // NuGet is now SemVer 2.0 and will pass additional build metadata if provided
-        bool semVer2 = versionOptions?.NuGetPackageVersionOrDefault.SemVer == 2;
-        string semVer1CommitPrefix = semVer2 ? string.Empty : "g";
-        string pkgVersionSuffix = buildResult.PublicRelease ? string.Empty : $"-{semVer1CommitPrefix}{commitIdShort}";
-        if (semVer2)
+        string GetPkgVersionSuffix(bool useSemVer2)
         {
-            pkgVersionSuffix += expectedBuildMetadataWithoutCommitId;
+            string semVer1CommitPrefix = useSemVer2 ? string.Empty : "g";
+            string pkgVersionSuffix = buildResult.PublicRelease ? string.Empty : $"-{semVer1CommitPrefix}{commitIdShort}";
+            if (useSemVer2)
+            {
+                pkgVersionSuffix += expectedBuildMetadataWithoutCommitId;
+            }
+
+            return pkgVersionSuffix;
         }
 
-        Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{GetSemVerAppropriatePrereleaseTag(versionOptions)}{pkgVersionSuffix}", buildResult.NuGetPackageVersion);
+        // NuGet is now SemVer 2.0 and will pass additional build metadata if provided
+        string nugetPkgVersionSuffix = GetPkgVersionSuffix(useSemVer2: versionOptions?.NuGetPackageVersionOrDefault.SemVer == 2);
+        Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{GetSemVerAppropriatePrereleaseTag(versionOptions)}{nugetPkgVersionSuffix}", buildResult.NuGetPackageVersion);
+
+        // Chocolatey only supports SemVer 1.0
+        string chocolateyPkgVersionSuffix = GetPkgVersionSuffix(useSemVer2: false);
+        Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{GetSemVerAppropriatePrereleaseTag(versionOptions)}{chocolateyPkgVersionSuffix}", buildResult.ChocolateyPackageVersion);
 
         var buildNumberOptions = versionOptions.CloudBuildOrDefault.BuildNumberOrDefault;
         if (buildNumberOptions.EnabledOrDefault)
@@ -997,6 +1005,7 @@ public class BuildIntegrationTests : RepoTestBase
     {
         var eventLogger = new MSBuildLogger { Verbosity = LoggerVerbosity.Minimal };
         var loggers = new ILogger[] { eventLogger };
+        this.testProject.Save(); // persist generated project on disk for analysis
         var buildResult = await this.buildManager.BuildAsync(
             this.Logger,
             this.projectCollection,
@@ -1028,6 +1037,7 @@ public class BuildIntegrationTests : RepoTestBase
             {
                 var targetsFile = ProjectRootElement.Create(XmlReader.Create(stream), this.projectCollection);
                 targetsFile.FullPath = Path.Combine(this.RepoPath, name.Substring(prefix.Length));
+                targetsFile.Save(); // persist files on disk
             }
         }
     }
@@ -1137,6 +1147,7 @@ public class BuildIntegrationTests : RepoTestBase
         public string AssemblyFileVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyFileVersion");
         public string AssemblyVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyVersion");
         public string NuGetPackageVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("NuGetPackageVersion");
+        public string ChocolateyPackageVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("ChocolateyPackageVersion");
         public string CloudBuildNumber => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("CloudBuildNumber");
         public string AssemblyName => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyName");
         public string AssemblyTitle => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyTitle");

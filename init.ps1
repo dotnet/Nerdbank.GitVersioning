@@ -16,8 +16,8 @@ try {
     Write-Host "Restoring NPM packages..." -ForegroundColor Yellow
     Push-Location "$PSScriptRoot\src\nerdbank-gitversioning.npm"
     try {
-        if ($PSCmdlet.ShouldProcess("$PSScriptRoot\src\nerdbank-gitversioning.npm", "npm install")) {
-            npm install --loglevel error
+        if ($PSCmdlet.ShouldProcess("$PSScriptRoot\src\nerdbank-gitversioning.npm", "yarn install")) {
+            yarn install --loglevel error
         }
     } finally {
         Pop-Location

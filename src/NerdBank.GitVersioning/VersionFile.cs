@@ -234,7 +234,20 @@
         /// </param>
         /// <param name="version">The version information to write to the file.</param>
         /// <returns>The path to the file written.</returns>
-        public static string SetVersion(string projectDirectory, VersionOptions version)
+        public static string SetVersion(string projectDirectory, VersionOptions version) => SetVersion(projectDirectory, version, includeSchemaProperty: false);
+
+        /// <summary>
+        /// Writes the version.json file to a directory within a repo with the specified version information.
+        /// </summary>
+        /// <param name="projectDirectory">
+        /// The path to the directory in which to write the version.json file.
+        /// The file's impact will be all descendent projects and directories from this specified directory,
+        /// except where any of those directories have their own version.json file.
+        /// </param>
+        /// <param name="version">The version information to write to the file.</param>
+        /// <param name="includeSchemaProperty">A value indicating whether to serialize the $schema property for easier editing in most JSON editors.</param>
+        /// <returns>The path to the file written.</returns>
+        public static string SetVersion(string projectDirectory, VersionOptions version, bool includeSchemaProperty)
         {
             Requires.NotNullOrEmpty(projectDirectory, nameof(projectDirectory));
             Requires.NotNull(version, nameof(version));
@@ -260,7 +273,7 @@
             }
 
             string versionJsonPath = Path.Combine(projectDirectory, JsonFileName);
-            var jsonContent = JsonConvert.SerializeObject(version, VersionOptions.GetJsonSettings(version.Inherit));
+            var jsonContent = JsonConvert.SerializeObject(version, VersionOptions.GetJsonSettings(version.Inherit, includeSchemaProperty));
             File.WriteAllText(versionJsonPath, jsonContent);
             return versionJsonPath;
         }
