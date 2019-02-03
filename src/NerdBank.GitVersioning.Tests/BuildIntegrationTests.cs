@@ -1005,6 +1005,7 @@ public class BuildIntegrationTests : RepoTestBase
     {
         var eventLogger = new MSBuildLogger { Verbosity = LoggerVerbosity.Minimal };
         var loggers = new ILogger[] { eventLogger };
+        this.testProject.Save(); // persist generated project on disk for analysis
         var buildResult = await this.buildManager.BuildAsync(
             this.Logger,
             this.projectCollection,
@@ -1036,6 +1037,7 @@ public class BuildIntegrationTests : RepoTestBase
             {
                 var targetsFile = ProjectRootElement.Create(XmlReader.Create(stream), this.projectCollection);
                 targetsFile.FullPath = Path.Combine(this.RepoPath, name.Substring(prefix.Length));
+                targetsFile.Save(); // persist files on disk
             }
         }
     }
