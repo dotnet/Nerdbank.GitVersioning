@@ -176,9 +176,9 @@ public class ReleaseManagerTests : RepoTestBase
     }
 
     [Theory]
-    [InlineData("1.2", "rc", "release/v{version}", "release/v1.2")]
-    [InlineData("1.2+metadata", "rc", "release/v{version}", "release/v1.2")]
-    public void PrepeareRelease_ReleaseBranchWithVersionDecrement(string initialVersion, string releaseUnstableTag, string releaseOptionsBranchName, string branchName)
+    [InlineData("1.2", "rc", "release/v1.2")]
+    [InlineData("1.2+metadata", "rc", "release/v1.2")]
+    public void PrepeareRelease_ReleaseBranchWithVersionDecrement(string initialVersion, string releaseUnstableTag, string branchName)
     {
         // create and configure repository
         this.InitializeSourceControl();

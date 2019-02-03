@@ -174,10 +174,10 @@ public class VersionOracleTests : RepoTestBase
         this.InitializeSourceControl();
         var oracle = VersionOracle.Create(this.RepoPath);
         oracle.PublicRelease = false;
-        Assert.True(Regex.IsMatch(oracle.SemVer1, @"^2.3.1-[^g]{10}$"));
-        Assert.True(Regex.IsMatch(oracle.SemVer2, @"^2.3.1-[^g]{10}$"));
-        Assert.True(Regex.IsMatch(oracle.NuGetPackageVersion, @"^2.3.1-g[a-f0-9]{10}$"));
-        Assert.True(Regex.IsMatch(oracle.ChocolateyPackageVersion, @"^2.3.1-g[a-f0-9]{10}$"));
+        Assert.Matches(@"^2.3.1-[^g]{10}$", oracle.SemVer1);
+        Assert.Matches(@"^2.3.1-[^g]{10}$", oracle.SemVer2);
+        Assert.Matches(@"^2.3.1-g[a-f0-9]{10}$", oracle.NuGetPackageVersion);
+        Assert.Matches(@"^2.3.1-g[a-f0-9]{10}$", oracle.ChocolateyPackageVersion);
     }
 
     [Fact]
