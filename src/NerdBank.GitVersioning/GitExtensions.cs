@@ -380,7 +380,27 @@
         /// Opens a <see cref="Repository"/> found at or above a specified path.
         /// </summary>
         /// <param name="pathUnderGitRepo">The path at or beneath the git repo root.</param>
-        /// <param name="useDefaultConfigSearchPaths">Specifies whether to use default settings for looking up global and system settings.</param>
+        /// <param name="useDefaultConfigSearchPaths">
+        /// Specifies whether to use default settings for looking up global and system settings.
+        /// <para>
+        /// By default (<paramref name="useDefaultConfigSearchPaths"/> == <c>false</c>), the repository will be configured to only 
+        /// use the repository-level configuration ignoring system or user-level configuration (set using <c>git config --global</c>.
+        /// Thus only settings explicitly set for the repo will be available.
+        /// </para>
+        /// <para>
+        /// For example using <c>Repository.Configuration.Get{string}("user.name")</c> to get the user's name will
+        /// return the value set in the repository config or <c>null</c> if the user name has not been explicitly set for the repository.
+        /// </para>
+        /// <para>
+        /// When the caller specifies to use the default configuration search paths (<paramref name="useDefaultConfigSearchPaths"/> == <c>true</c>)
+        /// both repository level and global configuration will be available to the repo as well.
+        /// </para>
+        /// <para>
+        /// In this mode, using <c>Repository.Configuration.Get{string}("user.name")</c> will return the
+        /// value set in the user's global git configuration unless set on the repository level, 
+        /// matching the behavior of the <c>git</c> command.
+        /// </para>
+        /// </param>
         /// <returns>The <see cref="Repository"/> found for the specified path, or <c>null</c> if no git repo is found.</returns>
         public static Repository OpenGitRepo(string pathUnderGitRepo, bool useDefaultConfigSearchPaths = false)
         {
