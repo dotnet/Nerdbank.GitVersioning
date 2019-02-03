@@ -178,5 +178,52 @@ public class VersionOptionsTests
         Assert.Throws<InvalidOperationException>(() => options.CloudBuildOrDefault.BuildNumberOrDefault.IncludeCommitIdOrDefault.Where = VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata);
         Assert.Throws<InvalidOperationException>(() => options.CloudBuildOrDefault.SetVersionVariables = true);
         Assert.Throws<InvalidOperationException>(() => options.NuGetPackageVersionOrDefault.SemVer = 2);
+        Assert.Throws<InvalidOperationException>(() => options.ReleaseOrDefault.BranchName = "BranchName");
+        Assert.Throws<InvalidOperationException>(() => options.ReleaseOrDefault.VersionIncrement = VersionOptions.ReleaseVersionIncrement.Major);
+        Assert.Throws<InvalidOperationException>(() => options.ReleaseOrDefault.FirstUnstableTag = "-tag");
+    }
+
+
+    [Fact]
+    public void ReleaseOptions_Equality()
+    {
+        var ro1 = new VersionOptions.ReleaseOptions() { };
+        var ro2 = new VersionOptions.ReleaseOptions() { };
+        var ro3 = new VersionOptions.ReleaseOptions()
+        {
+            BranchName = "branchName",
+            VersionIncrement = VersionOptions.ReleaseVersionIncrement.Major
+        };
+        var ro4 = new VersionOptions.ReleaseOptions()
+        {
+            BranchName = "branchName",
+            VersionIncrement = VersionOptions.ReleaseVersionIncrement.Major
+        };
+        var ro5 = new VersionOptions.ReleaseOptions()
+        {
+            BranchName = "branchName",
+            VersionIncrement = VersionOptions.ReleaseVersionIncrement.Minor,            
+        };
+        var ro6 = new VersionOptions.ReleaseOptions()
+        {
+            BranchName = "branchName",
+            VersionIncrement = VersionOptions.ReleaseVersionIncrement.Minor,
+            FirstUnstableTag = "tag"
+        };
+        var ro7 = new VersionOptions.ReleaseOptions()
+        {
+            BranchName = "branchName",
+            VersionIncrement = VersionOptions.ReleaseVersionIncrement.Minor,
+            FirstUnstableTag = "tag"
+        };
+
+        Assert.Equal(ro1, ro2);
+        Assert.Equal(ro3, ro4);
+        Assert.Equal(ro3, ro4);
+
+        Assert.NotEqual(ro1, ro3);
+        Assert.NotEqual(ro1, ro5);
+        Assert.NotEqual(ro3, ro5);
+        Assert.NotEqual(ro5, ro6);
     }
 }

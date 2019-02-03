@@ -18,7 +18,7 @@ gulp.task('tsc', function () {
     var tsResult = gulp.src(['*.ts', 'ts/**/*.ts', 'node_modules/@types/**/index.d.ts'])
         // .pipe(tslint())
         .pipe(sourcemaps.init())
-        .pipe(ts(tsProject));
+        .pipe(tsProject());
 
     return merge([
         tsResult.dts.pipe(gulp.dest(outDir)),
@@ -28,7 +28,7 @@ gulp.task('tsc', function () {
     ]);
 });
 
-gulp.task('copyPackageContents', ['tsc'], function () {
+gulp.task('copyPackageContents', gulp.series('tsc', function () {
     return gulp
         .src([
             'package.json',
@@ -36,14 +36,14 @@ gulp.task('copyPackageContents', ['tsc'], function () {
             '../../LICENSE.txt'
         ])
         .pipe(gulp.dest(outDir));
-});
+}));
 
-gulp.task('setPackageVersion', ['copyPackageContents'], function () {
+gulp.task('setPackageVersion', gulp.series('copyPackageContents', function () {
     var nbgv = require(`./${outDir}`);
     return nbgv.setPackageVersion(outDir, '.');
-});
+}));
 
-gulp.task('package', ['setPackageVersion'], function () {
+gulp.task('package', gulp.series('setPackageVersion', function () {
     var afs = require('./out/asyncio');
     var binDir = '../../bin/js';
     return afs.mkdirIfNotExistAsync(binDir)
@@ -51,7 +51,7 @@ gulp.task('package', ['setPackageVersion'], function () {
             var ap = require('./out/asyncprocess');
             return ap.execAsync(`npm pack "${path.join(__dirname, outDir)}"`, { cwd: binDir });
         });
-});
+}));
 
 gulp.task('clean', function () {
     return del([
@@ -59,15 +59,16 @@ gulp.task('clean', function () {
     ])
 });
 
-gulp.task('default', ['package'], function () {
-});
+gulp.task('default', gulp.series('package', function (done) {
+    done();
+}));
 
-gulp.task('watch', ['tsc'], function () {
+gulp.task('watch', gulp.series('tsc', function () {
     return gulp.watch('**/*.ts', ['tsc']);
-});
+}));
 
-gulp.task('test', ['tsc'], async function () {
+gulp.task('test', gulp.series('tsc', async function () {
     var nbgv = require('./out');
     var v = await nbgv.getVersion();
     console.log(v);
-});
+}));

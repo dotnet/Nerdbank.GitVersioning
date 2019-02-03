@@ -134,6 +134,30 @@
               }
             }
           }
+        },
+        "release": {
+          "description": "Settings for the prepare-release command",
+          "type": "object",
+          "properties": {
+            "branchName": {
+              "description": "Defines the format of release branch names. Format must include a placeholder '{version}' for the version",
+              "type": "string",
+              "pattern": ".*\\{0\\}.*",
+              "default": "v{version}"
+            },
+            "versionIncrement": {
+              "description": "Specifies which part of the version on the current branch is incremented when preparing a release.",
+              "type": "string",
+              "enum": [ "major", "minor" ],
+              "default": "minor"
+            },
+            "firstUnstableTag": {
+              "description": "Specifies the first/default prerelease tag for new versions",
+              "type": "string",
+              "default": "alpha"
+            }
+          },
+          "additionalProperties": false
         }
       }
     },
