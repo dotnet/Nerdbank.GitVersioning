@@ -113,8 +113,7 @@ namespace Nerdbank.GitVersioning.Tool
 
                 if (syntax.ActiveCommand == null)
                 {
-                    Console.WriteLine(syntax.GetHelpText());
-                    Console.WriteLine("Use -h, --help, or -? after a command to get more help about a particular command.");
+                    Console.WriteLine("Use -h, --help, or -? for usage help. Use after a command to get more help about a particular command.");
                 }
             });
 
