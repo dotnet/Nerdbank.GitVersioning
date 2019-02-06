@@ -45,6 +45,7 @@ namespace Nerdbank.GitVersioning.Tool
             BranchAlreadyExists,
             UserNotConfigured,
             DetachedHead,
+            InvalidVersionIncrementSetting,
         }
 
         private static ExitCodes exitCode;
@@ -606,6 +607,8 @@ namespace Nerdbank.GitVersioning.Tool
                         return ExitCodes.UserNotConfigured;
                     case ReleaseManager.ReleasePreparationError.DetachedHead:
                         return ExitCodes.DetachedHead;
+                    case ReleaseManager.ReleasePreparationError.InvalidVersionIncrementSetting:
+                        return ExitCodes.InvalidVersionIncrementSetting;
                     default:
                         Report.Fail($"{nameof(ReleaseManager.ReleasePreparationError)}: {ex.Error}");
                         return (ExitCodes)(-1);

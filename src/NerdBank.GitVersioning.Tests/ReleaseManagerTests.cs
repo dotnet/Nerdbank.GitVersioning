@@ -209,11 +209,16 @@ public class ReleaseManagerTests : RepoTestBase
     [InlineData("1.2-beta", "v{version}release", ReleaseVersionIncrement.Minor, "alpha", "rc", null, "v1.2release", "1.2-rc", "1.3-alpha")]
     [InlineData("1.2-beta.{height}", "v{version}release", ReleaseVersionIncrement.Minor, "alpha", null, null, "v1.2release", "1.2", "1.3-alpha.{height}")]
     [InlineData("1.2-beta.{height}", "v{version}release", ReleaseVersionIncrement.Minor, "alpha", "rc", null, "v1.2release", "1.2-rc.{height}", "1.3-alpha.{height}")]
-    // modify release.versionIncrement
+    // modify release.versionIncrement: "Major"
     [InlineData("1.2-beta", null, ReleaseVersionIncrement.Major, "alpha", null, null, "v1.2", "1.2", "2.0-alpha")]
     [InlineData("1.2-beta", null, ReleaseVersionIncrement.Major, "alpha", "rc", null, "v1.2", "1.2-rc", "2.0-alpha")]
     [InlineData("1.2-beta.{height}", null, ReleaseVersionIncrement.Major, "alpha", null, null, "v1.2", "1.2", "2.0-alpha.{height}")]
     [InlineData("1.2-beta.{height}", null, ReleaseVersionIncrement.Major, "alpha", "rc", null, "v1.2", "1.2-rc.{height}", "2.0-alpha.{height}")]
+    // modify release.versionIncrement: "Build"
+    [InlineData("1.2.3-beta", null, ReleaseVersionIncrement.Build, "alpha", null, null, "v1.2.3", "1.2.3", "1.2.4-alpha")]
+    [InlineData("1.2.3-beta", null, ReleaseVersionIncrement.Build, "alpha", "rc", null, "v1.2.3", "1.2.3-rc", "1.2.4-alpha")]
+    [InlineData("1.2.3-beta.{height}", null, ReleaseVersionIncrement.Build, "alpha", null, null, "v1.2.3", "1.2.3", "1.2.4-alpha.{height}")]
+    [InlineData("1.2.3-beta.{height}", null, ReleaseVersionIncrement.Build, "alpha", "rc", null, "v1.2.3", "1.2.3-rc.{height}", "1.2.4-alpha.{height}")]
     // modify release.firstUnstableTag
     [InlineData("1.2-beta", null, ReleaseVersionIncrement.Minor, "preview", null, null, "v1.2", "1.2", "1.3-preview")]
     [InlineData("1.2-beta", null, ReleaseVersionIncrement.Minor, "preview", "rc", null, "v1.2", "1.2-rc", "1.3-preview")]
@@ -378,6 +383,27 @@ public class ReleaseManagerTests : RepoTestBase
         Commands.Checkout(this.Repo, this.Repo.Head.Commits.First());
         var ex = Assert.Throws<ReleasePreparationException>(() => new ReleaseManager().PrepareRelease(this.RepoPath));
         Assert.Equal(ReleasePreparationError.DetachedHead, ex.Error);
+    }
+
+    [Fact]
+    public void PrepareRelease_InvalidVersionIncrement()
+    {
+        // create and configure repository
+        this.InitializeSourceControl();
+        this.Repo.Config.Set("user.name", this.Signer.Name, ConfigurationLevel.Local);
+        this.Repo.Config.Set("user.email", this.Signer.Email, ConfigurationLevel.Local);
+
+        // create version.json
+        var versionOptions = new VersionOptions()
+        {
+            Version = SemanticVersion.Parse("1.2"),
+            Release = new ReleaseOptions() { VersionIncrement = ReleaseVersionIncrement.Build }
+        };
+        this.WriteVersionFile(versionOptions);
+
+        // running PrepareRelease should result in an error
+        // because a 2-segment version is incompatibale with a increment setting of "build"
+        this.AssertError(() => new ReleaseManager().PrepareRelease(this.RepoPath), ReleasePreparationError.InvalidVersionIncrementSetting);
     }
 
     private void AssertError(Action testCode, ReleasePreparationError expectedError)
