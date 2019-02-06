@@ -148,7 +148,7 @@
             "versionIncrement": {
               "description": "Specifies which part of the version on the current branch is incremented when preparing a release.",
               "type": "string",
-              "enum": [ "major", "minor" ],
+              "enum": [ "major", "minor", "build" ],
               "default": "minor"
             },
             "firstUnstableTag": {
