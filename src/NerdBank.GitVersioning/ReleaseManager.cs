@@ -130,7 +130,6 @@
                 this.stderr.WriteLine($"Failed to load version file for directory '{projectDirectory}'.");
                 throw new ReleasePreparationException(ReleasePreparationError.NoVersionFile);
             }
-
             
             var releaseBranchName = this.GetReleaseBranchName(versionOptions);
             var originalBranchName = repository.Head.FriendlyName;

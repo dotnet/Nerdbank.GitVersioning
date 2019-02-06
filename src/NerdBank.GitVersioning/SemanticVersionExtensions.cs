@@ -106,6 +106,6 @@
         internal static SemanticVersion WithoutPrepreleaseTags(this SemanticVersion version)
         {
             return new SemanticVersion(version.Version, null, version.BuildMetadata);
-        }      
+        }
     }
 }
