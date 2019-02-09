@@ -92,6 +92,7 @@ public class VersionSchemaTests
     [InlineData(@"{ ""version"": ""2.3"", ""release"":  { ""branchName"" : ""prefix{0}suffix"" } }")]
     [InlineData(@"{ ""version"": ""2.3"", ""release"":  { ""branchName"" : ""{0}"", ""versionIncrement"" : ""major"" } }")]
     [InlineData(@"{ ""version"": ""2.3"", ""release"":  { ""branchName"" : ""{0}"", ""versionIncrement"" : ""minor"" } }")]
+    [InlineData(@"{ ""version"": ""2.3"", ""release"":  { ""branchName"" : ""{0}"", ""versionIncrement"" : ""build"" } }")]
     [InlineData(@"{ ""version"": ""2.3"", ""release"":  { ""firstUnstableTag"" : ""pre"" } }")]
     public void ReleaseProperty_ValidJson(string json)
     {
@@ -100,7 +101,7 @@ public class VersionSchemaTests
     }
 
     [Theory]
-    [InlineData(@"{ ""version"": ""2.3"", ""release"":  { ""versionIncrement"" : ""build"" } }")]
+    [InlineData(@"{ ""version"": ""2.3"", ""release"":  { ""versionIncrement"" : ""revision"" } }")]
     [InlineData(@"{ ""version"": ""2.3"", ""release"":  { ""branchName"" : ""formatWithoutPlaceholder"" } }")]
     [InlineData(@"{ ""version"": ""2.3"", ""release"":  { ""unknownProperty"" : ""value"" } }")]
     public void ReleaseProperty_InvalidJson(string json)
