@@ -606,7 +606,7 @@ namespace Nerdbank.GitVersioning.Tool
             try
             {
                 var releaseManager = new ReleaseManager(Console.Out, Console.Error);
-                releaseManager.PrepareRelease(searchPath, prereleaseTag, nextVersionParsed);
+                releaseManager.PrepareRelease(searchPath, prereleaseTag, nextVersionParsed, versionIncrementParsed);
                 return ExitCodes.OK;
             }
             catch (ReleaseManager.ReleasePreparationException ex)
