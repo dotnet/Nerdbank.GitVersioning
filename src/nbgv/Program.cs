@@ -592,12 +592,12 @@ namespace Nerdbank.GitVersioning.Tool
             }
 
             // parse nextVersion if parameter was specified
-            SemanticVersion nextVersionParsed = default;
+            Version nextVersionParsed = default;
             if (!string.IsNullOrEmpty(nextVersion))
             {
-                if (!SemanticVersion.TryParse(nextVersion, out nextVersionParsed))
+                if (!Version.TryParse(nextVersion, out nextVersionParsed))
                 {
-                    Console.Error.WriteLine($"\"{nextVersion}\" is not a semver-compliant version spec.");
+                    Console.Error.WriteLine($"\"{nextVersion}\" is not a valid version spec.");
                     return ExitCodes.InvalidVersionSpec;
                 }
             }

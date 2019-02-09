@@ -87,7 +87,7 @@ or override the version increment setting.
 To explicitly set the next version, run
 
 ```ps1
-nbgv prepare-release --nextVersion 2.0-beta
+nbgv prepare-release --nextVersion 2.0
 ```
 
 To override the `versionIncrement` setting from `version.json`, run

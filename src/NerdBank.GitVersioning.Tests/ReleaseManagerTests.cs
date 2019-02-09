@@ -11,6 +11,7 @@ using ReleaseOptions = Nerdbank.GitVersioning.VersionOptions.ReleaseOptions;
 using ReleasePreparationError = Nerdbank.GitVersioning.ReleaseManager.ReleasePreparationError;
 using ReleasePreparationException = Nerdbank.GitVersioning.ReleaseManager.ReleasePreparationException;
 using ReleaseVersionIncrement = Nerdbank.GitVersioning.VersionOptions.ReleaseVersionIncrement;
+using Version = System.Version;
 
 public class ReleaseManagerTests : RepoTestBase
 {
@@ -232,11 +233,11 @@ public class ReleaseManagerTests : RepoTestBase
     // versions without prerelease tags
     [InlineData("1.2", null, ReleaseVersionIncrement.Minor, "alpha", null, null, null, "v1.2", "1.2", "1.3-alpha")]
     [InlineData("1.2", null, ReleaseVersionIncrement.Major, "alpha", null, null, null, "v1.2", "1.2", "2.0-alpha")]
-    // explicitly set next version (firstUnstableTag setting will be ignored)
-    [InlineData("1.2-beta", null, null, null, null, "4.5", null, "v1.2", "1.2", "4.5")]
-    [InlineData("1.2-beta", null, null, null, null, "4.5-pre", null, "v1.2", "1.2", "4.5-pre")]
-    [InlineData("1.2-beta.{height}", null, null, null, null, "4.5-pre.{height}", null, "v1.2", "1.2", "4.5-pre.{height}")]
-    // explicitly set version increment overriding the setting from version.json    
+    // explicitly set next version
+    [InlineData("1.2-beta", null, null, null, null, "4.5", null, "v1.2", "1.2", "4.5-alpha")]
+    [InlineData("1.2-beta.{height}", null, null, null, null, "4.5", null, "v1.2", "1.2", "4.5-alpha.{height}")]
+    [InlineData("1.2-beta.{height}", null, null, "pre", null, "4.5.6", null, "v1.2", "1.2", "4.5.6-pre.{height}")]
+    // explicitly set version increment overriding the setting from ReleaseOptions 
     [InlineData("1.2-beta", null, ReleaseVersionIncrement.Minor, null, null, null, ReleaseVersionIncrement.Major, "v1.2", "1.2", "2.0-alpha")]
     [InlineData("1.2.3-beta", null, ReleaseVersionIncrement.Minor, null, null, null, ReleaseVersionIncrement.Build, "v1.2.3", "1.2.3", "1.2.4-alpha")]
     public void PrepareRelease_Master(
@@ -299,7 +300,7 @@ public class ReleaseManagerTests : RepoTestBase
 
         // prepare release
         var releaseManager = new ReleaseManager();
-        releaseManager.PrepareRelease(this.RepoPath, releaseUnstableTag, (nextVersion == null ? null : SemanticVersion.Parse(nextVersion)), parameterVersionIncrement);
+        releaseManager.PrepareRelease(this.RepoPath, releaseUnstableTag, (nextVersion == null ? null : Version.Parse(nextVersion)), parameterVersionIncrement);
 
         // check if a branch was created
         Assert.Contains(this.Repo.Branches, branch => branch.FriendlyName == expectedBranchName);
@@ -375,7 +376,7 @@ public class ReleaseManagerTests : RepoTestBase
         // running PrepareRelease should result in an error
         // because we're trying to add a prerelease tag to a version without prerelease tag
         this.AssertError(
-            () => new ReleaseManager().PrepareRelease(this.RepoPath, releaseUnstableTag, (nextVersion == null ? null : SemanticVersion.Parse(nextVersion))),
+            () => new ReleaseManager().PrepareRelease(this.RepoPath, releaseUnstableTag, (nextVersion == null ? null : Version.Parse(nextVersion))),
             ReleasePreparationError.VersionDecrement);
     }
 
