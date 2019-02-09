@@ -46,6 +46,8 @@ namespace Nerdbank.GitVersioning.Tool
             UserNotConfigured,
             DetachedHead,
             InvalidVersionIncrementSetting,
+            InvalidParameters,
+            InvalidVersionIncrement,
         }
 
         private static ExitCodes exitCode;
@@ -65,6 +67,7 @@ namespace Nerdbank.GitVersioning.Tool
             bool cloudBuildAllVars = false;
             string releasePreReleaseTag = null;
             string releaseNextVersion = null;
+            string releaseVersionIncrement = null;
 
             ArgumentCommand<string> install = null;
             ArgumentCommand<string> getVersion = null;
@@ -110,6 +113,7 @@ namespace Nerdbank.GitVersioning.Tool
                 prepareRelease = syntax.DefineCommand("prepare-release", ref commandText, "Prepares a release by creating a release branch for the current version and adjusting the version on the current branch.");
                 syntax.DefineOption("p|project", ref projectPath, "The path to the project or project directory. The default is the current directory.");
                 syntax.DefineOption("nextVersion", ref releaseNextVersion, "The version to set for the current branch. If omitted, the next version is determined automatically by incrementing the current version.");
+                syntax.DefineOption("versionIncrement", ref releaseVersionIncrement, "Specifies how the next version for the current branch is determined overriding the 'versionIncrement' setting in version.json");
                 syntax.DefineParameter("tag", ref releasePreReleaseTag, "The prerelease tag to apply on the release branch (if any). If not specified, any existing prerelease tag will be removed. The preceding hyphen may be omitted.");
 
                 if (syntax.ActiveCommand == null)
@@ -144,7 +148,7 @@ namespace Nerdbank.GitVersioning.Tool
             }
             else if (prepareRelease.IsActive)
             {
-                exitCode = OnPrepareReleaseCommand(projectPath, releasePreReleaseTag, releaseNextVersion);
+                exitCode = OnPrepareReleaseCommand(projectPath, releasePreReleaseTag, releaseNextVersion, releaseVersionIncrement);
             }
 
             return (int)exitCode;
@@ -558,7 +562,7 @@ namespace Nerdbank.GitVersioning.Tool
             }
         }
 
-        private static ExitCodes OnPrepareReleaseCommand(string projectPath, string prereleaseTag, string nextVersion)
+        private static ExitCodes OnPrepareReleaseCommand(string projectPath, string prereleaseTag, string nextVersion, string versionIncrement)
         {
             // validate project path property
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(projectPath);
@@ -566,6 +570,25 @@ namespace Nerdbank.GitVersioning.Tool
             {
                 Console.Error.WriteLine($"\"{searchPath}\" is not an existing directory.");
                 return ExitCodes.NoGitRepo;
+            }
+
+            // nextVersion and versionIncrement parameters cannot be combined
+            if(!string.IsNullOrEmpty(nextVersion) && !string.IsNullOrEmpty(versionIncrement))
+            {
+                Console.Error.WriteLine("Options 'nextVersion' and 'versionIncrement' cannot be used at the same time.");
+                return ExitCodes.InvalidParameters;
+            }
+
+            // parse versionIncrement is parameter was specified
+            VersionOptions.ReleaseVersionIncrement? versionIncrementParsed = default;
+            if (!string.IsNullOrEmpty(versionIncrement))
+            {
+                if(!Enum.TryParse< VersionOptions.ReleaseVersionIncrement>(versionIncrement, true, out var parsed))
+                {
+                    Console.Error.WriteLine($"\"{versionIncrement}\" is not a valid version increment");
+                    return ExitCodes.InvalidVersionIncrement;
+                }
+                versionIncrementParsed = parsed;
             }
 
             // parse nextVersion if parameter was specified

@@ -6,6 +6,7 @@
     using System.Linq;
     using LibGit2Sharp;
     using Validation;
+    using static Nerdbank.GitVersioning.VersionOptions;
 
     /// <summary>
     /// Methods for creating releases
@@ -110,9 +111,14 @@
         /// version based on the current version and the <c>versionIncrement</c> setting in <c>version.json</c>.
         /// Parameter will be ignored if the current branch is a release branch.
         /// </param>
-        public void PrepareRelease(string projectDirectory, string releaseUnstableTag = null, SemanticVersion nextVersion = null)
+        /// <param name="versionIncrement">
+        /// The increment to apply in order to determine the next version on the current branch.
+        /// If specified, value will be used instead of the increment specified in <c>version.json</c>.
+        /// Parameter will be ignored if the current branch is a release branch.
+        /// </param>
+        public void PrepareRelease(string projectDirectory, string releaseUnstableTag = null, SemanticVersion nextVersion = null, ReleaseVersionIncrement? versionIncrement = null)
         {
-            Requires.NotNull(projectDirectory, nameof(projectDirectory));
+            Requires.NotNull(projectDirectory, nameof(projectDirectory));            
 
             // open the git repository
             var repository = this.GetRepository(projectDirectory);
@@ -136,7 +142,7 @@
             var releaseVersion = string.IsNullOrEmpty(releaseUnstableTag)
                 ? versionOptions.Version.WithoutPrepreleaseTags()
                 : versionOptions.Version.SetFirstPrereleaseTag(releaseUnstableTag);
-            var nextDevVersion = this.GetNextDevVersion(versionOptions, nextVersion);
+            var nextDevVersion = this.GetNextDevVersion(versionOptions, nextVersion, versionIncrement);
 
             // check if the current branch is the release branch
             if (string.Equals(originalBranchName, releaseBranchName, StringComparison.OrdinalIgnoreCase))
@@ -273,17 +279,19 @@
             }
         }
 
-        private SemanticVersion GetNextDevVersion(VersionOptions versionOptions, SemanticVersion nextVersion)
+        private SemanticVersion GetNextDevVersion(VersionOptions versionOptions, SemanticVersion nextVersion, ReleaseVersionIncrement? versionIncrementOverride)
         {
             if (nextVersion != null)
                 return nextVersion;
 
-            var releaseOptions = versionOptions.ReleaseOrDefault;
+            // determine the increment to use. 
+            // Use parameter if it has a value, otherwise use setting from version.json
+            var versionIncrement = versionIncrementOverride ?? versionOptions.ReleaseOrDefault.VersionIncrementOrDefault;
 
             // the increment is only valid if the current version has the required precision
             // increment settings "Major" and "Minor" are always valid
             // increment setting "Build" is only valid if the version has at lease three segments
-            var isValidIncrement = releaseOptions.VersionIncrementOrDefault != VersionOptions.ReleaseVersionIncrement.Build ||
+            var isValidIncrement = versionIncrement != ReleaseVersionIncrement.Build ||
                                    versionOptions.Version.Version.Build >= 0;
 
             // increment is ignored when the next version was specified explicitly
@@ -294,8 +302,8 @@
             }
 
             return versionOptions.Version
-                        .Increment(releaseOptions.VersionIncrementOrDefault)
-                        .SetFirstPrereleaseTag(releaseOptions.FirstUnstableTagOrDefault);
+                        .Increment(versionIncrement)
+                        .SetFirstPrereleaseTag(versionOptions.ReleaseOrDefault.FirstUnstableTagOrDefault);
         }
     }
 }
