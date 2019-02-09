@@ -289,7 +289,7 @@
             // increment is ignored when the next version was specified explicitly
             if (!isValidIncrement)
             {
-                this.stderr.WriteLine($"Cannot use version increment 'build' in version '{versionOptions.Version}' because it only has major and minor segments");
+                this.stderr.WriteLine($"Cannot apply version increment 'build' to version '{versionOptions.Version}' because it only has major and minor segments");
                 throw new ReleasePreparationException(ReleasePreparationError.InvalidVersionIncrementSetting);
             }
 

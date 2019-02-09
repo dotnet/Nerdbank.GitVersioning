@@ -18,7 +18,7 @@
         {
             Requires.NotNull(currentVersion, nameof(currentVersion));
             Requires.That(increment != VersionOptions.ReleaseVersionIncrement.Build || currentVersion.Version.Build >= 0, nameof(increment), 
-                          "Cannot use increment '{0}' with higher precision than the version being incremented", increment);
+                          "Cannot apply version increment '{0}' to version '{1}'", increment, currentVersion);
 
             var major = currentVersion.Version.Major;
             var minor = currentVersion.Version.Minor;
