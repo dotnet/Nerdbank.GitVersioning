@@ -142,7 +142,7 @@
             "branchName": {
               "description": "Defines the format of release branch names. Format must include a placeholder '{version}' for the version",
               "type": "string",
-              "pattern": ".*\\{0\\}.*",
+              "pattern": ".*\\{version\\}.*",
               "default": "v{version}"
             },
             "versionIncrement": {
