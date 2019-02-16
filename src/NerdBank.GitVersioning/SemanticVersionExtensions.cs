@@ -17,19 +17,29 @@
         internal static SemanticVersion Increment(this SemanticVersion currentVersion, VersionOptions.ReleaseVersionIncrement increment)
         {
             Requires.NotNull(currentVersion, nameof(currentVersion));
+            Requires.That(increment != VersionOptions.ReleaseVersionIncrement.Build || currentVersion.Version.Build >= 0, nameof(increment), 
+                          "Cannot apply version increment '{0}' to version '{1}'", increment, currentVersion);
 
             var major = currentVersion.Version.Major;
             var minor = currentVersion.Version.Minor;
+            var build = currentVersion.Version.Build;
 
             switch (increment)
             {
                 case VersionOptions.ReleaseVersionIncrement.Major:
                     major += 1;
                     minor = 0;
+                    build = 0;
                     break;
                 case VersionOptions.ReleaseVersionIncrement.Minor:
                     minor += 1;
+                    build = 0;
                     break;
+
+                case VersionOptions.ReleaseVersionIncrement.Build:
+                    build += 1;
+                    break;
+
                 default:
                     throw new ArgumentOutOfRangeException(nameof(increment));
             }
@@ -40,12 +50,12 @@
             if (currentVersion.Version.Build >= 0 && currentVersion.Version.Revision > 0)
             {
                 // 4 segment version
-                newVersion = new Version(major, minor, 0, 0);
+                newVersion = new Version(major, minor, build, 0);
             }
             else if (currentVersion.Version.Build >= 0)
             {
                 // 3 segment version
-                newVersion = new Version(major, minor, 0);
+                newVersion = new Version(major, minor, build);
             }
             else
             {

@@ -1139,7 +1139,12 @@
             /// <summary>
             /// Increment the minor version after creating a release branch
             /// </summary>
-            Minor
+            Minor,
+
+            /// <summary>
+            /// Inrementn the build number (the third number in a version) after creating a release branch
+            /// </summary>
+            Build,
         }
     }
 }
