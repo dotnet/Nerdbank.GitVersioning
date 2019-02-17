@@ -58,7 +58,7 @@
             DetachedHead,
 
             /// <summary>
-            /// The versionIncrement setting cannot be applied to the current version
+            /// The versionIncrement setting cannot be applied to the current version.
             /// </summary>
             InvalidVersionIncrementSetting,
         }
