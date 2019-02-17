@@ -142,13 +142,13 @@
             "branchName": {
               "description": "Defines the format of release branch names. Format must include a placeholder '{version}' for the version",
               "type": "string",
-              "pattern": ".*\\{0\\}.*",
+              "pattern": ".*\\{version\\}.*",
               "default": "v{version}"
             },
             "versionIncrement": {
               "description": "Specifies which part of the version on the current branch is incremented when preparing a release.",
               "type": "string",
-              "enum": [ "major", "minor" ],
+              "enum": [ "major", "minor", "build" ],
               "default": "minor"
             },
             "firstUnstableTag": {

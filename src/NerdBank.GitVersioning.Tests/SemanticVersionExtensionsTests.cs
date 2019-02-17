@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 using Nerdbank.GitVersioning;
 using Xunit;
@@ -26,7 +27,13 @@ public class SemanticVersionExtensionsTests
     [InlineData("1.2.3", ReleaseVersionIncrement.Major, "2.0.0")]
     [InlineData("1.2.3.4", ReleaseVersionIncrement.Minor, "1.3.0.0")]
     [InlineData("1.2.3.4", ReleaseVersionIncrement.Major, "2.0.0.0")]
-    public void IncrementVersion(string currentVersionString, ReleaseVersionIncrement increment, string expectedVersionString)
+    [InlineData("1.2.3", ReleaseVersionIncrement.Build, "1.2.4")]
+    [InlineData("1.2.3.4", ReleaseVersionIncrement.Build, "1.2.4.0")]
+    [InlineData("1.2.3-tag", ReleaseVersionIncrement.Build, "1.2.4-tag")]
+    [InlineData("1.2.3-tag+metadata", ReleaseVersionIncrement.Build, "1.2.4-tag+metadata")]
+    [InlineData("1.2.3.4-tag", ReleaseVersionIncrement.Build, "1.2.4.0-tag")]
+    [InlineData("1.2.3.4-tag+metadata", ReleaseVersionIncrement.Build, "1.2.4.0-tag+metadata")]
+    public void Increment(string currentVersionString, ReleaseVersionIncrement increment, string expectedVersionString)
     {
         var currentVersion = SemanticVersion.Parse(currentVersionString);
         var expectedVersion = SemanticVersion.Parse(expectedVersionString);
@@ -34,6 +41,15 @@ public class SemanticVersionExtensionsTests
         var actualVersion = currentVersion.Increment(increment);
 
         Assert.Equal(expectedVersion, actualVersion);
+    }
+
+    [Theory]
+    [InlineData("1.0", ReleaseVersionIncrement.Build)]
+    public void Increment_InvalidIncrement(string currentVersionString, ReleaseVersionIncrement increment)
+    {
+        var currentVersion = SemanticVersion.Parse(currentVersionString);
+
+        Assert.Throws<ArgumentException>(() => currentVersion.Increment(increment));
     }
 
     [Theory]

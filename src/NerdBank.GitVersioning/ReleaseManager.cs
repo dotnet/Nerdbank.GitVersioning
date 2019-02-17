@@ -56,6 +56,11 @@
             /// HEAD is detached. A branch must be checked out first.
             /// </summary>
             DetachedHead,
+
+            /// <summary>
+            /// The versionIncrement setting cannot be applied to the current version.
+            /// </summary>
+            InvalidVersionIncrementSetting,
         }
 
         /// <summary>
@@ -125,14 +130,13 @@
                 this.stderr.WriteLine($"Failed to load version file for directory '{projectDirectory}'.");
                 throw new ReleasePreparationException(ReleasePreparationError.NoVersionFile);
             }
-
-            var releaseOptions = versionOptions.ReleaseOrDefault;
-
+            
             var releaseBranchName = this.GetReleaseBranchName(versionOptions);
             var originalBranchName = repository.Head.FriendlyName;
             var releaseVersion = string.IsNullOrEmpty(releaseUnstableTag)
                 ? versionOptions.Version.WithoutPrepreleaseTags()
                 : versionOptions.Version.SetFirstPrereleaseTag(releaseUnstableTag);
+            var nextDevVersion = this.GetNextDevVersion(versionOptions, nextVersion);
 
             // check if the current branch is the release branch
             if (string.Equals(originalBranchName, releaseBranchName, StringComparison.OrdinalIgnoreCase))
@@ -157,10 +161,6 @@
 
             // update version on main branch
             Commands.Checkout(repository, originalBranchName);
-            var nextDevVersion = nextVersion ??
-                    versionOptions.Version
-                        .Increment(releaseOptions.VersionIncrementOrDefault)
-                        .SetFirstPrereleaseTag(releaseOptions.FirstUnstableTagOrDefault);
             this.UpdateVersion(projectDirectory, repository, versionOptions.Version, nextDevVersion);
             this.stdout.WriteLine($"{originalBranchName} branch now tracks v{nextDevVersion} development.");
 
@@ -271,6 +271,31 @@
                 // newVersion.Version < oldVersion.Version
                 return true;
             }
+        }
+
+        private SemanticVersion GetNextDevVersion(VersionOptions versionOptions, SemanticVersion nextVersion)
+        {
+            if (nextVersion != null)
+                return nextVersion;
+
+            var releaseOptions = versionOptions.ReleaseOrDefault;
+
+            // the increment is only valid if the current version has the required precision
+            // increment settings "Major" and "Minor" are always valid
+            // increment setting "Build" is only valid if the version has at lease three segments
+            var isValidIncrement = releaseOptions.VersionIncrementOrDefault != VersionOptions.ReleaseVersionIncrement.Build ||
+                                   versionOptions.Version.Version.Build >= 0;
+
+            // increment is ignored when the next version was specified explicitly
+            if (!isValidIncrement)
+            {
+                this.stderr.WriteLine($"Cannot apply version increment 'build' to version '{versionOptions.Version}' because it only has major and minor segments");
+                throw new ReleasePreparationException(ReleasePreparationError.InvalidVersionIncrementSetting);
+            }
+
+            return versionOptions.Version
+                        .Increment(releaseOptions.VersionIncrementOrDefault)
+                        .SetFirstPrereleaseTag(releaseOptions.FirstUnstableTagOrDefault);
         }
     }
 }
