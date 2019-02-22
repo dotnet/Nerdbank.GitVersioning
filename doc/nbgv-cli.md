@@ -84,13 +84,13 @@ version and the `versionIncrement` setting in `version.json`.
 To customize this behaviour, you can either explicitly set the next version
 or override the version increment setting.
 
-To explicitly set the next version, run
+To explicitly set the next version, run:
 
 ```ps1
 nbgv prepare-release --nextVersion 2.0
 ```
 
-To override the `versionIncrement` setting from `version.json`, run
+To override the `versionIncrement` setting from `version.json`, run:
 
 ```ps1
 nbgv prepare-release --versionIncrement Major

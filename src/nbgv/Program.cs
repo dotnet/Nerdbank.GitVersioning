@@ -113,7 +113,7 @@ namespace Nerdbank.GitVersioning.Tool
                 prepareRelease = syntax.DefineCommand("prepare-release", ref commandText, "Prepares a release by creating a release branch for the current version and adjusting the version on the current branch.");
                 syntax.DefineOption("p|project", ref projectPath, "The path to the project or project directory. The default is the current directory.");
                 syntax.DefineOption("nextVersion", ref releaseNextVersion, "The version to set for the current branch. If omitted, the next version is determined automatically by incrementing the current version.");
-                syntax.DefineOption("versionIncrement", ref releaseVersionIncrement, "Specifies how the next version for the current branch is determined overriding the 'versionIncrement' setting in version.json");
+                syntax.DefineOption("versionIncrement", ref releaseVersionIncrement, "Overrides the 'versionIncrement' setting set in version.json for determining the next version of the current branch.");
                 syntax.DefineParameter("tag", ref releasePreReleaseTag, "The prerelease tag to apply on the release branch (if any). If not specified, any existing prerelease tag will be removed. The preceding hyphen may be omitted.");
 
                 if (syntax.ActiveCommand == null)
@@ -579,7 +579,7 @@ namespace Nerdbank.GitVersioning.Tool
                 return ExitCodes.InvalidParameters;
             }
 
-            // parse versionIncrement is parameter was specified
+            // parse versionIncrement if parameter was specified
             VersionOptions.ReleaseVersionIncrement? versionIncrementParsed = default;
             if (!string.IsNullOrEmpty(versionIncrement))
             {

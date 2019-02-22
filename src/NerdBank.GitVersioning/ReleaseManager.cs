@@ -6,7 +6,6 @@
     using LibGit2Sharp;
     using Validation;
     using Version = System.Version;
-    using static Nerdbank.GitVersioning.VersionOptions;
 
     /// <summary>
     /// Methods for creating releases
@@ -116,9 +115,9 @@
         /// If specified, value will be used instead of the increment specified in <c>version.json</c>.
         /// Parameter will be ignored if the current branch is a release branch.
         /// </param>
-        public void PrepareRelease(string projectDirectory, string releaseUnstableTag = null, Version nextVersion = null, ReleaseVersionIncrement? versionIncrement = null)
+        public void PrepareRelease(string projectDirectory, string releaseUnstableTag = null, Version nextVersion = null, VersionOptions.ReleaseVersionIncrement? versionIncrement = null)
         {
-            Requires.NotNull(projectDirectory, nameof(projectDirectory));            
+            Requires.NotNull(projectDirectory, nameof(projectDirectory));
 
             // open the git repository
             var repository = this.GetRepository(projectDirectory);
@@ -280,7 +279,7 @@
             }
         }
 
-        private SemanticVersion GetNextDevVersion(VersionOptions versionOptions, Version nextVersionOverride, ReleaseVersionIncrement? versionIncrementOverride)
+        private SemanticVersion GetNextDevVersion(VersionOptions versionOptions, Version nextVersionOverride, VersionOptions.ReleaseVersionIncrement? versionIncrementOverride)
         {
             var currentVersion = versionOptions.Version;
 
@@ -291,26 +290,26 @@
             }
             else
             {
-                // determine the increment to use. 
-                // Use parameter if it has a value, otherwise use setting from version.json
+                // Determine the increment to use:
+                // Use parameter versionIncrementOverride if it has a value, otherwise use setting from version.json.
                 var versionIncrement = versionIncrementOverride ?? versionOptions.ReleaseOrDefault.VersionIncrementOrDefault;
 
-                // the increment is only valid if the current version has the required precision
-                // increment settings "Major" and "Minor" are always valid
-                // increment setting "Build" is only valid if the version has at lease three segments
-                var isValidIncrement = versionIncrement != ReleaseVersionIncrement.Build ||
+                // The increment is only valid if the current version has the required precision:
+                //  - increment settings "Major" and "Minor" are always valid.
+                //  - increment setting "Build" is only valid if the version has at lease three segments.
+                var isValidIncrement = versionIncrement != VersionOptions.ReleaseVersionIncrement.Build ||
                                        versionOptions.Version.Version.Build >= 0;
 
-                // increment is ignored when the next version was specified explicitly
                 if (!isValidIncrement)
                 {
-                    this.stderr.WriteLine($"Cannot apply version increment 'build' to version '{versionOptions.Version}' because it only has major and minor segments");
+                    this.stderr.WriteLine($"Cannot apply version increment 'build' to version '{versionOptions.Version}' because it only has major and minor segments.");
                     throw new ReleasePreparationException(ReleasePreparationError.InvalidVersionIncrementSetting);
                 }
 
                 nextDevVersion = currentVersion.Increment(versionIncrement);
             }
 
+            // return next version with prerelease tag specified in version.json
             return nextDevVersion.SetFirstPrereleaseTag(versionOptions.ReleaseOrDefault.FirstUnstableTagOrDefault);
         }
     }
