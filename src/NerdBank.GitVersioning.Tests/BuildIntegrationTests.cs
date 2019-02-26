@@ -72,7 +72,7 @@ public class BuildIntegrationTests : RepoTestBase
         }
     }
 
-    private string CommitIdShort => this.Repo.Head.Commits.First().Id.Sha.Substring(0, 10);
+    private string CommitIdShort => this.Repo.Head.Commits.First().Id.Sha.Substring(0, 7);
 
     protected override void Dispose(bool disposing)
     {
@@ -176,7 +176,7 @@ public class BuildIntegrationTests : RepoTestBase
         Assumes.True(repo.Index[VersionFile.JsonFileName] == null);
         var buildResult = await this.BuildAsync();
         Assert.Equal("3.4.0." + repo.Head.Commits.First().GetIdAsVersion().Revision, buildResult.BuildVersion);
-        Assert.Equal("3.4.0+" + repo.Head.Commits.First().Id.Sha.Substring(0, 10), buildResult.AssemblyInformationalVersion);
+        Assert.Equal("3.4.0+" + repo.Head.Commits.First().Id.Sha.Substring(0, 7), buildResult.AssemblyInformationalVersion);
     }
 
     [Fact]
@@ -201,7 +201,7 @@ public class BuildIntegrationTests : RepoTestBase
         repo.Commit("empty", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         var buildResult = await this.BuildAsync();
         Assert.Equal("0.0.1." + repo.Head.Commits.First().GetIdAsVersion().Revision, buildResult.BuildVersion);
-        Assert.Equal("0.0.1+" + repo.Head.Commits.First().Id.Sha.Substring(0, 10), buildResult.AssemblyInformationalVersion);
+        Assert.Equal("0.0.1+" + repo.Head.Commits.First().Id.Sha.Substring(0, 7), buildResult.AssemblyInformationalVersion);
     }
 
     [Fact]

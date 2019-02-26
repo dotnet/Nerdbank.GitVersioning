@@ -154,7 +154,7 @@
             {
                 if (!string.IsNullOrEmpty(this.GitCommitId))
                 {
-                    yield return this.GitCommitId.Substring(0, 10);
+                    yield return this.GitCommitIdShort;
                 }
 
                 foreach (string identifier in this.BuildMetadata)
