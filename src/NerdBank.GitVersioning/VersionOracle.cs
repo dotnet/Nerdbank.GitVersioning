@@ -96,6 +96,17 @@
                 this.Version = this.VersionOptions?.Version.Version ?? Version0;
             }
 
+            // get the commit short commit sha
+            if (repo != null)
+            {
+                // get it from the git repo
+                this.GitCommitIdShort = string.IsNullOrEmpty(this.GitCommitId) ? null : repo.ObjectDatabase.ShortenObjectId(commit);
+            }
+            else
+            {
+                this.GitCommitIdShort = string.IsNullOrEmpty(this.GitCommitId) ? null : this.GitCommitId.Substring(0, 10);
+            }
+
             this.VersionHeightOffset = this.VersionOptions?.BuildNumberOffsetOrDefault ?? 0;
 
             this.PrereleaseVersion = this.ReplaceMacros(this.VersionOptions?.Version?.Prerelease ?? string.Empty);
@@ -238,7 +249,7 @@
         /// <summary>
         /// Gets the first several characters of the Git revision control commit id for HEAD (the current source code version).
         /// </summary>
-        public string GitCommitIdShort => string.IsNullOrEmpty(this.GitCommitId) ? null : this.GitCommitId.Substring(0, 10);
+        public string GitCommitIdShort { get; }
 
         /// <summary>
         /// Gets the number of commits in the longest single path between
