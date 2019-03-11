@@ -15,7 +15,7 @@ public class VersionOracleTests : RepoTestBase
     {
     }
 
-    private string CommitIdShort => this.Repo.Head.Commits.First().Id.Sha.Substring(0, 7);
+    private string CommitIdShort => this.Repo.Head.Commits.First().Id.Sha.Substring(0, VersionOracle.DefaultGitCommitIdShortLength);
 
     [Fact]
     public void NotRepo()
@@ -174,10 +174,10 @@ public class VersionOracleTests : RepoTestBase
         this.InitializeSourceControl();
         var oracle = VersionOracle.Create(this.RepoPath);
         oracle.PublicRelease = false;
-        Assert.Matches(@"^2.3.1-[^g]{"+ VersionOracle.DefaultGitCommitIdShortLength + "}$", oracle.SemVer1);
-        Assert.Matches(@"^2.3.1-[^g]{" + VersionOracle.DefaultGitCommitIdShortLength + "}$", oracle.SemVer2);
-        Assert.Matches(@"^2.3.1-g[a-f0-9]{" + VersionOracle.DefaultGitCommitIdShortLength + "}$", oracle.NuGetPackageVersion);
-        Assert.Matches(@"^2.3.1-g[a-f0-9]{" + VersionOracle.DefaultGitCommitIdShortLength + "}$", oracle.ChocolateyPackageVersion);
+        Assert.Matches(@"^2.3.1-[^g]{10}$", oracle.SemVer1);
+        Assert.Matches(@"^2.3.1-[^g]{10}$", oracle.SemVer2);
+        Assert.Matches(@"^2.3.1-g[a-f0-9]{10}$", oracle.NuGetPackageVersion);
+        Assert.Matches(@"^2.3.1-g[a-f0-9]{10}$", oracle.ChocolateyPackageVersion);
     }
 
     [Fact]
