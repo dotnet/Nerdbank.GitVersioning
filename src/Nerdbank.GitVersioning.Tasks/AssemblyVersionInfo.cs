@@ -119,8 +119,14 @@
             {
                 IsClass = true,
                 IsPartial = true,
-                TypeAttributes = TypeAttributes.NotPublic | TypeAttributes.Sealed,
+                TypeAttributes = TypeAttributes.NotPublic | TypeAttributes.Sealed | TypeAttributes.Abstract,
             };
+            
+            var codeAttributeDeclarationCollection = new CodeAttributeDeclarationCollection();
+            codeAttributeDeclarationCollection.Add(new CodeAttributeDeclaration("System.CodeDom.Compiler.GeneratedCode",
+                new CodeAttributeArgument(new CodePrimitiveExpression(ThisAssembly.AssemblyName)),
+                new CodeAttributeArgument(new CodePrimitiveExpression(ThisAssembly.AssemblyVersion))));
+            thisAssembly.CustomAttributes = codeAttributeDeclarationCollection;
 
             // CodeDOM doesn't support static classes, so hide the constructor instead.
             thisAssembly.Members.Add(new CodeConstructor { Attributes = MemberAttributes.Private });
