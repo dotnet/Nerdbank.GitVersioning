@@ -68,6 +68,18 @@
           "minimum": 1,
           "maximum": 6
         },
+        "gitCommitIdShortFixedLength": {
+          "type": "integer",
+          "description": "The fxied number of digits to use for the commit ID abbreviation length.",
+          "default": 10,
+          "maximum": 40
+        },
+        "gitCommitIdShortAutoMinimum": {
+          "type": "integer",
+          "description": "The minimum number of digits to use for the commit ID abbreviation as determined by the git repository.",
+          "default": 0,
+          "maximum": 40
+        },
         "nugetPackageVersion": {
           "type": "object",
           "description": "Details for how and what the generated version for NuGet packages will be.",

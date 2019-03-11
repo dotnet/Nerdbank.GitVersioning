@@ -27,9 +27,9 @@
         private const int DefaultSemVer1NumericIdentifierPadding = 4;
 
         /// <summary>
-        /// The default value for the <see cref="GitCommitIdShortLengthOrDefault"/> property.
+        /// The default value for the <see cref="GitCommitIdShortFixedLengthOrDefault"/> property.
         /// </summary>
-        public const int DefaultGitCommitIdShortLength = 10;
+        public const int DefaultGitCommitIdShortFixedLength = 10;
 
         /// <summary>
         /// The $schema field that should be serialized when writing
@@ -97,13 +97,16 @@
         /// Gets or sets the abbreviated git commit hash length.
         /// </summary>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public int? GitCommitIdShortLength { get; set; }
+        public int? GitCommitIdShortFixedLength { get; set; }
 
         /// <summary>
-        /// Gets the the abbreviated git commit hash length.
+        /// Gets or sets the abbreviated git commit hash length minimum value.
+        /// The git repository provides the value.
+        /// If set to 0 or a git repository is not available, GitCommitIdShortFixedLength is used.
+        /// The value is 0 by default.
         /// </summary>
-        [JsonIgnore]
-        public int GitCommitIdShortLengthOrDefault => this.GitCommitIdShortLength ?? DefaultGitCommitIdShortLength;
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public int? GitCommitIdShortAutoMinimum { get; set; }
 
         /// <summary>
         /// Gets or sets the options around NuGet version strings

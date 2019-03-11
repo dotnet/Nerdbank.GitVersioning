@@ -15,7 +15,7 @@ public class VersionOracleTests : RepoTestBase
     {
     }
 
-    private string CommitIdShort => this.Repo.Head.Commits.First().Id.Sha.Substring(0, VersionOptions.DefaultGitCommitIdShortLength);
+    private string CommitIdShort => this.Repo.Head.Commits.First().Id.Sha.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength);
 
     [Fact]
     public void NotRepo()
@@ -186,7 +186,7 @@ public class VersionOracleTests : RepoTestBase
         var workingCopyVersion = new VersionOptions
         {
             Version = SemanticVersion.Parse("2.3"),
-            GitCommitIdShortLength = 7
+            GitCommitIdShortFixedLength = 7
         };
         this.WriteVersionFile(workingCopyVersion);
         this.InitializeSourceControl();

@@ -28,7 +28,8 @@ The content of the version.json file is a JSON serialized object with these prop
   "assemblyVersion": "x.y", // optional. Use when x.y for AssemblyVersionAttribute differs from the default version property.
   "buildNumberOffset": "zOffset", // optional. Use when you need to add/subtract a fixed value from the computed build number.
   "semVer1NumericIdentifierPadding": 4, // optional. Use when your -prerelease includes numeric identifiers and need semver1 support.
-  "gitCommitIdShortLength": 10, // optional. Change the commit ID suffix length.
+  "gitCommitIdShortFixedLength": 10, // optional. Set the commit ID abbreviation length.
+  "gitCommitIdShortAutoMinimum": 0, // optional. Set to use the short commit ID abbreviation provided by the git repository.
   "nugetPackageVersion": {
      "semVer": 1 // optional. Set to either 1 or 2 to control how the NuGet package version string is generated. Default is 1.
   },
