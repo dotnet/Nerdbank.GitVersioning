@@ -413,7 +413,9 @@
 
             internal override void StartThisAssemblyClass()
             {
-                this.codeBuilder.AppendLine("do()\r\ntype internal ThisAssembly() =");
+                this.codeBuilder.AppendLine("do()");
+                this.codeBuilder.AppendLine($"[<System.CodeDom.Compiler.GeneratedCode(\"{ThisAssembly.AssemblyName}\",\"{ThisAssembly.AssemblyVersion}\")>]");
+                this.codeBuilder.AppendLine("type internal ThisAssembly() =");
             }
         }
 
@@ -460,6 +462,7 @@
 
             internal override void StartThisAssemblyClass()
             {
+                this.codeBuilder.AppendLine($"<System.CodeDom.Compiler.GeneratedCode(\"{ThisAssembly.AssemblyName}\",\"{ThisAssembly.AssemblyVersion}\")>");
                 this.codeBuilder.AppendLine("Partial Friend NotInheritable Class ThisAssembly");
             }
 
