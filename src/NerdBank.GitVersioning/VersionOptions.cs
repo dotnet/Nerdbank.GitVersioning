@@ -27,7 +27,7 @@
         private const int DefaultSemVer1NumericIdentifierPadding = 4;
 
         /// <summary>
-        /// The default value for the <see cref="GitCommitIdShortFixedLengthOrDefault"/> property.
+        /// The default value for the <see cref="GitCommitIdShortFixedLength"/> property.
         /// </summary>
         public const int DefaultGitCommitIdShortFixedLength = 10;
 
