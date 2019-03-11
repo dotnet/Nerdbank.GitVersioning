@@ -97,14 +97,15 @@
             }
 
             // get the commit short commit sha
+            var gitCommitIdShortLength = this.VersionOptions?.GitCommitIdShortLengthOrDefault ?? VersionOptions.DefaultGitCommitIdShortLength;
             if (repo != null)
             {
                 // get it from the git repo
-                this.GitCommitIdShort = string.IsNullOrEmpty(this.GitCommitId) ? null : repo.ObjectDatabase.ShortenObjectId(commit, this.VersionOptions.GitCommitIdShortLengthOrDefault);
+                this.GitCommitIdShort = string.IsNullOrEmpty(this.GitCommitId) ? null : repo.ObjectDatabase.ShortenObjectId(commit, gitCommitIdShortLength);
             }
             else
             {
-                this.GitCommitIdShort = string.IsNullOrEmpty(this.GitCommitId) ? null : this.GitCommitId.Substring(0, this.VersionOptions.GitCommitIdShortLengthOrDefault);
+                this.GitCommitIdShort = string.IsNullOrEmpty(this.GitCommitId) ? null : this.GitCommitId.Substring(0, gitCommitIdShortLength);
             }
 
             this.VersionHeightOffset = this.VersionOptions?.BuildNumberOffsetOrDefault ?? 0;
