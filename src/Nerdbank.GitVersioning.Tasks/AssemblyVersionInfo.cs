@@ -72,7 +72,14 @@
 #if NET461
         public override bool Execute()
         {
-            if (CodeDomProvider.IsDefinedLanguage(this.CodeLanguage))
+            // attempt to use local codegen
+            string fileContent = this.BuildCode();
+            if (fileContent != null)
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(this.OutputFile));
+                Utilities.FileOperationWithRetry(() => File.WriteAllText(this.OutputFile, fileContent));
+            }
+            else if (CodeDomProvider.IsDefinedLanguage(this.CodeLanguage))
             {
                 using (var codeDomProvider = CodeDomProvider.CreateProvider(this.CodeLanguage))
                 {
@@ -100,17 +107,7 @@
             }
             else
             {
-                // attempt to use local codegen
-                string fileContent = this.BuildCode();
-                if (fileContent != null)
-                {
-                    Directory.CreateDirectory(Path.GetDirectoryName(this.OutputFile));
-                    Utilities.FileOperationWithRetry(() => File.WriteAllText(this.OutputFile, fileContent));
-                }
-                else
-                {
-                    this.Log.LogError("CodeDomProvider not available for language: {0}. No version info will be embedded into assembly.", this.CodeLanguage);
-                }
+                this.Log.LogError("CodeDomProvider not available for language: {0}. No version info will be embedded into assembly.", this.CodeLanguage);
             }
 
             return !this.Log.HasLoggedErrors;
