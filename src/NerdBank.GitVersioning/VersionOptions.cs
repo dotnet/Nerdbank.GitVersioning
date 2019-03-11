@@ -27,6 +27,11 @@
         private const int DefaultSemVer1NumericIdentifierPadding = 4;
 
         /// <summary>
+        /// The default value for the <see cref="GitCommitIdShortLengthOrDefault"/> property.
+        /// </summary>
+        public const int DefaultGitCommitIdShortLength = 10;
+
+        /// <summary>
         /// The $schema field that should be serialized when writing
         /// </summary>
         [JsonProperty(PropertyName = "$schema")]
@@ -87,6 +92,18 @@
         /// </summary>
         [JsonIgnore]
         public int SemVer1NumericIdentifierPaddingOrDefault => this.SemVer1NumericIdentifierPadding ?? DefaultSemVer1NumericIdentifierPadding;
+
+        /// <summary>
+        /// Gets or sets the abbreviated git commit hash length.
+        /// </summary>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public int? GitCommitIdShortLength { get; set; }
+
+        /// <summary>
+        /// Gets the the abbreviated git commit hash length.
+        /// </summary>
+        [JsonIgnore]
+        public int GitCommitIdShortLengthOrDefault => this.GitCommitIdShortLength ?? DefaultGitCommitIdShortLength;
 
         /// <summary>
         /// Gets or sets the options around NuGet version strings

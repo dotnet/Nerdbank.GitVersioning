@@ -15,11 +15,6 @@
     public class VersionOracle
     {
         /// <summary>
-        /// Default abbreviated git commit hash length.
-        /// </summary>
-        public const int DefaultGitCommitIdShortLength = 10;
-
-        /// <summary>
         /// A regex that matches on numeric identifiers for prerelease or build metadata.
         /// </summary>
         private static readonly Regex NumericIdentifierRegex = new Regex(@"(?<![\w-])(\d+)(?![\w-])");
@@ -32,7 +27,7 @@
         /// <summary>
         /// Initializes a new instance of the <see cref="VersionOracle"/> class.
         /// </summary>
-        public static VersionOracle Create(string projectDirectory, string gitRepoDirectory = null, ICloudBuild cloudBuild = null, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null, int gitCommitIdShortLength = DefaultGitCommitIdShortLength)
+        public static VersionOracle Create(string projectDirectory, string gitRepoDirectory = null, ICloudBuild cloudBuild = null, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null)
         {
             Requires.NotNull(projectDirectory, nameof(projectDirectory));
             if (string.IsNullOrEmpty(gitRepoDirectory))
@@ -42,22 +37,22 @@
 
             using (var git = GitExtensions.OpenGitRepo(gitRepoDirectory))
             {
-                return new VersionOracle(projectDirectory, git, null, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot, gitCommitIdShortLength);
+                return new VersionOracle(projectDirectory, git, null, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot);
             }
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="VersionOracle"/> class.
         /// </summary>
-        public VersionOracle(string projectDirectory, LibGit2Sharp.Repository repo, ICloudBuild cloudBuild, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null, int gitCommitIdShortLength = DefaultGitCommitIdShortLength)
-            : this(projectDirectory, repo, null, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot, gitCommitIdShortLength)
+        public VersionOracle(string projectDirectory, LibGit2Sharp.Repository repo, ICloudBuild cloudBuild, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null)
+            : this(projectDirectory, repo, null, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot)
         {
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="VersionOracle"/> class.
         /// </summary>
-        public VersionOracle(string projectDirectory, LibGit2Sharp.Repository repo, LibGit2Sharp.Commit head, ICloudBuild cloudBuild, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null, int gitCommitIdShortLength = DefaultGitCommitIdShortLength)
+        public VersionOracle(string projectDirectory, LibGit2Sharp.Repository repo, LibGit2Sharp.Commit head, ICloudBuild cloudBuild, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null)
         {
             var repoRoot = repo?.Info?.WorkingDirectory?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             var relativeRepoProjectDirectory = !string.IsNullOrWhiteSpace(repoRoot)
@@ -105,11 +100,11 @@
             if (repo != null)
             {
                 // get it from the git repo
-                this.GitCommitIdShort = string.IsNullOrEmpty(this.GitCommitId) ? null : repo.ObjectDatabase.ShortenObjectId(commit, gitCommitIdShortLength);
+                this.GitCommitIdShort = string.IsNullOrEmpty(this.GitCommitId) ? null : repo.ObjectDatabase.ShortenObjectId(commit, this.VersionOptions.GitCommitIdShortLengthOrDefault);
             }
             else
             {
-                this.GitCommitIdShort = string.IsNullOrEmpty(this.GitCommitId) ? null : this.GitCommitId.Substring(0, gitCommitIdShortLength);
+                this.GitCommitIdShort = string.IsNullOrEmpty(this.GitCommitId) ? null : this.GitCommitId.Substring(0, this.VersionOptions.GitCommitIdShortLengthOrDefault);
             }
 
             this.VersionHeightOffset = this.VersionOptions?.BuildNumberOffsetOrDefault ?? 0;
