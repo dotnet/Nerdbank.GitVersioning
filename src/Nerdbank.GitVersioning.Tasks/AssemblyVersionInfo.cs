@@ -431,6 +431,7 @@
 
             internal override void StartThisAssemblyClass()
             {
+                this.codeBuilder.AppendLine($"[System.CodeDom.Compiler.GeneratedCode(\"{ThisAssembly.AssemblyName}\",\"{ThisAssembly.AssemblyVersion}\")]");
                 this.codeBuilder.AppendLine("internal static partial class ThisAssembly {");
             }
 
