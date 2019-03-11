@@ -15,6 +15,11 @@
     public class VersionOracle
     {
         /// <summary>
+        /// Default abbreviated git commit hash length.
+        /// </summary>
+        public const int DefaultGitCommitIdShortLength = 10;
+
+        /// <summary>
         /// A regex that matches on numeric identifiers for prerelease or build metadata.
         /// </summary>
         private static readonly Regex NumericIdentifierRegex = new Regex(@"(?<![\w-])(\d+)(?![\w-])");
@@ -104,7 +109,7 @@
             }
             else
             {
-                this.GitCommitIdShort = string.IsNullOrEmpty(this.GitCommitId) ? null : this.GitCommitId.Substring(0, 10);
+                this.GitCommitIdShort = string.IsNullOrEmpty(this.GitCommitId) ? null : this.GitCommitId.Substring(0, VersionOracle.DefaultGitCommitIdShortLength);
             }
 
             this.VersionHeightOffset = this.VersionOptions?.BuildNumberOffsetOrDefault ?? 0;
