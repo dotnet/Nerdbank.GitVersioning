@@ -13,6 +13,8 @@
 
     public class AssemblyVersionInfo : Task
     {
+        public static readonly string GeneratorName = ThisAssembly.AssemblyName;
+        public static readonly string GeneratorVersion = ThisAssembly.AssemblyVersion;
 #if NET461
         private static readonly CodeGeneratorOptions codeGeneratorOptions = new CodeGeneratorOptions
         {
@@ -121,6 +123,12 @@
                 IsPartial = true,
                 TypeAttributes = TypeAttributes.NotPublic | TypeAttributes.Sealed,
             };
+            
+            var codeAttributeDeclarationCollection = new CodeAttributeDeclarationCollection();
+            codeAttributeDeclarationCollection.Add(new CodeAttributeDeclaration("System.CodeDom.Compiler.GeneratedCode",
+                new CodeAttributeArgument(new CodePrimitiveExpression(GeneratorName)),
+                new CodeAttributeArgument(new CodePrimitiveExpression(GeneratorVersion))));
+            thisAssembly.CustomAttributes = codeAttributeDeclarationCollection;
 
             // CodeDOM doesn't support static classes, so hide the constructor instead.
             thisAssembly.Members.Add(new CodeConstructor { Attributes = MemberAttributes.Private });
@@ -413,7 +421,9 @@
 
             internal override void StartThisAssemblyClass()
             {
-                this.codeBuilder.AppendLine("do()\r\ntype internal ThisAssembly() =");
+                this.codeBuilder.AppendLine("do()");
+                this.codeBuilder.AppendLine($"[<System.CodeDom.Compiler.GeneratedCode(\"{GeneratorName}\",\"{GeneratorVersion}\")>]");
+                this.codeBuilder.AppendLine("type internal ThisAssembly() =");
             }
         }
 
@@ -431,6 +441,7 @@
 
             internal override void StartThisAssemblyClass()
             {
+                this.codeBuilder.AppendLine($"[System.CodeDom.Compiler.GeneratedCode(\"{GeneratorName}\",\"{GeneratorVersion}\")]");
                 this.codeBuilder.AppendLine("internal static partial class ThisAssembly {");
             }
 
@@ -459,6 +470,7 @@
 
             internal override void StartThisAssemblyClass()
             {
+                this.codeBuilder.AppendLine($"<System.CodeDom.Compiler.GeneratedCode(\"{GeneratorName}\",\"{GeneratorVersion}\")>");
                 this.codeBuilder.AppendLine("Partial Friend NotInheritable Class ThisAssembly");
             }
 
