@@ -70,7 +70,7 @@
         },
         "gitCommitIdShortFixedLength": {
           "type": "integer",
-          "description": "The fixed number of digits to use for the commit ID abbreviation length.",
+          "description": "The fixed number of characters to use for the commit ID abbreviation length. This property is ignored if the gitCommitIdShortAutoMinimum property is greater than 0.",
           "default": 10,
           "maximum": 40
         },
