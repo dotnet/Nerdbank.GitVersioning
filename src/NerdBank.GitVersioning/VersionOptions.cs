@@ -102,7 +102,7 @@
         /// <summary>
         /// Gets or sets the abbreviated git commit hash length minimum value.
         /// The git repository provides the value.
-        /// If set to 0 or a git repository is not available, GitCommitIdShortFixedLength is used.
+        /// If set to 0 or a git repository is not available, <see cref="GitCommitIdShortFixedLength"/> is used.
         /// The value is 0 by default.
         /// </summary>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
