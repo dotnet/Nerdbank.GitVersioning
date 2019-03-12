@@ -36,7 +36,7 @@ namespace AssemblyInfo
 [<assembly: System.Reflection.AssemblyFileVersionAttribute(""1.3.1.0"")>]
 [<assembly: System.Reflection.AssemblyInformationalVersionAttribute("""")>]
 do()
-[<System.CodeDom.Compiler.GeneratedCode("" + AssemblyVersionInfo.GeneratorName + "","" + AssemblyVersionInfo.GeneratorVerison + "")>]
+[<System.CodeDom.Compiler.GeneratedCode(""" + AssemblyVersionInfo.GeneratorName + """,""" + AssemblyVersionInfo.GeneratorVerison + """)>]
 type internal ThisAssembly() =
   static member internal AssemblyVersion = ""1.3.0.0""
   static member internal AssemblyFileVersion = ""1.3.1.0""
