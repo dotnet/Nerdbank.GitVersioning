@@ -97,11 +97,7 @@
             }
 
             // get the commit id abbreviation only if the commit id is set
-            if (string.IsNullOrEmpty(this.GitCommitId))
-            {
-                this.GitCommitIdShort = null;
-            }
-            else
+            if (!string.IsNullOrEmpty(this.GitCommitId))
             {
                 var gitCommitIdShortFixedLength = this.VersionOptions?.GitCommitIdShortFixedLength ?? VersionOptions.DefaultGitCommitIdShortFixedLength;
                 var gitCommitIdShortAutoMinimum = this.VersionOptions?.GitCommitIdShortAutoMinimum ?? 0;
