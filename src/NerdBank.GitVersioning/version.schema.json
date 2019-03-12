@@ -68,6 +68,18 @@
           "minimum": 1,
           "maximum": 6
         },
+        "gitCommitIdShortFixedLength": {
+          "type": "integer",
+          "description": "The fixed number of characters to use for the commit ID abbreviation length. This property is ignored if the gitCommitIdShortAutoMinimum property is greater than 0.",
+          "default": 10,
+          "maximum": 40
+        },
+        "gitCommitIdShortAutoMinimum": {
+          "type": "integer",
+          "description": "When greater than 0, the length of the commit ID will be either this value or the shortest unambiguous git-abbreviated commit ID possible, whichever is greater. When 0, the gitCommitIdShortFixedLength property is used instead.",
+          "default": 0,
+          "maximum": 40
+        },
         "nugetPackageVersion": {
           "type": "object",
           "description": "Details for how and what the generated version for NuGet packages will be.",

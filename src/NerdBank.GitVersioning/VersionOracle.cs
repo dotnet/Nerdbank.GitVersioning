@@ -96,6 +96,22 @@
                 this.Version = this.VersionOptions?.Version.Version ?? Version0;
             }
 
+            // get the commit id abbreviation only if the commit id is set
+            if (!string.IsNullOrEmpty(this.GitCommitId))
+            {
+                var gitCommitIdShortFixedLength = this.VersionOptions?.GitCommitIdShortFixedLength ?? VersionOptions.DefaultGitCommitIdShortFixedLength;
+                var gitCommitIdShortAutoMinimum = this.VersionOptions?.GitCommitIdShortAutoMinimum ?? 0;
+                // get it from the git repository if there is a repository present and it is enabled
+                if (repo != null && gitCommitIdShortAutoMinimum > 0)
+                {
+                    this.GitCommitIdShort = repo.ObjectDatabase.ShortenObjectId(commit, gitCommitIdShortAutoMinimum);
+                }
+                else
+                {
+                    this.GitCommitIdShort = this.GitCommitId.Substring(0, gitCommitIdShortFixedLength);
+                }
+            }
+
             this.VersionHeightOffset = this.VersionOptions?.BuildNumberOffsetOrDefault ?? 0;
 
             this.PrereleaseVersion = this.ReplaceMacros(this.VersionOptions?.Version?.Prerelease ?? string.Empty);
@@ -143,7 +159,7 @@
             {
                 if (!string.IsNullOrEmpty(this.GitCommitId))
                 {
-                    yield return this.GitCommitId.Substring(0, 10);
+                    yield return this.GitCommitIdShort;
                 }
 
                 foreach (string identifier in this.BuildMetadata)
@@ -238,7 +254,7 @@
         /// <summary>
         /// Gets the first several characters of the Git revision control commit id for HEAD (the current source code version).
         /// </summary>
-        public string GitCommitIdShort => string.IsNullOrEmpty(this.GitCommitId) ? null : this.GitCommitId.Substring(0, 10);
+        public string GitCommitIdShort { get; }
 
         /// <summary>
         /// Gets the number of commits in the longest single path between
