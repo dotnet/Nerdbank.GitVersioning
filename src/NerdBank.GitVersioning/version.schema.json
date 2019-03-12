@@ -76,7 +76,7 @@
         },
         "gitCommitIdShortAutoMinimum": {
           "type": "integer",
-          "description": "The minimum number of digits to use for the commit ID abbreviation as determined by the git repository.",
+          "description": "When greater than 0, the length of the commit ID will be either this value or the shortest unambiguous git-abbreviated commit ID possible, whichever is greater. When 0, the gitCommitIdShortFixedLength property is used instead.",
           "default": 0,
           "maximum": 40
         },
