@@ -96,17 +96,24 @@
                 this.Version = this.VersionOptions?.Version.Version ?? Version0;
             }
 
-            // get the commit short commit sha
-            var gitCommitIdShortFixedLength = this.VersionOptions?.GitCommitIdShortFixedLength ?? VersionOptions.DefaultGitCommitIdShortFixedLength;
-            var gitCommitIdShortAutoMinimum = this.VersionOptions?.GitCommitIdShortAutoMinimum ?? 0;
-            if (repo != null && gitCommitIdShortAutoMinimum > 0)
+            // get the commit id abbreviation only if the commit id is set
+            if (string.IsNullOrEmpty(this.GitCommitId))
             {
-                // get it from the git repo
-                this.GitCommitIdShort = string.IsNullOrEmpty(this.GitCommitId) ? null : repo.ObjectDatabase.ShortenObjectId(commit, gitCommitIdShortAutoMinimum);
+                this.GitCommitIdShort = null;
             }
             else
             {
-                this.GitCommitIdShort = string.IsNullOrEmpty(this.GitCommitId) ? null : this.GitCommitId.Substring(0, gitCommitIdShortFixedLength);
+                var gitCommitIdShortFixedLength = this.VersionOptions?.GitCommitIdShortFixedLength ?? VersionOptions.DefaultGitCommitIdShortFixedLength;
+                var gitCommitIdShortAutoMinimum = this.VersionOptions?.GitCommitIdShortAutoMinimum ?? 0;
+                // get it from the git repository if there is a repository present and it is enabled
+                if (repo != null && gitCommitIdShortAutoMinimum > 0)
+                {
+                    this.GitCommitIdShort = repo.ObjectDatabase.ShortenObjectId(commit, gitCommitIdShortAutoMinimum);
+                }
+                else
+                {
+                    this.GitCommitIdShort = this.GitCommitId.Substring(0, gitCommitIdShortFixedLength);
+                }
             }
 
             this.VersionHeightOffset = this.VersionOptions?.BuildNumberOffsetOrDefault ?? 0;
