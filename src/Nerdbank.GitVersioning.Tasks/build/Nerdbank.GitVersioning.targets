@@ -163,7 +163,11 @@
     </Nerdbank.GitVersioning.Tasks.CompareFiles>
     <Copy Condition=" '$(AssemblyVersionInfoChanged)' == 'true' " SourceFiles="$(NewVersionSourceFile)" DestinationFiles="$(VersionSourceFile)" />
     <ItemGroup>
-      <Compile Include="$(VersionSourceFile)" />
+      <!-- prepend the source file so we don't break F# console apps that have a "special" last source file -->
+      <_CompileWithVersionFile Include="$(VersionSourceFile);@(Compile)" />
+      <Compile Remove="@(Compile)" />
+      <Compile Include="@(_CompileWithVersionFile)" />
+      <_CompileWithVersionFile Remove="@(_CompileWithVersionFile)" />
     </ItemGroup>
   </Target>
 
