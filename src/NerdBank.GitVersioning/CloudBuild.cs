@@ -19,7 +19,7 @@
             new AtlassianBamboo(), 
             new Jenkins(),
             new GitLab(),
-            new Travis()
+            new Travis(),
         };
 
         /// <summary>
