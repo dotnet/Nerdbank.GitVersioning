@@ -35,12 +35,16 @@ jobs:
     displayName: Set build number
 
   - task: DotNetCoreInstaller@0
-    displayName: Install .NET Core SDK 2.1.500
+    displayName: Install .NET Core SDK
     inputs:
       packageType: sdk
-      version: 2.1.500
+      version: 3.0.100-preview3
+  - script: dotnet new globaljson --sdk-version 3.0.100-preview3
+    displayName: Specify .NET Core SDK version
+    workingDirectory: src
   - script: dotnet --info
     displayName: Show dotnet SDK info
+    workingDirectory: src
 
   - task: DotNetCoreCLI@2
     displayName: Restore NuGet packages
