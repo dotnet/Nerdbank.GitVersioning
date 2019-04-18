@@ -124,7 +124,7 @@ END
                 this.generator.EndFile();
 
                 Directory.CreateDirectory(Path.GetDirectoryName(this.OutputFile));
-                Utilities.FileOperationWithRetry(() => File.WriteAllText(this.OutputFile, this.generator.GetCode()));
+                Utilities.FileOperationWithRetry(() => File.WriteAllText(this.OutputFile, this.generator.GetCode(), Encoding.Unicode));
             }
 
             return !this.Log.HasLoggedErrors;
