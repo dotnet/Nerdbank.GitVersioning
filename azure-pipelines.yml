@@ -17,6 +17,8 @@ resources:
     image: andrewarnott/linux-buildagent
   - container: bionic
     image: microsoft/dotnet:2.1-sdk-bionic
+  - container: alpine38
+    image: mcr.microsoft.com/dotnet/core/sdk:2.2.105-alpine3.8
   - container: alpine39
     image: mcr.microsoft.com/dotnet/core/sdk:2.2.105-alpine3.9
 
@@ -140,12 +142,22 @@ jobs:
   steps:
   - template: azure-pipelines/xplattest-pipeline.yml
 
+- job: Alpine_3_8
+  dependsOn: Windows
+  pool:
+    vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
+  container: alpine38
+  steps:
+  - script: apk update && apk add git
+  - template: azure-pipelines/xplattest-pipeline.yml
+
 - job: Alpine_3_9
   dependsOn: Windows
   pool:
     vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
   container: alpine39
   steps:
+  - script: apk update && apk add git
   - template: azure-pipelines/xplattest-pipeline.yml
 
 - job: macOS
