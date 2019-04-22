@@ -633,9 +633,9 @@ namespace Nerdbank.GitVersioning.Tool
             }
         }
 
-        private static async Task<string> GetLatestPackageVersionAsync(string packageId, CancellationToken cancellationToken = default)
+        private static Task<string> GetLatestPackageVersionAsync(string packageId, CancellationToken cancellationToken = default)
         {
-            return "2.3.138"; // TODO
+           return Task.FromResult("2.3.138"); // TODO
         }
 
         private static string GetSpecifiedOrCurrentDirectoryPath(string versionJsonRoot)
