@@ -38,8 +38,8 @@ jobs:
     displayName: Install .NET Core SDK
     inputs:
       packageType: sdk
-      version: 3.0.100-preview3
-  - script: dotnet new globaljson --sdk-version 3.0.100-preview3 --force
+      version: 3.0.100-preview4
+  - script: dotnet new globaljson --sdk-version 3.0.100-preview4-011223 --force
     displayName: Specify .NET Core SDK version
     workingDirectory: src
   - script: dotnet --info
