@@ -5,11 +5,13 @@
     <PackAsTool>True</PackAsTool>
     <OutputType>Exe</OutputType>
     <TargetFrameworks>netcoreapp2.1;netcoreapp3.0</TargetFrameworks>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <RootNamespace>Nerdbank.GitVersioning.Tool</RootNamespace>
     <Description>A .NET Core Tool that can install, read and set version information based on git history, using Nerdbank.GitVersioning.</Description>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="4.5.1" />
     <PackageReference Include="System.CommandLine" Version="0.1.0-preview2-180503-2" />
     <PackageReference Include="Nerdbank.GitVersioning.LKG" Version="1.6.20-beta-gfea83a8c9e" PrivateAssets="all" />
     <PackageReference Include="System.Diagnostics.Tools" Version="4.3.0" />
