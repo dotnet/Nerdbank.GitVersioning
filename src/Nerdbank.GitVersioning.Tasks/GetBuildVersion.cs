@@ -202,6 +202,11 @@
                     oracle.BuildMetadata.AddRange(this.BuildMetadata);
                 }
 
+                if (oracle.MisconfiguredPrereleaseAndSemVer1())
+                {
+                    this.Log.LogWarning("The 'nugetPackageVersion' is explicitly set to 'semVer': 1 but the prerelease version '{0}' is not SemVer1 compliant. Change the 'nugetPackageVersion'.'semVer' value to 2 or chagne the 'version' member to follow SemVer1 (like: '{1}').", oracle.PrereleaseVersion, oracle.SemVer1WithoutPaddingOrBuildMetadata);
+                }
+
                 this.PublicRelease = oracle.PublicRelease;
                 this.Version = oracle.Version.ToString();
                 this.AssemblyVersion = oracle.AssemblyVersion.ToString();

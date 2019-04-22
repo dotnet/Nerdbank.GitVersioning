@@ -386,6 +386,22 @@
         public int SemVer1NumericIdentifierPadding => this.VersionOptions?.SemVer1NumericIdentifierPaddingOrDefault ?? 4;
 
         /// <summary>
+        /// Gets the SemVer 1 format without padding or the build metadata.
+        /// </summary>
+        public string SemVer1WithoutPaddingOrBuildMetadata =>
+            $"{this.Version.ToStringSafe(3)}{MakePrereleaseSemVer1Compliant(this.PrereleaseVersion, 0)}";
+
+        /// <summary>
+        /// Determines if it was likely the user misconfigured their the prerelease version options and
+        /// their semver setting.
+        /// </summary>
+        /// <returns>False when NuGet SemVer 1 explicitly set but the prerelease does not match.</returns>
+        public bool MisconfiguredPrereleaseAndSemVer1()
+        {
+            return this.VersionOptions != null && this.VersionOptions.NuGetPackageVersion != null && this.VersionOptions.NuGetPackageVersion.SemVer == 1 && this.PrereleaseVersion != MakePrereleaseSemVer1Compliant(this.PrereleaseVersion, 0);
+        }
+
+        /// <summary>
         /// Gets the build metadata, compliant to the NuGet-compatible subset of SemVer 1.0.
         /// </summary>
         /// <remarks>
