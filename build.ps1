@@ -24,6 +24,7 @@ if (Test-Path "C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll")
 
 if ($Configuration) {
     $msbuildCommandLine += " /p:Configuration=$Configuration"
+    $msbuildPublish += " /p:Configuration=$Configuration"
 }
 
 Push-Location .
