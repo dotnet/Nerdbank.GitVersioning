@@ -8,12 +8,6 @@ namespace Nerdbank.GitVersioning.Tool
     using System.Threading;
     using System.Threading.Tasks;
     using Newtonsoft.Json;
-    using NuGet.Common;
-    using NuGet.Configuration;
-    using NuGet.PackageManagement;
-    using NuGet.Protocol;
-    using NuGet.Protocol.Core.Types;
-    using NuGet.Resolver;
     using Validation;
     using MSBuild = Microsoft.Build.Evaluation;
 
@@ -639,34 +633,9 @@ namespace Nerdbank.GitVersioning.Tool
             }
         }
 
-        private static async Task<string> GetLatestPackageVersionAsync(string packageId, CancellationToken cancellationToken = default)
+        private static Task<string> GetLatestPackageVersionAsync(string packageId, CancellationToken cancellationToken = default)
         {
-            var providers = new List<Lazy<INuGetResourceProvider>>();
-            providers.AddRange(Repository.Provider.GetCoreV3());  // Add v3 API support
-
-            // We SHOULD use all the sources from the target's nuget.config file.
-            // But I don't know what API to use to do that.
-            var packageSource = new PackageSource("https://api.nuget.org/v3/index.json");
-
-            var sourceRepository = new SourceRepository(packageSource, providers);
-            var resolutionContext = new ResolutionContext(
-                DependencyBehavior.Highest,
-                includePrelease: false,
-                includeUnlisted: false,
-                VersionConstraints.None);
-
-            // The target framework doesn't matter, since our package doesn't depend on this for its target projects.
-            var framework = new NuGet.Frameworks.NuGetFramework("net45");
-
-            var pkg = await NuGetPackageManager.GetLatestVersionAsync(
-                packageId,
-                framework,
-                resolutionContext,
-                sourceRepository,
-                NullLogger.Instance,
-                cancellationToken);
-
-            return pkg.LatestVersion.ToNormalizedString();
+           return Task.FromResult("2.3.138"); // TODO
         }
 
         private static string GetSpecifiedOrCurrentDirectoryPath(string versionJsonRoot)

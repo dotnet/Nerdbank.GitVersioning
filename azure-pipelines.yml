@@ -29,18 +29,19 @@ jobs:
       git config --global user.name ci
       git config --global user.email me@ci.com
     displayName: Configure git commit author for testing
+
+  - task: DotNetCoreInstaller@0
+    displayName: Install .NET Core SDK
+    inputs:
+      packageType: sdk
+      version: 3.0.100-preview4-011223
+  - script: dotnet --info
+    displayName: Show dotnet SDK info
+
   - script: |
       dotnet tool install --tool-path . nbgv
       .\nbgv cloud -p src -a
     displayName: Set build number
-
-  - task: DotNetCoreInstaller@0
-    displayName: Install .NET Core SDK 2.1.500
-    inputs:
-      packageType: sdk
-      version: 2.1.500
-  - script: dotnet --info
-    displayName: Show dotnet SDK info
 
   - task: DotNetCoreCLI@2
     displayName: Restore NuGet packages
@@ -59,7 +60,10 @@ jobs:
     inputs:
       ProjectDirectory: 'src/nerdbank-gitversioning.npm'
 
-  - script: dotnet build -c $(BuildConfiguration) --no-restore /t:build,pack /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
+  - script: |
+      dotnet build -c $(BuildConfiguration) --no-restore /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
+      dotnet pack -c $(BuildConfiguration) --no-build -o ..\bin
+      dotnet publish -c $(BuildConfiguration) --no-build .\nbgv\nbgv.csproj -f netcoreapp2.1 -o .\nerdbank-gitversioning.npm\out\nbgv.cli\tools\netcoreapp2.1\any
     displayName: Build NuGet package and tests
     workingDirectory: src
 
