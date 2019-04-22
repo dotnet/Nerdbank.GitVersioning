@@ -11,7 +11,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Text.Encoding.CodePages" Version="4.5.1" />
     <PackageReference Include="System.CommandLine" Version="0.1.0-preview2-180503-2" />
     <PackageReference Include="Nerdbank.GitVersioning.LKG" Version="1.6.20-beta-gfea83a8c9e" PrivateAssets="all" />
     <PackageReference Include="System.Diagnostics.Tools" Version="4.3.0" />
