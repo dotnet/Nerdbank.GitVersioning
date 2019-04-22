@@ -39,9 +39,6 @@ jobs:
     inputs:
       packageType: sdk
       version: 3.0.100-preview4-011223
-  - script: dotnet new globaljson --sdk-version 3.0.100-preview4-011223 --force
-    displayName: Specify .NET Core SDK version
-    workingDirectory: src
   - script: dotnet --info
     displayName: Show dotnet SDK info
     workingDirectory: src
