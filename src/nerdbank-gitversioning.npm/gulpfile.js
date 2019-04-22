@@ -45,11 +45,15 @@ gulp.task('setPackageVersion', gulp.series('copyPackageContents', function () {
 
 gulp.task('package', gulp.series('setPackageVersion', function () {
     var afs = require('./out/asyncio');
-    var binDir = '../../bin/js';
+    var binDir = '../../bin';
+    var binJsDir = binDir + '/js';
     return afs.mkdirIfNotExistAsync(binDir)
         .then(function () {
+            afs.mkdirIfNotExistAsync(binJsDir)
+        })
+        .then(function () {
             var ap = require('./out/asyncprocess');
-            return ap.execAsync(`npm pack "${path.join(__dirname, outDir)}"`, { cwd: binDir });
+            return ap.execAsync(`npm pack "${path.join(__dirname, outDir)}"`, { cwd: binJsDir });
         });
 }));
 
