@@ -45,7 +45,6 @@ try {
             throw "dotnet publish failed"
         }
     }
-    
     if ($PSCmdlet.ShouldProcess("$PSScriptRoot\src\nerdbank-gitversioning.npm", "gulp")) {
         cd "$PSScriptRoot\src\nerdbank-gitversioning.npm"
         yarn run build

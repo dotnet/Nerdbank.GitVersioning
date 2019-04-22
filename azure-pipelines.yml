@@ -37,7 +37,6 @@ jobs:
       version: 3.0.100-preview4-011223
   - script: dotnet --info
     displayName: Show dotnet SDK info
-    workingDirectory: src
 
   - script: |
       dotnet tool install --tool-path . nbgv
