@@ -16,6 +16,7 @@ Param(
 )
 
 $msbuildCommandLine = "dotnet build `"$PSScriptRoot\src\Nerdbank.GitVersioning.sln`" /m /verbosity:$MsBuildVerbosity /nologo /p:Platform=`"Any CPU`" /t:build,pack"
+$msbuildPublish = "dotnet publish .\src\nbgv\nbgv.csproj -f netcoreapp2.1 -o .\src\nerdbank-gitversioning.npm\out\nbgv.cli\tools\netcoreapp2.1\any"
 
 if (Test-Path "C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll") {
     $msbuildCommandLine += " /logger:`"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll`""
@@ -34,6 +35,7 @@ try {
         }
     }
 
+    Invoke-Expression $msbuildPublish
     if ($PSCmdlet.ShouldProcess("$PSScriptRoot\src\nerdbank-gitversioning.npm", "gulp")) {
         cd "$PSScriptRoot\src\nerdbank-gitversioning.npm"
         yarn run build
