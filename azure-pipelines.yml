@@ -59,7 +59,9 @@ jobs:
     inputs:
       ProjectDirectory: 'src/nerdbank-gitversioning.npm'
 
-  - script: dotnet build -c $(BuildConfiguration) --no-restore /t:build,pack /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
+  - script: |
+      dotnet build -c $(BuildConfiguration) --no-restore /t:build,pack /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
+      dotnet publish --no-build .\nbgv\nbgv.csproj -f netcoreapp2.1 -o .\nerdbank-gitversioning.npm\out\nbgv.cli\tools\netcoreapp2.1\publish
     displayName: Build NuGet package and tests
     workingDirectory: src
 
