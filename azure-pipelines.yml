@@ -149,6 +149,7 @@ jobs:
   container: alpine38
   steps:
   - script: apk update && apk add git
+    displayName: Installing git
   - template: azure-pipelines/xplattest-pipeline.yml
 
 - job: Alpine_3_9
@@ -158,6 +159,7 @@ jobs:
   container: alpine39
   steps:
   - script: apk update && apk add git
+    displayName: Installing git
   - template: azure-pipelines/xplattest-pipeline.yml
 
 - job: macOS
