@@ -22,7 +22,7 @@
     <ProjectReference Include="..\NerdBank.GitVersioning\NerdBank.GitVersioning.csproj" />
   </ItemGroup>
 
-  <Target Name="ExpandForNpmPackage" DependsOnTargets="GenerateNuSpec" BeforeTargets="GenerateNuSpec">
+  <Target Name="ExpandForNpmPackage" DependsOnTargets="GenerateNuSpec" AfterTargets="GenerateNuSpec">
     <PropertyGroup>
       <NpmPackageLayoutDir>..\nerdbank-gitversioning.npm\out\nbgv.cli\</NpmPackageLayoutDir>
     </PropertyGroup>
