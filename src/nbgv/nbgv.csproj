@@ -28,7 +28,7 @@
     </PropertyGroup>
     <ItemGroup>
       <NpmPackageLayout Include="@(_PackageFiles)">
-        <TargetPath Condition=" '%(_PackageFiles.PackagePath)' != '' ">$(NpmPackageLayoutDir)%(_PackageFiles.PackagePath)\%(FileName)%(Extension)</TargetPath>
+        <TargetPath Condition=" '%(_PackageFiles.PackagePath)' != '' ">$(NpmPackageLayoutDir)$([System.IO.Path]::GetDirectoryName('%(_PackageFiles.PackagePath)'))\%(FileName)%(Extension)</TargetPath>
         <TargetPath Condition=" '%(_PackageFiles.PackagePath)' == '' ">$(NpmPackageLayoutDir)%(FileName)%(Extension)</TargetPath>
       </NpmPackageLayout>
     </ItemGroup>
