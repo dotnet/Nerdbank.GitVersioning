@@ -18,9 +18,9 @@ resources:
   - container: bionic
     image: microsoft/dotnet:2.1-sdk-bionic
   - container: alpine38
-    image: mcr.microsoft.com/dotnet/core/sdk:2.2.105-alpine3.8
+    image: mcr.microsoft.com/dotnet/core/sdk:2.1.505-alpine3.8
   - container: alpine39
-    image: mcr.microsoft.com/dotnet/core/sdk:2.2.105-alpine3.9
+    image: mcr.microsoft.com/dotnet/core/sdk:2.1.505-alpine3.9
 
 jobs:
 - job: Windows
