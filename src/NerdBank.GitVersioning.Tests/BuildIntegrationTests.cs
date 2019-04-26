@@ -743,6 +743,18 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal(result.AssemblyCopyright, thisAssemblyClass.GetField("AssemblyCopyright", fieldFlags)?.GetValue(null));
         Assert.Equal(result.GitCommitId, thisAssemblyClass.GetField("GitCommitId", fieldFlags)?.GetValue(null) ?? string.Empty);
 
+        if (gitRepo)
+        {
+            Assert.True(long.TryParse(result.GitCommitDateTicks, out _), $"Invalid value for GitCommitDateTicks: '{result.GitCommitDateTicks}'");
+            DateTimeOffset gitCommitDate = new DateTimeOffset(long.Parse(result.GitCommitDateTicks), TimeSpan.Zero);
+            Assert.Equal(gitCommitDate, thisAssemblyClass.GetProperty("GitCommitDate", fieldFlags)?.GetValue(null) ?? string.Empty);
+        }
+        else
+        {
+            Assert.Empty(result.GitCommitDateTicks);
+            Assert.Null(thisAssemblyClass.GetProperty("GitCommitDate", fieldFlags));
+        }
+
         // Verify that it doesn't have key fields
         Assert.Null(thisAssemblyClass.GetField("PublicKey", fieldFlags));
         Assert.Null(thisAssemblyClass.GetField("PublicKeyToken", fieldFlags));
@@ -939,6 +951,7 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal(idAsVersion.Build.ToString(), buildResult.BuildVersionNumberComponent);
         Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}", buildResult.BuildVersionSimple);
         Assert.Equal(this.Repo.Head.Commits.First().Id.Sha, buildResult.GitCommitId);
+        Assert.Equal(this.Repo.Head.Commits.First().Author.When.UtcTicks.ToString(), buildResult.GitCommitDateTicks);
         Assert.Equal(commitIdShort, buildResult.GitCommitIdShort);
         Assert.Equal(versionHeight.ToString(), buildResult.GitVersionHeight);
         Assert.Equal($"{version.Major}.{version.Minor}", buildResult.MajorMinorVersion);
@@ -1141,6 +1154,7 @@ public class BuildIntegrationTests : RepoTestBase
         public string MajorMinorVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("MajorMinorVersion");
         public string BuildVersionNumberComponent => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("BuildVersionNumberComponent");
         public string GitCommitIdShort => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitCommitIdShort");
+        public string GitCommitDateTicks => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitCommitDateTicks");
         public string GitVersionHeight => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitVersionHeight");
         public string SemVerBuildSuffix => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("SemVerBuildSuffix");
         public string BuildVersion3Components => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("BuildVersion3Components");

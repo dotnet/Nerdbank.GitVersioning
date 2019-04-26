@@ -132,8 +132,18 @@
         [Output]
         public string GitCommitId { get; private set; }
 
+        /// <summary>
+        /// Gets the first several characters of the Git revision control commit id for HEAD (the current source code version).
+        /// </summary>
         [Output]
         public string GitCommitIdShort { get; private set; }
+
+        /// <summary>
+        /// Gets the Git revision control commit date for HEAD (the current source code version), expressed as the number of 100-nanosecond
+        /// intervals that have elapsed since January 1, 0001 at 00:00:00.000 in the Gregorian calendar.
+        /// </summary>
+        [Output]
+        public string GitCommitDateTicks { get; private set; }
 
         /// <summary>
         /// Gets the number of commits in the longest single path between
@@ -213,6 +223,7 @@
                 this.PrereleaseVersion = oracle.PrereleaseVersion;
                 this.GitCommitId = oracle.GitCommitId;
                 this.GitCommitIdShort = oracle.GitCommitIdShort;
+                this.GitCommitDateTicks = oracle.GitCommitDate != null ? oracle.GitCommitDate.Value.Ticks.ToString(CultureInfo.InvariantCulture) : null;
                 this.GitVersionHeight = oracle.VersionHeight;
                 this.BuildMetadataFragment = oracle.BuildMetadataFragment;
                 this.CloudBuildNumber = oracle.CloudBuildNumberEnabled ? oracle.CloudBuildNumber : null;

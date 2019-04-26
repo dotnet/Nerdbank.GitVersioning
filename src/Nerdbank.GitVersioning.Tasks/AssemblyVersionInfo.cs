@@ -71,6 +71,8 @@
 
         public string GitCommitId { get; set; }
 
+        public string GitCommitDateTicks { get; set; }
+
 #if NET461
         public override bool Execute()
         {
@@ -150,6 +152,7 @@
                     { "AssemblyCompany", this.AssemblyCompany },
                     { "AssemblyConfiguration", this.AssemblyConfiguration },
                     { "GitCommitId", this.GitCommitId },
+                    { "GitCommitDate", this.GitCommitDateTicks },
                 }).ToArray());
             if (hasKeyInfo)
             {
@@ -310,6 +313,7 @@
                     { "AssemblyCompany", this.AssemblyCompany },
                     { "AssemblyConfiguration", this.AssemblyConfiguration },
                     { "GitCommitId", this.GitCommitId },
+                    { "GitCommitDateTicks", this.GitCommitDateTicks },
                 };
             if (hasKeyInfo)
             {
@@ -323,6 +327,11 @@
                 {
                     this.generator.AddThisAssemblyMember(pair.Key, pair.Value);
                 }
+            }
+
+            if (long.TryParse(this.GitCommitDateTicks, out long gitCommitDateTicks))
+            {
+                this.generator.AddCommitDateProperty(gitCommitDateTicks);
             }
 
             // These properties should be defined even if they are empty.
@@ -380,6 +389,8 @@
                 this.codeBuilder.AppendLine();
             }
 
+            internal abstract void AddCommitDateProperty(long ticks);
+
             protected void AddCodeComment(string comment, string token)
             {
                 var sr = new StringReader(comment);
@@ -412,6 +423,11 @@
             internal override void DeclareAttribute(Type type, string arg)
             {
                 this.codeBuilder.AppendLine($"[<assembly: {type.FullName}(\"{arg}\")>]");
+            }
+
+            internal override void AddCommitDateProperty(long ticks)
+            {
+                this.codeBuilder.AppendLine($"    static member this.GitCommitDate = new DateTimeOffset({ticks}, TimeZpan.Zero)");
             }
 
             internal override void EndThisAssemblyClass()
@@ -450,6 +466,11 @@
                 this.codeBuilder.AppendLine($"    internal const string {name} = \"{value}\";");
             }
 
+            internal override void AddCommitDateProperty(long ticks)
+            {
+                this.codeBuilder.AppendLine($"    internal static System.DateTimeOffset GitCommitDate {{ get; }} = new System.DateTimeOffset({ticks}, System.TimeSpan.Zero);");
+            }
+
             internal override void EndThisAssemblyClass()
             {
                 this.codeBuilder.AppendLine("}");
@@ -477,6 +498,11 @@
             internal override void AddThisAssemblyMember(string name, string value)
             {
                 this.codeBuilder.AppendLine($"    Friend Const {name} As String = \"{value}\"");
+            }
+
+            internal override void AddCommitDateProperty(long ticks)
+            {
+                this.codeBuilder.AppendLine($"    Friend Shared ReadOnly Property GitCommitDate As System.DateTimeOffset = New System.DateTimeOffset({ticks}, System.TimeSpan.Zero)");
             }
 
             internal override void EndThisAssemblyClass()
