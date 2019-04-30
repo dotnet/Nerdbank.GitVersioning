@@ -139,7 +139,7 @@
                       "type": "string",
                       "default": "buildMetadata",
                       "description": "The position to include the commit ID information.",
-                      "enum": [ "buildMetadata", "fourthVersionComponent" ]
+                      "enum": [ "buildMetadata", "fourthVersionComponent", "preReleaseForNonPublicRelease" ]
                     }
                   }
                 }

@@ -136,9 +136,10 @@
                 bool includeCommitInfo = commitIdOptions.WhenOrDefault == VersionOptions.CloudBuildNumberCommitWhen.Always ||
                     (commitIdOptions.WhenOrDefault == VersionOptions.CloudBuildNumberCommitWhen.NonPublicReleaseOnly && !this.PublicRelease);
                 bool commitIdInRevision = includeCommitInfo && commitIdOptions.WhereOrDefault == VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent;
-                bool commitIdInBuildMetadata = includeCommitInfo && commitIdOptions.WhereOrDefault == VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata;
+                bool commitIdInBuildMetadata = includeCommitInfo &&
+                    (commitIdOptions.WhereOrDefault == VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata || commitIdOptions.WhenOrDefault == VersionOptions.CloudBuildNumberCommitWhen.NonPublicReleaseOnly);
                 Version buildNumberVersion = commitIdInRevision ? this.Version : this.SimpleVersion;
-                string buildNumberMetadata = FormatBuildMetadata(commitIdInBuildMetadata ? this.BuildMetadataWithCommitId : this.BuildMetadata);
+                string buildNumberMetadata = this.FormatBuildMetadata(commitIdInBuildMetadata ? this.BuildMetadataWithCommitId : this.BuildMetadata);
                 return buildNumberVersion + this.PrereleaseVersion + buildNumberMetadata;
             }
         }
@@ -193,7 +194,7 @@
         /// Gets the version string to use for the <see cref="System.Reflection.AssemblyInformationalVersionAttribute"/>.
         /// </summary>
         public string AssemblyInformationalVersion =>
-            $"{this.Version.ToStringSafe(3)}{this.PrereleaseVersion}{FormatBuildMetadata(this.BuildMetadataWithCommitId)}";
+            $"{this.Version.ToStringSafe(3)}{this.PrereleaseVersion}{this.FormatBuildMetadata(this.BuildMetadataWithCommitId)}";
 
         /// <summary>
         /// Gets or sets a value indicating whether the project is building
@@ -346,7 +347,7 @@
         /// <summary>
         /// Gets the +buildMetadata fragment for the semantic version.
         /// </summary>
-        public string BuildMetadataFragment => FormatBuildMetadata(this.BuildMetadataWithCommitId);
+        public string BuildMetadataFragment => this.FormatBuildMetadata(this.BuildMetadataWithCommitId);
 
         /// <summary>
         /// Gets the version to use for NuGet packages.
@@ -419,7 +420,7 @@
         /// See https://github.com/AArnott/Nerdbank.GitVersioning/pull/132#issuecomment-307208561
         /// </remarks>
         private string SemVer2BuildMetadata =>
-            (this.PublicRelease ? string.Empty : this.GitCommitIdShortForNonPublicPrereleaseTag) + FormatBuildMetadata(this.BuildMetadata);
+            (this.PublicRelease ? string.Empty : this.GitCommitIdShortForNonPublicPrereleaseTag) + this.FormatBuildMetadata(this.BuildMetadata);
 
         private string PrereleaseVersionSemVer1 => MakePrereleaseSemVer1Compliant(this.PrereleaseVersion, this.SemVer1NumericIdentifierPadding);
 
@@ -429,11 +430,14 @@
 
         private int VersionHeightWithOffset => this.VersionHeight + this.VersionHeightOffset;
 
-        private static string FormatBuildMetadata(IEnumerable<string> identifiers) =>
-            (identifiers?.Any() ?? false) ? "+" + string.Join(".", identifiers) : string.Empty;
-
-        private static string FormatBuildMetadataSemVerV1(IEnumerable<string> identifiers) =>
-            (identifiers?.Any() ?? false) ? "-" + string.Join("-", identifiers) : string.Empty;
+        private string FormatBuildMetadata(IEnumerable<string> identifiers)
+        {
+            var commitIdOptions = this.CloudBuildNumberOptions.IncludeCommitIdOrDefault;
+            var commitIdInPreRelease = !this.PublicRelease && commitIdOptions.WhereOrDefault == VersionOptions.CloudBuildNumberCommitWhere.PreReleaseForNonPublicRelease;
+            return (identifiers?.Any() ?? false)
+                ? (commitIdInPreRelease ? "-" : "+" ) + string.Join(".", identifiers)
+                : string.Empty;
+        }
 
         private static Version GetAssemblyVersion(Version version, VersionOptions versionOptions)
         {

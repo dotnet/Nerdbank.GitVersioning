@@ -986,6 +986,11 @@
             /// The commit ID appears as the 4th integer in the version (e.g. 1.2.3.23523).
             /// </summary>
             FourthVersionComponent,
+
+            /// <summary>
+            /// Include the commit information as a prerelease version when building a non-PublicRelease.
+            /// </summary>
+            PreReleaseForNonPublicRelease,
         }
 
         /// <summary>

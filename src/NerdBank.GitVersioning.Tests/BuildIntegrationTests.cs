@@ -917,7 +917,12 @@ public class BuildIntegrationTests : RepoTestBase
         Version assemblyVersion = GetExpectedAssemblyVersion(versionOptions, version);
         var additionalBuildMetadata = from item in buildResult.BuildResult.ProjectStateAfterBuild.GetItems("BuildMetadata")
                                       select item.EvaluatedInclude;
-        var expectedBuildMetadata = $"+{commitIdShort}";
+
+        var buildNumberOptions = versionOptions.CloudBuildOrDefault.BuildNumberOrDefault;
+        var expectedBuildMetadata = buildNumberOptions.IncludeCommitIdOrDefault.WhereOrDefault != VersionOptions.CloudBuildNumberCommitWhere.PreReleaseForNonPublicRelease || buildResult.PublicRelease
+            ? $"+{commitIdShort}"
+            : $"-{commitIdShort}";
+
         if (additionalBuildMetadata.Any())
         {
             expectedBuildMetadata += "." + string.Join(".", additionalBuildMetadata);
@@ -964,7 +969,6 @@ public class BuildIntegrationTests : RepoTestBase
         string chocolateyPkgVersionSuffix = GetPkgVersionSuffix(useSemVer2: false);
         Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{GetSemVerAppropriatePrereleaseTag(versionOptions)}{chocolateyPkgVersionSuffix}", buildResult.ChocolateyPackageVersion);
 
-        var buildNumberOptions = versionOptions.CloudBuildOrDefault.BuildNumberOrDefault;
         if (buildNumberOptions.EnabledOrDefault)
         {
             var commitIdOptions = buildNumberOptions.IncludeCommitIdOrDefault;
@@ -976,9 +980,22 @@ public class BuildIntegrationTests : RepoTestBase
                 : new Version(version.Major, version.Minor, version.Build);
             Assert.Equal(expectedVersion, buildNumberSemVer.Version);
             Assert.Equal(buildResult.PrereleaseVersion, buildNumberSemVer.Prerelease);
-            string expectedBuildNumberMetadata = hasCommitData && commitIdOptions.WhereOrDefault == VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata
-                ? $"+{commitIdShort}"
-                : string.Empty;
+
+            var expectedBuildNumberMetadata = string.Empty;
+            if (hasCommitData)
+            {
+                switch (commitIdOptions.WhereOrDefault)
+                {
+                    case VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata:
+                        expectedBuildNumberMetadata = $"+{commitIdShort}";
+                        break;
+
+                    case VersionOptions.CloudBuildNumberCommitWhere.PreReleaseForNonPublicRelease when !buildResult.PublicRelease:
+                        expectedBuildNumberMetadata = $"-{commitIdShort}";
+                        break;
+                }
+            }
+
             if (additionalBuildMetadata.Any())
             {
                 expectedBuildNumberMetadata = expectedBuildNumberMetadata.Length == 0
