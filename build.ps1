@@ -15,7 +15,7 @@ Param(
     [string]$MsBuildVerbosity = 'minimal'
 )
 
-$msbuildCommandLine = "msbuild `"$PSScriptRoot\src\Nerdbank.GitVersioning.sln`" /m /verbosity:$MsBuildVerbosity /nologo /p:Platform=`"Any CPU`" /t:build,pack"
+$msbuildCommandLine = "dotnet build `"$PSScriptRoot\src\Nerdbank.GitVersioning.sln`" /m /verbosity:$MsBuildVerbosity /nologo /p:Platform=`"Any CPU`" /t:build,pack"
 
 if (Test-Path "C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll") {
     $msbuildCommandLine += " /logger:`"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll`""
@@ -30,12 +30,13 @@ try {
     if ($PSCmdlet.ShouldProcess("$PSScriptRoot\src\Nerdbank.GitVersioning.sln", "msbuild")) {
         Invoke-Expression $msbuildCommandLine
         if ($LASTEXITCODE -ne 0) {
-            throw "MSBuild failed"
+            throw "dotnet build failed"
         }
     }
 
     if ($PSCmdlet.ShouldProcess("$PSScriptRoot\src\nerdbank-gitversioning.npm", "gulp")) {
         cd "$PSScriptRoot\src\nerdbank-gitversioning.npm"
+        yarn install
         yarn run build
         if ($LASTEXITCODE -ne 0) {
             throw "Node build failed"

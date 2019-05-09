@@ -29,18 +29,19 @@ jobs:
       git config --global user.name ci
       git config --global user.email me@ci.com
     displayName: Configure git commit author for testing
-  - script: |
-      dotnet tool install --tool-path . nbgv
-      .\nbgv cloud -p src -a
-    displayName: Set build number
 
   - task: DotNetCoreInstaller@0
-    displayName: Install .NET Core SDK 2.1.500
+    displayName: Install .NET Core SDK
     inputs:
       packageType: sdk
       version: 2.1.500
   - script: dotnet --info
     displayName: Show dotnet SDK info
+
+  - script: |
+      dotnet tool install --tool-path . nbgv
+      .\nbgv cloud -p src -a
+    displayName: Set build number
 
   - task: DotNetCoreCLI@2
     displayName: Restore NuGet packages
