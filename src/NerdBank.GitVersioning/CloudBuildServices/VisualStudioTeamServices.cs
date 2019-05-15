@@ -13,14 +13,16 @@
     /// </remarks>
     internal class VisualStudioTeamServices : ICloudBuild
     {
-        public bool IsPullRequest => false; // VSTS doesn't define this.
+        public bool IsPullRequest => Environment.GetEnvironmentVariable("BUILD_SOURCEBRANCH")?.StartsWith("refs/pull/") ?? false;
 
-        public string BuildingTag => null; // VSTS doesn't define this.
+        public string BuildingTag => Environment.GetEnvironmentVariable("BUILD_SOURCEBRANCH")?.StartsWith("refs/tags/") ?? false 
+            ? Environment.GetEnvironmentVariable("BUILD_SOURCEBRANCH") 
+            : null;
 
-        public string BuildingBranch => CloudBuild.ShouldStartWith(Environment.GetEnvironmentVariable("BUILD_SOURCEBRANCH"), "refs/heads/");
-
-        public string BuildingRef => this.BuildingBranch;
-
+        public string BuildingBranch => Environment.GetEnvironmentVariable("BUILD_SOURCEBRANCH")?.StartsWith("refs/heads/") ?? false 
+            ? Environment.GetEnvironmentVariable("BUILD_SOURCEBRANCH")
+            : null;
+        
         public string GitCommitId => null;
 
         public bool IsApplicable => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("SYSTEM_TEAMPROJECTID"));
