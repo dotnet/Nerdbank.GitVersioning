@@ -14,6 +14,7 @@ using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -46,9 +47,15 @@ public class BuildIntegrationTests : RepoTestBase
     };
     private Random random;
 
+    static BuildIntegrationTests()
+    {
+        MSBuildLocator.RegisterDefaults();
+    }
+
     public BuildIntegrationTests(ITestOutputHelper logger)
         : base(logger)
     {
+
         int seed = (int)DateTime.Now.Ticks;
         this.random = new Random(seed);
         this.Logger.WriteLine("Random seed: {0}", seed);
