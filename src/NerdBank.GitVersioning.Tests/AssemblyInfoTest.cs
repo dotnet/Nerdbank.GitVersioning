@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.Build.Locator;
 using Nerdbank.GitVersioning.Tasks;
 using Xunit;
 
@@ -13,7 +12,7 @@ namespace NerdBank.GitVersioning.Tests
     {
         public AssemblyInfoTest()
         {
-            MSBuildLocator.RegisterDefaults();
+            MSBuildExtensions.LoadMSBuild();
         }
 
         [Fact]
