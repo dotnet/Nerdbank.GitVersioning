@@ -14,8 +14,8 @@ using Xunit.Abstractions;
 
 internal static class MSBuildExtensions
 {
-    private static object loadLock = new object();
-    private static bool loaded = false;
+    private static readonly object loadLock = new object();
+    private static bool loaded;
 
     internal static void LoadMSBuild()
     {
