@@ -49,6 +49,8 @@ public class BuildIntegrationTests : RepoTestBase
     public BuildIntegrationTests(ITestOutputHelper logger)
         : base(logger)
     {
+        MSBuildExtensions.LoadMSBuild();
+
         int seed = (int)DateTime.Now.Ticks;
         this.random = new Random(seed);
         this.Logger.WriteLine("Random seed: {0}", seed);

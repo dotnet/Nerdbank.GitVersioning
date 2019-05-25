@@ -10,6 +10,11 @@ namespace NerdBank.GitVersioning.Tests
 {
     public class AssemblyInfoTest
     {
+        public AssemblyInfoTest()
+        {
+            MSBuildExtensions.LoadMSBuild();
+        }
+
         [Fact]
         public void FSharpGenerator()
         {
