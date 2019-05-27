@@ -951,7 +951,7 @@ public class BuildIntegrationTests : RepoTestBase
         Assert.Equal(idAsVersion.Build.ToString(), buildResult.BuildVersionNumberComponent);
         Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}", buildResult.BuildVersionSimple);
         Assert.Equal(this.Repo.Head.Commits.First().Id.Sha, buildResult.GitCommitId);
-        Assert.Equal(this.Repo.Head.Commits.First().Author.When.UtcTicks.ToString(), buildResult.GitCommitDateTicks);
+        Assert.Equal(this.Repo.Head.Commits.First().Author.When.UtcTicks.ToString(CultureInfo.InvariantCulture), buildResult.GitCommitDateTicks);
         Assert.Equal(commitIdShort, buildResult.GitCommitIdShort);
         Assert.Equal(versionHeight.ToString(), buildResult.GitVersionHeight);
         Assert.Equal($"{version.Major}.{version.Minor}", buildResult.MajorMinorVersion);

@@ -125,7 +125,7 @@
                 IsPartial = true,
                 TypeAttributes = TypeAttributes.NotPublic | TypeAttributes.Sealed,
             };
-            
+
             var codeAttributeDeclarationCollection = new CodeAttributeDeclarationCollection();
             codeAttributeDeclarationCollection.Add(new CodeAttributeDeclaration("System.CodeDom.Compiler.GeneratedCode",
                 new CodeAttributeArgument(new CodePrimitiveExpression(GeneratorName)),
@@ -152,8 +152,14 @@
                     { "AssemblyCompany", this.AssemblyCompany },
                     { "AssemblyConfiguration", this.AssemblyConfiguration },
                     { "GitCommitId", this.GitCommitId },
-                    { "GitCommitDate", this.GitCommitDateTicks },
                 }).ToArray());
+
+
+            if (long.TryParse(this.GitCommitDateTicks, out long gitCommitDateTicks))
+            {
+                thisAssembly.Members.AddRange(CreateCommitDateProperty(gitCommitDateTicks).ToArray());
+            }
+
             if (hasKeyInfo)
             {
                 thisAssembly.Members.AddRange(CreateFields(new Dictionary<string, string>
@@ -216,6 +222,38 @@
                 Attributes = MemberAttributes.Const | MemberAttributes.Assembly,
                 InitExpression = new CodePrimitiveExpression(value),
             };
+        }
+
+        private static IEnumerable<CodeTypeMember> CreateCommitDateProperty(long ticks)
+        {
+            // internal static System.DateTimeOffset GitCommitDate {{ get; }} = new System.DateTimeOffset({ticks}, System.TimeSpan.Zero);");
+            yield return new CodeMemberField(typeof(DateTimeOffset), "gitCommitDate")
+            {
+                Attributes = MemberAttributes.Private,
+                InitExpression = new CodeObjectCreateExpression(
+                     typeof(DateTimeOffset),
+                     new CodePrimitiveExpression(ticks),
+                     new CodePropertyReferenceExpression(
+                         new CodeTypeReferenceExpression(typeof(TimeSpan)),
+                         nameof(TimeSpan.Zero)))
+            };
+
+            var property = new CodeMemberProperty()
+            {
+                Attributes = MemberAttributes.Assembly,
+                Type = new CodeTypeReference(typeof(DateTimeOffset)),
+                Name = "GitCommitDate",
+                HasGet = true,
+                HasSet = false,
+            };
+
+            property.GetStatements.Add(
+                new CodeMethodReturnStatement(
+                    new CodeFieldReferenceExpression(
+                        null,
+                        "gitCommitDate")));
+
+            yield return property;
         }
 
         private static CodeAttributeDeclaration DeclareAttribute(Type attributeType, params CodeAttributeArgument[] arguments)
