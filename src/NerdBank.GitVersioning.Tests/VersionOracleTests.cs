@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using LibGit2Sharp;
 using Nerdbank.GitVersioning;
-using Nerdbank.GitVersioning.Tests;
 using Xunit;
 using Xunit.Abstractions;
 

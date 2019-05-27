@@ -3,7 +3,6 @@ using System.IO;
 using System.Linq;
 using LibGit2Sharp;
 using Nerdbank.GitVersioning;
-using Nerdbank.GitVersioning.Tests;
 using Xunit;
 using Xunit.Abstractions;
 

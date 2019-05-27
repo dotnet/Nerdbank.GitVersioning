@@ -18,7 +18,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Nerdbank.GitVersioning;
-using Nerdbank.GitVersioning.Tests;
 using Validation;
 using Xunit;
 using Xunit.Abstractions;
