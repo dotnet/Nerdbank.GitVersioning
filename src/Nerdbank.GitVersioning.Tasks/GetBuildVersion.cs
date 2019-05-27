@@ -202,9 +202,9 @@
                     oracle.BuildMetadata.AddRange(this.BuildMetadata);
                 }
 
-                if (oracle.MisconfiguredPrereleaseAndSemVer1())
+                if (IsMisconfiguredPrereleaseAndSemVer1(oracle))
                 {
-                    this.Log.LogWarning("The 'nugetPackageVersion' is explicitly set to 'semVer': 1 but the prerelease version '{0}' is not SemVer1 compliant. Change the 'nugetPackageVersion'.'semVer' value to 2 or chagne the 'version' member to follow SemVer1 (like: '{1}').", oracle.PrereleaseVersion, oracle.SemVer1WithoutPaddingOrBuildMetadata);
+                    this.Log.LogWarning("The 'nugetPackageVersion' is explicitly set to 'semVer': 1 but the prerelease version '{0}' is not SemVer1 compliant. Change the 'nugetPackageVersion'.'semVer' value to 2 or change the 'version' member to follow SemVer1 rules (e.g.: '{1}').", oracle.PrereleaseVersion, GetSemVer1WithoutPaddingOrBuildMetadata(oracle));
                 }
 
                 this.PublicRelease = oracle.PublicRelease;
@@ -260,6 +260,24 @@
                 this.Log.LogErrorFromException(ex);
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Gets the SemVer v1 format without padding or the build metadata.
+        /// </summary>
+        private static string GetSemVer1WithoutPaddingOrBuildMetadata(VersionOracle oracle)
+        {
+            Requires.NotNull(oracle, nameof(oracle));
+            return $"{oracle.Version.ToStringSafe(3)}{SemanticVersionExtensions.MakePrereleaseSemVer1Compliant(oracle.PrereleaseVersion, 0)}";
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether the user wants SemVer v1 compliance yet specified a non-v1 compliant prerelease tag.
+        /// </summary>
+        private static bool IsMisconfiguredPrereleaseAndSemVer1(VersionOracle oracle)
+        {
+            Requires.NotNull(oracle, nameof(oracle));
+            return oracle.VersionOptions?.NuGetPackageVersion?.SemVer == 1 && oracle.PrereleaseVersion != SemanticVersionExtensions.MakePrereleaseSemVer1Compliant(oracle.PrereleaseVersion, 0);
         }
     }
 }

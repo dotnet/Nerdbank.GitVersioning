@@ -1,6 +1,8 @@
 ﻿namespace Nerdbank.GitVersioning
 {
     using System;
+    using System.Globalization;
+    using System.Text.RegularExpressions;
     using Validation;
 
     /// <summary>
@@ -8,6 +10,11 @@
     /// </summary>
     internal static class SemanticVersionExtensions
     {
+        /// <summary>
+        /// A regex that matches on numeric identifiers for prerelease or build metadata.
+        /// </summary>
+        private static readonly Regex NumericIdentifierRegex = new Regex(@"(?<![\w-])(\d+)(?![\w-])");
+
         /// <summary>
         /// Gets a new semantic with the specified version component (major/minor) incremented.
         /// </summary>
@@ -106,6 +113,32 @@
         internal static SemanticVersion WithoutPrepreleaseTags(this SemanticVersion version)
         {
             return new SemanticVersion(version.Version, null, version.BuildMetadata);
+        }
+
+        /// <summary>
+        /// Converts a semver 2 compliant "-beta.5" prerelease tag to a semver 1 compatible one.
+        /// </summary>
+        /// <param name="prerelease">The semver 2 prerelease tag, including its leading hyphen.</param>
+        /// <param name="paddingSize">The minimum number of digits to use for any numeric identifier.</param>
+        /// <returns>A semver 1 compliant prerelease tag. For example "-beta-0005".</returns>
+        internal static string MakePrereleaseSemVer1Compliant(string prerelease, int paddingSize)
+        {
+            if (string.IsNullOrEmpty(prerelease))
+            {
+                return prerelease;
+            }
+
+            string paddingFormatter = "{0:" + new string('0', paddingSize) + "}";
+
+            string semver1 = prerelease;
+
+            // Identify numeric identifiers and pad them.
+            Assumes.True(prerelease.StartsWith("-"));
+            semver1 = "-" + NumericIdentifierRegex.Replace(semver1.Substring(1), m => string.Format(CultureInfo.InvariantCulture, paddingFormatter, int.Parse(m.Groups[1].Value)));
+
+            semver1 = semver1.Replace('.', '-');
+
+            return semver1;
         }
     }
 }

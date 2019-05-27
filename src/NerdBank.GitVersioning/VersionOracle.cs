@@ -15,11 +15,6 @@
     public class VersionOracle
     {
         /// <summary>
-        /// A regex that matches on numeric identifiers for prerelease or build metadata.
-        /// </summary>
-        private static readonly Regex NumericIdentifierRegex = new Regex(@"(?<![\w-])(\d+)(?![\w-])");
-
-        /// <summary>
         /// The 0.0 version.
         /// </summary>
         private static readonly Version Version0 = new Version(0, 0);
@@ -177,7 +172,7 @@
         /// <summary>
         /// Gets the version options used to initialize this instance.
         /// </summary>
-        private VersionOptions VersionOptions { get; }
+        public VersionOptions VersionOptions { get; }
 
         /// <summary>
         /// Gets the version string to use for the <see cref="System.Reflection.AssemblyVersionAttribute"/>.
@@ -386,22 +381,6 @@
         public int SemVer1NumericIdentifierPadding => this.VersionOptions?.SemVer1NumericIdentifierPaddingOrDefault ?? 4;
 
         /// <summary>
-        /// Gets the SemVer 1 format without padding or the build metadata.
-        /// </summary>
-        public string SemVer1WithoutPaddingOrBuildMetadata =>
-            $"{this.Version.ToStringSafe(3)}{MakePrereleaseSemVer1Compliant(this.PrereleaseVersion, 0)}";
-
-        /// <summary>
-        /// Determines if it was likely the user misconfigured their the prerelease version options and
-        /// their semver setting.
-        /// </summary>
-        /// <returns>False when NuGet SemVer 1 explicitly set but the prerelease does not match.</returns>
-        public bool MisconfiguredPrereleaseAndSemVer1()
-        {
-            return this.VersionOptions != null && this.VersionOptions.NuGetPackageVersion != null && this.VersionOptions.NuGetPackageVersion.SemVer == 1 && this.PrereleaseVersion != MakePrereleaseSemVer1Compliant(this.PrereleaseVersion, 0);
-        }
-
-        /// <summary>
         /// Gets the build metadata, compliant to the NuGet-compatible subset of SemVer 1.0.
         /// </summary>
         /// <remarks>
@@ -437,7 +416,7 @@
         private string SemVer2BuildMetadata =>
             (this.PublicRelease ? string.Empty : this.GitCommitIdShortForNonPublicPrereleaseTag) + FormatBuildMetadata(this.BuildMetadata);
 
-        private string PrereleaseVersionSemVer1 => MakePrereleaseSemVer1Compliant(this.PrereleaseVersion, this.SemVer1NumericIdentifierPadding);
+        private string PrereleaseVersionSemVer1 => SemanticVersionExtensions.MakePrereleaseSemVer1Compliant(this.PrereleaseVersion, this.SemVer1NumericIdentifierPadding);
 
         private string GitCommitIdShortForNonPublicPrereleaseTag => (string.IsNullOrEmpty(this.PrereleaseVersion) ? "-" : ".") + this.GitCommitIdShort;
 
@@ -473,32 +452,6 @@
         /// <param name="prereleaseOrBuildMetadata">The prerelease or build metadata.</param>
         /// <returns>The specified string, with macros substituted for actual values.</returns>
         private string ReplaceMacros(string prereleaseOrBuildMetadata) => prereleaseOrBuildMetadata?.Replace("{height}", this.VersionHeightWithOffset.ToString(CultureInfo.InvariantCulture));
-
-        /// <summary>
-        /// Converts a semver 2 compliant "-beta.5" prerelease tag to a semver 1 compatible one.
-        /// </summary>
-        /// <param name="prerelease">The semver 2 prerelease tag, including its leading hyphen.</param>
-        /// <param name="paddingSize">The minimum number of digits to use for any numeric identifier.</param>
-        /// <returns>A semver 1 compliant prerelease tag. For example "-beta-0005".</returns>
-        private static string MakePrereleaseSemVer1Compliant(string prerelease, int paddingSize)
-        {
-            if (string.IsNullOrEmpty(prerelease))
-            {
-                return prerelease;
-            }
-
-            string paddingFormatter = "{0:" + new string('0', paddingSize) + "}";
-
-            string semver1 = prerelease;
-
-            // Identify numeric identifiers and pad them.
-            Assumes.True(prerelease.StartsWith("-"));
-            semver1 = "-" + NumericIdentifierRegex.Replace(semver1.Substring(1), m => string.Format(CultureInfo.InvariantCulture, paddingFormatter, int.Parse(m.Groups[1].Value)));
-
-            semver1 = semver1.Replace('.', '-');
-
-            return semver1;
-        }
 
         private static int CalculateVersionHeight(string relativeRepoProjectDirectory, LibGit2Sharp.Commit headCommit, VersionOptions committedVersion, VersionOptions workingVersion)
         {
