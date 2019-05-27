@@ -23,7 +23,7 @@ using Xunit;
 using Xunit.Abstractions;
 using Version = System.Version;
 
-public class BuildIntegrationTests : RepoTestBase
+public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
 {
     private const string GitVersioningTargetsFileName = "NerdBank.GitVersioning.targets";
     private const string UnitTestCloudBuildPrefix = "UnitTest: ";
@@ -48,8 +48,6 @@ public class BuildIntegrationTests : RepoTestBase
     public BuildIntegrationTests(ITestOutputHelper logger)
         : base(logger)
     {
-        MSBuildExtensions.LoadMSBuild();
-
         int seed = (int)DateTime.Now.Ticks;
         this.random = new Random(seed);
         this.Logger.WriteLine("Random seed: {0}", seed);
