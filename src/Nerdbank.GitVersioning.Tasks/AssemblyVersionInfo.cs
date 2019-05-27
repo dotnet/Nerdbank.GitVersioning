@@ -350,7 +350,6 @@
                     { "AssemblyCompany", this.AssemblyCompany },
                     { "AssemblyConfiguration", this.AssemblyConfiguration },
                     { "GitCommitId", this.GitCommitId },
-                    { "GitCommitDateTicks", this.GitCommitDateTicks },
                 };
             if (hasKeyInfo)
             {
@@ -464,7 +463,7 @@
 
             internal override void AddCommitDateProperty(long ticks)
             {
-                this.codeBuilder.AppendLine($"    static member this.GitCommitDate = new DateTimeOffset({ticks}, TimeZpan.Zero)");
+                this.codeBuilder.AppendLine($"    static member internal GitCommitDate = new DateTimeOffset({ticks}, TimeZpan.Zero)");
             }
 
             internal override void EndThisAssemblyClass()
@@ -505,7 +504,7 @@
 
             internal override void AddCommitDateProperty(long ticks)
             {
-                this.codeBuilder.AppendLine($"    internal static System.DateTimeOffset GitCommitDate {{ get; }} = new System.DateTimeOffset({ticks}, System.TimeSpan.Zero);");
+                this.codeBuilder.AppendLine($"    internal static readonly System.DateTimeOffset GitCommitDate = new System.DateTimeOffset({ticks}, System.TimeSpan.Zero);");
             }
 
             internal override void EndThisAssemblyClass()
@@ -539,7 +538,7 @@
 
             internal override void AddCommitDateProperty(long ticks)
             {
-                this.codeBuilder.AppendLine($"    Friend Shared ReadOnly Property GitCommitDate As System.DateTimeOffset = New System.DateTimeOffset({ticks}, System.TimeSpan.Zero)");
+                this.codeBuilder.AppendLine($"    Friend Shared ReadOnly GitCommitDate As System.DateTimeOffset = New System.DateTimeOffset({ticks}, System.TimeSpan.Zero)");
             }
 
             internal override void EndThisAssemblyClass()
