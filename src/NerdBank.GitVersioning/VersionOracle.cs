@@ -83,6 +83,7 @@
             this.VersionOptions = committedVersion ?? workingVersion;
 
             this.GitCommitId = commit?.Id.Sha ?? cloudBuild?.GitCommitId ?? null;
+            this.GitCommitDate = commit?.Author.When;
             this.VersionHeight = CalculateVersionHeight(relativeRepoProjectDirectory, commit, committedVersion, workingVersion);
             this.BuildingRef = cloudBuild?.BuildingTag ?? cloudBuild?.BuildingBranch ?? repo?.Head.CanonicalName;
 
@@ -255,6 +256,11 @@
         /// Gets the first several characters of the Git revision control commit id for HEAD (the current source code version).
         /// </summary>
         public string GitCommitIdShort { get; }
+
+        /// <summary>
+        /// Gets the Git revision control commit date for HEAD (the current source code version).
+        /// </summary>
+        public DateTimeOffset? GitCommitDate { get; }
 
         /// <summary>
         /// Gets the number of commits in the longest single path between

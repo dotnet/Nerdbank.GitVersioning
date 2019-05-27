@@ -79,6 +79,7 @@
       <Output TaskParameter="AssemblyVersion" PropertyName="AssemblyVersion" />
       <Output TaskParameter="GitCommitId" PropertyName="GitCommitId" />
       <Output TaskParameter="GitCommitIdShort" PropertyName="GitCommitIdShort" />
+      <Output TaskParameter="GitCommitDateTicks" PropertyName="GitCommitDateTicks" />
       <Output TaskParameter="GitVersionHeight" PropertyName="GitVersionHeight" />
       <Output TaskParameter="BuildNumber" PropertyName="BuildNumber" />
       <Output TaskParameter="BuildNumber" PropertyName="BuildVersionNumberComponent" />
@@ -154,6 +155,7 @@
                   AssemblyCompany="$(AssemblyCompany)"
                   AssemblyConfiguration="$(Configuration)"
                   GitCommitId="$(GitCommitId)"
+                  GitCommitDateTicks="$(GitCommitDateTicks)"
                   EmitNonVersionCustomAttributes="$(NBGV_EmitNonVersionCustomAttributes)"
                   />
     <!-- Avoid applying the newly generated AssemblyVersionInfo.cs file to the build
