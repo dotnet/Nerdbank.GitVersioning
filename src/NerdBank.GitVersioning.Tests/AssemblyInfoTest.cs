@@ -6,13 +6,8 @@ using System.Threading.Tasks;
 using Nerdbank.GitVersioning.Tasks;
 using Xunit;
 
-public class AssemblyInfoTest
+public class AssemblyInfoTest : IClassFixture<MSBuildFixture>
 {
-    public AssemblyInfoTest()
-    {
-        MSBuildExtensions.LoadMSBuild();
-    }
-
     [Fact]
     public void FSharpGenerator()
     {
