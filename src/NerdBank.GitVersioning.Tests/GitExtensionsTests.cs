@@ -248,6 +248,7 @@ public class GitExtensionsTests : RepoTestBase
 
     [Theory]
     [InlineData("2.5", "2.5", 0)]
+    [InlineData("2.5.1", "2.5", 0)]
     [InlineData("2.5", "2.5", 5)]
     [InlineData("2.5", "2.5", -1)]
     [InlineData("2.5", "2.0", 0)]
