@@ -154,7 +154,6 @@
                     { "GitCommitId", this.GitCommitId },
                 }).ToArray());
 
-
             if (long.TryParse(this.GitCommitDateTicks, out long gitCommitDateTicks))
             {
                 thisAssembly.Members.AddRange(CreateCommitDateProperty(gitCommitDateTicks).ToArray());
