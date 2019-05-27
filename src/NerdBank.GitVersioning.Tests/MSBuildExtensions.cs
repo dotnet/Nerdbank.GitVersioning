@@ -7,28 +7,12 @@ using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
-using Microsoft.Build.Locator;
 using Microsoft.Build.Logging;
 using Validation;
 using Xunit.Abstractions;
 
 internal static class MSBuildExtensions
 {
-    private static readonly object loadLock = new object();
-    private static bool loaded;
-
-    internal static void LoadMSBuild()
-    {
-        lock (loadLock)
-        {
-            if (!loaded)
-            {
-                MSBuildLocator.RegisterDefaults();
-                loaded = true;
-            }
-        }
-    }
-
     internal static async Task<BuildResult> BuildAsync(this BuildManager buildManager, ITestOutputHelper logger, ProjectCollection projectCollection, ProjectRootElement project, string target, IDictionary<string, string> globalProperties = null, LoggerVerbosity logVerbosity = LoggerVerbosity.Detailed, ILogger[] additionalLoggers = null)
     {
         Requires.NotNull(buildManager, nameof(buildManager));

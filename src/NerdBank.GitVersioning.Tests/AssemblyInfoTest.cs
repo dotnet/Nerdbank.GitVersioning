@@ -8,11 +8,6 @@ using Xunit;
 
 public class AssemblyInfoTest
 {
-    public AssemblyInfoTest()
-    {
-        MSBuildExtensions.LoadMSBuild();
-    }
-
     [Fact]
     public void FSharpGenerator()
     {
