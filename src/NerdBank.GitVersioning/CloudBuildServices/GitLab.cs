@@ -2,8 +2,6 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.ComponentModel;
-    using System.Diagnostics;
     using System.IO;
 
     /// <summary>
@@ -15,11 +13,15 @@
     /// </remarks>
     internal class GitLab : ICloudBuild
     {
-        public string BuildingBranch => Environment.GetEnvironmentVariable("CI_COMMIT_REF_NAME");
+        public string BuildingBranch =>
+            Environment.GetEnvironmentVariable("CI_COMMIT_TAG") == null ? 
+                $"refs/heads/{Environment.GetEnvironmentVariable("CI_COMMIT_REF_NAME")}" : null;
 
-        public string BuildingRef => Environment.GetEnvironmentVariable("CI_COMMIT_TAG");
+        public string BuildingRef => this.BuildingBranch ?? this.BuildingTag;
 
-        public string BuildingTag => Environment.GetEnvironmentVariable("CI_COMMIT_TAG");
+        public string BuildingTag =>
+            Environment.GetEnvironmentVariable("CI_COMMIT_TAG") != null ?
+                $"refs/tags/{Environment.GetEnvironmentVariable("CI_COMMIT_TAG")}" : null;
 
         public string GitCommitId => Environment.GetEnvironmentVariable("CI_COMMIT_SHA");
 
