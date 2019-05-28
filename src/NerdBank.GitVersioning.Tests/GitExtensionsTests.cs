@@ -248,6 +248,7 @@ public class GitExtensionsTests : RepoTestBase
 
     [Theory]
     [InlineData("2.5", "2.5", 0)]
+    [InlineData("2.5.1", "2.5", 0)]
     [InlineData("2.5", "2.5", 5)]
     [InlineData("2.5", "2.5", -1)]
     [InlineData("2.5", "2.0", 0)]
@@ -255,9 +256,10 @@ public class GitExtensionsTests : RepoTestBase
     [InlineData("2.5", "2.0", -1)]
     public void GetIdAsVersion_Roundtrip(string version, string assemblyVersion, int versionHeightOffset)
     {
+        var semanticVersion = SemanticVersion.Parse(version);
         this.WriteVersionFile(new VersionOptions
         {
-            Version = SemanticVersion.Parse(version),
+            Version = semanticVersion,
             AssemblyVersion = new VersionOptions.AssemblyVersionOptions(new Version(assemblyVersion)),
             VersionHeightOffset = versionHeightOffset,
         });
@@ -278,7 +280,11 @@ public class GitExtensionsTests : RepoTestBase
             // Also verify that we can find it without the revision number.
             // This is important because stable, publicly released NuGet packages
             // that contain no assemblies may only have major.minor.build as their version evidence.
-            Assert.Equal(commits[i], this.Repo.GetCommitFromVersion(new Version(versions[i].Major, versions[i].Minor, versions[i].Build)));
+            // But folks who specify a.b.c version numbers don't have any unique version component for the commit at all without the 4th integer.
+            if (semanticVersion.Version.Build == -1)
+            {
+                Assert.Equal(commits[i], this.Repo.GetCommitFromVersion(new Version(versions[i].Major, versions[i].Minor, versions[i].Build)));
+            }
         }
     }
 
