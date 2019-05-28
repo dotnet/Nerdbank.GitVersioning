@@ -255,30 +255,33 @@ public class GitExtensionsTests : RepoTestBase
     [InlineData("2.5", "2.0", -1)]
     public void GetIdAsVersion_Roundtrip(string version, string assemblyVersion, int buildNumberOffset)
     {
-        this.WriteVersionFile(new VersionOptions
-        {
-            Version = SemanticVersion.Parse(version),
-            AssemblyVersion = new VersionOptions.AssemblyVersionOptions(new Version(assemblyVersion)),
-            BuildNumberOffset = buildNumberOffset,
-        });
+        const string repoRelativeSubDirectory = "subdir";
+        this.WriteVersionFile(
+            new VersionOptions
+            {
+                Version = SemanticVersion.Parse(version),
+                AssemblyVersion = new VersionOptions.AssemblyVersionOptions(new Version(assemblyVersion)),
+                BuildNumberOffset = buildNumberOffset,
+            },
+            repoRelativeSubDirectory);
 
         Commit[] commits = new Commit[16]; // create enough that statistically we'll likely hit interesting bits as MSB and LSB
         Version[] versions = new Version[commits.Length];
         for (int i = 0; i < commits.Length; i++)
         {
             commits[i] = this.Repo.Commit($"Commit {i + 1}", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
-            versions[i] = commits[i].GetIdAsVersion();
+            versions[i] = commits[i].GetIdAsVersion(repoRelativeSubDirectory);
             this.Logger.WriteLine($"Commit {commits[i].Id.Sha.Substring(0, 8)} as version: {versions[i]}");
         }
 
         for (int i = 0; i < commits.Length; i++)
         {
-            Assert.Equal(commits[i], this.Repo.GetCommitFromVersion(versions[i]));
+            Assert.Equal(commits[i], this.Repo.GetCommitFromVersion(versions[i], repoRelativeSubDirectory));
 
             // Also verify that we can find it without the revision number.
             // This is important because stable, publicly released NuGet packages
             // that contain no assemblies may only have major.minor.build as their version evidence.
-            Assert.Equal(commits[i], this.Repo.GetCommitFromVersion(new Version(versions[i].Major, versions[i].Minor, versions[i].Build)));
+            Assert.Equal(commits[i], this.Repo.GetCommitFromVersion(new Version(versions[i].Major, versions[i].Minor, versions[i].Build), repoRelativeSubDirectory));
         }
     }
 
