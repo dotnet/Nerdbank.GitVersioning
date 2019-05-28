@@ -77,15 +77,27 @@ nbgv prepare-release rc
 no new branch will be created. Instead the tool will just update the version
 in the current branch by replacing or removing the prerelease tag.
 
-### Explicitly setting the next version
+### Customizing the next version
 
-If you want to explicitly set the next version of the main branch instead of
-automatically determining it by incrementing the current version, you
-can set the version as commandline parameter:
+By default, the next version of the main branch is determined from the current
+version and the `versionIncrement` setting in `version.json`.
+To customize this behaviour, you can either explicitly set the next version
+or override the version increment setting.
+
+To explicitly set the next version, run:
 
 ```ps1
-nbgv prepare-release --nextVersion 2.0-beta
+nbgv prepare-release --nextVersion 2.0
 ```
+
+To override the `versionIncrement` setting from `version.json`, run:
+
+```ps1
+nbgv prepare-release --versionIncrement Major
+```
+
+**Note:** The parameters `nextVersion` and `versionIncrement` cannot
+be combined.
 
 ### Customizing the behaviour of `prepare-release`
 
@@ -103,11 +115,11 @@ The behaviour of the `prepare-release` command can be customized in
 }
 ```
 
-| Property         | Default value        | Description                                                                                                                                |
-|------------------|----------------------|--------------------------------------------------------------------------------------------------------------------------------------------|
-| branchName       | `v{version}`         | Defines the format of release branch names. The value must include a `{version}` placeholder.                                              |
-| versionIncremnt  | `minor`              | Specifies which part of the version on the current branch is incremented when preparing a release. Allowed values are `minor` and `major`. |
-| firstUnstableTag | `alpha`              | Specified the unstable tag to use for the main branch.                                                                                     |
+| Property         | Default value        | Description                                                                                                                                         |
+|------------------|----------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
+| branchName       | `v{version}`         | Defines the format of release branch names. The value must include a `{version}` placeholder.                                                       |
+| versionIncremnt  | `minor`              | Specifies which part of the version on the current branch is incremented when preparing a release. Allowed values are `major`, `minor` and `build`. |
+| firstUnstableTag | `alpha`              | Specified the unstable tag to use for the main branch.                                                                                              |
 
 ## Learn more
 

@@ -1,109 +1,106 @@
 ﻿using SevenZipNET;
 using Validation;
 
-namespace Nerdbank.GitVersioning.Tests
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using System.Threading.Tasks;
+
+/// <summary>
+/// Test utility methods.
+/// </summary>
+internal static class TestUtilities
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Diagnostics;
-    using System.IO;
-    using System.Linq;
-    using System.Reflection;
-    using System.Text;
-    using System.Threading.Tasks;
-
     /// <summary>
-    /// Test utility methods.
+    /// Recursively delete a directory, even after a git commit has been authored within it.
     /// </summary>
-    internal static class TestUtilities
+    /// <param name="path">The path to delete.</param>
+    internal static void DeleteDirectory(string path)
     {
-        /// <summary>
-        /// Recursively delete a directory, even after a git commit has been authored within it.
-        /// </summary>
-        /// <param name="path">The path to delete.</param>
-        internal static void DeleteDirectory(string path)
-        {
-            Requires.NotNullOrEmpty(path, nameof(path));
-            Requires.Argument(Path.IsPathRooted(path), nameof(path), "Must be rooted.");
+        Requires.NotNullOrEmpty(path, nameof(path));
+        Requires.Argument(Path.IsPathRooted(path), nameof(path), "Must be rooted.");
 
-            try
+        try
+        {
+            Directory.Delete(path, true);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // Unknown why this fails so often.
+            // Somehow making commits with libgit2sharp locks files
+            // such that we can't delete them (but Windows Explorer can).
+            var psi = new ProcessStartInfo("cmd.exe", $"/c rd /s /q \"{path}\"");
+            psi.WorkingDirectory = Path.GetTempPath();
+            psi.WindowStyle = ProcessWindowStyle.Hidden;
+            var process = Process.Start(psi);
+            process.WaitForExit();
+        }
+    }
+
+    internal static void ExtractEmbeddedResource(string resourcePath, string extractedFilePath)
+    {
+        Requires.NotNullOrEmpty(resourcePath, nameof(resourcePath));
+        Requires.NotNullOrEmpty(extractedFilePath, nameof(extractedFilePath));
+
+        using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"{ThisAssembly.RootNamespace}.{resourcePath.Replace('\\', '.')}"))
+        {
+            Requires.Argument(stream != null, nameof(resourcePath), "Resource not found.");
+            using (var extractedFile = File.OpenWrite(extractedFilePath))
             {
-                Directory.Delete(path, true);
-            }
-            catch (UnauthorizedAccessException)
-            {
-                // Unknown why this fails so often.
-                // Somehow making commits with libgit2sharp locks files
-                // such that we can't delete them (but Windows Explorer can).
-                var psi = new ProcessStartInfo("cmd.exe", $"/c rd /s /q \"{path}\"");
-                psi.WorkingDirectory = Path.GetTempPath();
-                psi.WindowStyle = ProcessWindowStyle.Hidden;
-                var process = Process.Start(psi);
-                process.WaitForExit();
+                stream.CopyTo(extractedFile);
             }
         }
+    }
 
-        internal static void ExtractEmbeddedResource(string resourcePath, string extractedFilePath)
+    internal static ExpandedRepo ExtractRepoArchive(string repoArchiveName)
+    {
+        string archiveFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        string expandedFolderPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+
+        ExtractEmbeddedResource($"repos.{repoArchiveName}.7z", archiveFilePath);
+        try
         {
-            Requires.NotNullOrEmpty(resourcePath, nameof(resourcePath));
-            Requires.NotNullOrEmpty(extractedFilePath, nameof(extractedFilePath));
-
-            using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"{ThisAssembly.RootNamespace}.{resourcePath.Replace('\\', '.')}"))
+            for (int retryCount = 0; ; retryCount++)
             {
-                Requires.Argument(stream != null, nameof(resourcePath), "Resource not found.");
-                using (var extractedFile = File.OpenWrite(extractedFilePath))
+                try
                 {
-                    stream.CopyTo(extractedFile);
+                    var extractor = new SevenZipExtractor(archiveFilePath);
+                    extractor.ExtractAll(expandedFolderPath);
+                    return new ExpandedRepo(expandedFolderPath);
                 }
-            }
-        }
-
-        internal static ExpandedRepo ExtractRepoArchive(string repoArchiveName)
-        {
-            string archiveFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-            string expandedFolderPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-
-            ExtractEmbeddedResource($"repos.{repoArchiveName}.7z", archiveFilePath);
-            try
-            {
-                for (int retryCount = 0; ; retryCount++)
+                catch (System.ComponentModel.Win32Exception) when (retryCount < 2)
                 {
-                    try
-                    {
-                        var extractor = new SevenZipExtractor(archiveFilePath);
-                        extractor.ExtractAll(expandedFolderPath);
-                        return new ExpandedRepo(expandedFolderPath);
-                    }
-                    catch (System.ComponentModel.Win32Exception) when (retryCount < 2)
-                    {
-                    }
-                }
-            }
-            finally
-            {
-                if (File.Exists(archiveFilePath))
-                {
-                    File.Delete(archiveFilePath);
                 }
             }
         }
-
-        internal class ExpandedRepo : IDisposable
+        finally
         {
-            internal ExpandedRepo(string repoPath)
+            if (File.Exists(archiveFilePath))
             {
-                Requires.NotNullOrEmpty(repoPath, nameof(repoPath));
-                this.RepoPath = repoPath;
+                File.Delete(archiveFilePath);
             }
+        }
+    }
 
-            public string RepoPath { get; private set; }
+    internal class ExpandedRepo : IDisposable
+    {
+        internal ExpandedRepo(string repoPath)
+        {
+            Requires.NotNullOrEmpty(repoPath, nameof(repoPath));
+            this.RepoPath = repoPath;
+        }
 
-            public void Dispose()
+        public string RepoPath { get; private set; }
+
+        public void Dispose()
+        {
+            if (Directory.Exists(this.RepoPath))
             {
-                if (Directory.Exists(this.RepoPath))
-                {
-                    DeleteDirectory(this.RepoPath);
-                }
+                DeleteDirectory(this.RepoPath);
             }
         }
     }

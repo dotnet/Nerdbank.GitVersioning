@@ -43,7 +43,7 @@ export interface IGitVersion {
 export async function getVersion(projectDirectory?: string): Promise<IGitVersion> {
     projectDirectory = projectDirectory || '.';
     var getVersionScriptPath = path.join(__dirname, nbgvPath, "tools", "netcoreapp2.1", "any", "nbgv.dll");
-    var versionText = await execAsync(`dotnet "${getVersionScriptPath}" get-version --project "${projectDirectory}" --format json`)
+    var versionText = await execAsync(`dotnet "${getVersionScriptPath}" get-version --format json`, { cwd: projectDirectory })
     if (versionText.stderr) {
         throw versionText.stderr;
     }

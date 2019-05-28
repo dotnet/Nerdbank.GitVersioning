@@ -29,18 +29,19 @@ jobs:
       git config --global user.name ci
       git config --global user.email me@ci.com
     displayName: Configure git commit author for testing
-  - script: |
-      dotnet tool install --tool-path . nbgv
-      .\nbgv cloud -p src -a
-    displayName: Set build number
 
   - task: DotNetCoreInstaller@0
-    displayName: Install .NET Core SDK 2.1.500
+    displayName: Install .NET Core SDK
     inputs:
       packageType: sdk
       version: 2.1.500
   - script: dotnet --info
     displayName: Show dotnet SDK info
+
+  - script: |
+      dotnet tool install --tool-path . nbgv
+      .\nbgv cloud -p src -a
+    displayName: Set build number
 
   - task: DotNetCoreCLI@2
     displayName: Restore NuGet packages
@@ -50,6 +51,7 @@ jobs:
       projects: src/**/*.sln
       feedsToUse: config
       nugetConfigPath: src/nuget.config
+      workingDirectory: src
 
   - task: geeklearningio.gl-vsts-tasks-yarn.yarn-installer-task.YarnInstaller@2
     displayName: 'Use Yarn 1.x'
@@ -58,8 +60,9 @@ jobs:
     inputs:
       ProjectDirectory: 'src/nerdbank-gitversioning.npm'
 
-  - script: dotnet build src -c $(BuildConfiguration) --no-restore /t:build,pack /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
+  - script: dotnet build -c $(BuildConfiguration) --no-restore /t:build,pack /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
     displayName: Build NuGet package and tests
+    workingDirectory: src
 
   - task: gulp@0
     displayName: Build nerdbank-gitversioning NPM package
@@ -81,8 +84,9 @@ jobs:
 #      configuration: $(BuildConfiguration)
 #    continueOnError: true
 
-  - script: dotnet test src/Nerdbank.GitVersioning.Tests --no-build -c $(BuildConfiguration) --filter "TestCategory!=FailsOnAzurePipelines" --logger "trx;LogFileName=$(Build.ArtifactStagingDirectory)\TestLogs\TestResults.trx"
+  - script: dotnet test Nerdbank.GitVersioning.Tests --no-build -c $(BuildConfiguration) --filter "TestCategory!=FailsOnAzurePipelines" --logger "trx;LogFileName=$(Build.ArtifactStagingDirectory)\TestLogs\TestResults.trx"
     displayName: Run tests
+    workingDirectory: src
 
   - task: PublishTestResults@2
     displayName: Publish test results

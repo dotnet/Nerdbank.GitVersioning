@@ -3,9 +3,9 @@
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
     using LibGit2Sharp;
     using Validation;
+    using Version = System.Version;
 
     /// <summary>
     /// Methods for creating releases
@@ -56,6 +56,11 @@
             /// HEAD is detached. A branch must be checked out first.
             /// </summary>
             DetachedHead,
+
+            /// <summary>
+            /// The versionIncrement setting cannot be applied to the current version.
+            /// </summary>
+            InvalidVersionIncrementSetting,
         }
 
         /// <summary>
@@ -105,7 +110,12 @@
         /// version based on the current version and the <c>versionIncrement</c> setting in <c>version.json</c>.
         /// Parameter will be ignored if the current branch is a release branch.
         /// </param>
-        public void PrepareRelease(string projectDirectory, string releaseUnstableTag = null, SemanticVersion nextVersion = null)
+        /// <param name="versionIncrement">
+        /// The increment to apply in order to determine the next version on the current branch.
+        /// If specified, value will be used instead of the increment specified in <c>version.json</c>.
+        /// Parameter will be ignored if the current branch is a release branch.
+        /// </param>
+        public void PrepareRelease(string projectDirectory, string releaseUnstableTag = null, Version nextVersion = null, VersionOptions.ReleaseVersionIncrement? versionIncrement = null)
         {
             Requires.NotNull(projectDirectory, nameof(projectDirectory));
 
@@ -125,9 +135,7 @@
                 this.stderr.WriteLine($"Failed to load version file for directory '{projectDirectory}'.");
                 throw new ReleasePreparationException(ReleasePreparationError.NoVersionFile);
             }
-
-            var releaseOptions = versionOptions.ReleaseOrDefault;
-
+            
             var releaseBranchName = this.GetReleaseBranchName(versionOptions);
             var originalBranchName = repository.Head.FriendlyName;
             var releaseVersion = string.IsNullOrEmpty(releaseUnstableTag)
@@ -141,6 +149,8 @@
                 this.UpdateVersion(projectDirectory, repository, versionOptions.Version, releaseVersion);
                 return;
             }
+
+            var nextDevVersion = this.GetNextDevVersion(versionOptions, nextVersion, versionIncrement);
 
             // check if the release branch already exists
             if (repository.Branches[releaseBranchName] != null)
@@ -157,10 +167,6 @@
 
             // update version on main branch
             Commands.Checkout(repository, originalBranchName);
-            var nextDevVersion = nextVersion ??
-                    versionOptions.Version
-                        .Increment(releaseOptions.VersionIncrementOrDefault)
-                        .SetFirstPrereleaseTag(releaseOptions.FirstUnstableTagOrDefault);
             this.UpdateVersion(projectDirectory, repository, versionOptions.Version, nextDevVersion);
             this.stdout.WriteLine($"{originalBranchName} branch now tracks v{nextDevVersion} development.");
 
@@ -271,6 +277,40 @@
                 // newVersion.Version < oldVersion.Version
                 return true;
             }
+        }
+
+        private SemanticVersion GetNextDevVersion(VersionOptions versionOptions, Version nextVersionOverride, VersionOptions.ReleaseVersionIncrement? versionIncrementOverride)
+        {
+            var currentVersion = versionOptions.Version;
+
+            SemanticVersion nextDevVersion;
+            if(nextVersionOverride != null)
+            {
+                nextDevVersion = new SemanticVersion(nextVersionOverride, currentVersion.Prerelease, currentVersion.BuildMetadata);
+            }
+            else
+            {
+                // Determine the increment to use:
+                // Use parameter versionIncrementOverride if it has a value, otherwise use setting from version.json.
+                var versionIncrement = versionIncrementOverride ?? versionOptions.ReleaseOrDefault.VersionIncrementOrDefault;
+
+                // The increment is only valid if the current version has the required precision:
+                //  - increment settings "Major" and "Minor" are always valid.
+                //  - increment setting "Build" is only valid if the version has at lease three segments.
+                var isValidIncrement = versionIncrement != VersionOptions.ReleaseVersionIncrement.Build ||
+                                       versionOptions.Version.Version.Build >= 0;
+
+                if (!isValidIncrement)
+                {
+                    this.stderr.WriteLine($"Cannot apply version increment 'build' to version '{versionOptions.Version}' because it only has major and minor segments.");
+                    throw new ReleasePreparationException(ReleasePreparationError.InvalidVersionIncrementSetting);
+                }
+
+                nextDevVersion = currentVersion.Increment(versionIncrement);
+            }
+
+            // return next version with prerelease tag specified in version.json
+            return nextDevVersion.SetFirstPrereleaseTag(versionOptions.ReleaseOrDefault.FirstUnstableTagOrDefault);
         }
     }
 }

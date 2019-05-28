@@ -37,6 +37,11 @@
         private const int DefaultSemVer1NumericIdentifierPadding = 4;
 
         /// <summary>
+        /// The default value for the <see cref="GitCommitIdShortFixedLength"/> property.
+        /// </summary>
+        public const int DefaultGitCommitIdShortFixedLength = 10;
+
+        /// <summary>
         /// The $schema field that should be serialized when writing
         /// </summary>
         [JsonProperty(PropertyName = "$schema")]
@@ -135,6 +140,21 @@
         /// </summary>
         [JsonIgnore]
         public int SemVer1NumericIdentifierPaddingOrDefault => this.SemVer1NumericIdentifierPadding ?? DefaultSemVer1NumericIdentifierPadding;
+
+        /// <summary>
+        /// Gets or sets the abbreviated git commit hash length.
+        /// </summary>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public int? GitCommitIdShortFixedLength { get; set; }
+
+        /// <summary>
+        /// Gets or sets the abbreviated git commit hash length minimum value.
+        /// The git repository provides the value.
+        /// If set to 0 or a git repository is not available, <see cref="GitCommitIdShortFixedLength"/> is used.
+        /// The value is 0 by default.
+        /// </summary>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public int? GitCommitIdShortAutoMinimum { get; set; }
 
         /// <summary>
         /// Gets or sets the options around NuGet version strings
@@ -1237,7 +1257,12 @@
             /// <summary>
             /// Increment the minor version after creating a release branch
             /// </summary>
-            Minor
+            Minor,
+
+            /// <summary>
+            /// Increment the build number (the third number in a version) after creating a release branch.
+            /// </summary>
+            Build,
         }
     }
 }

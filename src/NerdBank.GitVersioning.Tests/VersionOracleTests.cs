@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using LibGit2Sharp;
 using Nerdbank.GitVersioning;
-using Nerdbank.GitVersioning.Tests;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -15,7 +14,7 @@ public class VersionOracleTests : RepoTestBase
     {
     }
 
-    private string CommitIdShort => this.Repo.Head.Commits.First().Id.Sha.Substring(0, 10);
+    private string CommitIdShort => this.Repo.Head.Commits.First().Id.Sha.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength);
 
     [Fact]
     public void NotRepo()
@@ -213,6 +212,24 @@ public class VersionOracleTests : RepoTestBase
         Assert.Matches(@"^2.3.1-[^g]{10}$", oracle.SemVer2);
         Assert.Matches(@"^2.3.1-g[a-f0-9]{10}$", oracle.NuGetPackageVersion);
         Assert.Matches(@"^2.3.1-g[a-f0-9]{10}$", oracle.ChocolateyPackageVersion);
+    }
+
+    [Fact]
+    public void SemVerStableNonPublicVersionShortened()
+    {
+        var workingCopyVersion = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("2.3"),
+            GitCommitIdShortFixedLength = 7
+        };
+        this.WriteVersionFile(workingCopyVersion);
+        this.InitializeSourceControl();
+        var oracle = VersionOracle.Create(this.RepoPath);
+        oracle.PublicRelease = false;
+        Assert.Matches(@"^2.3.1-[^g]{7}$", oracle.SemVer1);
+        Assert.Matches(@"^2.3.1-[^g]{7}$", oracle.SemVer2);
+        Assert.Matches(@"^2.3.1-g[a-f0-9]{7}$", oracle.NuGetPackageVersion);
+        Assert.Matches(@"^2.3.1-g[a-f0-9]{7}$", oracle.ChocolateyPackageVersion);
     }
 
     [Fact]
