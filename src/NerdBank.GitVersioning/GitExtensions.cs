@@ -278,7 +278,7 @@
             Requires.NotNull(version, nameof(version));
 
             var possibleCommits = from commit in GetCommitsReachableFromRefs(repo).Distinct()
-                                  let commitVersionOptions = VersionFile.GetVersion(commit)
+                                  let commitVersionOptions = VersionFile.GetVersion(commit, repoRelativeProjectDirectory)
                                   where commitVersionOptions != null
                                   where !IsCommitIdMismatch(version, commitVersionOptions, commit)
                                   where !IsVersionHeightMismatch(version, commitVersionOptions, commit, repoRelativeProjectDirectory)
