@@ -22,6 +22,16 @@
         public const VersionPrecision DefaultVersionPrecision = VersionPrecision.Minor;
 
         /// <summary>
+        /// The placeholder that may appear in the <see cref="Version"/> property's <see cref="SemanticVersion.Prerelease"/>
+        /// to specify where the version height should appear in a computed semantic version.
+        /// </summary>
+        /// <remarks>
+        /// When this macro does not appear in the string, the version height is set as the first unspecified integer of the 4-integer version.
+        /// If all 4 integers in a version are specified, and the macro does not appear, the version height isn't inserted anywhere.
+        /// </remarks>
+        public const string VersionHeightPlaceholder = "{height}";
+
+        /// <summary>
         /// The default value for the <see cref="SemVer1NumericIdentifierPaddingOrDefault"/> property.
         /// </summary>
         private const int DefaultSemVer1NumericIdentifierPadding = 4;
@@ -60,6 +70,20 @@
         public AssemblyVersionOptions AssemblyVersionOrDefault => this.AssemblyVersion ?? AssemblyVersionOptions.DefaultInstance;
 
         /// <summary>
+        /// Gets or sets a number to add to the git height when calculating the version height,
+        /// which typically is used in the <see cref="Version.Build"/> portion of the computed version.
+        /// </summary>
+        /// <value>Any integer (0, positive, or negative).</value>
+        /// <remarks>
+        /// An error will result if this value is negative with such a magnitude as to exceed the git height,
+        /// resulting in a negative build number.
+        /// </remarks>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        [Obsolete("Use " + nameof(VersionHeightOffset) + " instead.")]
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public int? BuildNumberOffset { get; set; }
+
+        /// <summary>
         /// Gets or sets a number to add to the git height when calculating the <see cref="Version.Build"/> number.
         /// </summary>
         /// <value>Any integer (0, positive, or negative).</value>
@@ -68,7 +92,13 @@
         /// resulting in a negative build number.
         /// </remarks>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public int? BuildNumberOffset { get; set; }
+        public int? VersionHeightOffset
+        {
+#pragma warning disable CS0618
+            get => this.BuildNumberOffset;
+            set => this.BuildNumberOffset = value;
+#pragma warning restore CS0618
+        }
 
         /// <summary>
         /// Gets a number to add to the git height when calculating the <see cref="Version.Build"/> number.
@@ -79,7 +109,25 @@
         /// resulting in a negative build number.
         /// </remarks>
         [JsonIgnore]
+        [Obsolete("Use " + nameof(VersionHeightOffsetOrDefault) + " instead.")]
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public int BuildNumberOffsetOrDefault => this.BuildNumberOffset ?? 0;
+
+        /// <summary>
+        /// Gets a number to add to the git height when calculating the <see cref="Version.Build"/> number.
+        /// </summary>
+        /// <value>Any integer (0, positive, or negative).</value>
+        /// <remarks>
+        /// An error will result if this value is negative with such a magnitude as to exceed the git height,
+        /// resulting in a negative build number.
+        /// </remarks>
+        [JsonIgnore]
+        public int VersionHeightOffsetOrDefault
+        {
+#pragma warning disable CS0618
+            get => this.BuildNumberOffsetOrDefault;
+#pragma warning restore CS0618
+        }
 
         /// <summary>
         /// Gets or sets the minimum number of digits to use for numeric identifiers in SemVer 1.
@@ -168,6 +216,56 @@
         public bool Inherit { get; set; }
 
         /// <summary>
+        /// Gets the position in a computed version that the version height should appear.
+        /// </summary>
+        [JsonIgnore]
+        internal SemanticVersion.Position? VersionHeightPosition
+        {
+            get
+            {
+                if (this.Version?.Prerelease?.Contains(VersionHeightPlaceholder) ?? false)
+                {
+                    return SemanticVersion.Position.Prerelease;
+                }
+                else if (this.Version?.Version.Build == -1)
+                {
+                    return SemanticVersion.Position.Build;
+                }
+                else if (this.Version?.Version.Revision == -1)
+                {
+                    return SemanticVersion.Position.Revision;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets the position in a computed version that the first 16 bits of a git commit ID should appear, if any.
+        /// </summary>
+        [JsonIgnore]
+        internal SemanticVersion.Position? GitCommitIdPosition
+        {
+            get
+            {
+                // We can only store the git commit ID info after there was a place to put the version height.
+                // We don't want to store the commit ID (which is effectively a random integer) in the revision slot
+                // if the version height does not appear, or only appears later (in the -prerelease tag) since that
+                // would mess up version ordering.
+                if (this.VersionHeightPosition == SemanticVersion.Position.Build)
+                {
+                    return SemanticVersion.Position.Revision;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+        }
+
+        /// <summary>
         /// Gets the debugger display for this instance.
         /// </summary>
         private string DebuggerDisplay => this.Version?.ToString() ?? (this.Inherit ? "Inheriting version info" : "(missing version)");
@@ -254,7 +352,7 @@
                 return this.Version != null
                     && this.AssemblyVersion == null
                     && this.CloudBuild.IsDefault
-                    && this.BuildNumberOffset == 0
+                    && this.VersionHeightOffset == 0
                     && !this.SemVer1NumericIdentifierPadding.HasValue
                     && !this.Inherit;
             }
@@ -915,7 +1013,7 @@
                     && NuGetPackageVersionOptions.EqualWithDefaultsComparer.Singleton.Equals(x.NuGetPackageVersionOrDefault, y.NuGetPackageVersionOrDefault)
                     && CloudBuildOptions.EqualWithDefaultsComparer.Singleton.Equals(x.CloudBuildOrDefault, y.CloudBuildOrDefault)
                     && ReleaseOptions.EqualWithDefaultsComparer.Singleton.Equals(x.ReleaseOrDefault, y.ReleaseOrDefault)
-                    && x.BuildNumberOffset == y.BuildNumberOffset;
+                    && x.VersionHeightOffset == y.VersionHeightOffset;
             }
 
             /// <inheritdoc />

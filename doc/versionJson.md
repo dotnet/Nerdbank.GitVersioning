@@ -26,7 +26,7 @@ The content of the version.json file is a JSON serialized object with these prop
 {
   "version": "x.y-prerelease", // required (unless the "inherit" field is set to true and a parent version.json file sets this.)
   "assemblyVersion": "x.y", // optional. Use when x.y for AssemblyVersionAttribute differs from the default version property.
-  "buildNumberOffset": "zOffset", // optional. Use when you need to add/subtract a fixed value from the computed build number.
+  "versionHeightOffset": "zOffset", // optional. Use when you need to add/subtract a fixed value from the computed version height.
   "semVer1NumericIdentifierPadding": 4, // optional. Use when your -prerelease includes numeric identifiers and need semver1 support.
   "gitCommitIdShortFixedLength": 10, // optional. Set the commit ID abbreviation length.
   "gitCommitIdShortAutoMinimum": 0, // optional. Set to use the short commit ID abbreviation provided by the git repository.
