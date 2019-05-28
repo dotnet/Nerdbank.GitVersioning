@@ -199,8 +199,8 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         var repo = new Repository(this.RepoPath); // do not assign Repo property to avoid commits being generated later
         repo.Commit("empty", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         var buildResult = await this.BuildAsync();
-        Assert.Equal("0.0.1." + repo.Head.Commits.First().GetIdAsVersion().Revision, buildResult.BuildVersion);
-        Assert.Equal("0.0.1+" + repo.Head.Commits.First().Id.Sha.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength), buildResult.AssemblyInformationalVersion);
+        Assert.Equal("0.0.0." + repo.Head.Commits.First().GetIdAsVersion().Revision, buildResult.BuildVersion);
+        Assert.Equal("0.0.0+" + repo.Head.Commits.First().Id.Sha.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength), buildResult.AssemblyInformationalVersion);
     }
 
     [Fact]
@@ -374,7 +374,7 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         var versionOptions = new VersionOptions
         {
             Version = new SemanticVersion(new Version(14, 1)),
-            BuildNumberOffset = 5,
+            VersionHeightOffset = 5,
         };
         this.WriteVersionFile(versionOptions);
         var buildResult = await this.BuildAsync();
@@ -404,7 +404,7 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         var versionOptions = new VersionOptions
         {
             Version = new SemanticVersion(new Version(14, 1)),
-            BuildNumberOffset = -1,
+            VersionHeightOffset = -1,
         };
         VersionFile.SetVersion(this.RepoPath, versionOptions);
         var buildResult = await this.BuildAsync();

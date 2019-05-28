@@ -25,6 +25,11 @@
         private static readonly Version Version0 = new Version(0, 0);
 
         /// <summary>
+        /// The 0.0 semver.
+        /// </summary>
+        private static readonly SemanticVersion SemVer0 = SemanticVersion.Parse("0.0");
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="VersionOracle"/> class.
         /// </summary>
         public static VersionOracle Create(string projectDirectory, string gitRepoDirectory = null, ICloudBuild cloudBuild = null, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null)
@@ -52,7 +57,7 @@
         /// <summary>
         /// Initializes a new instance of the <see cref="VersionOracle"/> class.
         /// </summary>
-        public VersionOracle(string projectDirectory, LibGit2Sharp.Repository repo, LibGit2Sharp.Commit head, ICloudBuild cloudBuild, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null)
+        public VersionOracle(string projectDirectory, LibGit2Sharp.Repository repo, LibGit2Sharp.Commit head, ICloudBuild cloudBuild, int? overrideVersionHeightOffset = null, string projectPathRelativeToGitRepoRoot = null)
         {
             var repoRoot = repo?.Info?.WorkingDirectory?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             var relativeRepoProjectDirectory = !string.IsNullOrWhiteSpace(repoRoot)
@@ -67,16 +72,16 @@
 
             var workingVersion = head != null ? VersionFile.GetVersion(head, relativeRepoProjectDirectory) : VersionFile.GetVersion(projectDirectory);
 
-            if (overrideBuildNumberOffset.HasValue)
+            if (overrideVersionHeightOffset.HasValue)
             {
                 if (committedVersion != null)
                 {
-                    committedVersion.BuildNumberOffset = overrideBuildNumberOffset.Value;
+                    committedVersion.VersionHeightOffset = overrideVersionHeightOffset.Value;
                 }
 
                 if (workingVersion != null)
                 {
-                    workingVersion.BuildNumberOffset = overrideBuildNumberOffset.Value;
+                    workingVersion.VersionHeightOffset = overrideVersionHeightOffset.Value;
                 }
             }
 
@@ -113,7 +118,7 @@
                 }
             }
 
-            this.VersionHeightOffset = this.VersionOptions?.BuildNumberOffsetOrDefault ?? 0;
+            this.VersionHeightOffset = this.VersionOptions?.VersionHeightOffsetOrDefault ?? 0;
 
             this.PrereleaseVersion = this.ReplaceMacros(this.VersionOptions?.Version?.Prerelease ?? string.Empty);
 
@@ -462,7 +467,7 @@
         /// </summary>
         /// <param name="prereleaseOrBuildMetadata">The prerelease or build metadata.</param>
         /// <returns>The specified string, with macros substituted for actual values.</returns>
-        private string ReplaceMacros(string prereleaseOrBuildMetadata) => prereleaseOrBuildMetadata?.Replace("{height}", this.VersionHeightWithOffset.ToString(CultureInfo.InvariantCulture));
+        private string ReplaceMacros(string prereleaseOrBuildMetadata) => prereleaseOrBuildMetadata?.Replace(VersionOptions.VersionHeightPlaceholder, this.VersionHeightWithOffset.ToString(CultureInfo.InvariantCulture));
 
         /// <summary>
         /// Converts a semver 2 compliant "-beta.5" prerelease tag to a semver 1 compatible one.
@@ -492,7 +497,7 @@
 
         private static int CalculateVersionHeight(string relativeRepoProjectDirectory, LibGit2Sharp.Commit headCommit, VersionOptions committedVersion, VersionOptions workingVersion)
         {
-            var headCommitVersion = committedVersion?.Version?.Version ?? Version0;
+            var headCommitVersion = committedVersion?.Version ?? SemVer0;
 
             if (IsVersionFileChangedInWorkingTree(committedVersion, workingVersion))
             {
@@ -506,7 +511,7 @@
                 }
             }
 
-            return headCommit?.GetHeight(c => c.CommitMatchesMajorMinorVersion(headCommitVersion, relativeRepoProjectDirectory)) ?? 0;
+            return headCommit?.GetHeight(c => c.CommitMatchesVersion(headCommitVersion, relativeRepoProjectDirectory)) ?? 0;
         }
 
         private static Version GetIdAsVersion(LibGit2Sharp.Commit headCommit, VersionOptions committedVersion, VersionOptions workingVersion, int versionHeight)

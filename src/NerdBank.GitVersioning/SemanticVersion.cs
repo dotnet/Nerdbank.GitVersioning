@@ -74,6 +74,42 @@
         }
 
         /// <summary>
+        /// Identifies the various positions in a semantic version.
+        /// </summary>
+        internal enum Position
+        {
+            /// <summary>
+            /// The <see cref="Version.Major"/> component.
+            /// </summary>
+            Major,
+
+            /// <summary>
+            /// The <see cref="Version.Minor"/> component.
+            /// </summary>
+            Minor,
+
+            /// <summary>
+            /// The <see cref="Version.Build"/> component.
+            /// </summary>
+            Build,
+
+            /// <summary>
+            /// The <see cref="Version.Revision"/> component.
+            /// </summary>
+            Revision,
+
+            /// <summary>
+            /// The <see cref="Prerelease"/> portion of the version.
+            /// </summary>
+            Prerelease,
+
+            /// <summary>
+            /// The <see cref="BuildMetadata"/> portion of the version.
+            /// </summary>
+            BuildMetadata,
+        }
+
+        /// <summary>
         /// Gets the version.
         /// </summary>
         public Version Version { get; private set; }
@@ -89,6 +125,11 @@
         /// </summary>
         /// <value>A string with a leading plus or the empty string.</value>
         public string BuildMetadata { get; private set; }
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is the default "0.0" instance.
+        /// </summary>
+        internal bool IsDefault => this.Version?.Major == 0 && this.Version.Minor == 0 && this.Version.Build == -1 && this.Version.Revision == -1 && this.Prerelease == null && this.BuildMetadata == null;
 
         /// <summary>
         /// Gets the debugger display for this instance.
@@ -180,6 +221,21 @@
             return this.Version == other.Version
                 && this.Prerelease == other.Prerelease
                 && this.BuildMetadata == other.BuildMetadata;
+        }
+
+        /// <summary>
+        /// Checks whether a particular version number
+        /// belongs to the set of versions represented by this semantic version spec.
+        /// </summary>
+        /// <param name="version">A version, with major and minor components, and possibly build and/or revision components.</param>
+        /// <returns><c>true</c> if <paramref name="version"/> may have been produced by this semantic version; <c>false</c> otherwise.</returns>
+        internal bool Contains(Version version)
+        {
+            return
+                this.Version.Major == version.Major &&
+                this.Version.Minor == version.Minor &&
+                (this.Version.Build == -1 || this.Version.Build == version.Build) &&
+                (this.Version.Revision == -1 || this.Version.Revision == version.Revision);
         }
 
         /// <summary>

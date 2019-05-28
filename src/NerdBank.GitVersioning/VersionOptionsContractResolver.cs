@@ -75,9 +75,16 @@
                     property.ShouldSerialize = instance => !((VersionOptions)instance).AssemblyVersionOrDefault.IsDefault;
                 }
 
+#pragma warning disable CS0618 // Type or member is obsolete
                 if (property.DeclaringType == typeof(VersionOptions) && member.Name == nameof(VersionOptions.BuildNumberOffset))
+#pragma warning restore CS0618 // Type or member is obsolete
                 {
-                    property.ShouldSerialize = instance => ((VersionOptions)instance).BuildNumberOffsetOrDefault != 0;
+                    property.ShouldSerialize = instance => false; // always serialized by its new name
+                }
+
+                if (property.DeclaringType == typeof(VersionOptions) && member.Name == nameof(VersionOptions.VersionHeightOffset))
+                {
+                    property.ShouldSerialize = instance => ((VersionOptions)instance).VersionHeightOffsetOrDefault != 0;
                 }
 
                 if (property.DeclaringType == typeof(VersionOptions) && member.Name == nameof(VersionOptions.NuGetPackageVersion))

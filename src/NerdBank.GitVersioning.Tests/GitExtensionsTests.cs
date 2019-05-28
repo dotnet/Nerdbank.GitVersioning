@@ -84,7 +84,7 @@ public class GitExtensionsTests : RepoTestBase
         Assert.Equal(0, this.Repo.GetVersionHeight()); // exercise code that handles the file not yet checked in.
         Commands.Stage(this.Repo, versionJsonPath);
         this.Repo.Commit("Add unrelated version.json file.", this.Signer, this.Signer);
-        Assert.Equal(1, this.Repo.GetVersionHeight()); // exercise code that handles a checked in file.
+        Assert.Equal(0, this.Repo.GetVersionHeight()); // exercise code that handles a checked in file.
 
         // And now the repo has decided to use this package.
         this.WriteVersionFile();
@@ -92,7 +92,7 @@ public class GitExtensionsTests : RepoTestBase
         Assert.Equal(1, this.Repo.Head.GetVersionHeight());
         Assert.Equal(1, this.Repo.GetVersionHeight());
 
-        // Also emulate case of where the related project.json was just changed to conform,
+        // Also emulate case of where the related version.json was just changed to conform,
         // but not yet checked in.
         this.Repo.Reset(ResetMode.Mixed, this.Repo.Head.Tip.Parents.Single());
         Assert.Equal(0, this.Repo.GetVersionHeight());
@@ -110,7 +110,7 @@ public class GitExtensionsTests : RepoTestBase
         Assert.Equal(0, this.Repo.GetVersionHeight());
         Commands.Stage(this.Repo, versionJsonPath);
         this.Repo.Commit("Add broken version.json file.", this.Signer, this.Signer);
-        Assert.Equal(1, this.Repo.GetVersionHeight());
+        Assert.Equal(0, this.Repo.GetVersionHeight());
 
         // Now fix it.
         this.WriteVersionFile();
@@ -254,13 +254,13 @@ public class GitExtensionsTests : RepoTestBase
     [InlineData("2.5", "2.0", 0)]
     [InlineData("2.5", "2.0", 5)]
     [InlineData("2.5", "2.0", -1)]
-    public void GetIdAsVersion_Roundtrip(string version, string assemblyVersion, int buildNumberOffset)
+    public void GetIdAsVersion_Roundtrip(string version, string assemblyVersion, int versionHeightOffset)
     {
         this.WriteVersionFile(new VersionOptions
         {
             Version = SemanticVersion.Parse(version),
             AssemblyVersion = new VersionOptions.AssemblyVersionOptions(new Version(assemblyVersion)),
-            BuildNumberOffset = buildNumberOffset,
+            VersionHeightOffset = versionHeightOffset,
         });
 
         Commit[] commits = new Commit[16]; // create enough that statistically we'll likely hit interesting bits as MSB and LSB
@@ -293,7 +293,7 @@ public class GitExtensionsTests : RepoTestBase
         {
             Version = SemanticVersion.Parse("1.2"),
             AssemblyVersion = null,
-            BuildNumberOffset = startingOffset,
+            VersionHeightOffset = startingOffset,
         };
         this.WriteVersionFile(versionOptions);
 
@@ -301,7 +301,7 @@ public class GitExtensionsTests : RepoTestBase
         Version[] versions = new Version[commits.Length];
         for (int i = 0; i < commits.Length; i += 2)
         {
-            versionOptions.BuildNumberOffset += offsetStepChange;
+            versionOptions.VersionHeightOffset += offsetStepChange;
             commits[i] = this.WriteVersionFile(versionOptions);
             versions[i] = commits[i].GetIdAsVersion();
 

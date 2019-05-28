@@ -21,6 +21,11 @@
         private static readonly Version Version0 = new Version(0, 0);
 
         /// <summary>
+        /// The 0.0 semver.
+        /// </summary>
+        private static readonly SemanticVersion SemVer0 = SemanticVersion.Parse("0.0");
+
+        /// <summary>
         /// Maximum allowable value for the <see cref="Version.Build"/>
         /// and <see cref="Version.Revision"/> components.
         /// </summary>
@@ -40,12 +45,11 @@
             Requires.NotNull(commit, nameof(commit));
             Requires.Argument(repoRelativeProjectDirectory == null || !Path.IsPathRooted(repoRelativeProjectDirectory), nameof(repoRelativeProjectDirectory), "Path should be relative to repo root.");
 
-            if (baseVersion == null)
-            {
-                baseVersion = VersionFile.GetVersion(commit, repoRelativeProjectDirectory)?.Version?.Version ?? Version0;
-            }
+            var baseSemVer =
+                baseVersion != null ? SemanticVersion.Parse(baseVersion.ToString()) :
+                VersionFile.GetVersion(commit, repoRelativeProjectDirectory)?.Version ?? SemVer0;
 
-            int height = commit.GetHeight(c => CommitMatchesMajorMinorVersion(c, baseVersion, repoRelativeProjectDirectory));
+            int height = commit.GetHeight(c => CommitMatchesVersion(c, baseSemVer, repoRelativeProjectDirectory));
             return height;
         }
 
@@ -273,17 +277,11 @@
             Requires.NotNull(repo, nameof(repo));
             Requires.NotNull(version, nameof(version));
 
-            // The revision is a 16-bit unsigned integer, but is not allowed to be 0xffff.
-            // So if the value is 0xfffe, consider that the actual last bit is insignificant
-            // since the original git commit ID could have been either 0xffff or 0xfffe.
-            ushort objectIdLeadingValue = (ushort)version.Revision;
-            ushort objectIdMask = (ushort)(version.Revision == MaximumBuildNumberOrRevisionComponent ? 0xfffe : 0xffff);
-
-            var possibleCommits = from commit in GetCommitsReachableFromRefs(repo)
-                                  where version.Revision == -1 || commit.Id.StartsWith(objectIdLeadingValue, objectIdMask)
-                                  let buildNumberOffset = VersionFile.GetVersion(commit)?.BuildNumberOffsetOrDefault ?? 0
-                                  let versionHeight = commit.GetHeight(c => CommitMatchesMajorMinorVersion(c, version, repoRelativeProjectDirectory))
-                                  where versionHeight == version.Build - buildNumberOffset
+            var possibleCommits = from commit in GetCommitsReachableFromRefs(repo).Distinct()
+                                  let commitVersionOptions = VersionFile.GetVersion(commit)
+                                  where commitVersionOptions != null
+                                  where !IsCommitIdMismatch(version, commitVersionOptions, commit)
+                                  where !IsVersionHeightMismatch(version, commitVersionOptions, commit, repoRelativeProjectDirectory)
                                   select commit;
 
             return possibleCommits;
@@ -431,14 +429,101 @@
         /// <param name="expectedVersion">The version to test for in the commit</param>
         /// <param name="repoRelativeProjectDirectory">The repo-relative directory from which <paramref name="expectedVersion"/> was originally calculated.</param>
         /// <returns><c>true</c> if the <paramref name="commit"/> matches the major and minor components of <paramref name="expectedVersion"/>.</returns>
-        internal static bool CommitMatchesMajorMinorVersion(this Commit commit, Version expectedVersion, string repoRelativeProjectDirectory)
+        internal static bool CommitMatchesVersion(this Commit commit, SemanticVersion expectedVersion, string repoRelativeProjectDirectory)
         {
             Requires.NotNull(commit, nameof(commit));
             Requires.NotNull(expectedVersion, nameof(expectedVersion));
 
             var commitVersionData = VersionFile.GetVersion(commit, repoRelativeProjectDirectory);
-            Version majorMinorFromFile = commitVersionData?.Version?.Version ?? Version0;
-            return majorMinorFromFile?.Major == expectedVersion.Major && majorMinorFromFile?.Minor == expectedVersion.Minor;
+            var semVerFromFile = commitVersionData?.Version;
+            return semVerFromFile?.Equals(expectedVersion) ?? expectedVersion.IsDefault;
+        }
+
+        /// <summary>
+        /// Tests whether a commit is of a specified version, comparing major and minor components
+        /// with the version.txt file defined by that commit.
+        /// </summary>
+        /// <param name="commit">The commit to test.</param>
+        /// <param name="expectedVersion">The version to test for in the commit</param>
+        /// <param name="repoRelativeProjectDirectory">The repo-relative directory from which <paramref name="expectedVersion"/> was originally calculated.</param>
+        /// <returns><c>true</c> if the <paramref name="commit"/> matches the major and minor components of <paramref name="expectedVersion"/>.</returns>
+        internal static bool CommitMatchesVersion(this Commit commit, Version expectedVersion, string repoRelativeProjectDirectory)
+        {
+            Requires.NotNull(commit, nameof(commit));
+            Requires.NotNull(expectedVersion, nameof(expectedVersion));
+
+            var commitVersionData = VersionFile.GetVersion(commit, repoRelativeProjectDirectory);
+            var semVerFromFile = commitVersionData?.Version;
+            return semVerFromFile?.Contains(expectedVersion) ?? false;
+        }
+
+        private static int ReadVersionPosition(Version version, SemanticVersion.Position position)
+        {
+            Requires.NotNull(version, nameof(version));
+
+            switch (position)
+            {
+                case SemanticVersion.Position.Major:
+                    return version.Major;
+                case SemanticVersion.Position.Minor:
+                    return version.Minor;
+                case SemanticVersion.Position.Build:
+                    return version.Build;
+                case SemanticVersion.Position.Revision:
+                    return version.Revision;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(position), position, "Must be one of the 4 integer parts.");
+            }
+        }
+
+        private static bool IsVersionHeightMismatch(Version version, VersionOptions versionOptions, Commit commit, string repoRelativeProjectDirectory)
+        {
+            Requires.NotNull(version, nameof(version));
+            Requires.NotNull(versionOptions, nameof(versionOptions));
+            Requires.NotNull(commit, nameof(commit));
+
+            // The version.Build or version.Revision MAY represent the version height.
+            var position = versionOptions.VersionHeightPosition;
+            if (position.HasValue && position.Value <= SemanticVersion.Position.Revision)
+            {
+                int expectedVersionHeight = ReadVersionPosition(version, position.Value);
+
+                var actualVersionOffset = versionOptions.VersionHeightOffsetOrDefault;
+                var actualVersionHeight = commit.GetHeight(c => CommitMatchesVersion(c, version, repoRelativeProjectDirectory));
+                return expectedVersionHeight != actualVersionHeight + actualVersionOffset;
+            }
+
+            // It's not a mismatch, since for this commit, the version height wasn't recorded in the 4-integer version.
+            return false;
+        }
+
+        private static bool IsCommitIdMismatch(Version version, VersionOptions versionOptions, Commit commit)
+        {
+            Requires.NotNull(version, nameof(version));
+            Requires.NotNull(versionOptions, nameof(versionOptions));
+            Requires.NotNull(commit, nameof(commit));
+
+            // The version.Revision MAY represent the first 2 bytes of the git commit ID, but not if 3 integers were specified in version.json,
+            // since in that case the 4th integer is the version height. But we won't know till we read the version.json file, so for now,
+            var position = versionOptions.GitCommitIdPosition;
+            if (position.HasValue && position.Value <= SemanticVersion.Position.Revision)
+            {
+                // prepare for it to be the commit ID.
+                // The revision is a 16-bit unsigned integer, but is not allowed to be 0xffff.
+                // So if the value is 0xfffe, consider that the actual last bit is insignificant
+                // since the original git commit ID could have been either 0xffff or 0xfffe.
+                var expectedCommitIdLeadingValue = ReadVersionPosition(version, position.Value);
+                if (expectedCommitIdLeadingValue != -1)
+                {
+                    ushort objectIdLeadingValue = (ushort)expectedCommitIdLeadingValue;
+                    ushort objectIdMask = (ushort)(objectIdLeadingValue == MaximumBuildNumberOrRevisionComponent ? 0xfffe : 0xffff);
+
+                    return !commit.Id.StartsWith(objectIdLeadingValue, objectIdMask);
+                }
+            }
+
+            // It's not a mismatch, since for this commit, the commit ID wasn't recorded in the 4-integer version.
+            return false;
         }
 
         private static string FindGitDir(string startingDir)
@@ -608,38 +693,47 @@
         /// the height of the git commit while the <see cref="Version.Revision"/>
         /// component is the first four bytes of the git commit id (forced to be a positive integer).
         /// </remarks>
-        /// <returns></returns>
         internal static Version GetIdAsVersionHelper(this Commit commit, VersionOptions versionOptions, int versionHeight)
         {
             var baseVersion = versionOptions?.Version?.Version ?? Version0;
             int buildNumber = baseVersion.Build;
             int revision = baseVersion.Revision;
 
-            if (revision < 0)
+            // Don't use the ?? coalescing operator here because the position property getters themselves can return null, which should NOT be overridden with our default.
+            // The default value is only appropriate if versionOptions itself is null.
+            var versionHeightPosition = versionOptions != null ? versionOptions.VersionHeightPosition : SemanticVersion.Position.Build;
+            var commitIdPosition = versionOptions != null ? versionOptions.GitCommitIdPosition : SemanticVersion.Position.Revision;
+
+            // The compiler (due to WinPE header requirements) only allows 16-bit version components,
+            // and forbids 0xffff as a value.
+            if (versionHeightPosition.HasValue)
             {
-                // The compiler (due to WinPE header requirements) only allows 16-bit version components,
-                // and forbids 0xffff as a value.
-                // The build number is set to the git height. This helps ensure that
-                // within a major.minor release, each patch has an incrementing integer.
-                // The revision is set to the first two bytes of the git commit ID.
-
-                int adjustedVersionHeight = versionHeight == 0 ? 0 : versionHeight + (versionOptions?.BuildNumberOffset ?? 0);
+                int adjustedVersionHeight = versionHeight == 0 ? 0 : versionHeight + (versionOptions?.VersionHeightOffset ?? 0);
                 Verify.Operation(adjustedVersionHeight <= MaximumBuildNumberOrRevisionComponent, "Git height is {0}, which is greater than the maximum allowed {0}.", adjustedVersionHeight, MaximumBuildNumberOrRevisionComponent);
-
-                if (buildNumber < 0)
+                switch (versionHeightPosition.Value)
                 {
-                    buildNumber = adjustedVersionHeight;
-                    revision = commit != null
-                        ? Math.Min(MaximumBuildNumberOrRevisionComponent, commit.GetTruncatedCommitIdAsUInt16())
-                        : 0;
-                }
-                else
-                {
-                    revision = adjustedVersionHeight;
+                    case SemanticVersion.Position.Build:
+                        buildNumber = adjustedVersionHeight;
+                        break;
+                    case SemanticVersion.Position.Revision:
+                        revision = adjustedVersionHeight;
+                        break;
                 }
             }
 
-            return new Version(baseVersion.Major, baseVersion.Minor, buildNumber, revision);
+            if (commitIdPosition.HasValue)
+            {
+                switch (commitIdPosition.Value)
+                {
+                    case SemanticVersion.Position.Revision:
+                        revision = commit != null
+                            ? Math.Min(MaximumBuildNumberOrRevisionComponent, commit.GetTruncatedCommitIdAsUInt16())
+                            : 0;
+                        break;
+                }
+            }
+
+            return VersionExtensions.Create(baseVersion.Major, baseVersion.Minor, buildNumber, revision);
         }
 
         /// <summary>

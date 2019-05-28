@@ -15,7 +15,7 @@ public class VersionOptionsTests
         Assert.Equal(new Version(1, 2), vo.Version.Version);
         Assert.Equal("-pre", vo.Version.Prerelease);
         Assert.Null(vo.AssemblyVersion);
-        Assert.Equal(0, vo.BuildNumberOffsetOrDefault);
+        Assert.Equal(0, vo.VersionHeightOffsetOrDefault);
     }
 
     [Fact]
@@ -25,13 +25,13 @@ public class VersionOptionsTests
         {
             Version = new SemanticVersion("1.2"),
             AssemblyVersion = new VersionOptions.AssemblyVersionOptions(new Version("1.3")),
-            BuildNumberOffset = 2,
+            VersionHeightOffset = 2,
         };
         var vo1b = new VersionOptions
         {
             Version = new SemanticVersion("1.2"),
             AssemblyVersion = new VersionOptions.AssemblyVersionOptions(new Version("1.3")),
-            BuildNumberOffset = 2,
+            VersionHeightOffset = 2,
         };
 
         var vo2VaryAV = new VersionOptions
@@ -48,7 +48,7 @@ public class VersionOptionsTests
         {
             Version = new SemanticVersion("1.2"),
             AssemblyVersion = new VersionOptions.AssemblyVersionOptions(new Version("1.3")),
-            BuildNumberOffset = 3,
+            VersionHeightOffset = 3,
         };
 
         Assert.Equal(vo1a, vo1b);
