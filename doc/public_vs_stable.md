@@ -96,6 +96,24 @@ In development of a topic branch, you might find a need to share packages before
 That's just fine--you can share your `-gc0ffeebeef` suffixed packages.
 This suffix will make it clear to those you share the package with that these are unofficial packages whose version do not participate in linear history and thus are not necessarily older or newer than another public release.
 
+A commit may belong to multiple branches in git at once.
+If some of those branches are "public release" branches and some are not, will building that commit result in a public release version or not?
+The public release flag is determined by the *ref* (i.e. branch or tag) being built -- not the commit.
+The same commit can be built as a public release or a non-public release depending on which branch is checked out during the build.
+
+### Overriding the public release flag for a branch
+
+The public release flag *can* be overridden during a build by setting the `PublicRelease` MSBuild property.
+To force public release versioning, you can add the `/p:PublicRelease=true` switch to your msbuild or `dotnet build` command line.
+To force a *non*-public release build, you can similarly specify `/p:PublicRelease=false`.
+
+This can be useful when testing a topic branch will build successfully after merging into a stable, public release branch by forcing a local build to build as a public release.
+For example suppose `master` builds a stable 1.2 package, and your topic branch builds `1.2-c0ffeebeef` because it's a non-public release.
+In your topic branch you've made some package dependency changes that *might* have introduced a dependency on some other unstable package.
+Your package manager didn't complain because your package version was unstable anyway due to the `-c0ffeebeef` suffix.
+But you know once you merge into `master`, it will be a stable package again and your package manager might complain that a stable package shouldn't depend on a prerelease package.
+You can force such warnings to show up in your topic branch by building with the `/p:PublicRelease=true` switch.
+
 ### More on why and when git commit hashes are useful
 
 Consider that master builds a 1.2 version, and has a version height of 10. So its package version will be 1.2.10. Now imagine a developer branches off a "fixBug" topic branch from that point and begins changing code. As part of changing and testing that code, a package is built and consumed. Note the developer may not have even committed a change yet, so the version and height is *still* 1.2.10. We *don't* want a package version collision, so the topic branch produces a package version of `1.2.10-gc0ffee`. Now *both* the official master version and the topic branch version can both be restored and populate the nuget cache on a machine without conflicting and causing bizarre inconsistent behaviors that boggle the mind. :)
