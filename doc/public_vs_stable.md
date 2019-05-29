@@ -20,7 +20,8 @@ Any and all of these are based on the assessment of the software engineers respo
 Like the version *number*, the `-prerelease` tag (if there is one) is recorded in a git source tree for Nerdbank.GitVersioning to use when building.
 A given commit in a repo represents software that builds v1.2 of a product or v1.2-beta of a product, depending on how its owner(s) felt about the commit at the time they authored it.
 When a branch becomes stable, the `-prerelease` tag can be removed by adding a commit to the branch that strips the tag.
-Folks sometimes ask if there is a way to remove the `-prerelease` tag from an existing commit that has a `-prerelease` tag expressed in its committed version.json. There is not.
+
+**There is no way to remove the `-prerelease` tag from an existing commit** that has a `-prerelease` tag expressed in its committed version.json.
 To remove the `-prerelease`, the version.json file must be changed to remove it.
 Committing this change communicates to everyone looking at the repo that this software is stable.
 
@@ -29,6 +30,8 @@ For example, an anticipated version 1.2 might first be released to the public as
 If the product is undergoing significant changes that warrant downgrading the stability rating to pre-release quality, the version number tends to be incremented at the same time.
 So a 1.2 product's subsequent release might appear as 1.3-beta or 2.0-beta.
 But for a particularly stable product, it's possible for releases to remain stable from one release (1.2) to the next (1.3) without ever publishing a pre-release version.
+
+**Tip**: To aid in the common workflow of stabilizing for a release including branching and updating `version.json`, and mitigating merge conflicts in that file, we have the [`nbgv prepare-release`][nbgv_prepare-release] command to automate the process.
 
 In all this, to consumers of the product there is never any question regarding which of two releases is newer.
 [SemVer formalizes version comparisons](https://semver.org/#spec-item-11) but in essence, the larger the number, the newer it is such that there is never ambiguity between two versions.
@@ -120,3 +123,5 @@ Consider that master builds a 1.2 version, and has a version height of 10. So it
 
 Or, if the topic branch *has* committed and moved onto 1.2.11, that could still collide because `master` may have moved on as well, using that same version. But since the topic branch always adds `-gc0ffee` hash suffixes to the package version, it won't conflict.
 Also: you don't want a topic branch to be seen as newer and better than what's in the master branch unless the user is explicitly opting into unstable behavior, so the `-gc0ffee` suffix is useful because it forces the package to be seen as "unstable". Once it merges with `master`, it will drop its `-gc0ffee` suffix, but will retain any other `-prerelease` tag specified in the version.json file.
+
+[nbgv_prepare-release]: https://github.com/AArnott/Nerdbank.GitVersioning/blob/master/doc/nbgv-cli.md#preparing-a-release
