@@ -70,6 +70,8 @@ When built as a public release, the git commit ID is dropped:
 
     1.0.24-alpha
 
+Learn more about [public releases versus prereleases](doc/public_vs_stable.md).
+
 ## Frequently asked questions
 
 ### What is 'git height'?
@@ -104,6 +106,8 @@ number if they ever had to.
 Note that the git commit ID is *always* included in the
 `AssemblyInformationalVersionAttribute` so one can always match a binary to the
 exact version of source code that produced it.
+
+Learn more about [public releases and the git commit ID suffix](doc/public_vs_stable.md).
 
 ### How do I translate from a version to a git commit and vice versa?
 
