@@ -34,7 +34,7 @@ But for a particularly stable product, it's possible for releases to remain stab
 **Tip**: To aid in the common workflow of stabilizing for a release including branching and updating `version.json`, and mitigating merge conflicts in that file, we have the [`nbgv prepare-release`][nbgv_prepare-release] command to automate the process.
 
 In all this, to consumers of the product there is never any question regarding which of two releases is newer.
-[SemVer formalizes version comparisons](https://semver.org/#spec-item-11) but in essence, the larger the number, the newer it is such that there is never ambiguity between two versions.
+[SemVer formalizes version comparisons](https://semver.org/#spec-item-11) but, in essence, the larger the number the newer it is such that there is never ambiguity between two versions.
 This is what I refer to as "linear" history.
 Every version is a point along a line of versions.
 It's possible to ship a servicing release "in the middle" of your line, but it's still a line and the servicing release is not as new as your latest release.
@@ -96,7 +96,7 @@ This guarantees that versions built from any two of these public release branche
 Naming most/all your public release branches after the version they build can help folks to find the right branch as well as help maintain unique versions for each branch.
 
 In development of a topic branch, you might find a need to share packages before merging into one of these public release branches.
-That's just fine--you can share your `-gc0ffeebeef` suffixed packages.
+That's just fine -- you can share your `-gc0ffeebeef` suffixed packages.
 This suffix will make it clear to those you share the package with that these are unofficial packages whose version do not participate in linear history and thus are not necessarily older or newer than another public release.
 
 A commit may belong to multiple branches in git at once.
