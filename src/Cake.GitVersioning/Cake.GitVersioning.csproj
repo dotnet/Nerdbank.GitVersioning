@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Authors>Chris Crutchfield, Andrew Arnott</Authors>
     <Company>andarno</Company>
     <Description>Cake wrapper for Nerdbank.GitVersioning.  Stamps your assemblies with semver 2.0 compliant git commit specific version information and provides NuGet versioning information as well.</Description>
@@ -15,14 +16,6 @@
     <!-- We include the whole OutputPath in this tools package. -->
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PackBuildOutputs</TargetsForTfmSpecificContentInPackage>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <DocumentationFile>C:\git\Nerdbank.GitVersioning\src\..\bin\Cake.GitVersioning\Debug\net461\Cake.GitVersioning.xml</DocumentationFile>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DocumentationFile>C:\git\Nerdbank.GitVersioning\src\..\bin\Cake.GitVersioning\Release\net461\Cake.GitVersioning.xml</DocumentationFile>
   </PropertyGroup>
 
   <!-- This is a tools package and should express no dependencies. -->
