@@ -13,6 +13,14 @@
 
     public class AssemblyVersionInfo : Task
     {
+        /// <summary>
+        /// The #if expression that surrounds a <see cref="GeneratedCodeAttribute"/> to avoid a compilation failure when targeting the nano framework.
+        /// </summary>
+        /// <remarks>
+        /// See https://github.com/AArnott/Nerdbank.GitVersioning/issues/346
+        /// </remarks>
+        private const string CompilerDefinesAroundGeneratedCodeAttribute = "NETSTANDARD || NETFRAMEWORK || NETCOREAPP";
+
         public static readonly string GeneratorName = ThisAssembly.AssemblyName;
         public static readonly string GeneratorVersion = ThisAssembly.AssemblyVersion;
 #if NET461
@@ -474,7 +482,9 @@
             internal override void StartThisAssemblyClass()
             {
                 this.codeBuilder.AppendLine("do()");
+                this.codeBuilder.AppendLine($"#if {CompilerDefinesAroundGeneratedCodeAttribute}");
                 this.codeBuilder.AppendLine($"[<System.CodeDom.Compiler.GeneratedCode(\"{GeneratorName}\",\"{GeneratorVersion}\")>]");
+                this.codeBuilder.AppendLine("#endif");
                 this.codeBuilder.AppendLine("type internal ThisAssembly() =");
             }
         }
@@ -493,7 +503,9 @@
 
             internal override void StartThisAssemblyClass()
             {
+                this.codeBuilder.AppendLine($"#if {CompilerDefinesAroundGeneratedCodeAttribute}");
                 this.codeBuilder.AppendLine($"[System.CodeDom.Compiler.GeneratedCode(\"{GeneratorName}\",\"{GeneratorVersion}\")]");
+                this.codeBuilder.AppendLine("#endif");
                 this.codeBuilder.AppendLine("internal static partial class ThisAssembly {");
             }
 
@@ -527,7 +539,9 @@
 
             internal override void StartThisAssemblyClass()
             {
+                this.codeBuilder.AppendLine($"#if {CompilerDefinesAroundGeneratedCodeAttribute}");
                 this.codeBuilder.AppendLine($"<System.CodeDom.Compiler.GeneratedCode(\"{GeneratorName}\",\"{GeneratorVersion}\")>");
+                this.codeBuilder.AppendLine("#endif");
                 this.codeBuilder.AppendLine("Partial Friend NotInheritable Class ThisAssembly");
             }
 
