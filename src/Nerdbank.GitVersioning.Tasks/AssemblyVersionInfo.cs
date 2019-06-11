@@ -463,7 +463,7 @@
 
             internal override void AddCommitDateProperty(long ticks)
             {
-                this.codeBuilder.AppendLine($"    static member internal GitCommitDate = new DateTimeOffset({ticks}L, TimeSpan.Zero)");
+                this.codeBuilder.AppendLine($"    static member internal GitCommitDate = new System.DateTimeOffset({ticks}L, System.TimeSpan.Zero)");
             }
 
             internal override void EndThisAssemblyClass()
