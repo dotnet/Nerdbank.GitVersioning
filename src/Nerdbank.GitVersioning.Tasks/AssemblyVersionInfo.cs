@@ -233,22 +233,22 @@
 
         private static IEnumerable<CodeTypeMember> CreateCommitDateProperty(long ticks)
         {
-            // internal static System.DateTimeOffset GitCommitDate {{ get; }} = new System.DateTimeOffset({ticks}, System.TimeSpan.Zero);");
-            yield return new CodeMemberField(typeof(DateTimeOffset), "gitCommitDate")
+            // internal static System.DateTime GitCommitDate {{ get; }} = new System.DateTime({ticks}, System.DateTimeKind.Utc);");
+            yield return new CodeMemberField(typeof(DateTime), "gitCommitDate")
             {
                 Attributes = MemberAttributes.Private,
                 InitExpression = new CodeObjectCreateExpression(
-                     typeof(DateTimeOffset),
+                     typeof(DateTime),
                      new CodePrimitiveExpression(ticks),
                      new CodePropertyReferenceExpression(
-                         new CodeTypeReferenceExpression(typeof(TimeSpan)),
-                         nameof(TimeSpan.Zero)))
+                         new CodeTypeReferenceExpression(typeof(DateTimeKind)),
+                         nameof(DateTimeKind.Utc)))
             };
 
             var property = new CodeMemberProperty()
             {
                 Attributes = MemberAttributes.Assembly,
-                Type = new CodeTypeReference(typeof(DateTimeOffset)),
+                Type = new CodeTypeReference(typeof(DateTime)),
                 Name = "GitCommitDate",
                 HasGet = true,
                 HasSet = false,
@@ -471,7 +471,7 @@
 
             internal override void AddCommitDateProperty(long ticks)
             {
-                this.codeBuilder.AppendLine($"    static member internal GitCommitDate = new System.DateTimeOffset({ticks}L, System.TimeSpan.Zero)");
+                this.codeBuilder.AppendLine($"    static member internal GitCommitDate = new System.DateTime({ticks}L, System.DateTimeKind.Utc)");
             }
 
             internal override void EndThisAssemblyClass()
@@ -516,7 +516,7 @@
 
             internal override void AddCommitDateProperty(long ticks)
             {
-                this.codeBuilder.AppendLine($"    internal static readonly System.DateTimeOffset GitCommitDate = new System.DateTimeOffset({ticks}, System.TimeSpan.Zero);");
+                this.codeBuilder.AppendLine($"    internal static readonly System.DateTime GitCommitDate = new System.DateTime({ticks}L, System.DateTimeKind.Utc);");
             }
 
             internal override void EndThisAssemblyClass()
@@ -539,9 +539,9 @@
 
             internal override void StartThisAssemblyClass()
             {
-                this.codeBuilder.AppendLine($"#if {CompilerDefinesAroundGeneratedCodeAttribute}");
+                this.codeBuilder.AppendLine($"#If {CompilerDefinesAroundGeneratedCodeAttribute.Replace("||", " Or ")} Then");
                 this.codeBuilder.AppendLine($"<System.CodeDom.Compiler.GeneratedCode(\"{GeneratorName}\",\"{GeneratorVersion}\")>");
-                this.codeBuilder.AppendLine("#endif");
+                this.codeBuilder.AppendLine("#End If");
                 this.codeBuilder.AppendLine("Partial Friend NotInheritable Class ThisAssembly");
             }
 
@@ -552,7 +552,7 @@
 
             internal override void AddCommitDateProperty(long ticks)
             {
-                this.codeBuilder.AppendLine($"    Friend Shared ReadOnly GitCommitDate As System.DateTimeOffset = New System.DateTimeOffset({ticks}, System.TimeSpan.Zero)");
+                this.codeBuilder.AppendLine($"    Friend Shared ReadOnly GitCommitDate As System.DateTime = New System.DateTime({ticks}L, System.DateTimeKind.Utc)");
             }
 
             internal override void EndThisAssemblyClass()
