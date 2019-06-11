@@ -480,7 +480,7 @@
                 }
             }
 
-            return headCommit?.GetHeight(c => c.CommitMatchesVersion(headCommitVersion, relativeRepoProjectDirectory)) ?? 0;
+            return headCommit?.GetVersionHeight(relativeRepoProjectDirectory) ?? 0;
         }
 
         private static Version GetIdAsVersion(LibGit2Sharp.Commit headCommit, VersionOptions committedVersion, VersionOptions workingVersion, int versionHeight)

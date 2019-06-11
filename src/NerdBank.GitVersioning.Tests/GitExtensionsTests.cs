@@ -121,6 +121,39 @@ public class GitExtensionsTests : RepoTestBase
         Assert.Equal(0, this.Repo.GetVersionHeight());
     }
 
+    [Theory]
+    [InlineData("2.2-alpha", "2.2-rc", false)]
+    [InlineData("2.2-rc", "2.2", false)]
+    [InlineData("2.2", "2.3-alpha", true)]
+    [InlineData("2.2", "2.3", true)]
+    [InlineData("2.2-rc", "2.3", true)]
+    [InlineData("2.2-alpha.{height}", "2.2-rc.{height}", true)]
+    [InlineData("2.2-alpha.{height}", "2.3-rc.{height}", true)]
+    [InlineData("2.2-alpha.{height}", "2.2", true)]
+    [InlineData("2.2", "2.2-alpha.{height}", true)]
+    public void GetVersionHeight_ProgressAndReset(string version1, string version2, bool versionHeightReset)
+    {
+        const string repoRelativeSubDirectory = "subdir";
+
+        var semanticVersion1 = SemanticVersion.Parse(version1);
+        this.WriteVersionFile(
+            new VersionOptions { Version = semanticVersion1 },
+            repoRelativeSubDirectory);
+
+        var semanticVersion2 = SemanticVersion.Parse(version2);
+        this.WriteVersionFile(
+            new VersionOptions { Version = semanticVersion2 },
+            repoRelativeSubDirectory);
+
+        int height2 = this.Repo.Head.GetVersionHeight(repoRelativeSubDirectory);
+        int height1 = this.Repo.Head.Commits.Skip(1).First().GetVersionHeight(repoRelativeSubDirectory);
+
+        this.Logger.WriteLine("Height 1: {0}", height1);
+        this.Logger.WriteLine("Height 2: {0}", height2);
+
+        Assert.Equal(!versionHeightReset, height2 > height1);
+    }
+
     [Fact]
     public void GetTruncatedCommitIdAsInteger_Roundtrip()
     {

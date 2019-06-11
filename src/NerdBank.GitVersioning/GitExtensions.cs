@@ -45,12 +45,24 @@
             Requires.NotNull(commit, nameof(commit));
             Requires.Argument(repoRelativeProjectDirectory == null || !Path.IsPathRooted(repoRelativeProjectDirectory), nameof(repoRelativeProjectDirectory), "Path should be relative to repo root.");
 
+            var versionOptions = VersionFile.GetVersion(commit, repoRelativeProjectDirectory);
+            if (versionOptions == null)
+            {
+                return 0;
+            }
+
             var baseSemVer =
                 baseVersion != null ? SemanticVersion.Parse(baseVersion.ToString()) :
-                VersionFile.GetVersion(commit, repoRelativeProjectDirectory)?.Version ?? SemVer0;
+                versionOptions.Version ?? SemVer0;
 
-            int height = commit.GetHeight(c => CommitMatchesVersion(c, baseSemVer, repoRelativeProjectDirectory));
-            return height;
+            var versionHeightPosition = versionOptions.VersionHeightPosition;
+            if (versionHeightPosition.HasValue)
+            {
+                int height = commit.GetHeight(c => CommitMatchesVersion(c, baseSemVer, versionHeightPosition.Value, repoRelativeProjectDirectory));
+                return height;
+            }
+
+            return 0;
         }
 
         /// <summary>
@@ -427,34 +439,77 @@
         /// </summary>
         /// <param name="commit">The commit to test.</param>
         /// <param name="expectedVersion">The version to test for in the commit</param>
+        /// <param name="comparisonPrecision">The last component of the version to include in the comparison.</param>
         /// <param name="repoRelativeProjectDirectory">The repo-relative directory from which <paramref name="expectedVersion"/> was originally calculated.</param>
         /// <returns><c>true</c> if the <paramref name="commit"/> matches the major and minor components of <paramref name="expectedVersion"/>.</returns>
-        internal static bool CommitMatchesVersion(this Commit commit, SemanticVersion expectedVersion, string repoRelativeProjectDirectory)
+        internal static bool CommitMatchesVersion(this Commit commit, SemanticVersion expectedVersion, SemanticVersion.Position comparisonPrecision, string repoRelativeProjectDirectory)
         {
             Requires.NotNull(commit, nameof(commit));
             Requires.NotNull(expectedVersion, nameof(expectedVersion));
 
             var commitVersionData = VersionFile.GetVersion(commit, repoRelativeProjectDirectory);
             var semVerFromFile = commitVersionData?.Version;
-            return semVerFromFile?.Equals(expectedVersion) ?? expectedVersion.IsDefault;
+            if (semVerFromFile == null)
+            {
+                return false;
+            }
+
+            // If the version height position moved, that's an automatic reset in version height.
+            if (commitVersionData.VersionHeightPosition != comparisonPrecision)
+            {
+                return false;
+            }
+
+            if (comparisonPrecision == SemanticVersion.Position.Prerelease)
+            {
+                // The entire version spec must match exactly.
+                return semVerFromFile?.Equals(expectedVersion) ?? false;
+            }
+
+            for (SemanticVersion.Position position = SemanticVersion.Position.Major; position <= comparisonPrecision; position++)
+            {
+                int expectedValue = ReadVersionPosition(expectedVersion.Version, position);
+                int actualValue = ReadVersionPosition(semVerFromFile.Version, position);
+                if (expectedValue != actualValue)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>
-        /// Tests whether a commit is of a specified version, comparing major and minor components
-        /// with the version.txt file defined by that commit.
+        /// Tests whether a commit's version-spec matches a given version-spec.
         /// </summary>
         /// <param name="commit">The commit to test.</param>
         /// <param name="expectedVersion">The version to test for in the commit</param>
+        /// <param name="comparisonPrecision">The last component of the version to include in the comparison.</param>
         /// <param name="repoRelativeProjectDirectory">The repo-relative directory from which <paramref name="expectedVersion"/> was originally calculated.</param>
         /// <returns><c>true</c> if the <paramref name="commit"/> matches the major and minor components of <paramref name="expectedVersion"/>.</returns>
-        internal static bool CommitMatchesVersion(this Commit commit, Version expectedVersion, string repoRelativeProjectDirectory)
+        internal static bool CommitMatchesVersion(this Commit commit, Version expectedVersion, SemanticVersion.Position comparisonPrecision, string repoRelativeProjectDirectory)
         {
             Requires.NotNull(commit, nameof(commit));
             Requires.NotNull(expectedVersion, nameof(expectedVersion));
 
             var commitVersionData = VersionFile.GetVersion(commit, repoRelativeProjectDirectory);
             var semVerFromFile = commitVersionData?.Version;
-            return semVerFromFile?.Contains(expectedVersion) ?? false;
+            if (semVerFromFile == null)
+            {
+                return false;
+            }
+
+            for (SemanticVersion.Position position = SemanticVersion.Position.Major; position <= comparisonPrecision; position++)
+            {
+                int expectedValue = ReadVersionPosition(expectedVersion, position);
+                int actualValue = ReadVersionPosition(semVerFromFile.Version, position);
+                if (expectedValue != actualValue)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private static int ReadVersionPosition(Version version, SemanticVersion.Position position)
@@ -489,7 +544,7 @@
                 int expectedVersionHeight = ReadVersionPosition(version, position.Value);
 
                 var actualVersionOffset = versionOptions.VersionHeightOffsetOrDefault;
-                var actualVersionHeight = commit.GetHeight(c => CommitMatchesVersion(c, version, repoRelativeProjectDirectory));
+                var actualVersionHeight = commit.GetHeight(c => CommitMatchesVersion(c, version, position.Value - 1, repoRelativeProjectDirectory));
                 return expectedVersionHeight != actualVersionHeight + actualVersionOffset;
             }
 
