@@ -1013,8 +1013,7 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
 
         string GetPkgVersionSuffix(bool useSemVer2)
         {
-            string semVer1CommitPrefix = useSemVer2 ? string.Empty : "g";
-            string pkgVersionSuffix = buildResult.PublicRelease ? string.Empty : $"-{semVer1CommitPrefix}{commitIdShort}";
+            string pkgVersionSuffix = buildResult.PublicRelease ? string.Empty : $"-g{commitIdShort}";
             if (useSemVer2)
             {
                 pkgVersionSuffix += expectedBuildMetadataWithoutCommitId;

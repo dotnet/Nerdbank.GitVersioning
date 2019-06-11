@@ -424,7 +424,14 @@
 
         private string PrereleaseVersionSemVer1 => SemanticVersionExtensions.MakePrereleaseSemVer1Compliant(this.PrereleaseVersion, this.SemVer1NumericIdentifierPadding);
 
-        private string GitCommitIdShortForNonPublicPrereleaseTag => (string.IsNullOrEmpty(this.PrereleaseVersion) ? "-" : ".") + this.GitCommitIdShort;
+        /// <summary>
+        /// Gets the -gc0ffee or .gc0ffee suffix for the version.
+        /// </summary>
+        /// <remarks>
+        /// The `g` prefix to the commit ID is to remain SemVer2 compliant particularly when the partial commit ID we use is made up entirely of numerals.
+        /// SemVer2 forbids numerals to begin with leading zeros, but a git commit just might, so we begin with `g` always to avoid failures when the commit ID happens to be problematic.
+        /// </remarks>
+        private string GitCommitIdShortForNonPublicPrereleaseTag => (string.IsNullOrEmpty(this.PrereleaseVersion) ? "-" : ".") + "g" + this.GitCommitIdShort;
 
         private VersionOptions.CloudBuildNumberOptions CloudBuildNumberOptions { get; }
 
