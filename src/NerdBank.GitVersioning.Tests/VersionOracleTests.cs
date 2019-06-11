@@ -174,7 +174,7 @@ public class VersionOracleTests : RepoTestBase
         var oracle = VersionOracle.Create(this.RepoPath);
         oracle.PublicRelease = false;
         Assert.Matches(@"^2.3.1-[^g]{10}$", oracle.SemVer1);
-        Assert.Matches(@"^2.3.1-[^g]{10}$", oracle.SemVer2);
+        Assert.Matches(@"^2.3.1-g[a-f0-9]{10}$", oracle.SemVer2);
         Assert.Matches(@"^2.3.1-g[a-f0-9]{10}$", oracle.NuGetPackageVersion);
         Assert.Matches(@"^2.3.1-g[a-f0-9]{10}$", oracle.ChocolateyPackageVersion);
     }
@@ -192,7 +192,7 @@ public class VersionOracleTests : RepoTestBase
         var oracle = VersionOracle.Create(this.RepoPath);
         oracle.PublicRelease = false;
         Assert.Matches(@"^2.3.1-[^g]{7}$", oracle.SemVer1);
-        Assert.Matches(@"^2.3.1-[^g]{7}$", oracle.SemVer2);
+        Assert.Matches(@"^2.3.1-g[a-f0-9]{7}$", oracle.SemVer2);
         Assert.Matches(@"^2.3.1-g[a-f0-9]{7}$", oracle.NuGetPackageVersion);
         Assert.Matches(@"^2.3.1-g[a-f0-9]{7}$", oracle.ChocolateyPackageVersion);
     }
@@ -275,7 +275,7 @@ public class VersionOracleTests : RepoTestBase
         this.InitializeSourceControl();
         var oracle = VersionOracle.Create(this.RepoPath);
         oracle.PublicRelease = false;
-        Assert.Equal($"7.8.9-foo.25.{this.CommitIdShort}", oracle.NuGetPackageVersion);
+        Assert.Equal($"7.8.9-foo.25.g{this.CommitIdShort}", oracle.NuGetPackageVersion);
     }
 
     [Fact]
