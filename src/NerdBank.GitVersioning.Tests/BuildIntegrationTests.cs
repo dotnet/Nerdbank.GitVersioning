@@ -48,6 +48,15 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
     public BuildIntegrationTests(ITestOutputHelper logger)
         : base(logger)
     {
+        // MSBuildExtensions.LoadMSBuild will be called as part of the base constructor, because this class
+        // implements the IClassFixture<MSBuildFixture> interface. LoadMSBuild will load the MSBuild assemblies.
+        // This must happen _before_ any method that directly references types in the Microsoft.Build namespace has been called.
+        // Net, don't init MSBuild-related fields in the constructor, but in a method that is called by the constructor.
+        this.Init();
+    }
+
+    private void Init()
+    {
         int seed = (int)DateTime.Now.Ticks;
         this.random = new Random(seed);
         this.Logger.WriteLine("Random seed: {0}", seed);
@@ -652,6 +661,53 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
     }
 
     [Fact]
+    public void GitLab_BuildTag()
+    {
+        // Based on the values defined in https://docs.gitlab.com/ee/ci/variables/#syntax-of-environment-variables-in-job-scripts
+        using (ApplyEnvironmentVariables(
+            CloudBuild.SuppressEnvironment.SetItems(
+                new Dictionary<string, string>()
+                {
+                    { "CI_COMMIT_TAG", "1.0.0" },
+                    { "CI_COMMIT_SHA", "1ecfd275763eff1d6b4844ea3168962458c9f27a" },
+                    { "GITLAB_CI", "true" },
+                    { "SYSTEM_TEAMPROJECTID", string.Empty }
+                })))
+        {
+            var activeCloudBuild = Nerdbank.GitVersioning.CloudBuild.Active;
+            Assert.NotNull(activeCloudBuild);
+            Assert.Null(activeCloudBuild.BuildingBranch);
+            Assert.Equal("refs/tags/1.0.0", activeCloudBuild.BuildingTag);
+            Assert.Equal("1ecfd275763eff1d6b4844ea3168962458c9f27a", activeCloudBuild.GitCommitId);
+            Assert.True(activeCloudBuild.IsApplicable);
+            Assert.False(activeCloudBuild.IsPullRequest);
+        }
+    }
+
+    [Fact]
+    public void GitLab_BuildBranch()
+    {
+        // Based on the values defined in https://docs.gitlab.com/ee/ci/variables/#syntax-of-environment-variables-in-job-scripts
+        using (ApplyEnvironmentVariables(
+            CloudBuild.SuppressEnvironment.SetItems(
+                new Dictionary<string, string>()
+                {
+                    { "CI_COMMIT_REF_NAME", "master" },
+                    { "CI_COMMIT_SHA", "1ecfd275763eff1d6b4844ea3168962458c9f27a" },
+                    { "GITLAB_CI", "true" },
+            })))
+        {
+            var activeCloudBuild = Nerdbank.GitVersioning.CloudBuild.Active;
+            Assert.NotNull(activeCloudBuild);
+            Assert.Equal("refs/heads/master", activeCloudBuild.BuildingBranch);
+            Assert.Null(activeCloudBuild.BuildingTag);
+            Assert.Equal("1ecfd275763eff1d6b4844ea3168962458c9f27a", activeCloudBuild.GitCommitId);
+            Assert.True(activeCloudBuild.IsApplicable);
+            Assert.False(activeCloudBuild.IsPullRequest);
+        }
+    }
+
+    [Fact]
     public async Task PublicRelease_RegEx_SatisfiedByCheckedOutBranch()
     {
         var versionOptions = new VersionOptions
@@ -743,7 +799,7 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         if (gitRepo)
         {
             Assert.True(long.TryParse(result.GitCommitDateTicks, out _), $"Invalid value for GitCommitDateTicks: '{result.GitCommitDateTicks}'");
-            DateTimeOffset gitCommitDate = new DateTimeOffset(long.Parse(result.GitCommitDateTicks), TimeSpan.Zero);
+            var gitCommitDate = new DateTime(long.Parse(result.GitCommitDateTicks), DateTimeKind.Utc);
             Assert.Equal(gitCommitDate, thisAssemblyClass.GetProperty("GitCommitDate", fieldFlags)?.GetValue(null) ?? thisAssemblyClass.GetField("GitCommitDate", fieldFlags)?.GetValue(null) ?? string.Empty);
         }
         else
@@ -957,8 +1013,7 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
 
         string GetPkgVersionSuffix(bool useSemVer2)
         {
-            string semVer1CommitPrefix = useSemVer2 ? string.Empty : "g";
-            string pkgVersionSuffix = buildResult.PublicRelease ? string.Empty : $"-{semVer1CommitPrefix}{commitIdShort}";
+            string pkgVersionSuffix = buildResult.PublicRelease ? string.Empty : $"-g{commitIdShort}";
             if (useSemVer2)
             {
                 pkgVersionSuffix += expectedBuildMetadataWithoutCommitId;
