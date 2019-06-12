@@ -541,8 +541,10 @@
             {
                 this.codeBuilder.AppendLine($"#If {CompilerDefinesAroundGeneratedCodeAttribute.Replace("||", " Or ")} Then");
                 this.codeBuilder.AppendLine($"<System.CodeDom.Compiler.GeneratedCode(\"{GeneratorName}\",\"{GeneratorVersion}\")>");
-                this.codeBuilder.AppendLine("#End If");
                 this.codeBuilder.AppendLine("Partial Friend NotInheritable Class ThisAssembly");
+                this.codeBuilder.AppendLine("#Else");
+                this.codeBuilder.AppendLine("Partial Friend NotInheritable Class ThisAssembly");
+                this.codeBuilder.AppendLine("#End If");
             }
 
             internal override void AddThisAssemblyMember(string name, string value)
