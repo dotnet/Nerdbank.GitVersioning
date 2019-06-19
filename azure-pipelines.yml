@@ -34,7 +34,7 @@ jobs:
     displayName: Install .NET Core SDK
     inputs:
       packageType: sdk
-      version: 2.1.500
+      version: 2.2.300
   - script: dotnet --info
     displayName: Show dotnet SDK info
 
