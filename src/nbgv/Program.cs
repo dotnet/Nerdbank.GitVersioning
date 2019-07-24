@@ -293,8 +293,8 @@ namespace Nerdbank.GitVersioning.Tool
                         Console.WriteLine("Version:                      {0}", oracle.Version);
                         Console.WriteLine("AssemblyVersion:              {0}", oracle.AssemblyVersion);
                         Console.WriteLine("AssemblyInformationalVersion: {0}", oracle.AssemblyInformationalVersion);
-                        Console.WriteLine("NuGet package Version:        {0}", oracle.NuGetPackageVersion);
-                        Console.WriteLine("NPM package Version:          {0}", oracle.NpmPackageVersion);
+                        Console.WriteLine("NuGetPackageVersion:          {0}", oracle.NuGetPackageVersion);
+                        Console.WriteLine("NpmPackageVersion:            {0}", oracle.NpmPackageVersion);
                         break;
                     case "json":
                         var converters = new JsonConverter[]
