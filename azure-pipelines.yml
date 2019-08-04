@@ -10,6 +10,7 @@ variables:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
   BuildConfiguration: Release
   BuildPlatform: Any CPU
+  NuGet.ForceNuGetForPush: true # Workaround for public feed limitation in NuGetCommand task - remove after July 15, 2019.
 
 resources:
   containers:
@@ -120,6 +121,15 @@ jobs:
       ArtifactType: Container
     displayName: Publish build_logs artifacts
     condition: succeededOrFailed()
+  - task: NuGetCommand@2
+    displayName: Pushing package to PublicCI feed
+    inputs:
+      command: push
+      packagesToPush: $(Build.ArtifactStagingDirectory)/deployables/*.*nupkg
+      nuGetFeedType: internal
+      publishVstsFeed: 6ed146e5-8e9c-46d6-a40f-da9367ed50cd/c20edbb7-8403-4456-8f43-f46b47e360b1
+      allowPackageConflicts: true
+    condition: and(succeeded(), ne(variables['System.PullRequest.IsFork'], 'true'))
 
 - job: Ubuntu_Xenial
   dependsOn: Windows
