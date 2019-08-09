@@ -285,6 +285,13 @@ namespace Nerdbank.GitVersioning.Tool
             }
 
             var oracle = new VersionOracle(searchPath, repository, commit, CloudBuild.Active);
+
+            // Take the PublicRelease environment variable into account, since the build would as well.
+            if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("PublicRelease")) && bool.TryParse(Environment.GetEnvironmentVariable("PublicRelease"), out bool publicRelease))
+            {
+                oracle.PublicRelease = publicRelease;
+            }
+
             if (string.IsNullOrEmpty(singleVariable))
             {
                 switch (format.ToLowerInvariant())
@@ -573,7 +580,7 @@ namespace Nerdbank.GitVersioning.Tool
             }
 
             // nextVersion and versionIncrement parameters cannot be combined
-            if(!string.IsNullOrEmpty(nextVersion) && !string.IsNullOrEmpty(versionIncrement))
+            if (!string.IsNullOrEmpty(nextVersion) && !string.IsNullOrEmpty(versionIncrement))
             {
                 Console.Error.WriteLine("Options 'nextVersion' and 'versionIncrement' cannot be used at the same time.");
                 return ExitCodes.InvalidParameters;
@@ -583,7 +590,7 @@ namespace Nerdbank.GitVersioning.Tool
             VersionOptions.ReleaseVersionIncrement? versionIncrementParsed = default;
             if (!string.IsNullOrEmpty(versionIncrement))
             {
-                if(!Enum.TryParse< VersionOptions.ReleaseVersionIncrement>(versionIncrement, true, out var parsed))
+                if (!Enum.TryParse<VersionOptions.ReleaseVersionIncrement>(versionIncrement, true, out var parsed))
                 {
                     Console.Error.WriteLine($"\"{versionIncrement}\" is not a valid version increment");
                     return ExitCodes.InvalidVersionIncrement;
