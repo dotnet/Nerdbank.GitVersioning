@@ -13,19 +13,17 @@
     /// </remarks>
     internal class VisualStudioTeamServices : ICloudBuild
     {
-        public bool IsPullRequest => Environment.GetEnvironmentVariable("BUILD_SOURCEBRANCH")?.StartsWith("refs/pull/") ?? false;
+        public bool IsPullRequest => BuildingRef?.StartsWith("refs/pull/") ?? false;
 
-        public string BuildingTag => Environment.GetEnvironmentVariable("BUILD_SOURCEBRANCH")?.StartsWith("refs/tags/") ?? false 
-            ? Environment.GetEnvironmentVariable("BUILD_SOURCEBRANCH") 
-            : null;
+        public string BuildingTag => (BuildingRef?.StartsWith("refs/tags/") ?? false) ? BuildingRef : null;
 
-        public string BuildingBranch => Environment.GetEnvironmentVariable("BUILD_SOURCEBRANCH")?.StartsWith("refs/heads/") ?? false 
-            ? Environment.GetEnvironmentVariable("BUILD_SOURCEBRANCH")
-            : null;
-        
+        public string BuildingBranch => (BuildingRef?.StartsWith("refs/heads/") ?? false) ? BuildingRef : null;
+
         public string GitCommitId => null;
 
         public bool IsApplicable => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("SYSTEM_TEAMPROJECTID"));
+
+        private static string BuildingRef => Environment.GetEnvironmentVariable("BUILD_SOURCEBRANCH");
 
         public IReadOnlyDictionary<string, string> SetCloudBuildNumber(string buildNumber, TextWriter stdout, TextWriter stderr)
         {
