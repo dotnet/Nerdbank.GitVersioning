@@ -3,6 +3,7 @@
     using System;
     using System.Linq;
     using CloudBuildServices;
+    using NerdBank.GitVersioning.CloudBuildServices;
 
     /// <summary>
     /// Provides access to cloud build providers.
@@ -15,6 +16,7 @@
         public static readonly ICloudBuild[] SupportedCloudBuilds = new ICloudBuild[] {
             new AppVeyor(),
             new VisualStudioTeamServices(),
+            new GitHubActions(),
             new TeamCity(),
             new AtlassianBamboo(), 
             new Jenkins(),
