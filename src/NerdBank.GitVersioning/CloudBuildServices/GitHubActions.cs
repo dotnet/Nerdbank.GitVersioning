@@ -26,7 +26,18 @@
 
         public IReadOnlyDictionary<string, string> SetCloudBuildVariable(string name, string value, TextWriter stdout, TextWriter stderr)
         {
-            return new Dictionary<string, string>();
+            (stdout ?? Console.Out).WriteLine($"##[set-env name={name};]{value}");
+            return GetDictionaryFor(name, value);
         }
+
+        private static IReadOnlyDictionary<string, string> GetDictionaryFor(string variableName, string value)
+        {
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                { GetEnvironmentVariableNameForVariable(variableName), value },
+            };
+        }
+
+        private static string GetEnvironmentVariableNameForVariable(string name) => name.ToUpperInvariant().Replace('.', '_');
     }
 }
