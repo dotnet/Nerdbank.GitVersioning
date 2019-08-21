@@ -39,11 +39,13 @@ export interface IGitVersion {
 /**
  * Gets an object describing various aspects of the version of a project.
  * @param projectDirectory The directory of the source code to get the version of.
+ * @param dotnetCommand The location of the dotnet command line executable
  */
-export async function getVersion(projectDirectory?: string): Promise<IGitVersion> {
+export async function getVersion(projectDirectory?: string, dotnetCommand?: string): Promise<IGitVersion> {
     projectDirectory = projectDirectory || '.';
+    var command = dotnetCommand || 'dotnet';
     var getVersionScriptPath = path.join(__dirname, nbgvPath, "tools", "netcoreapp2.1", "any", "nbgv.dll");
-    var versionText = await execAsync(`dotnet "${getVersionScriptPath}" get-version --format json`, { cwd: projectDirectory })
+    var versionText = await execAsync(`${command} "${getVersionScriptPath}" get-version --format json`, { cwd: projectDirectory })
     if (versionText.stderr) {
         throw versionText.stderr;
     }
@@ -61,11 +63,12 @@ export async function getVersion(projectDirectory?: string): Promise<IGitVersion
  * Sets an NPM package version based on the git height and version.json.
  * @param packageDirectory The directory of the package about to be published.
  * @param srcDirectory The directory of the source code behind the package, if different than the packageDirectory.
+ * @param dotnetCommand The location of the dotnet command line executable
  */
-export async function setPackageVersion(packageDirectory?: string, srcDirectory?: string) {
+export async function setPackageVersion(packageDirectory?: string, srcDirectory?: string, dotnetCommand?: string) {
     packageDirectory = packageDirectory || '.';
     srcDirectory = srcDirectory || packageDirectory;
-    const gitVersion = await getVersion(srcDirectory);
+    const gitVersion = await getVersion(srcDirectory, dotnetCommand);
     console.log(`Setting package version to ${gitVersion.npmPackageVersion}`);
     var result = await execAsync(`npm version ${gitVersion.npmPackageVersion} --no-git-tag-version`, { cwd: packageDirectory });
     if (result.stderr) {
