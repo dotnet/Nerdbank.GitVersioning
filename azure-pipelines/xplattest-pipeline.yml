@@ -31,7 +31,7 @@ steps:
       echo Testing language $l &&
       dotnet new classlib -lang=$l &&
       dotnet add package nerdbank.gitversioning -v $NBGV_NuGetPackageVersion &&
-      dotnet pack -c debug &&
+      dotnet pack -c debug /p:TreatWarningsAsErrors=false &&
       ls bin/debug/lib.42.42.1*.nupkg 1> /dev/null 2>&1 &&
       rm -r *
       if [ $? -ne 0 ]; then exit 1; fi
