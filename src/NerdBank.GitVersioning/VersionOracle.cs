@@ -56,7 +56,7 @@
                     : projectDirectory.Substring(repoRoot.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))
                 : null;
 
-            var commit = head ?? repo?.Head.Commits.FirstOrDefault();
+            var commit = head ?? repo?.Head.Tip;
 
             var committedVersion = VersionFile.GetVersion(commit, relativeRepoProjectDirectory);
 
