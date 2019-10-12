@@ -17,7 +17,9 @@ gulp.task('default', function() {
 
 The recommended pattern is to create your NPM package from another directory
 than your source directory so that the package.json can be version-stamped
-without requiring a change to your source files.
+without requiring a change to your source files. If you have a many files to copy
+or don't plan to commit changes, see [continuous integration](#continuous-integration) below.
+
 In your checked-in version of package.json, set your `version` property to
 `0.0.0-placeholder`:
 
@@ -80,4 +82,46 @@ with a package.json file with a specific version field, such as:
   "name": "nbgv-trial",
   "version": "1.0.15-g0b1ed99829",
 }
+```
+
+## Continuous integration
+
+If you do not plan to commit changes or have a lot of files you'd need to copy,
+install of the instructions above you can instead ignore changes and simply build.
+If you use package-lock.json or npm-shrinkwrap.json and use caching on your CI server,
+you should rename those files prior to calling `nbgv.setPackageVersion()` as shown below.
+If you do not rename the file, `nbgv.setPackageVersion()` may inadvertently modify the lockfile
+and invalidate the cache, thus causing a cache miss on subsequent builds.
+
+In your gulpfile.js:
+
+```js
+const fs = require('fs');
+const util = require('util');
+
+gulp.task('setPackageVersion', function() {
+    const renameAsync = util.promisify(fs.rename);
+
+    return renameAsync('package-lock.json', 'package-lock.backup').then(function() {
+        return nbgv.setPackageVersion().finally(function() {
+            return renameAsync('package-lock.backup', 'package-lock.json');
+        });
+    });
+});
+```
+
+In your CI configuration, you can then safely use package-lock.json or npm-shrinkwrap.json
+as part of the cache key, as shown in the Azure Pipelines example below:
+
+```yaml
+variables:
+  npm_config_cache: $(Pipeline.Workspace)/.npm
+
+steps:
+- task: CacheBeta@0
+  inputs:
+    key: $(Agent.OS) | npm | package-lock.json
+    path: $(npm_config_cache)
+
+- script: npm ci
 ```
