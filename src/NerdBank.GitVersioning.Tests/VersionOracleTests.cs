@@ -370,4 +370,23 @@ public class VersionOracleTests : RepoTestBase
         Assert.Contains("\"3\"", ex.InnerException.Message);
         this.Logger.WriteLine(ex.ToString());
     }
+
+    [Fact]
+    public void Worktree_Support()
+    {
+        var workingCopyVersion = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("2.3"),
+        };
+        this.WriteVersionFile(workingCopyVersion);
+        this.InitializeSourceControl();
+        var oracleOriginal = VersionOracle.Create(this.RepoPath);
+        this.AddCommits();
+
+        string workTreePath = this.CreateDirectoryForNewRepo();
+        Directory.Delete(workTreePath);
+        this.Repo.Worktrees.Add("HEAD~1", "myworktree", workTreePath, isLocked: false);
+        var oracleWorkTree = VersionOracle.Create(workTreePath);
+        Assert.Equal(oracleOriginal.Version, oracleWorkTree.Version);
+    }
 }
