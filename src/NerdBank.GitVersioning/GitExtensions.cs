@@ -299,7 +299,6 @@
             return possibleCommits;
         }
 
-#if NET461
         /// <summary>
         /// Assists the operating system in finding the appropriate native libgit2 module.
         /// </summary>
@@ -357,7 +356,6 @@
                 Environment.SetEnvironmentVariable("PATH", pathEnvVar);
             }
         }
-#endif
 
         /// <summary>
         /// Finds the directory that contains the appropriate native libgit2 module.
@@ -366,13 +364,10 @@
         /// <returns>Receives the directory that native binaries are expected.</returns>
         public static string FindLibGit2NativeBinaries(string basePath)
         {
-#if !NET461
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-#endif
             {
                 return Path.Combine(basePath, "lib", "win32", IntPtr.Size == 4 ? "x86" : "x64");
             }
-#if !NET461
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
                 return Path.Combine(basePath, "lib", "linux", IntPtr.Size == 4 ? "x86" : "x86_64");
@@ -383,7 +378,6 @@
             }
 
             return null;
-#endif
         }
 
         /// <summary>
