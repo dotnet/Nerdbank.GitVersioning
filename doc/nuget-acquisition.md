@@ -39,7 +39,7 @@ source code, as commonly found in your `Properties\AssemblyInfo.cs` file:
 [assembly: AssemblyInformationalVersion("1.0.0-dev")]
 ```
 
-If you are using the new VS 2017 .NET Core/Standard projects (or otherwise using the .NET SDK project type)
+If you are using the new VS 2019 .NET Core/Standard projects (or otherwise using the .NET SDK project type)
 you won't see these attributes in your AssemblyInfo.cs file but you may still get compiler errors
 due to duplicate attributes. In that case, a Rebuild of your project should resolve
 [the issue](https://github.com/AArnott/Nerdbank.GitVersioning/issues/121).

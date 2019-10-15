@@ -7,7 +7,7 @@ This project is actively developed using the following software.
 It is highly recommended that anyone contributing to this library use the same
 software.
 
-1. [Visual Studio 2017][VS]
+1. [Visual Studio 2019][VS]
 2. [Node.js][NodeJs]
 
 ### Optional additional software
@@ -29,8 +29,8 @@ and you are running Windows PowerShell, the command is:
 
     .\init.ps1
 
-Most of the repo may be built via building the solution file from Visual Studio 2017,
-but for a complete build, build from the VS2017 Developer Command Prompt:
+Most of the repo may be built via building the solution file from Visual Studio 2019,
+but for a complete build, build from the VS2019 Developer Command Prompt:
 
     .\build.ps1
 
@@ -41,7 +41,7 @@ NPM packages too.
 
 ## Testing
 
-The Visual Studio 2017 Test Explorer will list and execute all tests.
+The Visual Studio 2019 Test Explorer will list and execute all tests.
 
 ## Pull requests
 

@@ -21,7 +21,7 @@ resources:
 
 jobs:
 - job: Windows
-  pool: Hosted VS2017
+  pool: Hosted Windows 2019 with VS2019
   steps:
   - checkout: self
     clean: true
