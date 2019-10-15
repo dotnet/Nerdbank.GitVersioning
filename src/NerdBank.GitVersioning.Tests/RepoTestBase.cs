@@ -74,7 +74,10 @@ public abstract class RepoTestBase : IDisposable
         this.Repo = new Repository(this.RepoPath);
         foreach (var file in this.Repo.RetrieveStatus().Untracked)
         {
-            Commands.Stage(this.Repo, file.FilePath);
+            if (!file.FilePath.StartsWith("_git2_", StringComparison.Ordinal)) // libgit2sharp creates these special junction directories that we should ignore
+            {
+                Commands.Stage(this.Repo, file.FilePath);
+            }
         }
 
         if (this.Repo.Index.Count > 0)
