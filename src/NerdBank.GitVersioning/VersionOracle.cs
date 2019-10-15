@@ -6,6 +6,7 @@
     using System.IO;
     using System.Linq;
     using System.Reflection;
+    using System.Runtime.InteropServices;
     using System.Text.RegularExpressions;
     using Validation;
 
@@ -55,6 +56,13 @@
         public VersionOracle(string projectDirectory, LibGit2Sharp.Repository repo, LibGit2Sharp.Commit head, ICloudBuild cloudBuild, int? overrideVersionHeightOffset = null, string projectPathRelativeToGitRepoRoot = null)
         {
             var repoRoot = repo?.Info?.WorkingDirectory?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && repoRoot != null && repoRoot.StartsWith("\\") && (repoRoot.Length == 1 || repoRoot[1] != '\\'))
+            {
+                // We're in a worktree, which libgit2sharp only gives us as a path relative to the root of the assumed drive.
+                // Add the drive: to the front of the repoRoot.
+                repoRoot = repo.Info.Path.Substring(0, 2) + repoRoot;
+            }
+
             var relativeRepoProjectDirectory = !string.IsNullOrWhiteSpace(repoRoot)
                 ? (!string.IsNullOrEmpty(projectPathRelativeToGitRepoRoot)
                     ? projectPathRelativeToGitRepoRoot
