@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "nbgv": {
+      "commandName": "Project",
+      "commandLineArgs": "cloud -s VisualStudioTeamServices -p D:\\temp\\GitVersioningBugRepro"
+    }
+  }
+}
