@@ -183,7 +183,7 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         this.WriteVersionFile("3.4");
         Assumes.True(repo.Index[VersionFile.JsonFileName] == null);
         var buildResult = await this.BuildAsync();
-        Assert.Equal("3.4.0." + repo.Head.Commits.First().GetIdAsVersion().Revision, buildResult.BuildVersion);
+        Assert.Equal("3.4.0." + repo.Head.Commits.First().GetIdAsVersion(TODO).Revision, buildResult.BuildVersion);
         Assert.Equal("3.4.0+" + repo.Head.Commits.First().Id.Sha.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength), buildResult.AssemblyInformationalVersion);
     }
 
@@ -208,7 +208,7 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         var repo = new Repository(this.RepoPath); // do not assign Repo property to avoid commits being generated later
         repo.Commit("empty", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         var buildResult = await this.BuildAsync();
-        Assert.Equal("0.0.0." + repo.Head.Commits.First().GetIdAsVersion().Revision, buildResult.BuildVersion);
+        Assert.Equal("0.0.0." + repo.Head.Commits.First().GetIdAsVersion(TODO).Revision, buildResult.BuildVersion);
         Assert.Equal("0.0.0+" + repo.Head.Commits.First().Id.Sha.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength), buildResult.AssemblyInformationalVersion);
     }
 
@@ -288,7 +288,7 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(VersionOptions.FromVersion(new Version(majorMinorVersion)), buildResult);
 
-        Version version = this.Repo.Head.Commits.First().GetIdAsVersion();
+        Version version = this.Repo.Head.Commits.First().GetIdAsVersion(TODO);
         Assert.Equal($"{version.Major}.{version.Minor}.{buildResult.GitVersionHeight}", buildResult.NuGetPackageVersion);
     }
 
@@ -976,10 +976,10 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
 
     private void AssertStandardProperties(VersionOptions versionOptions, BuildResults buildResult, string relativeProjectDirectory = null)
     {
-        int versionHeight = this.Repo.GetVersionHeight(relativeProjectDirectory);
-        Version idAsVersion = this.Repo.GetIdAsVersion(relativeProjectDirectory);
+        int versionHeight = this.Repo.GetVersionHeight(TODO, relativeProjectDirectory);
+        Version idAsVersion = this.Repo.GetIdAsVersion(TODO, relativeProjectDirectory);
         string commitIdShort = this.CommitIdShort;
-        Version version = this.Repo.GetIdAsVersion(relativeProjectDirectory);
+        Version version = this.Repo.GetIdAsVersion(TODO, relativeProjectDirectory);
         Version assemblyVersion = GetExpectedAssemblyVersion(versionOptions, version);
         var additionalBuildMetadata = from item in buildResult.BuildResult.ProjectStateAfterBuild.GetItems("BuildMetadata")
                                       select item.EvaluatedInclude;

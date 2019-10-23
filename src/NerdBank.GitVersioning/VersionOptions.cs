@@ -206,6 +206,14 @@
         public ReleaseOptions ReleaseOrDefault => this.Release ?? ReleaseOptions.DefaultInstance;
 
         /// <summary>
+        /// A list of paths to use to filter commits when calculating version height.
+        /// If a given commit does not affect any paths in this filter, it is ignored for version height calculations.
+        /// Paths should be relative to the root of the repository.
+        /// </summary>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public IReadOnlyList<string> PathFilters;
+
+        /// <summary>
         /// Gets or sets a value indicating whether this options object should inherit from an ancestor any settings that are not explicitly set in this one.
         /// </summary>
         /// <remarks>
