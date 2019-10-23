@@ -175,6 +175,14 @@
             }
           },
           "additionalProperties": false
+        },
+        "pathFilters": {
+          "type": "array",
+          "description": "An array of repository relative paths (folders or files) that are used to filter commits when calculating the version height. A commit will not increment the version height if it does not touch a path listed in this array.",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
         }
       }
     },
