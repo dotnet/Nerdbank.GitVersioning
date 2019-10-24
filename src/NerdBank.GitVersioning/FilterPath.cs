@@ -77,7 +77,7 @@ namespace Nerdbank.GitVersioning
         /// - <c>:^/absolute/exclusion.txt</c>
         /// </param>
         /// <param name="relativeTo">
-        /// Path (relative to the root of the repository) that <paramref name="paramRef"/> is relative to.
+        /// Path (relative to the root of the repository) that <paramref name="pathSpec"/> is relative to.
         /// </param>
         /// <param name="ignoreCase">Whether case should be ignored by <see cref="Excludes"/></param>
         /// <exception cref="FormatException">Invalid path spec.</exception>

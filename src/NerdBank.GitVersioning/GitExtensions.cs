@@ -37,7 +37,6 @@
         /// that set the version to the value at <paramref name="commit"/>.
         /// </summary>
         /// <param name="commit">The commit to measure the height of.</param>
-        /// <param name="pathFilters"></param>
         /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
         /// <param name="baseVersion">Optional base version to calculate the height. If not specified, the base version will be calculated by scanning the repository.</param>
         /// <returns>The height of the commit. Always a positive integer.</returns>
@@ -200,9 +199,14 @@
             return repo.Lookup<Commit>(EncodeAsHex(rawId));
         }
 
-        public static IRepository GetRepository(this Commit commit)
+        /// <summary>
+        /// Returns the repository that <paramref name="repositoryMember"/> belongs to.
+        /// </summary>
+        /// <param name="repositoryMember">Member of the repository.</param>
+        /// <returns>Repository that <paramref name="repositoryMember"/> belongs to.</returns>
+        private static IRepository GetRepository(this IBelongToARepository repositoryMember)
         {
-            return ((IBelongToARepository) commit).Repository;
+            return repositoryMember.Repository;
         }
 
         /// <summary>
@@ -210,10 +214,9 @@
         /// so that the original commit can be found later.
         /// </summary>
         /// <param name="commit">The commit whose ID and position in history is to be encoded.</param>
-        /// <param name="pathFilters"></param>
         /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
         /// <param name="versionHeight">
-        ///     The version height, previously calculated by a call to <see cref="GetVersionHeight(LibGit2Sharp.Commit,string,System.Collections.Generic.IEnumerable{string},System.Version)"/>
+        ///     The version height, previously calculated by a call to <see cref="GetVersionHeight(LibGit2Sharp.Commit,string,System.Version)"/>
         ///     with the same value for <paramref name="repoRelativeProjectDirectory"/>.
         /// </param>
         /// <returns>
@@ -247,7 +250,7 @@
         /// <param name="repo">The repo whose ID and position in history is to be encoded.</param>
         /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
         /// <param name="versionHeight">
-        ///     The version height, previously calculated by a call to <see cref="GetVersionHeight(LibGit2Sharp.Commit,string,System.Collections.Generic.IEnumerable{string},System.Version)"/>
+        ///     The version height, previously calculated by a call to <see cref="GetVersionHeight(LibGit2Sharp.Commit,string,System.Version)"/>
         ///     with the same value for <paramref name="repoRelativeProjectDirectory"/>.
         /// </param>
         /// <returns>
@@ -287,7 +290,7 @@
         /// Looks up the commit that matches a specified version number.
         /// </summary>
         /// <param name="repo">The repository to search for a matching commit.</param>
-        /// <param name="version">The version previously obtained from <see cref="GetIdAsVersion(LibGit2Sharp.Commit,System.Collections.Generic.IEnumerable{string},string,System.Nullable{int})"/>.</param>
+        /// <param name="version">The version previously obtained from <see cref="GetIdAsVersion(LibGit2Sharp.Commit,string,System.Nullable{int})"/>.</param>
         /// <param name="repoRelativeProjectDirectory">
         ///     The repo-relative project directory from which <paramref name="version"/> was originally calculated.
         /// </param>
@@ -306,7 +309,7 @@
         /// Looks up the commits that match a specified version number.
         /// </summary>
         /// <param name="repo">The repository to search for a matching commit.</param>
-        /// <param name="version">The version previously obtained from <see cref="GetIdAsVersion(LibGit2Sharp.Commit,System.Collections.Generic.IEnumerable{string},string,System.Nullable{int})"/>.</param>
+        /// <param name="version">The version previously obtained from <see cref="GetIdAsVersion(LibGit2Sharp.Commit,string,System.Nullable{int})"/>.</param>
         /// <param name="repoRelativeProjectDirectory">The repo-relative project directory from which <paramref name="version"/> was originally calculated.</param>
         /// <returns>The matching commits, or an empty enumeration if no match is found.</returns>
         public static IEnumerable<Commit> GetCommitsFromVersion(this Repository repo, Version version,
@@ -786,7 +789,7 @@
         /// </summary>
         /// <param name="commit">The commit whose ID and position in history is to be encoded.</param>
         /// <param name="versionOptions">The version options applicable at this point (either from commit or working copy).</param>
-        /// <param name="versionHeight">The version height, previously calculated by a call to <see cref="GetVersionHeight(LibGit2Sharp.Commit,string,System.Collections.Generic.IEnumerable{string},System.Version)"/>.</param>
+        /// <param name="versionHeight">The version height, previously calculated by a call to <see cref="GetVersionHeight(LibGit2Sharp.Commit,string,System.Version)"/>.</param>
         /// <returns>
         /// A version whose <see cref="Version.Build"/> and
         /// <see cref="Version.Revision"/> components are calculated based on the commit.
