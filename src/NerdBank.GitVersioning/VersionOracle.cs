@@ -495,7 +495,9 @@
                 }
             }
 
-            return headCommit?.GetVersionHeight(relativeRepoProjectDirectory, workingVersion?.PathFilters) ?? 0;
+            return headCommit?.GetVersionHeight(FilterPath.FromVersionOptions(relativeRepoProjectDirectory,
+                       ((LibGit2Sharp.IBelongToARepository) headCommit).Repository, workingVersion), relativeRepoProjectDirectory)
+                   ?? 0;
         }
 
         private static Version GetIdAsVersion(LibGit2Sharp.Commit headCommit, VersionOptions committedVersion, VersionOptions workingVersion, int versionHeight)
