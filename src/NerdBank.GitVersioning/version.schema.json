@@ -178,9 +178,10 @@
         },
         "pathFilters": {
           "type": "array",
-          "description": "An array of repository relative paths (folders or files) that are used to filter commits when calculating the version height. A commit will not increment the version height if it does not touch a path listed in this array.",
+          "description": "An array of pathspec-like strings that are used to filter commits when calculating the version height. A commit will not increment the version height if its changed files are not included by these filters.\nPaths are relative to this file. Paths relative to the root of the repository can be specified with the `:/` prefix.\nExclusions can be specified with a `:^` prefix for relative paths, or a `:^/` prefix for absolute paths.",
           "items": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^(:\\^|:!|:/|[^:])"
           },
           "uniqueItems": true
         }
