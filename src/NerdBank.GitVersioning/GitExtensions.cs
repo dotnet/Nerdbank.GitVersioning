@@ -134,14 +134,32 @@
 
             var includePaths =
                 pathFilters
-                    .Where(filter => !filter.IsExclude)
+                    ?.Where(filter => !filter.IsExclude)
                     .Select(filter => filter.RepoRelativePath)
                     .ToList();
 
-            var excludePaths = pathFilters.Where(filter => filter.IsExclude).ToList();
+            var excludePaths = pathFilters?.Where(filter => filter.IsExclude).ToList();
 
             var heights = new Dictionary<ObjectId, int>();
             return GetCommitHeight(commit, heights, includePaths, excludePaths, continueStepping);
+        }
+
+        /// <summary>
+        /// Gets the number of commits in the longest single path between
+        /// the specified branch's head and the most distant ancestor (inclusive).
+        /// </summary>
+        /// <param name="branch">The branch to measure the height of.</param>
+        /// <param name="pathFilters"></param>
+        /// <param name="continueStepping">
+        ///     A function that returns <c>false</c> when we reach a commit that
+        ///     should not be included in the height calculation.
+        ///     May be null to count the height to the original commit.
+        /// </param>
+        /// <returns>The height of the branch.</returns>
+        public static int GetHeight(this Branch branch, IReadOnlyList<FilterPath> pathFilters,
+            Func<Commit, bool> continueStepping = null)
+        {
+            return GetHeight(branch.Commits.First(), pathFilters, continueStepping);
         }
 
         /// <summary>
@@ -270,7 +288,6 @@
         /// </summary>
         /// <param name="repo">The repository to search for a matching commit.</param>
         /// <param name="version">The version previously obtained from <see cref="GetIdAsVersion(LibGit2Sharp.Commit,System.Collections.Generic.IEnumerable{string},string,System.Nullable{int})"/>.</param>
-        /// <param name="pathFilters"></param>
         /// <param name="repoRelativeProjectDirectory">
         ///     The repo-relative project directory from which <paramref name="version"/> was originally calculated.
         /// </param>
@@ -278,7 +295,7 @@
         /// <exception cref="InvalidOperationException">
         /// Thrown in the very rare situation that more than one matching commit is found.
         /// </exception>
-        public static Commit GetCommitFromVersion(this Repository repo, Version version, IEnumerable<string> pathFilters,
+        public static Commit GetCommitFromVersion(this Repository repo, Version version,
             string repoRelativeProjectDirectory = null)
         {
             // Note we'll accept no match, or one match. But we throw if there is more than one match.
