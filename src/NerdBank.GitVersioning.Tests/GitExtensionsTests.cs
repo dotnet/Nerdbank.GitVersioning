@@ -13,7 +13,7 @@ using Version = System.Version;
 
 public class GitExtensionsTests : RepoTestBase
 {
-    private readonly IReadOnlyList<FilterPath> emptyFilterPath;
+    private readonly IReadOnlyList<FilterPath> emptyFilterPath = null;
 
     public GitExtensionsTests(ITestOutputHelper Logger)
         : base(Logger)

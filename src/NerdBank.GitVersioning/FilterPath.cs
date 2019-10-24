@@ -56,11 +56,6 @@ namespace Nerdbank.GitVersioning
             );
         }
 
-        public FilterPath(string pathSpec, string relativeTo, Configuration config) : this(pathSpec, relativeTo,
-            config?.Get<bool>("core.ignorecase")?.Value ?? false)
-        {
-        }
-
         /// <summary>
         /// Construct a <see cref="FilterPath"/> from a pathspec-like string and a
         /// relative path within the repository.
@@ -116,14 +111,27 @@ namespace Nerdbank.GitVersioning
                     .TrimEnd(Path.DirectorySeparatorChar);
         }
 
+        /// <summary>
+        /// Calculate the <see cref="FilterPath"/>s for a given project within a repository.
+        /// </summary>
+        /// <param name="versionOptions">Version options for the project.</param>
+        /// <param name="relativeRepoProjectDirectory">
+        /// Path to the project directory, relative to the root of the repository.
+        /// If <c>null</c>, assumes root of repository.
+        /// </param>
+        /// <param name="repository">Git repository containing the project.</param>
+        /// <returns>A list of <see cref="FilterPath"/> instances.</returns>
         public static IReadOnlyList<FilterPath> FromVersionOptions(VersionOptions versionOptions,
             string relativeRepoProjectDirectory,
             IRepository repository)
         {
             Requires.NotNull(versionOptions, nameof(versionOptions));
+
+            var ignoreCase = repository?.Config.Get<bool>("core.ignorecase")?.Value ?? false;
+
             return versionOptions.PathFilters
                 ?.Select(pathSpec => new FilterPath(pathSpec, relativeRepoProjectDirectory,
-                    repository?.Config))
+                    ignoreCase))
                 .ToList();
         }
 
