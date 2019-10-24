@@ -42,7 +42,6 @@
         /// <param name="baseVersion">Optional base version to calculate the height. If not specified, the base version will be calculated by scanning the repository.</param>
         /// <returns>The height of the commit. Always a positive integer.</returns>
         public static int GetVersionHeight(this Commit commit,
-            IReadOnlyList<FilterPath> pathFilters = null,
             string repoRelativeProjectDirectory = null,
             Version baseVersion = null)
         {
@@ -62,11 +61,58 @@
             var versionHeightPosition = versionOptions.VersionHeightPosition;
             if (versionHeightPosition.HasValue)
             {
+                var pathFilters = FilterPath.FromVersionOptions(versionOptions, repoRelativeProjectDirectory, commit.GetRepository());
                 int height = commit.GetHeight(pathFilters, c => CommitMatchesVersion(c, baseSemVer, versionHeightPosition.Value, repoRelativeProjectDirectory));
                 return height;
             }
 
             return 0;
+        }
+
+        /// <summary>
+        /// Gets the number of commits in the longest single path between
+        /// HEAD in a repo and the most distant ancestor (inclusive)
+        /// that set the version to the value in the working copy
+        /// (or HEAD for bare repositories).
+        /// </summary>
+        /// <param name="repo">The repo with the working copy / HEAD to measure the height of.</param>
+        /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
+        /// <returns>The height of the repo at HEAD. Always a positive integer.</returns>
+        public static int GetVersionHeight(this Repository repo, string repoRelativeProjectDirectory = null)
+        {
+            if (repo == null)
+            {
+                return 0;
+            }
+
+            VersionOptions workingCopyVersionOptions, committedVersionOptions;
+            if (IsVersionFileChangedInWorkingCopy(repo, repoRelativeProjectDirectory, out committedVersionOptions, out workingCopyVersionOptions))
+            {
+                Version workingCopyVersion = workingCopyVersionOptions?.Version?.Version;
+                Version headCommitVersion = committedVersionOptions?.Version?.Version ?? Version0;
+                if (workingCopyVersion == null || !workingCopyVersion.Equals(headCommitVersion))
+                {
+                    // The working copy has changed the major.minor version.
+                    // So by definition the version height is 0, since no commit represents it yet.
+                    return 0;
+                }
+            }
+
+            // No special changes in the working directory, so apply regular logic.
+            return GetVersionHeight(repo.Head, repoRelativeProjectDirectory);
+        }
+
+        /// <summary>
+        /// Gets the number of commits in the longest single path between
+        /// the specified commit and the most distant ancestor (inclusive)
+        /// that set the version to the value at the tip of the <paramref name="branch"/>.
+        /// </summary>
+        /// <param name="branch">The branch to measure the height of.</param>
+        /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
+        /// <returns>The height of the branch till the version is changed.</returns>
+        public static int GetVersionHeight(this Branch branch, string repoRelativeProjectDirectory = null)
+        {
+            return branch.Commits.First().GetVersionHeight(repoRelativeProjectDirectory);
         }
 
         /// <summary>
@@ -136,6 +182,11 @@
             return repo.Lookup<Commit>(EncodeAsHex(rawId));
         }
 
+        public static IRepository GetRepository(this Commit commit)
+        {
+            return ((IBelongToARepository) commit).Repository;
+        }
+
         /// <summary>
         /// Encodes a commit from history in a <see cref="Version"/>
         /// so that the original commit can be found later.
@@ -156,8 +207,7 @@
         /// the height of the git commit while the <see cref="Version.Revision"/>
         /// component is the first four bytes of the git commit id (forced to be a positive integer).
         /// </remarks>
-        public static Version GetIdAsVersion(this Commit commit, IReadOnlyList<FilterPath> pathFilters,
-            string repoRelativeProjectDirectory = null, int? versionHeight = null)
+        public static Version GetIdAsVersion(this Commit commit, string repoRelativeProjectDirectory = null, int? versionHeight = null)
         {
             Requires.NotNull(commit, nameof(commit));
             Requires.Argument(repoRelativeProjectDirectory == null || !Path.IsPathRooted(repoRelativeProjectDirectory), nameof(repoRelativeProjectDirectory), "Path should be relative to repo root.");
@@ -166,7 +216,7 @@
 
             if (!versionHeight.HasValue)
             {
-                versionHeight = GetVersionHeight(commit, pathFilters, repoRelativeProjectDirectory);
+                versionHeight = GetVersionHeight(commit, repoRelativeProjectDirectory);
             }
 
             return GetIdAsVersionHelper(commit, versionOptions, versionHeight.Value);
@@ -198,27 +248,21 @@
 
             var headCommit = repo.Head.Commits.FirstOrDefault();
             VersionOptions workingCopyVersionOptions, committedVersionOptions;
-            var versionFileChanged = IsVersionFileChangedInWorkingCopy(repo, repoRelativeProjectDirectory,
-                out committedVersionOptions, out workingCopyVersionOptions);
-
-            // TODO(saul): when will repoRelativeProjectDirectory be null?
-            var pathFilters =
-                FilterPath.FromVersionOptions(repoRelativeProjectDirectory, repo, workingCopyVersionOptions);
-
-            if (versionFileChanged)
+            if (IsVersionFileChangedInWorkingCopy(repo, repoRelativeProjectDirectory,
+                out committedVersionOptions, out workingCopyVersionOptions))
             {
                 // Apply ordinary logic, but to the working copy version info.
                 if (!versionHeight.HasValue)
                 {
                     var baseVersion = workingCopyVersionOptions?.Version?.Version;
-                    versionHeight = GetVersionHeight(headCommit, pathFilters, repoRelativeProjectDirectory, baseVersion);
+                    versionHeight = GetVersionHeight(headCommit, repoRelativeProjectDirectory, baseVersion);
                 }
 
                 Version result = GetIdAsVersionHelper(headCommit, workingCopyVersionOptions, versionHeight.Value);
                 return result;
             }
 
-            return GetIdAsVersion(headCommit, pathFilters, repoRelativeProjectDirectory);
+            return GetIdAsVersion(headCommit, repoRelativeProjectDirectory);
         }
 
         /// <summary>
@@ -504,8 +548,7 @@
                 int expectedVersionHeight = ReadVersionPosition(version, position.Value);
 
                 var actualVersionOffset = versionOptions.VersionHeightOffsetOrDefault;
-                var pathFilters = FilterPath.FromVersionOptions(repoRelativeProjectDirectory,
-                    ((IBelongToARepository) commit).Repository, versionOptions);
+                var pathFilters = FilterPath.FromVersionOptions(versionOptions, repoRelativeProjectDirectory, commit.GetRepository());
                 var actualVersionHeight = commit.GetHeight(pathFilters, c => CommitMatchesVersion(c, version, position.Value - 1, repoRelativeProjectDirectory));
                 return expectedVersionHeight != actualVersionHeight + actualVersionOffset;
             }

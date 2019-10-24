@@ -33,7 +33,7 @@ namespace Nerdbank.GitVersioning
                 return path.Substring(1);
             }
 
-            var combined = relativeTo + '/' + path;
+            var combined = relativeTo == null ? path : relativeTo + '/' + path;
             return string.Join(Path.DirectorySeparatorChar.ToString(),
                 combined
                     .Split(new[] {Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar},
@@ -84,7 +84,6 @@ namespace Nerdbank.GitVersioning
         public FilterPath(string pathSpec, string relativeTo, bool ignoreCase = false)
         {
             Requires.NotNullOrEmpty(pathSpec, nameof(pathSpec));
-            Requires.NotNull(relativeTo, nameof(relativeTo));
 
             if (pathSpec[0] == ':')
             {
@@ -117,10 +116,12 @@ namespace Nerdbank.GitVersioning
                     .TrimEnd(Path.DirectorySeparatorChar);
         }
 
-        public static IReadOnlyList<FilterPath> FromVersionOptions(string relativeRepoProjectDirectory,
-            IRepository repository, VersionOptions versionOptions)
+        public static IReadOnlyList<FilterPath> FromVersionOptions(VersionOptions versionOptions,
+            string relativeRepoProjectDirectory,
+            IRepository repository)
         {
-            return versionOptions?.PathFilters
+            Requires.NotNull(versionOptions, nameof(versionOptions));
+            return versionOptions.PathFilters
                 ?.Select(pathSpec => new FilterPath(pathSpec, relativeRepoProjectDirectory,
                     repository?.Config))
                 .ToList();
