@@ -37,12 +37,13 @@
         /// that set the version to the value at <paramref name="commit"/>.
         /// </summary>
         /// <param name="commit">The commit to measure the height of.</param>
-        /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
         /// <param name="pathFilters"></param>
+        /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
         /// <param name="baseVersion">Optional base version to calculate the height. If not specified, the base version will be calculated by scanning the repository.</param>
         /// <returns>The height of the commit. Always a positive integer.</returns>
         public static int GetVersionHeight(this Commit commit,
-            string repoRelativeProjectDirectory = null, IEnumerable<string> pathFilters = null,
+            IReadOnlyList<FilterPath> pathFilters = null,
+            string repoRelativeProjectDirectory = null,
             Version baseVersion = null)
         {
             Requires.NotNull(commit, nameof(commit));
@@ -70,56 +71,6 @@
 
         /// <summary>
         /// Gets the number of commits in the longest single path between
-        /// HEAD in a repo and the most distant ancestor (inclusive)
-        /// that set the version to the value in the working copy
-        /// (or HEAD for bare repositories).
-        /// </summary>
-        /// <param name="repo">The repo with the working copy / HEAD to measure the height of.</param>
-        /// <param name="pathFilters"></param>
-        /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
-        /// <returns>The height of the repo at HEAD. Always a positive integer.</returns>
-        public static int GetVersionHeight(this Repository repo, IEnumerable<string> pathFilters,
-            string repoRelativeProjectDirectory = null)
-        {
-            if (repo == null)
-            {
-                return 0;
-            }
-
-            VersionOptions workingCopyVersionOptions, committedVersionOptions;
-            if (IsVersionFileChangedInWorkingCopy(repo, repoRelativeProjectDirectory, out committedVersionOptions, out workingCopyVersionOptions))
-            {
-                Version workingCopyVersion = workingCopyVersionOptions?.Version?.Version;
-                Version headCommitVersion = committedVersionOptions?.Version?.Version ?? Version0;
-                if (workingCopyVersion == null || !workingCopyVersion.Equals(headCommitVersion))
-                {
-                    // The working copy has changed the major.minor version.
-                    // So by definition the version height is 0, since no commit represents it yet.
-                    return 0;
-                }
-            }
-
-            // No special changes in the working directory, so apply regular logic.
-            return GetVersionHeight(repo.Head, pathFilters, repoRelativeProjectDirectory);
-        }
-
-        /// <summary>
-        /// Gets the number of commits in the longest single path between
-        /// the specified commit and the most distant ancestor (inclusive)
-        /// that set the version to the value at the tip of the <paramref name="branch"/>.
-        /// </summary>
-        /// <param name="branch">The branch to measure the height of.</param>
-        /// <param name="pathFilters"></param>
-        /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
-        /// <returns>The height of the branch till the version is changed.</returns>
-        public static int GetVersionHeight(this Branch branch, IEnumerable<string> pathFilters,
-            string repoRelativeProjectDirectory = null)
-        {
-            return GetVersionHeight(branch.Commits.First(), repoRelativeProjectDirectory, pathFilters);
-        }
-
-        /// <summary>
-        /// Gets the number of commits in the longest single path between
         /// the specified commit and the most distant ancestor (inclusive).
         /// </summary>
         /// <param name="commit">The commit to measure the height of.</param>
@@ -130,31 +81,21 @@
         ///     May be null to count the height to the original commit.
         /// </param>
         /// <returns>The height of the commit. Always a positive integer.</returns>
-        public static int GetHeight(this Commit commit, IEnumerable<string> pathFilters,
+        public static int GetHeight(this Commit commit, IReadOnlyList<FilterPath> pathFilters,
             Func<Commit, bool> continueStepping = null)
         {
             Requires.NotNull(commit, nameof(commit));
 
-            var heights = new Dictionary<ObjectId, int>();
-            return GetCommitHeight(commit, heights, pathFilters, continueStepping);
-        }
+            var includePaths =
+                pathFilters
+                    .Where(filter => !filter.IsExclude)
+                    .Select(filter => filter.RepoRelativePath)
+                    .ToList();
 
-        /// <summary>
-        /// Gets the number of commits in the longest single path between
-        /// the specified branch's head and the most distant ancestor (inclusive).
-        /// </summary>
-        /// <param name="branch">The branch to measure the height of.</param>
-        /// <param name="pathFilters"></param>
-        /// <param name="continueStepping">
-        ///     A function that returns <c>false</c> when we reach a commit that
-        ///     should not be included in the height calculation.
-        ///     May be null to count the height to the original commit.
-        /// </param>
-        /// <returns>The height of the branch.</returns>
-        public static int GetHeight(this Branch branch, IEnumerable<string> pathFilters,
-            Func<Commit, bool> continueStepping = null)
-        {
-            return GetHeight(branch.Commits.First(), pathFilters, continueStepping);
+            var excludePaths = pathFilters.Where(filter => filter.IsExclude).ToList();
+
+            var heights = new Dictionary<ObjectId, int>();
+            return GetCommitHeight(commit, heights, includePaths, excludePaths, continueStepping);
         }
 
         /// <summary>
@@ -215,7 +156,7 @@
         /// the height of the git commit while the <see cref="Version.Revision"/>
         /// component is the first four bytes of the git commit id (forced to be a positive integer).
         /// </remarks>
-        public static Version GetIdAsVersion(this Commit commit, IEnumerable<string> pathFilters,
+        public static Version GetIdAsVersion(this Commit commit, IReadOnlyList<FilterPath> pathFilters,
             string repoRelativeProjectDirectory = null, int? versionHeight = null)
         {
             Requires.NotNull(commit, nameof(commit));
@@ -225,7 +166,7 @@
 
             if (!versionHeight.HasValue)
             {
-                versionHeight = GetVersionHeight(commit, repoRelativeProjectDirectory, pathFilters);
+                versionHeight = GetVersionHeight(commit, pathFilters, repoRelativeProjectDirectory);
             }
 
             return GetIdAsVersionHelper(commit, versionOptions, versionHeight.Value);
@@ -236,7 +177,6 @@
         /// so that the original commit can be found later.
         /// </summary>
         /// <param name="repo">The repo whose ID and position in history is to be encoded.</param>
-        /// <param name="pathFilters"></param>
         /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
         /// <param name="versionHeight">
         ///     The version height, previously calculated by a call to <see cref="GetVersionHeight(LibGit2Sharp.Commit,string,System.Collections.Generic.IEnumerable{string},System.Version)"/>
@@ -251,20 +191,27 @@
         /// the height of the git commit while the <see cref="Version.Revision"/>
         /// component is the first four bytes of the git commit id (forced to be a positive integer).
         /// </remarks>
-        public static Version GetIdAsVersion(this Repository repo, IEnumerable<string> pathFilters,
+        public static Version GetIdAsVersion(this Repository repo,
             string repoRelativeProjectDirectory = null, int? versionHeight = null)
         {
             Requires.NotNull(repo, nameof(repo));
 
             var headCommit = repo.Head.Commits.FirstOrDefault();
             VersionOptions workingCopyVersionOptions, committedVersionOptions;
-            if (IsVersionFileChangedInWorkingCopy(repo, repoRelativeProjectDirectory, out committedVersionOptions, out workingCopyVersionOptions))
+            var versionFileChanged = IsVersionFileChangedInWorkingCopy(repo, repoRelativeProjectDirectory,
+                out committedVersionOptions, out workingCopyVersionOptions);
+
+            // TODO(saul): when will repoRelativeProjectDirectory be null?
+            var pathFilters =
+                FilterPath.FromVersionOptions(repoRelativeProjectDirectory, repo, workingCopyVersionOptions);
+
+            if (versionFileChanged)
             {
                 // Apply ordinary logic, but to the working copy version info.
                 if (!versionHeight.HasValue)
                 {
                     var baseVersion = workingCopyVersionOptions?.Version?.Version;
-                    versionHeight = GetVersionHeight(headCommit, repoRelativeProjectDirectory, pathFilters, baseVersion);
+                    versionHeight = GetVersionHeight(headCommit, pathFilters, repoRelativeProjectDirectory, baseVersion);
                 }
 
                 Version result = GetIdAsVersionHelper(headCommit, workingCopyVersionOptions, versionHeight.Value);
@@ -311,7 +258,7 @@
                                   let commitVersionOptions = VersionFile.GetVersion(commit, repoRelativeProjectDirectory)
                                   where commitVersionOptions != null
                                   where !IsCommitIdMismatch(version, commitVersionOptions, commit)
-                                  where !IsVersionHeightMismatch(version, commitVersionOptions, commit, repoRelativeProjectDirectory, commitVersionOptions.PathFilters)
+                                  where !IsVersionHeightMismatch(version, commitVersionOptions, commit, repoRelativeProjectDirectory)
                                   select commit;
 
             return possibleCommits;
@@ -544,7 +491,7 @@
         }
 
         private static bool IsVersionHeightMismatch(Version version, VersionOptions versionOptions, Commit commit,
-            string repoRelativeProjectDirectory, IEnumerable<string> pathFilters)
+            string repoRelativeProjectDirectory)
         {
             Requires.NotNull(version, nameof(version));
             Requires.NotNull(versionOptions, nameof(versionOptions));
@@ -557,6 +504,8 @@
                 int expectedVersionHeight = ReadVersionPosition(version, position.Value);
 
                 var actualVersionOffset = versionOptions.VersionHeightOffsetOrDefault;
+                var pathFilters = FilterPath.FromVersionOptions(repoRelativeProjectDirectory,
+                    ((IBelongToARepository) commit).Repository, versionOptions);
                 var actualVersionHeight = commit.GetHeight(pathFilters, c => CommitMatchesVersion(c, version, position.Value - 1, repoRelativeProjectDirectory));
                 return expectedVersionHeight != actualVersionHeight + actualVersionOffset;
             }
@@ -671,11 +620,8 @@
         /// </summary>
         /// <param name="commit">The commit to measure the height of.</param>
         /// <param name="heights">A cache of commits and their heights.</param>
-        /// <param name="pathFilters">
-        ///     An array of paths to filter the changes in commits on. If a commit
-        ///     does not affect any paths in the filter, the commit does not
-        ///     contribute to the height. May be null to disable filtering.
-        /// </param>
+        /// <param name="includePaths"></param>
+        /// <param name="excludePaths"></param>
         /// <param name="continueStepping">
         ///     A function that returns <c>false</c> when we reach a commit that
         ///     should not be included in the height calculation.
@@ -683,19 +629,23 @@
         /// </param>
         /// <returns>The height of the branch.</returns>
         private static int GetCommitHeight(Commit commit, Dictionary<ObjectId, int> heights,
-            IEnumerable<string> pathFilters,
+            IEnumerable<string> includePaths, IReadOnlyList<FilterPath> excludePaths,
             Func<Commit, bool> continueStepping)
         {
             Requires.NotNull(commit, nameof(commit));
             Requires.NotNull(heights, nameof(heights));
 
-            int height;
-            if (!heights.TryGetValue(commit.Id, out height))
+            bool ContainsRelevantChanges(IEnumerable<TreeEntryChanges> changes) =>
+                excludePaths.Count == 0
+                    ? changes.Any()
+                    : changes.Any(change => excludePaths.Any(exclude => exclude.Excludes(change.Path)));
+
+            if (!heights.TryGetValue(commit.Id, out int height))
             {
                 height = 0;
                 if (continueStepping == null || continueStepping(commit))
                 {
-                    if (pathFilters != null)
+                    if (includePaths != null && excludePaths != null)
                     {
                         var repository = ((IBelongToARepository)commit).Repository;
 
@@ -703,7 +653,8 @@
                         // touches a path that we care about, bump the height.
                         // Otherwise, this commit will not increment the height.
                         if (commit.Parents.Any(parent =>
-                            repository.Diff.Compare<TreeChanges>(parent.Tree, commit.Tree, pathFilters).Any()))
+                            ContainsRelevantChanges(
+                                repository.Diff.Compare<TreeChanges>(parent.Tree, commit.Tree, includePaths))))
                         {
                             height = 1;
                         }
@@ -715,7 +666,7 @@
 
                     if (commit.Parents.Any())
                     {
-                        height += commit.Parents.Max(p => GetCommitHeight(p, heights, pathFilters, continueStepping));
+                        height += commit.Parents.Max(p => GetCommitHeight(p, heights, includePaths, excludePaths, continueStepping));
                     }
                 }
 
