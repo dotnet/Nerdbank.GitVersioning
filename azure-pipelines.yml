@@ -149,6 +149,14 @@ jobs:
   steps:
   - template: azure-pipelines/xplattest-pipeline.yml
 
+- job: Ubuntu_Disco
+  dependsOn: Windows
+  pool:
+    vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
+  container: disco
+  steps:
+  - template: azure-pipelines/xplattest-pipeline.yml
+
 - job: macOS
   dependsOn: Windows
   pool:
