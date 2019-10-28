@@ -4,10 +4,6 @@ steps:
 - script: dotnet --info
   displayName: Show dotnet SDK info
 
-- script: echo "##vso[task.setvariable variable=DOTNET_ROOT;]/Users/runner/.dotnet"
-  condition: and(succeeded(), eq(variables['Agent.OS'], 'Darwin'))
-  displayName: Workaround microsoft/azure-pipelines-image-generation#531
-
 - task: DownloadBuildArtifacts@0
   displayName: Download Build Artifacts
   inputs:
