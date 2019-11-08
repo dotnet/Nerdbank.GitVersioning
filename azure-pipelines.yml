@@ -153,7 +153,5 @@ jobs:
   dependsOn: Windows
   pool:
     vmImage: macOS 10.13
-  variables:
-    DOTNET_ROOT: /Users/vsts/.dotnet
   steps:
   - template: azure-pipelines/xplattest-pipeline.yml
