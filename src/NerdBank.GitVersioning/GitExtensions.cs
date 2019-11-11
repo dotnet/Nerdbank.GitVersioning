@@ -117,7 +117,7 @@
         /// the specified commit and the most distant ancestor (inclusive).
         /// </summary>
         /// <param name="commit">The commit to measure the height of.</param>
-        /// <param name="pathFilters"></param>
+        /// <param name="pathFilters">Paths to include/exclude from height calculation.</param>
         /// <param name="continueStepping">
         /// A function that returns <c>false</c> when we reach a commit that
         /// should not be included in the height calculation.
@@ -146,7 +146,7 @@
         /// the specified branch's head and the most distant ancestor (inclusive).
         /// </summary>
         /// <param name="branch">The branch to measure the height of.</param>
-        /// <param name="pathFilters"></param>
+        /// <param name="pathFilters">Paths to include/exclude from height calculation.</param>
         /// <param name="continueStepping">
         /// A function that returns <c>false</c> when we reach a commit that
         /// should not be included in the height calculation.
@@ -676,8 +676,8 @@
         /// </summary>
         /// <param name="commit">The commit to measure the height of.</param>
         /// <param name="heights">A cache of commits and their heights.</param>
-        /// <param name="includePaths"></param>
-        /// <param name="excludePaths"></param>
+        /// <param name="includePaths">Repo root relative paths to include in height calculation.</param>
+        /// <param name="excludePaths">Repo root relative paths to exclude from height calculation.</param>
         /// <param name="continueStepping">
         /// A function that returns <c>false</c> when we reach a commit that
         /// should not be included in the height calculation.
