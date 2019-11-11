@@ -694,34 +694,42 @@
             bool ContainsRelevantChanges(IEnumerable<TreeEntryChanges> changes) =>
                 excludePaths.Count == 0
                     ? changes.Any()
-                    : changes.Any(change => excludePaths.Any(exclude => exclude.Excludes(change.Path)));
+                    // If there is a single change that isn't excluded,
+                    // then this commit is relevant.
+                    : changes.Any(change => !excludePaths.Any(exclude => exclude.Excludes(change.Path)));
 
             if (!heights.TryGetValue(commit.Id, out int height))
             {
-                height = 0;
                 if (continueStepping == null || continueStepping(commit))
                 {
+                    height = 1;
+
                     if (includePaths != null && excludePaths != null)
                     {
                         // If the diff between this commit and any of its parents
-                        // touches a path that we care about, bump the height.
-                        // Otherwise, this commit will not increment the height.
-                        if (commit.Parents.Any(parent =>
-                            ContainsRelevantChanges(
-                                commit.GetRepository().Diff.Compare<TreeChanges>(parent.Tree, commit.Tree, includePaths))))
+                        // does not touch a path that we care about, don't bump the
+                        // height.
+                        var relevantCommit =
+                            commit.Parents.Any()
+                                ? commit.Parents.Any(parent => ContainsRelevantChanges(commit.GetRepository().Diff
+                                    .Compare<TreeChanges>(parent.Tree, commit.Tree, includePaths)))
+                                : ContainsRelevantChanges(commit.GetRepository().Diff
+                                    .Compare<TreeChanges>(null, commit.Tree, includePaths));
+
+                        if (!relevantCommit)
                         {
-                            height = 1;
+                            height = 0;
                         }
-                    }
-                    else
-                    {
-                        height = 1;
                     }
 
                     if (commit.Parents.Any())
                     {
                         height += commit.Parents.Max(p => GetCommitHeight(p, heights, includePaths, excludePaths, continueStepping));
                     }
+                }
+                else
+                {
+                    height = 0;
                 }
 
                 heights[commit.Id] = height;

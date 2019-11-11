@@ -322,6 +322,19 @@ public class VersionFileTests : RepoTestBase
     }
 
     [Fact]
+    public void GetVersion_ReadPathFilters()
+    {
+        var json = @"{ ""version"" : ""1.2"", ""pathFilters"" : [ "":/root.txt"", ""./hello"" ] }";
+        var path = Path.Combine(this.RepoPath, "version.json");
+        File.WriteAllText(path, json);
+
+        var versionOptions = VersionFile.GetVersion(this.RepoPath);
+
+        Assert.NotNull(versionOptions.PathFilters);
+        Assert.Equal(new[] {":/root.txt", "./hello"}, versionOptions.PathFilters);
+    }
+
+    [Fact]
     public void GetVersion_String_MissingFile()
     {
         Assert.Null(VersionFile.GetVersion(this.RepoPath));

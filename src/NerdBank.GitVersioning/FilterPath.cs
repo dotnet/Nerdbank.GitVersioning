@@ -28,13 +28,13 @@ namespace Nerdbank.GitVersioning
         private static string ParsePath(string path, string relativeTo)
         {
             // Path is absolute, nothing to do here
-            if (path[0] == '/')
+            if (path[0] == '/' || path[0] == '\\')
             {
                 return path.Substring(1);
             }
 
             var combined = relativeTo == null ? path : relativeTo + '/' + path;
-            return string.Join(Path.DirectorySeparatorChar.ToString(),
+            return string.Join("/",
                 combined
                     .Split(new[] {Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar},
                         StringSplitOptions.RemoveEmptyEntries)
@@ -91,7 +91,7 @@ namespace Nerdbank.GitVersioning
 
                     this.RepoRelativePath = ParsePath(pathSpec.Substring(2), relativeTo);
                 }
-                else if (pathSpec.Length > 1 && pathSpec[1] == '/')
+                else if (pathSpec.Length > 1 && pathSpec[1] == '/' || pathSpec[1] == '\\')
                 {
                     this.RepoRelativePath = pathSpec.Substring(2);
                 }
@@ -107,8 +107,8 @@ namespace Nerdbank.GitVersioning
 
             this.RepoRelativePath =
                 this.RepoRelativePath
-                    .Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar)
-                    .TrimEnd(Path.DirectorySeparatorChar);
+                    .Replace('\\', '/')
+                    .TrimEnd('/');
         }
 
         /// <summary>
@@ -138,7 +138,7 @@ namespace Nerdbank.GitVersioning
         /// <summary>
         /// Determines if <paramref name="repoRelativePath"/> should be excluded by this <see cref="FilterPath"/>.
         /// </summary>
-        /// <param name="repoRelativePath">Path (repo relative). Slashes should be canonical for the OS.</param>
+        /// <param name="repoRelativePath">Forward-slash delimited path (repo relative).</param>
         /// <returns>
         /// True if this <see cref="FilterPath"/> is an excluding filter that matches
         /// <paramref name="repoRelativePath"/>, otherwise false.
@@ -148,7 +148,7 @@ namespace Nerdbank.GitVersioning
             if (!this.IsExclude) return false;
 
             return this.RepoRelativePath.Equals(repoRelativePath, this.stringComparison) ||
-                   repoRelativePath.StartsWith(this.RepoRelativePath + Path.DirectorySeparatorChar,
+                   repoRelativePath.StartsWith(this.RepoRelativePath + "/",
                        this.stringComparison);
         }
     }
