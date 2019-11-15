@@ -164,7 +164,5 @@ jobs:
   dependsOn: Windows
   pool:
     vmImage: macOS 10.13
-  variables:
-    DOTNET_ROOT: /Users/runner/.dotnet # Workaround for microsoft/azure-pipelines-image-generation#531
   steps:
   - template: azure-pipelines/xplattest-pipeline.yml
