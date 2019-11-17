@@ -19,6 +19,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="../Nerdbank.GitVersioning.Tasks/RuntimeIdMap.cs" />
+    <Compile Include="../Nerdbank.GitVersioning.Tasks/GitLoaderContext.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\NerdBank.GitVersioning\NerdBank.GitVersioning.csproj" />
   </ItemGroup>
 
