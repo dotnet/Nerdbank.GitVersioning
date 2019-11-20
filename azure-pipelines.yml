@@ -69,7 +69,7 @@ jobs:
     displayName: Build NuGet package and tests
     workingDirectory: src
 
-  - script: dotnet publish -c $(BuildConfiguration) -o ..\nerdbank-gitversioning.npm\out\nbgv.cli\tools\netcoreapp2.1\any /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
+  - script: dotnet publish -c $(BuildConfiguration) -o ..\nerdbank-gitversioning.npm\out\nbgv.cli\tools\netcoreapp2.1\any /bl:"$(Build.ArtifactStagingDirectory)/build_logs/nbgv_publish.binlog"
     displayName: Build NuGet package and tests
     workingDirectory: src\nbgv
 
