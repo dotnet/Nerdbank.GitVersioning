@@ -15,6 +15,14 @@ namespace Nerdbank.GitVersioning
     {
         public static readonly GitLoaderContext Instance = new GitLoaderContext();
 
+        // When invoked as a MSBuild task, the native libraries will be at
+        // ../runtimes. When invoked from the nbgv CLI, the libraries
+        // will be at ./runtimes.
+        // This property allows code which consumes GitLoaderContext to 
+        // differentiate between these different locations.
+        // In the case of the nbgv CLI, the value is set in Program.Main()
+        public static string RuntimePath = "../runtimes";
+
         protected override Assembly Load(AssemblyName assemblyName)
         {
             var path = Path.Combine(Path.GetDirectoryName(typeof(GitLoaderContext).Assembly.Location), assemblyName.Name + ".dll");
@@ -53,7 +61,7 @@ namespace Nerdbank.GitVersioning
         internal static string GetNativeLibraryDirectory()
         {
             var dir = Path.GetDirectoryName(typeof(GitLoaderContext).Assembly.Location);
-            return Path.Combine(dir, "..", "runtimes", RuntimeIdMap.GetNativeLibraryDirectoryName(RuntimeEnvironment.GetRuntimeIdentifier()), "native");
+            return Path.Combine(dir, RuntimePath, RuntimeIdMap.GetNativeLibraryDirectoryName(RuntimeEnvironment.GetRuntimeIdentifier()), "native");
         }
 
         private static string GetNativeLibraryExtension()
