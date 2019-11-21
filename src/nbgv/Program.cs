@@ -57,6 +57,21 @@ namespace Nerdbank.GitVersioning.Tool
 
         public static int Main(string[] args)
         {
+            GitLoaderContext.RuntimePath = "./runtimes";
+
+            string thisAssemblyPath = new Uri(typeof(Program).GetTypeInfo().Assembly.CodeBase).LocalPath;
+
+            Assembly inContextAssembly = GitLoaderContext.Instance.LoadFromAssemblyPath(thisAssemblyPath);
+            Type innerProgramType = inContextAssembly.GetType(typeof(Program).FullName);
+            object innerProgram = Activator.CreateInstance(innerProgramType);
+
+            var mainInnerMethod = innerProgramType.GetMethod(nameof(MainInner), BindingFlags.Static | BindingFlags.NonPublic);
+            int result = (int)mainInnerMethod.Invoke(null, new object[] { args });
+            return result;
+        }
+
+        private static int MainInner(string[] args)
+        {
             var commandText = string.Empty;
             var projectPath = string.Empty;
             var versionJsonRoot = string.Empty;
