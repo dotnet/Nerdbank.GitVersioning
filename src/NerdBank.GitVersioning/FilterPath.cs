@@ -25,6 +25,21 @@ namespace Nerdbank.GitVersioning
         /// </summary>
         public string RepoRelativePath { get; }
 
+        /// <summary>
+        /// Parses a pathspec-like string into a root-relative path.
+        /// </summary>
+        /// <param name="path">
+        /// See <see cref="FilterPath(string, string, bool)"/> for supported
+        /// formats of pathspecs.
+        /// </param>
+        /// <param name="relativeTo">
+        /// Path that <paramref name="path"/> is relative to.
+        /// Can be <c>null</c> - which indicates <paramref name="path"/> is
+        /// relative to the root of the repository.
+        /// </param>
+        /// <returns>
+        /// Forward slash delimited string representing the root-relative path.
+        /// </returns>
         private static string ParsePath(string path, string relativeTo)
         {
             // Path is absolute, nothing to do here
@@ -34,24 +49,35 @@ namespace Nerdbank.GitVersioning
             }
 
             var combined = relativeTo == null ? path : relativeTo + '/' + path;
+
             return string.Join("/",
                 combined
                     .Split(new[] {Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar},
                         StringSplitOptions.RemoveEmptyEntries)
+                    // Loop through each path segment...
                     .Aggregate(new Stack<string>(), (parts, segment) =>
                     {
                         switch (segment)
                         {
+                            // If it refers to the current directory, skip it
                             case ".":
                                 return parts;
+
+                            // If it refers to the parent directory, pop the most recent directory
                             case "..":
+                                if (parts.Count == 0)
+                                    throw new FormatException($"Too many '..' in path '{combined}' - would escape the root of the repository.");
+
                                 parts.Pop();
                                 return parts;
+
+                            // Otherwise it's a directory/file name - add it to the stack
                             default:
                                 parts.Push(segment);
                                 return parts;
                         }
                     })
+                    // Reverse the stack, so it iterates root -> leaf
                     .Reverse()
             );
         }

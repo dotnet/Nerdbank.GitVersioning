@@ -6,6 +6,9 @@ using Xunit;
 public class FilterPathTests
 {
     [Theory]
+    [InlineData("./", "foo", "foo")]
+    [InlineData("../relative-dir", "foo", "relative-dir")]
+    [InlineData("../../some/dir/here", "foo/multi/wow", "foo/some/dir/here")]
     [InlineData("relativepath.txt", "foo", "foo/relativepath.txt")]
     [InlineData("./relativepath.txt", "foo", "foo/relativepath.txt")]
     [InlineData("./dir\\hi/relativepath.txt", "foo", "foo/dir/hi/relativepath.txt")]
@@ -96,5 +99,7 @@ public class FilterPathTests
         Assert.Throws<ArgumentNullException>(() => new FilterPath(null, ""));
         Assert.Throws<ArgumentException>(() => new FilterPath("", ""));
         Assert.Throws<FormatException>(() => new FilterPath(":?", ""));
+        Assert.Throws<FormatException>(() => new FilterPath("../foo.txt", ""));
+        Assert.Throws<FormatException>(() => new FilterPath(".././a/../../foo.txt", "foo"));
     }
 }
