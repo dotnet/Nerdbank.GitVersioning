@@ -120,7 +120,10 @@ namespace Nerdbank.GitVersioning
         /// If <c>null</c>, assumes root of repository.
         /// </param>
         /// <param name="repository">Git repository containing the project.</param>
-        /// <returns>A list of <see cref="FilterPath"/> instances.</returns>
+        /// <returns>
+        /// <c>null</c> if no path filters are set. Otherwise, returns a list of
+        /// <see cref="FilterPath"/> instances.
+        /// </returns>
         public static IReadOnlyList<FilterPath> FromVersionOptions(VersionOptions versionOptions,
             string relativeRepoProjectDirectory,
             IRepository repository)
@@ -145,6 +148,9 @@ namespace Nerdbank.GitVersioning
         /// </returns>
         public bool Excludes(string repoRelativePath)
         {
+            if (repoRelativePath is null)
+                throw new ArgumentNullException(nameof(repoRelativePath));
+
             if (!this.IsExclude) return false;
 
             return this.RepoRelativePath.Equals(repoRelativePath, this.stringComparison) ||

@@ -124,8 +124,7 @@
         /// May be null to count the height to the original commit.
         /// </param>
         /// <returns>The height of the commit. Always a positive integer.</returns>
-        public static int GetHeight(this Commit commit, IReadOnlyList<FilterPath> pathFilters,
-            Func<Commit, bool> continueStepping = null)
+        public static int GetHeight(this Commit commit, IReadOnlyList<FilterPath> pathFilters, Func<Commit, bool> continueStepping = null)
         {
             Requires.NotNull(commit, nameof(commit));
 
@@ -213,7 +212,7 @@
         /// <param name="commit">The commit whose ID and position in history is to be encoded.</param>
         /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
         /// <param name="versionHeight">
-        /// The version height, previously calculated by a call to <see cref="GetVersionHeight(LibGit2Sharp.Commit,string,System.Version)"/>
+        /// The version height, previously calculated by a call to <see cref="GetVersionHeight(Commit, string, Version)"/>
         /// with the same value for <paramref name="repoRelativeProjectDirectory"/>.
         /// </param>
         /// <returns>
@@ -247,7 +246,7 @@
         /// <param name="repo">The repo whose ID and position in history is to be encoded.</param>
         /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
         /// <param name="versionHeight">
-        /// The version height, previously calculated by a call to <see cref="GetVersionHeight(LibGit2Sharp.Commit,string,System.Version)"/>
+        /// The version height, previously calculated by a call to <see cref="GetVersionHeight(Commit, string, Version)"/>
         /// with the same value for <paramref name="repoRelativeProjectDirectory"/>.
         /// </param>
         /// <returns>
@@ -285,7 +284,7 @@
         /// Looks up the commit that matches a specified version number.
         /// </summary>
         /// <param name="repo">The repository to search for a matching commit.</param>
-        /// <param name="version">The version previously obtained from <see cref="GetIdAsVersion(LibGit2Sharp.Commit,string,System.Nullable{int})"/>.</param>
+        /// <param name="version">The version previously obtained from <see cref="GetIdAsVersion(Commit, string, int?)"/>.</param>
         /// <param name="repoRelativeProjectDirectory">
         /// The repo-relative project directory from which <paramref name="version"/> was originally calculated.
         /// </param>
@@ -303,11 +302,10 @@
         /// Looks up the commits that match a specified version number.
         /// </summary>
         /// <param name="repo">The repository to search for a matching commit.</param>
-        /// <param name="version">The version previously obtained from <see cref="GetIdAsVersion(LibGit2Sharp.Commit,string,System.Nullable{int})"/>.</param>
+        /// <param name="version">The version previously obtained from <see cref="GetIdAsVersion(Commit, string, int?)"/>.</param>
         /// <param name="repoRelativeProjectDirectory">The repo-relative project directory from which <paramref name="version"/> was originally calculated.</param>
         /// <returns>The matching commits, or an empty enumeration if no match is found.</returns>
-        public static IEnumerable<Commit> GetCommitsFromVersion(this Repository repo, Version version,
-            string repoRelativeProjectDirectory = null)
+        public static IEnumerable<Commit> GetCommitsFromVersion(this Repository repo, Version version, string repoRelativeProjectDirectory = null)
         {
             Requires.NotNull(repo, nameof(repo));
             Requires.NotNull(version, nameof(version));
@@ -684,9 +682,7 @@
         /// May be null to count the height to the original commit.
         /// </param>
         /// <returns>The height of the branch.</returns>
-        private static int GetCommitHeight(Commit commit, Dictionary<ObjectId, int> heights,
-            IEnumerable<string> includePaths, IReadOnlyList<FilterPath> excludePaths,
-            Func<Commit, bool> continueStepping)
+        private static int GetCommitHeight(Commit commit, Dictionary<ObjectId, int> heights, IEnumerable<string> includePaths, IReadOnlyList<FilterPath> excludePaths, Func<Commit, bool> continueStepping)
         {
             Requires.NotNull(commit, nameof(commit));
             Requires.NotNull(heights, nameof(heights));
@@ -788,7 +784,7 @@
         /// </summary>
         /// <param name="commit">The commit whose ID and position in history is to be encoded.</param>
         /// <param name="versionOptions">The version options applicable at this point (either from commit or working copy).</param>
-        /// <param name="versionHeight">The version height, previously calculated by a call to <see cref="GetVersionHeight(LibGit2Sharp.Commit,string,System.Version)"/>.</param>
+        /// <param name="versionHeight">The version height, previously calculated by a call to <see cref="GetVersionHeight(Commit, string, Version)"/>.</param>
         /// <returns>
         /// A version whose <see cref="Version.Build"/> and
         /// <see cref="Version.Revision"/> components are calculated based on the commit.
