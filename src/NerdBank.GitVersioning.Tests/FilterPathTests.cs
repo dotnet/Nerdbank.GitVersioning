@@ -18,6 +18,8 @@ public class FilterPathTests
     [InlineData(":!/absolutepath.txt", "foo", "absolutepath.txt")]
     [InlineData(":!\\absolutepath.txt", "foo", "absolutepath.txt")]
     [InlineData("../bar/relativepath.txt", "foo", "bar/relativepath.txt")]
+    [InlineData("/", "foo", "")]
+    [InlineData("/absolute/file.txt", "foo", "absolute/file.txt")]
     [InlineData(":/", "foo", "")]
     [InlineData(":/absolutepath.txt", "foo", "absolutepath.txt")]
     [InlineData(":/bar/absolutepath.txt", "foo", "bar/absolutepath.txt")]

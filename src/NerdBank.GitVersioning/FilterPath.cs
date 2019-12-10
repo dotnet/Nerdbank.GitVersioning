@@ -26,6 +26,11 @@ namespace Nerdbank.GitVersioning
         public string RepoRelativePath { get; }
 
         /// <summary>
+        /// True if this <see cref="FilterPath"/> represents the root of the repository.
+        /// </summary>
+        public bool IsRoot => this.RepoRelativePath == "";
+
+        /// <summary>
         /// Parses a pathspec-like string into a root-relative path.
         /// </summary>
         /// <param name="path">

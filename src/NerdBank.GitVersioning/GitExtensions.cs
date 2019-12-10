@@ -732,17 +732,25 @@
 
                     height = 1;
 
-                    if (includePaths != null && excludePaths != null)
+                    if (includePaths != null)
                     {
+                        // If there are no include paths, or any of the include
+                        // paths refer to the root of the repository, then do not
+                        // filter the diff at all.
+                        var diffInclude =
+                            includePaths.Count == 0 || pathFilters.Any(filter => filter.IsRoot)
+                                ? null
+                                : includePaths;
+
                         // If the diff between this commit and any of its parents
                         // does not touch a path that we care about, don't bump the
                         // height.
                         var relevantCommit =
                             commit.Parents.Any()
                                 ? commit.Parents.Any(parent => ContainsRelevantChanges(commit.GetRepository().Diff
-                                    .Compare<TreeChanges>(parent.Tree, commit.Tree, includePaths)))
+                                    .Compare<TreeChanges>(parent.Tree, commit.Tree, diffInclude)))
                                 : ContainsRelevantChanges(commit.GetRepository().Diff
-                                    .Compare<TreeChanges>(null, commit.Tree, includePaths));
+                                    .Compare<TreeChanges>(null, commit.Tree, diffInclude));
 
                         if (!relevantCommit)
                         {
