@@ -13,8 +13,6 @@ using Version = System.Version;
 
 public class GitExtensionsTests : RepoTestBase
 {
-    private readonly IReadOnlyList<FilterPath> emptyFilterPath = null;
-
     public GitExtensionsTests(ITestOutputHelper Logger)
         : base(Logger)
     {
@@ -25,8 +23,8 @@ public class GitExtensionsTests : RepoTestBase
     public void GetHeight_EmptyRepo()
     {
         Branch head = this.Repo.Head;
-        Assert.Throws<InvalidOperationException>(() => head.GetHeight(this.emptyFilterPath));
-        Assert.Throws<InvalidOperationException>(() => head.GetHeight(this.emptyFilterPath, c => true));
+        Assert.Throws<InvalidOperationException>(() => head.GetHeight());
+        Assert.Throws<InvalidOperationException>(() => head.GetHeight(c => true));
     }
 
     [Fact]
@@ -35,11 +33,11 @@ public class GitExtensionsTests : RepoTestBase
         var first = this.Repo.Commit("First", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         var second = this.Repo.Commit("Second", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         var third = this.Repo.Commit("Third", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
-        Assert.Equal(3, this.Repo.Head.GetHeight(this.emptyFilterPath));
-        Assert.Equal(3, this.Repo.Head.GetHeight(this.emptyFilterPath, c => true));
+        Assert.Equal(3, this.Repo.Head.GetHeight());
+        Assert.Equal(3, this.Repo.Head.GetHeight(c => true));
 
-        Assert.Equal(2, this.Repo.Head.GetHeight(this.emptyFilterPath, c => c != first));
-        Assert.Equal(1, this.Repo.Head.GetHeight(this.emptyFilterPath, c => c != second));
+        Assert.Equal(2, this.Repo.Head.GetHeight(c => c != first));
+        Assert.Equal(1, this.Repo.Head.GetHeight(c => c != second));
     }
 
     [Fact]
@@ -58,13 +56,13 @@ public class GitExtensionsTests : RepoTestBase
         this.Repo.Merge(secondCommit, new Signature("t", "t@t.com", DateTimeOffset.Now), new MergeOptions { FastForwardStrategy = FastForwardStrategy.NoFastForward });
 
         // While we've created 8 commits, the tallest height is only 7.
-        Assert.Equal(7, this.Repo.Head.GetHeight(this.emptyFilterPath));
+        Assert.Equal(7, this.Repo.Head.GetHeight());
 
         // Now stop enumerating early on just one branch of the ancestry -- the number should remain high.
-        Assert.Equal(7, this.Repo.Head.GetHeight(this.emptyFilterPath, c => c != secondCommit));
+        Assert.Equal(7, this.Repo.Head.GetHeight(c => c != secondCommit));
 
         // This time stop in both branches of history, and verify that we count the taller one.
-        Assert.Equal(3, this.Repo.Head.GetHeight(this.emptyFilterPath, c => c != secondCommit && c != branchCommits[2]));
+        Assert.Equal(3, this.Repo.Head.GetHeight(c => c != secondCommit && c != branchCommits[2]));
     }
 
     [Fact]
