@@ -712,7 +712,7 @@
             {
                 if (continueStepping == null || continueStepping(commit))
                 {
-                    var versionOptions = repoRelativeProjectDirectory != null ? VersionFile.GetVersion(commit, repoRelativeProjectDirectory) : null;
+                    var versionOptions = VersionFile.GetVersion(commit, repoRelativeProjectDirectory);
                     var pathFilters = versionOptions != null ? FilterPath.FromVersionOptions(versionOptions, repoRelativeProjectDirectory, commit.GetRepository()) : null;
 
                     var includePaths =

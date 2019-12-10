@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using Nerdbank.GitVersioning;
 using Xunit;
 
