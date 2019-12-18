@@ -118,7 +118,7 @@ The behaviour of the `prepare-release` command can be customized in
 | Property         | Default value        | Description                                                                                                                                         |
 |------------------|----------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
 | branchName       | `v{version}`         | Defines the format of release branch names. The value must include a `{version}` placeholder.                                                       |
-| versionIncremnt  | `minor`              | Specifies which part of the version on the current branch is incremented when preparing a release. Allowed values are `major`, `minor` and `build`. |
+| versionIncrement | `minor`              | Specifies which part of the version on the current branch is incremented when preparing a release. Allowed values are `major`, `minor` and `build`. |
 | firstUnstableTag | `alpha`              | Specified the unstable tag to use for the main branch.                                                                                              |
 
 ## Learn more
