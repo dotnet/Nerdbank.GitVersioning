@@ -226,6 +226,7 @@
 
         /// <summary>
         /// Writes the version.json file to a directory within a repo with the specified version information.
+        /// The $schema property is included.
         /// </summary>
         /// <param name="projectDirectory">
         /// The path to the directory in which to write the version.json file.
@@ -234,7 +235,7 @@
         /// </param>
         /// <param name="version">The version information to write to the file.</param>
         /// <returns>The path to the file written.</returns>
-        public static string SetVersion(string projectDirectory, VersionOptions version) => SetVersion(projectDirectory, version, includeSchemaProperty: false);
+        public static string SetVersion(string projectDirectory, VersionOptions version) => SetVersion(projectDirectory, version, includeSchemaProperty: true);
 
         /// <summary>
         /// Writes the version.json file to a directory within a repo with the specified version information.
@@ -291,7 +292,7 @@
         /// <returns>The path to the file written.</returns>
         public static string SetVersion(string projectDirectory, Version version, string unstableTag = null)
         {
-            return SetVersion(projectDirectory, VersionOptions.FromVersion(version, unstableTag));
+            return SetVersion(projectDirectory, VersionOptions.FromVersion(version, unstableTag), includeSchemaProperty: false);
         }
 
         /// <summary>
