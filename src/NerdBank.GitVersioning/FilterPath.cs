@@ -10,25 +10,25 @@ namespace Nerdbank.GitVersioning
     /// <summary>
     /// A filter (include or exclude) representing a repo relative path.
     /// </summary>
-    public class FilterPath
+    internal class FilterPath
     {
         private readonly StringComparison stringComparison;
 
         /// <summary>
         /// True if this <see cref="FilterPath"/> represents an exclude filter.
         /// </summary>
-        public bool IsExclude { get; }
+        internal bool IsExclude { get; }
 
         /// <summary>
         /// Path relative to the repository root that this <see cref="FilterPath"/> represents.
         /// Slashes are canonical for this OS.
         /// </summary>
-        public string RepoRelativePath { get; }
+        internal string RepoRelativePath { get; }
 
         /// <summary>
         /// True if this <see cref="FilterPath"/> represents the root of the repository.
         /// </summary>
-        public bool IsRoot => this.RepoRelativePath == "";
+        internal bool IsRoot => this.RepoRelativePath == "";
 
         /// <summary>
         /// Parses a pathspec-like string into a root-relative path.
@@ -107,7 +107,7 @@ namespace Nerdbank.GitVersioning
         /// </param>
         /// <param name="ignoreCase">Whether case should be ignored by <see cref="Excludes"/></param>
         /// <exception cref="FormatException">Invalid path spec.</exception>
-        public FilterPath(string pathSpec, string relativeTo, bool ignoreCase = false)
+        internal FilterPath(string pathSpec, string relativeTo, bool ignoreCase = false)
         {
             Requires.NotNullOrEmpty(pathSpec, nameof(pathSpec));
 
@@ -155,7 +155,7 @@ namespace Nerdbank.GitVersioning
         /// <c>null</c> if no path filters are set. Otherwise, returns a list of
         /// <see cref="FilterPath"/> instances.
         /// </returns>
-        public static IReadOnlyList<FilterPath> FromVersionOptions(VersionOptions versionOptions,
+        internal static IReadOnlyList<FilterPath> FromVersionOptions(VersionOptions versionOptions,
             string relativeRepoProjectDirectory,
             IRepository repository)
         {
@@ -177,7 +177,7 @@ namespace Nerdbank.GitVersioning
         /// True if this <see cref="FilterPath"/> is an excluding filter that matches
         /// <paramref name="repoRelativePath"/>, otherwise false.
         /// </returns>
-        public bool Excludes(string repoRelativePath)
+        internal bool Excludes(string repoRelativePath)
         {
             if (repoRelativePath is null)
                 throw new ArgumentNullException(nameof(repoRelativePath));
