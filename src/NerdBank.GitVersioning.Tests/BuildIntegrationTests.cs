@@ -80,7 +80,7 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         }
     }
 
-    private string CommitIdShort => this.Repo.Head.Commits.First().Id.Sha.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength);
+    private string CommitIdShort => this.Repo.Head.Tip.Id.Sha.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength);
 
     protected override void Dispose(bool disposing)
     {
@@ -183,8 +183,8 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         this.WriteVersionFile("3.4");
         Assumes.True(repo.Index[VersionFile.JsonFileName] == null);
         var buildResult = await this.BuildAsync();
-        Assert.Equal("3.4.0." + repo.Head.Commits.First().GetIdAsVersion().Revision, buildResult.BuildVersion);
-        Assert.Equal("3.4.0+" + repo.Head.Commits.First().Id.Sha.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength), buildResult.AssemblyInformationalVersion);
+        Assert.Equal("3.4.0." + repo.Head.Tip.GetIdAsVersion().Revision, buildResult.BuildVersion);
+        Assert.Equal("3.4.0+" + repo.Head.Tip.Id.Sha.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength), buildResult.AssemblyInformationalVersion);
     }
 
     [Fact]
@@ -208,8 +208,8 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         var repo = new Repository(this.RepoPath); // do not assign Repo property to avoid commits being generated later
         repo.Commit("empty", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         var buildResult = await this.BuildAsync();
-        Assert.Equal("0.0.0." + repo.Head.Commits.First().GetIdAsVersion().Revision, buildResult.BuildVersion);
-        Assert.Equal("0.0.0+" + repo.Head.Commits.First().Id.Sha.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength), buildResult.AssemblyInformationalVersion);
+        Assert.Equal("0.0.0." + repo.Head.Tip.GetIdAsVersion().Revision, buildResult.BuildVersion);
+        Assert.Equal("0.0.0+" + repo.Head.Tip.Id.Sha.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength), buildResult.AssemblyInformationalVersion);
     }
 
     [Fact]
@@ -288,7 +288,7 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(VersionOptions.FromVersion(new Version(majorMinorVersion)), buildResult);
 
-        Version version = this.Repo.Head.Commits.First().GetIdAsVersion();
+        Version version = this.Repo.Head.Tip.GetIdAsVersion();
         Assert.Equal($"{version.Major}.{version.Minor}.{buildResult.GitVersionHeight}", buildResult.NuGetPackageVersion);
     }
 
@@ -1003,8 +1003,8 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}", buildResult.BuildVersion3Components);
         Assert.Equal(idAsVersion.Build.ToString(), buildResult.BuildVersionNumberComponent);
         Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}", buildResult.BuildVersionSimple);
-        Assert.Equal(this.Repo.Head.Commits.First().Id.Sha, buildResult.GitCommitId);
-        Assert.Equal(this.Repo.Head.Commits.First().Author.When.UtcTicks.ToString(CultureInfo.InvariantCulture), buildResult.GitCommitDateTicks);
+        Assert.Equal(this.Repo.Head.Tip.Id.Sha, buildResult.GitCommitId);
+        Assert.Equal(this.Repo.Head.Tip.Author.When.UtcTicks.ToString(CultureInfo.InvariantCulture), buildResult.GitCommitDateTicks);
         Assert.Equal(commitIdShort, buildResult.GitCommitIdShort);
         Assert.Equal(versionHeight.ToString(), buildResult.GitVersionHeight);
         Assert.Equal($"{version.Major}.{version.Minor}", buildResult.MajorMinorVersion);

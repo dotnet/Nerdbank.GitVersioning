@@ -128,7 +128,7 @@
                 return workingCopyVersion;
             }
 
-            return GetVersion(repo.Head.Commits.FirstOrDefault(), repoRelativeProjectDirectory);
+            return GetVersion(repo.Head.Tip, repoRelativeProjectDirectory);
         }
 
         /// <summary>
