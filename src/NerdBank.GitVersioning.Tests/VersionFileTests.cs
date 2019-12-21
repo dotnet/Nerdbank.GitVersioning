@@ -128,7 +128,7 @@ public class VersionFileTests : RepoTestBase
             VersionHeightOffset = versionHeightOffset,
             Inherit = inherit,
         };
-        string pathWritten = VersionFile.SetVersion(this.RepoPath, versionOptions);
+        string pathWritten = VersionFile.SetVersion(this.RepoPath, versionOptions, includeSchemaProperty: false);
         string actualFileContent = File.ReadAllText(pathWritten);
         this.Logger.WriteLine(actualFileContent);
 

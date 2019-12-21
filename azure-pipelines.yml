@@ -18,6 +18,8 @@ resources:
     image: andrewarnott/linux-buildagent
   - container: bionic
     image: microsoft/dotnet:2.1-sdk-bionic
+  - container: bionic-3.0
+    image: mcr.microsoft.com/dotnet/core/sdk:3.0-bionic
   - container: disco
     image: mcr.microsoft.com/dotnet/core/sdk:3.0-disco
 
@@ -37,7 +39,7 @@ jobs:
     displayName: Install .NET Core SDK
     inputs:
       packageType: sdk
-      version: 2.1.500
+      version: 2.2.402
   - script: dotnet --info
     displayName: Show dotnet SDK info
 
@@ -66,6 +68,10 @@ jobs:
   - script: dotnet build -c $(BuildConfiguration) --no-restore /t:build,pack /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
     displayName: Build NuGet package and tests
     workingDirectory: src
+
+  - script: dotnet publish -c $(BuildConfiguration) -o ..\nerdbank-gitversioning.npm\out\nbgv.cli\tools\netcoreapp2.1\any /bl:"$(Build.ArtifactStagingDirectory)/build_logs/nbgv_publish.binlog"
+    displayName: Build NuGet package and tests
+    workingDirectory: src\nbgv
 
   - task: gulp@0
     displayName: Build nerdbank-gitversioning NPM package
@@ -151,6 +157,14 @@ jobs:
   steps:
   - template: azure-pipelines/xplattest-pipeline.yml
 
+- job: Ubuntu_Bionic_3_0
+  dependsOn: Windows
+  pool:
+    vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
+  container: bionic-3.0
+  steps:
+  - template: azure-pipelines/xplattest-pipeline.yml
+
 - job: Ubuntu_Disco
   dependsOn: Windows
   pool:
@@ -164,7 +178,5 @@ jobs:
   dependsOn: Windows
   pool:
     vmImage: macOS 10.13
-  variables:
-    DOTNET_ROOT: /Users/vsts/.dotnet
   steps:
   - template: azure-pipelines/xplattest-pipeline.yml

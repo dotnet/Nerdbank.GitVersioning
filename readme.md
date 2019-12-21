@@ -111,7 +111,13 @@ Learn more about [public releases and the git commit ID suffix](doc/public_vs_st
 
 ### How do I translate from a version to a git commit and vice versa?
 
-A pair of Powershell scripts are included in the Nerdbank.GitVersioning NuGet package
+While Nerdbank.GitVersioning calculates the version and applies it to most builds automatically,
+there can be occasions where you want to do so yourself or reverse the process to determine
+the commit that produced a given version.
+
+To do this use [the `nbgv` tool](doc/nbgv-cli.md) with the `get-version` or `get-commits` command.
+
+Another (deprecated) option is to use a pair of Powershell scripts are included in the Nerdbank.GitVersioning NuGet package
 that can help you to translate between the two representations.
 
     tools\Get-CommitId.ps1

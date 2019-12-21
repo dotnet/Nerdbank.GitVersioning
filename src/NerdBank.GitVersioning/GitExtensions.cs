@@ -108,7 +108,7 @@
         /// <returns>The height of the branch till the version is changed.</returns>
         public static int GetVersionHeight(this Branch branch, string repoRelativeProjectDirectory = null)
         {
-            return GetVersionHeight(branch.Commits.First(), repoRelativeProjectDirectory);
+            return GetVersionHeight(branch.Tip ?? throw new InvalidOperationException("No commit exists."), repoRelativeProjectDirectory);
         }
 
         /// <summary>
@@ -177,7 +177,7 @@
         /// <returns>The height of the branch.</returns>
         public static int GetHeight(this Branch branch, string repoRelativeProjectDirectory, Func<Commit, bool> continueStepping = null)
         {
-            return GetHeight(branch.Commits.First(), repoRelativeProjectDirectory, continueStepping);
+            return GetHeight(branch.Tip ?? throw new InvalidOperationException("No commit exists."), repoRelativeProjectDirectory, continueStepping);
         }
 
         /// <summary>
@@ -285,7 +285,7 @@
         {
             Requires.NotNull(repo, nameof(repo));
 
-            var headCommit = repo.Head.Commits.FirstOrDefault();
+            var headCommit = repo.Head.Tip;
             VersionOptions workingCopyVersionOptions, committedVersionOptions;
             if (IsVersionFileChangedInWorkingCopy(repo, repoRelativeProjectDirectory, out committedVersionOptions, out workingCopyVersionOptions))
             {
@@ -889,7 +889,7 @@
         private static bool IsVersionFileChangedInWorkingCopy(Repository repo, string repoRelativeProjectDirectory, out VersionOptions committedVersion, out VersionOptions workingCopyVersion)
         {
             Requires.NotNull(repo, nameof(repo));
-            Commit headCommit = repo.Head.Commits.FirstOrDefault();
+            Commit headCommit = repo.Head.Tip;
             committedVersion = VersionFile.GetVersion(headCommit, repoRelativeProjectDirectory);
 
             if (!repo.Info.IsBare)
