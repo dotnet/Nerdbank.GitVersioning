@@ -13,7 +13,7 @@
     /// Describes the various versions and options required for the build.
     /// </summary>
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
-    public class VersionOptions : IEquatable<VersionOptions>
+    public class VersionOptions : IEquatable<VersionOptions>, ICloneable
     {
         /// <summary>
         /// Default value for <see cref="VersionPrecision"/>.
@@ -342,6 +342,22 @@
         public override int GetHashCode() => EqualWithDefaultsComparer.Singleton.GetHashCode(this);
 
         /// <summary>
+        /// Clones this object.
+        /// </summary>
+        /// <returns>A deep clone of this object.</returns>
+        public object Clone()
+        {
+            var newVersionOptions = (VersionOptions) this.MemberwiseClone();
+            newVersionOptions.Version = (SemanticVersion) newVersionOptions.Version?.Clone();
+            newVersionOptions.AssemblyVersion = (AssemblyVersionOptions) newVersionOptions.AssemblyVersion?.Clone();
+            newVersionOptions.NuGetPackageVersion = (NuGetPackageVersionOptions) newVersionOptions.NuGetPackageVersion?.Clone();
+            newVersionOptions.PublicReleaseRefSpec = (string[]) newVersionOptions.PublicReleaseRefSpec?.Clone();
+            newVersionOptions.CloudBuild = (CloudBuildOptions) newVersionOptions.CloudBuild?.Clone();
+            newVersionOptions.Release = (ReleaseOptions) newVersionOptions.Release?.Clone();
+            return newVersionOptions;
+        }
+
+        /// <summary>
         /// Checks equality against another instance of this class.
         /// </summary>
         /// <param name="other">The other instance.</param>
@@ -368,7 +384,7 @@
         /// <summary>
         /// The class that contains settings for the <see cref="NuGetPackageVersion" /> property.
         /// </summary>
-        public class NuGetPackageVersionOptions : IEquatable<NuGetPackageVersionOptions>
+        public class NuGetPackageVersionOptions : IEquatable<NuGetPackageVersionOptions>, ICloneable
         {
             /// <summary>
             /// The default (uninitialized) instance.
@@ -426,6 +442,12 @@
             public override int GetHashCode() => EqualWithDefaultsComparer.Singleton.GetHashCode(this);
 
             /// <summary>
+            /// Clones this object.
+            /// </summary>
+            /// <returns>A deep clone of this object.</returns>
+            public object Clone() => this.isReadOnly ? this : this.MemberwiseClone();
+
+            /// <summary>
             /// Gets a value indicating whether this instance is equivalent to the default instance.
             /// </summary>
             internal bool IsDefault => this.Equals(DefaultInstance);
@@ -475,7 +497,7 @@
         /// <summary>
         /// Describes the details of how the AssemblyVersion value will be calculated.
         /// </summary>
-        public class AssemblyVersionOptions : IEquatable<AssemblyVersionOptions>
+        public class AssemblyVersionOptions : IEquatable<AssemblyVersionOptions>, ICloneable
         {
             /// <summary>
             /// The default (uninitialized) instance.
@@ -558,6 +580,12 @@
             public override int GetHashCode() => EqualWithDefaultsComparer.Singleton.GetHashCode(this);
 
             /// <summary>
+            /// Clones this object.
+            /// </summary>
+            /// <returns>A deep clone of this object.</returns>
+            public object Clone() => this.isReadOnly ? this : this.MemberwiseClone();
+
+            /// <summary>
             /// Gets a value indicating whether this instance is equivalent to the default instance.
             /// </summary>
             internal bool IsDefault => this.Equals(DefaultInstance);
@@ -608,7 +636,7 @@
         /// <summary>
         /// Options that are applicable specifically to cloud builds (e.g. VSTS, AppVeyor, TeamCity)
         /// </summary>
-        public class CloudBuildOptions : IEquatable<CloudBuildOptions>
+        public class CloudBuildOptions : IEquatable<CloudBuildOptions>, ICloneable
         {
             /// <summary>
             /// The default (uninitialized) instance.
@@ -702,6 +730,21 @@
             public override int GetHashCode() => EqualWithDefaultsComparer.Singleton.GetHashCode(this);
 
             /// <summary>
+            /// Clones this object.
+            /// </summary>
+            /// <returns>A deep clone of this object.</returns>
+            public object Clone()
+            {
+                if (this.isReadOnly)
+                {
+                    return this;
+                }
+                var newCbo = (CloudBuildOptions)this.MemberwiseClone();
+                newCbo.BuildNumber = (CloudBuildNumberOptions) newCbo.BuildNumber?.Clone();
+                return newCbo;
+            }
+
+            /// <summary>
             /// Gets a value indicating whether this instance is equivalent to the default instance.
             /// </summary>
             internal bool IsDefault => this.Equals(DefaultInstance);
@@ -755,7 +798,7 @@
         /// <summary>
         /// Override the build number preset by the cloud build with one enriched with version information.
         /// </summary>
-        public class CloudBuildNumberOptions : IEquatable<CloudBuildNumberOptions>
+        public class CloudBuildNumberOptions : IEquatable<CloudBuildNumberOptions>, ICloneable
         {
             /// <summary>
             /// The default (uninitialized) instance.
@@ -823,6 +866,17 @@
             public override int GetHashCode() => EqualWithDefaultsComparer.Singleton.GetHashCode(this);
 
             /// <summary>
+            /// Clones this object.
+            /// </summary>
+            /// <returns>A deep clone of this object.</returns>
+            public object Clone()
+            {
+                var newCbno = (CloudBuildNumberOptions)this.MemberwiseClone();
+                newCbno.IncludeCommitId = (CloudBuildNumberCommitIdOptions) newCbno.IncludeCommitId?.Clone();
+                return newCbno;
+            }
+
+            /// <summary>
             /// Gets a value indicating whether this instance is equivalent to the default instance.
             /// </summary>
             internal bool IsDefault => this.Equals(DefaultInstance);
@@ -874,7 +928,7 @@
         /// <summary>
         /// Describes when and where to include information about the git commit being built.
         /// </summary>
-        public class CloudBuildNumberCommitIdOptions : IEquatable<CloudBuildNumberCommitIdOptions>
+        public class CloudBuildNumberCommitIdOptions : IEquatable<CloudBuildNumberCommitIdOptions>, ICloneable
         {
             /// <summary>
             /// The default (uninitialized) instance.
@@ -947,6 +1001,12 @@
             public bool Equals(CloudBuildNumberCommitIdOptions other) => EqualWithDefaultsComparer.Singleton.Equals(this, other);
             /// <inheritdoc />
             public override int GetHashCode() => EqualWithDefaultsComparer.Singleton.GetHashCode(this);
+
+            /// <summary>
+            /// Clones this object.
+            /// </summary>
+            /// <returns>A deep clone of this object.</returns>
+            public object Clone() => this.isReadOnly ? this : this.MemberwiseClone();
 
             /// <summary>
             /// Gets a value indicating whether this instance is equivalent to the default instance.
@@ -1096,7 +1156,7 @@
         /// <summary>
         /// Encapsulates settings for the "prepare-release" command
         /// </summary>
-        public class ReleaseOptions : IEquatable<ReleaseOptions>
+        public class ReleaseOptions : IEquatable<ReleaseOptions>, ICloneable
         {
             /// <summary>
             /// The default (uninitialized) instance.
@@ -1192,6 +1252,12 @@
 
             /// <inheritdoc />
             public override int GetHashCode() => EqualWithDefaultsComparer.Singleton.GetHashCode(this);
+
+            /// <summary>
+            /// Clones this object.
+            /// </summary>
+            /// <returns>A deep clone of this object.</returns>
+            public object Clone() => this.isReadOnly ? this : this.MemberwiseClone();
 
             /// <summary>
             /// Gets a value indicating whether this instance is equivalent to the default instance.

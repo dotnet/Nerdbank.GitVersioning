@@ -66,13 +66,18 @@
                 {
                     if (cache != null && cache.TryGetValue(versionTxtBlob, out var cachedOptions))
                     {
-                        return cachedOptions;
+                        return (VersionOptions)cachedOptions.Clone();
                     }
 
                     var result = TryReadVersionFile(new StreamReader(versionTxtBlob.GetContentStream()), isJsonFile: false);
                     if (result != null)
                     {
-                        cache?.Add(versionTxtBlob, result);
+                        if (cache != null)
+                        {
+                            cache.Add(versionTxtBlob, result);
+                            return (VersionOptions) result.Clone();
+                        }
+
                         return result;
                     }
                 }
@@ -83,7 +88,7 @@
                 {
                     if (cache != null && cache.TryGetValue(versionJsonBlob, out var cachedOptions))
                     {
-                        return cachedOptions;
+                        return (VersionOptions)cachedOptions.Clone();
                     }
 
                     string versionJsonContent;
@@ -113,7 +118,11 @@
                             if (result != null)
                             {
                                 JsonConvert.PopulateObject(versionJsonContent, result, VersionOptions.GetJsonSettings());
-                                cache?.Add(versionJsonBlob, result);
+
+                                // We can't cache VersionOptions that use inheritance.
+                                // The file blob will still be the same even if an ancestor
+                                // version.json has changed.
+
                                 return result;
                             }
                         }
@@ -122,7 +131,12 @@
                     }
                     else if (result != null)
                     {
-                        cache?.Add(versionJsonBlob, result);
+                        if (cache != null)
+                        {
+                            cache.Add(versionJsonBlob, result);
+                            return (VersionOptions) result.Clone();
+                        }
+
                         return result;
                     }
                 }
