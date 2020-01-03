@@ -731,9 +731,9 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
 
     [Theory]
     [PairwiseData]
-    public async Task AssemblyInfo(bool isVB, bool includeNonVersionAttributes, bool gitRepo)
+    public async Task AssemblyInfo(bool isVB, bool includeNonVersionAttributes, bool gitRepo, bool isPrerelease, bool isPublicRelease)
     {
-        this.WriteVersionFile();
+        this.WriteVersionFile(prerelease: isPrerelease ? "-beta" : string.Empty);
         if (gitRepo)
         {
             this.InitializeSourceControl();
@@ -748,6 +748,8 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         {
             this.testProject.AddProperty("NBGV_EmitNonVersionCustomAttributes", "true");
         }
+
+        this.globalProperties["PublicRelease"] = isPublicRelease ? "true" : "false";
 
         var result = await this.BuildAsync("Build", logVerbosity: LoggerVerbosity.Minimal);
         string assemblyPath = result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("TargetPath");
@@ -795,6 +797,8 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         Assert.Equal(result.AssemblyCompany, thisAssemblyClass.GetField("AssemblyCompany", fieldFlags)?.GetValue(null));
         Assert.Equal(result.AssemblyCopyright, thisAssemblyClass.GetField("AssemblyCopyright", fieldFlags)?.GetValue(null));
         Assert.Equal(result.GitCommitId, thisAssemblyClass.GetField("GitCommitId", fieldFlags)?.GetValue(null) ?? string.Empty);
+        Assert.Equal(result.PublicRelease, thisAssemblyClass.GetField("IsPublicRelease", fieldFlags)?.GetValue(null));
+        Assert.Equal(!string.IsNullOrEmpty(result.PrereleaseVersion), thisAssemblyClass.GetField("IsPrerelease", fieldFlags)?.GetValue(null));
 
         if (gitRepo)
         {

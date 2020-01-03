@@ -42,6 +42,8 @@ type internal ThisAssembly() =
   static member internal AssemblyVersion = ""1.3.0.0""
   static member internal AssemblyFileVersion = ""1.3.1.0""
   static member internal AssemblyCompany = ""company""
+  static member internal IsPublicRelease = false
+  static member internal IsPrerelease = false
   static member internal RootNamespace = """"
 do()
 ";
@@ -80,6 +82,8 @@ internal static partial class ThisAssembly {
     internal const string AssemblyVersion = ""1.3.0.0"";
     internal const string AssemblyFileVersion = ""1.3.1.0"";
     internal const string AssemblyCompany = ""company"";
+    internal const bool IsPublicRelease = false;
+    internal const bool IsPrerelease = false;
     internal const string RootNamespace = """";
 }
 ";
