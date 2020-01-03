@@ -162,6 +162,8 @@
                   AssemblyCopyright="$(AssemblyCopyright)"
                   AssemblyCompany="$(AssemblyCompany)"
                   AssemblyConfiguration="$(Configuration)"
+                  PublicRelease="$(PublicRelease)"
+                  PrereleaseVersion="$(PrereleaseVersion)"
                   GitCommitId="$(GitCommitId)"
                   GitCommitDateTicks="$(GitCommitDateTicks)"
                   EmitNonVersionCustomAttributes="$(NBGV_EmitNonVersionCustomAttributes)"

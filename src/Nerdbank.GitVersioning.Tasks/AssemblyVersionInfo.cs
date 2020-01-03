@@ -77,6 +77,10 @@
 
         public string AssemblyConfiguration { get; set; }
 
+        public bool PublicRelease { get; set; }
+
+        public string PrereleaseVersion { get; set; }
+
         public string GitCommitId { get; set; }
 
         public string GitCommitDateTicks { get; set; }
@@ -161,6 +165,11 @@
                     { "AssemblyConfiguration", this.AssemblyConfiguration },
                     { "GitCommitId", this.GitCommitId },
                 }).ToArray());
+            thisAssembly.Members.AddRange(CreateFields(new Dictionary<string, bool>
+                {
+                    { "IsPublicRelease", this.PublicRelease },
+                    { "IsPrerelease", !string.IsNullOrEmpty(this.PrereleaseVersion) },
+                }).ToArray());
 
             if (long.TryParse(this.GitCommitDateTicks, out long gitCommitDateTicks))
             {
@@ -222,9 +231,17 @@
             }
         }
 
-        private static CodeMemberField CreateField(string name, string value)
+        private static IEnumerable<CodeMemberField> CreateFields<T>(IReadOnlyDictionary<string, T> namesAndValues)
         {
-            return new CodeMemberField(typeof(string), name)
+            foreach (var item in namesAndValues)
+            {
+                yield return CreateField(item.Key, item.Value);
+            }
+        }
+
+        private static CodeMemberField CreateField<T>(string name, T value)
+        {
+            return new CodeMemberField(typeof(T), name)
             {
                 Attributes = MemberAttributes.Const | MemberAttributes.Assembly,
                 InitExpression = new CodePrimitiveExpression(value),
@@ -359,6 +376,12 @@
                     { "AssemblyConfiguration", this.AssemblyConfiguration },
                     { "GitCommitId", this.GitCommitId },
                 };
+            var boolFields = new Dictionary<string, bool>
+                {
+                    { "IsPublicRelease", this.PublicRelease },
+                    { "IsPrerelease", !string.IsNullOrEmpty(this.PrereleaseVersion) },
+                };
+
             if (hasKeyInfo)
             {
                 fields.Add("PublicKey", publicKey);
@@ -371,6 +394,11 @@
                 {
                     this.generator.AddThisAssemblyMember(pair.Key, pair.Value);
                 }
+            }
+
+            foreach (var pair in boolFields)
+            {
+                this.generator.AddThisAssemblyMember(pair.Key, pair.Value);
             }
 
             if (long.TryParse(this.GitCommitDateTicks, out long gitCommitDateTicks))
@@ -417,6 +445,8 @@
             internal abstract void StartThisAssemblyClass();
 
             internal abstract void AddThisAssemblyMember(string name, string value);
+            
+            internal abstract void AddThisAssemblyMember(string name, bool value);
 
             internal abstract void EndThisAssemblyClass();
 
@@ -457,6 +487,11 @@
             internal override void AddThisAssemblyMember(string name, string value)
             {
                 this.codeBuilder.AppendLine($"  static member internal {name} = \"{value}\"");
+            }
+
+            internal override void AddThisAssemblyMember(string name, bool value)
+            {
+                this.codeBuilder.AppendLine($"  static member internal {name} = {(value ? "true" : "false")}");
             }
 
             internal override void EmitNamespaceIfRequired(string ns)
@@ -516,6 +551,11 @@
                 this.codeBuilder.AppendLine($"    internal const string {name} = \"{value}\";");
             }
 
+            internal override void AddThisAssemblyMember(string name, bool value)
+            {
+                this.codeBuilder.AppendLine($"    internal const bool {name} = {(value ? "true" : "false")};");
+            }
+
             internal override void AddCommitDateProperty(long ticks)
             {
                 this.codeBuilder.AppendLine($"    internal static readonly System.DateTime GitCommitDate = new System.DateTime({ticks}L, System.DateTimeKind.Utc);");
@@ -554,6 +594,11 @@
             internal override void AddThisAssemblyMember(string name, string value)
             {
                 this.codeBuilder.AppendLine($"    Friend Const {name} As String = \"{value}\"");
+            }
+
+            internal override void AddThisAssemblyMember(string name, bool value)
+            {
+                this.codeBuilder.AppendLine($"    Friend Const {name} As Boolean = {(value ? "True" : "False")}");
             }
 
             internal override void AddCommitDateProperty(long ticks)
