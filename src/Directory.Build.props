@@ -13,6 +13,7 @@
     <owners>aarnott</owners>
     <PackageTags>git commit versioning version assemblyinfo</PackageTags>
     <PackageProjectUrl>https://github.com/aarnott/Nerdbank.GitVersioning</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
 
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
