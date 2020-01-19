@@ -58,6 +58,7 @@ Also some special [cloud build considerations](doc/cloudbuild.md).
 
 This package calculates the version based on a combination of the version.json file,
 the git 'height' of the version, and the git commit ID.
+The height can optionally be incremented only for those [commits that change certain paths](doc/pathFilters.md).
 
 ### Version generation
 

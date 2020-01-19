@@ -33,6 +33,9 @@ The content of the version.json file is a JSON serialized object with these prop
   "nugetPackageVersion": {
      "semVer": 1 // optional. Set to either 1 or 2 to control how the NuGet package version string is generated. Default is 1.
   },
+  "pathFilters": [
+    // optional list of paths to consider when calculating version height.
+  ]
   "publicReleaseRefSpec": [
     "^refs/heads/master$", // we release out of master
     "^refs/tags/v\\d+\\.\\d+" // we also release tags starting with vN.N
@@ -70,3 +73,5 @@ The `publicReleaseRefSpec` field causes builds out of certain branches or tags
 to automatically drop the `-gabc123` git commit ID suffix from the version, making it
 convenient to build releases out of these refs with a friendly version number
 that assumes linear versioning.
+
+[Learn more about pathFilters](pathFilters.md).
