@@ -9,7 +9,7 @@
     /// Describes a version with an optional unstable tag.
     /// </summary>
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
-    public class SemanticVersion : IEquatable<SemanticVersion>, ICloneable
+    public class SemanticVersion : IEquatable<SemanticVersion>
     {
         /// <summary>
         /// The regular expression with capture groups for semantic versioning.
@@ -205,12 +205,6 @@
         {
             return this.Version + this.Prerelease + this.BuildMetadata;
         }
-
-        /// <summary>
-        /// Clones this object.
-        /// </summary>
-        /// <returns>A deep clone of this object.</returns>
-        public object Clone() => this.MemberwiseClone();
 
         /// <summary>
         /// Checks equality against another instance of this class.

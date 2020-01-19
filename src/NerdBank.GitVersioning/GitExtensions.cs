@@ -45,7 +45,9 @@
             Requires.NotNull(commit, nameof(commit));
             Requires.Argument(repoRelativeProjectDirectory == null || !Path.IsPathRooted(repoRelativeProjectDirectory), nameof(repoRelativeProjectDirectory), "Path should be relative to repo root.");
 
-            var versionOptions = VersionFile.GetVersion(commit, repoRelativeProjectDirectory);
+            var tracker = new GitWalkTracker(repoRelativeProjectDirectory);
+
+            var versionOptions = tracker.GetVersion(commit);
             if (versionOptions == null)
             {
                 return 0;
@@ -58,7 +60,7 @@
             var versionHeightPosition = versionOptions.VersionHeightPosition;
             if (versionHeightPosition.HasValue)
             {
-                int height = commit.GetHeight(repoRelativeProjectDirectory, (c, v) => VersionOptionsMatchesVersion(v, baseSemVer, versionHeightPosition.Value));
+                int height = commit.GetHeight(repoRelativeProjectDirectory, c => CommitMatchesVersion(c, baseSemVer, versionHeightPosition.Value, tracker));
                 return height;
             }
 
@@ -141,29 +143,10 @@
         /// <returns>The height of the commit. Always a positive integer.</returns>
         public static int GetHeight(this Commit commit, string repoRelativeProjectDirectory, Func<Commit, bool> continueStepping = null)
         {
-            return commit.GetHeight(repoRelativeProjectDirectory,
-                continueStepping == null ? default(Func<Commit, VersionOptions, bool>) : (c, v) => continueStepping(c));
-        }
-
-        /// <summary>
-        /// Gets the number of commits in the longest single path between
-        /// the specified commit and the most distant ancestor (inclusive).
-        /// </summary>
-        /// <param name="commit">The commit to measure the height of.</param>
-        /// <param name="repoRelativeProjectDirectory">The path to the directory of the project whose version is being queried, relative to the repo root.</param>
-        /// <param name="continueStepping">
-        /// A function that returns <c>false</c> when we reach a commit that
-        /// should not be included in the height calculation.
-        /// May be null to count the height to the original commit.
-        /// </param>
-        /// <returns>The height of the commit. Always a positive integer.</returns>
-        private static int GetHeight(this Commit commit, string repoRelativeProjectDirectory, Func<Commit, VersionOptions, bool> continueStepping = null)
-        {
             Requires.NotNull(commit, nameof(commit));
 
-            var heights = new Dictionary<ObjectId, int>();
-            var versionFileCache = new Dictionary<GitObject, VersionOptions>();
-            return GetCommitHeight(commit, repoRelativeProjectDirectory, heights, versionFileCache, continueStepping);
+            var tracker = new GitWalkTracker(repoRelativeProjectDirectory);
+            return GetCommitHeight(commit, tracker, continueStepping);
         }
 
         /// <summary>
@@ -352,11 +335,12 @@
             Requires.NotNull(repo, nameof(repo));
             Requires.NotNull(version, nameof(version));
 
+            var tracker = new GitWalkTracker(repoRelativeProjectDirectory);
             var possibleCommits = from commit in GetCommitsReachableFromRefs(repo).Distinct()
-                                  let commitVersionOptions = VersionFile.GetVersion(commit, repoRelativeProjectDirectory)
+                                  let commitVersionOptions = tracker.GetVersion(commit)
                                   where commitVersionOptions != null
                                   where !IsCommitIdMismatch(version, commitVersionOptions, commit)
-                                  where !IsVersionHeightMismatch(version, commitVersionOptions, commit, repoRelativeProjectDirectory)
+                                  where !IsVersionHeightMismatch(version, commitVersionOptions, commit, tracker)
                                   select commit;
 
             return possibleCommits;
@@ -491,16 +475,20 @@
         }
 
         /// <summary>
-        /// Tests whether a <see cref="VersionOptions"/> is of a specified version, comparing components up to a precision specified by <paramref name="comparisonPrecision"/>.
+        /// Tests whether a commit is of a specified version, comparing major and minor components
+        /// with the version.txt file defined by that commit.
         /// </summary>
-        /// <param name="commitVersionData">Version data for a given commit</param>
-        /// <param name="expectedVersion">The version to test for against <paramref name="commitVersionData"/></param>
+        /// <param name="commit">The commit to test.</param>
+        /// <param name="expectedVersion">The version to test for in the commit</param>
         /// <param name="comparisonPrecision">The last component of the version to include in the comparison.</param>
-        /// <returns><c>true</c> if the <paramref name="commitVersionData"/> matches the components (up to <paramref name="comparisonPrecision"/>) of <paramref name="expectedVersion"/>.</returns>
-        private static bool VersionOptionsMatchesVersion(VersionOptions commitVersionData, SemanticVersion expectedVersion, SemanticVersion.Position comparisonPrecision)
+        /// <param name="tracker">The caching tracker for storing or fetching version information per commit.</param>
+        /// <returns><c>true</c> if the <paramref name="commit"/> matches the major and minor components of <paramref name="expectedVersion"/>.</returns>
+        private static bool CommitMatchesVersion(this Commit commit, SemanticVersion expectedVersion, SemanticVersion.Position comparisonPrecision, GitWalkTracker tracker)
         {
+            Requires.NotNull(commit, nameof(commit));
             Requires.NotNull(expectedVersion, nameof(expectedVersion));
 
+            var commitVersionData = tracker.GetVersion(commit);
             var semVerFromFile = commitVersionData?.Version;
             if (semVerFromFile == null)
             {
@@ -538,14 +526,14 @@
         /// <param name="commit">The commit to test.</param>
         /// <param name="expectedVersion">The version to test for in the commit</param>
         /// <param name="comparisonPrecision">The last component of the version to include in the comparison.</param>
-        /// <param name="repoRelativeProjectDirectory">The repo-relative directory from which <paramref name="expectedVersion"/> was originally calculated.</param>
+        /// <param name="tracker">The caching tracker for storing or fetching version information per commit.</param>
         /// <returns><c>true</c> if the <paramref name="commit"/> matches the major and minor components of <paramref name="expectedVersion"/>.</returns>
-        private static bool CommitMatchesVersion(this Commit commit, Version expectedVersion, SemanticVersion.Position comparisonPrecision, string repoRelativeProjectDirectory)
+        private static bool CommitMatchesVersion(this Commit commit, Version expectedVersion, SemanticVersion.Position comparisonPrecision, GitWalkTracker tracker)
         {
             Requires.NotNull(commit, nameof(commit));
             Requires.NotNull(expectedVersion, nameof(expectedVersion));
 
-            var commitVersionData = VersionFile.GetVersion(commit, repoRelativeProjectDirectory);
+            var commitVersionData = tracker.GetVersion(commit);
             var semVerFromFile = commitVersionData?.Version;
             if (semVerFromFile == null)
             {
@@ -584,7 +572,7 @@
             }
         }
 
-        private static bool IsVersionHeightMismatch(Version version, VersionOptions versionOptions, Commit commit, string repoRelativeProjectDirectory)
+        private static bool IsVersionHeightMismatch(Version version, VersionOptions versionOptions, Commit commit, GitWalkTracker tracker)
         {
             Requires.NotNull(version, nameof(version));
             Requires.NotNull(versionOptions, nameof(versionOptions));
@@ -597,7 +585,7 @@
                 int expectedVersionHeight = ReadVersionPosition(version, position.Value);
 
                 var actualVersionOffset = versionOptions.VersionHeightOffsetOrDefault;
-                var actualVersionHeight = commit.GetHeight(repoRelativeProjectDirectory, c => CommitMatchesVersion(c, version, position.Value - 1, repoRelativeProjectDirectory));
+                var actualVersionHeight = GetCommitHeight(commit, tracker, c => CommitMatchesVersion(c, version, position.Value - 1, tracker));
                 return expectedVersionHeight != actualVersionHeight + actualVersionOffset;
             }
 
@@ -710,28 +698,24 @@
         /// the specified branch's head and the most distant ancestor (inclusive).
         /// </summary>
         /// <param name="commit">The commit to measure the height of.</param>
-        /// <param name="repoRelativeProjectDirectory">The path to the directory of the project whose height is being queried, relative to the repo root.</param>
-        /// <param name="heights">A cache of commits and their heights.</param>
-        /// <param name="versionFileCache">A cache of version file blobs to <see cref="VersionOptions"/></param>
+        /// <param name="tracker">The caching tracker for storing or fetching version information per commit.</param>
         /// <param name="continueStepping">
         /// A function that returns <c>false</c> when we reach a commit that
         /// should not be included in the height calculation.
         /// May be null to count the height to the original commit.
         /// </param>
         /// <returns>The height of the branch.</returns>
-        private static int GetCommitHeight(Commit commit, string repoRelativeProjectDirectory, Dictionary<ObjectId, int> heights, Dictionary<GitObject, VersionOptions> versionFileCache, Func<Commit, VersionOptions, bool> continueStepping)
+        private static int GetCommitHeight(Commit commit, GitWalkTracker tracker, Func<Commit, bool> continueStepping)
         {
             Requires.NotNull(commit, nameof(commit));
-            Requires.NotNull(heights, nameof(heights));
-            Requires.NotNull(versionFileCache, nameof(versionFileCache));
+            Requires.NotNull(tracker, nameof(tracker));
 
-            if (!heights.TryGetValue(commit.Id, out int height))
+            if (!tracker.TryGetVersionHeight(commit, out int height))
             {
-                var versionOptions = VersionFile.GetVersion(commit, repoRelativeProjectDirectory, versionFileCache);
-
-                if (continueStepping == null || continueStepping(commit, versionOptions))
+                if (continueStepping == null || continueStepping(commit))
                 {
-                    var pathFilters = versionOptions != null ? FilterPath.FromVersionOptions(versionOptions, repoRelativeProjectDirectory, commit.GetRepository()) : null;
+                    var versionOptions = tracker.GetVersion(commit);
+                    var pathFilters = versionOptions != null ? FilterPath.FromVersionOptions(versionOptions, tracker.RepoRelativeDirectory, commit.GetRepository()) : null;
 
                     var includePaths =
                         pathFilters
@@ -778,7 +762,7 @@
 
                     if (commit.Parents.Any())
                     {
-                        height += commit.Parents.Max(p => GetCommitHeight(p, repoRelativeProjectDirectory, heights, versionFileCache, continueStepping));
+                        height += commit.Parents.Max(p => GetCommitHeight(p, tracker, continueStepping));
                     }
                 }
                 else
@@ -786,7 +770,7 @@
                     height = 0;
                 }
 
-                heights[commit.Id] = height;
+                tracker.RecordHeight(commit, height);
             }
 
             return height;
@@ -919,6 +903,34 @@
 
             workingCopyVersion = null;
             return false;
+        }
+
+        private class GitWalkTracker
+        {
+            private readonly Dictionary<ObjectId, VersionOptions> commitVersionCache = new Dictionary<ObjectId, VersionOptions>();
+            private readonly Dictionary<ObjectId, int> heights = new Dictionary<ObjectId, int>();
+
+            internal GitWalkTracker(string repoRelativeDirectory)
+            {
+                this.RepoRelativeDirectory = repoRelativeDirectory;
+            }
+
+            internal string RepoRelativeDirectory { get; }
+
+            internal bool TryGetVersionHeight(Commit commit, out int height) => this.heights.TryGetValue(commit.Id, out height);
+
+            internal void RecordHeight(Commit commit, int height) => this.heights.Add(commit.Id, height);
+
+            internal VersionOptions GetVersion(Commit commit)
+            {
+                if (!this.commitVersionCache.TryGetValue(commit.Id, out VersionOptions options))
+                {
+                    options = VersionFile.GetVersion(commit, this.RepoRelativeDirectory);
+                    this.commitVersionCache.Add(commit.Id, options);
+                }
+
+                return options;
+            }
         }
     }
 }

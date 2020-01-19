@@ -31,24 +31,12 @@
         public static readonly IReadOnlyList<string> PreferredFileNames = new[] { JsonFileName, TxtFileName };
 
         /// <summary>
-        /// Reads the version.{txt,json} file and returns the <see cref="VersionOptions"/> for it.
+        /// Reads the version.txt file and returns the <see cref="Version"/> and prerelease tag from it.
         /// </summary>
         /// <param name="commit">The commit to read the version file from.</param>
         /// <param name="repoRelativeProjectDirectory">The directory to consider when searching for the version.txt file.</param>
         /// <returns>The version information read from the file.</returns>
         public static VersionOptions GetVersion(LibGit2Sharp.Commit commit, string repoRelativeProjectDirectory = null)
-        {
-            return GetVersion(commit, repoRelativeProjectDirectory, null);
-        }
-
-        /// <summary>
-        /// Reads the version.{txt,json} file and returns the <see cref="VersionOptions"/> for it.
-        /// </summary>
-        /// <param name="commit">The commit to read the version file from.</param>
-        /// <param name="repoRelativeProjectDirectory">The directory to consider when searching for the version.txt file.</param>
-        /// <param name="cache"></param>
-        /// <returns>The version information read from the file.</returns>
-        public static VersionOptions GetVersion(LibGit2Sharp.Commit commit, string repoRelativeProjectDirectory, Dictionary<LibGit2Sharp.GitObject, VersionOptions> cache = null)
         {
             if (commit == null)
             {
@@ -64,20 +52,9 @@
                 var versionTxtBlob = commit.Tree[candidatePath]?.Target as LibGit2Sharp.Blob;
                 if (versionTxtBlob != null)
                 {
-                    if (cache != null && cache.TryGetValue(versionTxtBlob, out var cachedOptions))
-                    {
-                        return (VersionOptions)cachedOptions.Clone();
-                    }
-
                     var result = TryReadVersionFile(new StreamReader(versionTxtBlob.GetContentStream()), isJsonFile: false);
                     if (result != null)
                     {
-                        if (cache != null)
-                        {
-                            cache.Add(versionTxtBlob, result);
-                            return (VersionOptions) result.Clone();
-                        }
-
                         return result;
                     }
                 }
@@ -86,11 +63,6 @@
                 var versionJsonBlob = commit.Tree[candidatePath]?.Target as LibGit2Sharp.Blob;
                 if (versionJsonBlob != null)
                 {
-                    if (cache != null && cache.TryGetValue(versionJsonBlob, out var cachedOptions))
-                    {
-                        return (VersionOptions)cachedOptions.Clone();
-                    }
-
                     string versionJsonContent;
                     using (var sr = new StreamReader(versionJsonBlob.GetContentStream()))
                     {
@@ -114,15 +86,10 @@
                     {
                         if (parentDirectory != null)
                         {
-                            result = GetVersion(commit, parentDirectory, cache);
+                            result = GetVersion(commit, parentDirectory);
                             if (result != null)
                             {
                                 JsonConvert.PopulateObject(versionJsonContent, result, VersionOptions.GetJsonSettings());
-
-                                // We can't cache VersionOptions that use inheritance.
-                                // The file blob will still be the same even if an ancestor
-                                // version.json has changed.
-
                                 return result;
                             }
                         }
@@ -131,12 +98,6 @@
                     }
                     else if (result != null)
                     {
-                        if (cache != null)
-                        {
-                            cache.Add(versionJsonBlob, result);
-                            return (VersionOptions) result.Clone();
-                        }
-
                         return result;
                     }
                 }
