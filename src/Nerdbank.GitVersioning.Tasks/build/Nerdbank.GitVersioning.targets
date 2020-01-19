@@ -238,6 +238,7 @@
 
   <!-- Support for ASP.NET Core 2.1 Razor view assemblies -->
   <Target Name="AddVersionFile"
+          Condition="'@(RazorGenerate->Count())' != '0'"
           BeforeTargets="PrepareForRazorCompile"
           DependsOnTargets="GenerateAssemblyVersionInfo">
     <ItemGroup>
