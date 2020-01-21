@@ -131,6 +131,11 @@ After ensuring that your root version.json file does *not* set `cloudBuild.build
 
 ## CI Server specific configurations
 
+### GitHub Actions (v2)
+
+We define a GitHub Action that installs the `nbgv` CLI tool, provides version data as action outputs, and optionally sets environment variables.
+Check out [nerdbank-gitversioning on the GitHub Actions marketplace](https://github.com/marketplace/actions/nerdbank-gitversioning).
+
 ### TeamCity
 TeamCity does not expose the build branch by default as an environment variable. This can be exposed by
 adding an environment variable with the value of `%teamcity.build.vcs.branch.<vcsid>%` where `<vcsid>` is
