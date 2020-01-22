@@ -33,6 +33,11 @@
             InvalidBranchNameSetting,
 
             /// <summary>
+            /// The "versionFieldCount" setting in "version.json" is invalid
+            /// </summary>
+            InvalidVersionFieldCountSetting,
+
+            /// <summary>
             /// version.json/version.txt not found
             /// </summary>
             NoVersionFile,
@@ -135,7 +140,7 @@
                 this.stderr.WriteLine($"Failed to load version file for directory '{projectDirectory}'.");
                 throw new ReleasePreparationException(ReleasePreparationError.NoVersionFile);
             }
-            
+
             var releaseBranchName = this.GetReleaseBranchName(versionOptions);
             var originalBranchName = repository.Head.FriendlyName;
             var releaseVersion = string.IsNullOrEmpty(releaseUnstableTag)
@@ -192,8 +197,34 @@
                 throw new ReleasePreparationException(ReleasePreparationError.InvalidBranchNameSetting);
             }
 
+            string version;
+            if (versionOptions.ReleaseOrDefault.VersionFieldCount <= 0)
+            {
+                version = versionOptions.Version.Version.ToString();
+            }
+            else
+            {
+                int numComponents = 0;
+                if (versionOptions.Version.Version.Revision >= 0)
+                    numComponents = 4;
+                else if (versionOptions.Version.Version.Build >= 0)
+                    numComponents = 3;
+                else if (versionOptions.Version.Version.Minor >= 0)
+                    numComponents = 2;
+                else if (versionOptions.Version.Version.Major >= 0)
+                    numComponents = 1;
+
+                if (versionOptions.ReleaseOrDefault.VersionFieldCount > numComponents)
+                {
+                    this.stderr.WriteLine($"Invalid 'versionFieldCount' setting '{versionOptions.ReleaseOrDefault.VersionFieldCount}'. The field count must be equal or lower than the number of version components in your version file.");
+                    throw new ReleasePreparationException(ReleasePreparationError.InvalidVersionFieldCountSetting);
+                }
+
+                version = versionOptions.Version.Version.ToString(versionOptions.ReleaseOrDefault.VersionFieldCount);
+            }
+
             // replace the "{version}" placeholder with the actual version
-            return branchNameFormat.Replace("{version}", versionOptions.Version.Version.ToString());
+            return branchNameFormat.Replace("{version}", version);
         }
 
         private void UpdateVersion(string projectDirectory, Repository repository, SemanticVersion oldVersion, SemanticVersion newVersion)
@@ -284,7 +315,7 @@
             var currentVersion = versionOptions.Version;
 
             SemanticVersion nextDevVersion;
-            if(nextVersionOverride != null)
+            if (nextVersionOverride != null)
             {
                 nextDevVersion = new SemanticVersion(nextVersionOverride, currentVersion.Prerelease, currentVersion.BuildMetadata);
             }

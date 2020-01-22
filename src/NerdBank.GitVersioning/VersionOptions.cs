@@ -1105,7 +1105,8 @@
             {
                 branchName = "v{version}",
                 versionIncrement = ReleaseVersionIncrement.Minor,
-                firstUnstableTag = "alpha"
+                firstUnstableTag = "alpha",
+                versionFieldCount = 0
             };
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -1119,6 +1120,9 @@
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
             private string firstUnstableTag;
+
+            [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+            private int versionFieldCount;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="ReleaseOptions"/> class
@@ -1184,6 +1188,24 @@
             [JsonIgnore]
             public string FirstUnstableTagOrDefault => this.FirstUnstableTag ?? DefaultInstance.FirstUnstableTag;
 
+            /// <summary>
+            /// The number of version components to use in the branch name (e.g. use '2' to always create a branch name where '{version}' is replaced with the Major.Minor version, regardless of the version specified in the version file).
+            /// Default is '0', which means it will use the number of version components equal to the one specified in the version file
+            /// </summary>
+            [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+            public int VersionFieldCount
+            {
+                get => this.versionFieldCount;
+                set => this.SetIfNotReadOnly(ref this.versionFieldCount, value);
+            }
+
+            /// <summary>
+            /// The number of version components to use in the branch name (e.g. use '2' to always create a branch name where '{version}' is replaced with the Major.Minor version, regardless of the version specified in the version file).
+            /// Default is '0', which means it will use the number of version components equal to the one specified in the version file
+            /// </summary>
+            [JsonIgnore]
+            public int VersionFieldCountOrDefault => this.VersionFieldCount > 0 ? this.VersionFieldCount : DefaultInstance.VersionFieldCount;
+
             /// <inheritdoc />
             public override bool Equals(object obj) => this.Equals(obj as ReleaseOptions);
 
@@ -1231,7 +1253,8 @@
 
                     return StringComparer.Ordinal.Equals(x.BranchNameOrDefault, y.BranchNameOrDefault) &&
                            x.VersionIncrementOrDefault == y.VersionIncrementOrDefault &&
-                           StringComparer.Ordinal.Equals(x.FirstUnstableTagOrDefault, y.FirstUnstableTagOrDefault);
+                           StringComparer.Ordinal.Equals(x.FirstUnstableTagOrDefault, y.FirstUnstableTagOrDefault) &&
+                           x.VersionFieldCountOrDefault == y.VersionFieldCountOrDefault;
                 }
 
                 /// <inheritdoc />
@@ -1245,6 +1268,7 @@
                         var hash = StringComparer.Ordinal.GetHashCode(obj.BranchNameOrDefault) * 397;
                         hash ^= (int)obj.VersionIncrementOrDefault;
                         hash ^= StringComparer.Ordinal.GetHashCode(obj.FirstUnstableTagOrDefault);
+                        hash ^= obj.VersionFieldCountOrDefault;
                         return hash;
                     }
                 }

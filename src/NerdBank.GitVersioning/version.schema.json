@@ -172,6 +172,13 @@
               "description": "Specifies the first/default prerelease tag for new versions",
               "type": "string",
               "default": "alpha"
+            },
+            "versionFieldCount": {
+              "type": "integer",
+              "description": "The number of version field components to use in {version} when creating a branch name.",
+              "default": 0,
+              "minimum": 0,
+              "maximum": 4
             }
           },
           "additionalProperties": false

@@ -51,6 +51,7 @@ namespace Nerdbank.GitVersioning.Tool
             InvalidVersionIncrementSetting,
             InvalidParameters,
             InvalidVersionIncrement,
+            InvalidVersionFieldCountSetting
         }
 
         private static ExitCodes exitCode;
@@ -645,6 +646,8 @@ namespace Nerdbank.GitVersioning.Tool
                         return ExitCodes.UncommittedChanges;
                     case ReleaseManager.ReleasePreparationError.InvalidBranchNameSetting:
                         return ExitCodes.InvalidBranchNameSetting;
+                    case ReleaseManager.ReleasePreparationError.InvalidVersionFieldCountSetting:
+                        return ExitCodes.InvalidVersionFieldCountSetting;
                     case ReleaseManager.ReleasePreparationError.NoVersionFile:
                         return ExitCodes.NoVersionJsonFound;
                     case ReleaseManager.ReleasePreparationError.VersionDecrement:

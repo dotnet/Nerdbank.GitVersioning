@@ -141,6 +141,11 @@
                 {
                     property.ShouldSerialize = instance => ((VersionOptions.ReleaseOptions)instance).FirstUnstableTagOrDefault != VersionOptions.ReleaseOptions.DefaultInstance.FirstUnstableTag;
                 }
+
+                if (property.DeclaringType == typeof(VersionOptions.ReleaseOptions) && member.Name == nameof(VersionOptions.ReleaseOptions.VersionFieldCount))
+                {
+                    property.ShouldSerialize = instance => ((VersionOptions.ReleaseOptions)instance).VersionFieldCountOrDefault != VersionOptions.ReleaseOptions.DefaultInstance.VersionFieldCount;
+                }
             }
 
             return property;
