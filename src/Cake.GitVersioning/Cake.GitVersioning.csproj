@@ -69,11 +69,6 @@
         >
         <PackagePath>lib\$(TargetFramework)</PackagePath>
       </TfmSpecificPackageFile>
-
-      <!-- Package up the libgit2 native binaries -->
-      <TfmSpecificPackageFile Include="@(ContentWithTargetPath)" Condition=" '%(ContentWithTargetPath.CopyToOutputDirectory)' == 'PreserveNewest' ">
-        <PackagePath>lib\$(TargetFramework)%(ContentWithTargetPath.TargetPath)</PackagePath>
-      </TfmSpecificPackageFile>
     </ItemGroup>
   </Target>
 </Project>
