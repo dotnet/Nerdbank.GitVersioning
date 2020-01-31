@@ -38,16 +38,14 @@
   <ItemGroup>
     <None Include="cake-contrib-medium.png" Pack="true" PackagePath="" />
 
-    <!-- Adapt Nerdbank.GitVersioning nuspec file to csproj -->
+    <!-- Include native binaries -->
     <None Include="$(LibGit2SharpNativeBinaries)runtimes\**\*.*" Pack="true" PackagePath="lib\netstandard2.0\lib\" LinkBase="lib" />
 
     <!-- Additional copies to work around DllNotFoundException on Mono (https://github.com/AArnott/Nerdbank.GitVersioning/issues/222) -->
-    <None Include="$(LibGit2SharpNativeBinaries)runtimes\osx\native\libgit2-ef5a385.dylib" Pack="true" PackagePath="lib\netstandard2.0\lib\osx\libgit2-ef5a385.dylib" LinkBase="lib\osx" />
-    <None Include="$(LibGit2SharpNativeBinaries)runtimes\linux-x64\native\libgit2-ef5a385.so" Pack="true" PackagePath="lib\netstandard2.0\lib\linux\x86_64\libgit2-ef5a385.so" LinkBase="lib\linux\x86_64" />
-
-    <!-- Additional copies to work with our own ps1 scripts (https://github.com/AArnott/Nerdbank.GitVersioning/issues/248) -->
-    <None Include="$(LibGit2SharpNativeBinaries)runtimes\win-x64\native\git2-ef5a385.dll" Pack="true" PackagePath="lib\netstandard2.0\lib\win32\x64\git2-ef5a385.dll" LinkBase="lib\win32\x64" />
-    <None Include="$(LibGit2SharpNativeBinaries)runtimes\win-x86\native\git2-ef5a385.dll" Pack="true" PackagePath="lib\netstandard2.0\lib\win32\x86\git2-ef5a385.dll" LinkBase="lib\win32\x86" />
+    <None Include="$(LibGit2SharpNativeBinaries)runtimes\osx\native\*.dylib" Pack="true" PackagePath="lib\netstandard2.0\lib\osx\" LinkBase="lib\osx" />
+    <None Include="$(LibGit2SharpNativeBinaries)runtimes\linux-x64\native\*.so" Pack="true" PackagePath="lib\netstandard2.0\lib\linux\x86_64\" LinkBase="lib\linux\x86_64" />
+    <None Include="$(LibGit2SharpNativeBinaries)runtimes\win-x64\native\*.dll" Pack="true" PackagePath="lib\netstandard2.0\lib\win32\x64\" LinkBase="lib\win32\x64" />
+    <None Include="$(LibGit2SharpNativeBinaries)runtimes\win-x86\native\*.dll" Pack="true" PackagePath="lib\netstandard2.0\lib\win32\x86\" LinkBase="lib\win32\x86" />
   </ItemGroup>
 
   <ItemGroup>
@@ -69,7 +67,12 @@
                   $(OutputPath)System.*.dll
                   "
         >
-        <PackagePath>lib\$(TargetFramework)\</PackagePath>
+        <PackagePath>lib\$(TargetFramework)</PackagePath>
+      </TfmSpecificPackageFile>
+
+      <!-- Package up the libgit2 native binaries -->
+      <TfmSpecificPackageFile Include="@(ContentWithTargetPath)" Condition=" '%(ContentWithTargetPath.CopyToOutputDirectory)' == 'PreserveNewest' ">
+        <PackagePath>lib\$(TargetFramework)%(ContentWithTargetPath.TargetPath)</PackagePath>
       </TfmSpecificPackageFile>
     </ItemGroup>
   </Target>
