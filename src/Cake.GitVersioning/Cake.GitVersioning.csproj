@@ -13,9 +13,10 @@
     <PackageIcon>cake-contrib-medium.png</PackageIcon>
     <PackageProjectUrl>http://github.com/aarnott/Nerdbank.GitVersioning</PackageProjectUrl>
     <SignAssembly>false</SignAssembly>
-    <!-- We include the whole OutputPath in this tools package. -->
-    <IncludeBuildOutput>false</IncludeBuildOutput>
+
     <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PackBuildOutputs</TargetsForTfmSpecificContentInPackage>
+    <LibGit2SharpNativeBinaries>$(NuGetPackageRoot)libgit2sharp.nativebinaries\2.0.298\</LibGit2SharpNativeBinaries>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <!-- This is a tools package and should express no dependencies. -->
@@ -36,6 +37,17 @@
 
   <ItemGroup>
     <None Include="cake-contrib-medium.png" Pack="true" PackagePath="" />
+
+    <!-- Adapt Nerdbank.GitVersioning nuspec file to csproj -->
+    <None Include="$(LibGit2SharpNativeBinaries)runtimes\**\*.*" Pack="true" PackagePath="lib\netstandard2.0\lib\" LinkBase="lib" />
+
+    <!-- Additional copies to work around DllNotFoundException on Mono (https://github.com/AArnott/Nerdbank.GitVersioning/issues/222) -->
+    <None Include="$(LibGit2SharpNativeBinaries)runtimes\osx\native\libgit2-ef5a385.dylib" Pack="true" PackagePath="lib\netstandard2.0\lib\osx\libgit2-ef5a385.dylib" LinkBase="lib\osx" />
+    <None Include="$(LibGit2SharpNativeBinaries)runtimes\linux-x64\native\libgit2-ef5a385.so" Pack="true" PackagePath="lib\netstandard2.0\lib\linux\x86_64\libgit2-ef5a385.so" LinkBase="lib\linux\x86_64" />
+
+    <!-- Additional copies to work with our own ps1 scripts (https://github.com/AArnott/Nerdbank.GitVersioning/issues/248) -->
+    <None Include="$(LibGit2SharpNativeBinaries)runtimes\win-x64\native\git2-ef5a385.dll" Pack="true" PackagePath="lib\netstandard2.0\lib\win32\x64\git2-ef5a385.dll" LinkBase="lib\win32\x64" />
+    <None Include="$(LibGit2SharpNativeBinaries)runtimes\win-x86\native\git2-ef5a385.dll" Pack="true" PackagePath="lib\netstandard2.0\lib\win32\x86\git2-ef5a385.dll" LinkBase="lib\win32\x86" />
   </ItemGroup>
 
   <ItemGroup>
@@ -44,7 +56,19 @@
 
   <Target Name="PackBuildOutputs" DependsOnTargets="SatelliteDllsProjectOutputGroup;DebugSymbolsProjectOutputGroup">
     <ItemGroup>
-      <TfmSpecificPackageFile Include="$(OutputPath)\**\*" Exclude="$(OutputPath)\**\*.xml;$(OutputPath)\**\*.pdb;$(OutputPath)\**\Cake.Core.dll">
+      <TfmSpecificPackageFile
+        Include="
+                  $(OutputPath)LibGit2Sharp.dll*;
+                  $(OutputPath)Nerdbank.GitVersioning.*dll;
+                  $(OutputPath)Newtonsoft.Json.dll;
+                  $(OutputPath)Validation.dll;
+                  "
+
+        Exclude="
+                  $(OutputPath)Microsoft.*.dll
+                  $(OutputPath)System.*.dll
+                  "
+        >
         <PackagePath>lib\$(TargetFramework)\</PackagePath>
       </TfmSpecificPackageFile>
     </ItemGroup>
