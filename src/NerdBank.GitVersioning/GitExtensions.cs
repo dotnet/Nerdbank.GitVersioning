@@ -15,7 +15,7 @@
     /// </summary>
     public static class GitExtensions
     {
-        public static bool LogDebug = true;
+        public static bool LogDebug = false;
         
         /// <summary>
         /// The 0.0 version.
