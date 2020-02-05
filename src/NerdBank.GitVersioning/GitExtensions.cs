@@ -15,6 +15,8 @@
     /// </summary>
     public static class GitExtensions
     {
+        public static bool LogDebug = true;
+        
         /// <summary>
         /// The 0.0 version.
         /// </summary>
@@ -705,16 +707,36 @@
         /// May be null to count the height to the original commit.
         /// </param>
         /// <returns>The height of the branch.</returns>
-        private static int GetCommitHeight(Commit commit, GitWalkTracker tracker, Func<Commit, bool> continueStepping)
+        private static int GetCommitHeight(Commit commit, GitWalkTracker tracker, Func<Commit, bool> continueStepping, int depth = 0)
         {
             Requires.NotNull(commit, nameof(commit));
             Requires.NotNull(tracker, nameof(tracker));
+
+            string pad = null;
+            
+            if (LogDebug)
+            {
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < depth; i++)
+                {
+                    sb.Append(' ');
+                }
+
+                sb.Append(commit.Sha);
+                sb.Append(":");
+
+                pad = sb.ToString();
+            }
+
+            if(LogDebug)
+                Console.WriteLine($"{pad} Getting version {commit.Sha} {commit.Author.Name} {commit.MessageShort}");
 
             if (!tracker.TryGetVersionHeight(commit, out int height))
             {
                 if (continueStepping == null || continueStepping(commit))
                 {
                     var versionOptions = tracker.GetVersion(commit);
+                    
                     var pathFilters = versionOptions != null ? FilterPath.FromVersionOptions(versionOptions, tracker.RepoRelativeDirectory, commit.GetRepository()) : null;
 
                     var includePaths =
@@ -722,6 +744,9 @@
                             ?.Where(filter => !filter.IsExclude)
                             .Select(filter => filter.RepoRelativePath)
                             .ToList();
+
+                    if(LogDebug)
+                        Console.WriteLine($"{pad} version {versionOptions} with includePaths {string.Join(",", includePaths)}");
 
                     var excludePaths = pathFilters?.Where(filter => filter.IsExclude).ToList();
 
@@ -733,7 +758,7 @@
                             : changes.Any(change => !excludePaths.Any(exclude => exclude.Excludes(change.Path)));
 
                     height = 1;
-
+                    
                     if (includePaths != null)
                     {
                         // If there are no include paths, or any of the include
@@ -744,35 +769,58 @@
                                 ? null
                                 : includePaths;
 
-                        // If the diff between this commit and any of its parents
+                        // If the diff between this commit and its parent
                         // does not touch a path that we care about, don't bump the
                         // height.
-                        var relevantCommit =
-                            commit.Parents.Any()
-                                ? commit.Parents.Any(parent => ContainsRelevantChanges(commit.GetRepository().Diff
-                                    .Compare<TreeChanges>(parent.Tree, commit.Tree, diffInclude)))
-                                : ContainsRelevantChanges(commit.GetRepository().Diff
-                                    .Compare<TreeChanges>(null, commit.Tree, diffInclude));
+                        bool relevantCommit = false; 
+                        var parentsCount = commit.Parents.Count();
+                        if (parentsCount > 0)
+                        {
+                            if (parentsCount == 1)
+                            {
+                                relevantCommit = ContainsRelevantChanges(
+                                    commit.GetRepository().Diff.Compare<TreeChanges>(
+                                        commit.Parents.Single().Tree,
+                                        commit.Tree,
+                                        diffInclude));
+                            }
+                            else
+                            {
+                                //we skip merge commits, so leave relevantCommit as false
+                            }
+                        }
+                        else
+                        {
+                            relevantCommit = ContainsRelevantChanges(
+                                commit.GetRepository().Diff.Compare<TreeChanges>(null, commit.Tree, diffInclude));
+                        }
 
                         if (!relevantCommit)
                         {
                             height = 0;
                         }
                     }
+                    if(LogDebug)
+                        Console.WriteLine($"{pad} This commit will bump height by {height}");
 
                     if (commit.Parents.Any())
                     {
-                        height += commit.Parents.Max(p => GetCommitHeight(p, tracker, continueStepping));
+                        height += commit.Parents.Max(p => GetCommitHeight(p, tracker, continueStepping, ++depth));
                     }
                 }
                 else
                 {
+                    if(LogDebug)
+                        Console.WriteLine($"{pad} This commit is outside of calculation boundary");
                     height = 0;
                 }
 
                 tracker.RecordHeight(commit, height);
             }
 
+            if(LogDebug)
+                Console.WriteLine($"{pad} gitHeight={height}");
+            
             return height;
         }
 
