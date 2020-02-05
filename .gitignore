@@ -197,3 +197,4 @@ _Pvt_Extensions/
 ModelManifest.xml
 
 .idea/
+nuget_packages/
