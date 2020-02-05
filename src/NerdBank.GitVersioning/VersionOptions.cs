@@ -15,6 +15,8 @@
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
     public class VersionOptions : IEquatable<VersionOptions>
     {
+        public override string ToString() => DebuggerDisplay;
+
         /// <summary>
         /// Default value for <see cref="VersionPrecision"/>.
         /// </summary>
