@@ -132,6 +132,12 @@
                 this.PublicRelease = this.VersionOptions.PublicReleaseRefSpec.Any(
                     expr => Regex.IsMatch(this.BuildingRef, expr));
             }
+            
+            if (!string.IsNullOrEmpty(BuildingRef) && !PublicRelease)
+            {
+                var trimmedBuildingRef = BuildingRef.Replace("refs/heads/", "");
+                PrereleaseVersion = $"{PrereleaseVersion}-{trimmedBuildingRef}";
+            }
         }
 
         /// <summary>
