@@ -202,7 +202,7 @@ public class VersionOptionsTests
         var ro5 = new VersionOptions.ReleaseOptions()
         {
             BranchName = "branchName",
-            VersionIncrement = VersionOptions.ReleaseVersionIncrement.Minor,            
+            VersionIncrement = VersionOptions.ReleaseVersionIncrement.Minor,
         };
         var ro6 = new VersionOptions.ReleaseOptions()
         {
