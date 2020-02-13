@@ -409,7 +409,7 @@
         /// See <see href="https://github.com/AArnott/Nerdbank.GitVersioning/issues/260#issuecomment-445511898">this discussion</see>.
         /// </remarks>
         private string NuGetSemVer1BuildMetadata =>
-            this.PublicRelease ? string.Empty : $"-g{this.GitCommitIdShort}";
+            this.PublicRelease ? string.Empty : $"-{this.VersionOptions?.GitCommitIdPrefix ?? "g"}{this.GitCommitIdShort}";
 
         /// <summary>
         /// Gets the build metadata, compliant to SemVer 1.0.
@@ -418,7 +418,7 @@
             this.PublicRelease ? string.Empty : $"-{this.GitCommitIdShort}";
 
         /// <summary>
-        /// Gets a SemVer 1.0 compliant string that represents this version, including the -gCOMMITID suffix
+        /// Gets a SemVer 1.0 compliant string that represents this version, including the -{GitCommitIdPrefix}COMMITID suffix
         /// when <see cref="PublicRelease"/> is <c>false</c>.
         /// </summary>
         private string NuGetSemVer1 =>
@@ -438,13 +438,13 @@
         private string PrereleaseVersionSemVer1 => SemanticVersionExtensions.MakePrereleaseSemVer1Compliant(this.PrereleaseVersion, this.SemVer1NumericIdentifierPadding);
 
         /// <summary>
-        /// Gets the -gc0ffee or .gc0ffee suffix for the version.
+        /// Gets the -{<seealso cref="VersionOptions.GitCommitIdPrefix"/>}c0ffee or .<seealso cref="VersionOptions.GitCommitIdPrefix"/>c0ffee suffix for the version.
         /// </summary>
         /// <remarks>
-        /// The `g` prefix to the commit ID is to remain SemVer2 compliant particularly when the partial commit ID we use is made up entirely of numerals.
-        /// SemVer2 forbids numerals to begin with leading zeros, but a git commit just might, so we begin with `g` always to avoid failures when the commit ID happens to be problematic.
+        /// The prefix to the commit ID is to remain SemVer2 compliant particularly when the partial commit ID we use is made up entirely of numerals.
+        /// SemVer2 forbids numerals to begin with leading zeros, but a git commit just might, so we begin with prefix always to avoid failures when the commit ID happens to be problematic.
         /// </remarks>
-        private string GitCommitIdShortForNonPublicPrereleaseTag => (string.IsNullOrEmpty(this.PrereleaseVersion) ? "-" : ".") + "g" + this.GitCommitIdShort;
+        private string GitCommitIdShortForNonPublicPrereleaseTag => (string.IsNullOrEmpty(this.PrereleaseVersion) ? "-" : ".") + (this.VersionOptions?.GitCommitIdPrefix ?? "g") + this.GitCommitIdShort;
 
         private VersionOptions.CloudBuildNumberOptions CloudBuildNumberOptions { get; }
 

@@ -61,6 +61,14 @@
         public AssemblyVersionOptions AssemblyVersion { get; set; }
 
         /// <summary>
+        /// Gets or sets the prefix for git commit id in version.
+        /// If <c>null</c> 'g' will be used.
+        /// </summary>
+        /// <value>A prefix for git commit id.</value>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public string GitCommitIdPrefix { get; set; }
+
+        /// <summary>
         /// Gets the version to use particularly for the <see cref="AssemblyVersionAttribute"/>
         /// instead of the default <see cref="Version"/>.
         /// </summary>

@@ -314,6 +314,26 @@ public class VersionOracleTests : RepoTestBase
     }
 
     [Fact]
+    public void CanSetGitCommitIdPrefixNonPublicRelease()
+    {
+        VersionOptions workingCopyVersion = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("7.8.9-foo.25"),
+            NuGetPackageVersion = new VersionOptions.NuGetPackageVersionOptions
+            {
+                SemVer = 2,
+            },
+            GitCommitIdPrefix = "git"
+
+        };
+        this.WriteVersionFile(workingCopyVersion);
+        this.InitializeSourceControl();
+        var oracle = VersionOracle.Create(this.RepoPath);
+        oracle.PublicRelease = false;
+        Assert.Equal($"7.8.9-foo.25.git{this.CommitIdShort}", oracle.NuGetPackageVersion);
+    }
+
+    [Fact]
     public void CanUseGitProjectRelativePathWithGitRepoRoot()
     {
         VersionOptions rootVersion = new VersionOptions

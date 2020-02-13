@@ -146,6 +146,7 @@ public class VersionFileTests : RepoTestBase
     [InlineData(@"{""release"":{""increment"":""minor""}}", @"{}")]
     [InlineData(@"{""release"":{""branchName"":""v{version}""}}", @"{}")]
     [InlineData(@"{""release"":{""firstUnstableTag"":""alpha""}}", @"{}")]
+    [InlineData(@"{""release"":{""gitCommitIdPrefix"":""g""}}", @"{}")]
     [InlineData(@"{""release"":{""firstUnstableTag"":""tag""}}", @"{""release"":{""firstUnstableTag"":""tag""}}")]
     [InlineData(@"{""release"":{""branchName"":""v{version}"",""versionIncrement"":""minor"",""firstUnstableTag"":""alpha""}}", @"{}")]
     [InlineData(@"{""release"":{""versionIncrement"":""major""}}", @"{""release"":{""versionIncrement"":""major""}}")]
