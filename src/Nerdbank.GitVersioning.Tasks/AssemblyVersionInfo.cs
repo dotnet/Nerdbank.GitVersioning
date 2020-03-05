@@ -519,8 +519,8 @@
                 this.codeBuilder.AppendLine("do()");
                 this.codeBuilder.AppendLine($"#if {CompilerDefinesAroundGeneratedCodeAttribute}");
                 this.codeBuilder.AppendLine($"[<System.CodeDom.Compiler.GeneratedCode(\"{GeneratorName}\",\"{GeneratorVersion}\")>]");
-                this.codeBuilder.AppendLine("#endif");
                 this.codeBuilder.AppendLine("[<System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage>]");
+                this.codeBuilder.AppendLine("#endif");
                 this.codeBuilder.AppendLine("type internal ThisAssembly() =");
             }
         }
@@ -541,8 +541,8 @@
             {
                 this.codeBuilder.AppendLine($"#if {CompilerDefinesAroundGeneratedCodeAttribute}");
                 this.codeBuilder.AppendLine($"[System.CodeDom.Compiler.GeneratedCode(\"{GeneratorName}\",\"{GeneratorVersion}\")]");
-                this.codeBuilder.AppendLine("#endif");
                 this.codeBuilder.AppendLine("[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]");
+                this.codeBuilder.AppendLine("#endif");
                 this.codeBuilder.AppendLine("internal static partial class ThisAssembly {");
             }
 
@@ -586,7 +586,6 @@
                 this.codeBuilder.AppendLine("<System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage>");
                 this.codeBuilder.AppendLine("Partial Friend NotInheritable Class ThisAssembly");
                 this.codeBuilder.AppendLine("#Else");
-                this.codeBuilder.AppendLine("<System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage>");
                 this.codeBuilder.AppendLine("Partial Friend NotInheritable Class ThisAssembly");
                 this.codeBuilder.AppendLine("#End If");
             }
