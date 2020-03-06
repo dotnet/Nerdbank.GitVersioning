@@ -9,12 +9,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/AArnott/Nerdbank.GitVersioning.git"
+    "url": "https://github.com/dotnet/Nerdbank.GitVersioning.git"
   },
   "bugs": {
-    "url": "https://github.com/AArnott/Nerdbank.GitVersioning/issues"
+    "url": "https://github.com/dotnet/Nerdbank.GitVersioning/issues"
   },
-  "homepage": "https://github.com/AArnott/Nerdbank.GitVersioning",
+  "homepage": "https://github.com/dotnet/Nerdbank.GitVersioning",
   "license": "MIT",
   "keywords": [
     "versioning"

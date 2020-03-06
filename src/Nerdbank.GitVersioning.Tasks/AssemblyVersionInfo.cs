@@ -17,7 +17,7 @@
         /// The #if expression that surrounds a <see cref="GeneratedCodeAttribute"/> to avoid a compilation failure when targeting the nano framework.
         /// </summary>
         /// <remarks>
-        /// See https://github.com/AArnott/Nerdbank.GitVersioning/issues/346
+        /// See https://github.com/dotnet/Nerdbank.GitVersioning/issues/346
         /// </remarks>
         private const string CompilerDefinesAroundGeneratedCodeAttribute = "NETSTANDARD || NETFRAMEWORK || NETCOREAPP";
 
@@ -445,7 +445,7 @@
             internal abstract void StartThisAssemblyClass();
 
             internal abstract void AddThisAssemblyMember(string name, string value);
-            
+
             internal abstract void AddThisAssemblyMember(string name, bool value);
 
             internal abstract void EndThisAssemblyClass();

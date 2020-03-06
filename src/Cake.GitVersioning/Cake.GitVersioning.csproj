@@ -11,7 +11,7 @@
     <PackageTags>git commit versioning version assemblyinfo</PackageTags>
     <PackageIconUrl>https://cdn.jsdelivr.net/gh/cake-contrib/graphics/png/cake-contrib-medium.png</PackageIconUrl>
     <PackageIcon>cake-contrib-medium.png</PackageIcon>
-    <PackageProjectUrl>http://github.com/aarnott/Nerdbank.GitVersioning</PackageProjectUrl>
+    <PackageProjectUrl>http://github.com/dotnet/Nerdbank.GitVersioning</PackageProjectUrl>
     <SignAssembly>false</SignAssembly>
     <!-- We include the whole OutputPath in this tools package. -->
     <IncludeBuildOutput>false</IncludeBuildOutput>

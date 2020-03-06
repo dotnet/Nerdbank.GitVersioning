@@ -406,7 +406,7 @@
         /// When adding the git commit ID in a -prerelease tag, prefix a `g` because
         /// older NuGet clients (the ones that support only a subset of semver 1.0)
         /// cannot handle prerelease tags that begin with a number (which a git commit ID might).
-        /// See <see href="https://github.com/AArnott/Nerdbank.GitVersioning/issues/260#issuecomment-445511898">this discussion</see>.
+        /// See <see href="https://github.com/dotnet/Nerdbank.GitVersioning/issues/260#issuecomment-445511898">this discussion</see>.
         /// </remarks>
         private string NuGetSemVer1BuildMetadata =>
             this.PublicRelease ? string.Empty : $"-g{this.GitCommitIdShort}";
@@ -430,7 +430,7 @@
         /// <remarks>
         /// We always put the commit ID in the -prerelease tag for non-public releases.
         /// But for public releases, we don't include it in the +buildMetadata section since it may be confusing for NuGet.
-        /// See https://github.com/AArnott/Nerdbank.GitVersioning/pull/132#issuecomment-307208561
+        /// See https://github.com/dotnet/Nerdbank.GitVersioning/pull/132#issuecomment-307208561
         /// </remarks>
         private string SemVer2BuildMetadata =>
             (this.PublicRelease ? string.Empty : this.GitCommitIdShortForNonPublicPrereleaseTag) + FormatBuildMetadata(this.BuildMetadata);

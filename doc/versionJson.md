@@ -6,7 +6,7 @@ Here is the content of a sample version.json file you may start with:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/AArnott/Nerdbank.GitVersioning/master/src/NerdBank.GitVersioning/version.schema.json",
+  "$schema": "https://raw.githubusercontent.com/dotnet/Nerdbank.GitVersioning/master/src/NerdBank.GitVersioning/version.schema.json",
   "version": "1.0-beta"
 }
 ```
