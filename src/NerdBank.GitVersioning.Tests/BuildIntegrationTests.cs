@@ -999,7 +999,7 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{versionOptions.Version.Prerelease}{expectedBuildMetadata}", buildResult.AssemblyInformationalVersion);
 
         // The assembly version property should always have four integer components to it,
-        // per bug https://github.com/AArnott/Nerdbank.GitVersioning/issues/26
+        // per bug https://github.com/dotnet/Nerdbank.GitVersioning/issues/26
         Assert.Equal($"{assemblyVersion.Major}.{assemblyVersion.Minor}.{assemblyVersion.Build}.{assemblyVersion.Revision}", buildResult.AssemblyVersion);
 
         Assert.Equal(idAsVersion.Build.ToString(), buildResult.BuildNumber);

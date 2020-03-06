@@ -79,7 +79,7 @@
                         throw new FormatException(
                             $"Failure while reading {JsonFileName} from commit {commit.Sha}. " +
                             "Fix this commit with rebase if this is an error, or review this doc on how to migrate to Nerdbank.GitVersioning: " +
-                            "https://github.com/AArnott/Nerdbank.GitVersioning/blob/master/doc/migrating.md", ex);
+                            "https://github.com/dotnet/Nerdbank.GitVersioning/blob/master/doc/migrating.md", ex);
                     }
 
                     if (result?.Inherit ?? false)

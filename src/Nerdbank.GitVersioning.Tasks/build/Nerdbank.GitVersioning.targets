@@ -36,7 +36,7 @@
   <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="Nerdbank.GitVersioning.Tasks.CompareFiles"/>
 
   <Target Name="NBGV_SetDefaults">
-    <!-- Workarounds for https://github.com/AArnott/Nerdbank.GitVersioning/issues/404 -->
+    <!-- Workarounds for https://github.com/dotnet/Nerdbank.GitVersioning/issues/404 -->
     <PropertyGroup>
       <!-- $(TargetExt) isn't set at evaluation time for us when built in wpftmp.csproj with manual imports -->
       <!-- Suppress assembly version info generation if not obviously compiling an assembly. -->

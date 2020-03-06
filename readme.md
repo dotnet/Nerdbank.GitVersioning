@@ -133,4 +133,4 @@ Prerequisites and build instructions are found in our
 [contributing guidelines](CONTRIBUTING.md).
 
  [semver]: http://semver.org
- [GitHeightMinimum]: https://github.com/AArnott/Nerdbank.GitVersioning/issues/102#issuecomment-269591960
+ [GitHeightMinimum]: https://github.com/dotnet/Nerdbank.GitVersioning/issues/102#issuecomment-269591960
