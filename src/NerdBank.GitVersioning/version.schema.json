@@ -81,7 +81,7 @@
         },
         "gitCommitIdPrefix": {
           "type": "string",
-          "description": "The git commit prefix (e.g. 'g') in prerelease versions",
+          "description": "The git commit prefix (e.g. 'g') in non-public release versions.",
           "pattern": "^[^0-9][\\da-z\\-_\\.]*$",
           "default": "g"
         },

@@ -418,7 +418,7 @@
             this.PublicRelease ? string.Empty : $"-{this.GitCommitIdShort}";
 
         /// <summary>
-        /// Gets a SemVer 1.0 compliant string that represents this version, including the -{GitCommitIdPrefix}COMMITID suffix
+        /// Gets a SemVer 1.0 compliant string that represents this version, including the -gCOMMITID suffix
         /// when <see cref="PublicRelease"/> is <c>false</c>.
         /// </summary>
         private string NuGetSemVer1 =>
@@ -438,7 +438,8 @@
         private string PrereleaseVersionSemVer1 => SemanticVersionExtensions.MakePrereleaseSemVer1Compliant(this.PrereleaseVersion, this.SemVer1NumericIdentifierPadding);
 
         /// <summary>
-        /// Gets the -{<seealso cref="VersionOptions.GitCommitIdPrefix"/>}c0ffee or .<seealso cref="VersionOptions.GitCommitIdPrefix"/>c0ffee suffix for the version.
+        /// Gets the -gc0ffee or .gc0ffee suffix for the version.
+        /// The g in the prefix might be changed if <see cref="VersionOptions.GitCommitIdPrefix"/> is set.
         /// </summary>
         /// <remarks>
         /// The prefix to the commit ID is to remain SemVer2 compliant particularly when the partial commit ID we use is made up entirely of numerals.

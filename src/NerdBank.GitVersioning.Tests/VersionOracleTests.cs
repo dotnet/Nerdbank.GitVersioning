@@ -323,8 +323,7 @@ public class VersionOracleTests : RepoTestBase
             {
                 SemVer = 2,
             },
-            GitCommitIdPrefix = "git"
-
+            GitCommitIdPrefix = "git",
         };
         this.WriteVersionFile(workingCopyVersion);
         this.InitializeSourceControl();
