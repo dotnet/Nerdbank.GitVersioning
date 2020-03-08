@@ -172,7 +172,6 @@ jobs:
   pool:
     vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
   container: disco
-  condition: false # it does not yet pass: https://github.com/dotnet/Nerdbank.GitVersioning/issues/392
   steps:
   - template: azure-pipelines/xplattest-pipeline.yml
 
