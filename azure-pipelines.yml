@@ -1,7 +1,9 @@
 trigger:
   batch: true
   branches:
-    include: ["master", "v*"]
+    include:
+      - master
+      - 'v*'
   paths:
     exclude: ["doc", "*.md"]
 
