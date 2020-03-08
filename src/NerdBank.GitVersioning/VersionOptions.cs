@@ -44,7 +44,7 @@
         /// The $schema field that should be serialized when writing
         /// </summary>
         [JsonProperty(PropertyName = "$schema")]
-        public string Schema => "https://raw.githubusercontent.com/AArnott/Nerdbank.GitVersioning/master/src/NerdBank.GitVersioning/version.schema.json";
+        public string Schema => "https://raw.githubusercontent.com/dotnet/Nerdbank.GitVersioning/master/src/NerdBank.GitVersioning/version.schema.json";
 
         /// <summary>
         /// Gets or sets the default version to use.

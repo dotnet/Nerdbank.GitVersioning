@@ -33,7 +33,7 @@ gulp.task('copyPackageContents', gulp.series('tsc', function () {
         .src([
             'package.json',
             'README.md',
-            '../../LICENSE.txt'
+            '../../LICENSE'
         ])
         .pipe(gulp.dest(outDir));
 }));

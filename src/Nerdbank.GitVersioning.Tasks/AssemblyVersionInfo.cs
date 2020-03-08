@@ -17,7 +17,7 @@
         /// The #if expression that surrounds a <see cref="GeneratedCodeAttribute"/> to avoid a compilation failure when targeting the nano framework.
         /// </summary>
         /// <remarks>
-        /// See https://github.com/AArnott/Nerdbank.GitVersioning/issues/346
+        /// See https://github.com/dotnet/Nerdbank.GitVersioning/issues/346
         /// </remarks>
         private const string CompilerDefinesAroundGeneratedCodeAttribute = "NETSTANDARD || NETFRAMEWORK || NETCOREAPP";
 
@@ -445,7 +445,7 @@
             internal abstract void StartThisAssemblyClass();
 
             internal abstract void AddThisAssemblyMember(string name, string value);
-            
+
             internal abstract void AddThisAssemblyMember(string name, bool value);
 
             internal abstract void EndThisAssemblyClass();
@@ -519,8 +519,8 @@
                 this.codeBuilder.AppendLine("do()");
                 this.codeBuilder.AppendLine($"#if {CompilerDefinesAroundGeneratedCodeAttribute}");
                 this.codeBuilder.AppendLine($"[<System.CodeDom.Compiler.GeneratedCode(\"{GeneratorName}\",\"{GeneratorVersion}\")>]");
-                this.codeBuilder.AppendLine("#endif");
                 this.codeBuilder.AppendLine("[<System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage>]");
+                this.codeBuilder.AppendLine("#endif");
                 this.codeBuilder.AppendLine("type internal ThisAssembly() =");
             }
         }
@@ -541,8 +541,8 @@
             {
                 this.codeBuilder.AppendLine($"#if {CompilerDefinesAroundGeneratedCodeAttribute}");
                 this.codeBuilder.AppendLine($"[System.CodeDom.Compiler.GeneratedCode(\"{GeneratorName}\",\"{GeneratorVersion}\")]");
-                this.codeBuilder.AppendLine("#endif");
                 this.codeBuilder.AppendLine("[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]");
+                this.codeBuilder.AppendLine("#endif");
                 this.codeBuilder.AppendLine("internal static partial class ThisAssembly {");
             }
 
@@ -586,7 +586,6 @@
                 this.codeBuilder.AppendLine("<System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage>");
                 this.codeBuilder.AppendLine("Partial Friend NotInheritable Class ThisAssembly");
                 this.codeBuilder.AppendLine("#Else");
-                this.codeBuilder.AppendLine("<System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage>");
                 this.codeBuilder.AppendLine("Partial Friend NotInheritable Class ThisAssembly");
                 this.codeBuilder.AppendLine("#End If");
             }

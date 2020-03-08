@@ -35,11 +35,11 @@ jobs:
       git config --global user.email me@ci.com
     displayName: Configure git commit author for testing
 
-  - task: DotNetCoreInstaller@0
-    displayName: Install .NET Core SDK
+  - task: UseDotNet@2
+    displayName: Install .NET Core SDK 3.1.100
     inputs:
       packageType: sdk
-      version: 2.2.402
+      version: 3.1.100
   - script: dotnet --info
     displayName: Show dotnet SDK info
 
@@ -170,13 +170,13 @@ jobs:
   pool:
     vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
   container: disco
-  condition: false # it does not yet pass: https://github.com/AArnott/Nerdbank.GitVersioning/issues/392
+  condition: false # it does not yet pass: https://github.com/dotnet/Nerdbank.GitVersioning/issues/392
   steps:
   - template: azure-pipelines/xplattest-pipeline.yml
 
 - job: macOS
   dependsOn: Windows
   pool:
-    vmImage: macOS 10.13
+    vmImage: macOS-10.15
   steps:
   - template: azure-pipelines/xplattest-pipeline.yml
