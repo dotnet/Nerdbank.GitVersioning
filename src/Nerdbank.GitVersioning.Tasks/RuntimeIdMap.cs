@@ -1,5 +1,5 @@
 // This code originally copied from https://github.com/dotnet/sourcelink/tree/c092238370e0437eb95722f28c79273244dc7f1a/src/Microsoft.Build.Tasks.Git
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See license information at https://github.com/dotnet/sourcelink/blob/c092238370e0437eb95722f28c79273244dc7f1a/License.txt.
 #if NETCOREAPP
 
 using System;
