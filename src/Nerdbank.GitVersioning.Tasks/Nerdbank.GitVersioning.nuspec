@@ -26,12 +26,12 @@ See https://github.com/dotnet/Nerdbank.GitVersioning/releases for details.</rele
     <file src="$LibGit2SharpNativeBinaries$runtimes\**" target="build\runtimes\" />
 
     <!-- Additional copies to work around DllNotFoundException on Mono (https://github.com/dotnet/Nerdbank.GitVersioning/issues/222) -->
-    <file src="$LibGit2SharpNativeBinaries$runtimes\osx\native\libgit2-ef5a385.dylib" target="build\MSBuildFull\lib\osx\libgit2-ef5a385.dylib" />
-    <file src="$LibGit2SharpNativeBinaries$runtimes\linux-x64\native\libgit2-ef5a385.so" target="build\MSBuildFull\lib\linux\x86_64\libgit2-ef5a385.so" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\osx\native\libgit2-106a5f2.dylib" target="build\MSBuildFull\lib\osx\libgit2-106a5f2.dylib" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\linux-x64\native\libgit2-106a5f2.so" target="build\MSBuildFull\lib\linux\x86_64\libgit2-106a5f2.so" />
 
     <!-- Additional copies to work with our own ps1 scripts (https://github.com/dotnet/Nerdbank.GitVersioning/issues/248) -->
-    <file src="$LibGit2SharpNativeBinaries$runtimes\win-x64\native\git2-ef5a385.dll" target="build\MSBuildFull\lib\win32\x64\git2-ef5a385.dll" />
-    <file src="$LibGit2SharpNativeBinaries$runtimes\win-x86\native\git2-ef5a385.dll" target="build\MSBuildFull\lib\win32\x86\git2-ef5a385.dll" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\win-x64\native\git2-106a5f2.dll" target="build\MSBuildFull\lib\win32\x64\git2-106a5f2.dll" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\win-x86\native\git2-106a5f2.dll" target="build\MSBuildFull\lib\win32\x86\git2-106a5f2.dll" />
 
     <file src="$LibGit2SharpNativeBinaries$libgit2\LibGit2Sharp.dll.config" target="build\MSBuildCore\LibGit2Sharp.dll.config" />
     <file src="$BaseOutputPath$netcoreapp2.0\LibGit2Sharp.dll" target="build\MSBuildCore\LibGit2Sharp.dll" />
