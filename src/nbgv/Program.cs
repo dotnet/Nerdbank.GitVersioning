@@ -136,6 +136,7 @@ namespace Nerdbank.GitVersioning.Tool
 
                 if (syntax.ActiveCommand == null)
                 {
+                    Console.WriteLine("nbgv v{0}", ThisAssembly.AssemblyInformationalVersion);
                     Console.WriteLine("Use -h, --help, or -? for usage help. Use after a command to get more help about a particular command.");
                 }
             });
