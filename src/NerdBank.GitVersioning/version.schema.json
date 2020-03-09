@@ -79,6 +79,12 @@
           "default": 10,
           "maximum": 40
         },
+        "gitCommitIdPrefix": {
+          "type": "string",
+          "description": "The git commit prefix (e.g. 'g') in non-public release versions.",
+          "pattern": "^[^0-9][\\da-z\\-_\\.]*$",
+          "default": "g"
+        },
         "gitCommitIdShortAutoMinimum": {
           "type": "integer",
           "description": "When greater than 0, the length of the commit ID will be either this value or the shortest unambiguous git-abbreviated commit ID possible, whichever is greater. When 0, the gitCommitIdShortFixedLength property is used instead.",
