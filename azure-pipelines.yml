@@ -28,6 +28,8 @@ resources:
 jobs:
 - job: Windows
   pool: Hosted Windows 2019 with VS2019
+  variables:
+  - group: dotnetfoundation code signing
   steps:
   - checkout: self
     clean: true
@@ -118,6 +120,22 @@ jobs:
       TargetFolder: $(Build.ArtifactStagingDirectory)/deployables
       flattenFolders: true
     displayName: Collecting deployable artifacts
+
+  - pwsh: >
+      dotnet tool install --tool-path obj SignClient
+
+      obj/SignClient sign
+      --baseDirectory '$(Build.ArtifactStagingDirectory)/deployables'
+      --input '**/*'
+      --config '$(System.DefaultWorkingDirectory)/azure-pipelines/SignClient.json'
+      --filelist '$(System.DefaultWorkingDirectory)/azure-pipelines/signfiles.txt'
+      --user '$(codesign_username)'
+      --secret '$(codesign_secret)'
+      --name 'Nerdbank.GitVersioning'
+      --descriptionUrl 'https://github.com/dotnet/Nerdbank.GitVersioning'
+    displayName: Code sign
+    condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+
   - task: PublishBuildArtifacts@1
     inputs:
       PathtoPublish: $(Build.ArtifactStagingDirectory)/deployables

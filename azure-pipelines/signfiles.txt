@@ -1,0 +1,4 @@
+**/Cake.GitVersioning.dll
+**/Nerdbank*.dll
+**/nbgv.dll
+**/*.ps1
