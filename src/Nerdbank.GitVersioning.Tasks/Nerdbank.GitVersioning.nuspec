@@ -7,8 +7,8 @@
     <authors>Andrew Arnott</authors>
     <owners>aarnott</owners>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <releaseNotes>IMPORTANT: The 3.x release may produce a different version height than prior major versions.
-See https://github.com/dotnet/Nerdbank.GitVersioning/releases for details.</releaseNotes>
+    <releaseNotes>See https://github.com/dotnet/Nerdbank.GitVersioning/releases/tag/v$version$ for release notes.
+IMPORTANT: The 3.x release may produce a different version height than prior major versions.</releaseNotes>
     <developmentDependency>true</developmentDependency>
     <license type="expression">MIT</license>
     <projectUrl>https://github.com/dotnet/Nerdbank.GitVersioning</projectUrl>
