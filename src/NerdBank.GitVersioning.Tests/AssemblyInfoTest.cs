@@ -36,6 +36,8 @@ namespace AssemblyInfo
 do()
 #if NETSTANDARD || NETFRAMEWORK || NETCOREAPP
 [<System.CodeDom.Compiler.GeneratedCode(""" + AssemblyVersionInfo.GeneratorName + @""",""" + AssemblyVersionInfo.GeneratorVersion + @""")>]
+#endif
+#if NETFRAMEWORK || NETCOREAPP || NETSTANDARD2_0 || NETSTANDARD2_1
 [<System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage>]
 #endif
 type internal ThisAssembly() =
@@ -76,6 +78,8 @@ do()
 [assembly: System.Reflection.AssemblyInformationalVersionAttribute("""")]
 #if NETSTANDARD || NETFRAMEWORK || NETCOREAPP
 [System.CodeDom.Compiler.GeneratedCode(""" + AssemblyVersionInfo.GeneratorName + @""",""" + AssemblyVersionInfo.GeneratorVersion + @""")]
+#endif
+#if NETFRAMEWORK || NETCOREAPP || NETSTANDARD2_0 || NETSTANDARD2_1
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 #endif
 internal static partial class ThisAssembly {
