@@ -2,6 +2,10 @@
 
 You must define a version.json file in your project directory or some ancestor of it.
 It is common to define it in the root of your git repo.
+
+**Important**: Some changes to version.json are not effective until you *commit* the change.
+Pushing your commit to a remote is not necessary.
+
 Here is the content of a sample version.json file you may start with:
 
 ```json
@@ -25,7 +29,10 @@ The content of the version.json file is a JSON serialized object with these prop
 ```js
 {
   "version": "x.y-prerelease", // required (unless the "inherit" field is set to true and a parent version.json file sets this.)
-  "assemblyVersion": "x.y", // optional. Use when x.y for AssemblyVersionAttribute differs from the default version property.
+  "assemblyVersion": {
+    "version": "x.y", // optional. Use when x.y for AssemblyVersionAttribute differs from the default version property.
+    "precision": "revision" // optional. Use when you want a more precise assembly version than the default major.minor.
+  },
   "versionHeightOffset": "zOffset", // optional. Use when you need to add/subtract a fixed value from the computed version height.
   "semVer1NumericIdentifierPadding": 4, // optional. Use when your -prerelease includes numeric identifiers and need semver1 support.
   "gitCommitIdShortFixedLength": 10, // optional. Set the commit ID abbreviation length.
