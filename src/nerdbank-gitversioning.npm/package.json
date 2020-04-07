@@ -20,6 +20,7 @@
     "versioning"
   ],
   "devDependencies": {
+    "@types/camel-case": "^1.2.1",
     "@types/node": "^13.11.0",
     "del": "^5.1.0",
     "gulp": "^4.0.2",
@@ -32,7 +33,7 @@
     "typescript": "^3.3.1"
   },
   "dependencies": {
-    "camel-case": "^3.0.0"
+    "camel-case": "^4.1.1"
   },
   "scripts": {
     "build": "gulp"

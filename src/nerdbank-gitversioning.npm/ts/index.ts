@@ -2,7 +2,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-var camelCase = require('camel-case')
+import * as camelCase from 'camel-case';
 import {execAsync} from './asyncprocess';
 
 const nbgvPath = 'nbgv.cli';
@@ -53,7 +53,7 @@ export async function getVersion(projectDirectory?: string, dotnetCommand?: stri
     var directResult = JSON.parse(versionText.stdout);
     var result = {};
     for (var field in directResult) {
-        result[camelCase(field)] = directResult[field];
+        result[camelCase.camelCase(field)] = directResult[field];
     }
 
     return <IGitVersion>result;
