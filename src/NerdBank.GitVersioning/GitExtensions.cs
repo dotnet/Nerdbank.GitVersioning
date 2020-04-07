@@ -936,7 +936,15 @@
             {
                 if (!this.commitVersionCache.TryGetValue(commit.Id, out VersionOptions options))
                 {
-                    options = VersionFile.GetVersion(commit, this.RepoRelativeDirectory);
+                    try
+                    {
+                        options = VersionFile.GetVersion(commit, this.RepoRelativeDirectory);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new InvalidOperationException($"Unable to get version from commit: {commit.Id.Sha}", ex);
+                    }
+
                     this.commitVersionCache.Add(commit.Id, options);
                 }
 
