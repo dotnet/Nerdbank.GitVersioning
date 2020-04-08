@@ -4,7 +4,8 @@
     <ToolCommandName>nbgv</ToolCommandName>
     <PackAsTool>True</PackAsTool>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <RuntimeIdentifiers>win-x64;linux-x64;linux-musl-x64</RuntimeIdentifiers>
     <RootNamespace>Nerdbank.GitVersioning.Tool</RootNamespace>
     <Description>A .NET Core Tool that can install, read and set version information based on git history, using Nerdbank.GitVersioning.</Description>
   </PropertyGroup>
