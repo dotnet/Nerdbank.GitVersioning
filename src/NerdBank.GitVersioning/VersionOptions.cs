@@ -17,6 +17,9 @@
     {
         public override string ToString() => DebuggerDisplay;
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private string gitCommitIdPrefix;
+
         /// <summary>
         /// Default value for <see cref="VersionPrecision"/>.
         /// </summary>
@@ -46,7 +49,7 @@
         /// The $schema field that should be serialized when writing
         /// </summary>
         [JsonProperty(PropertyName = "$schema")]
-        public string Schema => "https://raw.githubusercontent.com/AArnott/Nerdbank.GitVersioning/master/src/NerdBank.GitVersioning/version.schema.json";
+        public string Schema => "https://raw.githubusercontent.com/dotnet/Nerdbank.GitVersioning/master/src/NerdBank.GitVersioning/version.schema.json";
 
         /// <summary>
         /// Gets or sets the default version to use.
@@ -61,6 +64,32 @@
         /// <value>An instance of <see cref="System.Version"/> or <c>null</c> to simply use the default <see cref="Version"/>.</value>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
         public AssemblyVersionOptions AssemblyVersion { get; set; }
+
+
+        /// <summary>
+        /// Gets or sets the prefix for git commit id in version.
+        /// Because of semver rules the prefix must lead with a [A-z_] character (not a number) and it cannot be the empty string.
+        /// If <c>null</c> 'g' will be used.
+        /// </summary>
+        /// <value>A prefix for git commit id.</value>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public string GitCommitIdPrefix
+        {
+            get => gitCommitIdPrefix;
+            set
+            {
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    throw new ArgumentNullException(nameof(value), $"{nameof(this.GitCommitIdPrefix)} can't be empty");
+                }
+                char first = value[0];
+                if (first < 'A' || (first > 'Z' && first < 'a' && first != '_') || first > 'z')
+                {
+                    throw new ArgumentException(nameof(value), $"{nameof(this.GitCommitIdPrefix)} must lead with a [A-z_] character (not a number)");
+                }
+                this.gitCommitIdPrefix = value;
+            }
+        }
 
         /// <summary>
         /// Gets the version to use particularly for the <see cref="AssemblyVersionAttribute"/>

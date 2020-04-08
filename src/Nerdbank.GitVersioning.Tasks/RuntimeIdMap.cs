@@ -1,5 +1,5 @@
 // This code originally copied from https://github.com/dotnet/sourcelink/tree/c092238370e0437eb95722f28c79273244dc7f1a/src/Microsoft.Build.Tasks.Git
-// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See license information at https://github.com/dotnet/sourcelink/blob/c092238370e0437eb95722f28c79273244dc7f1a/License.txt.
 #if NETCOREAPP
 
 using System;
@@ -50,14 +50,14 @@ namespace Nerdbank.GitVersioning
 
                         // Find the highest available version that is lower than or equal to the runtime version
                         // among candidates that have the same qualifiers.
-                        if (candidateQualifiers == runtimeQualifiers && 
-                            CompareVersions(candidateVersion, runtimeVersion) <= 0 && 
+                        if (candidateQualifiers == runtimeQualifiers &&
+                            CompareVersions(candidateVersion, runtimeVersion) <= 0 &&
                             (bestVersion == null || CompareVersions(candidateVersion, bestVersion) > 0))
                         {
                             bestMatchIndex = i;
                             bestVersion = candidateVersion;
                         }
-                        
+
                         i += increment;
                     }
                 }
@@ -107,7 +107,7 @@ namespace Nerdbank.GitVersioning
 
         internal static void ParseRuntimeId(string runtimeId, out string osName, out string[] version, out string qualifiers)
         {
-            // We use the following convention in all newly-defined RIDs. Some RIDs (win7-x64, win8-x64) predate this convention and don't follow it, but all new RIDs should follow it. 
+            // We use the following convention in all newly-defined RIDs. Some RIDs (win7-x64, win8-x64) predate this convention and don't follow it, but all new RIDs should follow it.
             // [os name].[version]-[architecture]-[additional qualifiers]
             // See https://github.com/dotnet/corefx/blob/master/pkg/Microsoft.NETCore.Platforms/readme.md#naming-convention
 
@@ -282,7 +282,7 @@ namespace Nerdbank.GitVersioning
             "alpine-x64",
             "alpine-x64",
             "alpine-x64",
-            "alpine-x64",
+            "alpine.3.9-x64",
             "rhel-x64",
             "rhel-x64",
             "linux-x64",

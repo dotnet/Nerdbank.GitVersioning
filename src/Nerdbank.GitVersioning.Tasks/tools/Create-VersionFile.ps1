@@ -70,7 +70,7 @@ if (-not $versionFileFound)
             if ($PSCmdlet.ShouldProcess($versionJsonPath, "Writing version.json file"))
             {
                 "{
-  `"`$schema`": `"https://raw.githubusercontent.com/AArnott/Nerdbank.GitVersioning/master/src/NerdBank.GitVersioning/version.schema.json`",
+  `"`$schema`": `"https://raw.githubusercontent.com/dotnet/Nerdbank.GitVersioning/master/src/NerdBank.GitVersioning/version.schema.json`",
   `"version`": `"$version`"
 }" | Set-Content $versionJsonPath
                 $versionJsonPath

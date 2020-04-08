@@ -37,7 +37,9 @@ do()
 #if NETSTANDARD || NETFRAMEWORK || NETCOREAPP
 [<System.CodeDom.Compiler.GeneratedCode(""" + AssemblyVersionInfo.GeneratorName + @""",""" + AssemblyVersionInfo.GeneratorVersion + @""")>]
 #endif
+#if NETFRAMEWORK || NETCOREAPP || NETSTANDARD2_0 || NETSTANDARD2_1
 [<System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage>]
+#endif
 type internal ThisAssembly() =
   static member internal AssemblyVersion = ""1.3.0.0""
   static member internal AssemblyFileVersion = ""1.3.1.0""
@@ -77,7 +79,9 @@ do()
 #if NETSTANDARD || NETFRAMEWORK || NETCOREAPP
 [System.CodeDom.Compiler.GeneratedCode(""" + AssemblyVersionInfo.GeneratorName + @""",""" + AssemblyVersionInfo.GeneratorVersion + @""")]
 #endif
+#if NETFRAMEWORK || NETCOREAPP || NETSTANDARD2_0 || NETSTANDARD2_1
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+#endif
 internal static partial class ThisAssembly {
     internal const string AssemblyVersion = ""1.3.0.0"";
     internal const string AssemblyFileVersion = ""1.3.1.0"";

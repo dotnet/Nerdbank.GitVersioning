@@ -12,7 +12,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		Directory.Build.props = Directory.Build.props
 		..\init.ps1 = ..\init.ps1
 		nuget.config = nuget.config
-		..\readme.md = ..\readme.md
+		..\README.md = ..\README.md
 		version.json = version.json
 		..\ttd_build.ps1 = ..\ttd_build.ps1
 	EndProjectSection

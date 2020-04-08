@@ -9,7 +9,7 @@ Install-Package Nerdbank.GitVersioning
 
 If in a project that uses PackageReference for this package reference, you should manually add
 `PrivateAssets="all"` to the PackageReference xml element to workaround
-[this issue](https://github.com/AArnott/Nerdbank.GitVersioning/issues/122).
+[this issue](https://github.com/dotnet/Nerdbank.GitVersioning/issues/122).
 
 After installing this NuGet package, you may need to configure the version generation logic
 in order for it to work properly.
@@ -42,7 +42,7 @@ source code, as commonly found in your `Properties\AssemblyInfo.cs` file:
 If you are using the new VS 2019 .NET Core/Standard projects (or otherwise using the .NET SDK project type)
 you won't see these attributes in your AssemblyInfo.cs file but you may still get compiler errors
 due to duplicate attributes. In that case, a Rebuild of your project should resolve
-[the issue](https://github.com/AArnott/Nerdbank.GitVersioning/issues/121).
+[the issue](https://github.com/dotnet/Nerdbank.GitVersioning/issues/121).
 
 This NuGet package creates these attributes at build time based on version information
 found in your `version.json` file and your git repo's HEAD position.

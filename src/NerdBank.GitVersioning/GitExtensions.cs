@@ -355,7 +355,18 @@
         /// <exception cref="ArgumentException">Thrown if the provided path does not lead to an existing directory.</exception>
         public static void HelpFindLibGit2NativeBinaries(string basePath)
         {
-            if (!TryHelpFindLibGit2NativeBinaries(basePath, out string attemptedDirectory))
+            HelpFindLibGit2NativeBinaries(basePath, out string _);
+        }
+
+        /// <summary>
+        /// Assists the operating system in finding the appropriate native libgit2 module.
+        /// </summary>
+        /// <param name="basePath">The path to the directory that contains the lib folder.</param>
+        /// <param name="attemptedDirectory">Receives the directory that native binaries are expected.</param>
+        /// <exception cref="ArgumentException">Thrown if the provided path does not lead to an existing directory.</exception>
+        public static void HelpFindLibGit2NativeBinaries(string basePath, out string attemptedDirectory)
+        {
+            if (!TryHelpFindLibGit2NativeBinaries(basePath, out attemptedDirectory))
             {
                 throw new ArgumentException($"Unable to find native binaries under directory: \"{attemptedDirectory}\".");
             }
@@ -368,7 +379,7 @@
         /// <returns><c>true</c> if the libgit2 native binaries have been found; <c>false</c> otherwise.</returns>
         public static bool TryHelpFindLibGit2NativeBinaries(string basePath)
         {
-            return TryHelpFindLibGit2NativeBinaries(basePath, out string attemptedDirectory);
+            return TryHelpFindLibGit2NativeBinaries(basePath, out string _);
         }
 
         /// <summary>
@@ -973,7 +984,15 @@
             {
                 if (!this.commitVersionCache.TryGetValue(commit.Id, out VersionOptions options))
                 {
-                    options = VersionFile.GetVersion(commit, this.RepoRelativeDirectory);
+                    try
+                    {
+                        options = VersionFile.GetVersion(commit, this.RepoRelativeDirectory);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new InvalidOperationException($"Unable to get version from commit: {commit.Id.Sha}", ex);
+                    }
+
                     this.commitVersionCache.Add(commit.Id, options);
                 }
 

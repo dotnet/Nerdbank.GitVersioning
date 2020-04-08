@@ -1,7 +1,9 @@
 trigger:
   batch: true
   branches:
-    include: ["master", "v*"]
+    include:
+      - master
+      - 'v*'
   paths:
     exclude: ["doc", "*.md"]
 
@@ -26,6 +28,8 @@ resources:
 jobs:
 - job: Windows
   pool: Hosted Windows 2019 with VS2019
+  variables:
+  - group: dotnetfoundation code signing
   steps:
   - checkout: self
     clean: true
@@ -35,11 +39,11 @@ jobs:
       git config --global user.email me@ci.com
     displayName: Configure git commit author for testing
 
-  - task: DotNetCoreInstaller@0
-    displayName: Install .NET Core SDK
+  - task: UseDotNet@2
+    displayName: Install .NET Core SDK 3.1.100
     inputs:
       packageType: sdk
-      version: 2.2.402
+      version: 3.1.100
   - script: dotnet --info
     displayName: Show dotnet SDK info
 
@@ -116,6 +120,22 @@ jobs:
       TargetFolder: $(Build.ArtifactStagingDirectory)/deployables
       flattenFolders: true
     displayName: Collecting deployable artifacts
+
+  - pwsh: >
+      dotnet tool install --tool-path obj SignClient
+
+      obj/SignClient sign
+      --baseDirectory '$(Build.ArtifactStagingDirectory)/deployables'
+      --input '**/*'
+      --config '$(System.DefaultWorkingDirectory)/azure-pipelines/SignClient.json'
+      --filelist '$(System.DefaultWorkingDirectory)/azure-pipelines/signfiles.txt'
+      --user '$(codesign_username)'
+      --secret '$(codesign_secret)'
+      --name 'Nerdbank.GitVersioning'
+      --descriptionUrl 'https://github.com/dotnet/Nerdbank.GitVersioning'
+    displayName: Code sign
+    condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+
   - task: PublishBuildArtifacts@1
     inputs:
       PathtoPublish: $(Build.ArtifactStagingDirectory)/deployables
@@ -170,13 +190,12 @@ jobs:
   pool:
     vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
   container: disco
-  condition: false # it does not yet pass: https://github.com/AArnott/Nerdbank.GitVersioning/issues/392
   steps:
   - template: azure-pipelines/xplattest-pipeline.yml
 
 - job: macOS
   dependsOn: Windows
   pool:
-    vmImage: macOS 10.13
+    vmImage: macOS-10.15
   steps:
   - template: azure-pipelines/xplattest-pipeline.yml

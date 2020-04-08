@@ -142,4 +142,4 @@ adding an environment variable with the value of `%teamcity.build.vcs.branch.<vc
 the root id described on the TeamCity VCS roots page. Details on this variable can be found on the
 [TeamCity docs](https://confluence.jetbrains.com/display/TCD8/Predefined+Build+Parameters).
 
-[Issue37]: https://github.com/AArnott/Nerdbank.GitVersioning/issues/37
+[Issue37]: https://github.com/dotnet/Nerdbank.GitVersioning/issues/37
