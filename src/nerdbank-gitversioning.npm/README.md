@@ -15,4 +15,4 @@ version that precisely describes the git commit that built it.
 
 See our [project README][GitHubREADME] for more information.
 
-[GitHubREADME]: https://github.com/AArnott/Nerdbank.GitVersioning/blob/master/readme.md
+[GitHubREADME]: https://github.com/dotnet/Nerdbank.GitVersioning/blob/master/README.md

@@ -36,7 +36,7 @@
   <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="Nerdbank.GitVersioning.Tasks.CompareFiles"/>
 
   <Target Name="NBGV_SetDefaults">
-    <!-- Workarounds for https://github.com/AArnott/Nerdbank.GitVersioning/issues/404 -->
+    <!-- Workarounds for https://github.com/dotnet/Nerdbank.GitVersioning/issues/404 -->
     <PropertyGroup>
       <!-- $(TargetExt) isn't set at evaluation time for us when built in wpftmp.csproj with manual imports -->
       <!-- Suppress assembly version info generation if not obviously compiling an assembly. -->
@@ -240,6 +240,7 @@
 
   <!-- Support for ASP.NET Core 2.1 Razor view assemblies -->
   <Target Name="AddVersionFile"
+          Condition="'@(RazorGenerate->Count())' != '0'"
           BeforeTargets="PrepareForRazorCompile"
           DependsOnTargets="GenerateAssemblyVersionInfo">
     <ItemGroup>

@@ -7,15 +7,16 @@
     <Authors>Chris Crutchfield, Andrew Arnott</Authors>
     <Company>andarno</Company>
     <Description>Cake wrapper for Nerdbank.GitVersioning.  Stamps your assemblies with semver 2.0 compliant git commit specific version information and provides NuGet versioning information as well.</Description>
-    <Copyright>Copyright © Andrew Arnott</Copyright>
+    <Copyright>Copyright (c) .NET Foundation and Contributors</Copyright>
     <PackageTags>git commit versioning version assemblyinfo</PackageTags>
     <PackageIconUrl>https://cdn.jsdelivr.net/gh/cake-contrib/graphics/png/cake-contrib-medium.png</PackageIconUrl>
     <PackageIcon>cake-contrib-medium.png</PackageIcon>
-    <PackageProjectUrl>http://github.com/aarnott/Nerdbank.GitVersioning</PackageProjectUrl>
+    <PackageProjectUrl>http://github.com/dotnet/Nerdbank.GitVersioning</PackageProjectUrl>
     <SignAssembly>false</SignAssembly>
-    <!-- We include the whole OutputPath in this tools package. -->
-    <IncludeBuildOutput>false</IncludeBuildOutput>
+
     <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PackBuildOutputs</TargetsForTfmSpecificContentInPackage>
+    <LibGit2SharpNativeBinaries>$(NuGetPackageRoot)libgit2sharp.nativebinaries\$(LibGit2SharpNativeVersion)\</LibGit2SharpNativeBinaries>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <!-- This is a tools package and should express no dependencies. -->
@@ -36,6 +37,15 @@
 
   <ItemGroup>
     <None Include="cake-contrib-medium.png" Pack="true" PackagePath="" />
+
+    <!-- Include native binaries -->
+    <None Include="$(LibGit2SharpNativeBinaries)runtimes\**\*.*" Pack="true" PackagePath="lib\netstandard2.0\lib\" LinkBase="lib" />
+
+    <!-- Additional copies to work around DllNotFoundException on Mono (https://github.com/AArnott/Nerdbank.GitVersioning/issues/222) -->
+    <None Include="$(LibGit2SharpNativeBinaries)runtimes\osx\native\*.dylib" Pack="true" PackagePath="lib\netstandard2.0\lib\osx\" LinkBase="lib\osx" />
+    <None Include="$(LibGit2SharpNativeBinaries)runtimes\linux-x64\native\*.so" Pack="true" PackagePath="lib\netstandard2.0\lib\linux\x86_64\" LinkBase="lib\linux\x86_64" />
+    <None Include="$(LibGit2SharpNativeBinaries)runtimes\win-x64\native\*.dll" Pack="true" PackagePath="lib\netstandard2.0\lib\win32\x64\" LinkBase="lib\win32\x64" />
+    <None Include="$(LibGit2SharpNativeBinaries)runtimes\win-x86\native\*.dll" Pack="true" PackagePath="lib\netstandard2.0\lib\win32\x86\" LinkBase="lib\win32\x86" />
   </ItemGroup>
 
   <ItemGroup>
@@ -44,8 +54,20 @@
 
   <Target Name="PackBuildOutputs" DependsOnTargets="SatelliteDllsProjectOutputGroup;DebugSymbolsProjectOutputGroup">
     <ItemGroup>
-      <TfmSpecificPackageFile Include="$(OutputPath)\**\*" Exclude="$(OutputPath)\**\*.xml;$(OutputPath)\**\*.pdb;$(OutputPath)\**\Cake.Core.dll">
-        <PackagePath>lib\$(TargetFramework)\</PackagePath>
+      <TfmSpecificPackageFile
+        Include="
+                  $(OutputPath)LibGit2Sharp.dll*;
+                  $(OutputPath)Nerdbank.GitVersioning.*dll;
+                  $(OutputPath)Newtonsoft.Json.dll;
+                  $(OutputPath)Validation.dll;
+                  "
+
+        Exclude="
+                  $(OutputPath)Microsoft.*.dll
+                  $(OutputPath)System.*.dll
+                  "
+        >
+        <PackagePath>lib\$(TargetFramework)</PackagePath>
       </TfmSpecificPackageFile>
     </ItemGroup>
   </Target>

@@ -2,7 +2,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-var camelCase = require('camel-case')
+import * as camelCase from 'camel-case';
 import {execAsync} from './asyncprocess';
 
 const nbgvPath = 'nbgv.cli';
@@ -53,7 +53,7 @@ export async function getVersion(projectDirectory?: string, dotnetCommand?: stri
     var directResult = JSON.parse(versionText.stdout);
     var result = {};
     for (var field in directResult) {
-        result[camelCase(field)] = directResult[field];
+        result[camelCase.camelCase(field)] = directResult[field];
     }
 
     return <IGitVersion>result;
@@ -70,7 +70,7 @@ export async function setPackageVersion(packageDirectory?: string, srcDirectory?
     srcDirectory = srcDirectory || packageDirectory;
     const gitVersion = await getVersion(srcDirectory, dotnetCommand);
     console.log(`Setting package version to ${gitVersion.npmPackageVersion}`);
-    var result = await execAsync(`npm version ${gitVersion.npmPackageVersion} --no-git-tag-version`, { cwd: packageDirectory });
+    var result = await execAsync(`npm version ${gitVersion.npmPackageVersion} --no-git-tag-version --allow-same-version`, { cwd: packageDirectory });
     if (result.stderr) {
         console.log(result.stderr);
     }
