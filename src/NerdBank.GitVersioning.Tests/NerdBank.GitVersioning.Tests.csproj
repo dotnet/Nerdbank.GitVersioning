@@ -10,7 +10,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\Shared\**\*.cs" LinkBase="Shared" />
-    <Compile Include="..\NerdBank.GitVersioning\FilterPath.cs" Link="FilterPath.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="..\Nerdbank.GitVersioning.Tasks\build\Nerdbank.GitVersioning.targets">

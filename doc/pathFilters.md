@@ -50,10 +50,10 @@ Path filters take on a variety of formats, and can specify paths relative to the
 
 Multiple path filters may also be specified. The order is irrelevant. After a path matches any non-exclude path filter, it will be run through all exclude path filter. If it matches, the path is ignored.
 
-| Path filter                                                                         | Description                                                                                                |
-| ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `file-here.txt`<br>`./quux.txt`<br>`./sub-dir/foo.txt`<br>`../subdir/inclusion.txt` | File will be included. Path is relative to the `version.json` file.                                        |
-| `sub-dir`<br>`../sub-dir`                                                           | Directory will be included. Path is relative to the `version.json` file.                                   |
-| `:/dir/file.txt`                                                                    | File will be included. Path is absolute (i.e., relative to the root of the repository).                    |
-| `:!bar.txt`<br>`:^../foo/baz.txt`                                                   | File will be excluded. Path is relative to the `version.json` file. `:!` and `:^` prefixes are synonymous. |
-| `:!/root-file.txt`                                                                  | File will be excluded. Path is absolute (i.e., relative to the root of the repository).                    |
+| Path filter                                                                        | Description                                                                                                |
+| ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `./quux.txt`<br>`file-here.txt`<br>`sub-dir/foo.txt`<br>`../sibling/inclusion.txt` | File will be included. Path is relative to the `version.json` file.                                        |
+| `./`<br>`sub-dir`<br>`../sibling`                                                  | Directory will be included. Path is relative to the `version.json` file.                                   |
+| `/root-file.txt`<br>`:/dir/file.txt`                                               | File will be included. Path is absolute (i.e., relative to the root of the repository).                    |
+| `:!bar.txt`<br>`:^../foo/baz.txt`                                                  | File will be excluded. Path is relative to the `version.json` file. `:!` and `:^` prefixes are synonymous. |
+| `:!/root-file.txt`                                                                 | File will be excluded. Path is absolute (i.e., relative to the root of the repository).                    |

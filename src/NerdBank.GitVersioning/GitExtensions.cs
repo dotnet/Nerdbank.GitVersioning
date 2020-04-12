@@ -726,7 +726,7 @@
                 if (continueStepping == null || continueStepping(commit))
                 {
                     var versionOptions = tracker.GetVersion(commit);
-                    var pathFilters = versionOptions != null ? FilterPath.FromVersionOptions(versionOptions, tracker.RepoRelativeDirectory, commit.GetRepository()) : null;
+                    var pathFilters = versionOptions?.PathFilters;
 
                     var includePaths =
                         pathFilters
@@ -736,12 +736,13 @@
 
                     var excludePaths = pathFilters?.Where(filter => filter.IsExclude).ToList();
 
+                    var ignoreCase = commit.GetRepository().Config.Get<bool>("core.ignorecase")?.Value ?? false;
                     bool ContainsRelevantChanges(IEnumerable<TreeEntryChanges> changes) =>
                         excludePaths.Count == 0
                             ? changes.Any()
                             // If there is a single change that isn't excluded,
                             // then this commit is relevant.
-                            : changes.Any(change => !excludePaths.Any(exclude => exclude.Excludes(change.Path)));
+                            : changes.Any(change => !excludePaths.Any(exclude => exclude.Excludes(change.Path, ignoreCase)));
 
                     height = 1;
 
@@ -914,6 +915,24 @@
 
             workingCopyVersion = null;
             return false;
+        }
+
+        internal static string GetRepoRelativePath(this Repository repo, string absolutePath)
+        {
+            var repoRoot = repo?.Info?.WorkingDirectory?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && repoRoot != null && repoRoot.StartsWith("\\") && (repoRoot.Length == 1 || repoRoot[1] != '\\'))
+            {
+                // We're in a worktree, which libgit2sharp only gives us as a path relative to the root of the assumed drive.
+                // Add the drive: to the front of the repoRoot.
+                repoRoot = repo.Info.Path.Substring(0, 2) + repoRoot;
+            }
+
+            // TODO: assert that absolutePath starts with repoRoot?
+
+            return !string.IsNullOrWhiteSpace(repoRoot)
+                ? absolutePath.Substring(repoRoot.Length)
+                    .TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                : null;
         }
 
         private class GitWalkTracker

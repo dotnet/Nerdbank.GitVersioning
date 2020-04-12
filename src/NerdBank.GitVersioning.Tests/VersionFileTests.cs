@@ -136,6 +136,113 @@ public class VersionFileTests : RepoTestBase
         Assert.Equal(expectedJson, normalizedFileContent);
     }
 
+    [Fact]
+    public void SetVersion_PathFilters_ThrowsOutsideOfGitRepo()
+    {
+        var versionOptions = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("1.2"),
+            PathFilters = new []
+            {
+                new FilterPath("./foo", ""),
+            }
+        };
+
+        // TODO: assert message is helpful, e.g. "<path> is not in a Git repository"
+        Assert.Throws<ArgumentNullException>(() => VersionFile.SetVersion(this.RepoPath, versionOptions));
+    }
+
+    [Fact]
+    public void SetVersion_PathFilters_DifferentRelativePaths()
+    {
+        this.InitializeSourceControl();
+
+        var versionOptions = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("1.2"),
+            PathFilters = new []
+            {
+                new FilterPath("./foo", "bar"),
+                new FilterPath("/absolute", "bar"),
+            }
+        };
+        var expected = versionOptions.PathFilters.Select(x => x.RepoRelativePath).ToList();
+
+        var projectDirectory = Path.Combine(this.RepoPath, "quux");
+        VersionFile.SetVersion(projectDirectory, versionOptions);
+
+        var actualVersionOptions = VersionFile.GetVersion(projectDirectory);
+        var actual = actualVersionOptions.PathFilters.Select(x => x.RepoRelativePath).ToList();
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void SetVersion_PathFilters_InheritRelativePaths()
+    {
+        this.InitializeSourceControl();
+
+        var rootVersionOptions = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("1.2"),
+            PathFilters = new []
+            {
+                new FilterPath("./root-file.txt", ""),
+                new FilterPath("/absolute", ""),
+            }
+        };
+        VersionFile.SetVersion(this.RepoPath, rootVersionOptions);
+
+        var versionOptions =new VersionOptions
+        {
+            Version = SemanticVersion.Parse("1.2"),
+            Inherit = true
+        };
+        var projectDirectory = Path.Combine(this.RepoPath, "quux");
+        VersionFile.SetVersion(projectDirectory, versionOptions);
+
+        var expected = rootVersionOptions.PathFilters.Select(x => x.RepoRelativePath).ToList();
+
+        var actualVersionOptions = VersionFile.GetVersion(projectDirectory);
+        var actual = actualVersionOptions.PathFilters.Select(x => x.RepoRelativePath).ToList();
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void SetVersion_PathFilters_InheritOverride()
+    {
+        this.InitializeSourceControl();
+
+        var rootVersionOptions = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("1.2"),
+            PathFilters = new []
+            {
+                new FilterPath("./root-file.txt", ""),
+                new FilterPath("/absolute", ""),
+            }
+        };
+        VersionFile.SetVersion(this.RepoPath, rootVersionOptions);
+
+        var versionOptions = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("1.2"),
+            Inherit = true,
+            PathFilters = new []
+            {
+                new FilterPath("./project-file.txt", "quux"),
+                new FilterPath("/absolute", "quux"),
+            }
+        };
+        var projectDirectory = Path.Combine(this.RepoPath, "quux");
+        VersionFile.SetVersion(projectDirectory, versionOptions);
+
+        var expected = versionOptions.PathFilters.Select(x => x.RepoRelativePath).ToList();
+
+        var actualVersionOptions = VersionFile.GetVersion(projectDirectory);
+        var actual = actualVersionOptions.PathFilters.Select(x => x.RepoRelativePath).ToList();
+        Assert.Equal(expected, actual);
+    }
+
     [Theory]
     [InlineData(@"{""cloudBuild"":{""buildNumber"":{""enabled"":false,""includeCommitId"":{""when"":""nonPublicReleaseOnly"",""where"":""buildMetadata""}}}}", @"{}")]
     [InlineData(@"{""cloudBuild"":{""buildNumber"":{""enabled"":true,""includeCommitId"":{""when"":""nonPublicReleaseOnly"",""where"":""buildMetadata""}}}}", @"{""cloudBuild"":{""buildNumber"":{""enabled"":true}}}")]
@@ -325,14 +432,28 @@ public class VersionFileTests : RepoTestBase
     [Fact]
     public void GetVersion_ReadPathFilters()
     {
+        this.InitializeSourceControl();
+
         var json = @"{ ""version"" : ""1.2"", ""pathFilters"" : [ "":/root.txt"", ""./hello"" ] }";
         var path = Path.Combine(this.RepoPath, "version.json");
         File.WriteAllText(path, json);
 
+        var repoRelativeBaseDirectory = ".";
         var versionOptions = VersionFile.GetVersion(this.RepoPath);
 
         Assert.NotNull(versionOptions.PathFilters);
-        Assert.Equal(new[] {":/root.txt", "./hello"}, versionOptions.PathFilters);
+        Assert.Equal(new[] { "/root.txt", "./hello" }, versionOptions.PathFilters.Select(fp => fp.ToPathSpec(repoRelativeBaseDirectory)));
+    }
+
+    [Fact]
+    public void GetVersion_ThrowsWithPathFiltersOutsideOfGitRepo()
+    {
+        var json = @"{ ""version"" : ""1.2"", ""pathFilters"" : [ ""."" ] }";
+        var path = Path.Combine(this.RepoPath, "version.json");
+        File.WriteAllText(path, json);
+
+        // TODO: assert message is helpful, e.g. "<path> is not in a Git repository"
+        Assert.Throws<ArgumentNullException>(() => VersionFile.GetVersion(this.RepoPath));
     }
 
     [Fact]

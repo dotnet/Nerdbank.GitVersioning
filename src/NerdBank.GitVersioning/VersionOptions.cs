@@ -1,4 +1,6 @@
-﻿namespace Nerdbank.GitVersioning
+﻿using LibGit2Sharp;
+
+namespace Nerdbank.GitVersioning
 {
     using System;
     using System.Collections.Generic;
@@ -240,7 +242,7 @@
         /// Paths should be relative to the root of the repository.
         /// </summary>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public string[] PathFilters { get; set; }
+        public FilterPath[] PathFilters { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether this options object should inherit from an ancestor any settings that are not explicitly set in this one.
@@ -331,11 +333,27 @@
 
         /// <summary>
         /// Gets the <see cref="JsonSerializerSettings"/> to use based on certain requirements.
+        /// Path filters cannot be serialized or deserialized when using this overload.
         /// </summary>
         /// <param name="includeDefaults">A value indicating whether default values should be serialized.</param>
         /// <param name="includeSchemaProperty">A value indicating whether the $schema property should be serialized.</param>
         /// <returns>The serializer settings to use.</returns>
-        public static JsonSerializerSettings GetJsonSettings(bool includeDefaults = false, bool includeSchemaProperty = false)
+        public static JsonSerializerSettings GetJsonSettings(bool includeDefaults, bool includeSchemaProperty) => GetJsonSettings(includeDefaults, includeSchemaProperty, repoRelativeBaseDirectory: null);
+
+        /// <summary>
+        /// Gets the <see cref="JsonSerializerSettings"/> to use based on certain requirements.
+        /// </summary>
+        /// <param name="includeDefaults">A value indicating whether default values should be serialized.</param>
+        /// <param name="includeSchemaProperty">A value indicating whether the $schema property should be serialized.</param>
+        /// <param name="repoRelativeBaseDirectory">
+        /// Directory (relative to the root of the repository) that path
+        /// filters should be relative to.
+        /// This should be the directory where the version.json file resides.
+        /// An empty string represents the root of the repository.
+        /// Passing <c>null</c> will mean path filters cannot be serialized.
+        /// </param>
+        /// <returns>The serializer settings to use.</returns>
+        public static JsonSerializerSettings GetJsonSettings(bool includeDefaults = false, bool includeSchemaProperty = false, string repoRelativeBaseDirectory = null)
         {
             return new JsonSerializerSettings
             {
@@ -344,6 +362,7 @@
                     new SemanticVersionJsonConverter(),
                     new AssemblyVersionOptionsConverter(includeDefaults),
                     new StringEnumConverter() { CamelCaseText = true },
+                    new FilterPathJsonConverter(repoRelativeBaseDirectory),
                 },
                 ContractResolver = new VersionOptionsContractResolver
                 {

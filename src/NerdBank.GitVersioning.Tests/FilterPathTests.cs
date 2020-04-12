@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 using Nerdbank.GitVersioning;
 using Xunit;
 
@@ -7,6 +8,9 @@ public class FilterPathTests
     [Theory]
     [InlineData("./", "foo", "foo")]
     [InlineData("../relative-dir", "foo", "relative-dir")]
+    [InlineData("relative-dir", "some/dir/../zany", "some/zany/relative-dir")]
+    [InlineData("relative-dir", "some/dir/..", "some/relative-dir")]
+    [InlineData("relative-dir", "some/../subdir", "subdir/relative-dir")]
     [InlineData("../../some/dir/here", "foo/multi/wow", "foo/some/dir/here")]
     [InlineData("relativepath.txt", "foo", "foo/relativepath.txt")]
     [InlineData("./relativepath.txt", "foo", "foo/relativepath.txt")]
@@ -41,8 +45,8 @@ public class FilterPathTests
     [InlineData(":^/absolute.txt", "foo", "absolute.txt")]
     public void PathsCanBeExcluded(string pathSpec, string relativeTo, string repoRelativePath)
     {
-        Assert.True(new FilterPath(pathSpec, relativeTo, true).Excludes(repoRelativePath));
-        Assert.True(new FilterPath(pathSpec, relativeTo, false).Excludes(repoRelativePath));
+        Assert.True(new FilterPath(pathSpec, relativeTo).Excludes(repoRelativePath, true));
+        Assert.True(new FilterPath(pathSpec, relativeTo).Excludes(repoRelativePath, false));
     }
 
     [Theory]
@@ -58,8 +62,8 @@ public class FilterPathTests
     [InlineData("relativepath.txt", "foo", "foo/relativepath.txt")]
     public void NonMatchingPathsAreNotExcluded(string pathSpec, string relativeTo, string repoRelativePath)
     {
-        Assert.False(new FilterPath(pathSpec, relativeTo, true).Excludes(repoRelativePath));
-        Assert.False(new FilterPath(pathSpec, relativeTo, false).Excludes(repoRelativePath));
+        Assert.False(new FilterPath(pathSpec, relativeTo).Excludes(repoRelativePath, true));
+        Assert.False(new FilterPath(pathSpec, relativeTo).Excludes(repoRelativePath, false));
     }
 
     [Theory]
@@ -75,7 +79,7 @@ public class FilterPathTests
     [InlineData(":^/absOLUte.txt", "foo", "Absolute.TXT")]
     public void PathsCanBeExcludedCaseInsensitive(string pathSpec, string relativeTo, string repoRelativePath)
     {
-        Assert.True(new FilterPath(pathSpec, relativeTo, true).Excludes(repoRelativePath));
+        Assert.True(new FilterPath(pathSpec, relativeTo).Excludes(repoRelativePath, true));
     }
 
     [Theory]
@@ -91,7 +95,7 @@ public class FilterPathTests
     [InlineData(":^/absOLUte.txt", "foo", "Absolute.TXT")]
     public void NonMatchingPathsAreNotExcludedCaseSensitive(string pathSpec, string relativeTo, string repoRelativePath)
     {
-        Assert.False(new FilterPath(pathSpec, relativeTo, false).Excludes(repoRelativePath));
+        Assert.False(new FilterPath(pathSpec, relativeTo).Excludes(repoRelativePath, false));
     }
 
     [Fact]
@@ -102,5 +106,30 @@ public class FilterPathTests
         Assert.Throws<FormatException>(() => new FilterPath(":?", ""));
         Assert.Throws<FormatException>(() => new FilterPath("../foo.txt", ""));
         Assert.Throws<FormatException>(() => new FilterPath(".././a/../../foo.txt", "foo"));
+    }
+
+    [Theory]
+    [InlineData(":/abc/def", "", "/abc/def")]
+    [InlineData(":/abc/def", ".", "/abc/def")]
+    [InlineData("abc", ".", "./abc")]
+    [InlineData(".", ".", "./")]
+    [InlineData("./", ".", "./")]
+    [InlineData("./", "", "./")]
+    [InlineData("abc/def", ".", "./abc/def")]
+    [InlineData("abc/def", "./foo", "./abc/def")]
+    [InlineData("../Directory.Build.props", "./foo", "../Directory.Build.props")]
+    [InlineData(":!/Directory.Build.props", "./foo", ":!/Directory.Build.props")]
+    [InlineData(":!relative.txt", "./foo", ":!relative.txt")]
+    public void ToPathSpec(string pathSpec, string relativeTo, string expectedPathSpec)
+    {
+        Assert.Equal(expectedPathSpec, new FilterPath(pathSpec, relativeTo).ToPathSpec(relativeTo));
+    }
+
+    [Theory]
+    [InlineData("foo/bar", "foo", "./bar")]
+    [InlineData("foo/bar", "FOO", "./bar")]
+    public void ToPathSpecTest(string pathSpec, string relativeTo, string expectedPathSpec)
+    {
+        Assert.Equal(expectedPathSpec, new FilterPath(pathSpec, ".").ToPathSpec(relativeTo));
     }
 }
