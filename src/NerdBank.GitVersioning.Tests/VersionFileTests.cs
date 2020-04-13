@@ -148,7 +148,6 @@ public class VersionFileTests : RepoTestBase
             }
         };
 
-        // TODO: assert message is helpful, e.g. "<path> is not in a Git repository"
         Assert.Throws<ArgumentNullException>(() => VersionFile.SetVersion(this.RepoPath, versionOptions));
     }
 
@@ -452,7 +451,6 @@ public class VersionFileTests : RepoTestBase
         var path = Path.Combine(this.RepoPath, "version.json");
         File.WriteAllText(path, json);
 
-        // TODO: assert message is helpful, e.g. "<path> is not in a Git repository"
         Assert.Throws<ArgumentNullException>(() => VersionFile.GetVersion(this.RepoPath));
     }
 

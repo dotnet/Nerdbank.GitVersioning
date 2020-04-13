@@ -24,7 +24,7 @@
 
             if (this.repoRelativeBaseDirectory == null)
             {
-                throw new ArgumentNullException(nameof(this.repoRelativeBaseDirectory), $"Base directory must not be null to be able to deserialize filter paths. Did you forget to pass one to {nameof(VersionOptions.GetJsonSettings)}?");
+                throw new ArgumentNullException(nameof(this.repoRelativeBaseDirectory), $"Base directory must not be null to be able to deserialize filter paths. Ensure that one was passed to {nameof(VersionOptions.GetJsonSettings)}, and that the version.json file is being written to a Git repository.");
             }
 
             return new FilterPath(value, this.repoRelativeBaseDirectory);
@@ -39,7 +39,7 @@
 
             if (this.repoRelativeBaseDirectory == null)
             {
-                throw new ArgumentNullException(nameof(this.repoRelativeBaseDirectory), $"Base directory must not be null to be able to serialize filter paths. Did you forget to pass one to {nameof(VersionOptions.GetJsonSettings)}?");
+                throw new ArgumentNullException(nameof(this.repoRelativeBaseDirectory), $"Base directory must not be null to be able to serialize filter paths. Ensure that one was passed to {nameof(VersionOptions.GetJsonSettings)}, and that the version.json file is being written to a Git repository.");
             }
 
             writer.WriteValue(filterPath.ToPathSpec(this.repoRelativeBaseDirectory));
