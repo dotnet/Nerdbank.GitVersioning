@@ -927,12 +927,16 @@
                 repoRoot = repo.Info.Path.Substring(0, 2) + repoRoot;
             }
 
-            // TODO: assert that absolutePath starts with repoRoot?
+            if (repoRoot == null)
+                return null;
 
-            return !string.IsNullOrWhiteSpace(repoRoot)
-                ? absolutePath.Substring(repoRoot.Length)
-                    .TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
-                : null;
+            if (!absolutePath.StartsWith(repoRoot, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException($"Path '{absolutePath}' is not within repository '{repoRoot}'", nameof(absolutePath));
+            }
+
+            return absolutePath.Substring(repoRoot.Length)
+                .TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         }
 
         private class GitWalkTracker

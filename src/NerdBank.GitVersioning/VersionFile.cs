@@ -147,56 +147,61 @@
         public static VersionOptions GetVersion(string projectDirectory, out string actualDirectory)
         {
             Requires.NotNullOrEmpty(projectDirectory, nameof(projectDirectory));
-            var repo = GitExtensions.OpenGitRepo(projectDirectory);
-
-            string searchDirectory = projectDirectory;
-            while (searchDirectory != null)
+            using (var repo = GitExtensions.OpenGitRepo(projectDirectory))
             {
-                string parentDirectory = Path.GetDirectoryName(searchDirectory);
-                string versionTxtPath = Path.Combine(searchDirectory, TxtFileName);
-                if (File.Exists(versionTxtPath))
+                string searchDirectory = projectDirectory;
+                while (searchDirectory != null)
                 {
-                    using (var sr = new StreamReader(File.OpenRead(versionTxtPath)))
+                    string parentDirectory = Path.GetDirectoryName(searchDirectory);
+                    string versionTxtPath = Path.Combine(searchDirectory, TxtFileName);
+                    if (File.Exists(versionTxtPath))
                     {
-                        var result = TryReadVersionFile(sr);
-                        if (result != null)
+                        using (var sr = new StreamReader(File.OpenRead(versionTxtPath)))
+                        {
+                            var result = TryReadVersionFile(sr);
+                            if (result != null)
+                            {
+                                actualDirectory = searchDirectory;
+                                return result;
+                            }
+                        }
+                    }
+
+                    string versionJsonPath = Path.Combine(searchDirectory, JsonFileName);
+                    if (File.Exists(versionJsonPath))
+                    {
+                        string versionJsonContent = File.ReadAllText(versionJsonPath);
+
+                        var repoRelativeBaseDirectory = repo?.GetRepoRelativePath(searchDirectory);
+                        VersionOptions result =
+                            TryReadVersionJsonContent(versionJsonContent, repoRelativeBaseDirectory);
+                        if (result?.Inherit ?? false)
+                        {
+                            if (parentDirectory != null)
+                            {
+                                result = GetVersion(parentDirectory);
+                                if (result != null)
+                                {
+                                    JsonConvert.PopulateObject(versionJsonContent, result,
+                                        VersionOptions.GetJsonSettings(
+                                            repoRelativeBaseDirectory: repoRelativeBaseDirectory));
+                                    actualDirectory = searchDirectory;
+                                    return result;
+                                }
+                            }
+
+                            throw new InvalidOperationException(
+                                $"\"{versionJsonPath}\" inherits from a parent directory version.json file but none exists.");
+                        }
+                        else if (result != null)
                         {
                             actualDirectory = searchDirectory;
                             return result;
                         }
                     }
+
+                    searchDirectory = parentDirectory;
                 }
-
-                string versionJsonPath = Path.Combine(searchDirectory, JsonFileName);
-                if (File.Exists(versionJsonPath))
-                {
-                    string versionJsonContent = File.ReadAllText(versionJsonPath);
-
-                    var repoRelativeBaseDirectory = repo?.GetRepoRelativePath(searchDirectory);
-                    VersionOptions result = TryReadVersionJsonContent(versionJsonContent, repoRelativeBaseDirectory);
-                    if (result?.Inherit ?? false)
-                    {
-                        if (parentDirectory != null)
-                        {
-                            result = GetVersion(parentDirectory);
-                            if (result != null)
-                            {
-                                JsonConvert.PopulateObject(versionJsonContent, result, VersionOptions.GetJsonSettings(repoRelativeBaseDirectory: repoRelativeBaseDirectory));
-                                actualDirectory = searchDirectory;
-                                return result;
-                            }
-                        }
-
-                        throw new InvalidOperationException($"\"{versionJsonPath}\" inherits from a parent directory version.json file but none exists.");
-                    }
-                    else if (result != null)
-                    {
-                        actualDirectory = searchDirectory;
-                        return result;
-                    }
-                }
-
-                searchDirectory = parentDirectory;
             }
 
             actualDirectory = null;
@@ -276,13 +281,16 @@
                 }
             }
 
-            var repo = GitExtensions.OpenGitRepo(projectDirectory);
-            string repoRelativeProjectDirectory = repo?.GetRepoRelativePath(projectDirectory);
-
-            string versionJsonPath = Path.Combine(projectDirectory, JsonFileName);
-            var jsonContent = JsonConvert.SerializeObject(version, VersionOptions.GetJsonSettings(version.Inherit, includeSchemaProperty, repoRelativeProjectDirectory));
-            File.WriteAllText(versionJsonPath, jsonContent);
-            return versionJsonPath;
+            using (var repo = GitExtensions.OpenGitRepo(projectDirectory))
+            {
+                string repoRelativeProjectDirectory = repo?.GetRepoRelativePath(projectDirectory);
+                string versionJsonPath = Path.Combine(projectDirectory, JsonFileName);
+                var jsonContent = JsonConvert.SerializeObject(version,
+                    VersionOptions.GetJsonSettings(version.Inherit, includeSchemaProperty,
+                        repoRelativeProjectDirectory));
+                File.WriteAllText(versionJsonPath, jsonContent);
+                return versionJsonPath;
+            }
         }
 
         /// <summary>
