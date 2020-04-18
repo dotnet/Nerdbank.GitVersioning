@@ -72,6 +72,8 @@ public abstract class RepoTestBase : IDisposable
     {
         Repository.Init(this.RepoPath);
         this.Repo = new Repository(this.RepoPath);
+        this.Repo.Config.Set("user.name", this.Signer.Name, ConfigurationLevel.Local);
+        this.Repo.Config.Set("user.email", this.Signer.Email, ConfigurationLevel.Local);
         foreach (var file in this.Repo.RetrieveStatus().Untracked)
         {
             Commands.Stage(this.Repo, file.FilePath);
