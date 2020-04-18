@@ -74,7 +74,10 @@ public abstract class RepoTestBase : IDisposable
         this.Repo = new Repository(this.RepoPath);
         foreach (var file in this.Repo.RetrieveStatus().Untracked)
         {
-            Commands.Stage(this.Repo, file.FilePath);
+            if (!Path.GetFileName(file.FilePath).StartsWith("_git2_", StringComparison.Ordinal))
+            {
+                Commands.Stage(this.Repo, file.FilePath);
+            }
         }
 
         if (this.Repo.Index.Count > 0)
