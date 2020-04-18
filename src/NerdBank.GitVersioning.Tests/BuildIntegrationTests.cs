@@ -145,6 +145,8 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         string version = "3.4";
         this.WriteVersionFile(version);
 
+        string repoRelativeProjectPath = this.testProject.FullPath.Substring(this.RepoPath.Length + 1);
+
         // Update the repo path so we create the 'normal' one elsewhere
         this.RepoPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
         this.InitializeSourceControl();
@@ -154,6 +156,7 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
 
         // Point the project to the 'real' repo
         this.testProject.AddProperty("GitRepoRoot", this.RepoPath);
+        this.testProject.AddProperty("ProjectPathRelativeToGitRepoRoot", repoRelativeProjectPath);
 
         var buildResult = await this.BuildAsync();
 
