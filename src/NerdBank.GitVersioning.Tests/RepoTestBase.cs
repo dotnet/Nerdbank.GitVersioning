@@ -86,6 +86,14 @@ public abstract class RepoTestBase : IDisposable
         }
     }
 
+    protected void Ignore_git2_UntrackedFile()
+    {
+        string gitIgnoreFilePath = Path.Combine(this.RepoPath, ".gitignore");
+        File.WriteAllLines(gitIgnoreFilePath, new[] { "_git2_*" });
+        Commands.Stage(this.Repo, gitIgnoreFilePath);
+        this.Repo.Commit("Ignore _git2_ files.", this.Signer, this.Signer);
+    }
+
     protected void AddCommits(int count = 1)
     {
         Verify.Operation(this.Repo != null, "Repo has not been created yet.");

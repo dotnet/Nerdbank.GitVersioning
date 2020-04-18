@@ -383,6 +383,7 @@ public class ReleaseManagerTests : RepoTestBase
     public void PrepareRelease_DetachedHead()
     {
         this.InitializeSourceControl();
+        this.Ignore_git2_UntrackedFile();
         this.WriteVersionFile("1.0", "-alpha");
         Commands.Checkout(this.Repo, this.Repo.Head.Commits.First());
         var ex = Assert.Throws<ReleasePreparationException>(() => new ReleaseManager().PrepareRelease(this.RepoPath));
