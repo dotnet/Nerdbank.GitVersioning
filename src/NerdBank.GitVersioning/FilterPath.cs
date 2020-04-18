@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using LibGit2Sharp;
+using System.Text;
 using Validation;
 
 namespace Nerdbank.GitVersioning
@@ -10,52 +10,55 @@ namespace Nerdbank.GitVersioning
     /// <summary>
     /// A filter (include or exclude) representing a repo relative path.
     /// </summary>
-    internal class FilterPath
+    public class FilterPath
     {
-        private readonly StringComparison stringComparison;
-
         /// <summary>
         /// True if this <see cref="FilterPath"/> represents an exclude filter.
         /// </summary>
-        internal bool IsExclude { get; }
+        public bool IsExclude { get; }
 
         /// <summary>
         /// Path relative to the repository root that this <see cref="FilterPath"/> represents.
-        /// Slashes are canonical for this OS.
+        /// Directories are delimited with forward slashes.
         /// </summary>
-        internal string RepoRelativePath { get; }
+        public string RepoRelativePath { get; }
 
         /// <summary>
         /// True if this <see cref="FilterPath"/> represents the root of the repository.
         /// </summary>
-        internal bool IsRoot => this.RepoRelativePath == "";
+        public bool IsRoot => this.RepoRelativePath == "";
 
         /// <summary>
-        /// Parses a pathspec-like string into a root-relative path.
+        /// Was the original pathspec parsed as a relative path?
+        /// </summary>
+        internal bool IsRelative { get; }
+
+        /// <summary>
+        /// Normalizes a pathspec-like string into a root-relative path.
         /// </summary>
         /// <param name="path">
-        /// See <see cref="FilterPath(string, string, bool)"/> for supported
+        /// See <see cref="FilterPath(string, string)"/> for supported
         /// formats of pathspecs.
         /// </param>
         /// <param name="relativeTo">
         /// Path that <paramref name="path"/> is relative to.
-        /// Can be <c>null</c> - which indicates <paramref name="path"/> is
+        /// Can be empty - which indicates <paramref name="path"/> is
         /// relative to the root of the repository.
         /// </param>
         /// <returns>
         /// Forward slash delimited string representing the root-relative path.
         /// </returns>
-        private static string ParsePath(string path, string relativeTo)
+        private static (bool isRelative, string normalized) Normalize(string path, string relativeTo)
         {
             // Path is absolute, nothing to do here
             if (path[0] == '/' || path[0] == '\\')
             {
-                return path.Substring(1);
+                return (false, path.Substring(1));
             }
 
-            var combined = relativeTo == null ? path : relativeTo + '/' + path;
+            var combined = relativeTo == "" ? path : relativeTo + '/' + path;
 
-            return string.Join("/",
+            return (true, string.Join("/",
                 combined
                     .Split(new[] {Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar},
                         StringSplitOptions.RemoveEmptyEntries)
@@ -84,7 +87,7 @@ namespace Nerdbank.GitVersioning
                     })
                     // Reverse the stack, so it iterates root -> leaf
                     .Reverse()
-            );
+            ));
         }
 
         /// <summary>
@@ -104,23 +107,21 @@ namespace Nerdbank.GitVersioning
         /// </param>
         /// <param name="relativeTo">
         /// Path (relative to the root of the repository) that <paramref name="pathSpec"/> is relative to.
+        /// Can be empty - which indicates <paramref name="pathSpec"/> is
+        /// relative to the root of the repository.
         /// </param>
-        /// <param name="ignoreCase">Whether case should be ignored by <see cref="Excludes"/></param>
         /// <exception cref="FormatException">Invalid path spec.</exception>
-        internal FilterPath(string pathSpec, string relativeTo, bool ignoreCase = false)
+        public FilterPath(string pathSpec, string relativeTo)
         {
             Requires.NotNullOrEmpty(pathSpec, nameof(pathSpec));
+            Requires.NotNull(relativeTo, nameof(relativeTo));
 
             if (pathSpec[0] == ':')
             {
                 if (pathSpec.Length > 1 && (pathSpec[1] == '^' || pathSpec[1] == '!'))
                 {
                     this.IsExclude = true;
-                    this.stringComparison = ignoreCase
-                        ? StringComparison.OrdinalIgnoreCase
-                        : StringComparison.Ordinal;
-
-                    this.RepoRelativePath = ParsePath(pathSpec.Substring(2), relativeTo);
+                    (this.IsRelative, this.RepoRelativePath) = Normalize(pathSpec.Substring(2), relativeTo);
                 }
                 else if (pathSpec.Length > 1 && pathSpec[1] == '/' || pathSpec[1] == '\\')
                 {
@@ -133,7 +134,7 @@ namespace Nerdbank.GitVersioning
             }
             else
             {
-                this.RepoRelativePath = ParsePath(pathSpec, relativeTo);
+                (this.IsRelative, this.RepoRelativePath) = Normalize(pathSpec, relativeTo);
             }
 
             this.RepoRelativePath =
@@ -143,50 +144,85 @@ namespace Nerdbank.GitVersioning
         }
 
         /// <summary>
-        /// Calculate the <see cref="FilterPath"/>s for a given project within a repository.
-        /// </summary>
-        /// <param name="versionOptions">Version options for the project.</param>
-        /// <param name="relativeRepoProjectDirectory">
-        /// Path to the project directory, relative to the root of the repository.
-        /// If <c>null</c>, assumes root of repository.
-        /// </param>
-        /// <param name="repository">Git repository containing the project.</param>
-        /// <returns>
-        /// <c>null</c> if no path filters are set. Otherwise, returns a list of
-        /// <see cref="FilterPath"/> instances.
-        /// </returns>
-        internal static IReadOnlyList<FilterPath> FromVersionOptions(VersionOptions versionOptions,
-            string relativeRepoProjectDirectory,
-            IRepository repository)
-        {
-            Requires.NotNull(versionOptions, nameof(versionOptions));
-
-            var ignoreCase = repository?.Config.Get<bool>("core.ignorecase")?.Value ?? false;
-
-            return versionOptions.PathFilters
-                ?.Select(pathSpec => new FilterPath(pathSpec, relativeRepoProjectDirectory,
-                    ignoreCase))
-                .ToList();
-        }
-
-        /// <summary>
         /// Determines if <paramref name="repoRelativePath"/> should be excluded by this <see cref="FilterPath"/>.
         /// </summary>
         /// <param name="repoRelativePath">Forward-slash delimited path (repo relative).</param>
+        /// <param name="ignoreCase">
+        /// Whether paths should be compared case insensitively.
+        /// Should be the 'core.ignorecase' config value for the repository.
+        /// </param>
         /// <returns>
         /// True if this <see cref="FilterPath"/> is an excluding filter that matches
         /// <paramref name="repoRelativePath"/>, otherwise false.
         /// </returns>
-        internal bool Excludes(string repoRelativePath)
+        public bool Excludes(string repoRelativePath, bool ignoreCase)
         {
             if (repoRelativePath is null)
                 throw new ArgumentNullException(nameof(repoRelativePath));
 
             if (!this.IsExclude) return false;
 
-            return this.RepoRelativePath.Equals(repoRelativePath, this.stringComparison) ||
+            var stringComparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            return this.RepoRelativePath.Equals(repoRelativePath, stringComparison) ||
                    repoRelativePath.StartsWith(this.RepoRelativePath + "/",
-                       this.stringComparison);
+                       stringComparison);
+        }
+
+        private static (int dirsToAscend, StringBuilder result) GetRelativePath(string path, string relativeTo)
+        {
+            var pathParts = path.Split('/');
+            var baseDirParts = relativeTo.Split(new[] {'/'}, StringSplitOptions.RemoveEmptyEntries);
+
+            int commonParts;
+            for (commonParts = 0;
+                commonParts < Math.Min(pathParts.Length, baseDirParts.Length) &&
+                pathParts[commonParts].Equals(baseDirParts[commonParts], StringComparison.OrdinalIgnoreCase);
+                ++commonParts)
+            {
+            }
+
+            int dirsToAscend = baseDirParts.Length - commonParts;
+
+            var result = new StringBuilder(path.Length + dirsToAscend * 3);
+            result.Insert(0, "../", dirsToAscend);
+            result.Append(string.Join("/", pathParts.Skip(commonParts)));
+            return (dirsToAscend, result);
+        }
+
+        /// <summary>
+        /// Convert this path filter to a pathspec.
+        /// </summary>
+        /// <param name="repoRelativeBaseDirectory">
+        /// Repo-relative directory that relative pathspecs should be relative to.
+        /// Can be empty - which indicates this <c>FilterPath</c> is
+        /// relative to the root of the repository.
+        /// </param>
+        /// <returns>String representation of a path filter (a pathspec)</returns>
+        public string ToPathSpec(string repoRelativeBaseDirectory)
+        {
+            Requires.NotNull(repoRelativeBaseDirectory, nameof(repoRelativeBaseDirectory));
+
+            var pathSpec = new StringBuilder(this.RepoRelativePath.Length + 2);
+            var (_, normalizedBaseDirectory) =
+                Normalize(repoRelativeBaseDirectory == "" ? "." : repoRelativeBaseDirectory, null);
+
+            if (this.IsExclude)
+                pathSpec.Append(":!");
+
+            if (this.IsRelative)
+            {
+                var (dirsAscended, relativePath) = GetRelativePath(this.RepoRelativePath, normalizedBaseDirectory);
+                if (dirsAscended == 0 && !this.IsExclude)
+                    pathSpec.Append("./");
+                pathSpec.Append(relativePath);
+            }
+            else
+            {
+                pathSpec.Append('/');
+                pathSpec.Append(this.RepoRelativePath);
+            }
+
+            return pathSpec.ToString();
         }
     }
 }

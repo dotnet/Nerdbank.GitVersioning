@@ -52,7 +52,7 @@
                 var versionTxtBlob = commit.Tree[candidatePath]?.Target as LibGit2Sharp.Blob;
                 if (versionTxtBlob != null)
                 {
-                    var result = TryReadVersionFile(new StreamReader(versionTxtBlob.GetContentStream()), isJsonFile: false);
+                    var result = TryReadVersionFile(new StreamReader(versionTxtBlob.GetContentStream()));
                     if (result != null)
                     {
                         return result;
@@ -72,7 +72,7 @@
                     VersionOptions result;
                     try
                     {
-                        result = TryReadVersionJsonContent(versionJsonContent);
+                        result = TryReadVersionJsonContent(versionJsonContent, searchDirectory);
                     }
                     catch (FormatException ex)
                     {
@@ -89,7 +89,7 @@
                             result = GetVersion(commit, parentDirectory);
                             if (result != null)
                             {
-                                JsonConvert.PopulateObject(versionJsonContent, result, VersionOptions.GetJsonSettings());
+                                JsonConvert.PopulateObject(versionJsonContent, result, VersionOptions.GetJsonSettings(repoRelativeBaseDirectory: searchDirectory));
                                 return result;
                             }
                         }
@@ -147,53 +147,61 @@
         public static VersionOptions GetVersion(string projectDirectory, out string actualDirectory)
         {
             Requires.NotNullOrEmpty(projectDirectory, nameof(projectDirectory));
-
-            string searchDirectory = projectDirectory;
-            while (searchDirectory != null)
+            using (var repo = GitExtensions.OpenGitRepo(projectDirectory))
             {
-                string parentDirectory = Path.GetDirectoryName(searchDirectory);
-                string versionTxtPath = Path.Combine(searchDirectory, TxtFileName);
-                if (File.Exists(versionTxtPath))
+                string searchDirectory = projectDirectory;
+                while (searchDirectory != null)
                 {
-                    using (var sr = new StreamReader(File.OpenRead(versionTxtPath)))
+                    string parentDirectory = Path.GetDirectoryName(searchDirectory);
+                    string versionTxtPath = Path.Combine(searchDirectory, TxtFileName);
+                    if (File.Exists(versionTxtPath))
                     {
-                        var result = TryReadVersionFile(sr, isJsonFile: false);
-                        if (result != null)
+                        using (var sr = new StreamReader(File.OpenRead(versionTxtPath)))
+                        {
+                            var result = TryReadVersionFile(sr);
+                            if (result != null)
+                            {
+                                actualDirectory = searchDirectory;
+                                return result;
+                            }
+                        }
+                    }
+
+                    string versionJsonPath = Path.Combine(searchDirectory, JsonFileName);
+                    if (File.Exists(versionJsonPath))
+                    {
+                        string versionJsonContent = File.ReadAllText(versionJsonPath);
+
+                        var repoRelativeBaseDirectory = repo?.GetRepoRelativePath(searchDirectory);
+                        VersionOptions result =
+                            TryReadVersionJsonContent(versionJsonContent, repoRelativeBaseDirectory);
+                        if (result?.Inherit ?? false)
+                        {
+                            if (parentDirectory != null)
+                            {
+                                result = GetVersion(parentDirectory);
+                                if (result != null)
+                                {
+                                    JsonConvert.PopulateObject(versionJsonContent, result,
+                                        VersionOptions.GetJsonSettings(
+                                            repoRelativeBaseDirectory: repoRelativeBaseDirectory));
+                                    actualDirectory = searchDirectory;
+                                    return result;
+                                }
+                            }
+
+                            throw new InvalidOperationException(
+                                $"\"{versionJsonPath}\" inherits from a parent directory version.json file but none exists.");
+                        }
+                        else if (result != null)
                         {
                             actualDirectory = searchDirectory;
                             return result;
                         }
                     }
+
+                    searchDirectory = parentDirectory;
                 }
-
-                string versionJsonPath = Path.Combine(searchDirectory, JsonFileName);
-                if (File.Exists(versionJsonPath))
-                {
-                    string versionJsonContent = File.ReadAllText(versionJsonPath);
-                    VersionOptions result = TryReadVersionJsonContent(versionJsonContent);
-                    if (result?.Inherit ?? false)
-                    {
-                        if (parentDirectory != null)
-                        {
-                            result = GetVersion(parentDirectory);
-                            if (result != null)
-                            {
-                                JsonConvert.PopulateObject(versionJsonContent, result, VersionOptions.GetJsonSettings());
-                                actualDirectory = searchDirectory;
-                                return result;
-                            }
-                        }
-
-                        throw new InvalidOperationException($"\"{versionJsonPath}\" inherits from a parent directory version.json file but none exists.");
-                    }
-                    else if (result != null)
-                    {
-                        actualDirectory = searchDirectory;
-                        return result;
-                    }
-                }
-
-                searchDirectory = parentDirectory;
             }
 
             actualDirectory = null;
@@ -273,10 +281,16 @@
                 }
             }
 
-            string versionJsonPath = Path.Combine(projectDirectory, JsonFileName);
-            var jsonContent = JsonConvert.SerializeObject(version, VersionOptions.GetJsonSettings(version.Inherit, includeSchemaProperty));
-            File.WriteAllText(versionJsonPath, jsonContent);
-            return versionJsonPath;
+            using (var repo = GitExtensions.OpenGitRepo(projectDirectory))
+            {
+                string repoRelativeProjectDirectory = repo?.GetRepoRelativePath(projectDirectory);
+                string versionJsonPath = Path.Combine(projectDirectory, JsonFileName);
+                var jsonContent = JsonConvert.SerializeObject(version,
+                    VersionOptions.GetJsonSettings(version.Inherit, includeSchemaProperty,
+                        repoRelativeProjectDirectory));
+                File.WriteAllText(versionJsonPath, jsonContent);
+                return versionJsonPath;
+            }
         }
 
         /// <summary>
@@ -299,16 +313,9 @@
         /// Reads the version.txt file and returns the <see cref="Version"/> and prerelease tag from it.
         /// </summary>
         /// <param name="versionTextContent">The content of the version.txt file to read.</param>
-        /// <param name="isJsonFile"><c>true</c> if the file being read is a JSON file; <c>false</c> for the old-style text format.</param>
         /// <returns>The version information read from the file; or <c>null</c> if a deserialization error occurs.</returns>
-        private static VersionOptions TryReadVersionFile(TextReader versionTextContent, bool isJsonFile)
+        private static VersionOptions TryReadVersionFile(TextReader versionTextContent)
         {
-            if (isJsonFile)
-            {
-                string jsonContent = versionTextContent.ReadToEnd();
-                return TryReadVersionJsonContent(jsonContent);
-            }
-
             string versionLine = versionTextContent.ReadLine();
             string prereleaseVersion = versionTextContent.ReadLine();
             if (!string.IsNullOrEmpty(prereleaseVersion))
@@ -332,12 +339,13 @@
         /// Tries to read a version.json file from the specified string, but favors returning null instead of throwing a <see cref="JsonSerializationException"/>.
         /// </summary>
         /// <param name="jsonContent">The content of the version.json file.</param>
+        /// <param name="repoRelativeBaseDirectory">Directory that this version.json file is relative to the root of the repository.</param>
         /// <returns>The deserialized <see cref="VersionOptions"/> object, if deserialization was successful.</returns>
-        private static VersionOptions TryReadVersionJsonContent(string jsonContent)
+        private static VersionOptions TryReadVersionJsonContent(string jsonContent, string repoRelativeBaseDirectory)
         {
             try
             {
-                return JsonConvert.DeserializeObject<VersionOptions>(jsonContent, VersionOptions.GetJsonSettings());
+                return JsonConvert.DeserializeObject<VersionOptions>(jsonContent, VersionOptions.GetJsonSettings(repoRelativeBaseDirectory: repoRelativeBaseDirectory));
             }
             catch (JsonSerializationException)
             {

@@ -124,13 +124,15 @@ public class GitExtensionsTests : RepoTestBase
     [Fact]
     public void GetVersionHeight_IntroducingFiltersIncrementsHeight()
     {
-        this.WriteVersionFile(relativeDirectory: "some-sub-dir");
-        Assert.Equal(1, this.Repo.GetVersionHeight("some-sub-dir"));
+        string relativeDirectory = "some-sub-dir";
+
+        this.WriteVersionFile(relativeDirectory: relativeDirectory);
+        Assert.Equal(1, this.Repo.GetVersionHeight(relativeDirectory));
 
         var versionData = VersionOptions.FromVersion(new Version("1.2"));
-        versionData.PathFilters = new[] { "./" };
-        this.WriteVersionFile(versionData, "some-sub-dir");
-        Assert.Equal(2, this.Repo.GetVersionHeight("some-sub-dir"));
+        versionData.PathFilters = new[] { new FilterPath("./", relativeDirectory) };
+        this.WriteVersionFile(versionData, relativeDirectory);
+        Assert.Equal(2, this.Repo.GetVersionHeight(relativeDirectory));
     }
 
     [Theory]
@@ -140,64 +142,78 @@ public class GitExtensionsTests : RepoTestBase
     [InlineData(":/some-sub-dir")]
     public void GetVersionHeight_IncludeFilter(string includeFilter)
     {
+        string relativeDirectory = "some-sub-dir";
+
         var versionData = VersionOptions.FromVersion(new Version("1.2"));
-        versionData.PathFilters = new[] { includeFilter };
-        this.WriteVersionFile(versionData, "some-sub-dir");
-        Assert.Equal(1, this.Repo.GetVersionHeight("some-sub-dir"));
+        versionData.PathFilters = new[] { new FilterPath(includeFilter, relativeDirectory) };
+        this.WriteVersionFile(versionData, relativeDirectory);
+        Assert.Equal(1, this.Repo.GetVersionHeight(relativeDirectory));
 
         // Expect commit outside of project tree to not affect version height
         var otherFilePath = Path.Combine(this.RepoPath, "my-file.txt");
         File.WriteAllText(otherFilePath, "hello");
         Commands.Stage(this.Repo, otherFilePath);
         this.Repo.Commit("Add other file outside of project root", this.Signer, this.Signer);
-        Assert.Equal(1, this.Repo.GetVersionHeight("some-sub-dir"));
+        Assert.Equal(1, this.Repo.GetVersionHeight(relativeDirectory));
 
         // Expect commit inside project tree to affect version height
-        var containedFilePath = Path.Combine(this.RepoPath, "some-sub-dir", "another-file.txt");
+        var containedFilePath = Path.Combine(this.RepoPath, relativeDirectory, "another-file.txt");
         File.WriteAllText(containedFilePath, "hello");
         Commands.Stage(this.Repo, containedFilePath);
         this.Repo.Commit("Add file within project root", this.Signer, this.Signer);
-        Assert.Equal(2, this.Repo.GetVersionHeight("some-sub-dir"));
+        Assert.Equal(2, this.Repo.GetVersionHeight(relativeDirectory));
     }
 
     [Fact]
     public void GetVersionHeight_IncludeExcludeFilter()
     {
+        string relativeDirectory = "some-sub-dir";
+
         var versionData = VersionOptions.FromVersion(new Version("1.2"));
-        versionData.PathFilters = new[] { "./", ":^/some-sub-dir/ignore.txt", ":^excluded-dir" };
-        this.WriteVersionFile(versionData, "some-sub-dir");
-        Assert.Equal(1, this.Repo.GetVersionHeight("some-sub-dir"));
+        versionData.PathFilters = new[]
+        {
+            new FilterPath("./", relativeDirectory),
+            new FilterPath(":^/some-sub-dir/ignore.txt", relativeDirectory),
+            new FilterPath(":^excluded-dir", relativeDirectory)
+        };
+        this.WriteVersionFile(versionData, relativeDirectory);
+        Assert.Equal(1, this.Repo.GetVersionHeight(relativeDirectory));
 
         // Commit touching excluded path does not affect version height
-        var ignoredFilePath = Path.Combine(this.RepoPath, "some-sub-dir", "ignore.txt");
+        var ignoredFilePath = Path.Combine(this.RepoPath, relativeDirectory, "ignore.txt");
         File.WriteAllText(ignoredFilePath, "hello");
         Commands.Stage(this.Repo, ignoredFilePath);
         this.Repo.Commit("Add excluded file", this.Signer, this.Signer);
-        Assert.Equal(1, this.Repo.GetVersionHeight("some-sub-dir"));
+        Assert.Equal(1, this.Repo.GetVersionHeight(relativeDirectory));
 
         // Commit touching both excluded and included path does affect height
-        var includedFilePath = Path.Combine(this.RepoPath, "some-sub-dir", "another-file.txt");
+        var includedFilePath = Path.Combine(this.RepoPath, relativeDirectory, "another-file.txt");
         File.WriteAllText(includedFilePath, "hello");
         File.WriteAllText(ignoredFilePath, "changed");
         Commands.Stage(this.Repo, includedFilePath);
         Commands.Stage(this.Repo, ignoredFilePath);
         this.Repo.Commit("Change both excluded and included file", this.Signer, this.Signer);
-        Assert.Equal(2, this.Repo.GetVersionHeight("some-sub-dir"));
+        Assert.Equal(2, this.Repo.GetVersionHeight(relativeDirectory));
 
         // Commit touching excluded directory does not affect version height
-        var fileInExcludedDirPath = Path.Combine(this.RepoPath, "some-sub-dir", "excluded-dir", "ignore.txt");
+        var fileInExcludedDirPath = Path.Combine(this.RepoPath, relativeDirectory, "excluded-dir", "ignore.txt");
         Directory.CreateDirectory(Path.GetDirectoryName(fileInExcludedDirPath));
         File.WriteAllText(fileInExcludedDirPath, "hello");
         Commands.Stage(this.Repo, fileInExcludedDirPath);
         this.Repo.Commit("Add file to excluded dir", this.Signer, this.Signer);
-        Assert.Equal(2, this.Repo.GetVersionHeight("some-sub-dir"));
+        Assert.Equal(2, this.Repo.GetVersionHeight(relativeDirectory));
     }
 
     [Fact]
     public void GetVersionHeight_IncludeExcludeFilter_NoProjectDirectory()
     {
         var versionData = VersionOptions.FromVersion(new Version("1.2"));
-        versionData.PathFilters = new[] { "./", ":^/some-sub-dir/ignore.txt", ":^/excluded-dir" };
+        versionData.PathFilters = new[]
+        {
+            new FilterPath("./", "."),
+            new FilterPath(":^/some-sub-dir/ignore.txt", "."),
+            new FilterPath(":^/excluded-dir", ".")
+        };
         this.WriteVersionFile(versionData);
         Assert.Equal(1, this.Repo.GetVersionHeight());
 
@@ -232,9 +248,11 @@ public class GitExtensionsTests : RepoTestBase
     [InlineData(":^../excluded-dir")]
     public void GetVersionHeight_AddingExcludeDoesNotLowerHeight(string excludePathFilter)
     {
+        string relativeDirectory = "some-sub-dir";
+
         var versionData = VersionOptions.FromVersion(new Version("1.2"));
-        this.WriteVersionFile(versionData, "some-sub-dir");
-        Assert.Equal(1, this.Repo.GetVersionHeight("some-sub-dir"));
+        this.WriteVersionFile(versionData, relativeDirectory);
+        Assert.Equal(1, this.Repo.GetVersionHeight(relativeDirectory));
 
         // Commit a file which will later be ignored
         var ignoredFilePath = Path.Combine(this.RepoPath, "excluded-dir", "ignore.txt");
@@ -242,49 +260,57 @@ public class GitExtensionsTests : RepoTestBase
         File.WriteAllText(ignoredFilePath, "hello");
         Commands.Stage(this.Repo, ignoredFilePath);
         this.Repo.Commit("Add file which will later be excluded", this.Signer, this.Signer);
-        Assert.Equal(2, this.Repo.GetVersionHeight("some-sub-dir"));
+        Assert.Equal(2, this.Repo.GetVersionHeight(relativeDirectory));
 
-        versionData.PathFilters = new[] { excludePathFilter };
-        this.WriteVersionFile(versionData, "some-sub-dir");
-        Assert.Equal(3, this.Repo.GetVersionHeight("some-sub-dir"));
+        versionData.PathFilters = new[] { new FilterPath(excludePathFilter, relativeDirectory),  };
+        this.WriteVersionFile(versionData, relativeDirectory);
+        Assert.Equal(3, this.Repo.GetVersionHeight(relativeDirectory));
 
         // Committing a change to an ignored file does not increment the version height
         File.WriteAllText(ignoredFilePath, "changed");
         Commands.Stage(this.Repo, ignoredFilePath);
         this.Repo.Commit("Change now excluded file", this.Signer, this.Signer);
-        Assert.Equal(3, this.Repo.GetVersionHeight("some-sub-dir"));
+        Assert.Equal(3, this.Repo.GetVersionHeight(relativeDirectory));
     }
 
     [Fact]
     public void GetVersionHeight_IncludeRoot()
     {
+        string relativeDirectory = "some-sub-dir";
+
         var versionData = VersionOptions.FromVersion(new Version("1.2"));
-        versionData.PathFilters = new[] { ":/" };
-        this.WriteVersionFile(versionData, "some-sub-dir");
-        Assert.Equal(1, this.Repo.GetVersionHeight("some-sub-dir"));
+        versionData.PathFilters = new[] { new FilterPath(":/", relativeDirectory) };
+        this.WriteVersionFile(versionData, relativeDirectory);
+        Assert.Equal(1, this.Repo.GetVersionHeight(relativeDirectory));
 
         // Expect commit outside of project tree to affect version height
         var otherFilePath = Path.Combine(this.RepoPath, "my-file.txt");
         File.WriteAllText(otherFilePath, "hello");
         Commands.Stage(this.Repo, otherFilePath);
         this.Repo.Commit("Add other file outside of project root", this.Signer, this.Signer);
-        Assert.Equal(2, this.Repo.GetVersionHeight("some-sub-dir"));
+        Assert.Equal(2, this.Repo.GetVersionHeight(relativeDirectory));
 
         // Expect commit inside project tree to affect version height
-        var containedFilePath = Path.Combine(this.RepoPath, "some-sub-dir", "another-file.txt");
+        var containedFilePath = Path.Combine(this.RepoPath, relativeDirectory, "another-file.txt");
         File.WriteAllText(containedFilePath, "hello");
         Commands.Stage(this.Repo, containedFilePath);
         this.Repo.Commit("Add file within project root", this.Signer, this.Signer);
-        Assert.Equal(3, this.Repo.GetVersionHeight("some-sub-dir"));
+        Assert.Equal(3, this.Repo.GetVersionHeight(relativeDirectory));
     }
 
     [Fact]
     public void GetVersionHeight_IncludeRootExcludeSome()
     {
+        string relativeDirectory = "some-sub-dir";
+
         var versionData = VersionOptions.FromVersion(new Version("1.2"));
-        versionData.PathFilters = new[] { ":/", ":^/excluded-dir" };
-        this.WriteVersionFile(versionData, "some-sub-dir");
-        Assert.Equal(1, this.Repo.GetVersionHeight("some-sub-dir"));
+        versionData.PathFilters = new[]
+        {
+            new FilterPath(":/", relativeDirectory),
+            new FilterPath(":^/excluded-dir", relativeDirectory),
+        };
+        this.WriteVersionFile(versionData, relativeDirectory);
+        Assert.Equal(1, this.Repo.GetVersionHeight(relativeDirectory));
 
         // Expect commit in an excluded directory to not affect version height
         var ignoredFilePath = Path.Combine(this.RepoPath, "excluded-dir", "my-file.txt");
@@ -292,7 +318,7 @@ public class GitExtensionsTests : RepoTestBase
         File.WriteAllText(ignoredFilePath, "hello");
         Commands.Stage(this.Repo, ignoredFilePath);
         this.Repo.Commit("Add other file to excluded directory", this.Signer, this.Signer);
-        Assert.Equal(1, this.Repo.GetVersionHeight("some-sub-dir"));
+        Assert.Equal(1, this.Repo.GetVersionHeight(relativeDirectory));
 
         // Expect commit within another directory to affect version height
         var otherFilePath = Path.Combine(this.RepoPath, "another-dir", "another-file.txt");
@@ -300,44 +326,73 @@ public class GitExtensionsTests : RepoTestBase
         File.WriteAllText(otherFilePath, "hello");
         Commands.Stage(this.Repo, otherFilePath);
         this.Repo.Commit("Add file within project root", this.Signer, this.Signer);
-        Assert.Equal(2, this.Repo.GetVersionHeight("some-sub-dir"));
+        Assert.Equal(2, this.Repo.GetVersionHeight(relativeDirectory));
+    }
+
+    [Fact]
+    public void GetVersionHeight_ProjectDirectoryDifferentToVersionJsonDirectory()
+    {
+        string relativeDirectory = "some-sub-dir";
+
+        var versionData = VersionOptions.FromVersion(new Version("1.2"));
+        versionData.PathFilters = new[]
+        {
+            new FilterPath(".", "")
+        };
+        this.WriteVersionFile(versionData, "");
+        Assert.Equal(1, this.Repo.GetVersionHeight(relativeDirectory));
+
+        // Expect commit in an excluded directory to not affect version height
+        var ignoredFilePath = Path.Combine(this.RepoPath, "other-dir", "my-file.txt");
+        Directory.CreateDirectory(Path.GetDirectoryName(ignoredFilePath));
+        File.WriteAllText(ignoredFilePath, "hello");
+        Commands.Stage(this.Repo, ignoredFilePath);
+        this.Repo.Commit("Add file to other directory", this.Signer, this.Signer);
+        Assert.Equal(2, this.Repo.GetVersionHeight(relativeDirectory));
     }
 
     [Fact]
     public void GetVersionHeight_ProjectDirectoryIsMoved()
     {
+        string relativeDirectory = "some-sub-dir";
+
         var versionData = VersionOptions.FromVersion(new Version("1.2"));
-        versionData.PathFilters = new[] { "./", ":^/some-sub-dir/ignore.txt", ":^excluded-dir" };
-        this.WriteVersionFile(versionData, "some-sub-dir");
-        Assert.Equal(1, this.Repo.GetVersionHeight("some-sub-dir"));
+        versionData.PathFilters = new[]
+        {
+            new FilterPath("./", relativeDirectory),
+            new FilterPath(":^/some-sub-dir/ignore.txt", relativeDirectory),
+            new FilterPath(":^excluded-dir", relativeDirectory),
+        };
+        this.WriteVersionFile(versionData, relativeDirectory);
+        Assert.Equal(1, this.Repo.GetVersionHeight(relativeDirectory));
 
         // Commit touching excluded path does not affect version height
-        var ignoredFilePath = Path.Combine(this.RepoPath, "some-sub-dir", "ignore.txt");
+        var ignoredFilePath = Path.Combine(this.RepoPath, relativeDirectory, "ignore.txt");
         File.WriteAllText(ignoredFilePath, "hello");
         Commands.Stage(this.Repo, ignoredFilePath);
         this.Repo.Commit("Add excluded file", this.Signer, this.Signer);
-        Assert.Equal(1, this.Repo.GetVersionHeight("some-sub-dir"));
+        Assert.Equal(1, this.Repo.GetVersionHeight(relativeDirectory));
 
         // Commit touching both excluded and included path does affect height
-        var includedFilePath = Path.Combine(this.RepoPath, "some-sub-dir", "another-file.txt");
+        var includedFilePath = Path.Combine(this.RepoPath, relativeDirectory, "another-file.txt");
         File.WriteAllText(includedFilePath, "hello");
         File.WriteAllText(ignoredFilePath, "changed");
         Commands.Stage(this.Repo, includedFilePath);
         Commands.Stage(this.Repo, ignoredFilePath);
         this.Repo.Commit("Change both excluded and included file", this.Signer, this.Signer);
-        Assert.Equal(2, this.Repo.GetVersionHeight("some-sub-dir"));
+        Assert.Equal(2, this.Repo.GetVersionHeight(relativeDirectory));
 
         // Commit touching excluded directory does not affect version height
-        var fileInExcludedDirPath = Path.Combine(this.RepoPath, "some-sub-dir", "excluded-dir", "ignore.txt");
+        var fileInExcludedDirPath = Path.Combine(this.RepoPath, relativeDirectory, "excluded-dir", "ignore.txt");
         Directory.CreateDirectory(Path.GetDirectoryName(fileInExcludedDirPath));
         File.WriteAllText(fileInExcludedDirPath, "hello");
         Commands.Stage(this.Repo, fileInExcludedDirPath);
         this.Repo.Commit("Add file to excluded dir", this.Signer, this.Signer);
-        Assert.Equal(2, this.Repo.GetVersionHeight("some-sub-dir"));
+        Assert.Equal(2, this.Repo.GetVersionHeight(relativeDirectory));
 
         // Rename the project directory
-        Directory.Move(Path.Combine(this.RepoPath, "some-sub-dir"), Path.Combine(this.RepoPath, "new-project-dir"));
-        Commands.Stage(this.Repo, "some-sub-dir");
+        Directory.Move(Path.Combine(this.RepoPath, relativeDirectory), Path.Combine(this.RepoPath, "new-project-dir"));
+        Commands.Stage(this.Repo, relativeDirectory);
         Commands.Stage(this.Repo, "new-project-dir");
         this.Repo.Commit("Move project directory", this.Signer, this.Signer);
 
@@ -348,22 +403,29 @@ public class GitExtensionsTests : RepoTestBase
     [Fact]
     public void GetCommitsFromVersion_WithPathFilters()
     {
+        string relativeDirectory = "some-sub-dir";
+
         var commitsAt121 = new List<Commit>();
         var commitsAt122 = new List<Commit>();
         var commitsAt123 = new List<Commit>();
 
         var versionData = VersionOptions.FromVersion(new Version("1.2"));
-        versionData.PathFilters = new[] { "./", ":^/some-sub-dir/ignore.txt", ":^excluded-dir" };
-        commitsAt121.Add(this.WriteVersionFile(versionData, "some-sub-dir"));
+        versionData.PathFilters = new[]
+        {
+            new FilterPath("./", relativeDirectory),
+            new FilterPath(":^/some-sub-dir/ignore.txt", relativeDirectory),
+            new FilterPath(":^excluded-dir", relativeDirectory)
+        };
+        commitsAt121.Add(this.WriteVersionFile(versionData, relativeDirectory));
 
         // Commit touching excluded path does not affect version height
-        var ignoredFilePath = Path.Combine(this.RepoPath, "some-sub-dir", "ignore.txt");
+        var ignoredFilePath = Path.Combine(this.RepoPath, relativeDirectory, "ignore.txt");
         File.WriteAllText(ignoredFilePath, "hello");
         Commands.Stage(this.Repo, ignoredFilePath);
         commitsAt121.Add(this.Repo.Commit("Add excluded file", this.Signer, this.Signer));
 
         // Commit touching both excluded and included path does affect height
-        var includedFilePath = Path.Combine(this.RepoPath, "some-sub-dir", "another-file.txt");
+        var includedFilePath = Path.Combine(this.RepoPath, relativeDirectory, "another-file.txt");
         File.WriteAllText(includedFilePath, "hello");
         File.WriteAllText(ignoredFilePath, "changed");
         Commands.Stage(this.Repo, includedFilePath);
@@ -371,7 +433,7 @@ public class GitExtensionsTests : RepoTestBase
         commitsAt122.Add(this.Repo.Commit("Change both excluded and included file", this.Signer, this.Signer));
 
         // Commit touching excluded directory does not affect version height
-        var fileInExcludedDirPath = Path.Combine(this.RepoPath, "some-sub-dir", "excluded-dir", "ignore.txt");
+        var fileInExcludedDirPath = Path.Combine(this.RepoPath, relativeDirectory, "excluded-dir", "ignore.txt");
         Directory.CreateDirectory(Path.GetDirectoryName(fileInExcludedDirPath));
         File.WriteAllText(fileInExcludedDirPath, "hello");
         Commands.Stage(this.Repo, fileInExcludedDirPath);
@@ -384,13 +446,13 @@ public class GitExtensionsTests : RepoTestBase
 
         Assert.Equal(
             commitsAt121.OrderBy(c => c.Sha),
-            this.Repo.GetCommitsFromVersion(new Version(1, 2, 1), "some-sub-dir").OrderBy(c => c.Sha));
+            this.Repo.GetCommitsFromVersion(new Version(1, 2, 1), relativeDirectory).OrderBy(c => c.Sha));
         Assert.Equal(
             commitsAt122.OrderBy(c => c.Sha),
-            this.Repo.GetCommitsFromVersion(new Version(1, 2, 2), "some-sub-dir").OrderBy(c => c.Sha));
+            this.Repo.GetCommitsFromVersion(new Version(1, 2, 2), relativeDirectory).OrderBy(c => c.Sha));
         Assert.Equal(
             commitsAt123.OrderBy(c => c.Sha),
-            this.Repo.GetCommitsFromVersion(new Version(1, 2, 3), "some-sub-dir").OrderBy(c => c.Sha));
+            this.Repo.GetCommitsFromVersion(new Version(1, 2, 3), relativeDirectory).OrderBy(c => c.Sha));
     }
 
     [Theory]

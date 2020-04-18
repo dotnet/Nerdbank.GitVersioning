@@ -126,8 +126,6 @@ public class ReleaseManagerTests : RepoTestBase
 
         // create and configure repository
         this.InitializeSourceControl();
-        this.Repo.Config.Set("user.name", this.Signer.Name, ConfigurationLevel.Local);
-        this.Repo.Config.Set("user.email", this.Signer.Email, ConfigurationLevel.Local);
 
         var initialVersionOptions = new VersionOptions()
         {
@@ -182,8 +180,6 @@ public class ReleaseManagerTests : RepoTestBase
     {
         // create and configure repository
         this.InitializeSourceControl();
-        this.Repo.Config.Set("user.name", this.Signer.Name, ConfigurationLevel.Local);
-        this.Repo.Config.Set("user.email", this.Signer.Email, ConfigurationLevel.Local);
 
         // create version.json
         var versionOptions = new VersionOptions() { Version = SemanticVersion.Parse(initialVersion) };
@@ -256,8 +252,6 @@ public class ReleaseManagerTests : RepoTestBase
     {
         // create and configure repository
         this.InitializeSourceControl();
-        this.Repo.Config.Set("user.name", this.Signer.Name, ConfigurationLevel.Local);
-        this.Repo.Config.Set("user.email", this.Signer.Email, ConfigurationLevel.Local);
 
         // create version.json
         var initialVersionOptions = new VersionOptions()
@@ -365,8 +359,6 @@ public class ReleaseManagerTests : RepoTestBase
     {
         // create and configure repository
         this.InitializeSourceControl();
-        this.Repo.Config.Set("user.name", this.Signer.Name, ConfigurationLevel.Local);
-        this.Repo.Config.Set("user.email", this.Signer.Email, ConfigurationLevel.Local);
 
         // create version.json
         var versionOptions = new VersionOptions() { Version = SemanticVersion.Parse(initialVersion) };
@@ -395,8 +387,6 @@ public class ReleaseManagerTests : RepoTestBase
     {
         // create and configure repository
         this.InitializeSourceControl();
-        this.Repo.Config.Set("user.name", this.Signer.Name, ConfigurationLevel.Local);
-        this.Repo.Config.Set("user.email", this.Signer.Email, ConfigurationLevel.Local);
 
         // create version.json
         var versionOptions = new VersionOptions()
