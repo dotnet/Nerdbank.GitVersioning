@@ -74,7 +74,7 @@ jobs:
     workingDirectory: src
 
   - script: dotnet publish -c $(BuildConfiguration) -o ..\nerdbank-gitversioning.npm\out\nbgv.cli\tools\netcoreapp2.1\any /bl:"$(Build.ArtifactStagingDirectory)/build_logs/nbgv_publish.binlog"
-    displayName: Build NuGet package and tests
+    displayName: Publish nbgv tool
     workingDirectory: src\nbgv
 
   - task: gulp@0
