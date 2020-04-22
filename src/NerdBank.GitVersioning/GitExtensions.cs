@@ -823,11 +823,20 @@
             Requires.NotNull(startingCommit, nameof(startingCommit));
             Requires.NotNull(set, nameof(set));
 
-            if (set.Add(startingCommit))
+            var stack = new Stack<Commit>();
+            stack.Push(startingCommit);
+            while (stack.Count > 0)
             {
-                foreach (var parent in startingCommit.Parents)
+                var currentCommit = stack.Pop();
+                if (set.Add(currentCommit))
                 {
-                    AddReachableCommitsFrom(parent, set);
+                    foreach (var parent in currentCommit.Parents)
+                    {
+                        if (!set.Contains(parent))
+                        {
+                            stack.Push(parent);
+                        }
+                    }
                 }
             }
         }
