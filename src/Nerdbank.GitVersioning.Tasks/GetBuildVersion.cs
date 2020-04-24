@@ -79,6 +79,13 @@
         public bool PublicRelease { get; private set; }
 
         /// <summary>
+        /// Gets the ref (branch or tag) being built.
+        /// Only specified when this is not a public release.
+        /// </summary>
+        [Output]
+        public string PrivateReleaseGitRef { get; set; }
+
+        /// <summary>
         /// Gets the version string to use in the compiled assemblies.
         /// </summary>
         [Output]
@@ -218,6 +225,7 @@
                 }
 
                 this.PublicRelease = oracle.PublicRelease;
+                this.PrivateReleaseGitRef = this.PublicRelease ? null : oracle.BuildingRef;
                 this.Version = oracle.Version.ToString();
                 this.AssemblyVersion = oracle.AssemblyVersion.ToString();
                 this.AssemblyFileVersion = oracle.AssemblyFileVersion.ToString();

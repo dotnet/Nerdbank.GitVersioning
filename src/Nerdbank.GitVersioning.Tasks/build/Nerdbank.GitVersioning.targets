@@ -92,6 +92,7 @@
       <Output TaskParameter="BuildNumber" PropertyName="BuildNumber" />
       <Output TaskParameter="BuildNumber" PropertyName="BuildVersionNumberComponent" />
       <Output TaskParameter="PublicRelease" PropertyName="PublicRelease" />
+      <Output TaskParameter="PrivateReleaseGitRef" PropertyName="PrivateReleaseGitRef" />
       <Output TaskParameter="CloudBuildNumber" PropertyName="CloudBuildNumber" Condition=" '$(CloudBuildNumber)' == '' "/>
       <Output TaskParameter="BuildMetadataFragment" PropertyName="SemVerBuildSuffix" />
       <Output TaskParameter="NuGetPackageVersion" PropertyName="NuGetPackageVersion" />
