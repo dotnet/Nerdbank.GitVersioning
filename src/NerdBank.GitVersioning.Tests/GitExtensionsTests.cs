@@ -400,6 +400,17 @@ public class GitExtensionsTests : RepoTestBase
         Assert.Equal(1, this.Repo.GetVersionHeight("new-project-dir"));
     }
 
+    [Fact(Skip = "Slow test")]
+    public void GetVersionHeight_VeryLongHistory()
+    {
+        this.WriteVersionFile();
+
+        // Make a *lot* of commits
+        this.AddCommits(2000);
+
+        this.Repo.GetVersionHeight();
+    }
+
     [Fact]
     public void GetCommitsFromVersion_WithPathFilters()
     {
@@ -775,16 +786,16 @@ public class GitExtensionsTests : RepoTestBase
     [SkippableFact] // Skippable, only run test on specific machine
     public void TestBiggerRepo()
     {
-        var testBiggerRepoPath = @"C:\Users\andrew\git\NerdBank.GitVersioning";
+        var testBiggerRepoPath = @"D:\git\NerdBank.GitVersioning";
         Skip.If(!Directory.Exists(testBiggerRepoPath));
 
         using (this.Repo = new Repository(testBiggerRepoPath))
         {
             foreach (var commit in this.Repo.Head.Commits)
             {
-                var version = commit.GetIdAsVersion();
+                var version = commit.GetIdAsVersion("src");
                 this.Logger.WriteLine($"commit {commit.Id} got version {version}");
-                var backAgain = this.Repo.GetCommitFromVersion(version);
+                var backAgain = this.Repo.GetCommitFromVersion(version, "src");
                 Assert.Equal(commit, backAgain);
             }
         }
