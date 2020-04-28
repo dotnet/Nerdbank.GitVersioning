@@ -708,7 +708,7 @@
         /// Gets the number of commits in the longest single path between
         /// the specified branch's head and the most distant ancestor (inclusive).
         /// </summary>
-        /// <param name="commit">The commit to measure the height of.</param>
+        /// <param name="startingCommit">The commit to measure the height of.</param>
         /// <param name="tracker">The caching tracker for storing or fetching version information per commit.</param>
         /// <param name="continueStepping">
         /// A function that returns <c>false</c> when we reach a commit that
@@ -716,76 +716,109 @@
         /// May be null to count the height to the original commit.
         /// </param>
         /// <returns>The height of the branch.</returns>
-        private static int GetCommitHeight(Commit commit, GitWalkTracker tracker, Func<Commit, bool> continueStepping)
+        private static int GetCommitHeight(Commit startingCommit, GitWalkTracker tracker, Func<Commit, bool> continueStepping)
         {
-            Requires.NotNull(commit, nameof(commit));
+            Requires.NotNull(startingCommit, nameof(startingCommit));
             Requires.NotNull(tracker, nameof(tracker));
 
-            if (!tracker.TryGetVersionHeight(commit, out int height))
+            if (continueStepping is object && !continueStepping(startingCommit))
             {
-                if (continueStepping == null || continueStepping(commit))
-                {
-                    var versionOptions = tracker.GetVersion(commit);
-                    var pathFilters = versionOptions?.PathFilters;
-
-                    var includePaths =
-                        pathFilters
-                            ?.Where(filter => !filter.IsExclude)
-                            .Select(filter => filter.RepoRelativePath)
-                            .ToList();
-
-                    var excludePaths = pathFilters?.Where(filter => filter.IsExclude).ToList();
-
-                    var ignoreCase = commit.GetRepository().Config.Get<bool>("core.ignorecase")?.Value ?? false;
-                    bool ContainsRelevantChanges(IEnumerable<TreeEntryChanges> changes) =>
-                        excludePaths.Count == 0
-                            ? changes.Any()
-                            // If there is a single change that isn't excluded,
-                            // then this commit is relevant.
-                            : changes.Any(change => !excludePaths.Any(exclude => exclude.Excludes(change.Path, ignoreCase)));
-
-                    height = 1;
-
-                    if (includePaths != null)
-                    {
-                        // If there are no include paths, or any of the include
-                        // paths refer to the root of the repository, then do not
-                        // filter the diff at all.
-                        var diffInclude =
-                            includePaths.Count == 0 || pathFilters.Any(filter => filter.IsRoot)
-                                ? null
-                                : includePaths;
-
-                        // If the diff between this commit and any of its parents
-                        // does not touch a path that we care about, don't bump the
-                        // height.
-                        var relevantCommit =
-                            commit.Parents.Any()
-                                ? commit.Parents.Any(parent => ContainsRelevantChanges(commit.GetRepository().Diff
-                                    .Compare<TreeChanges>(parent.Tree, commit.Tree, diffInclude)))
-                                : ContainsRelevantChanges(commit.GetRepository().Diff
-                                    .Compare<TreeChanges>(null, commit.Tree, diffInclude));
-
-                        if (!relevantCommit)
-                        {
-                            height = 0;
-                        }
-                    }
-
-                    if (commit.Parents.Any())
-                    {
-                        height += commit.Parents.Max(p => GetCommitHeight(p, tracker, continueStepping));
-                    }
-                }
-                else
-                {
-                    height = 0;
-                }
-
-                tracker.RecordHeight(commit, height);
+                return 0;
             }
 
-            return height;
+            var commitsToEvaluate = new Stack<Commit>();
+            bool TryCalculateHeight(Commit commit)
+            {
+                // Get max height among all parents, or schedule all missing parents for their own evaluation and return false.
+                int maxHeightAmongParents = 0;
+                bool parentMissing = false;
+                foreach (Commit parent in commit.Parents)
+                {
+                    if (!tracker.TryGetVersionHeight(parent, out int parentHeight))
+                    {
+                        if (continueStepping is object && !continueStepping(parent))
+                        {
+                            // This parent isn't supposed to contribute to height.
+                            continue;
+                        }
+
+                        commitsToEvaluate.Push(parent);
+                        parentMissing = true;
+                    }
+                    else
+                    {
+                        maxHeightAmongParents = Math.Max(maxHeightAmongParents, parentHeight);
+                    }
+                }
+
+                if (parentMissing)
+                {
+                    return false;
+                }
+
+                var versionOptions = tracker.GetVersion(commit);
+                var pathFilters = versionOptions?.PathFilters;
+
+                var includePaths =
+                    pathFilters
+                        ?.Where(filter => !filter.IsExclude)
+                        .Select(filter => filter.RepoRelativePath)
+                        .ToList();
+
+                var excludePaths = pathFilters?.Where(filter => filter.IsExclude).ToList();
+
+                var ignoreCase = commit.GetRepository().Config.Get<bool>("core.ignorecase")?.Value ?? false;
+                bool ContainsRelevantChanges(IEnumerable<TreeEntryChanges> changes) =>
+                    excludePaths.Count == 0
+                        ? changes.Any()
+                        // If there is a single change that isn't excluded,
+                        // then this commit is relevant.
+                        : changes.Any(change => !excludePaths.Any(exclude => exclude.Excludes(change.Path, ignoreCase)));
+
+                int height = 1;
+
+                if (includePaths != null)
+                {
+                    // If there are no include paths, or any of the include
+                    // paths refer to the root of the repository, then do not
+                    // filter the diff at all.
+                    var diffInclude =
+                        includePaths.Count == 0 || pathFilters.Any(filter => filter.IsRoot)
+                            ? null
+                            : includePaths;
+
+                    // If the diff between this commit and any of its parents
+                    // does not touch a path that we care about, don't bump the
+                    // height.
+                    var relevantCommit =
+                        commit.Parents.Any()
+                            ? commit.Parents.Any(parent => ContainsRelevantChanges(commit.GetRepository().Diff
+                                .Compare<TreeChanges>(parent.Tree, commit.Tree, diffInclude)))
+                            : ContainsRelevantChanges(commit.GetRepository().Diff
+                                .Compare<TreeChanges>(null, commit.Tree, diffInclude));
+
+                    if (!relevantCommit)
+                    {
+                        height = 0;
+                    }
+                }
+
+                tracker.RecordHeight(commit, height + maxHeightAmongParents);
+                return true;
+            }
+
+            commitsToEvaluate.Push(startingCommit);
+            while (commitsToEvaluate.Count > 0)
+            {
+                Commit commit = commitsToEvaluate.Peek();
+                if (tracker.TryGetVersionHeight(commit, out _) || TryCalculateHeight(commit))
+                {
+                    commitsToEvaluate.Pop();
+                }
+            }
+
+            Assumes.True(tracker.TryGetVersionHeight(startingCommit, out int result));
+            return result;
         }
 
         /// <summary>
