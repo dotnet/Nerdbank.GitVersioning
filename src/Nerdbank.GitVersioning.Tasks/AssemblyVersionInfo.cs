@@ -86,6 +86,8 @@
 
         public string GitCommitDateTicks { get; set; }
 
+        public bool EmitThisAssemblyClass { get; set; } = true;
+
 #if NET461
         public override bool Execute()
         {
@@ -105,7 +107,11 @@
 
                     var ns = new CodeNamespace();
                     this.generatedFile.Namespaces.Add(ns);
-                    ns.Types.Add(this.CreateThisAssemblyClass());
+
+                    if (this.EmitThisAssemblyClass)
+                    {
+                        ns.Types.Add(this.CreateThisAssemblyClass());
+                    }
 
                     Directory.CreateDirectory(Path.GetDirectoryName(this.OutputFile));
                     FileStream file = null;
@@ -319,7 +325,12 @@
                 this.generator.AddBlankLine();
                 this.generator.EmitNamespaceIfRequired(this.RootNamespace ?? "AssemblyInfo");
                 this.GenerateAssemblyAttributes();
-                this.GenerateThisAssemblyClass();
+
+                if (this.EmitThisAssemblyClass)
+                {
+                    this.GenerateThisAssemblyClass();
+                }
+
                 return this.generator.GetCode();
             }
 
