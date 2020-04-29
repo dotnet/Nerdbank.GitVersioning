@@ -167,6 +167,7 @@
                   GitCommitId="$(GitCommitId)"
                   GitCommitDateTicks="$(GitCommitDateTicks)"
                   EmitNonVersionCustomAttributes="$(NBGV_EmitNonVersionCustomAttributes)"
+                  EmitThisAssemblyClass="$(NBGV_EmitThisAssemblyClass)"
                   />
     <!-- Avoid applying the newly generated AssemblyVersionInfo.cs file to the build
          unless it has changed in order to allow for incremental building. -->
