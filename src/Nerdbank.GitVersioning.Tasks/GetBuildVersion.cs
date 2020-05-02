@@ -21,11 +21,6 @@
         }
 
         /// <summary>
-        /// Gets or sets the ref (branch or tag) being built.
-        /// </summary>
-        public string BuildingRef { get; set; }
-
-        /// <summary>
         /// Gets or sets identifiers to append as build metadata.
         /// </summary>
         public string[] BuildMetadata { get; set; }
@@ -79,11 +74,10 @@
         public bool PublicRelease { get; private set; }
 
         /// <summary>
-        /// Gets the ref (branch or tag) being built.
-        /// Only specified when this is not a public release.
+        /// Gets or sets the ref (branch or tag) being built.
         /// </summary>
         [Output]
-        public string PrivateReleaseGitRef { get; set; }
+        public string BuildingRef { get; set; }
 
         /// <summary>
         /// Gets the version string to use in the compiled assemblies.
@@ -225,7 +219,7 @@
                 }
 
                 this.PublicRelease = oracle.PublicRelease;
-                this.PrivateReleaseGitRef = this.PublicRelease ? null : oracle.BuildingRef;
+                this.BuildingRef = oracle.BuildingRef;
                 this.Version = oracle.Version.ToString();
                 this.AssemblyVersion = oracle.AssemblyVersion.ToString();
                 this.AssemblyFileVersion = oracle.AssemblyFileVersion.ToString();
