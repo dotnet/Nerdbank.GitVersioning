@@ -272,7 +272,10 @@
         /// </summary>
         public int VersionHeightOffset { get; }
 
-        private string BuildingRef { get; }
+        /// <summary>
+        /// Gets the ref (branch or tag) being built.
+        /// </summary>
+        public string BuildingRef { get; }
 
         /// <summary>
         /// Gets the version for this project, with up to 4 components.
