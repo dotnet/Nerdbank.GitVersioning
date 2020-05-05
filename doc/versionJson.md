@@ -42,7 +42,7 @@ The content of the version.json file is a JSON serialized object with these prop
   },
   "pathFilters": [
     // optional list of paths to consider when calculating version height.
-  ]
+  ],
   "publicReleaseRefSpec": [
     "^refs/heads/master$", // we release out of master
     "^refs/tags/v\\d+\\.\\d+" // we also release tags starting with vN.N
