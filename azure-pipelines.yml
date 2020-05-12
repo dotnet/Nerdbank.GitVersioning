@@ -201,7 +201,7 @@ jobs:
     vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
   container: archlinux
   steps:
-  - bash: sudo pacman -Sy git dotnet-sdk
+  - bash: pacman -Sy --noconfirm git dotnet-sdk
     displayName: Install git
   - template: azure-pipelines/xplattest-pipeline.yml
 
