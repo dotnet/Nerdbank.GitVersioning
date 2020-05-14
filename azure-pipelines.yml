@@ -25,7 +25,7 @@ resources:
   - container: disco
     image: mcr.microsoft.com/dotnet/core/sdk:3.0-disco
   - container: archlinux
-    image: archlinux
+    image: andrewarnott/archlinux
 
 jobs:
 - job: Windows
@@ -201,7 +201,7 @@ jobs:
     vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
   container: archlinux
   steps:
-  - bash: pacman -Sy --noconfirm git dotnet-sdk
+  - bash: sudo pacman -Sy --noconfirm git dotnet-sdk
     displayName: Install git
   - template: azure-pipelines/xplattest-pipeline.yml
 
