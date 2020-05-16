@@ -24,6 +24,8 @@ resources:
     image: mcr.microsoft.com/dotnet/core/sdk:3.0-bionic
   - container: disco
     image: mcr.microsoft.com/dotnet/core/sdk:3.0-disco
+  - container: archlinux
+    image: andrewarnott/archlinux
 
 jobs:
 - job: Windows
@@ -191,6 +193,16 @@ jobs:
     vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
   container: disco
   steps:
+  - template: azure-pipelines/xplattest-pipeline.yml
+
+- job: Arch_Linux
+  dependsOn: Windows
+  pool:
+    vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
+  container: archlinux
+  steps:
+  - bash: sudo pacman -Sy --noconfirm git dotnet-sdk openssl-1.0
+    displayName: Install git
   - template: azure-pipelines/xplattest-pipeline.yml
 
 - job: macOS
