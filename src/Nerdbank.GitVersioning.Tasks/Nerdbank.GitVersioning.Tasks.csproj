@@ -33,6 +33,7 @@
       <TfmSpecificPackageFile Include="
                         $(OutputPath)LibGit2Sharp.dll*;
                         $(OutputPath)MSBuildExtensionTask.dll;
+                        $(OutputPath)Microsoft.DotNet.PlatformAbstractions.dll;
                         $(OutputPath)Nerdbank.GitVersioning.*dll;
                         $(OutputPath)Newtonsoft.Json.dll;
                         $(OutputPath)Validation.dll;

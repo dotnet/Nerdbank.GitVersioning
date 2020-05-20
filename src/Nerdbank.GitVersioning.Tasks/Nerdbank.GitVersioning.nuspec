@@ -19,7 +19,8 @@ IMPORTANT: The 3.x release may produce a different version height than prior maj
   <files>
     <file src="$BaseOutputPath$net461\LibGit2Sharp.dll" target="build\MSBuildFull\LibGit2Sharp.dll" />
     <file src="$BaseOutputPath$net461\LibGit2Sharp.dll.config" target="build\MSBuildFull\LibGit2Sharp.dll.config" />
-    <file src="$BaseOutputPath$net461\NerdBank.GitVersioning.dll" target="build\MSBuildFull\NerdBank.GitVersioning.dll" />
+    <file src="$BaseOutputPath$net461\Microsoft.DotNet.PlatformAbstractions.dll" target="build\MSBuildFull\Microsoft.DotNet.PlatformAbstractions.dll" />
+    <file src="$BaseOutputPath$net461\NerdBank.GitVersioning.dll" target="build\MSBuildFull\NerdBank.GitVersioning.dll" />    
     <file src="$BaseOutputPath$net461\Nerdbank.GitVersioning.Tasks.dll" target="build\MSBuildFull\Nerdbank.GitVersioning.Tasks.dll" />
     <file src="$BaseOutputPath$net461\Newtonsoft.Json.dll" target="build\MSBuildFull\Newtonsoft.Json.dll" />
     <file src="$BaseOutputPath$net461\Validation.dll" target="build\MSBuildFull\Validation.dll" />
@@ -35,6 +36,7 @@ IMPORTANT: The 3.x release may produce a different version height than prior maj
 
     <file src="$LibGit2SharpNativeBinaries$libgit2\LibGit2Sharp.dll.config" target="build\MSBuildCore\LibGit2Sharp.dll.config" />
     <file src="$BaseOutputPath$netcoreapp2.0\LibGit2Sharp.dll" target="build\MSBuildCore\LibGit2Sharp.dll" />
+    <file src="$BaseOutputPath$netcoreapp2.0\Microsoft.DotNet.PlatformAbstractions.dll" target="build\MSBuildCore\Microsoft.DotNet.PlatformAbstractions.dll" />
     <file src="$BaseOutputPath$netcoreapp2.0\NerdBank.GitVersioning.dll" target="build\MSBuildCore\NerdBank.GitVersioning.dll" />
     <file src="$BaseOutputPath$netcoreapp2.0\Nerdbank.GitVersioning.Tasks.dll" target="build\MSBuildCore\Nerdbank.GitVersioning.Tasks.dll" />
     <file src="$BaseOutputPath$netcoreapp2.0\Newtonsoft.Json.dll" target="build\MSBuildCore\Newtonsoft.Json.dll" />
