@@ -35,7 +35,7 @@ jobs:
   steps:
   - checkout: self
     clean: true
-    submodules: false
+    submodules: true # keep the warnings quiet about the wiki not being enlisted
   - script: |
       git config --global user.name ci
       git config --global user.email me@ci.com
