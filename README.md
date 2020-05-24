@@ -133,8 +133,16 @@ that can help you to translate between the two representations.
 Prerequisites and build instructions are found in our
 [contributing guidelines](CONTRIBUTING.md).
 
+### How do I consume the latest changes prior to their release on nuget.org?
+
+We have [a public feed][PublicCI] where our CI pushes packages.
+Adding the feed source URL to your nuget.config file will allow you to consume package versions that haven't been publicly released to nuget.org yet.
+
+## Code of Conduct
+
 This project has adopted the code of conduct defined by the Contributor Covenant to clarify expected behavior in our community.
 For more information see the [.NET Foundation Code of Conduct](https://dotnetfoundation.org/code-of-conduct).
 
  [semver]: http://semver.org
  [GitHeightMinimum]: https://github.com/dotnet/Nerdbank.GitVersioning/issues/102#issuecomment-269591960
+ [PublicCI]: https://dev.azure.com/andrewarnott/OSS/_packaging?_a=feed&feed=PublicCI
