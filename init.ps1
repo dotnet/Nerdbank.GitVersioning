@@ -1,3 +1,5 @@
+#!/usr/bin/env pwsh
+
 <#
 .SYNOPSIS
 Restores all NuGet, NPM and Typings packages necessary to build this repository.
@@ -11,7 +13,7 @@ $env:Platform='Any CPU' # Some people wander in here from a platform-specific bu
 
 Push-Location $PSScriptRoot
 try {
-    msbuild "$PSScriptRoot\src" /t:restore /v:minimal /m /nologo
+    dotnet restore "$PSScriptRoot\src"
 
     Write-Host "Restoring NPM packages..." -ForegroundColor Yellow
     Push-Location "$PSScriptRoot\src\nerdbank-gitversioning.npm"
