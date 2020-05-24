@@ -7,13 +7,6 @@ trigger:
   paths:
     exclude: ["doc", "*.md"]
 
-variables:
-  TreatWarningsAsErrors: true
-  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
-  BuildConfiguration: Release
-  BuildPlatform: Any CPU
-  NuGet.ForceNuGetForPush: true # Workaround for public feed limitation in NuGetCommand task - remove after July 15, 2019.
-
 resources:
   containers:
   - container: xenial
@@ -25,177 +18,274 @@ resources:
   - container: disco
     image: mcr.microsoft.com/dotnet/core/sdk:3.0-disco
 
-jobs:
-- job: Windows
-  pool: Hosted Windows 2019 with VS2019
+stages:
+- stage: Build
   variables:
-  - group: dotnetfoundation code signing
-  steps:
-  - checkout: self
-    clean: true
-    submodules: false
-  - script: |
-      git config --global user.name ci
-      git config --global user.email me@ci.com
-    displayName: Configure git commit author for testing
+    TreatWarningsAsErrors: true
+    DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+    BuildConfiguration: Release
+    BuildPlatform: Any CPU
+    NuGet.ForceNuGetForPush: true # Workaround for public feed limitation in NuGetCommand task - remove after July 15, 2019.
 
-  - task: UseDotNet@2
-    displayName: Install .NET Core SDK 3.1.100
-    inputs:
-      packageType: sdk
-      version: 3.1.100
-  - script: dotnet --info
-    displayName: Show dotnet SDK info
+  jobs:
+  - job: Windows
+    pool: Hosted Windows 2019 with VS2019
+    variables:
+    - group: dotnetfoundation code signing
+    steps:
+    - checkout: self
+      clean: true
+      submodules: false
+    - script: |
+        git config --global user.name ci
+        git config --global user.email me@ci.com
+      displayName: Configure git commit author for testing
 
-  - script: |
-      dotnet tool install --tool-path . nbgv
-      .\nbgv cloud -p src -a
-    displayName: Set build number
+    - task: UseDotNet@2
+      displayName: Install .NET Core SDK 3.1.100
+      inputs:
+        packageType: sdk
+        version: 3.1.100
+    - script: dotnet --info
+      displayName: Show dotnet SDK info
 
-  - task: DotNetCoreCLI@2
-    displayName: Restore NuGet packages
-    inputs:
-      command: restore
-      verbosityRestore: normal # detailed, normal, minimal
-      projects: src/**/*.sln
-      feedsToUse: config
-      nugetConfigPath: src/nuget.config
+    - script: |
+        dotnet tool install --tool-path . nbgv
+        .\nbgv cloud -p src -a
+      displayName: Set build number
+
+    - task: DotNetCoreCLI@2
+      displayName: Restore NuGet packages
+      inputs:
+        command: restore
+        verbosityRestore: normal # detailed, normal, minimal
+        projects: src/**/*.sln
+        feedsToUse: config
+        nugetConfigPath: src/nuget.config
+        workingDirectory: src
+
+    - task: geeklearningio.gl-vsts-tasks-yarn.yarn-installer-task.YarnInstaller@2
+      displayName: 'Use Yarn 1.x'
+    - task: geeklearningio.gl-vsts-tasks-yarn.yarn-task.Yarn@2
+      displayName: 'Yarn install'
+      inputs:
+        ProjectDirectory: 'src/nerdbank-gitversioning.npm'
+
+    - script: dotnet build -c $(BuildConfiguration) --no-restore /t:build,pack /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
+      displayName: Build NuGet package and tests
       workingDirectory: src
 
-  - task: geeklearningio.gl-vsts-tasks-yarn.yarn-installer-task.YarnInstaller@2
-    displayName: 'Use Yarn 1.x'
-  - task: geeklearningio.gl-vsts-tasks-yarn.yarn-task.Yarn@2
-    displayName: 'Yarn install'
-    inputs:
-      ProjectDirectory: 'src/nerdbank-gitversioning.npm'
+    - script: dotnet publish -c $(BuildConfiguration) -o ..\nerdbank-gitversioning.npm\out\nbgv.cli\tools\netcoreapp2.1\any /bl:"$(Build.ArtifactStagingDirectory)/build_logs/nbgv_publish.binlog"
+      displayName: Publish nbgv tool
+      workingDirectory: src\nbgv
 
-  - script: dotnet build -c $(BuildConfiguration) --no-restore /t:build,pack /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
-    displayName: Build NuGet package and tests
-    workingDirectory: src
+    - task: gulp@0
+      displayName: Build nerdbank-gitversioning NPM package
+      inputs:
+        gulpfile: src\nerdbank-gitversioning.npm\gulpfile.js
 
-  - script: dotnet publish -c $(BuildConfiguration) -o ..\nerdbank-gitversioning.npm\out\nbgv.cli\tools\netcoreapp2.1\any /bl:"$(Build.ArtifactStagingDirectory)/build_logs/nbgv_publish.binlog"
-    displayName: Publish nbgv tool
-    workingDirectory: src\nbgv
+  # Our unit tests use MSBuild 14
+  #  - powershell: Invoke-WebRequest https://download.microsoft.com/download/E/E/D/EEDF18A8-4AED-4CE0-BEBE-70A83094FC5A/BuildTools_Full.exe -OutFile msbuild14.exe
+  #    displayName: Downloading MSBuild 14
+  #  - script: start /wait msbuild14.exe /q /full /log "$(Build.ArtifactStagingDirectory)\build_logs\msbuild14.log"
+  #    displayName: Installing MSBuild 14
 
-  - task: gulp@0
-    displayName: Build nerdbank-gitversioning NPM package
-    inputs:
-      gulpfile: src\nerdbank-gitversioning.npm\gulpfile.js
+  #  - task: VSTest@2
+  #    displayName: Run tests
+  #    inputs:
+  #      searchFolder: bin/Nerdbank.GitVersioning.Tests
+  #      testFiltercriteria: TestCategory!=FailsOnAzurePipelines
+  #      platform: $(BuildPlatform)
+  #      configuration: $(BuildConfiguration)
+  #    continueOnError: true
 
-# Our unit tests use MSBuild 14
-#  - powershell: Invoke-WebRequest https://download.microsoft.com/download/E/E/D/EEDF18A8-4AED-4CE0-BEBE-70A83094FC5A/BuildTools_Full.exe -OutFile msbuild14.exe
-#    displayName: Downloading MSBuild 14
-#  - script: start /wait msbuild14.exe /q /full /log "$(Build.ArtifactStagingDirectory)\build_logs\msbuild14.log"
-#    displayName: Installing MSBuild 14
+    - script: dotnet test Nerdbank.GitVersioning.Tests --no-build -c $(BuildConfiguration) --filter "TestCategory!=FailsOnAzurePipelines" --logger "trx;LogFileName=$(Build.ArtifactStagingDirectory)\TestLogs\TestResults.trx"
+      displayName: Run tests
+      workingDirectory: src
 
-#  - task: VSTest@2
-#    displayName: Run tests
-#    inputs:
-#      searchFolder: bin/Nerdbank.GitVersioning.Tests
-#      testFiltercriteria: TestCategory!=FailsOnAzurePipelines
-#      platform: $(BuildPlatform)
-#      configuration: $(BuildConfiguration)
-#    continueOnError: true
+    - task: PublishTestResults@2
+      displayName: Publish test results
+      inputs:
+        testResultsFormat: VSTest
+        testResultsFiles: '*.trx'
+        searchFolder: $(Build.ArtifactStagingDirectory)\TestLogs
+        buildPlatform: $(BuildPlatform)
+        buildConfiguration: $(BuildConfiguration)
+      condition: always()
 
-  - script: dotnet test Nerdbank.GitVersioning.Tests --no-build -c $(BuildConfiguration) --filter "TestCategory!=FailsOnAzurePipelines" --logger "trx;LogFileName=$(Build.ArtifactStagingDirectory)\TestLogs\TestResults.trx"
-    displayName: Run tests
-    workingDirectory: src
+    - task: CopyFiles@1
+      inputs:
+        sourceFolder: $(System.DefaultWorkingDirectory)/bin
+        Contents: |
+          **\*.nupkg
+          js\*.tgz
+        TargetFolder: $(Build.ArtifactStagingDirectory)/deployables
+        flattenFolders: true
+      displayName: Collecting deployable artifacts
 
-  - task: PublishTestResults@2
-    displayName: Publish test results
-    inputs:
-      testResultsFormat: VSTest
-      testResultsFiles: '*.trx'
-      searchFolder: $(Build.ArtifactStagingDirectory)\TestLogs
-      buildPlatform: $(BuildPlatform)
-      buildConfiguration: $(BuildConfiguration)
-    condition: always()
+    - pwsh: >
+        dotnet tool install --tool-path obj SignClient
 
-  - task: CopyFiles@1
-    inputs:
-      sourceFolder: $(System.DefaultWorkingDirectory)/bin
-      Contents: |
-        **\*.nupkg
-        js\*.tgz
-      TargetFolder: $(Build.ArtifactStagingDirectory)/deployables
-      flattenFolders: true
-    displayName: Collecting deployable artifacts
+        obj/SignClient sign
+        --baseDirectory '$(Build.ArtifactStagingDirectory)/deployables'
+        --input '**/*'
+        --config '$(System.DefaultWorkingDirectory)/azure-pipelines/SignClient.json'
+        --filelist '$(System.DefaultWorkingDirectory)/azure-pipelines/signfiles.txt'
+        --user '$(codesign_username)'
+        --secret '$(codesign_secret)'
+        --name 'Nerdbank.GitVersioning'
+        --descriptionUrl 'https://github.com/dotnet/Nerdbank.GitVersioning'
+      displayName: Code sign
+      condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
 
-  - pwsh: >
-      dotnet tool install --tool-path obj SignClient
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: $(Build.ArtifactStagingDirectory)/deployables
+        ArtifactName: deployables
+        ArtifactType: Container
+      displayName: Publish deployables artifacts
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: $(Build.ArtifactStagingDirectory)/build_logs
+        ArtifactName: build_logs
+        ArtifactType: Container
+      displayName: Publish build_logs artifacts
+      condition: succeededOrFailed()
+    - task: NuGetCommand@2
+      displayName: Pushing package to PublicCI feed
+      inputs:
+        command: push
+        packagesToPush: $(Build.ArtifactStagingDirectory)/deployables/*.*nupkg
+        nuGetFeedType: internal
+        publishVstsFeed: 6ed146e5-8e9c-46d6-a40f-da9367ed50cd/c20edbb7-8403-4456-8f43-f46b47e360b1
+        allowPackageConflicts: true
+      condition: and(succeeded(), ne(variables['System.PullRequest.IsFork'], 'true'))
 
-      obj/SignClient sign
-      --baseDirectory '$(Build.ArtifactStagingDirectory)/deployables'
-      --input '**/*'
-      --config '$(System.DefaultWorkingDirectory)/azure-pipelines/SignClient.json'
-      --filelist '$(System.DefaultWorkingDirectory)/azure-pipelines/signfiles.txt'
-      --user '$(codesign_username)'
-      --secret '$(codesign_secret)'
-      --name 'Nerdbank.GitVersioning'
-      --descriptionUrl 'https://github.com/dotnet/Nerdbank.GitVersioning'
-    displayName: Code sign
-    condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+  - job: Ubuntu_Xenial
+    dependsOn: Windows
+    pool:
+      vmImage: Ubuntu 16.04
+    container: xenial
+    steps:
+    - bash: sudo apt update && sudo apt-get install -y git
+      displayName: Install git
+    - template: azure-pipelines/xplattest-pipeline.yml
 
-  - task: PublishBuildArtifacts@1
-    inputs:
-      PathtoPublish: $(Build.ArtifactStagingDirectory)/deployables
-      ArtifactName: deployables
-      ArtifactType: Container
-    displayName: Publish deployables artifacts
-  - task: PublishBuildArtifacts@1
-    inputs:
-      PathtoPublish: $(Build.ArtifactStagingDirectory)/build_logs
-      ArtifactName: build_logs
-      ArtifactType: Container
-    displayName: Publish build_logs artifacts
-    condition: succeededOrFailed()
-  - task: NuGetCommand@2
-    displayName: Pushing package to PublicCI feed
-    inputs:
-      command: push
-      packagesToPush: $(Build.ArtifactStagingDirectory)/deployables/*.*nupkg
-      nuGetFeedType: internal
-      publishVstsFeed: 6ed146e5-8e9c-46d6-a40f-da9367ed50cd/c20edbb7-8403-4456-8f43-f46b47e360b1
-      allowPackageConflicts: true
-    condition: and(succeeded(), ne(variables['System.PullRequest.IsFork'], 'true'))
+  - job: Ubuntu_Bionic
+    dependsOn: Windows
+    pool:
+      vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
+    container: bionic
+    steps:
+    - template: azure-pipelines/xplattest-pipeline.yml
 
-- job: Ubuntu_Xenial
-  dependsOn: Windows
-  pool:
-    vmImage: Ubuntu 16.04
-  container: xenial
-  steps:
-  - bash: sudo apt update && sudo apt-get install -y git
-    displayName: Install git
-  - template: azure-pipelines/xplattest-pipeline.yml
+  - job: Ubuntu_Bionic_3_0
+    dependsOn: Windows
+    pool:
+      vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
+    container: bionic-3.0
+    steps:
+    - template: azure-pipelines/xplattest-pipeline.yml
 
-- job: Ubuntu_Bionic
-  dependsOn: Windows
-  pool:
-    vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
-  container: bionic
-  steps:
-  - template: azure-pipelines/xplattest-pipeline.yml
+  - job: Ubuntu_Disco
+    dependsOn: Windows
+    pool:
+      vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
+    container: disco
+    steps:
+    - template: azure-pipelines/xplattest-pipeline.yml
 
-- job: Ubuntu_Bionic_3_0
-  dependsOn: Windows
-  pool:
-    vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
-  container: bionic-3.0
-  steps:
-  - template: azure-pipelines/xplattest-pipeline.yml
+  - job: macOS
+    dependsOn: Windows
+    pool:
+      vmImage: macOS-10.15
+    steps:
+    - template: azure-pipelines/xplattest-pipeline.yml
 
-- job: Ubuntu_Disco
-  dependsOn: Windows
-  pool:
-    vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
-  container: disco
-  steps:
-  - template: azure-pipelines/xplattest-pipeline.yml
+- stage: GitHubRelease
+  displayName: GitHub Release
+  jobs:
+  - deployment: create
+    pool:
+      vmImage: ubuntu-latest
+    environment: Approval
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: none
+          - task: GitHubRelease@1
+            displayName: GitHub release (create)
+            inputs:
+              gitHubConnection: GitHub AArnott
+              repositoryName: $(Build.Repository.Name)
+              tagSource: userSpecifiedTag
+              tag: v$(Build.BuildNumber)
+              title: v$(Build.BuildNumber)
+              isDraft: true
+              changeLogCompareToRelease: lastNonDraftRelease
+              changeLogType: issueBased
+              changeLogLabels: |
+                [
+                  { "label" : "bug", "displayName" : "Fixes", "state" : "closed" },
+                  { "label" : "enhancement", "displayName": "Enhancements", "state" : "closed" }
+                ]
 
-- job: macOS
-  dependsOn: Windows
-  pool:
-    vmImage: macOS-10.15
-  steps:
-  - template: azure-pipelines/xplattest-pipeline.yml
+- stage: nuget_org
+  displayName: nuget.org
+  dependsOn: GitHubRelease
+  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+  jobs:
+  - deployment: push
+    pool:
+      vmImage: ubuntu-latest
+    environment: No-Approval # Approval is already granted in the release stage.
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: deployables
+            displayName: Download deployables artifact
+          - task: NuGetToolInstaller@1
+            displayName: Use NuGet 5.x
+            inputs:
+              versionSpec: 5.x
+          - task: NuGetCommand@2
+            displayName: NuGet push
+            inputs:
+              command: push
+              packagesToPush: $(Pipeline.Workspace)/deployables/*.nupkg
+              nuGetFeedType: external
+              publishFeedCredentials: nuget.org
+
+- stage: npmjs_org
+  displayName: npmjs.org
+  dependsOn: GitHubRelease
+  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+  jobs:
+  - deployment: push
+    pool:
+      vmImage: ubuntu-latest
+    environment: No-Approval # Approval is already granted in the release stage.
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: deployables
+            displayName: Download deployables artifact
+          - powershell: |
+              $tgz = (Get-ChildItem *.tgz)[0].Name
+              Write-Output ("##vso[task.setvariable variable=TgzPath;]$tgz")
+
+              npm install $tgz
+            workingDirectory: $(Pipeline.Workspace)/deployables
+            displayName: Prepare to publish TGZ
+          - task: Npm@1
+            displayName: npm publish
+            inputs:
+              command: publish
+              workingDir: $(Pipeline.Workspace)/deployables/node_modules/nerdbank-gitversioning
+              verbose: false
+              publishEndpoint: npmjs.org
