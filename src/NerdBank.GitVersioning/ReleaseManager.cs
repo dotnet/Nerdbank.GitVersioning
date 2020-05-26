@@ -80,6 +80,100 @@
             public ReleasePreparationException(ReleasePreparationError error) => this.Error = error;
         }
 
+        /// <summary>
+        /// Encapsulates information on a release created through <see cref="ReleaseManager"/>
+        /// </summary>
+        public class ReleaseInfo
+        {
+            /// <summary>
+            /// Gets information on the 'current' branch, i.e. the branch the release was created from
+            /// </summary>
+            public ReleaseBranchInfo CurrentBranch { get; }
+
+            /// <summary>
+            /// Gets information on the new branch created by <see cref="ReleaseManager"/>
+            /// </summary>
+            /// <value>
+            /// Information on the newly created branch as instance of <see cref="ReleaseBranchInfo"/> or <c>null</c>, if no new branch was created
+            /// </value>
+            [JsonProperty(DefaultValueHandling = DefaultValueHandling.Include)]
+            public ReleaseBranchInfo NewBranch { get; }
+
+            /// <summary>
+            /// Initializes a new instance of <see cref="ReleaseInfo"/>
+            /// </summary>
+            /// <param name="currentBranch">Information on the branch the release was created from.</param>
+            public ReleaseInfo(ReleaseBranchInfo currentBranch) : this(currentBranch, null)
+            { }
+
+            /// <summary>
+            /// Initializes a new instance of <see cref="ReleaseInfo"/>
+            /// </summary>
+            /// <param name="currentBranch">Information on the branch the release was created from.</param>
+            /// <param name="newBranch">Information on the newly created branch.</param>
+            public ReleaseInfo(ReleaseBranchInfo currentBranch, ReleaseBranchInfo newBranch)
+            {
+                if(currentBranch == null)
+                {
+                    throw new ArgumentNullException(nameof(currentBranch), $"{nameof(this.CurrentBranch)} can't be empty");
+                }
+                
+                // skip null check for newBranch, it is allowed to be null.
+
+                this.CurrentBranch = currentBranch;                
+                this.NewBranch = newBranch; 
+            }
+        }
+
+        /// <summary>
+        /// Encapsulates information on a branch created or updated by <see cref="ReleaseManager"/>
+        /// </summary>
+        public class ReleaseBranchInfo
+        {
+            /// <summary>
+            /// The name of the branch, e.g. <c>master</c>
+            /// </summary>
+            public string Name { get; }
+
+            /// <summary>
+            /// The id of the branch's tip commit after the update
+            /// </summary>
+            public string Commit { get; }
+
+            /// <summary>
+            /// The version configured in the branch's <c>version.json</c>
+            /// </summary>
+            public SemanticVersion Version { get; }
+
+            /// <summary>
+            /// Initializes a new instance of <see cref="ReleaseBranchInfo"/>
+            /// </summary>
+            /// <param name="name">The name of the branch</param>
+            /// <param name="commit">The id of the branch's tip</param>
+            /// <param name="version">The version configured in the branch's <c>version.json</c></param>
+            public ReleaseBranchInfo(string name, string commit, SemanticVersion version)
+            {
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    throw new ArgumentNullException(nameof(name), $"{nameof(this.Name)} can't be empty");
+                }
+
+                if (string.IsNullOrWhiteSpace(commit))
+                {
+                    throw new ArgumentNullException(nameof(commit), $"{nameof(this.Commit)} can't be empty");
+                }
+
+                if(version == null)
+                {
+                    throw new ArgumentNullException(nameof(version), $"{nameof(this.Version)} can't be empty");
+                }
+
+                this.Name = name;
+                this.Commit = commit;
+                this.Version = version;
+            }
+        }
+
         private readonly TextWriter stdout;
         private readonly TextWriter stderr;
 
