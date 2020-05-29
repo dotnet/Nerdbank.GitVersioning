@@ -311,9 +311,10 @@
 
             if(outputMode == ReleaseManagerOutputMode.Json)
             {
-                var currentBranchInfo = new ReleaseBranchInfo(originalBranchName, repository.Branches[originalBranchName].Tip.Id.ToString(), nextDevVersion);
+                var originalBranchInfo = new ReleaseBranchInfo(originalBranchName, repository.Head.Tip.Sha, versionOptions.Version);
                 var releaseBranchInfo = new ReleaseBranchInfo(releaseBranchName, repository.Branches[releaseBranchName].Tip.Id.ToString(), releaseVersion);
-                var releaseInfo = new ReleaseInfo(currentBranchInfo, releaseBranchInfo);
+                var releaseInfo = new ReleaseInfo(originalBranchInfo, releaseBranchInfo);
+
                 this.WriteToOutput(releaseInfo);
             }            
         }
