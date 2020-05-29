@@ -121,6 +121,49 @@ The behaviour of the `prepare-release` command can be customized in
 | versionIncrement | `minor`              | Specifies which part of the version on the current branch is incremented when preparing a release. Allowed values are `major`, `minor` and `build`. |
 | firstUnstableTag | `alpha`              | Specified the unstable tag to use for the main branch.                                                                                              |
 
+### Customizing the `prepare-release` output format
+
+By default, the `prepare-release` command writes information about created and updated branches to the console as text.
+Alternatively the information can be written to the output as `json`.
+The output format to use can be set using the `--format` command line parameter.
+
+For example, running the follwoing command on `master`
+
+```
+nbgv prepare-release --format json
+```
+
+will generate output similar to this:
+
+```json
+{
+  "CurrentBranch": {
+    "Name": "master",
+    "Commit": "5a7487098ac1be1ceb4dbf72d862539cf0b0c27a",
+    "Version": "1.7-alpha"
+  },
+  "NewBranch": {
+    "Name": "v1.7",
+    "Commit": "b2f164675ffe891b66b601c00efc4343581fc8a5",
+    "Version": "1.7"
+  }
+}
+```
+
+The JSON object has to properties:
+
+- `CurrentBranch` provides information about the branch `prepare-release` was started on (typically `master`)
+- `NewBranch` provides information about the new branch created by the command.
+
+For each branch, the following proprties are provided:
+
+- `Name`: The name of the branch
+- `Commit`: The id of the latest commit on that branch
+- `Version`: The version configured in that branch's `version.json`
+
+**Note:** When the current branch is already the release branch for the current version, no new branch will be created.
+In that case, the `NewBranch` property will be `null`.
+
 ## Learn more
 
 There are several more sub-commands and switches to each to help you build and maintain your projects, find a commit that built a particular version later on, create tags, etc.
