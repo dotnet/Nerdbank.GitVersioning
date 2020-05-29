@@ -115,11 +115,7 @@
             [JsonConstructor]
             public ReleaseInfo(ReleaseBranchInfo currentBranch, ReleaseBranchInfo newBranch)
             {
-                if(currentBranch == null)
-                {
-                    throw new ArgumentNullException(nameof(currentBranch), $"{nameof(this.CurrentBranch)} can't be empty");
-                }
-                
+                Requires.NotNull(currentBranch, nameof(currentBranch));                
                 // skip null check for newBranch, it is allowed to be null.
 
                 this.CurrentBranch = currentBranch;                
@@ -155,20 +151,9 @@
             /// <param name="version">The version configured in the branch's <c>version.json</c>.</param>
             public ReleaseBranchInfo(string name, string commit, SemanticVersion version)
             {
-                if (string.IsNullOrWhiteSpace(name))
-                {
-                    throw new ArgumentNullException(nameof(name), $"{nameof(this.Name)} can't be empty");
-                }
-
-                if (string.IsNullOrWhiteSpace(commit))
-                {
-                    throw new ArgumentNullException(nameof(commit), $"{nameof(this.Commit)} can't be empty");
-                }
-
-                if(version == null)
-                {
-                    throw new ArgumentNullException(nameof(version), $"{nameof(this.Version)} can't be empty");
-                }
+                Requires.NotNullOrWhiteSpace(name, nameof(name));
+                Requires.NotNullOrWhiteSpace(commit, nameof(commit));
+                Requires.NotNull(version, nameof(version));
 
                 this.Name = name;
                 this.Commit = commit;
