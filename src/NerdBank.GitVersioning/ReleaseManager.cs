@@ -115,11 +115,11 @@
             [JsonConstructor]
             public ReleaseInfo(ReleaseBranchInfo currentBranch, ReleaseBranchInfo newBranch)
             {
-                Requires.NotNull(currentBranch, nameof(currentBranch));                
+                Requires.NotNull(currentBranch, nameof(currentBranch));
                 // skip null check for newBranch, it is allowed to be null.
 
-                this.CurrentBranch = currentBranch;                
-                this.NewBranch = newBranch; 
+                this.CurrentBranch = currentBranch;
+                this.NewBranch = newBranch;
             }
         }
 
@@ -235,7 +235,7 @@
                 this.stderr.WriteLine($"Failed to load version file for directory '{projectDirectory}'.");
                 throw new ReleasePreparationException(ReleasePreparationError.NoVersionFile);
             }
-            
+
             var releaseBranchName = this.GetReleaseBranchName(versionOptions);
             var originalBranchName = repository.Head.FriendlyName;
             var releaseVersion = string.IsNullOrEmpty(releaseUnstableTag)
@@ -245,7 +245,7 @@
             // check if the current branch is the release branch
             if (string.Equals(originalBranchName, releaseBranchName, StringComparison.OrdinalIgnoreCase))
             {
-                if(outputMode == ReleaseManagerOutputMode.Text)
+                if (outputMode == ReleaseManagerOutputMode.Text)
                 {
                     this.stdout.WriteLine($"{releaseBranchName} branch advanced from {versionOptions.Version} to {releaseVersion}.");
                 }
@@ -281,9 +281,9 @@
             Commands.Checkout(repository, originalBranchName);
             this.UpdateVersion(projectDirectory, repository, versionOptions.Version, nextDevVersion);
 
-            if(outputMode == ReleaseManagerOutputMode.Text)
+            if (outputMode == ReleaseManagerOutputMode.Text)
             {
-                this.stdout.WriteLine($"{originalBranchName} branch now tracks v{nextDevVersion} development.");                 
+                this.stdout.WriteLine($"{originalBranchName} branch now tracks v{nextDevVersion} development.");
             }
 
             // Merge release branch back to main branch
@@ -294,14 +294,14 @@
             };
             repository.Merge(releaseBranch, this.GetSignature(repository), mergeOptions);
 
-            if(outputMode == ReleaseManagerOutputMode.Json)
+            if (outputMode == ReleaseManagerOutputMode.Json)
             {
                 var originalBranchInfo = new ReleaseBranchInfo(originalBranchName, repository.Head.Tip.Sha, nextDevVersion);
                 var releaseBranchInfo = new ReleaseBranchInfo(releaseBranchName, repository.Branches[releaseBranchName].Tip.Id.ToString(), releaseVersion);
                 var releaseInfo = new ReleaseInfo(originalBranchInfo, releaseBranchInfo);
 
                 this.WriteToOutput(releaseInfo);
-            }            
+            }
         }
 
         private string GetReleaseBranchName(VersionOptions versionOptions)
@@ -409,7 +409,7 @@
             var currentVersion = versionOptions.Version;
 
             SemanticVersion nextDevVersion;
-            if(nextVersionOverride != null)
+            if (nextVersionOverride != null)
             {
                 nextDevVersion = new SemanticVersion(nextVersionOverride, currentVersion.Prerelease, currentVersion.BuildMetadata);
             }
