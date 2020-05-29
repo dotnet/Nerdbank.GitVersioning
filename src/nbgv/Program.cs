@@ -22,7 +22,7 @@ namespace Nerdbank.GitVersioning.Tool
     {
         private const string DefaultVersionSpec = "1.0-beta";
 
-        private const string DefaultVersionInfoFormat = "text";
+        private const string DefaultOutputFormat = "text";
 
         private const string DefaultRef = "HEAD";
 
@@ -103,7 +103,7 @@ namespace Nerdbank.GitVersioning.Tool
 
                 getVersion = syntax.DefineCommand("get-version", ref commandText, "Gets the version information for a project.");
                 syntax.DefineOption("p|project", ref projectPath, "The path to the project or project directory. The default is the current directory.");
-                syntax.DefineOption("f|format", ref format, $"The format to write the version information. Allowed values are: text, json. The default is {DefaultVersionInfoFormat}.");
+                syntax.DefineOption("f|format", ref format, $"The format to write the version information. Allowed values are: text, json. The default is {DefaultOutputFormat}.");
                 syntax.DefineOption("v|variable", ref singleVariable, "The name of just one version property to print to stdout. When specified, the output is always in raw text. Useful in scripts.");
                 syntax.DefineParameter("commit-ish", ref version, $"The commit/ref to get the version information for. The default is {DefaultRef}.");
 
@@ -132,6 +132,7 @@ namespace Nerdbank.GitVersioning.Tool
                 syntax.DefineOption("p|project", ref projectPath, "The path to the project or project directory. The default is the current directory.");
                 syntax.DefineOption("nextVersion", ref releaseNextVersion, "The version to set for the current branch. If omitted, the next version is determined automatically by incrementing the current version.");
                 syntax.DefineOption("versionIncrement", ref releaseVersionIncrement, "Overrides the 'versionIncrement' setting set in version.json for determining the next version of the current branch.");
+                syntax.DefineOption("f|format", ref format, $"The format to write information about the release. Allowed values are: text, json. The default is {DefaultOutputFormat}.");
                 syntax.DefineParameter("tag", ref releasePreReleaseTag, "The prerelease tag to apply on the release branch (if any). If not specified, any existing prerelease tag will be removed. The preceding hyphen may be omitted.");
 
                 if (syntax.ActiveCommand == null)
@@ -167,7 +168,7 @@ namespace Nerdbank.GitVersioning.Tool
             }
             else if (prepareRelease.IsActive)
             {
-                exitCode = OnPrepareReleaseCommand(projectPath, releasePreReleaseTag, releaseNextVersion, releaseVersionIncrement);
+                exitCode = OnPrepareReleaseCommand(projectPath, releasePreReleaseTag, releaseNextVersion, releaseVersionIncrement, format);
             }
 
             return (int)exitCode;
@@ -272,7 +273,7 @@ namespace Nerdbank.GitVersioning.Tool
         {
             if (string.IsNullOrEmpty(format))
             {
-                format = DefaultVersionInfoFormat;
+                format = DefaultOutputFormat;
             }
 
             if (string.IsNullOrEmpty(versionOrRef))
@@ -588,7 +589,7 @@ namespace Nerdbank.GitVersioning.Tool
             }
         }
 
-        private static ExitCodes OnPrepareReleaseCommand(string projectPath, string prereleaseTag, string nextVersion, string versionIncrement)
+        private static ExitCodes OnPrepareReleaseCommand(string projectPath, string prereleaseTag, string nextVersion, string versionIncrement, string format)
         {
             // validate project path property
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(projectPath);
@@ -628,11 +629,22 @@ namespace Nerdbank.GitVersioning.Tool
                 }
             }
 
+            // parse format
+            if (string.IsNullOrEmpty(format))
+            {
+                format = DefaultOutputFormat;
+            }
+            if (!Enum.TryParse(format, true, out ReleaseManager.ReleaseManagerOutputMode outputMode))
+            {
+                Console.Error.WriteLine($"Unsupported format: {format}");
+                return ExitCodes.UnsupportedFormat;
+            }
+
             // run prepare-release
             try
             {
                 var releaseManager = new ReleaseManager(Console.Out, Console.Error);
-                releaseManager.PrepareRelease(searchPath, prereleaseTag, nextVersionParsed, versionIncrementParsed);
+                releaseManager.PrepareRelease(searchPath, prereleaseTag, nextVersionParsed, versionIncrementParsed, outputMode);
                 return ExitCodes.OK;
             }
             catch (ReleaseManager.ReleasePreparationException ex)
