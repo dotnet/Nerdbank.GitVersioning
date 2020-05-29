@@ -311,7 +311,7 @@
 
             if(outputMode == ReleaseManagerOutputMode.Json)
             {
-                var originalBranchInfo = new ReleaseBranchInfo(originalBranchName, repository.Head.Tip.Sha, versionOptions.Version);
+                var originalBranchInfo = new ReleaseBranchInfo(originalBranchName, repository.Head.Tip.Sha, nextDevVersion);
                 var releaseBranchInfo = new ReleaseBranchInfo(releaseBranchName, repository.Branches[releaseBranchName].Tip.Id.ToString(), releaseVersion);
                 var releaseInfo = new ReleaseInfo(originalBranchInfo, releaseBranchInfo);
 
