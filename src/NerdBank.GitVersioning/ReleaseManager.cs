@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.IO;
     using LibGit2Sharp;
+    using Newtonsoft.Json;
     using Validation;
     using Version = System.Version;
 
@@ -81,36 +82,37 @@
         }
 
         /// <summary>
-        /// Encapsulates information on a release created through <see cref="ReleaseManager"/>
+        /// Encapsulates information on a release created through <see cref="ReleaseManager"/>.
         /// </summary>
         public class ReleaseInfo
         {
             /// <summary>
-            /// Gets information on the 'current' branch, i.e. the branch the release was created from
+            /// Gets information on the 'current' branch, i.e. the branch the release was created from.
             /// </summary>
             public ReleaseBranchInfo CurrentBranch { get; }
 
             /// <summary>
-            /// Gets information on the new branch created by <see cref="ReleaseManager"/>
+            /// Gets information on the new branch created by <see cref="ReleaseManager"/>.
             /// </summary>
             /// <value>
-            /// Information on the newly created branch as instance of <see cref="ReleaseBranchInfo"/> or <c>null</c>, if no new branch was created
+            /// Information on the newly created branch as instance of <see cref="ReleaseBranchInfo"/> or <c>null</c>, if no new branch was created.
             /// </value>
             [JsonProperty(DefaultValueHandling = DefaultValueHandling.Include)]
             public ReleaseBranchInfo NewBranch { get; }
 
             /// <summary>
-            /// Initializes a new instance of <see cref="ReleaseInfo"/>
+            /// Initializes a new instance of <see cref="ReleaseInfo"/>.
             /// </summary>
             /// <param name="currentBranch">Information on the branch the release was created from.</param>
             public ReleaseInfo(ReleaseBranchInfo currentBranch) : this(currentBranch, null)
             { }
 
             /// <summary>
-            /// Initializes a new instance of <see cref="ReleaseInfo"/>
+            /// Initializes a new instance of <see cref="ReleaseInfo"/>.
             /// </summary>
             /// <param name="currentBranch">Information on the branch the release was created from.</param>
             /// <param name="newBranch">Information on the newly created branch.</param>
+            [JsonConstructor]
             public ReleaseInfo(ReleaseBranchInfo currentBranch, ReleaseBranchInfo newBranch)
             {
                 if(currentBranch == null)
@@ -126,31 +128,31 @@
         }
 
         /// <summary>
-        /// Encapsulates information on a branch created or updated by <see cref="ReleaseManager"/>
+        /// Encapsulates information on a branch created or updated by <see cref="ReleaseManager"/>.
         /// </summary>
         public class ReleaseBranchInfo
         {
             /// <summary>
-            /// The name of the branch, e.g. <c>master</c>
+            /// The name of the branch, e.g. <c>master</c>.
             /// </summary>
             public string Name { get; }
 
             /// <summary>
-            /// The id of the branch's tip commit after the update
+            /// The id of the branch's tip commit after the update.
             /// </summary>
             public string Commit { get; }
 
             /// <summary>
-            /// The version configured in the branch's <c>version.json</c>
+            /// The version configured in the branch's <c>version.json</c>.
             /// </summary>
             public SemanticVersion Version { get; }
 
             /// <summary>
-            /// Initializes a new instance of <see cref="ReleaseBranchInfo"/>
+            /// Initializes a new instance of <see cref="ReleaseBranchInfo"/>.
             /// </summary>
-            /// <param name="name">The name of the branch</param>
-            /// <param name="commit">The id of the branch's tip</param>
-            /// <param name="version">The version configured in the branch's <c>version.json</c></param>
+            /// <param name="name">The name of the branch.</param>
+            /// <param name="commit">The id of the branch's tip.</param>
+            /// <param name="version">The version configured in the branch's <c>version.json</c>.</param>
             public ReleaseBranchInfo(string name, string commit, SemanticVersion version)
             {
                 if (string.IsNullOrWhiteSpace(name))
@@ -174,11 +176,27 @@
             }
         }
 
+        /// <summary>
+        /// Enumerates the output formats supported by <see cref="ReleaseManager"/>.
+        /// </summary>
+        public enum ReleaseManagerOutputMode
+        {
+            /// <summary>
+            /// Use unstructured text output.
+            /// </summary>
+            Text = 0,
+            /// <summary>
+            /// Output information about the release as JSON.
+            /// </summary>
+            Json = 1
+        }
+
+
         private readonly TextWriter stdout;
         private readonly TextWriter stderr;
 
         /// <summary>
-        /// Initializes a new instance of <see cref="ReleaseManager"/>
+        /// Initializes a new instance of <see cref="ReleaseManager"/>.
         /// </summary>
         /// <param name="outputWriter">The <see cref="TextWriter"/> to write output to (e.g. <see cref="Console.Out" />).</param>
         /// <param name="errorWriter">The <see cref="TextWriter"/> to write error messages to (e.g. <see cref="Console.Error" />).</param>
@@ -209,7 +227,10 @@
         /// If specified, value will be used instead of the increment specified in <c>version.json</c>.
         /// Parameter will be ignored if the current branch is a release branch.
         /// </param>
-        public void PrepareRelease(string projectDirectory, string releaseUnstableTag = null, Version nextVersion = null, VersionOptions.ReleaseVersionIncrement? versionIncrement = null)
+        /// <param name="outputMode">
+        /// The output format to use for writing to stdout.
+        /// </param>
+        public void PrepareRelease(string projectDirectory, string releaseUnstableTag = null, Version nextVersion = null, VersionOptions.ReleaseVersionIncrement? versionIncrement = null, ReleaseManagerOutputMode outputMode = default)
         {
             Requires.NotNull(projectDirectory, nameof(projectDirectory));
 
@@ -239,7 +260,15 @@
             // check if the current branch is the release branch
             if (string.Equals(originalBranchName, releaseBranchName, StringComparison.OrdinalIgnoreCase))
             {
-                this.stdout.WriteLine($"{releaseBranchName} branch advanced from {versionOptions.Version} to {releaseVersion}.");
+                if(outputMode == ReleaseManagerOutputMode.Text)
+                {
+                    this.stdout.WriteLine($"{releaseBranchName} branch advanced from {versionOptions.Version} to {releaseVersion}.");
+                }
+                else
+                {
+                    var releaseInfo = new ReleaseInfo(new ReleaseBranchInfo(releaseBranchName, repository.Head.Tip.Id.ToString(), releaseVersion));
+                    this.WriteToOutput(releaseInfo);
+                }
                 this.UpdateVersion(projectDirectory, repository, versionOptions.Version, releaseVersion);
                 return;
             }
@@ -257,12 +286,20 @@
             var releaseBranch = repository.CreateBranch(releaseBranchName);
             Commands.Checkout(repository, releaseBranch);
             this.UpdateVersion(projectDirectory, repository, versionOptions.Version, releaseVersion);
-            this.stdout.WriteLine($"{releaseBranchName} branch now tracks v{releaseVersion} stabilization and release.");
+
+            if (outputMode == ReleaseManagerOutputMode.Text)
+            {
+                this.stdout.WriteLine($"{releaseBranchName} branch now tracks v{releaseVersion} stabilization and release.");
+            }
 
             // update version on main branch
             Commands.Checkout(repository, originalBranchName);
             this.UpdateVersion(projectDirectory, repository, versionOptions.Version, nextDevVersion);
-            this.stdout.WriteLine($"{originalBranchName} branch now tracks v{nextDevVersion} development.");
+
+            if(outputMode == ReleaseManagerOutputMode.Text)
+            {
+                this.stdout.WriteLine($"{originalBranchName} branch now tracks v{nextDevVersion} development.");                 
+            }
 
             // Merge release branch back to main branch
             var mergeOptions = new MergeOptions()
@@ -271,6 +308,14 @@
                 MergeFileFavor = MergeFileFavor.Ours,
             };
             repository.Merge(releaseBranch, this.GetSignature(repository), mergeOptions);
+
+            if(outputMode == ReleaseManagerOutputMode.Json)
+            {
+                var currentBranchInfo = new ReleaseBranchInfo(originalBranchName, repository.Branches[originalBranchName].Tip.Id.ToString(), nextDevVersion);
+                var releaseBranchInfo = new ReleaseBranchInfo(releaseBranchName, repository.Branches[releaseBranchName].Tip.Id.ToString(), releaseVersion);
+                var releaseInfo = new ReleaseInfo(currentBranchInfo, releaseBranchInfo);
+                this.WriteToOutput(releaseInfo);
+            }            
         }
 
         private string GetReleaseBranchName(VersionOptions versionOptions)
@@ -405,6 +450,12 @@
 
             // return next version with prerelease tag specified in version.json
             return nextDevVersion.SetFirstPrereleaseTag(versionOptions.ReleaseOrDefault.FirstUnstableTagOrDefault);
+        }
+
+        private void WriteToOutput(ReleaseInfo releaseInfo)
+        {
+            var json = JsonConvert.SerializeObject(releaseInfo, Formatting.Indented, new SemanticVersionJsonConverter());
+            this.stdout.WriteLine(json);
         }
     }
 }
