@@ -3,6 +3,8 @@ using System.IO;
 using System.Linq;
 using LibGit2Sharp;
 using Nerdbank.GitVersioning;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -399,6 +401,156 @@ public class ReleaseManagerTests : RepoTestBase
         // running PrepareRelease should result in an error
         // because a 2-segment version is incompatibale with a increment setting of "build"
         this.AssertError(() => new ReleaseManager().PrepareRelease(this.RepoPath), ReleasePreparationError.InvalidVersionIncrementSetting);
+    }
+
+    [Fact]
+    public void PrepareRelease_TextOutput()
+    {
+        // create and configure repository
+        this.InitializeSourceControl();
+
+        // create version.json
+        var versionOptions = new VersionOptions() { Version = SemanticVersion.Parse("1.0") };
+        this.WriteVersionFile(versionOptions);
+
+        var stdout = new StringWriter();
+        var releaseManager = new ReleaseManager(stdout);
+        releaseManager.PrepareRelease(this.RepoPath);
+
+        // by default, text output mode should be used => trying to parse it as JSON should fail
+        Assert.ThrowsAny<JsonException>(() => JsonConvert.DeserializeObject(stdout.ToString()));
+    }
+
+    [Fact]
+    public void PrepareRelease_JsonOutput()
+    {
+        // create and configure repository
+        this.InitializeSourceControl();
+
+        // create version.json
+        var versionOptions = new VersionOptions()
+        {
+            Version = SemanticVersion.Parse("1.0"),
+            Release = new ReleaseOptions()
+            {
+                BranchName = "v{version}",
+                VersionIncrement = ReleaseVersionIncrement.Minor
+            }
+        };
+        this.WriteVersionFile(versionOptions);
+
+        var currentBranchName = this.Repo.Head.FriendlyName;
+        var releaseBranchName = "v1.0";
+
+        // run release preparation
+        var stdout = new StringWriter();
+        var releaseManager = new ReleaseManager(stdout);
+        releaseManager.PrepareRelease(this.RepoPath, outputMode: ReleaseManager.ReleaseManagerOutputMode.Json);
+
+
+        // Expected output:
+        // {
+        //     "CurrentBranch" : {
+        //         "Name" : "<NAME-OF-CURRENT-BRANCH>",
+        //         "Commit" : "<HEAD-COMMIT-OF-CURRENT-BRANCH>",
+        //         "Version" : "<UPDATED-VERSION-ON-CURRENT-BRANCH>",
+        //     },
+        //     "NewBranch" : {
+        //         "Name" : "<NAME-OF-CREATED-BRANCH>",
+        //         "Commit" : "<HEAD-COMMIT-OF-CREATED-BRANCH>",
+        //         "Version" : "<VERSION-ON-CREATED-BRANCH>",
+        //     }
+        // }
+
+        var jsonOutput = JObject.Parse(stdout.ToString());
+
+        // check "CurrentBranch" output
+        {
+            var expectedCommitId = this.Repo.Branches[currentBranchName].Tip.Sha;
+            var expectedVersion = VersionFile.GetVersion(this.Repo.Branches[currentBranchName].Tip).Version.ToString();
+
+            var currentBranchOutput = jsonOutput.Property("CurrentBranch")?.Value as JObject;
+            Assert.NotNull(currentBranchOutput);
+
+            Assert.Equal(currentBranchName, currentBranchOutput.GetValue("Name")?.ToString());
+            Assert.Equal(expectedCommitId, currentBranchOutput.GetValue("Commit")?.ToString());
+            Assert.Equal(expectedVersion, currentBranchOutput.GetValue("Version")?.ToString());
+
+        }
+
+        // Check "NewBranch" output
+        {
+            var expectedCommitId = this.Repo.Branches[releaseBranchName].Tip.Sha;
+            var expectedVersion = VersionFile.GetVersion(this.Repo.Branches[releaseBranchName].Tip).Version.ToString();
+
+            var newBranchOutput = jsonOutput.Property("NewBranch")?.Value as JObject;
+            Assert.NotNull(newBranchOutput);
+
+            Assert.Equal(releaseBranchName, newBranchOutput.GetValue("Name")?.ToString());
+            Assert.Equal(expectedCommitId, newBranchOutput.GetValue("Commit")?.ToString());
+            Assert.Equal(expectedVersion, newBranchOutput.GetValue("Version")?.ToString());
+        }
+    }
+
+    [Fact]
+    public void PrepareRelease_JsonOutputWhenUpdatingReleaseBranch()
+    {
+        // create and configure repository
+        this.InitializeSourceControl();
+
+        // create version.json
+        var versionOptions = new VersionOptions()
+        {
+            Version = SemanticVersion.Parse("1.0"),
+            Release = new ReleaseOptions()
+            {
+                BranchName = "v{version}",
+                VersionIncrement = ReleaseVersionIncrement.Minor
+            }
+        };
+        this.WriteVersionFile(versionOptions);
+        var branchName = "v1.0";
+
+        // switch to release branch
+        Commands.Checkout(this.Repo, this.Repo.CreateBranch(branchName));
+
+        // run release preparation
+        var stdout = new StringWriter();
+        var releaseManager = new ReleaseManager(stdout);
+        releaseManager.PrepareRelease(this.RepoPath, outputMode: ReleaseManager.ReleaseManagerOutputMode.Json);
+
+
+        // Expected output:
+        // {
+        //     "CurrentBranch" : {
+        //         "Name" : "<NAME>",
+        //         "Commit" : "<COMMIT>",
+        //         "Version" : "<VERSION>",
+        //     },
+        //     "NewBranch" : null
+        // }
+
+        var jsonOutput = JObject.Parse(stdout.ToString());
+
+        // check "CurrentBranch"  output
+        {
+            var expectedCommitId = this.Repo.Branches[branchName].Tip.Sha;
+            var expectedVersion = VersionFile.GetVersion(this.Repo.Branches[branchName].Tip).Version.ToString();
+
+            var currentBranchOutput = jsonOutput.Property("CurrentBranch")?.Value as JObject;
+            Assert.NotNull(currentBranchOutput);
+
+            Assert.Equal(branchName, currentBranchOutput.GetValue("Name")?.ToString());
+            Assert.Equal(expectedCommitId, currentBranchOutput.GetValue("Commit")?.ToString());
+            Assert.Equal(expectedVersion, currentBranchOutput.GetValue("Version")?.ToString());
+
+        }
+        // Check "NewBranch" output
+        {
+            // no new branch was created, so "NewBranch" should be null
+            var newBranchOutput = jsonOutput.Property("NewBranch")?.Value as JObject;
+            Assert.Null(newBranchOutput);
+        }
     }
 
     private void AssertError(Action testCode, ReleasePreparationError expectedError)
