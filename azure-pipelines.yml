@@ -5,7 +5,10 @@ trigger:
       - master
       - 'v*'
   paths:
-    exclude: ["doc", "*.md"]
+    exclude:
+    - doc
+    - '*.md'
+    - azure-pipelines/release.yml
 
 resources:
   containers:
@@ -20,15 +23,14 @@ resources:
   - container: archlinux
     image: andrewarnott/archlinux
 
+variables:
+  TreatWarningsAsErrors: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  BuildConfiguration: Release
+  BuildPlatform: Any CPU
+
 stages:
 - stage: Build
-  variables:
-    TreatWarningsAsErrors: true
-    DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
-    BuildConfiguration: Release
-    BuildPlatform: Any CPU
-    NuGet.ForceNuGetForPush: true # Workaround for public feed limitation in NuGetCommand task - remove after July 15, 2019.
-
   jobs:
   - job: Windows
     pool: Hosted Windows 2019 with VS2019
@@ -85,21 +87,6 @@ stages:
       displayName: Build nerdbank-gitversioning NPM package
       inputs:
         gulpfile: src\nerdbank-gitversioning.npm\gulpfile.js
-
-  # Our unit tests use MSBuild 14
-  #  - powershell: Invoke-WebRequest https://download.microsoft.com/download/E/E/D/EEDF18A8-4AED-4CE0-BEBE-70A83094FC5A/BuildTools_Full.exe -OutFile msbuild14.exe
-  #    displayName: Downloading MSBuild 14
-  #  - script: start /wait msbuild14.exe /q /full /log "$(Build.ArtifactStagingDirectory)\build_logs\msbuild14.log"
-  #    displayName: Installing MSBuild 14
-
-  #  - task: VSTest@2
-  #    displayName: Run tests
-  #    inputs:
-  #      searchFolder: bin/Nerdbank.GitVersioning.Tests
-  #      testFiltercriteria: TestCategory!=FailsOnAzurePipelines
-  #      platform: $(BuildPlatform)
-  #      configuration: $(BuildConfiguration)
-  #    continueOnError: true
 
     - script: dotnet test Nerdbank.GitVersioning.Tests --no-build -c $(BuildConfiguration) --filter "TestCategory!=FailsOnAzurePipelines" --logger "trx;LogFileName=$(Build.ArtifactStagingDirectory)\TestLogs\TestResults.trx"
       displayName: Run tests
@@ -163,8 +150,9 @@ stages:
         allowPackageConflicts: true
       condition: and(succeeded(), ne(variables['System.PullRequest.IsFork'], 'true'))
 
+- stage: Test
+  jobs:
   - job: Ubuntu_Xenial
-    dependsOn: Windows
     pool:
       vmImage: Ubuntu 16.04
     container: xenial
@@ -174,7 +162,6 @@ stages:
     - template: azure-pipelines/xplattest-pipeline.yml
 
   - job: Ubuntu_Bionic
-    dependsOn: Windows
     pool:
       vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
     container: bionic
@@ -182,7 +169,6 @@ stages:
     - template: azure-pipelines/xplattest-pipeline.yml
 
   - job: Ubuntu_Bionic_3_0
-    dependsOn: Windows
     pool:
       vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
     container: bionic-3.0
@@ -190,7 +176,6 @@ stages:
     - template: azure-pipelines/xplattest-pipeline.yml
 
   - job: Ubuntu_Disco
-    dependsOn: Windows
     pool:
       vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
     container: disco
@@ -198,7 +183,6 @@ stages:
     - template: azure-pipelines/xplattest-pipeline.yml
 
   - job: Arch_Linux
-    dependsOn: Windows
     pool:
       vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
     container: archlinux
@@ -208,97 +192,7 @@ stages:
     - template: azure-pipelines/xplattest-pipeline.yml
 
   - job: macOS
-    dependsOn: Windows
     pool:
       vmImage: macOS-10.15
     steps:
     - template: azure-pipelines/xplattest-pipeline.yml
-
-- stage: GitHubRelease
-  displayName: GitHub Release
-  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
-  jobs:
-  - deployment: create
-    pool:
-      vmImage: ubuntu-latest
-    environment: Approval
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - download: none
-          - task: GitHubRelease@1
-            displayName: GitHub release (create)
-            inputs:
-              gitHubConnection: GitHub AArnott
-              repositoryName: $(Build.Repository.Name)
-              tagSource: userSpecifiedTag
-              tag: v$(Build.BuildNumber)
-              title: v$(Build.BuildNumber)
-              isDraft: true
-              changeLogCompareToRelease: lastNonDraftRelease
-              changeLogType: issueBased
-              changeLogLabels: |
-                [
-                  { "label" : "bug", "displayName" : "Fixes", "state" : "closed" },
-                  { "label" : "enhancement", "displayName": "Enhancements", "state" : "closed" }
-                ]
-
-- stage: nuget_org
-  displayName: nuget.org
-  dependsOn: GitHubRelease
-  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
-  jobs:
-  - deployment: push
-    pool:
-      vmImage: ubuntu-latest
-    environment: No-Approval # Approval is already granted in the release stage.
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - download: current
-            artifact: deployables
-            displayName: Download deployables artifact
-          - task: NuGetToolInstaller@1
-            displayName: Use NuGet 5.x
-            inputs:
-              versionSpec: 5.x
-          - task: NuGetCommand@2
-            displayName: NuGet push
-            inputs:
-              command: push
-              packagesToPush: $(Pipeline.Workspace)/deployables/*.nupkg
-              nuGetFeedType: external
-              publishFeedCredentials: nuget.org
-
-- stage: npmjs_org
-  displayName: npmjs.org
-  dependsOn: GitHubRelease
-  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
-  jobs:
-  - deployment: push
-    pool:
-      vmImage: ubuntu-latest
-    environment: No-Approval # Approval is already granted in the release stage.
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - download: current
-            artifact: deployables
-            displayName: Download deployables artifact
-          - powershell: |
-              $tgz = (Get-ChildItem *.tgz)[0].Name
-              Write-Output ("##vso[task.setvariable variable=TgzPath;]$tgz")
-
-              npm install $tgz
-            workingDirectory: $(Pipeline.Workspace)/deployables
-            displayName: Prepare to publish TGZ
-          - task: Npm@1
-            displayName: npm publish
-            inputs:
-              command: publish
-              workingDir: $(Pipeline.Workspace)/deployables/node_modules/nerdbank-gitversioning
-              verbose: false
-              publishEndpoint: npmjs.org

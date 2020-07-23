@@ -1,0 +1,101 @@
+trigger: none # We only want to trigger manually or based on resources
+
+resources:
+  pipelines:
+  - pipeline: CI
+    source: Nerdbank.GitVersioning
+    trigger:
+      tags:
+      - auto-release
+
+stages:
+- stage: GitHubRelease
+  displayName: GitHub Release
+  jobs:
+  - deployment: create
+    pool:
+      vmImage: ubuntu-latest
+    environment: No-Approval # Approval is already granted in the release stage.
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: none
+          - powershell: |
+              Write-Host "##vso[build.updatebuildnumber]$(resources.pipeline.CI.runName)"
+            displayName: Set pipeline name
+          - task: GitHubRelease@1
+            displayName: GitHub release (create)
+            inputs:
+              gitHubConnection: GitHub AArnott
+              repositoryName: $(Build.Repository.Name)
+              target: $(resources.pipeline.CI.sourceCommit)
+              tagSource: userSpecifiedTag
+              tag: v$(resources.pipeline.CI.runName)
+              title: v$(resources.pipeline.CI.runName)
+              isDraft: true
+              changeLogCompareToRelease: lastNonDraftRelease
+              changeLogType: issueBased
+              changeLogLabels: |
+                [
+                  { "label" : "bug", "displayName" : "Fixes", "state" : "closed" },
+                  { "label" : "enhancement", "displayName": "Enhancements", "state" : "closed" }
+                ]
+
+- stage: nuget_org
+  displayName: nuget.org
+  dependsOn: GitHubRelease
+  jobs:
+  - deployment: push
+    pool:
+      vmImage: ubuntu-latest
+    environment: No-Approval # Approval is already granted in the release stage.
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: CI
+            artifact: deployables
+            displayName: Download deployables artifact
+            patterns: '**/*.*nupkg'
+          - task: NuGetToolInstaller@1
+            displayName: Use NuGet 5.x
+            inputs:
+              versionSpec: 5.x
+          - task: NuGetCommand@2
+            displayName: NuGet push
+            inputs:
+              command: push
+              packagesToPush: $(Pipeline.Workspace)/CI/deployables/*.nupkg
+              nuGetFeedType: external
+              publishFeedCredentials: nuget.org
+
+- stage: npmjs_org
+  displayName: npmjs.org
+  dependsOn: GitHubRelease
+  jobs:
+  - deployment: push
+    pool:
+      vmImage: ubuntu-latest
+    environment: No-Approval # Approval is already granted in the release stage.
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: CI
+            artifact: deployables
+            displayName: Download deployables artifact
+            patterns: '**/*.tgz'
+          - powershell: |
+              $tgz = (Get-ChildItem *.tgz)[0].Name
+              Write-Output ("##vso[task.setvariable variable=TgzPath;]$tgz")
+              Set-Content -Path .npmrc -Value ""
+            workingDirectory: $(Pipeline.Workspace)/CI/deployables
+            displayName: Prepare to publish NPM package
+          - task: npmAuthenticate@0
+            inputs:
+              workingFile: $(Pipeline.Workspace)/CI/deployables/.npmrc
+              customEndpoint: npmjs.org
+          - powershell: npm publish $(TgzPath)
+            displayName: npm publish
+            workingDirectory: $(Pipeline.Workspace)/CI/deployables
