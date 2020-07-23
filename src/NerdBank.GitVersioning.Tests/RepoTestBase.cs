@@ -68,7 +68,7 @@ public abstract class RepoTestBase : IDisposable
         }
     }
 
-    protected void InitializeSourceControl()
+    protected virtual void InitializeSourceControl()
     {
         Repository.Init(this.RepoPath);
         this.Repo = new Repository(this.RepoPath);
