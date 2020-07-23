@@ -57,6 +57,7 @@ stages:
           - download: CI
             artifact: deployables
             displayName: Download deployables artifact
+            patterns: '**/*.*nupkg'
           - task: NuGetToolInstaller@1
             displayName: Use NuGet 5.x
             inputs:
@@ -84,17 +85,17 @@ stages:
           - download: CI
             artifact: deployables
             displayName: Download deployables artifact
+            patterns: '**/*.tgz'
           - powershell: |
               $tgz = (Get-ChildItem *.tgz)[0].Name
               Write-Output ("##vso[task.setvariable variable=TgzPath;]$tgz")
-
-              npm install $tgz
+              Set-Content -Path .npmrc -Value ""
             workingDirectory: $(Pipeline.Workspace)/CI/deployables
-            displayName: Prepare to publish TGZ
-          - task: Npm@1
-            displayName: npm publish
+            displayName: Prepare to publish NPM package
+          - task: npmAuthenticate@0
             inputs:
-              command: publish
-              workingDir: $(Pipeline.Workspace)/CI/deployables/node_modules/nerdbank-gitversioning
-              verbose: false
-              publishEndpoint: npmjs.org
+              workingFile: $(Pipeline.Workspace)/CI/deployables/.npmrc
+              customEndpoint: npmjs.org
+          - powershell: npm publish $(TgzPath)
+            displayName: npm publish
+            workingDirectory: $(Pipeline.Workspace)/CI/deployables

@@ -5,7 +5,10 @@ trigger:
       - master
       - 'v*'
   paths:
-    exclude: ["doc", "*.md"]
+    exclude:
+    - doc
+    - '*.md'
+    - azure-pipelines/release.yml
 
 resources:
   containers:
