@@ -6,15 +6,7 @@ namespace Nerdbank.GitVersioning.Tool
     using System.IO;
     using System.Linq;
     using System.Reflection;
-    using System.Threading;
-    using System.Threading.Tasks;
     using Newtonsoft.Json;
-    using NuGet.Common;
-    using NuGet.Configuration;
-    using NuGet.PackageManagement;
-    using NuGet.Protocol;
-    using NuGet.Protocol.Core.Types;
-    using NuGet.Resolver;
     using Validation;
     using MSBuild = Microsoft.Build.Evaluation;
 
@@ -249,15 +241,15 @@ namespace Nerdbank.GitVersioning.Tool
 
             const string PackageReferenceItemType = "PackageReference";
             const string PackageId = "Nerdbank.GitVersioning";
+            const string LatestStablePackageVersion = "*";
             if (!propsFile.GetItemsByEvaluatedInclude(PackageId).Any(i => i.ItemType == "PackageReference"))
             {
-                string packageVersion = GetLatestPackageVersionAsync(PackageId).GetAwaiter().GetResult();
                 propsFile.AddItem(
                     PackageReferenceItemType,
                     PackageId,
                     new Dictionary<string, string>
                     {
-                        { "Version", packageVersion }, // TODO: use the latest version... somehow...
+                        { "Version", LatestStablePackageVersion },
                         { "PrivateAssets", "all" },
                     });
 
@@ -675,36 +667,6 @@ namespace Nerdbank.GitVersioning.Tool
                         return (ExitCodes)(-1);
                 }
             }
-        }
-
-        private static async Task<string> GetLatestPackageVersionAsync(string packageId, CancellationToken cancellationToken = default)
-        {
-            var providers = new List<Lazy<INuGetResourceProvider>>();
-            providers.AddRange(Repository.Provider.GetCoreV3());  // Add v3 API support
-
-            // We SHOULD use all the sources from the target's nuget.config file.
-            // But I don't know what API to use to do that.
-            var packageSource = new PackageSource("https://api.nuget.org/v3/index.json");
-
-            var sourceRepository = new SourceRepository(packageSource, providers);
-            var resolutionContext = new ResolutionContext(
-                DependencyBehavior.Highest,
-                includePrelease: false,
-                includeUnlisted: false,
-                VersionConstraints.None);
-
-            // The target framework doesn't matter, since our package doesn't depend on this for its target projects.
-            var framework = new NuGet.Frameworks.NuGetFramework("net45");
-
-            var pkg = await NuGetPackageManager.GetLatestVersionAsync(
-                packageId,
-                framework,
-                resolutionContext,
-                sourceRepository,
-                NullLogger.Instance,
-                cancellationToken);
-
-            return pkg.LatestVersion.ToNormalizedString();
         }
 
         private static string GetSpecifiedOrCurrentDirectoryPath(string versionJsonRoot)
