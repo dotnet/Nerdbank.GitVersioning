@@ -88,15 +88,16 @@ stages:
             displayName: Download deployables artifact
             patterns: '**/*.tgz'
           - powershell: |
-              $tgz = (Get-ChildItem *.tgz)[0].Name
-              Write-Output ("##vso[task.setvariable variable=TgzPath;]$tgz")
-              Set-Content -Path .npmrc -Value ""
-            workingDirectory: $(Pipeline.Workspace)/CI/deployables
-            displayName: Prepare to publish NPM package
-          - task: npmAuthenticate@0
-            inputs:
-              workingFile: $(Pipeline.Workspace)/CI/deployables/.npmrc
-              customEndpoint: npmjs.org
-          - powershell: npm publish $(TgzPath)
+              $tgz = (Get-ChildItem "$(Pipeline.Workspace)/CI/deployables/*.tgz")[0].FullName
+
+              npm init -y
+              npm install $tgz
+            workingDirectory: $(Agent.TempDirectory)
+            displayName: Prepare to publish TGZ
+          - task: Npm@1
             displayName: npm publish
-            workingDirectory: $(Pipeline.Workspace)/CI/deployables
+            inputs:
+              command: publish
+              workingDir: $(Agent.TempDirectory)/node_modules/nerdbank-gitversioning
+              verbose: false
+              publishEndpoint: npmjs.org
