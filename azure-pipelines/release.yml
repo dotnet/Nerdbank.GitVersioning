@@ -1,4 +1,5 @@
 trigger: none # We only want to trigger manually or based on resources
+pr: none
 
 resources:
   pipelines:
