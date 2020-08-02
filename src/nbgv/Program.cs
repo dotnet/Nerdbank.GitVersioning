@@ -241,15 +241,15 @@ namespace Nerdbank.GitVersioning.Tool
 
             const string PackageReferenceItemType = "PackageReference";
             const string PackageId = "Nerdbank.GitVersioning";
-            const string LatestStablePackageVersion = "*";
             if (!propsFile.GetItemsByEvaluatedInclude(PackageId).Any(i => i.ItemType == "PackageReference"))
             {
+                string packageVersion = $"{typeof(Program).GetTypeInfo().Assembly.GetName().Version.Major}.*";
                 propsFile.AddItem(
                     PackageReferenceItemType,
                     PackageId,
                     new Dictionary<string, string>
                     {
-                        { "Version", LatestStablePackageVersion },
+                        { "Version", packageVersion },
                         { "PrivateAssets", "all" },
                     });
 
