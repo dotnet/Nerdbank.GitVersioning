@@ -26,6 +26,8 @@ namespace Nerdbank.GitVersioning.Tool
 
         private const string DefaultRef = "HEAD";
 
+        private const string PackageId = "Nerdbank.GitVersioning";
+
         private const BindingFlags CaseInsensitiveFlags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.IgnoreCase;
 
         private enum ExitCodes
@@ -51,6 +53,8 @@ namespace Nerdbank.GitVersioning.Tool
             InvalidVersionIncrementSetting,
             InvalidParameters,
             InvalidVersionIncrement,
+            InvalidNuGetPackageSource,
+            PackageIdNotFound,
         }
 
         private static ExitCodes exitCode;
@@ -76,6 +80,7 @@ namespace Nerdbank.GitVersioning.Tool
             var projectPath = string.Empty;
             var versionJsonRoot = string.Empty;
             var version = string.Empty;
+            IReadOnlyList<string> sources = Array.Empty<string>();
             IReadOnlyList<string> cloudVariables = Array.Empty<string>();
             var format = string.Empty;
             string singleVariable = null;
@@ -100,6 +105,7 @@ namespace Nerdbank.GitVersioning.Tool
                 install = syntax.DefineCommand("install", ref commandText, "Prepares a project to have version stamps applied using Nerdbank.GitVersioning.");
                 syntax.DefineOption("p|path", ref versionJsonRoot, "The path to the directory that should contain the version.json file. The default is the root of the git repo.");
                 syntax.DefineOption("v|version", ref version, $"The initial version to set. The default is {DefaultVersionSpec}.");
+                syntax.DefineOptionList("s|source", ref sources, $"The URI(s) of the NuGet package source(s) used to determine the latest stable version of the {PackageId} package. This setting overrides all of the sources specified in the NuGet.Config files.");
 
                 getVersion = syntax.DefineCommand("get-version", ref commandText, "Gets the version information for a project.");
                 syntax.DefineOption("p|project", ref projectPath, "The path to the project or project directory. The default is the current directory.");
@@ -144,7 +150,7 @@ namespace Nerdbank.GitVersioning.Tool
 
             if (install.IsActive)
             {
-                exitCode = OnInstallCommand(versionJsonRoot, version);
+                exitCode = OnInstallCommand(versionJsonRoot, version, sources);
             }
             else if (getVersion.IsActive)
             {
@@ -174,7 +180,7 @@ namespace Nerdbank.GitVersioning.Tool
             return (int)exitCode;
         }
 
-        private static ExitCodes OnInstallCommand(string versionJsonRoot, string version)
+        private static ExitCodes OnInstallCommand(string versionJsonRoot, string version, IReadOnlyList<string> sources)
         {
             if (!SemanticVersion.TryParse(string.IsNullOrEmpty(version) ? DefaultVersionSpec : version, out var semver))
             {
@@ -248,16 +254,34 @@ namespace Nerdbank.GitVersioning.Tool
             }
 
             const string PackageReferenceItemType = "PackageReference";
-            const string PackageId = "Nerdbank.GitVersioning";
             if (!propsFile.GetItemsByEvaluatedInclude(PackageId).Any(i => i.ItemType == "PackageReference"))
             {
-                string packageVersion = GetLatestPackageVersionAsync(PackageId).GetAwaiter().GetResult();
+                // Validate given sources
+                foreach (var source in sources)
+                {
+                    if (!Uri.TryCreate(source, UriKind.Absolute, out var _))
+                    {
+                        Console.Error.WriteLine($"\"{source}\" is not a valid NuGet package source.");
+                        return ExitCodes.InvalidNuGetPackageSource;
+                    }
+                }
+
+                string packageVersion = GetLatestPackageVersionAsync(PackageId, versionJsonRoot, sources).GetAwaiter().GetResult();
+                if (string.IsNullOrEmpty(packageVersion))
+                {
+                    string verifyPhrase = sources.Any()
+                        ? "Please verify the given 'source' option(s)."
+                        : "Please verify the package sources in the NuGet.Config files.";
+                    Console.Error.WriteLine($"Latest stable version of the {PackageId} package could not be determined. " + verifyPhrase);
+                    return ExitCodes.PackageIdNotFound;
+                }
+
                 propsFile.AddItem(
                     PackageReferenceItemType,
                     PackageId,
                     new Dictionary<string, string>
                     {
-                        { "Version", packageVersion }, // TODO: use the latest version... somehow...
+                        { "Version", packageVersion },
                         { "PrivateAssets", "all" },
                     });
 
@@ -677,16 +701,32 @@ namespace Nerdbank.GitVersioning.Tool
             }
         }
 
-        private static async Task<string> GetLatestPackageVersionAsync(string packageId, CancellationToken cancellationToken = default)
+        private static async Task<string> GetLatestPackageVersionAsync(string packageId, string root, IReadOnlyList<string> sources, CancellationToken cancellationToken = default)
         {
+            var settings = Settings.LoadDefaultSettings(root);
+
             var providers = new List<Lazy<INuGetResourceProvider>>();
             providers.AddRange(Repository.Provider.GetCoreV3());  // Add v3 API support
 
-            // We SHOULD use all the sources from the target's nuget.config file.
-            // But I don't know what API to use to do that.
-            var packageSource = new PackageSource("https://api.nuget.org/v3/index.json");
+            var sourceRepositoryProvider = new SourceRepositoryProvider(settings, providers);
 
-            var sourceRepository = new SourceRepository(packageSource, providers);
+            // Select package sources based on NuGet.Config files or given options, as 'nuget.exe restore' command does
+            // See also 'DownloadCommandBase.GetPackageSources(ISettings)' at https://github.com/NuGet/NuGet.Client/blob/dev/src/NuGet.Clients/NuGet.CommandLine/Commands/DownloadCommandBase.cs
+            var availableSources = sourceRepositoryProvider.PackageSourceProvider.LoadPackageSources().Where(s => s.IsEnabled);
+            var packageSources = new List<PackageSource>();
+
+            foreach (var source in sources)
+            {
+                var resolvedSource = availableSources.FirstOrDefault(s => s.Source.Equals(source, StringComparison.OrdinalIgnoreCase) || s.Name.Equals(source, StringComparison.OrdinalIgnoreCase));
+                packageSources.Add(resolvedSource ?? new PackageSource(source));
+            }
+
+            if (sources.Count == 0)
+            {
+                packageSources.AddRange(availableSources);
+            }
+
+            var sourceRepositories = packageSources.Select(sourceRepositoryProvider.CreateRepository).ToArray();
             var resolutionContext = new ResolutionContext(
                 DependencyBehavior.Highest,
                 includePrelease: false,
@@ -700,11 +740,11 @@ namespace Nerdbank.GitVersioning.Tool
                 packageId,
                 framework,
                 resolutionContext,
-                sourceRepository,
+                sourceRepositories,
                 NullLogger.Instance,
                 cancellationToken);
 
-            return pkg.LatestVersion.ToNormalizedString();
+            return pkg.LatestVersion?.ToNormalizedString();
         }
 
         private static string GetSpecifiedOrCurrentDirectoryPath(string versionJsonRoot)
