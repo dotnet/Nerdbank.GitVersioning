@@ -230,7 +230,7 @@
                 this.PrereleaseVersion = oracle.PrereleaseVersion;
                 this.GitCommitId = oracle.GitCommitId;
                 this.GitCommitIdShort = oracle.GitCommitIdShort;
-                this.GitCommitDateTicks = oracle.GitCommitDate != null ? oracle.GitCommitDate.Value.Ticks.ToString(CultureInfo.InvariantCulture) : null;
+                this.GitCommitDateTicks = oracle.GitCommitDate != null ? oracle.GitCommitDate.Value.UtcTicks.ToString(CultureInfo.InvariantCulture) : null;
                 this.GitVersionHeight = oracle.VersionHeight;
                 this.BuildMetadataFragment = oracle.BuildMetadataFragment;
                 this.CloudBuildNumber = oracle.CloudBuildNumberEnabled ? oracle.CloudBuildNumber : null;
