@@ -53,7 +53,7 @@ for these build systems:
 * [dotnet CLI](doc/dotnet-cli.md)
 * [Cake Build](doc/cake.md)
 
-Also some special [cloud build considerations](doc/cloudbuild.md).
+Also some special [cloud build considerations](doc/cloudbuild.md) (e.g. Azure Pipelines, GitHub Actions, etc.).
 
 ## Where and how versions are calculated and applied
 

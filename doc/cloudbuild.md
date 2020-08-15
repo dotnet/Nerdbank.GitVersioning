@@ -11,6 +11,17 @@ in MSBuild, gulp and other build scripts.
 1. Do not enable any 'shallow clone' option on your CI build, as that erases
    git history that is required for accurate version calculation.
 
+### GitHub Actions
+
+In GitHub Actions, `actions/checkout@v1` checks out a deep clone, which is great.
+But `actions/checkout@v2` checks out a shallow clone by default, so you'll have to tell it to perform a deep clone:
+
+```yml
+- uses: actions/checkout@v2
+  with:
+    fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
+```
+
 ## Optional features
 
 By specifying certain `cloudBuild` options in your `version.json` file,
