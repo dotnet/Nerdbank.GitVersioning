@@ -42,11 +42,10 @@
         /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
         /// <param name="baseVersion">Optional base version to calculate the height. If not specified, the base version will be calculated by scanning the repository.</param>
         /// <returns>The height of the commit. Always a positive integer.</returns>
-        public static int GetVersionHeight(this Commit commit, string repoRelativeProjectDirectory = null, Version baseVersion = null)
+        public static int GetVersionHeight(this Commit commit, string repoRelativeProjectDirectory = null, Version baseVersion = null, bool useHeightCaching = true)
         {
             Requires.NotNull(commit, nameof(commit));
             Requires.Argument(repoRelativeProjectDirectory == null || !Path.IsPathRooted(repoRelativeProjectDirectory), nameof(repoRelativeProjectDirectory), "Path should be relative to repo root.");
-
             var tracker = new GitWalkTracker(repoRelativeProjectDirectory);
 
             var versionOptions = tracker.GetVersion(commit);
@@ -58,11 +57,21 @@
             var baseSemVer =
                 baseVersion != null ? SemanticVersion.Parse(baseVersion.ToString()) :
                 versionOptions.Version ?? SemVer0;
-
+            
             var versionHeightPosition = versionOptions.VersionHeightPosition;
             if (versionHeightPosition.HasValue)
             {
+                var cache = new GitHeightCache(commit.GetRepository().Info.WorkingDirectory, repoRelativeProjectDirectory);
+                if (useHeightCaching && cache.CachedHeightAvailable)
+                {
+                    var (cachedCommitId, cachedHeight) = cache.GetHeight();
+                    if (cachedCommitId.Equals(commit.Id))
+                        return cachedHeight;
+                }
+                
                 int height = commit.GetHeight(repoRelativeProjectDirectory, c => CommitMatchesVersion(c, baseSemVer, versionHeightPosition.Value, tracker));
+                cache.SetHeight(commit.Id, height);
+                
                 return height;
             }
 
@@ -297,7 +306,7 @@
                 if (!versionHeight.HasValue)
                 {
                     var baseVersion = workingCopyVersionOptions?.Version?.Version;
-                    versionHeight = GetVersionHeight(headCommit, repoRelativeProjectDirectory, baseVersion);
+                    versionHeight = GetVersionHeight(headCommit, repoRelativeProjectDirectory, baseVersion, false);
                 }
 
                 Version result = GetIdAsVersionHelper(headCommit, workingCopyVersionOptions, versionHeight.Value);
