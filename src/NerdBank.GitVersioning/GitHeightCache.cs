@@ -121,7 +121,14 @@ namespace Nerdbank.GitVersioning
     /// </summary>
     public class CachedHeight
     {
-        internal CachedHeight(ObjectId commitId, int height, Version baseVersion, string relativeProjectDir)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="commitId"></param>
+        /// <param name="height"></param>
+        /// <param name="baseVersion"></param>
+        /// <param name="relativeProjectDir"></param>
+        public CachedHeight(ObjectId commitId, int height, Version baseVersion, string relativeProjectDir)
         {
             this.CommitId = commitId;
             this.Height = height;
