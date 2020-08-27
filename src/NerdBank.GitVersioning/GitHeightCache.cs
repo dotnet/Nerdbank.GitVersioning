@@ -44,7 +44,7 @@ namespace Nerdbank.GitVersioning
         /// </summary>
         /// <param name="repositoryPath">The root path of the repository.</param>
         /// <param name="repoRelativeProjectDirectory">The relative path of the project within the repository.</param>
-        /// <param name="version"></param>
+        /// <param name="baseVersion"></param>
         public GitHeightCache(string repositoryPath, string repoRelativeProjectDirectory, Version baseVersion)
         {
             this.repoRelativeProjectDirectory = repoRelativeProjectDirectory;
