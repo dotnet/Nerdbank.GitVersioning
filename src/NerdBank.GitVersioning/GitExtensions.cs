@@ -39,6 +39,10 @@
         /// <param name="commit">The commit to measure the height of.</param>
         /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
         /// <param name="baseVersion">Optional base version to calculate the height. If not specified, the base version will be calculated by scanning the repository.</param>
+        /// <param name="useHeightCaching">
+        /// If true, the version height will be cached for subsequent invocations. If a previously cached version height exists and it is valid, it will be used.
+        /// Defaults to true.
+        /// </param>
         /// <returns>The height of the commit. Always a positive integer.</returns>
         public static int GetVersionHeight(this Commit commit, string repoRelativeProjectDirectory = null, Version baseVersion = null, bool useHeightCaching = true)
         {
@@ -270,7 +274,7 @@
         /// <param name="commit">The commit whose ID and position in history is to be encoded.</param>
         /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
         /// <param name="versionHeight">
-        /// The version height, previously calculated by a call to <see cref="GetVersionHeight(Commit, string, Version)"/>
+        /// The version height, previously calculated by a call to <see cref="GetVersionHeight(Commit, string, Version, bool)"/>
         /// with the same value for <paramref name="repoRelativeProjectDirectory"/>.
         /// </param>
         /// <returns>
@@ -304,7 +308,7 @@
         /// <param name="repo">The repo whose ID and position in history is to be encoded.</param>
         /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
         /// <param name="versionHeight">
-        /// The version height, previously calculated by a call to <see cref="GetVersionHeight(Commit, string, Version)"/>
+        /// The version height, previously calculated by a call to <see cref="GetVersionHeight(Commit, string, Version, bool)"/>
         /// with the same value for <paramref name="repoRelativeProjectDirectory"/>.
         /// </param>
         /// <returns>
@@ -913,7 +917,7 @@
         /// </summary>
         /// <param name="commit">The commit whose ID and position in history is to be encoded.</param>
         /// <param name="versionOptions">The version options applicable at this point (either from commit or working copy).</param>
-        /// <param name="versionHeight">The version height, previously calculated by a call to <see cref="GetVersionHeight(Commit, string, Version)"/>.</param>
+        /// <param name="versionHeight">The version height, previously calculated by a call to <see cref="GetVersionHeight(Commit, string, Version, bool)"/>.</param>
         /// <returns>
         /// A version whose <see cref="Version.Build"/> and
         /// <see cref="Version.Revision"/> components are calculated based on the commit.

@@ -30,11 +30,19 @@ namespace Nerdbank.GitVersioning
             }
         };
         
+        /// <summary>
+        /// The name used for the cache file. 
+        /// </summary>
         public const string CacheFileName = "version.cache.json";
         
         private readonly string heightCacheFilePath;
         private readonly Lazy<bool> cachedHeightAvailable;
 
+        /// <summary>
+        /// Creates a new height cache.
+        /// </summary>
+        /// <param name="repositoryPath">The root path of the repository.</param>
+        /// <param name="repoRelativeProjectDirectory">The relative path of the project within the repository.</param>
         public GitHeightCache(string repositoryPath, string repoRelativeProjectDirectory)
         {
             this.repoRelativeProjectDirectory = repoRelativeProjectDirectory;
@@ -47,8 +55,16 @@ namespace Nerdbank.GitVersioning
             this.cachedHeightAvailable = new Lazy<bool>(() => this.heightCacheFilePath != null && File.Exists(this.heightCacheFilePath));
         }
 
+        /// <summary>
+        /// Determines if a cached version is available.
+        /// </summary>
         public bool CachedHeightAvailable => cachedHeightAvailable.Value;
         
+        /// <summary>
+        /// Fetches the <see cref="CachedHeight"/>. May return null if the cache is not valid.
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException"></exception>
         public CachedHeight GetHeight()
         {
             try
@@ -71,6 +87,12 @@ namespace Nerdbank.GitVersioning
             }
         }
 
+        /// <summary>
+        /// Caches the height of a commit, overwriting any previously cached values.
+        /// </summary>
+        /// <param name="commitId"></param>
+        /// <param name="height"></param>
+        /// <param name="baseVersion"></param>
         public void SetHeight(ObjectId commitId, int height, Version baseVersion)
         {
             if (this.heightCacheFilePath == null || commitId == null || commitId == ObjectId.Zero || !Directory.Exists(Path.GetDirectoryName(this.heightCacheFilePath)))
@@ -94,9 +116,12 @@ namespace Nerdbank.GitVersioning
         }
     }
 
+    /// <summary>
+    /// The cached git height of a project.
+    /// </summary>
     public class CachedHeight
     {
-        public CachedHeight(ObjectId commitId, int height, Version baseVersion, string relativeProjectDir)
+        internal CachedHeight(ObjectId commitId, int height, Version baseVersion, string relativeProjectDir)
         {
             this.CommitId = commitId;
             this.Height = height;
@@ -104,11 +129,27 @@ namespace Nerdbank.GitVersioning
             this.RelativeProjectDir = relativeProjectDir;
         }
         
+        /// <summary>
+        /// The base version this cached height was calculated for.
+        /// </summary>
         public Version BaseVersion { get; }
+        
+        /// <summary>
+        /// The cached height.
+        /// </summary>
         public int Height { get; }
+        
+        /// <summary>
+        /// The commit id for the cached height.
+        /// </summary>
         public ObjectId CommitId { get; }
+        
+        /// <summary>
+        /// The relative path of the project this cached height belong to.
+        /// </summary>
         public string RelativeProjectDir { get;  }
 
+        /// <inheritdoc cref="Object.ToString"/>
         public override string ToString() => $"({CommitId}, {Height}, {BaseVersion})";
     }
 }
