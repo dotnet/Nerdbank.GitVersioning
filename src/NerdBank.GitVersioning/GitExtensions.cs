@@ -40,7 +40,7 @@
         /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
         /// <param name="baseVersion">Optional base version to calculate the height. If not specified, the base version will be calculated by scanning the repository.</param>
         /// <returns>The height of the commit. Always a positive integer.</returns>
-        public static int GetVersionHeight(this Commit commit, string repoRelativeProjectDirectory = null, Version baseVersion = null)
+        public static int GetVersionHeight(this Commit commit, string repoRelativeProjectDirectory = null, Version baseVersion = null, bool useHeightCaching = true)
         {
             Requires.NotNull(commit, nameof(commit));
             Requires.Argument(repoRelativeProjectDirectory == null || !Path.IsPathRooted(repoRelativeProjectDirectory), nameof(repoRelativeProjectDirectory), "Path should be relative to repo root.");
@@ -56,12 +56,45 @@
             var baseSemVer =
                 baseVersion != null ? SemanticVersion.Parse(baseVersion.ToString()) :
                 versionOptions.Version ?? SemVer0;
-
+            
             var versionHeightPosition = versionOptions.VersionHeightPosition;
+            
             if (versionHeightPosition.HasValue)
             {
-                int height = commit.GetHeight(repoRelativeProjectDirectory, c => CommitMatchesVersion(c, baseSemVer, versionHeightPosition.Value, tracker));
-                return height;
+                var cache = new GitHeightCache(commit.GetRepository().Info.WorkingDirectory, repoRelativeProjectDirectory);
+                int? height = null;
+
+                CachedHeight cachedHeight = null;
+                if (useHeightCaching && cache.CachedHeightAvailable && (cachedHeight = cache.GetHeight()) != null)
+                {
+                    // Cached height exactly matches the current commit
+                    if (cachedHeight.CommitId.Equals(commit.Id))
+                        return cachedHeight.Height;
+
+                    if (cachedHeight.BaseVersion == baseSemVer.Version)
+                    {
+                        // In the case that we have a cached height but it's not for the current commit but the same base version, we can still
+                        // try to utilize the cache- stop walking the tree once we reach the cached commit.
+                        var cachedCommitFound = false;
+                        height = commit.GetHeight(repoRelativeProjectDirectory,
+                            c => !(cachedCommitFound |= (c.Id == cachedHeight.CommitId)) && CommitMatchesVersion(c, baseSemVer, versionHeightPosition.Value, tracker));
+
+                        // If we reached the cached commit, include it's cached height
+                        if (cachedCommitFound)
+                            height += cachedHeight.Height;
+                    }
+                }
+                
+                // Cached height either didn't exist or isn't relevant, calculate the full height
+                if (!height.HasValue)
+                {
+                    height = commit.GetHeight(repoRelativeProjectDirectory, c => CommitMatchesVersion(c, baseSemVer, versionHeightPosition.Value, tracker));
+                }
+                
+                if (useHeightCaching)
+                    cache.SetHeight(commit.Id, height.Value, baseSemVer.Version);
+                
+                return height.Value;
             }
 
             return 0;
@@ -295,7 +328,7 @@
                 if (!versionHeight.HasValue)
                 {
                     var baseVersion = workingCopyVersionOptions?.Version?.Version;
-                    versionHeight = GetVersionHeight(headCommit, repoRelativeProjectDirectory, baseVersion);
+                    versionHeight = GetVersionHeight(headCommit, repoRelativeProjectDirectory, baseVersion, useHeightCaching: false);
                 }
 
                 Version result = GetIdAsVersionHelper(headCommit, workingCopyVersionOptions, versionHeight.Value);

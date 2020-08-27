@@ -55,6 +55,12 @@
         /// Gets or sets the optional override build number offset.
         /// </summary>
         public int OverrideBuildNumberOffset { get; set; } = int.MaxValue;
+        
+        /// <summary>
+        /// Gets or set if the heights of commits should be cached. Caching commit heights can bring
+        /// significant performance improvements.
+        /// </summary>
+        public bool UseHeightCaching { get; set; } = true;
 
         /// <summary>
         /// Gets or sets the path to the folder that contains the NB.GV .targets file.
@@ -202,7 +208,7 @@
 
                 var cloudBuild = CloudBuild.Active;
                 var overrideBuildNumberOffset = (this.OverrideBuildNumberOffset == int.MaxValue) ? (int?)null : this.OverrideBuildNumberOffset;
-                var oracle = VersionOracle.Create(Directory.GetCurrentDirectory(), this.GitRepoRoot, cloudBuild, overrideBuildNumberOffset, this.ProjectPathRelativeToGitRepoRoot);
+                var oracle = VersionOracle.Create(Directory.GetCurrentDirectory(), this.GitRepoRoot, cloudBuild, overrideBuildNumberOffset, this.ProjectPathRelativeToGitRepoRoot, this.UseHeightCaching);
                 if (!string.IsNullOrEmpty(this.DefaultPublicRelease))
                 {
                     oracle.PublicRelease = string.Equals(this.DefaultPublicRelease, "true", StringComparison.OrdinalIgnoreCase);
