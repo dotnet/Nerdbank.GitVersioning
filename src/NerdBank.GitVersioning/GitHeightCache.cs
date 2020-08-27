@@ -20,6 +20,7 @@ namespace Nerdbank.GitVersioning
     public class GitHeightCache
     {
         private readonly string repoRelativeProjectDirectory;
+        private readonly Version baseVersion;
 
         private static readonly JsonSerializer JsonSerializer = new JsonSerializer()
         {
@@ -43,10 +44,12 @@ namespace Nerdbank.GitVersioning
         /// </summary>
         /// <param name="repositoryPath">The root path of the repository.</param>
         /// <param name="repoRelativeProjectDirectory">The relative path of the project within the repository.</param>
-        public GitHeightCache(string repositoryPath, string repoRelativeProjectDirectory)
+        /// <param name="version"></param>
+        public GitHeightCache(string repositoryPath, string repoRelativeProjectDirectory, Version baseVersion)
         {
             this.repoRelativeProjectDirectory = repoRelativeProjectDirectory;
-            
+            this.baseVersion = baseVersion;
+
             if (repositoryPath == null)
                 this.heightCacheFilePath = null;
             else
@@ -73,6 +76,10 @@ namespace Nerdbank.GitVersioning
                 using (var jsonReader = new JsonTextReader(sr))
                 {
                     var cachedHeight = JsonSerializer.Deserialize<CachedHeight>(jsonReader);
+
+                    // Indicates any cached height is irrelevant- every time the base version is bumped, we need to walk an entirely different set of commits 
+                    if (cachedHeight.BaseVersion != this.baseVersion)
+                        return null;
                     
                     // Indicates that the project the cache is associated with has moved directories- any cached results may be invalid, so discard
                     if (cachedHeight.RelativeProjectDir != this.repoRelativeProjectDirectory)
@@ -92,8 +99,7 @@ namespace Nerdbank.GitVersioning
         /// </summary>
         /// <param name="commitId"></param>
         /// <param name="height"></param>
-        /// <param name="baseVersion"></param>
-        public void SetHeight(ObjectId commitId, int height, Version baseVersion)
+        public void SetHeight(ObjectId commitId, int height)
         {
             if (this.heightCacheFilePath == null || commitId == null || commitId == ObjectId.Zero || !Directory.Exists(Path.GetDirectoryName(this.heightCacheFilePath)))
                 return;
@@ -102,7 +108,7 @@ namespace Nerdbank.GitVersioning
             using (var jsonWriter = new JsonTextWriter(sw))
             {
                 jsonWriter.WriteComment("Cached commit height, created by Nerdbank.GitVersioning. Do not modify.");
-                JsonSerializer.Serialize(jsonWriter, new CachedHeight(commitId, height, baseVersion, this.repoRelativeProjectDirectory));
+                JsonSerializer.Serialize(jsonWriter, new CachedHeight(commitId, height, this.baseVersion, this.repoRelativeProjectDirectory));
             }
         }
 

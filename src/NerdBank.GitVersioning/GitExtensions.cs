@@ -65,7 +65,7 @@
             
             if (versionHeightPosition.HasValue)
             {
-                var cache = new GitHeightCache(commit.GetRepository().Info.WorkingDirectory, repoRelativeProjectDirectory);
+                var cache = new GitHeightCache(commit.GetRepository().Info.WorkingDirectory, repoRelativeProjectDirectory, baseSemVer.Version);
                 int? height = null;
 
                 CachedHeight cachedHeight = null;
@@ -74,19 +74,16 @@
                     // Cached height exactly matches the current commit
                     if (cachedHeight.CommitId.Equals(commit.Id))
                         return cachedHeight.Height;
+                    
+                    // In the case that we have a cached height but it's not for the current commit but the same base version, we can still
+                    // try to utilize the cache- stop walking the tree once we reach the cached commit.
+                    var cachedCommitFound = false;
+                    height = commit.GetHeight(repoRelativeProjectDirectory,
+                        c => !(cachedCommitFound |= (c.Id == cachedHeight.CommitId)) && CommitMatchesVersion(c, baseSemVer, versionHeightPosition.Value, tracker));
 
-                    if (cachedHeight.BaseVersion == baseSemVer.Version)
-                    {
-                        // In the case that we have a cached height but it's not for the current commit but the same base version, we can still
-                        // try to utilize the cache- stop walking the tree once we reach the cached commit.
-                        var cachedCommitFound = false;
-                        height = commit.GetHeight(repoRelativeProjectDirectory,
-                            c => !(cachedCommitFound |= (c.Id == cachedHeight.CommitId)) && CommitMatchesVersion(c, baseSemVer, versionHeightPosition.Value, tracker));
-
-                        // If we reached the cached commit, include it's cached height
-                        if (cachedCommitFound)
-                            height += cachedHeight.Height;
-                    }
+                    // If we reached the cached commit, include it's cached height
+                    if (cachedCommitFound)
+                        height += cachedHeight.Height;
                 }
                 
                 // Cached height either didn't exist or isn't relevant, calculate the full height
@@ -96,7 +93,7 @@
                 }
                 
                 if (useHeightCaching)
-                    cache.SetHeight(commit.Id, height.Value, baseSemVer.Version);
+                    cache.SetHeight(commit.Id, height.Value);
                 
                 return height.Value;
             }
@@ -332,7 +329,7 @@
                 if (!versionHeight.HasValue)
                 {
                     var baseVersion = workingCopyVersionOptions?.Version?.Version;
-                    versionHeight = GetVersionHeight(headCommit, repoRelativeProjectDirectory, baseVersion, useHeightCaching: false);
+                    versionHeight = GetVersionHeight(headCommit, repoRelativeProjectDirectory, baseVersion);
                 }
 
                 Version result = GetIdAsVersionHelper(headCommit, workingCopyVersionOptions, versionHeight.Value);
