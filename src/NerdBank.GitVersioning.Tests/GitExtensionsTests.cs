@@ -424,7 +424,7 @@ public class GitExtensionsTests : RepoTestBase
 
         // Add a large volume of commits where the versison file hasn't been bumped- key thing is that when we try to determine the git height, 
         // we have a lot of commits to walk
-        const int numCommitsToTraverse = 100;
+        const int numCommitsToTraverse = 300;
         MeasureRuntime(
             () =>
             {
@@ -453,6 +453,38 @@ public class GitExtensionsTests : RepoTestBase
         Assert.Equal(cachedHeight, numCommitsToTraverse + 2);
         // We'd expect a less dramatic perf increase this time but should still be significant
         Assert.InRange(cachedTime, TimeSpan.Zero, TimeSpan.FromTicks(initialTime.Ticks / 10));
+    }
+    
+    [Fact]
+    public void GetVersionHeight_CachingMultipleParents()
+    {
+        /*
+         * Layout of branches + commits:
+         * master: version -> second --------------> |
+         *                 |                         |
+         * another:        | -> branch commit #n x 5 | -> merge commit 
+         */
+        this.WriteVersionFile();
+        var anotherBranch = this.Repo.CreateBranch("another");
+        var secondCommit = this.Repo.Commit("Second", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
+
+        // get height of the second commit- will cache the height for this commit
+        var height = secondCommit.GetVersionHeight(useHeightCaching: true);
+        Assert.Equal(2, height);
+        
+        // add many commits to the another branch + merge with master
+        Commands.Checkout(this.Repo, anotherBranch);
+        Commit[] branchCommits = new Commit[5];
+        for (int i = 1; i <= branchCommits.Length; i++)
+        {
+            branchCommits[i - 1] = this.Repo.Commit($"branch commit #{i}", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
+        }
+
+        this.Repo.Merge(secondCommit, new Signature("t", "t@t.com", DateTimeOffset.Now), new MergeOptions { FastForwardStrategy = FastForwardStrategy.NoFastForward });
+
+        // The height should be the height of the 'another' branch as it has the greatest height.
+        // The cached height for the master branch should be ignored.
+        Assert.Equal(7, this.Repo.Head.GetVersionHeight());
     }
     
     [Fact]
