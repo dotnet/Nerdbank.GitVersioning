@@ -155,7 +155,7 @@ The JSON object has to properties:
 - `CurrentBranch` provides information about the branch `prepare-release` was started on (typically `master`)
 - `NewBranch` provides information about the new branch created by the command.
 
-For each branch, the following proprties are provided:
+For each branch, the following properties are provided:
 
 - `Name`: The name of the branch
 - `Commit`: The id of the latest commit on that branch
