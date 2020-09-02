@@ -19,7 +19,7 @@ namespace Nerdbank.GitVersioning
     /// </remarks>
     public class GitHeightCache
     {
-        private readonly string repoRelativeProjectDirectory;
+        private readonly string versionFileRelativeDirectory;
         private readonly Version baseVersion;
 
         private static readonly JsonSerializer JsonSerializer = new JsonSerializer()
@@ -43,17 +43,17 @@ namespace Nerdbank.GitVersioning
         /// Creates a new height cache.
         /// </summary>
         /// <param name="repositoryPath">The root path of the repository.</param>
-        /// <param name="repoRelativeProjectDirectory">The relative path of the project within the repository.</param>
+        /// <param name="versionFileRelativePath">The relative path of the version file within the repository to cache heights for.</param>
         /// <param name="baseVersion"></param>
-        public GitHeightCache(string repositoryPath, string repoRelativeProjectDirectory, Version baseVersion)
+        public GitHeightCache(string repositoryPath, string versionFileRelativePath, Version baseVersion)
         {
-            this.repoRelativeProjectDirectory = repoRelativeProjectDirectory;
+            this.versionFileRelativeDirectory = Path.GetDirectoryName(versionFileRelativePath);
             this.baseVersion = baseVersion;
 
             if (repositoryPath == null)
                 this.heightCacheFilePath = null;
             else
-                this.heightCacheFilePath = Path.Combine(repositoryPath, repoRelativeProjectDirectory ?? "", CacheFileName);
+                this.heightCacheFilePath = Path.Combine(repositoryPath, this.versionFileRelativeDirectory ?? "", CacheFileName);
 
             this.cachedHeightAvailable = new Lazy<bool>(() => this.heightCacheFilePath != null && File.Exists(this.heightCacheFilePath));
         }
@@ -82,7 +82,7 @@ namespace Nerdbank.GitVersioning
                         return null;
                     
                     // Indicates that the project the cache is associated with has moved directories- any cached results may be invalid, so discard
-                    if (cachedHeight.RelativeProjectDir != this.repoRelativeProjectDirectory)
+                    if (cachedHeight.VersionRelativeDir != this.versionFileRelativeDirectory)
                         return null;
 
                     return cachedHeight;
@@ -108,7 +108,7 @@ namespace Nerdbank.GitVersioning
             using (var jsonWriter = new JsonTextWriter(sw))
             {
                 jsonWriter.WriteComment("Cached commit height, created by Nerdbank.GitVersioning. Do not modify.");
-                JsonSerializer.Serialize(jsonWriter, new CachedHeight(commitId, height, this.baseVersion, this.repoRelativeProjectDirectory));
+                JsonSerializer.Serialize(jsonWriter, new CachedHeight(commitId, height, this.baseVersion, this.versionFileRelativeDirectory));
             }
         }
 
@@ -133,13 +133,13 @@ namespace Nerdbank.GitVersioning
         /// <param name="commitId"></param>
         /// <param name="height"></param>
         /// <param name="baseVersion"></param>
-        /// <param name="relativeProjectDir"></param>
-        public CachedHeight(ObjectId commitId, int height, Version baseVersion, string relativeProjectDir)
+        /// <param name="versionRelativeDir"></param>
+        public CachedHeight(ObjectId commitId, int height, Version baseVersion, string versionRelativeDir)
         {
             this.CommitId = commitId;
             this.Height = height;
             this.BaseVersion = baseVersion;
-            this.RelativeProjectDir = relativeProjectDir;
+            this.VersionRelativeDir = versionRelativeDir;
         }
         
         /// <summary>
@@ -158,9 +158,9 @@ namespace Nerdbank.GitVersioning
         public ObjectId CommitId { get; }
         
         /// <summary>
-        /// The relative path of the project this cached height belong to.
+        /// The relative directory path for the version file that this cached is associated with.
         /// </summary>
-        public string RelativeProjectDir { get;  }
+        public string VersionRelativeDir { get;  }
 
         /// <inheritdoc cref="Object.ToString"/>
         public override string ToString() => $"({CommitId}, {Height}, {BaseVersion})";

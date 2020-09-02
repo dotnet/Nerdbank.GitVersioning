@@ -65,11 +65,11 @@
             
             if (versionHeightPosition.HasValue)
             {
-                var cache = new GitHeightCache(commit.GetRepository().Info.WorkingDirectory, repoRelativeProjectDirectory, baseSemVer.Version);
+                var cache = new GitHeightCache(commit.GetRepository().Info.WorkingDirectory, versionOptions.RelativeFilePath, baseVersion);
+                
                 CachedHeight cachedHeight = null;
                 if (useHeightCaching && cache.CachedHeightAvailable && (cachedHeight = cache.GetHeight()) != null)
                 {
-                    
                     if (cachedHeight.CommitId.Equals(commit.Id))
                         // Cached height exactly matches the current commit
                         return cachedHeight.Height;

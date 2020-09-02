@@ -52,7 +52,7 @@
                 var versionTxtBlob = commit.Tree[candidatePath]?.Target as LibGit2Sharp.Blob;
                 if (versionTxtBlob != null)
                 {
-                    var result = TryReadVersionFile(new StreamReader(versionTxtBlob.GetContentStream()));
+                    var result = TryReadVersionFile(new StreamReader(versionTxtBlob.GetContentStream()), candidatePath);
                     if (result != null)
                     {
                         return result;
@@ -72,7 +72,7 @@
                     VersionOptions result;
                     try
                     {
-                        result = TryReadVersionJsonContent(versionJsonContent, searchDirectory);
+                        result = TryReadVersionJsonContent(versionJsonContent, searchDirectory, candidatePath);
                     }
                     catch (FormatException ex)
                     {
@@ -158,7 +158,7 @@
                     {
                         using (var sr = new StreamReader(File.OpenRead(versionTxtPath)))
                         {
-                            var result = TryReadVersionFile(sr);
+                            var result = TryReadVersionFile(sr, repo?.GetRepoRelativePath(versionTxtPath));
                             if (result != null)
                             {
                                 actualDirectory = searchDirectory;
@@ -174,7 +174,7 @@
 
                         var repoRelativeBaseDirectory = repo?.GetRepoRelativePath(searchDirectory);
                         VersionOptions result =
-                            TryReadVersionJsonContent(versionJsonContent, repoRelativeBaseDirectory);
+                            TryReadVersionJsonContent(versionJsonContent, repoRelativeBaseDirectory, repo?.GetRepoRelativePath(versionJsonPath));
                         if (result?.Inherit ?? false)
                         {
                             if (parentDirectory != null)
@@ -314,7 +314,7 @@
         /// </summary>
         /// <param name="versionTextContent">The content of the version.txt file to read.</param>
         /// <returns>The version information read from the file; or <c>null</c> if a deserialization error occurs.</returns>
-        private static VersionOptions TryReadVersionFile(TextReader versionTextContent)
+        private static VersionOptions TryReadVersionFile(TextReader versionTextContent, string candidatePath)
         {
             string versionLine = versionTextContent.ReadLine();
             string prereleaseVersion = versionTextContent.ReadLine();
@@ -332,6 +332,7 @@
             return new VersionOptions
             {
                 Version = semVer,
+                RelativeFilePath = candidatePath
             };
         }
 
@@ -341,11 +342,13 @@
         /// <param name="jsonContent">The content of the version.json file.</param>
         /// <param name="repoRelativeBaseDirectory">Directory that this version.json file is relative to the root of the repository.</param>
         /// <returns>The deserialized <see cref="VersionOptions"/> object, if deserialization was successful.</returns>
-        private static VersionOptions TryReadVersionJsonContent(string jsonContent, string repoRelativeBaseDirectory)
+        private static VersionOptions TryReadVersionJsonContent(string jsonContent, string repoRelativeBaseDirectory, string candidatePath)
         {
             try
             {
-                return JsonConvert.DeserializeObject<VersionOptions>(jsonContent, VersionOptions.GetJsonSettings(repoRelativeBaseDirectory: repoRelativeBaseDirectory));
+                var result = JsonConvert.DeserializeObject<VersionOptions>(jsonContent, VersionOptions.GetJsonSettings(repoRelativeBaseDirectory: repoRelativeBaseDirectory));
+                result.RelativeFilePath = candidatePath;
+                return result;
             }
             catch (JsonSerializationException)
             {

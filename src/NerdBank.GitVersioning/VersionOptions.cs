@@ -254,6 +254,13 @@ namespace Nerdbank.GitVersioning
         public bool Inherit { get; set; }
 
         /// <summary>
+        /// The relative path of the source file (if deserialized from a file), otherwise null.
+        /// If <see cref="Inherit"/> is true, returns the path of the child version file.
+        /// </summary>
+        [JsonIgnore]
+        public string RelativeFilePath { get; set; }
+        
+        /// <summary>
         /// Gets the position in a computed version that the version height should appear.
         /// </summary>
         [JsonIgnore]
