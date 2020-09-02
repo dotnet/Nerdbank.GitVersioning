@@ -13,9 +13,9 @@
     /// </remarks>
     internal class TeamCity : ICloudBuild
     {
-        public string BuildingBranch => CloudBuild.ShouldStartWith((BuildingRef?.StartsWith("refs/heads/") ?? false) ? BuildingRef : null, "refs/heads/");
+        public string BuildingBranch => CloudBuild.IfStartsWith(BuildingRef, "refs/heads/");
 
-        public string BuildingTag => (BuildingRef?.StartsWith("refs/tags/") ?? false) ? BuildingRef : null;
+        public string BuildingTag => CloudBuild.IfStartsWith(BuildingRef, "refs/tags/");
 
         public string GitCommitId => Environment.GetEnvironmentVariable("BUILD_VCS_NUMBER");
 

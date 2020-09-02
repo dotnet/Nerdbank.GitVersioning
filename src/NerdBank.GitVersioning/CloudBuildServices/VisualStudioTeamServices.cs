@@ -15,9 +15,9 @@
     {
         public bool IsPullRequest => BuildingRef?.StartsWith("refs/pull/") ?? false;
 
-        public string BuildingTag => (BuildingRef?.StartsWith("refs/tags/") ?? false) ? BuildingRef : null;
+        public string BuildingTag => CloudBuild.IfStartsWith(BuildingRef, "refs/tags/");
 
-        public string BuildingBranch => (BuildingRef?.StartsWith("refs/heads/") ?? false) ? BuildingRef : null;
+        public string BuildingBranch => CloudBuild.IfStartsWith(BuildingRef, "refs/heads/");
 
         public string GitCommitId => null;
 
