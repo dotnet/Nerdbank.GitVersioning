@@ -149,7 +149,7 @@ Check out [nerdbank-gitversioning on the GitHub Actions marketplace](https://git
 
 ### TeamCity
 TeamCity does not expose the build branch by default as an environment variable. This can be exposed by
-adding an environment variable with the value of `%teamcity.build.vcs.branch.<vcsid>%` where `<vcsid>` is
+adding an environment variable called BUILD_GIT_BRANCH with the value of `%teamcity.build.vcs.branch.<vcsid>%` where `<vcsid>` is
 the root id described on the TeamCity VCS roots page. Details on this variable can be found on the
 [TeamCity docs](https://confluence.jetbrains.com/display/TCD8/Predefined+Build+Parameters).
 
