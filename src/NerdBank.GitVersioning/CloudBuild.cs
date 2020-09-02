@@ -43,5 +43,13 @@
                 value.StartsWith(prefix, StringComparison.Ordinal) ? value :
                 prefix + value;
         }
+
+        /// <summary>
+        /// Gets the specified string if it starts with a given prefix; otherwise null.
+        /// </summary>
+        /// <param name="value">The value to return.</param>
+        /// <param name="prefix">The prefix to check for.</param>
+        /// <returns><paramref name="value"/> if it starts with <paramref name="prefix"/>; otherwise <c>null</c>.</returns>
+        internal static string IfStartsWith(string value, string prefix) => value is object && value.StartsWith(prefix, StringComparison.Ordinal) ? value : null;
     }
 }

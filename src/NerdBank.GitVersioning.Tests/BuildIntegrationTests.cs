@@ -461,7 +461,9 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         {
             new object[] { CloudBuild.AppVeyor.SetItem("APPVEYOR_REPO_BRANCH", branchName) },
             new object[] { CloudBuild.VSTS.SetItem("BUILD_SOURCEBRANCH", $"refs/heads/{branchName}") },
+            new object[] { CloudBuild.VSTS.SetItem("BUILD_SOURCEBRANCH", $"refs/tags/{branchName}") },
             new object[] { CloudBuild.Teamcity.SetItem("BUILD_GIT_BRANCH", $"refs/heads/{branchName}") },
+            new object[] { CloudBuild.Teamcity.SetItem("BUILD_GIT_BRANCH", $"refs/tags/{branchName}") },
         };
     }
 
@@ -472,7 +474,11 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         var versionOptions = new VersionOptions
         {
             Version = SemanticVersion.Parse("1.0"),
-            PublicReleaseRefSpec = new string[] { "^refs/heads/release$" },
+            PublicReleaseRefSpec = new string[] 
+            { 
+                "^refs/heads/release$",
+                "^refs/tags/release$"
+            },
         };
         this.WriteVersionFile(versionOptions);
         this.InitializeSourceControl();

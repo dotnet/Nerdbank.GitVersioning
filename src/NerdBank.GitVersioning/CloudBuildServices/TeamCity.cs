@@ -13,15 +13,17 @@
     /// </remarks>
     internal class TeamCity : ICloudBuild
     {
-        public string BuildingBranch => CloudBuild.ShouldStartWith(Environment.GetEnvironmentVariable("BUILD_GIT_BRANCH"), "refs/heads/");
+        public string BuildingBranch => CloudBuild.IfStartsWith(BuildingRef, "refs/heads/");
 
-        public string BuildingTag => null;
+        public string BuildingTag => CloudBuild.IfStartsWith(BuildingRef, "refs/tags/");
 
         public string GitCommitId => Environment.GetEnvironmentVariable("BUILD_VCS_NUMBER");
 
         public bool IsApplicable => this.GitCommitId != null;
 
         public bool IsPullRequest => false;
+
+        private static string BuildingRef => Environment.GetEnvironmentVariable("BUILD_GIT_BRANCH");
 
         public IReadOnlyDictionary<string, string>  SetCloudBuildNumber(string buildNumber, TextWriter stdout, TextWriter stderr)
         {
