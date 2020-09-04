@@ -984,6 +984,7 @@
         private class GitWalkTracker
         {
             private readonly Dictionary<ObjectId, VersionOptions> commitVersionCache = new Dictionary<ObjectId, VersionOptions>();
+            private readonly Dictionary<ObjectId, VersionOptions> blobVersionCache = new Dictionary<ObjectId, VersionOptions>();
             private readonly Dictionary<ObjectId, int> heights = new Dictionary<ObjectId, int>();
 
             internal GitWalkTracker(string repoRelativeDirectory)
@@ -1003,7 +1004,7 @@
                 {
                     try
                     {
-                        options = VersionFile.GetVersion(commit, this.RepoRelativeDirectory);
+                        options = VersionFile.GetVersion(commit, this.RepoRelativeDirectory, this.blobVersionCache);
                     }
                     catch (Exception ex)
                     {

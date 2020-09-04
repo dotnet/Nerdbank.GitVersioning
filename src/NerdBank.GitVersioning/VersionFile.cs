@@ -31,12 +31,13 @@
         public static readonly IReadOnlyList<string> PreferredFileNames = new[] { JsonFileName, TxtFileName };
 
         /// <summary>
-        /// Reads the version.txt file and returns the <see cref="Version"/> and prerelease tag from it.
+        /// Reads the version.json file and returns the <see cref="Version"/> and prerelease tag from it.
         /// </summary>
         /// <param name="commit">The commit to read the version file from.</param>
         /// <param name="repoRelativeProjectDirectory">The directory to consider when searching for the version.txt file.</param>
+        /// <param name="blobVersionCache">An optional blob cache for storing the raw parse results of a version.txt or version.json file (before any inherit merge operations are applied).</param>
         /// <returns>The version information read from the file.</returns>
-        public static VersionOptions GetVersion(LibGit2Sharp.Commit commit, string repoRelativeProjectDirectory = null)
+        public static VersionOptions GetVersion(LibGit2Sharp.Commit commit, string repoRelativeProjectDirectory = null, Dictionary<LibGit2Sharp.ObjectId, VersionOptions> blobVersionCache = null)
         {
             if (commit == null)
             {
@@ -52,7 +53,15 @@
                 var versionTxtBlob = commit.Tree[candidatePath]?.Target as LibGit2Sharp.Blob;
                 if (versionTxtBlob != null)
                 {
-                    var result = TryReadVersionFile(new StreamReader(versionTxtBlob.GetContentStream()));
+                    if (blobVersionCache is null || !blobVersionCache.TryGetValue(versionTxtBlob.Id, out VersionOptions result))
+                    {
+                        result = TryReadVersionFile(new StreamReader(versionTxtBlob.GetContentStream()));
+                        if (blobVersionCache is object)
+                        {
+                            blobVersionCache.Add(versionTxtBlob.Id, result);
+                        }
+                    }
+
                     if (result != null)
                     {
                         return result;
@@ -63,32 +72,48 @@
                 var versionJsonBlob = commit.Tree[candidatePath]?.Target as LibGit2Sharp.Blob;
                 if (versionJsonBlob != null)
                 {
-                    string versionJsonContent;
-                    using (var sr = new StreamReader(versionJsonBlob.GetContentStream()))
+                    string versionJsonContent = null;
+                    if (blobVersionCache is null || !blobVersionCache.TryGetValue(versionJsonBlob.Id, out VersionOptions result))
                     {
-                        versionJsonContent = sr.ReadToEnd();
-                    }
+                        using (var sr = new StreamReader(versionJsonBlob.GetContentStream()))
+                        {
+                            versionJsonContent = sr.ReadToEnd();
+                        }
 
-                    VersionOptions result;
-                    try
-                    {
-                        result = TryReadVersionJsonContent(versionJsonContent, searchDirectory);
-                    }
-                    catch (FormatException ex)
-                    {
-                        throw new FormatException(
-                            $"Failure while reading {JsonFileName} from commit {commit.Sha}. " +
-                            "Fix this commit with rebase if this is an error, or review this doc on how to migrate to Nerdbank.GitVersioning: " +
-                            "https://github.com/dotnet/Nerdbank.GitVersioning/blob/master/doc/migrating.md", ex);
+                        try
+                        {
+                            result = TryReadVersionJsonContent(versionJsonContent, searchDirectory);
+                        }
+                        catch (FormatException ex)
+                        {
+                            throw new FormatException(
+                                $"Failure while reading {JsonFileName} from commit {commit.Sha}. " +
+                                "Fix this commit with rebase if this is an error, or review this doc on how to migrate to Nerdbank.GitVersioning: " +
+                                "https://github.com/dotnet/Nerdbank.GitVersioning/blob/master/doc/migrating.md", ex);
+                        }
+
+                        if (blobVersionCache is object)
+                        {
+                            blobVersionCache.Add(versionJsonBlob.Id, result);
+                        }
                     }
 
                     if (result?.Inherit ?? false)
                     {
                         if (parentDirectory != null)
                         {
-                            result = GetVersion(commit, parentDirectory);
+                            result = GetVersion(commit, parentDirectory, blobVersionCache);
                             if (result != null)
                             {
+                                if (versionJsonContent is null)
+                                {
+                                    // We reused a cache VersionOptions, but now we need the actual JSON string.
+                                    using (var sr = new StreamReader(versionJsonBlob.GetContentStream()))
+                                    {
+                                        versionJsonContent = sr.ReadToEnd();
+                                    }
+                                }
+
                                 JsonConvert.PopulateObject(versionJsonContent, result, VersionOptions.GetJsonSettings(repoRelativeBaseDirectory: searchDirectory));
                                 return result;
                             }
