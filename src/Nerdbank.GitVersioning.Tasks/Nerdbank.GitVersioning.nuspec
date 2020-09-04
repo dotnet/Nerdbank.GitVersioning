@@ -43,6 +43,8 @@ IMPORTANT: The 3.x release may produce a different version height than prior maj
     <file src="$BaseOutputPath$netcoreapp2.0\Validation.dll" target="build\MSBuildCore\Validation.dll" />
 
     <file src="build\Nerdbank.GitVersioning.targets" target="build\Nerdbank.GitVersioning.targets" />
+    <file src="build\Nerdbank.GitVersioning.Common.targets" target="build\Nerdbank.GitVersioning.Common.targets" />
+    <file src="build\Nerdbank.GitVersioning.Inner.targets" target="build\Nerdbank.GitVersioning.Inner.targets" />
     <file src="buildCrossTargeting\Nerdbank.GitVersioning.targets" target="buildCrossTargeting\Nerdbank.GitVersioning.targets" />
     <file src="tools\Create-VersionFile.ps1" target="tools\Create-VersionFile.ps1" />
     <file src="tools\Get-CommitId.ps1" target="tools\Get-CommitId.ps1" />

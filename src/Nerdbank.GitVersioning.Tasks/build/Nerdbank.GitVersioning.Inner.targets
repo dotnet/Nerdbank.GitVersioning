@@ -1,0 +1,45 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <Import Project="Nerdbank.GitVersioning.Common.targets"/>
+
+  <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="Nerdbank.GitVersioning.Tasks.GetBuildVersion"/>
+  
+  <Target Name="GetBuildVersion_Properties" 
+          DependsOnTargets="GetBuildVersionCore"
+          Returns="@(NBGV_PropertyItems)" />
+  
+  <Target Name="GetBuildVersion_CloudBuildVersionVars" 
+          DependsOnTargets="GetBuildVersionCore"
+          Returns="@(CloudBuildVersionVars)" />
+  
+  <Target Name="GetBuildVersionCore">
+    <Nerdbank.GitVersioning.Tasks.GetBuildVersion
+      BuildingRef="$(_NBGV_BuildingRef)"
+      BuildMetadata="$(BuildMetadata.Replace(',',';'))"
+      DefaultPublicRelease="$(PublicRelease)"
+      ProjectDirectory="$(ProjectDirectory)"
+      GitRepoRoot="$(GitRepoRoot)"
+      ProjectPathRelativeToGitRepoRoot="$(ProjectPathRelativeToGitRepoRoot)"
+      OverrideBuildNumberOffset="$(OverrideBuildNumberOffset)"
+      TargetsPath="$(MSBuildThisFileDirectory)">
+      
+      <!-- All properties and items are to be exported to the calling project through items. -->
+      <Output TaskParameter="OutputProperties" ItemName="NBGV_PropertyItems"/>
+      <Output TaskParameter="CloudBuildVersionVars" ItemName="CloudBuildVersionVars" />
+
+      <!-- Export a couple of properties directly to support our tasks below. -->
+      <Output TaskParameter="AssemblyInformationalVersion" PropertyName="AssemblyInformationalVersion" />
+      <Output TaskParameter="NuGetPackageVersion" PropertyName="NuGetPackageVersion" />
+      <Output TaskParameter="Version" PropertyName="BuildVersion" />
+      <Output TaskParameter="GitCommitId" PropertyName="GitCommitId" />
+    </Nerdbank.GitVersioning.Tasks.GetBuildVersion>
+
+    <Warning Condition=" '$(AssemblyInformationalVersion)' == '' " Text="Unable to determine the git HEAD commit ID to use for informational version number." />
+    <Message Condition=" '$(AssemblyInformationalVersion)' != '' " Text="Building version $(BuildVersion) from commit $(GitCommitId)"/>
+    <Message Condition=" '$(AssemblyInformationalVersion)' == '' " Text="Building version $(BuildVersion)"/>
+    <Message Importance="low" Text="AssemblyInformationalVersion: $(AssemblyInformationalVersion)" />
+    <Message Importance="low" Text="NuGetPackageVersion: $(NuGetPackageVersion)" />
+  </Target>
+
+</Project>
