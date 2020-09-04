@@ -112,19 +112,19 @@
         /// <summary>
         /// Gets the version.
         /// </summary>
-        public Version Version { get; private set; }
+        public Version Version { get; }
 
         /// <summary>
         /// Gets an unstable tag (with the leading hyphen), if applicable.
         /// </summary>
         /// <value>A string with a leading hyphen or the empty string.</value>
-        public string Prerelease { get; private set; }
+        public string Prerelease { get; }
 
         /// <summary>
         /// Gets the build metadata (with the leading plus), if applicable.
         /// </summary>
         /// <value>A string with a leading plus or the empty string.</value>
-        public string BuildMetadata { get; private set; }
+        public string BuildMetadata { get; }
 
         /// <summary>
         /// Gets a value indicating whether this instance is the default "0.0" instance.

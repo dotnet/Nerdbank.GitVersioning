@@ -115,7 +115,7 @@
 
             this.CloudBuildNumberOptions = this.VersionOptions?.CloudBuild?.BuildNumberOrDefault ?? VersionOptions.CloudBuildNumberOptions.DefaultInstance;
 
-            if (!string.IsNullOrEmpty(this.BuildingRef) && this.VersionOptions?.PublicReleaseRefSpec?.Length > 0)
+            if (!string.IsNullOrEmpty(this.BuildingRef) && this.VersionOptions?.PublicReleaseRefSpec?.Count > 0)
             {
                 this.PublicRelease = this.VersionOptions.PublicReleaseRefSpec.Any(
                     expr => Regex.IsMatch(this.BuildingRef, expr));

@@ -4,8 +4,10 @@ namespace Nerdbank.GitVersioning
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.ObjectModel;
     using System.ComponentModel;
     using System.Diagnostics;
+    using System.Linq;
     using System.Reflection;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Converters;
@@ -17,8 +19,86 @@ namespace Nerdbank.GitVersioning
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
     public class VersionOptions : IEquatable<VersionOptions>
     {
+        /// <summary>
+        /// A value indicating whether mutations of this instance are not allowed.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool isFrozen;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private string gitCommitIdPrefix;
+
+        /// <summary>
+        /// Backing field for the <see cref="Version"/> property.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private SemanticVersion version;
+
+        /// <summary>
+        /// Backing field for the <see cref="AssemblyVersion"/> property.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private AssemblyVersionOptions assemblyVersion;
+
+        /// <summary>
+        /// Backing field for the <see cref="BuildNumberOffset"/> property.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private int? buildNumberOffset;
+
+        /// <summary>
+        /// Backing field for the <see cref="SemVer1NumericIdentifierPadding"/> property.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private int? semVer1NumericIdentifierPadding;
+
+        /// <summary>
+        /// Backing field for the <see cref="GitCommitIdShortFixedLength"/> property.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private int? gitCommitIdShortFixedLength;
+
+        /// <summary>
+        /// Backing field for the <see cref="GitCommitIdShortAutoMinimum"/> property.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private int? gitCommitIdShortAutoMinimum;
+
+        /// <summary>
+        /// Backing field for the <see cref="NuGetPackageVersion"/> property.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private NuGetPackageVersionOptions nuGetPackageVersion;
+
+        /// <summary>
+        /// Backing field for the <see cref="PublicReleaseRefSpec"/> property.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private IReadOnlyList<string> publicReleaseRefSpec;
+
+        /// <summary>
+        /// Backing field for the <see cref="CloudBuild"/> property.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private CloudBuildOptions cloudBuild;
+
+        /// <summary>
+        /// Backing field for the <see cref="Release"/> property.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private ReleaseOptions release;
+
+        /// <summary>
+        /// Backing field for the <see cref="PathFilters"/> property.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private IReadOnlyList<FilterPath> pathFilters;
+
+        /// <summary>
+        /// Backing field for the <see cref="Inherit"/> property.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool inherit;
 
         /// <summary>
         /// Default value for <see cref="VersionPrecision"/>.
@@ -52,10 +132,43 @@ namespace Nerdbank.GitVersioning
         public string Schema => "https://raw.githubusercontent.com/dotnet/Nerdbank.GitVersioning/master/src/NerdBank.GitVersioning/version.schema.json";
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="VersionOptions"/> class.
+        /// </summary>
+        public VersionOptions()
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="VersionOptions"/> class.
+        /// </summary>
+        /// <param name="copyFrom">Another instance to copy values from.</param>
+        public VersionOptions(VersionOptions copyFrom)
+        {
+            Requires.NotNull(copyFrom, nameof(copyFrom));
+
+            this.gitCommitIdPrefix = copyFrom.gitCommitIdPrefix;
+            this.version = copyFrom.version;
+            this.assemblyVersion = copyFrom.assemblyVersion is object ? new AssemblyVersionOptions(copyFrom.assemblyVersion) : null;
+            this.buildNumberOffset = copyFrom.buildNumberOffset;
+            this.semVer1NumericIdentifierPadding = copyFrom.semVer1NumericIdentifierPadding;
+            this.gitCommitIdShortFixedLength = copyFrom.gitCommitIdShortFixedLength;
+            this.gitCommitIdShortAutoMinimum = copyFrom.gitCommitIdShortAutoMinimum;
+            this.nuGetPackageVersion = copyFrom.nuGetPackageVersion is object ? new NuGetPackageVersionOptions(copyFrom.nuGetPackageVersion) : null;
+            this.publicReleaseRefSpec = copyFrom.publicReleaseRefSpec?.ToList();
+            this.cloudBuild = copyFrom.cloudBuild is object ? new CloudBuildOptions(copyFrom.cloudBuild) : null;
+            this.release = copyFrom.release is object ? new ReleaseOptions(copyFrom.release) : null;
+            this.pathFilters = copyFrom.pathFilters?.ToList();
+        }
+
+        /// <summary>
         /// Gets or sets the default version to use.
         /// </summary>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public SemanticVersion Version { get; set; }
+        public SemanticVersion Version
+        {
+            get => this.version;
+            set => this.SetIfNotReadOnly(ref this.version, value);
+        }
 
         /// <summary>
         /// Gets or sets the version to use particularly for the <see cref="AssemblyVersionAttribute"/>
@@ -63,8 +176,11 @@ namespace Nerdbank.GitVersioning
         /// </summary>
         /// <value>An instance of <see cref="System.Version"/> or <c>null</c> to simply use the default <see cref="Version"/>.</value>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public AssemblyVersionOptions AssemblyVersion { get; set; }
-
+        public AssemblyVersionOptions AssemblyVersion
+        {
+            get => this.assemblyVersion;
+            set => this.SetIfNotReadOnly(ref this.assemblyVersion, value);
+        }
 
         /// <summary>
         /// Gets or sets the prefix for git commit id in version.
@@ -75,7 +191,7 @@ namespace Nerdbank.GitVersioning
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
         public string GitCommitIdPrefix
         {
-            get => gitCommitIdPrefix;
+            get => this.gitCommitIdPrefix;
             set
             {
                 if (string.IsNullOrWhiteSpace(value))
@@ -87,7 +203,8 @@ namespace Nerdbank.GitVersioning
                 {
                     throw new ArgumentException(nameof(value), $"{nameof(this.GitCommitIdPrefix)} must lead with a [A-z_] character (not a number)");
                 }
-                this.gitCommitIdPrefix = value;
+
+                this.SetIfNotReadOnly(ref this.gitCommitIdPrefix, value);
             }
         }
 
@@ -111,7 +228,11 @@ namespace Nerdbank.GitVersioning
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
         [Obsolete("Use " + nameof(VersionHeightOffset) + " instead.")]
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public int? BuildNumberOffset { get; set; }
+        public int? BuildNumberOffset
+        {
+            get => this.buildNumberOffset;
+            set => this.SetIfNotReadOnly(ref this.buildNumberOffset, value);
+        }
 
         /// <summary>
         /// Gets or sets a number to add to the git height when calculating the <see cref="Version.Build"/> number.
@@ -163,7 +284,11 @@ namespace Nerdbank.GitVersioning
         /// Gets or sets the minimum number of digits to use for numeric identifiers in SemVer 1.
         /// </summary>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public int? SemVer1NumericIdentifierPadding { get; set; }
+        public int? SemVer1NumericIdentifierPadding
+        {
+            get => this.semVer1NumericIdentifierPadding;
+            set => this.SetIfNotReadOnly(ref this.semVer1NumericIdentifierPadding, value);
+        }
 
         /// <summary>
         /// Gets the minimum number of digits to use for numeric identifiers in SemVer 1.
@@ -175,7 +300,11 @@ namespace Nerdbank.GitVersioning
         /// Gets or sets the abbreviated git commit hash length.
         /// </summary>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public int? GitCommitIdShortFixedLength { get; set; }
+        public int? GitCommitIdShortFixedLength
+        {
+            get => this.gitCommitIdShortFixedLength;
+            set => this.SetIfNotReadOnly(ref this.gitCommitIdShortFixedLength, value);
+        }
 
         /// <summary>
         /// Gets or sets the abbreviated git commit hash length minimum value.
@@ -184,13 +313,21 @@ namespace Nerdbank.GitVersioning
         /// The value is 0 by default.
         /// </summary>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public int? GitCommitIdShortAutoMinimum { get; set; }
+        public int? GitCommitIdShortAutoMinimum
+        {
+            get => this.gitCommitIdShortAutoMinimum;
+            set => this.SetIfNotReadOnly(ref this.gitCommitIdShortAutoMinimum, value);
+        }
 
         /// <summary>
         /// Gets or sets the options around NuGet version strings
         /// </summary>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public NuGetPackageVersionOptions NuGetPackageVersion { get; set; }
+        public NuGetPackageVersionOptions NuGetPackageVersion
+        {
+            get => this.nuGetPackageVersion;
+            set => this.SetIfNotReadOnly(ref this.nuGetPackageVersion, value);
+        }
 
         /// <summary>
         /// Gets the options around NuGet version strings
@@ -203,20 +340,28 @@ namespace Nerdbank.GitVersioning
         /// be built with PublicRelease=true as the default value on build servers.
         /// </summary>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public string[] PublicReleaseRefSpec { get; set; }
+        public IReadOnlyList<string> PublicReleaseRefSpec
+        {
+            get => this.publicReleaseRefSpec;
+            set => this.SetIfNotReadOnly(ref this.publicReleaseRefSpec, value);
+        }
 
         /// <summary>
         /// Gets an array of regular expressions that describes branch or tag names that should
         /// be built with PublicRelease=true as the default value on build servers.
         /// </summary>
         [JsonIgnore]
-        public string[] PublicReleaseRefSpecOrDefault => this.PublicReleaseRefSpec ?? new string[0];
+        public IReadOnlyList<string> PublicReleaseRefSpecOrDefault => this.PublicReleaseRefSpec ?? Array.Empty<string>();
 
         /// <summary>
         /// Gets or sets the options around cloud build.
         /// </summary>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public CloudBuildOptions CloudBuild { get; set; }
+        public CloudBuildOptions CloudBuild
+        {
+            get => this.cloudBuild;
+            set => this.SetIfNotReadOnly(ref this.cloudBuild, value);
+        }
 
         /// <summary>
         /// Gets the options around cloud build.
@@ -228,7 +373,11 @@ namespace Nerdbank.GitVersioning
         /// Gets or sets the options for the prepare-release command
         /// </summary>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public ReleaseOptions Release { get; set; }
+        public ReleaseOptions Release
+        {
+            get => this.release;
+            set => this.SetIfNotReadOnly(ref this.release, value);
+        }
 
         /// <summary>
         /// Gets the options for the prepare-release command
@@ -242,7 +391,11 @@ namespace Nerdbank.GitVersioning
         /// Paths should be relative to the root of the repository.
         /// </summary>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public FilterPath[] PathFilters { get; set; }
+        public IReadOnlyList<FilterPath> PathFilters
+        {
+            get => this.pathFilters;
+            set => this.SetIfNotReadOnly(ref this.pathFilters, value);
+        }
 
         /// <summary>
         /// Gets or sets a value indicating whether this options object should inherit from an ancestor any settings that are not explicitly set in this one.
@@ -251,7 +404,17 @@ namespace Nerdbank.GitVersioning
         /// When this is <c>true</c>, this object may not completely describe the options to be applied.
         /// </remarks>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public bool Inherit { get; set; }
+        public bool Inherit
+        {
+            get => this.inherit;
+            set => this.SetIfNotReadOnly(ref this.inherit, value);
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether this instance rejects all attempts to mutate it.
+        /// </summary>
+        [JsonIgnore]
+        public bool IsFrozen => this.isFrozen;
 
         /// <summary>
         /// Gets the position in a computed version that the version height should appear.
@@ -397,6 +560,23 @@ namespace Nerdbank.GitVersioning
         public bool Equals(VersionOptions other) => EqualWithDefaultsComparer.Singleton.Equals(this, other);
 
         /// <summary>
+        /// Freezes this instance so no more changes can be made to it.
+        /// </summary>
+        public void Freeze()
+        {
+            if (!this.isFrozen)
+            {
+                this.isFrozen = true;
+                this.assemblyVersion?.Freeze();
+                this.nuGetPackageVersion?.Freeze();
+                this.publicReleaseRefSpec = this.publicReleaseRefSpec is object ? new ReadOnlyCollection<string>(this.publicReleaseRefSpec.ToList()) : null;
+                this.cloudBuild?.Freeze();
+                this.release?.Freeze();
+                this.pathFilters = this.pathFilters is object ? new ReadOnlyCollection<FilterPath>(this.pathFilters.ToList()) : null;
+            }
+        }
+
+        /// <summary>
         /// Gets a value indicating whether <see cref="Version"/> is
         /// set and the only property on this class that is set.
         /// </summary>
@@ -414,6 +594,18 @@ namespace Nerdbank.GitVersioning
         }
 
         /// <summary>
+        /// Sets the value of a field if this instance is not marked as read only.
+        /// </summary>
+        /// <typeparam name="T">The type of the value stored by the field.</typeparam>
+        /// <param name="field">The field to change.</param>
+        /// <param name="value">The value to set.</param>
+        private void SetIfNotReadOnly<T>(ref T field, T value)
+        {
+            Verify.Operation(!this.isFrozen, "This instance is read only.");
+            field = value;
+        }
+
+        /// <summary>
         /// The class that contains settings for the <see cref="NuGetPackageVersion" /> property.
         /// </summary>
         public class NuGetPackageVersionOptions : IEquatable<NuGetPackageVersionOptions>
@@ -421,13 +613,14 @@ namespace Nerdbank.GitVersioning
             /// <summary>
             /// The default (uninitialized) instance.
             /// </summary>
-            internal static readonly NuGetPackageVersionOptions DefaultInstance = new NuGetPackageVersionOptions(isReadOnly: true)
+            internal static readonly NuGetPackageVersionOptions DefaultInstance = new NuGetPackageVersionOptions()
             {
+                isFrozen = true,
                 semVer = 1.0f,
             };
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-            private readonly bool isReadOnly;
+            private bool isFrozen;
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
             private float? semVer;
@@ -436,16 +629,15 @@ namespace Nerdbank.GitVersioning
             /// Initializes a new instance of the <see cref="NuGetPackageVersionOptions" /> class.
             /// </summary>
             public NuGetPackageVersionOptions()
-                : this(isReadOnly: false)
             {
             }
 
             /// <summary>
             /// Initializes a new instance of the <see cref="NuGetPackageVersionOptions" /> class.
             /// </summary>
-            protected NuGetPackageVersionOptions(bool isReadOnly)
+            public NuGetPackageVersionOptions(NuGetPackageVersionOptions copyFrom)
             {
-                this.isReadOnly = isReadOnly;
+                this.semVer = copyFrom.semVer;
             }
 
             /// <summary>
@@ -463,6 +655,17 @@ namespace Nerdbank.GitVersioning
             /// </summary>
             [JsonIgnore]
             public float? SemVerOrDefault => this.SemVer ?? DefaultInstance.SemVer;
+
+            /// <summary>
+            /// Gets a value indicating whether this instance rejects all attempts to mutate it.
+            /// </summary>
+            [JsonIgnore]
+            public bool IsFrozen => this.isFrozen;
+
+            /// <summary>
+            /// Freezes this instance so no more changes can be made to it.
+            /// </summary>
+            public void Freeze() => this.isFrozen = true;
 
             /// <inheritdoc />
             public override bool Equals(object obj) => this.Equals(obj as NuGetPackageVersionOptions);
@@ -486,7 +689,7 @@ namespace Nerdbank.GitVersioning
             /// <param name="value">The value to set.</param>
             private void SetIfNotReadOnly<T>(ref T field, T value)
             {
-                Verify.Operation(!this.isReadOnly, "This instance is read only.");
+                Verify.Operation(!this.isFrozen, "This instance is read only.");
                 field = value;
             }
 
@@ -528,13 +731,14 @@ namespace Nerdbank.GitVersioning
             /// <summary>
             /// The default (uninitialized) instance.
             /// </summary>
-            internal static readonly AssemblyVersionOptions DefaultInstance = new AssemblyVersionOptions(isReadOnly: true)
+            internal static readonly AssemblyVersionOptions DefaultInstance = new AssemblyVersionOptions()
             {
+                isFrozen = true,
                 precision = DefaultVersionPrecision,
             };
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-            private readonly bool isReadOnly;
+            private bool isFrozen;
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
             private Version version;
@@ -546,7 +750,6 @@ namespace Nerdbank.GitVersioning
             /// Initializes a new instance of the <see cref="AssemblyVersionOptions"/> class.
             /// </summary>
             public AssemblyVersionOptions()
-                : this(isReadOnly: false)
             {
             }
 
@@ -556,7 +759,6 @@ namespace Nerdbank.GitVersioning
             /// <param name="version">The assembly version (with major.minor components).</param>
             /// <param name="precision">The additional version precision to add toward matching the AssemblyFileVersion.</param>
             public AssemblyVersionOptions(Version version, VersionPrecision? precision = null)
-                : this(isReadOnly: false)
             {
                 this.Version = version;
                 this.Precision = precision;
@@ -565,9 +767,10 @@ namespace Nerdbank.GitVersioning
             /// <summary>
             /// Initializes a new instance of the <see cref="AssemblyVersionOptions"/> class.
             /// </summary>
-            protected AssemblyVersionOptions(bool isReadOnly)
+            public AssemblyVersionOptions(AssemblyVersionOptions copyFrom)
             {
-                this.isReadOnly = isReadOnly;
+                this.version = copyFrom.version;
+                this.precision = copyFrom.precision;
             }
 
             /// <summary>
@@ -596,6 +799,17 @@ namespace Nerdbank.GitVersioning
             [JsonIgnore]
             public VersionPrecision PrecisionOrDefault => this.Precision ?? DefaultVersionPrecision;
 
+            /// <summary>
+            /// Gets a value indicating whether this instance rejects all attempts to mutate it.
+            /// </summary>
+            [JsonIgnore]
+            public bool IsFrozen => this.isFrozen;
+
+            /// <summary>
+            /// Freezes this instance so no more changes can be made to it.
+            /// </summary>
+            public void Freeze() => this.isFrozen = true;
+
             /// <inheritdoc />
             public override bool Equals(object obj) => this.Equals(obj as AssemblyVersionOptions);
 
@@ -618,7 +832,7 @@ namespace Nerdbank.GitVersioning
             /// <param name="value">The value to set.</param>
             private void SetIfNotReadOnly<T>(ref T field, T value)
             {
-                Verify.Operation(!this.isReadOnly, "This instance is read only.");
+                Verify.Operation(!this.isFrozen, "This instance is read only.");
                 field = value;
             }
 
@@ -661,14 +875,15 @@ namespace Nerdbank.GitVersioning
             /// <summary>
             /// The default (uninitialized) instance.
             /// </summary>
-            internal static readonly CloudBuildOptions DefaultInstance = new CloudBuildOptions(isReadOnly: true)
+            internal static readonly CloudBuildOptions DefaultInstance = new CloudBuildOptions()
             {
+                isFrozen = true,
                 setAllVariables = false,
                 setVersionVariables = true,
             };
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-            private readonly bool isReadOnly;
+            private bool isFrozen;
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
             private bool? setAllVariables;
@@ -683,16 +898,18 @@ namespace Nerdbank.GitVersioning
             /// Initializes a new instance of the <see cref="CloudBuildOptions"/> class.
             /// </summary>
             public CloudBuildOptions()
-                : this(false)
             {
             }
 
             /// <summary>
             /// Initializes a new instance of the <see cref="CloudBuildOptions"/> class.
             /// </summary>
-            protected CloudBuildOptions(bool isReadOnly)
+            /// <param name="copyFrom">Another instance to copy values from</param>
+            public CloudBuildOptions(CloudBuildOptions copyFrom)
             {
-                this.isReadOnly = isReadOnly;
+                this.setAllVariables = copyFrom.setAllVariables;
+                this.setVersionVariables = copyFrom.setVersionVariables;
+                this.buildNumber = copyFrom.buildNumber is object ? new CloudBuildNumberOptions(copyFrom.buildNumber) : null;
             }
 
             /// <summary>
@@ -740,6 +957,24 @@ namespace Nerdbank.GitVersioning
             [JsonIgnore]
             public CloudBuildNumberOptions BuildNumberOrDefault => this.BuildNumber ?? CloudBuildNumberOptions.DefaultInstance;
 
+            /// <summary>
+            /// Gets a value indicating whether this instance rejects all attempts to mutate it.
+            /// </summary>
+            [JsonIgnore]
+            public bool IsFrozen => this.isFrozen;
+
+            /// <summary>
+            /// Freezes this instance so no more changes can be made to it.
+            /// </summary>
+            public void Freeze()
+            {
+                if (!this.isFrozen)
+                {
+                    this.isFrozen = true;
+                    this.buildNumber?.Freeze();
+                }
+            }
+
             /// <inheritdoc />
             public override bool Equals(object obj) => this.Equals(obj as CloudBuildOptions);
 
@@ -762,7 +997,7 @@ namespace Nerdbank.GitVersioning
             /// <param name="value">The value to set.</param>
             private void SetIfNotReadOnly<T>(ref T field, T value)
             {
-                Verify.Operation(!this.isReadOnly, "This instance is read only.");
+                Verify.Operation(!this.isFrozen, "This instance is read only.");
                 field = value;
             }
 
@@ -808,31 +1043,33 @@ namespace Nerdbank.GitVersioning
             /// <summary>
             /// The default (uninitialized) instance.
             /// </summary>
-            internal static readonly CloudBuildNumberOptions DefaultInstance = new CloudBuildNumberOptions(isReadOnly: true)
+            internal static readonly CloudBuildNumberOptions DefaultInstance = new CloudBuildNumberOptions()
             {
+                isFrozen = true,
                 enabled = false,
             };
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-            private readonly bool isReadOnly;
+            private bool isFrozen;
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
             private bool? enabled;
+            private CloudBuildNumberCommitIdOptions includeCommitId;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="CloudBuildNumberOptions"/> class.
             /// </summary>
             public CloudBuildNumberOptions()
-                : this(isReadOnly: false)
             {
             }
 
             /// <summary>
             /// Initializes a new instance of the <see cref="CloudBuildNumberOptions"/> class.
             /// </summary>
-            protected CloudBuildNumberOptions(bool isReadOnly)
+            public CloudBuildNumberOptions(CloudBuildNumberOptions copyFrom)
             {
-                this.isReadOnly = isReadOnly;
+                this.enabled = copyFrom.enabled;
+                this.includeCommitId = copyFrom.includeCommitId is object ? new CloudBuildNumberCommitIdOptions(copyFrom.includeCommitId) : null;
             }
 
             /// <summary>
@@ -853,13 +1090,35 @@ namespace Nerdbank.GitVersioning
             /// <summary>
             /// Gets or sets when and where to include information about the git commit being built.
             /// </summary>
-            public CloudBuildNumberCommitIdOptions IncludeCommitId { get; set; }
+            public CloudBuildNumberCommitIdOptions IncludeCommitId
+            {
+                get => this.includeCommitId;
+                set => this.SetIfNotReadOnly(ref this.includeCommitId, value);
+            }
 
             /// <summary>
             /// Gets when and where to include information about the git commit being built.
             /// </summary>
             [JsonIgnore]
             public CloudBuildNumberCommitIdOptions IncludeCommitIdOrDefault => this.IncludeCommitId ?? CloudBuildNumberCommitIdOptions.DefaultInstance;
+
+            /// <summary>
+            /// Gets a value indicating whether this instance rejects all attempts to mutate it.
+            /// </summary>
+            [JsonIgnore]
+            public bool IsFrozen => this.isFrozen;
+
+            /// <summary>
+            /// Freezes this instance so no more changes can be made to it.
+            /// </summary>
+            public void Freeze()
+            {
+                if (!this.isFrozen)
+                {
+                    this.isFrozen = true;
+                    this.IncludeCommitId?.Freeze();
+                }
+            }
 
             /// <inheritdoc />
             public override bool Equals(object obj) => this.Equals(obj as CloudBuildNumberOptions);
@@ -883,7 +1142,7 @@ namespace Nerdbank.GitVersioning
             /// <param name="value">The value to set.</param>
             private void SetIfNotReadOnly<T>(ref T field, T value)
             {
-                Verify.Operation(!this.isReadOnly, "This instance is read only.");
+                Verify.Operation(!this.isFrozen, "This instance is read only.");
                 field = value;
             }
 
@@ -927,14 +1186,15 @@ namespace Nerdbank.GitVersioning
             /// <summary>
             /// The default (uninitialized) instance.
             /// </summary>
-            internal static readonly CloudBuildNumberCommitIdOptions DefaultInstance = new CloudBuildNumberCommitIdOptions(isReadOnly: true)
+            internal static readonly CloudBuildNumberCommitIdOptions DefaultInstance = new CloudBuildNumberCommitIdOptions()
             {
+                isFrozen = true,
                 when = CloudBuildNumberCommitWhen.NonPublicReleaseOnly,
                 where = CloudBuildNumberCommitWhere.BuildMetadata,
             };
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-            private readonly bool isReadOnly;
+            private bool isFrozen;
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
             private CloudBuildNumberCommitWhen? when;
@@ -946,16 +1206,16 @@ namespace Nerdbank.GitVersioning
             /// Initializes a new instance of the <see cref="CloudBuildNumberCommitIdOptions"/> class.
             /// </summary>
             public CloudBuildNumberCommitIdOptions()
-                : this(isReadOnly: false)
             {
             }
 
             /// <summary>
             /// Initializes a new instance of the <see cref="CloudBuildNumberCommitIdOptions"/> class.
             /// </summary>
-            protected CloudBuildNumberCommitIdOptions(bool isReadOnly)
+            public CloudBuildNumberCommitIdOptions(CloudBuildNumberCommitIdOptions copyFrom)
             {
-                this.isReadOnly = isReadOnly;
+                this.when = copyFrom.when;
+                this.where = copyFrom.where;
             }
 
             /// <summary>
@@ -988,6 +1248,17 @@ namespace Nerdbank.GitVersioning
             [JsonIgnore]
             public CloudBuildNumberCommitWhere WhereOrDefault => this.Where ?? DefaultInstance.Where.Value;
 
+            /// <summary>
+            /// Gets a value indicating whether this instance rejects all attempts to mutate it.
+            /// </summary>
+            [JsonIgnore]
+            public bool IsFrozen => this.isFrozen;
+
+            /// <summary>
+            /// Freezes this instance so no more changes can be made to it.
+            /// </summary>
+            public void Freeze() => this.isFrozen = true;
+
             /// <inheritdoc />
             public override bool Equals(object obj) => this.Equals(obj as CloudBuildNumberCommitIdOptions);
 
@@ -1009,7 +1280,7 @@ namespace Nerdbank.GitVersioning
             /// <param name="value">The value to set.</param>
             private void SetIfNotReadOnly<T>(ref T field, T value)
             {
-                Verify.Operation(!this.isReadOnly, "This instance is read only.");
+                Verify.Operation(!this.isFrozen, "This instance is read only.");
                 field = value;
             }
 
@@ -1149,15 +1420,16 @@ namespace Nerdbank.GitVersioning
             /// <summary>
             /// The default (uninitialized) instance.
             /// </summary>
-            internal static readonly ReleaseOptions DefaultInstance = new ReleaseOptions(isReadOnly: true)
+            internal static readonly ReleaseOptions DefaultInstance = new ReleaseOptions()
             {
+                isFrozen = true,
                 branchName = "v{version}",
                 versionIncrement = ReleaseVersionIncrement.Minor,
                 firstUnstableTag = "alpha"
             };
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-            private readonly bool isReadOnly;
+            private bool isFrozen;
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
             private string branchName;
@@ -1172,16 +1444,17 @@ namespace Nerdbank.GitVersioning
             /// Initializes a new instance of the <see cref="ReleaseOptions"/> class
             /// </summary>
             public ReleaseOptions()
-                : this(isReadOnly: false)
             {
             }
 
             /// <summary>
             /// Initializes a new instance of the <see cref="ReleaseOptions"/> class
             /// </summary>
-            protected ReleaseOptions(bool isReadOnly)
+            public ReleaseOptions(ReleaseOptions copyFrom)
             {
-                this.isReadOnly = isReadOnly;
+                this.branchName = copyFrom.branchName;
+                this.versionIncrement = copyFrom.versionIncrement;
+                this.firstUnstableTag = copyFrom.firstUnstableTag;
             }
 
             /// <summary>
@@ -1232,6 +1505,17 @@ namespace Nerdbank.GitVersioning
             [JsonIgnore]
             public string FirstUnstableTagOrDefault => this.FirstUnstableTag ?? DefaultInstance.FirstUnstableTag;
 
+            /// <summary>
+            /// Gets a value indicating whether this instance rejects all attempts to mutate it.
+            /// </summary>
+            [JsonIgnore]
+            public bool IsFrozen => this.isFrozen;
+
+            /// <summary>
+            /// Freezes this instance so no more changes can be made to it.
+            /// </summary>
+            public void Freeze() => this.isFrozen = true;
+
             /// <inheritdoc />
             public override bool Equals(object obj) => this.Equals(obj as ReleaseOptions);
 
@@ -1254,7 +1538,7 @@ namespace Nerdbank.GitVersioning
             /// <param name="value">The value to set.</param>
             private void SetIfNotReadOnly<T>(ref T field, T value)
             {
-                Verify.Operation(!this.isReadOnly, "This instance is read only.");
+                Verify.Operation(!this.isFrozen, "This instance is read only.");
                 field = value;
             }
 

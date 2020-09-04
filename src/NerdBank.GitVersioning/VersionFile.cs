@@ -58,6 +58,7 @@
                         result = TryReadVersionFile(new StreamReader(versionTxtBlob.GetContentStream()));
                         if (blobVersionCache is object)
                         {
+                            result?.Freeze();
                             blobVersionCache.Add(versionTxtBlob.Id, result);
                         }
                     }
@@ -94,6 +95,7 @@
 
                         if (blobVersionCache is object)
                         {
+                            result?.Freeze();
                             blobVersionCache.Add(versionJsonBlob.Id, result);
                         }
                     }
@@ -112,6 +114,11 @@
                                     {
                                         versionJsonContent = sr.ReadToEnd();
                                     }
+                                }
+
+                                if (result.IsFrozen)
+                                {
+                                    result = new VersionOptions(result);
                                 }
 
                                 JsonConvert.PopulateObject(versionJsonContent, result, VersionOptions.GetJsonSettings(repoRelativeBaseDirectory: searchDirectory));
