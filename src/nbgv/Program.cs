@@ -82,6 +82,7 @@ namespace Nerdbank.GitVersioning.Tool
             var version = string.Empty;
             IReadOnlyList<string> sources = Array.Empty<string>();
             IReadOnlyList<string> cloudVariables = Array.Empty<string>();
+            IReadOnlyList<string> buildMetadata = Array.Empty<string>();
             var format = string.Empty;
             string singleVariable = null;
             bool quiet = false;
@@ -109,6 +110,7 @@ namespace Nerdbank.GitVersioning.Tool
 
                 getVersion = syntax.DefineCommand("get-version", ref commandText, "Gets the version information for a project.");
                 syntax.DefineOption("p|project", ref projectPath, "The path to the project or project directory. The default is the current directory.");
+                syntax.DefineOptionList("metadata", ref buildMetadata, requireValue: true, "Adds an identifier to the build metadata part of a semantic version.");
                 syntax.DefineOption("f|format", ref format, $"The format to write the version information. Allowed values are: text, json. The default is {DefaultOutputFormat}.");
                 syntax.DefineOption("v|variable", ref singleVariable, "The name of just one version property to print to stdout. When specified, the output is always in raw text. Useful in scripts.");
                 syntax.DefineParameter("commit-ish", ref version, $"The commit/ref to get the version information for. The default is {DefaultRef}.");
@@ -128,6 +130,7 @@ namespace Nerdbank.GitVersioning.Tool
 
                 cloud = syntax.DefineCommand("cloud", ref commandText, "Communicates with the ambient cloud build to set the build number and/or other cloud build variables.");
                 syntax.DefineOption("p|project", ref projectPath, "The path to the project or project directory used to calculate the version. The default is the current directory. Ignored if the -v option is specified.");
+                syntax.DefineOptionList("metadata", ref buildMetadata, requireValue: true, "Adds an identifier to the build metadata part of a semantic version.");
                 syntax.DefineOption("v|version", ref version, "The string to use for the cloud build number. If not specified, the computed version will be used.");
                 syntax.DefineOption("s|ci-system", ref cisystem, "Force activation for a particular CI system. If not specified, auto-detection will be used. Supported values are: " + string.Join(", ", CloudProviderNames));
                 syntax.DefineOption("a|all-vars", ref cloudBuildAllVars, false, "Defines ALL version variables as cloud build variables, with a \"NBGV_\" prefix.");
@@ -154,7 +157,7 @@ namespace Nerdbank.GitVersioning.Tool
             }
             else if (getVersion.IsActive)
             {
-                exitCode = OnGetVersionCommand(projectPath, format, singleVariable, version);
+                exitCode = OnGetVersionCommand(projectPath, buildMetadata, format, singleVariable, version);
             }
             else if (setVersion.IsActive)
             {
@@ -170,7 +173,7 @@ namespace Nerdbank.GitVersioning.Tool
             }
             else if (cloud.IsActive)
             {
-                exitCode = OnCloudCommand(projectPath, version, cisystem, cloudBuildAllVars, cloudBuildCommonVars, cloudVariables);
+                exitCode = OnCloudCommand(projectPath, buildMetadata, version, cisystem, cloudBuildAllVars, cloudBuildCommonVars, cloudVariables);
             }
             else if (prepareRelease.IsActive)
             {
@@ -293,7 +296,7 @@ namespace Nerdbank.GitVersioning.Tool
             return ExitCodes.OK;
         }
 
-        private static ExitCodes OnGetVersionCommand(string projectPath, string format, string singleVariable, string versionOrRef)
+        private static ExitCodes OnGetVersionCommand(string projectPath, IReadOnlyList<string> buildMetadata, string format, string singleVariable, string versionOrRef)
         {
             if (string.IsNullOrEmpty(format))
             {
@@ -329,6 +332,7 @@ namespace Nerdbank.GitVersioning.Tool
             }
 
             var oracle = new VersionOracle(searchPath, repository, commit, CloudBuild.Active);
+            oracle.BuildMetadata.AddRange(buildMetadata);
 
             // Take the PublicRelease environment variable into account, since the build would as well.
             if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("PublicRelease")) && bool.TryParse(Environment.GetEnvironmentVariable("PublicRelease"), out bool publicRelease))
@@ -532,7 +536,7 @@ namespace Nerdbank.GitVersioning.Tool
             return ExitCodes.OK;
         }
 
-        private static ExitCodes OnCloudCommand(string projectPath, string version, string cisystem, bool cloudBuildAllVars, bool cloudBuildCommonVars, IReadOnlyList<string> cloudVariables)
+        private static ExitCodes OnCloudCommand(string projectPath, IReadOnlyList<string> buildMetadata, string version, string cisystem, bool cloudBuildAllVars, bool cloudBuildCommonVars, IReadOnlyList<string> cloudVariables)
         {
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(projectPath);
             if (!Directory.Exists(searchPath))
@@ -555,6 +559,7 @@ namespace Nerdbank.GitVersioning.Tool
             }
 
             var oracle = VersionOracle.Create(searchPath, cloudBuild: activeCloudBuild);
+            oracle.BuildMetadata.AddRange(buildMetadata);
             var variables = new Dictionary<string, string>();
             if (cloudBuildAllVars)
             {
