@@ -23,16 +23,13 @@
     <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
     <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
     <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
-
-    <_NBGV_PlatformSuffix Condition=" '$(_NBGV_PlatformSuffix)' == '' and '$(MSBuildRuntimeType)' == 'Core' ">MSBuildCore/</_NBGV_PlatformSuffix>
-    <_NBGV_PlatformSuffix Condition=" '$(_NBGV_PlatformSuffix)' == '' ">MSBuildFull/</_NBGV_PlatformSuffix>
-    <NerdbankGitVersioningTasksPath Condition=" '$(NerdbankGitVersioningTasksPath)' == '' ">$(MSBuildThisFileDirectory)$(_NBGV_PlatformSuffix)</NerdbankGitVersioningTasksPath>
   </PropertyGroup>
+
+  <Import Project="Nerdbank.GitVersioning.Common.targets"/>
 
   <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="Nerdbank.GitVersioning.Tasks.AssemblyVersionInfo"/>
   <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="Nerdbank.GitVersioning.Tasks.NativeVersionInfo"/>
   <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="Nerdbank.GitVersioning.Tasks.SetCloudBuildVariables"/>
-  <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="Nerdbank.GitVersioning.Tasks.GetBuildVersion"/>
   <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="Nerdbank.GitVersioning.Tasks.CompareFiles"/>
 
   <Target Name="NBGV_SetDefaults">
@@ -68,50 +65,47 @@
   </PropertyGroup>
 
   <Target Name="GetBuildVersion" Returns="$(BuildVersion)">
-    <Nerdbank.GitVersioning.Tasks.GetBuildVersion
-      BuildingRef="$(_NBGV_BuildingRef)"
-      BuildMetadata="@(BuildMetadata)"
-      DefaultPublicRelease="$(PublicRelease)"
-      GitRepoRoot="$(GitRepoRoot)"
-      ProjectPathRelativeToGitRepoRoot="$(ProjectPathRelativeToGitRepoRoot)"
-      OverrideBuildNumberOffset="$(OverrideBuildNumberOffset)"
-      TargetsPath="$(MSBuildThisFileDirectory)">
-
-      <Output TaskParameter="Version" PropertyName="BuildVersion" />
-      <Output TaskParameter="AssemblyInformationalVersion" PropertyName="AssemblyInformationalVersion" />
-      <Output TaskParameter="AssemblyFileVersion" PropertyName="AssemblyFileVersion" />
-      <Output TaskParameter="AssemblyFileVersion" PropertyName="FileVersion" />
-      <Output TaskParameter="SimpleVersion" PropertyName="BuildVersionSimple" />
-      <Output TaskParameter="PrereleaseVersion" PropertyName="PrereleaseVersion" />
-      <Output TaskParameter="MajorMinorVersion" PropertyName="MajorMinorVersion" />
-      <Output TaskParameter="AssemblyVersion" PropertyName="AssemblyVersion" />
-      <Output TaskParameter="GitCommitId" PropertyName="GitCommitId" />
-      <Output TaskParameter="GitCommitIdShort" PropertyName="GitCommitIdShort" />
-      <Output TaskParameter="GitCommitDateTicks" PropertyName="GitCommitDateTicks" />
-      <Output TaskParameter="GitVersionHeight" PropertyName="GitVersionHeight" />
-      <Output TaskParameter="BuildNumber" PropertyName="BuildNumber" />
-      <Output TaskParameter="BuildNumber" PropertyName="BuildVersionNumberComponent" />
-      <Output TaskParameter="PublicRelease" PropertyName="PublicRelease" />
-      <Output TaskParameter="BuildingRef" PropertyName="BuildingRef" />
-      <Output TaskParameter="CloudBuildNumber" PropertyName="CloudBuildNumber" Condition=" '$(CloudBuildNumber)' == '' "/>
-      <Output TaskParameter="BuildMetadataFragment" PropertyName="SemVerBuildSuffix" />
-      <Output TaskParameter="NuGetPackageVersion" PropertyName="NuGetPackageVersion" />
-      <Output TaskParameter="ChocolateyPackageVersion" PropertyName="ChocolateyPackageVersion" />
-      <Output TaskParameter="NuGetPackageVersion" PropertyName="Version" />
-      <Output TaskParameter="NuGetPackageVersion" PropertyName="PackageVersion" />
-      <Output TaskParameter="NPMPackageVersion" PropertyName="NPMPackageVersion" />
-      <Output TaskParameter="CloudBuildVersionVars" ItemName="CloudBuildVersionVars" />
-    </Nerdbank.GitVersioning.Tasks.GetBuildVersion>
-
     <PropertyGroup>
-      <BuildVersion3Components>$(MajorMinorVersion).$(BuildVersionNumberComponent)</BuildVersion3Components>
+      <GitVersionBaseDirectory Condition=" '$(GitVersionBaseDirectory)' == '' ">$(MSBuildProjectDirectory)</GitVersionBaseDirectory>
+      <NBGV_InnerGlobalProperties>
+        GitRepoRoot=$(GitRepoRoot);
+        PublicRelease=$(PublicRelease);
+        BuildMetadata=@(BuildMetadata, ',');
+        _NBGV_BuildingRef=$(_NBGV_BuildingRef);
+        ProjectPathRelativeToGitRepoRoot=$(ProjectPathRelativeToGitRepoRoot);
+        ProjectDirectory=$(GitVersionBaseDirectory);
+        OverrideBuildNumberOffset=$(OverrideBuildNumberOffset);
+      </NBGV_InnerGlobalProperties>
+      <NBGV_CoreTargets>$(MSBuildThisFileDirectory)Nerdbank.GitVersioning.Inner.targets</NBGV_CoreTargets>
     </PropertyGroup>
 
-    <Warning Condition=" '$(AssemblyInformationalVersion)' == '' " Text="Unable to determine the git HEAD commit ID to use for informational version number." />
-    <Message Condition=" '$(AssemblyInformationalVersion)' != '' " Text="Building version $(BuildVersion) from commit $(GitCommitId)"/>
-    <Message Condition=" '$(AssemblyInformationalVersion)' == '' " Text="Building version $(BuildVersion)"/>
-    <Message Importance="low" Text="AssemblyInformationalVersion: $(AssemblyInformationalVersion)" />
-    <Message Importance="low" Text="NuGetPackageVersion: $(NuGetPackageVersion)" />
+    <!-- Compile a list of global properties that may vary when a project builds but that would never influence the result of the GetBuildVersion task. -->
+    <ItemGroup>
+      <NBGV_GlobalPropertiesToRemove Include="TargetFramework" />
+    </ItemGroup>
+
+    <!-- Calculate version by invoking another "project" with global properties that will serve as a key 
+         into an msbuild cache to ensure we only invoke the GetBuildVersion task as many times as will produce a unique value. -->
+    <MSBuild Projects="$(NBGV_CoreTargets)" Properties="$(NBGV_InnerGlobalProperties)" RemoveProperties="@(NBGV_GlobalPropertiesToRemove)" Targets="GetBuildVersion_Properties">
+      <Output TaskParameter="TargetOutputs" ItemName="NBGV_PropertyItems" />
+    </MSBuild>
+
+    <!-- Convert each task item into a bona fide MSBuild property. -->
+    <CreateProperty
+      Value="%(NBGV_PropertyItems.Value)"
+      Condition=" !%(NBGV_PropertyItems.HonorPresetValue) ">
+      <Output TaskParameter="Value" PropertyName="%(NBGV_PropertyItems.Identity)" />
+    </CreateProperty>
+
+    <!-- Set those properties that require special care to not overwrite prior values. -->
+    <PropertyGroup>
+      <CloudBuildNumber Condition=" '$(CloudBuildNumber)' == '' and %(NBGV_PropertyItems.Identity) == 'CloudBuildNumber' ">%(Value)</CloudBuildNumber>
+    </PropertyGroup>
+
+    <!-- Also get other items. -->
+    <MSBuild Projects="$(NBGV_CoreTargets)" Properties="$(NBGV_InnerGlobalProperties)" RemoveProperties="@(NBGV_GlobalPropertiesToRemove)" Targets="GetBuildVersion_CloudBuildVersionVars">
+      <Output TaskParameter="TargetOutputs" ItemName="CloudBuildVersionVars" />
+    </MSBuild>
   </Target>
 
   <Target Name="SetCloudBuildVersionVars"

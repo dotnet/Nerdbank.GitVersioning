@@ -23,7 +23,7 @@
         /// <summary>
         /// Gets or sets identifiers to append as build metadata.
         /// </summary>
-        public string[] BuildMetadata { get; set; }
+        public string BuildMetadata { get; set; }
 
         /// <summary>
         /// Gets or sets the value of the PublicRelease property in MSBuild at the
@@ -33,7 +33,7 @@
         public string DefaultPublicRelease { get; set; }
 
         /// <summary>
-        /// Gets or sets the path to the repo root. If null or empty, behavior defaults to using Environment.CurrentDirectory and searching upwards.
+        /// Gets or sets the path to the repo root. If null or empty, behavior defaults to using <see cref="ProjectDirectory"/> and searching upwards.
         /// </summary>
         public string GitRepoRoot { get; set; }
 
@@ -41,7 +41,7 @@
         /// Gets or sets the relative path from the <see cref="GitRepoRoot"/> to the directory under it that contains the project being built.
         /// </summary>
         /// <value>
-        /// If not supplied, the directories from <see cref="GitRepoRoot"/> to <see cref="Environment.CurrentDirectory"/>
+        /// If not supplied, the directories from <see cref="GitRepoRoot"/> to <see cref="ProjectDirectory"/>
         /// will be searched for version.json.
         /// If supplied, the value <em>must</em> fall beneath the <see cref="GitRepoRoot"/> (i.e. this value should not contain "..\").
         /// </value>
@@ -50,6 +50,11 @@
         /// relative path can be calculated automatically.
         /// </remarks>
         public string ProjectPathRelativeToGitRepoRoot { get; set; }
+
+        /// <summary>
+        /// Gets or sets the path to the project directory.
+        /// </summary>
+        public string ProjectDirectory { get; set; }
 
         /// <summary>
         /// Gets or sets the optional override build number offset.
@@ -65,6 +70,12 @@
         /// </remarks>
         [Required]
         public string TargetsPath { get; set; }
+
+        /// <summary>
+        /// Gets or sets the list of properties to be set in MSBuild.
+        /// </summary>
+        [Output]
+        public ITaskItem[] OutputProperties { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the project is building
@@ -202,7 +213,7 @@
 
                 var cloudBuild = CloudBuild.Active;
                 var overrideBuildNumberOffset = (this.OverrideBuildNumberOffset == int.MaxValue) ? (int?)null : this.OverrideBuildNumberOffset;
-                var oracle = VersionOracle.Create(Directory.GetCurrentDirectory(), this.GitRepoRoot, cloudBuild, overrideBuildNumberOffset, this.ProjectPathRelativeToGitRepoRoot);
+                var oracle = VersionOracle.Create(this.ProjectDirectory, this.GitRepoRoot, cloudBuild, overrideBuildNumberOffset, this.ProjectPathRelativeToGitRepoRoot);
                 if (!string.IsNullOrEmpty(this.DefaultPublicRelease))
                 {
                     oracle.PublicRelease = string.Equals(this.DefaultPublicRelease, "true", StringComparison.OrdinalIgnoreCase);
@@ -210,7 +221,7 @@
 
                 if (this.BuildMetadata != null)
                 {
-                    oracle.BuildMetadata.AddRange(this.BuildMetadata);
+                    oracle.BuildMetadata.AddRange(this.BuildMetadata.Split(';'));
                 }
 
                 if (IsMisconfiguredPrereleaseAndSemVer1(oracle))
@@ -266,6 +277,41 @@
                     this.CloudBuildVersionVars = cloudBuildVersionVars.ToArray();
                 }
 
+                var outputProperties = new Dictionary<string, PropertySet>(StringComparer.OrdinalIgnoreCase)
+                {
+                    { "BuildVersion", this.Version },
+                    { "AssemblyInformationalVersion", this.AssemblyInformationalVersion },
+                    { "AssemblyFileVersion", this.AssemblyFileVersion },
+                    { "FileVersion", this.AssemblyFileVersion },
+                    { "BuildVersionSimple", this.SimpleVersion },
+                    { "PrereleaseVersion", this.PrereleaseVersion },
+                    { "MajorMinorVersion", this.MajorMinorVersion },
+                    { "AssemblyVersion", this.AssemblyVersion },
+                    { "GitCommitId", this.GitCommitId },
+                    { "GitCommitIdShort", this.GitCommitIdShort },
+                    { "GitCommitDateTicks", this.GitCommitDateTicks },
+                    { "GitVersionHeight", this.GitVersionHeight.ToString(CultureInfo.InvariantCulture) },
+                    { "BuildNumber", this.BuildNumber.ToString(CultureInfo.InvariantCulture) },
+                    { "BuildVersionNumberComponent", this.BuildNumber.ToString(CultureInfo.InvariantCulture) },
+                    { "PublicRelease", this.PublicRelease.ToString(CultureInfo.InvariantCulture) },
+                    { "BuildingRef", this.BuildingRef },
+                    { "CloudBuildNumber", new PropertySet(this.CloudBuildNumber) { HonorPresetValue = true } },
+                    { "SemVerBuildSuffix", this.BuildMetadataFragment },
+                    { "NuGetPackageVersion", this.NuGetPackageVersion },
+                    { "ChocolateyPackageVersion", this.ChocolateyPackageVersion },
+                    { "Version", this.NuGetPackageVersion },
+                    { "PackageVersion", this.NuGetPackageVersion },
+                    { "NPMPackageVersion", this.NpmPackageVersion.ToString(CultureInfo.InvariantCulture) },
+                    { "BuildVersion3Components", $"{this.MajorMinorVersion}.{this.BuildNumber}" },
+                };
+                this.OutputProperties = outputProperties.Select(kv =>
+                {
+                    var item = new TaskItem(kv.Key);
+                    item.SetMetadata("Value", kv.Value.Value);
+                    item.SetMetadata("HonorPresetValue", kv.Value.HonorPresetValue ? "true" : "false");
+                    return item;
+                }).ToArray();
+
                 return !this.Log.HasLoggedErrors;
             }
             catch (ArgumentOutOfRangeException ex)
@@ -291,6 +337,21 @@
         {
             Requires.NotNull(oracle, nameof(oracle));
             return oracle.VersionOptions?.NuGetPackageVersion?.SemVer == 1 && oracle.PrereleaseVersion != SemanticVersionExtensions.MakePrereleaseSemVer1Compliant(oracle.PrereleaseVersion, 0);
+        }
+
+        private struct PropertySet
+        {
+            public PropertySet(string value)
+            {
+                this.Value = value;
+                this.HonorPresetValue = false;
+            }
+
+            public string Value { get; set; }
+
+            public bool HonorPresetValue { get; set; }
+
+            public static implicit operator PropertySet(string value) => new PropertySet(value);
         }
     }
 }
