@@ -146,9 +146,25 @@ stages:
         command: push
         packagesToPush: $(Build.ArtifactStagingDirectory)/deployables/*.*nupkg
         nuGetFeedType: internal
-        publishVstsFeed: 6ed146e5-8e9c-46d6-a40f-da9367ed50cd/c20edbb7-8403-4456-8f43-f46b47e360b1
+        publishVstsFeed: OSS/PublicCI
         allowPackageConflicts: true
-      condition: and(succeeded(), ne(variables['System.PullRequest.IsFork'], 'true'))
+      condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+
+    - pwsh: Set-Content -Path "$(Agent.TempDirectory)/.npmrc" -Value "registry=https://pkgs.dev.azure.com/andrewarnott/OSS/_packaging/PublicCI/npm/registry/`nalways-auth=true"
+      displayName: Prepare to push to PublicCI
+      condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+    - task: npmAuthenticate@0
+      displayName: Authenticate to PublicCI
+      inputs:
+        workingFile: $(Agent.TempDirectory)/.npmrc
+      condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+    - pwsh: |
+        $tgz = (Get-ChildItem "$(Build.ArtifactStagingDirectory)/deployables/*.tgz")[0].FullName
+        Write-Host "Will publish $tgz"
+        npm publish $tgz
+      workingDirectory: $(Agent.TempDirectory)
+      displayName: npm publish to PublicCI feed
+      condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
 
 - stage: Test
   jobs:
