@@ -1,11 +1,8 @@
 'use strict';
 
-import * as fs from 'fs';
-import * as path from 'path';
 import * as camelCase from 'camel-case';
-import {execAsync} from './asyncprocess';
-
-const nbgvPath = 'nbgv.cli';
+import { execAsync } from './asyncprocess';
+import { getNbgvCommand } from './core';
 
 /**
  * The various aspects of a version that can be calculated.
@@ -43,9 +40,7 @@ export interface IGitVersion {
  */
 export async function getVersion(projectDirectory?: string, dotnetCommand?: string): Promise<IGitVersion> {
     projectDirectory = projectDirectory || '.';
-    var command = dotnetCommand || 'dotnet';
-    var getVersionScriptPath = path.join(__dirname, nbgvPath, "tools", "netcoreapp2.1", "any", "nbgv.dll");
-    var versionText = await execAsync(`${command} "${getVersionScriptPath}" get-version --format json`, { cwd: projectDirectory })
+    var versionText = await execAsync(`${getNbgvCommand(dotnetCommand)} get-version --format json`, { cwd: projectDirectory })
     if (versionText.stderr) {
         throw versionText.stderr;
     }
@@ -83,7 +78,7 @@ export async function setPackageVersion(packageDirectory?: string, srcDirectory?
  */
 export async function resetPackageVersionPlaceholder(srcDirectory?: string) {
     srcDirectory = srcDirectory || '.';
-    var result = await execAsync(`npm version 0.0.0-placeholder`, { cwd: srcDirectory });
+    var result = await execAsync(`npm version 0.0.0-placeholder --no-git-tag-version --allow-same-version`, { cwd: srcDirectory });
     if (result.stderr) {
         console.log(result.stderr);
     }
