@@ -337,7 +337,7 @@
             Requires.NotNull(version, nameof(version));
 
             var tracker = new GitWalkTracker(repoRelativeProjectDirectory);
-            var possibleCommits = from commit in GetCommitsReachableFromRefs(repo).Distinct()
+            var possibleCommits = from commit in GetCommitsReachableFromRefs(repo)
                                   let commitVersionOptions = tracker.GetVersion(commit)
                                   where commitVersionOptions != null
                                   where !IsCommitIdMismatch(version, commitVersionOptions, commit)
@@ -880,45 +880,29 @@
         {
             Requires.NotNull(repo, nameof(repo));
 
-            var commits = new HashSet<Commit>();
+            var visitedCommitIds = new HashSet<ObjectId>();
+            var breadthFirstQueue = new Queue<Commit>();
+
+            // Start the discovery with HEAD, and all commits that have refs pointing to them.
+            breadthFirstQueue.Enqueue(repo.Head.Tip);
             foreach (var reference in repo.Refs)
             {
                 var commit = reference.ResolveToDirectReference()?.Target as Commit;
-                if (commit != null)
+                if (commit is object)
                 {
-                    AddReachableCommitsFrom(commit, commits);
+                    breadthFirstQueue.Enqueue(commit);
                 }
             }
 
-            return commits;
-        }
-
-        /// <summary>
-        /// Adds a commit and all its ancestors to a set.
-        /// </summary>
-        /// <param name="startingCommit">The starting commit to add.</param>
-        /// <param name="set">
-        /// The set into which the <paramref name="startingCommit"/>
-        /// and all its ancestors are to be added.
-        /// </param>
-        private static void AddReachableCommitsFrom(Commit startingCommit, HashSet<Commit> set)
-        {
-            Requires.NotNull(startingCommit, nameof(startingCommit));
-            Requires.NotNull(set, nameof(set));
-
-            var stack = new Stack<Commit>();
-            stack.Push(startingCommit);
-            while (stack.Count > 0)
+            while (breadthFirstQueue.Count > 0)
             {
-                var currentCommit = stack.Pop();
-                if (set.Add(currentCommit))
+                Commit head = breadthFirstQueue.Dequeue();
+                if (visitedCommitIds.Add(head.Id))
                 {
-                    foreach (var parent in currentCommit.Parents)
+                    yield return head;
+                    foreach (Commit parent in head.Parents)
                     {
-                        if (!set.Contains(parent))
-                        {
-                            stack.Push(parent);
-                        }
+                        breadthFirstQueue.Enqueue(parent);
                     }
                 }
             }

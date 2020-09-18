@@ -530,7 +530,7 @@ namespace Nerdbank.GitVersioning.Tool
             }
 
             string repoRelativeProjectDir = GetRepoRelativePath(searchPath, repository);
-            var candidateCommits = GitExtensions.GetCommitsFromVersion(repository, parsedVersion, repoRelativeProjectDir).ToList();
+            var candidateCommits = GitExtensions.GetCommitsFromVersion(repository, parsedVersion, repoRelativeProjectDir);
             PrintCommits(quiet, searchPath, repository, candidateCommits);
 
             return ExitCodes.OK;
@@ -772,7 +772,7 @@ namespace Nerdbank.GitVersioning.Tool
             return path + Path.DirectorySeparatorChar;
         }
 
-        private static void PrintCommits(bool quiet, string projectDirectory, LibGit2Sharp.Repository repository, List<LibGit2Sharp.Commit> candidateCommits, bool includeOptions = false)
+        private static void PrintCommits(bool quiet, string projectDirectory, LibGit2Sharp.Repository repository, IEnumerable<LibGit2Sharp.Commit> candidateCommits, bool includeOptions = false)
         {
             int index = 1;
             foreach (var commit in candidateCommits)
