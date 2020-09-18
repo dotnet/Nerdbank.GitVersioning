@@ -552,6 +552,44 @@ public class ReleaseManagerTests : RepoTestBase
         }
     }
 
+    [Fact]
+    public void PrepareRelease_ResetsVersionHeightOffset()
+    {
+        // create and configure repository
+        this.InitializeSourceControl();
+
+        var initialVersionOptions = new VersionOptions()
+        {
+            Version = SemanticVersion.Parse("1.0-beta"),
+            VersionHeightOffset = 5,
+        };
+
+        var expectedReleaseVersionOptions = new VersionOptions()
+        {
+            Version = SemanticVersion.Parse("1.0"),
+            VersionHeightOffset = 5,
+        };
+
+        var expectedMainVersionOptions = new VersionOptions()
+        {
+            Version = SemanticVersion.Parse("1.1-alpha"),
+        };
+
+        // create version.json
+        this.WriteVersionFile(initialVersionOptions);
+
+        var tipBeforePrepareRelease = this.Repo.Head.Tip;
+
+        var releaseManager = new ReleaseManager();
+        releaseManager.PrepareRelease(this.RepoPath);
+
+        var newVersion = VersionFile.GetVersion(this.RepoPath);
+        Assert.Equal(expectedMainVersionOptions, newVersion);
+
+        var releaseVersion = VersionFile.GetVersion(this.Repo.Branches["v1.0"].Tip);
+        Assert.Equal(expectedReleaseVersionOptions, releaseVersion);
+    }
+
     protected override void InitializeSourceControl()
     {
         base.InitializeSourceControl();

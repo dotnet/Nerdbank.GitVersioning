@@ -337,6 +337,12 @@
 
             if (!EqualityComparer<SemanticVersion>.Default.Equals(versionOptions.Version, newVersion))
             {
+                if (versionOptions.VersionHeightPosition.HasValue && GitExtensions.WillVersionChangeResetVersionHeight(versionOptions.Version, newVersion, versionOptions.VersionHeightPosition.Value))
+                {
+                    // The version will be reset by this change, so remove the version height offset property.
+                    versionOptions.VersionHeightOffset = null;
+                }
+
                 versionOptions.Version = newVersion;
                 var filePath = VersionFile.SetVersion(projectDirectory, versionOptions, includeSchemaProperty: true);
 

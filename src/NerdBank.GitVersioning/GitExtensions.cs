@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.IO;
     using System.Linq;
     using System.Runtime.InteropServices;
@@ -486,6 +487,71 @@
         }
 
         /// <summary>
+        /// Tests whether two <see cref="VersionOptions" /> instances are compatible enough that version height is not reset
+        /// when progressing from one to the next.
+        /// </summary>
+        /// <param name="first">One set of version options.</param>
+        /// <param name="second">Another set of version options.</param>
+        /// <returns><c>true</c> if transitioning from one version to the next should reset the version height; <c>false</c> otherwise.</returns>
+        internal static bool WillVersionChangeResetVersionHeight(VersionOptions first, VersionOptions second)
+        {
+            Requires.NotNull(first, nameof(first));
+            Requires.NotNull(second, nameof(second));
+
+            // If the version height position moved, that's an automatic reset in version height.
+            if (first.VersionHeightPosition != second.VersionHeightPosition)
+            {
+                return true;
+            }
+
+            if (!first.VersionHeightPosition.HasValue)
+            {
+                // There's no version height anywhere, so go ahead and say it would be reset.
+                // This is useful to our `nbgv prepare-release` command to know that it can remove the version height adjustment property.
+                return true;
+            }
+
+            return WillVersionChangeResetVersionHeight(first.Version, second.Version, first.VersionHeightPosition.Value);
+        }
+
+        /// <summary>
+        /// Tests whether two <see cref="SemanticVersion" /> instances are compatible enough that version height is not reset
+        /// when progressing from one to the next.
+        /// </summary>
+        /// <param name="first">The first semantic version.</param>
+        /// <param name="second">The second semantic version.</param>
+        /// <param name="versionHeightPosition">The position within the version where height is tracked.</param>
+        /// <returns><c>true</c> if transitioning from one version to the next should reset the version height; <c>false</c> otherwise.</returns>
+        internal static bool WillVersionChangeResetVersionHeight(SemanticVersion first, SemanticVersion second, SemanticVersion.Position versionHeightPosition)
+        {
+            Requires.NotNull(first, nameof(first));
+            Requires.NotNull(second, nameof(second));
+
+            if (first == second)
+            {
+                return false;
+            }
+
+            if (versionHeightPosition == SemanticVersion.Position.Prerelease)
+            {
+                // The entire version spec must match exactly.
+                return !first.Equals(second);
+            }
+
+            for (SemanticVersion.Position position = SemanticVersion.Position.Major; position <= versionHeightPosition; position++)
+            {
+                int expectedValue = ReadVersionPosition(second.Version, position);
+                int actualValue = ReadVersionPosition(first.Version, position);
+                if (expectedValue != actualValue)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Tests whether a commit is of a specified version, comparing major and minor components
         /// with the version.txt file defined by that commit.
         /// </summary>
@@ -512,23 +578,7 @@
                 return false;
             }
 
-            if (comparisonPrecision == SemanticVersion.Position.Prerelease)
-            {
-                // The entire version spec must match exactly.
-                return semVerFromFile?.Equals(expectedVersion) ?? false;
-            }
-
-            for (SemanticVersion.Position position = SemanticVersion.Position.Major; position <= comparisonPrecision; position++)
-            {
-                int expectedValue = ReadVersionPosition(expectedVersion.Version, position);
-                int actualValue = ReadVersionPosition(semVerFromFile.Version, position);
-                if (expectedValue != actualValue)
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            return !WillVersionChangeResetVersionHeight(commitVersionData.Version, expectedVersion, comparisonPrecision);
         }
 
         /// <summary>
