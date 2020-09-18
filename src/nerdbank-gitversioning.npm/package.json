@@ -7,6 +7,10 @@
     "email": "andrewarnott@gmail.com",
     "url": "http://blog.nerdbank.net/"
   },
+  "bin": {
+    "nbgv": "main.js",
+    "nbgv-setversion": "npmVersion.js"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/dotnet/Nerdbank.GitVersioning.git"

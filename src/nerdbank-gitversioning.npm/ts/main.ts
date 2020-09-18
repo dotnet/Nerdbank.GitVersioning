@@ -1,14 +1,11 @@
-'use string';
+#!/usr/bin/env node
 
-import * as lib from './index'
+'use strict';
 
-async function printGitVersion() {
-    try {
-        console.log(await lib.getVersion());
-    } catch (err) {
-        console.log('Failed to get version:');
-        console.log(err);
-    }
-}
+import { getNbgvCommand } from "./core";
 
-printGitVersion();
+const { spawn } = require('child_process');
+const { argv, exit } = require('process');
+
+const cp = spawn(`${getNbgvCommand()} ${argv.slice(2).join(' ')}`, { shell: true, stdio: "inherit" })
+cp.once('exit', code => exit(code))
