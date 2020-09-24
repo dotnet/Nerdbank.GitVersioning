@@ -26,6 +26,14 @@
         /// </summary>
         private static readonly SemanticVersion SemVer0 = SemanticVersion.Parse("0.0");
 
+        private static readonly LibGit2Sharp.CompareOptions DiffOptions = new LibGit2Sharp.CompareOptions()
+        {
+            // When calculating the height of a commit, we do not care if a file has been renamed only if it has been added or removed.
+            // Calculating similarities can consume significant amounts of CPU, so disable it.
+            Similarity = SimilarityOptions.None,
+            ContextLines = 0
+        };
+
         /// <summary>
         /// Maximum allowable value for the <see cref="Version.Build"/>
         /// and <see cref="Version.Revision"/> components.
@@ -843,9 +851,9 @@
                     var relevantCommit =
                         commit.Parents.Any()
                             ? commit.Parents.Any(parent => ContainsRelevantChanges(commit.GetRepository().Diff
-                                .Compare<TreeChanges>(parent.Tree, commit.Tree, diffInclude)))
+                                .Compare<TreeChanges>(parent.Tree, commit.Tree, diffInclude, DiffOptions)))
                             : ContainsRelevantChanges(commit.GetRepository().Diff
-                                .Compare<TreeChanges>(null, commit.Tree, diffInclude));
+                                .Compare<TreeChanges>(null, commit.Tree, diffInclude, DiffOptions));
 
                     if (!relevantCommit)
                     {
