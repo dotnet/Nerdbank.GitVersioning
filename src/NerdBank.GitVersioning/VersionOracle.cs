@@ -56,12 +56,17 @@
         public VersionOracle(string projectDirectory, LibGit2Sharp.Repository repo, LibGit2Sharp.Commit head, ICloudBuild cloudBuild, int? overrideVersionHeightOffset = null, string projectPathRelativeToGitRepoRoot = null)
         {
             var relativeRepoProjectDirectory = projectPathRelativeToGitRepoRoot ?? repo?.GetRepoRelativePath(projectDirectory);
+            if (repo is object)
+            {
+                // If we're particularly git focused, normalize/reset projectDirectory to be the path we *actually* want to look at in case we're being redirected.
+                projectDirectory = Path.Combine(repo.Info.WorkingDirectory, relativeRepoProjectDirectory);
+            }
 
             var commit = head ?? repo?.Head.Tip;
 
             var committedVersion = VersionFile.GetVersion(commit, relativeRepoProjectDirectory);
 
-            var workingVersion = head != null ? VersionFile.GetVersion(head, relativeRepoProjectDirectory) : VersionFile.GetVersion(projectDirectory);
+            var workingVersion = head is object ? VersionFile.GetVersion(head, relativeRepoProjectDirectory) : VersionFile.GetVersion(projectDirectory);
 
             if (overrideVersionHeightOffset.HasValue)
             {
