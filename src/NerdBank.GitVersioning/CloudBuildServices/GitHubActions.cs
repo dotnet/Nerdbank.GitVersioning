@@ -19,6 +19,8 @@
 
         private static string BuildingRef => Environment.GetEnvironmentVariable("GITHUB_REF");
 
+        private static string EnvironmentFile => Environment.GetEnvironmentVariable("GITHUB_ENV");
+
         public IReadOnlyDictionary<string, string> SetCloudBuildNumber(string buildNumber, TextWriter stdout, TextWriter stderr)
         {
             return new Dictionary<string, string>();
@@ -26,7 +28,7 @@
 
         public IReadOnlyDictionary<string, string> SetCloudBuildVariable(string name, string value, TextWriter stdout, TextWriter stderr)
         {
-            (stdout ?? Console.Out).WriteLine($"##[set-env name={name};]{value}");
+            File.AppendAllText(EnvironmentFile, $"{name}={value}{Environment.NewLine}");
             return GetDictionaryFor(name, value);
         }
 
