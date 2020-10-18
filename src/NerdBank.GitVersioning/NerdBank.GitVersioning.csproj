@@ -15,6 +15,7 @@
     <PackageReference Include="System.Diagnostics.Tools" Version="4.3.0" Condition=" '$(TargetFramework)' == 'netcoreapp2.0' " />
     <PackageReference Include="Validation" Version="2.4.18" />
     <PackageReference Include="Nerdbank.GitVersioning.LKG" Version="3.1.93" />
+    <PackageReference Include="System.Text.Json" Version="4.7.2" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\Shared\**\*.cs" LinkBase="Shared" />
