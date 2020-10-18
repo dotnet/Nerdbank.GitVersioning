@@ -57,6 +57,10 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
 
     private void Init()
     {
+#if !NET461
+        GitLoaderContext.RuntimePath = "./runtimes";
+#endif
+
         int seed = (int)DateTime.Now.Ticks;
         this.random = new Random(seed);
         this.Logger.WriteLine("Random seed: {0}", seed);
