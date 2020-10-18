@@ -14,9 +14,19 @@ namespace NerdBank.GitVersioning.Managed
         private readonly byte[] objectPathBuffer;
         private readonly int objectDirLength;
 
-        public GitRepository(string rootDirectory)
-            : this(rootDirectory, Path.Combine(rootDirectory, GitDirectoryName))
+        public static GitRepository Create(string rootDirectory)
         {
+            return Create(rootDirectory, Path.Combine(rootDirectory, GitDirectoryName));
+        }
+
+        public static GitRepository Create(string rootDirectory, string gitDirectory)
+        {
+            if (Directory.Exists(rootDirectory) && Directory.Exists(gitDirectory))
+            {
+                return new GitRepository(rootDirectory, gitDirectory);
+            }
+
+            return null;
         }
 
         public GitRepository(string rootDirectory, string gitDirectory)

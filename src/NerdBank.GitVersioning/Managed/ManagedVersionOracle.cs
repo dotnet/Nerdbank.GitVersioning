@@ -20,7 +20,7 @@ namespace NerdBank.GitVersioning.Managed
                 gitRepoDirectory = projectDirectory;
             }
 
-            GitRepository repository = new GitRepository(gitRepoDirectory);
+            GitRepository repository = GitRepository.Create(gitRepoDirectory);
             return new ManagedVersionOracle(projectDirectory, repository, null, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot);
         }
 
@@ -36,11 +36,13 @@ namespace NerdBank.GitVersioning.Managed
                 projectDirectory = Path.Combine(repo.RootDirectory /* repo.Info.WorkingDirectory */, relativeRepoProjectDirectory);
             }
 
-            var commit = head ?? repo.GetHeadCommit();
+            var commit = head ?? repo?.GetHeadCommit();
 
             var committedVersion = VersionFile.GetVersionOptions(repo, commit, relativeRepoProjectDirectory);
 
-            var workingVersion = head.HasValue ? VersionFile.GetVersionOptions(repo, head.Value, relativeRepoProjectDirectory) : VersionFile.GetVersionOptions(projectDirectory);
+            var workingVersion = head.HasValue
+                ? VersionFile.GetVersionOptions(repo, head.Value, relativeRepoProjectDirectory)
+                : VersionFile.GetVersionOptions(projectDirectory);
 
             if (overrideVersionHeightOffset.HasValue)
             {
@@ -57,16 +59,15 @@ namespace NerdBank.GitVersioning.Managed
 
             this.VersionOptions = committedVersion ?? workingVersion;
 
-            this.GitCommitId = commit.Sha.ToString() ?? cloudBuild?.GitCommitId ?? null;
+            this.GitCommitId = commit?.Sha.ToString() ?? cloudBuild?.GitCommitId ?? null;
             // this.GitCommitDate = commit?.Author.When;
-            this.VersionHeight = CalculateVersionHeight(relativeRepoProjectDirectory, commit, committedVersion, workingVersion);
+            // this.VersionHeight = CalculateVersionHeight(relativeRepoProjectDirectory, commit, committedVersion, workingVersion);
             // this.BuildingRef = cloudBuild?.BuildingTag ?? cloudBuild?.BuildingBranch ?? repo?.Head.CanonicalName;
 
             // Override the typedVersion with the special build number and revision components, when available.
             if (repo != null)
             {
-                throw new NotImplementedException();
-                // this.Version = GetIdAsVersion(commit, committedVersion, workingVersion, this.VersionHeight);
+                this.Version = GetIdAsVersion(commit, committedVersion, workingVersion, this.VersionHeight);
             }
             else
             {
@@ -107,6 +108,13 @@ namespace NerdBank.GitVersioning.Managed
         {
             WalkingVersionResolver resolver = new WalkingVersionResolver(repository, null);
             return resolver.GetGitHeight();
+        }
+
+        private static Version GetIdAsVersion(GitCommit? headCommit, VersionOptions committedVersion, VersionOptions workingVersion, int versionHeight)
+        {
+            var version = IsVersionFileChangedInWorkingTree(committedVersion, workingVersion) ? workingVersion : committedVersion;
+
+            return headCommit.GetIdAsVersionHelper(version, versionHeight);
         }
     }
 }

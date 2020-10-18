@@ -5,13 +5,15 @@
     using System.Globalization;
     using System.Linq;
     using System.Reflection;
-    using Validation;
+    using NerdBank.GitVersioning.Managed;
 
     /// <summary>
     /// Assembles version information in a variety of formats.
     /// </summary>
     public abstract class VersionOracle
     {
+        private static bool UseLibGit2 = false;
+
         /// <summary>
         /// The 0.0 version.
         /// </summary>
@@ -26,7 +28,8 @@
         /// Initializes a new instance of the <see cref="VersionOracle"/> class.
         /// </summary>
         public static VersionOracle Create(string projectDirectory, string gitRepoDirectory = null, ICloudBuild cloudBuild = null, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null)
-            => LibGit2VersionOracle.CreateLibGit2(projectDirectory, gitRepoDirectory, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot);
+            => UseLibGit2 ? LibGit2VersionOracle.CreateLibGit2(projectDirectory, gitRepoDirectory, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot)
+                : ManagedVersionOracle.CreateManaged(projectDirectory, gitRepoDirectory, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot);
 
         /// <summary>
         /// Gets the BuildNumber to set the cloud build to (if applicable).
