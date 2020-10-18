@@ -1,4 +1,6 @@
-﻿using SevenZipNET;
+﻿#if NET461
+using SevenZipNET;
+#endif
 using Validation;
 
 using System;
@@ -58,6 +60,7 @@ internal static class TestUtilities
 
     internal static ExpandedRepo ExtractRepoArchive(string repoArchiveName)
     {
+#if NET461
         string archiveFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
         string expandedFolderPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
 
@@ -84,6 +87,9 @@ internal static class TestUtilities
                 File.Delete(archiveFilePath);
             }
         }
+#else
+        throw new PlatformNotSupportedException();
+#endif
     }
 
     internal class ExpandedRepo : IDisposable
