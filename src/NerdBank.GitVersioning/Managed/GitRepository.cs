@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using LibGit2Sharp;
 
 namespace NerdBank.GitVersioning.Managed
 {
@@ -14,25 +15,49 @@ namespace NerdBank.GitVersioning.Managed
         private readonly byte[] objectPathBuffer;
         private readonly int objectDirLength;
 
-        public static GitRepository Create(string rootDirectory)
+        public static GitRepository Create(string workingDirectory)
         {
-            return Create(rootDirectory, Path.Combine(rootDirectory, GitDirectoryName));
-        }
+            string gitDirectory = Path.Combine(workingDirectory, GitDirectoryName);
 
-        public static GitRepository Create(string rootDirectory, string gitDirectory)
-        {
-            if (Directory.Exists(rootDirectory) && Directory.Exists(gitDirectory))
+            if (File.Exists(gitDirectory))
             {
-                return new GitRepository(rootDirectory, gitDirectory);
+                // This is a worktree, and the path to the git directory is stored in the .git file
+                var worktreeConfig = File.ReadAllText(gitDirectory);
+
+                var gitDirStart = worktreeConfig.IndexOf("gitdir: ");
+                var gitDirEnd = worktreeConfig.IndexOf("\n", gitDirStart);
+
+                gitDirectory = worktreeConfig.Substring(gitDirStart + 8, gitDirEnd - gitDirStart - 8);
             }
 
-            return null;
+            if (!Directory.Exists(gitDirectory))
+            {
+                return null;
+            }
+
+            var commonDirectory = gitDirectory;
+
+            var commonDirFile = Path.Combine(gitDirectory, "commondir");
+
+            if (File.Exists(commonDirFile))
+            {
+                var commonDirectoryRelativePath = File.ReadAllText(commonDirFile).Trim('\n');
+                commonDirectory = Path.Combine(gitDirectory, commonDirectoryRelativePath);
+            }
+
+            return new GitRepository(workingDirectory, gitDirectory, commonDirectory);
         }
 
-        public GitRepository(string rootDirectory, string gitDirectory)
+        public static GitRepository Create(string workingDirectory, string gitDirectory, string commonDirectory)
         {
-            this.RootDirectory = rootDirectory ?? throw new ArgumentNullException(nameof(rootDirectory));
+            return new GitRepository(workingDirectory, gitDirectory, commonDirectory);
+        }
+
+        public GitRepository(string workingDirectory, string gitDirectory, string commonDirectory)
+        {
+            this.WorkingDirectory = workingDirectory ?? throw new ArgumentNullException(nameof(workingDirectory));
             this.GitDirectory = gitDirectory ?? throw new ArgumentNullException(nameof(gitDirectory));
+            this.CommonDirectory = commonDirectory ?? throw new ArgumentNullException(nameof(commonDirectory));
 
             if (FileHelpers.TryOpen(
                 Path.Combine(this.GitDirectory, "objects", "info", "alternates"),
@@ -47,7 +72,7 @@ namespace NerdBank.GitVersioning.Managed
             }
             else
             {
-                this.ObjectDirectory = Path.Combine(this.GitDirectory, "objects");
+                this.ObjectDirectory = Path.Combine(this.CommonDirectory, "objects");
             }
 
 
@@ -69,8 +94,9 @@ namespace NerdBank.GitVersioning.Managed
             this.packs = new Lazy<GitPack[]>(this.LoadPacks);
         }
 
-        public string RootDirectory { get; private set; }
+        public string WorkingDirectory { get; private set; }
         public string GitDirectory { get; private set; }
+        public string CommonDirectory { get; private set; }
         public string ObjectDirectory { get; private set; }
 
         public static Encoding Encoding => Encoding.ASCII;
@@ -165,20 +191,31 @@ namespace NerdBank.GitVersioning.Managed
             }
         }
 
-        public GitObjectId ResolveReference(string reference)
+        public GitObjectId ResolveReference(object reference)
         {
-            using (var stream = File.OpenRead(Path.Combine(this.GitDirectory, reference)))
+            if (reference is string)
             {
-                Span<byte> objectId = stackalloc byte[40];
-                stream.Read(objectId);
+                using (var stream = File.OpenRead(Path.Combine(this.GitDirectory, (string)reference)))
+                {
+                    Span<byte> objectId = stackalloc byte[40];
+                    stream.Read(objectId);
 
-                return GitObjectId.ParseHex(objectId);
+                    return GitObjectId.ParseHex(objectId);
+                }
+            }
+            else if(reference is GitObjectId)
+            {
+                return (GitObjectId)reference;
+            }
+            else
+            {
+                throw new GitException();
             }
         }
 
         public override string ToString()
         {
-            return $"Git Repository: {this.RootDirectory}";
+            return $"Git Repository: {this.WorkingDirectory}";
         }
 
         private GitPack[] LoadPacks()

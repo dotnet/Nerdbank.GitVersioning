@@ -27,7 +27,7 @@ namespace NerdBank.GitVersioning.Managed
 
         internal static string GetRepoRelativePath(this GitRepository repo, string absolutePath)
         {
-            var repoRoot = repo.RootDirectory/* repo?.Info?.WorkingDirectory */?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            var repoRoot = repo.WorkingDirectory/* repo?.Info?.WorkingDirectory */?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && repoRoot != null && repoRoot.StartsWith("\\") && (repoRoot.Length == 1 || repoRoot[1] != '\\'))
             {
                 // We're in a worktree, which libgit2sharp only gives us as a path relative to the root of the assumed drive.

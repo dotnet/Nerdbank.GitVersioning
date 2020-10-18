@@ -24,11 +24,11 @@ namespace NerdBank.GitVersioning.Managed
             false;
 #endif
 
-        public static VersionOptions GetVersionOptions(GitRepository repository, GitCommit? commit, string relativeRepoProjectDirectory)
+        public static (string, VersionOptions) GetVersionOptions(GitRepository repository, GitCommit? commit, string relativeRepoProjectDirectory)
         {
             if (commit == null)
             {
-                return null;
+                return (null, null);
             }
 
             Stack<string> directories = new Stack<string>();
@@ -41,8 +41,11 @@ namespace NerdBank.GitVersioning.Managed
             }
 
             Stack<VersionOptions> versionOptions = new Stack<VersionOptions>();
+            Stack<string> versionFileNames = new Stack<string>();
 
             GitObjectId tree = commit.Value.Tree;
+            VersionOptions result;
+            string versionFileName = "";
 
             while (tree != GitObjectId.Empty)
             {
@@ -56,29 +59,48 @@ namespace NerdBank.GitVersioning.Managed
                         using (StreamReader optionsReader = new StreamReader(optionsStream))
                         {
                             var versionJsonContent = optionsReader.ReadToEnd();
-                            VersionOptions result =
-                                TryReadVersionJsonContent(versionJsonContent, repoRelativeBaseDirectory: null);
+
+                            try
+                            {
+                                result =
+                                    TryReadVersionJsonContent(versionJsonContent, repoRelativeBaseDirectory: null);
+                            }
+                            catch (Exception ex)
+                            {
+                                throw new FormatException(
+                                    $"Failure while reading {JsonFileName} from commit {commit.Value.Sha}. " +
+                                    "Fix this commit with rebase if this is an error, or review this doc on how to migrate to Nerdbank.GitVersioning: " +
+                                    "https://github.com/dotnet/Nerdbank.GitVersioning/blob/master/doc/migrating.md", ex);
+                            }
 
                             versionOptions.Push(result);
+                            versionFileNames.Push(Path.Combine(versionFileName, JsonFileName));
                         }
                     }
                 }
 
                 using (Stream treeStream = repository.GetObjectBySha(tree, "tree", false))
                 {
-                    tree = directories.Count > 0
-                        ? GitTreeStreamingReader.FindNode(treeStream, Encoding.UTF8.GetBytes(directories.Pop()))
-                        : GitObjectId.Empty;
+                    if (directories.Count > 0)
+                    {
+                        string directoryName = directories.Pop();
+                        tree = GitTreeStreamingReader.FindNode(treeStream, Encoding.UTF8.GetBytes(directoryName));
+                        versionFileName = Path.Combine(versionFileName, directoryName);
+                    }
+                    else
+                    {
+                        tree = GitObjectId.Empty;
+                    }
                 }
             }
 
-            return versionOptions.Count > 0 ? versionOptions.Pop() : null;
+            return versionOptions.Count > 0 ? (versionFileNames.Pop(), versionOptions.Pop()) : (null, null);
         }
 
-        public static VersionOptions GetVersionOptions(string projectDirectory) =>
+        public static (string, VersionOptions) GetVersionOptions(string projectDirectory) =>
             GetVersionOptions(projectDirectory, out _);
 
-        public static VersionOptions GetVersionOptions(string projectDirectory, out string actualDirectory)
+        public static (string, VersionOptions) GetVersionOptions(string projectDirectory, out string actualDirectory)
         {
             Requires.NotNullOrEmpty(projectDirectory, nameof(projectDirectory));
 
@@ -99,14 +121,14 @@ namespace NerdBank.GitVersioning.Managed
                     {
                         if (parentDirectory != null)
                         {
-                            result = GetVersionOptions(parentDirectory);
+                            (_, result) = GetVersionOptions(parentDirectory);
                             if (result != null)
                             {
                                 JsonConvert.PopulateObject(versionJsonContent, result,
                                     VersionOptions.GetJsonSettings(
                                         repoRelativeBaseDirectory: repoRelativeBaseDirectory));
                                 actualDirectory = searchDirectory;
-                                return result;
+                                return (versionJsonPath, result);
                             }
                         }
 
@@ -116,7 +138,7 @@ namespace NerdBank.GitVersioning.Managed
                     else if (result != null)
                     {
                         actualDirectory = searchDirectory;
-                        return result;
+                        return (versionJsonPath, result);
                     }
                 }
 
@@ -124,7 +146,7 @@ namespace NerdBank.GitVersioning.Managed
             }
 
             actualDirectory = null;
-            return null;
+            return (null, null);
         }
 
         public static string GetVersion(string path)

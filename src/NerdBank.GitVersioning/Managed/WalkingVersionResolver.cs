@@ -23,7 +23,7 @@ namespace NerdBank.GitVersioning.Managed
             // Get the commit at which the version number changed, and calculate the git height
             // this.logger.LogInformation("Determining the version based on '{versionPath}' in repository '{repositoryPath}'", this.versionPath, this.gitRepository.GitDirectory);
 
-            var version = VersionFile.GetVersion(Path.Combine(this.gitRepository.RootDirectory, this.versionPath));
+            var version = VersionFile.GetVersion(Path.Combine(this.gitRepository.WorkingDirectory, this.versionPath));
             // this.logger.LogInformation("The current version is '{version}'", version);
 
             var pathComponents = GetPathComponents(this.versionPath);
@@ -104,7 +104,7 @@ namespace NerdBank.GitVersioning.Managed
                 else
                 {
                     bool hasParentWithUnknownGitHeight = false;
-                    int currentHeight = -1;
+                    int currentHeight = 1;
 
                     foreach (var parent in commit.Parents)
                     {
