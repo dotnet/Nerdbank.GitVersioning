@@ -1,10 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.1</TargetFrameworks>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <DebugType>Full</DebugType>
     <IsPackable>false</IsPackable>
     <PackageId>Nerdbank.GitVersioning.Core</PackageId>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="DotNetMDDocs" Version="0.111.0" PrivateAssets="all" Condition=" '$(GenerateMarkdownApiDocs)' == 'true' " />
