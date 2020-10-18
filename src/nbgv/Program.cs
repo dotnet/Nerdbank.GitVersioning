@@ -331,7 +331,7 @@ namespace Nerdbank.GitVersioning.Tool
                 return ExitCodes.BadGitRef;
             }
 
-            var oracle = new VersionOracle(searchPath, repository, commit, CloudBuild.Active);
+            var oracle = new LibGit2VersionOracle(searchPath, repository, commit, CloudBuild.Active);
             oracle.BuildMetadata.AddRange(buildMetadata);
 
             // Take the PublicRelease environment variable into account, since the build would as well.
@@ -485,7 +485,7 @@ namespace Nerdbank.GitVersioning.Tool
                 }
             }
 
-            var oracle = new VersionOracle(searchPath, repository, commit, CloudBuild.Active);
+            var oracle = new LibGit2VersionOracle(searchPath, repository, commit, CloudBuild.Active);
             if (!oracle.VersionFileFound)
             {
                 Console.Error.WriteLine("No version.json file found in or above \"{0}\" in commit {1}.", searchPath, commit.Sha);
@@ -788,7 +788,7 @@ namespace Nerdbank.GitVersioning.Tool
                 }
                 else
                 {
-                    var oracle = new VersionOracle(projectDirectory, repository, commit, null);
+                    var oracle = new LibGit2VersionOracle(projectDirectory, repository, commit, null);
                     Console.WriteLine($"{commit.Sha} {oracle.Version} {commit.MessageShort}");
                 }
             }
