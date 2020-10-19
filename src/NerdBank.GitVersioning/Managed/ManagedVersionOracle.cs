@@ -62,7 +62,7 @@ namespace NerdBank.GitVersioning.Managed
             this.GitCommitId = commit?.Sha.ToString() ?? cloudBuild?.GitCommitId ?? null;
             this.GitCommitDate = commit?.Author.Date;
             this.VersionHeight = CalculateVersionHeight(repo, relativeRepoProjectDirectory, commit, commitedVersionPath, committedVersion, workingVersion);
-            // this.BuildingRef = cloudBuild?.BuildingTag ?? cloudBuild?.BuildingBranch ?? repo?.Head.CanonicalName;
+            this.BuildingRef = cloudBuild?.BuildingTag ?? cloudBuild?.BuildingBranch ?? repo?.GetHeadAsReferenceOrSha() as string;
 
             // Override the typedVersion with the special build number and revision components, when available.
             if (repo != null)

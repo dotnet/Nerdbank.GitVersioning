@@ -116,21 +116,26 @@ namespace NerdBank.GitVersioning.Managed
 
         public static Encoding Encoding => Encoding.ASCII;
 
-        public GitObjectId GetHeadCommitSha()
+        public object GetHeadAsReferenceOrSha()
         {
             using (var stream = File.OpenRead(Path.Combine(this.GitDirectory, HeadFileName)))
             {
-                var reference = GitReferenceReader.ReadReference(stream);
-                var objectId = this.ResolveReference(reference);
-                return objectId;
+                return GitReferenceReader.ReadReference(stream);
             }
+        }
+
+        public GitObjectId GetHeadCommitSha()
+        {
+            var reference = this.GetHeadAsReferenceOrSha();
+            var objectId = this.ResolveReference(reference);
+            return objectId;
         }
 
         public GitCommit? GetHeadCommit()
         {
             var headCommitId = this.GetHeadCommitSha();
 
-            if(headCommitId == GitObjectId.Empty)
+            if (headCommitId == GitObjectId.Empty)
             {
                 return null;
             }
