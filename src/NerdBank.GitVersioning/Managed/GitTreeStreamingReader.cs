@@ -4,8 +4,23 @@ using System.IO;
 
 namespace NerdBank.GitVersioning.Managed
 {
-    internal class GitTreeStreamingReader
+    /// <summary>
+    /// Reads git tree objects.
+    /// </summary>
+    public class GitTreeStreamingReader
     {
+        /// <summary>
+        /// Finds a specific node in a git tree.
+        /// </summary>
+        /// <param name="stream">
+        /// A <see cref="Stream"/> which represents the git tree.
+        /// </param>
+        /// <param name="name">
+        /// The name of the node to find, in it UTF-8 representation.
+        /// </param>
+        /// <returns>
+        /// The <see cref="GitObjectId"/> of the requested node.
+        /// </returns>
         public static GitObjectId FindNode(Stream stream, ReadOnlySpan<byte> name)
         {
             byte[] buffer = ArrayPool<byte>.Shared.Rent((int)stream.Length);
