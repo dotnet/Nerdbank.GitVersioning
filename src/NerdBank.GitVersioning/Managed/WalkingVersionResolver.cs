@@ -103,7 +103,14 @@ namespace NerdBank.GitVersioning.Managed
                     }
                 }
 
-                if (versionChanged)
+                if (commit.Parents.Count == 0)
+                {
+                    this.knownGitHeights.Add(commit.Sha, 1);
+                    var poppedCommit = commitsToAnalyze.Pop();
+
+                    Debug.Assert(poppedCommit == commit);
+                }
+                else if (versionChanged)
                 {
                     this.knownGitHeights.Add(commit.Sha, 0);
                     var poppedCommit = commitsToAnalyze.Pop();
