@@ -114,7 +114,7 @@ namespace NerdBank.GitVersioning.Managed
         /// <returns>The unsigned integer which identifies a commit.</returns>
         public static ushort GetTruncatedCommitIdAsUInt16(this GitCommit commit)
         {
-            return BinaryPrimitives.ReadUInt16LittleEndian(commit.Sha.AsSpan().Slice(0, 2));
+            return commit.Sha.AsUInt16();
         }
     }
 }
