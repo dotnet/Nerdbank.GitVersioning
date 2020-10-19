@@ -9,6 +9,8 @@ namespace NerdBank.GitVersioning.Managed
         public GitObjectId Sha { get; set; }
         public List<GitObjectId> Parents { get; set; }
 
+        public GitSignature Author { get; set; }
+
         public override bool Equals(object obj)
         {
             if (obj is GitCommit)
