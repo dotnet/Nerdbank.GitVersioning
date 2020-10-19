@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 
 namespace NerdBank.GitVersioning.Managed
 {
@@ -99,20 +100,25 @@ namespace NerdBank.GitVersioning.Managed
                     {
                         treeId = this.gitRepository.GetTreeEntry(treeId, pathComponents[i]);
                         // this.logger.LogDebug("The tree ID for '{pathComponent}' is '{treeId}'", pathComponents[i], treeId);
-                        Debug.WriteLine($"The tree ID for '{pathComponents[i]}' is '{treeId}'");
+                        Debug.WriteLine($"The tree ID for '{Encoding.UTF8.GetString(pathComponents[i])}' is '{treeId}'");
                     }
                 }
 
-                if (commit.Parents.Count == 0)
+                if (versionChanged)
                 {
-                    this.knownGitHeights.Add(commit.Sha, 1);
+                    // We detected a version change. Because we're walking _backwards_, this means that
+                    // the version actually changed a child of this commit.
+                    // Assign this commit git height 0; this will cause the child to end up with
+                    // git height 1.
+                    this.knownGitHeights.Add(commit.Sha, 0);
                     var poppedCommit = commitsToAnalyze.Pop();
 
                     Debug.Assert(poppedCommit == commit);
                 }
-                else if (versionChanged)
+                else if (commit.Parents.Count == 0)
                 {
-                    this.knownGitHeights.Add(commit.Sha, 0);
+                    // This is the first commit in the repository. This commit has git height 1 by definition.
+                    this.knownGitHeights.Add(commit.Sha, 1);
                     var poppedCommit = commitsToAnalyze.Pop();
 
                     Debug.Assert(poppedCommit == commit);
