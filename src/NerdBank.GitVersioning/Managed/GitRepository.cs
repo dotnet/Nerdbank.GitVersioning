@@ -126,9 +126,16 @@ namespace NerdBank.GitVersioning.Managed
             }
         }
 
-        public GitCommit GetHeadCommit()
+        public GitCommit? GetHeadCommit()
         {
-            return this.GetCommit(this.GetHeadCommitSha());
+            var headCommitId = this.GetHeadCommitSha();
+
+            if(headCommitId == GitObjectId.Empty)
+            {
+                return null;
+            }
+
+            return this.GetCommit(headCommitId);
         }
 
         public GitCommit GetCommit(GitObjectId sha)
@@ -153,6 +160,11 @@ namespace NerdBank.GitVersioning.Managed
 
         public Stream GetObjectBySha(GitObjectId sha, string objectType, bool seekable = false)
         {
+            if (sha == GitObjectId.Empty)
+            {
+                return null;
+            }
+
 #if DEBUG
             if (!this.histogram.TryAdd(sha, 1))
             {
@@ -210,7 +222,12 @@ namespace NerdBank.GitVersioning.Managed
         {
             if (reference is string)
             {
-                using (var stream = File.OpenRead(Path.Combine(this.GitDirectory, (string)reference)))
+                if (!FileHelpers.TryOpen(Path.Combine(this.GitDirectory, (string)reference), CreateFileFlags.FILE_ATTRIBUTE_NORMAL, out FileStream stream))
+                {
+                    return GitObjectId.Empty;
+                }
+
+                using (stream)
                 {
                     Span<byte> objectId = stackalloc byte[40];
                     stream.Read(objectId);

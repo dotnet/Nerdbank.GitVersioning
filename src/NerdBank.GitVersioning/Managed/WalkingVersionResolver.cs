@@ -31,7 +31,7 @@ namespace NerdBank.GitVersioning.Managed
             Debug.WriteLine($"The current version is '{version}'");
 
             var pathComponents = GetPathComponents(this.versionPath);
-            var headCommit = this.gitRepository.GetHeadCommit();
+            var headCommit = this.gitRepository.GetHeadCommit().Value;
             var commit = headCommit;
 
             Stack<GitCommit> commitsToAnalyze = new Stack<GitCommit>();

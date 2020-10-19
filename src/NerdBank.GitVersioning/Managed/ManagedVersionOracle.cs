@@ -104,9 +104,9 @@ namespace NerdBank.GitVersioning.Managed
             }
         }
 
-        private static int CalculateVersionHeight(GitRepository repository, string relativeRepoProjectDirectory, GitCommit? headCommit, string commitedVersionPath, VersionOptions committedVersion, VersionOptions workingVersion)
+        private static int CalculateVersionHeight(GitRepository repository, string relativeRepoProjectDirectory, GitCommit? headCommit, string committedVersionPath, VersionOptions committedVersion, VersionOptions workingVersion)
         {
-            if (repository == null || headCommit == null)
+            if (repository == null || headCommit == null || committedVersionPath == null)
             {
                 return 0;
             }
@@ -125,7 +125,7 @@ namespace NerdBank.GitVersioning.Managed
                 }
             }
 
-            WalkingVersionResolver resolver = new WalkingVersionResolver(repository, commitedVersionPath);
+            WalkingVersionResolver resolver = new WalkingVersionResolver(repository, committedVersionPath);
             return resolver.GetGitHeight();
         }
 
