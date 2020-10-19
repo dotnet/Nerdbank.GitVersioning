@@ -85,8 +85,8 @@ namespace NerdBank.GitVersioning.Managed
             try
             {
                 buffer = ArrayPool<byte>.Shared.Rent((int)stream.Length);
-                Span<byte> span = buffer.AsSpan((int)stream.Length);
-                stream.Read(span);
+                Span<byte> span = buffer.AsSpan(0, (int)stream.Length);
+                stream.ReadAll(span);
 
                 return Read(span, sha);
             }
