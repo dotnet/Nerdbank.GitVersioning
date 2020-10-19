@@ -7,7 +7,10 @@ using System.Linq;
 
 namespace NerdBank.GitVersioning.Managed
 {
-    internal static class GitCommitReader
+    /// <summary>
+    /// Reads a <see cref="GitCommit"/> object.
+    /// </summary>
+    public static class GitCommitReader
     {
         private static readonly byte[] TreeStart = GitRepository.Encoding.GetBytes("tree ");
         private static readonly byte[] ParentStart = GitRepository.Encoding.GetBytes("parent ");
@@ -16,68 +19,18 @@ namespace NerdBank.GitVersioning.Managed
         private const int TreeLineLength = 46;
         private const int ParentLineLength = 48;
 
-        public static GitObjectId ReadTree(Span<byte> line)
-        {
-            // Format: tree d8329fc1cc938780ffdd9f94e0d364e0ea74f579\n
-            // 47 bytes: 
-            //  tree: 5 bytes
-            //  space: 1 byte
-            //  hash: 40 bytes
-            //  \n: 1 byte
-            Debug.Assert(line.Slice(0, TreeStart.Length).SequenceEqual(TreeStart));
-            Debug.Assert(line[TreeLineLength - 1] == (byte)'\n');
-
-            return GitObjectId.ParseHex(line.Slice(TreeStart.Length, 40));
-        }
-
-        public static bool TryReadParent(Span<byte> line, out GitObjectId parent)
-        {
-            // Format: "parent ef079ebcca375f6fd54aa0cb9f35e3ecc2bb66e7\n"
-            parent = GitObjectId.Empty;
-
-            if (!line.Slice(0, ParentStart.Length).SequenceEqual(ParentStart))
-            {
-                return false;
-            }
-
-            if (line[ParentLineLength - 1] != (byte)'\n')
-            {
-                return false;
-            }
-
-            parent = GitObjectId.ParseHex(line.Slice(ParentStart.Length, 40));
-            return true;
-        }
-
-        public static bool TryReadAuthor(Span<byte> line, out GitSignature signature)
-        {
-            signature = default;
-
-            if (!line.Slice(0, AuthorStart.Length).SequenceEqual(AuthorStart))
-            {
-                return false;
-            }
-
-            line = line.Slice(AuthorStart.Length);
-
-            int emailStart = line.IndexOf((byte)'<');
-            int emailEnd = line.IndexOf((byte)'>');
-            var lineEnd = line.IndexOf((byte)'\n');
-
-            var name = line.Slice(0, emailStart - 1);
-            var email = line.Slice(emailStart + 1, emailEnd - emailStart - 2);
-            var time = line.Slice(emailEnd + 2, lineEnd - emailEnd - 2);
-
-            signature.Name = GitRepository.Encoding.GetString(name);
-            signature.Email = GitRepository.Encoding.GetString(email);
-
-            var offsetStart = time.IndexOf((byte)'+');
-            var ticks = long.Parse(GitRepository.Encoding.GetString(time.Slice(0, offsetStart - 1)));
-            signature.Date = DateTimeOffset.FromUnixTimeSeconds(ticks);
-
-            return true;
-        }
-
+        /// <summary>
+        /// Reads a <see cref="GitCommit"/> object from a <see cref="Stream"/>.
+        /// </summary>
+        /// <param name="stream">
+        /// A <see cref="Stream"/> which contains the <see cref="GitCommit"/> in its text representation.
+        /// </param>
+        /// <param name="sha">
+        /// The <see cref="GitObjectId"/> of the commit.
+        /// </param>
+        /// <returns>
+        /// The <see cref="GitCommit"/>.
+        /// </returns>
         public static GitCommit Read(Stream stream, GitObjectId sha)
         {
             byte[] buffer = null;
@@ -99,7 +52,19 @@ namespace NerdBank.GitVersioning.Managed
             }
         }
 
-        public static GitCommit Read(Span<byte> commit, GitObjectId sha)
+        /// <summary>
+        /// Reads a <see cref="GitCommit"/> object from a <see cref="ReadOnlySpan{T}"/>.
+        /// </summary>
+        /// <param name="commit">
+        /// A <see cref="ReadOnlySpan{T}"/> which contains the <see cref="GitCommit"/> in its text representation.
+        /// </param>
+        /// <param name="sha">
+        /// The <see cref="GitObjectId"/> of the commit.
+        /// </param>
+        /// <returns>
+        /// The <see cref="GitCommit"/>.
+        /// </returns>
+        public static GitCommit Read(ReadOnlySpan<byte> commit, GitObjectId sha)
         {
             var buffer = commit;
 
@@ -114,7 +79,7 @@ namespace NerdBank.GitVersioning.Managed
                 buffer = buffer.Slice(ParentLineLength);
             }
 
-            if(!TryReadAuthor(buffer, out GitSignature signature))
+            if (!TryReadAuthor(buffer, out GitSignature signature))
             {
                 throw new GitException();
             }
@@ -126,6 +91,68 @@ namespace NerdBank.GitVersioning.Managed
                 Tree = tree,
                 Author = signature,
             };
+        }
+
+        private static GitObjectId ReadTree(ReadOnlySpan<byte> line)
+        {
+            // Format: tree d8329fc1cc938780ffdd9f94e0d364e0ea74f579\n
+            // 47 bytes: 
+            //  tree: 5 bytes
+            //  space: 1 byte
+            //  hash: 40 bytes
+            //  \n: 1 byte
+            Debug.Assert(line.Slice(0, TreeStart.Length).SequenceEqual(TreeStart));
+            Debug.Assert(line[TreeLineLength - 1] == (byte)'\n');
+
+            return GitObjectId.ParseHex(line.Slice(TreeStart.Length, 40));
+        }
+
+        private static bool TryReadParent(ReadOnlySpan<byte> line, out GitObjectId parent)
+        {
+            // Format: "parent ef079ebcca375f6fd54aa0cb9f35e3ecc2bb66e7\n"
+            parent = GitObjectId.Empty;
+
+            if (!line.Slice(0, ParentStart.Length).SequenceEqual(ParentStart))
+            {
+                return false;
+            }
+
+            if (line[ParentLineLength - 1] != (byte)'\n')
+            {
+                return false;
+            }
+
+            parent = GitObjectId.ParseHex(line.Slice(ParentStart.Length, 40));
+            return true;
+        }
+
+        private static bool TryReadAuthor(ReadOnlySpan<byte> line, out GitSignature signature)
+        {
+            signature = default;
+
+            if (!line.Slice(0, AuthorStart.Length).SequenceEqual(AuthorStart))
+            {
+                return false;
+            }
+
+            line = line.Slice(AuthorStart.Length);
+
+            int emailStart = line.IndexOf((byte)'<');
+            int emailEnd = line.IndexOf((byte)'>');
+            var lineEnd = line.IndexOf((byte)'\n');
+
+            var name = line.Slice(0, emailStart - 1);
+            var email = line.Slice(emailStart + 1, emailEnd - emailStart - 1);
+            var time = line.Slice(emailEnd + 2, lineEnd - emailEnd - 2);
+
+            signature.Name = GitRepository.Encoding.GetString(name);
+            signature.Email = GitRepository.Encoding.GetString(email);
+
+            var offsetStart = time.IndexOf((byte)' ');
+            var ticks = long.Parse(GitRepository.Encoding.GetString(time.Slice(0, offsetStart)));
+            signature.Date = DateTimeOffset.FromUnixTimeSeconds(ticks);
+
+            return true;
         }
     }
 }

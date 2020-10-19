@@ -47,4 +47,9 @@
     </PackageReference>
     <PackageReference Include="Xunit.SkippableFact" Version="1.3.12" />
   </ItemGroup>
+  <ItemGroup>
+    <None Update="Managed\commit.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>

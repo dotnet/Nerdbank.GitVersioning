@@ -86,7 +86,7 @@ namespace NerdBank.GitVersioning.Managed
         /// <returns>
         /// A <see cref="GitObjectId"/>.
         /// </returns>
-        public static GitObjectId ParseHex(Span<byte> value)
+        public static GitObjectId ParseHex(ReadOnlySpan<byte> value)
         {
             Debug.Assert(value.Length == 40);
 
