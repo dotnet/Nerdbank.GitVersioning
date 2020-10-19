@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using LibGit2Sharp;
 
 namespace NerdBank.GitVersioning.Managed
 {
@@ -17,7 +16,23 @@ namespace NerdBank.GitVersioning.Managed
 
         public static GitRepository Create(string workingDirectory)
         {
-            string gitDirectory = Path.Combine(workingDirectory, GitDirectoryName);
+            // Search for the top-level directory of the current git repository. This is the directory
+            // which contains a directory of file named .git.
+            // Loop until Path.GetDirectoryName returns null; in this case, we've reached the root of
+            // the file system (and we're not in a git repository).
+            while (workingDirectory != null
+                && !File.Exists(Path.Combine(workingDirectory, GitDirectoryName))
+                && !Directory.Exists(Path.Combine(workingDirectory, GitDirectoryName)))
+            {
+                workingDirectory = Path.GetDirectoryName(workingDirectory);
+            }
+
+            if (workingDirectory == null)
+            {
+                return null;
+            }
+
+            var gitDirectory = Path.Combine(workingDirectory, GitDirectoryName);
 
             if (File.Exists(gitDirectory))
             {
@@ -203,7 +218,7 @@ namespace NerdBank.GitVersioning.Managed
                     return GitObjectId.ParseHex(objectId);
                 }
             }
-            else if(reference is GitObjectId)
+            else if (reference is GitObjectId)
             {
                 return (GitObjectId)reference;
             }
