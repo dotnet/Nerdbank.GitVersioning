@@ -940,6 +940,7 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         Assert.Empty(result.LoggedEvents.OfType<BuildWarningEventArgs>());
     }
 
+#if !NETCORE
     /// <summary>
     /// Create a native resource .dll and verify that its version
     ///  information is set correctly.
@@ -962,6 +963,7 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         Assert.Equal("NerdBank", fileInfo.CompanyName);
         Assert.Equal($"Copyright (c) {DateTime.Now.Year}. All rights reserved.", fileInfo.LegalCopyright);
     }
+#endif
 
     private static Version GetExpectedAssemblyVersion(VersionOptions versionOptions, Version version)
     {
