@@ -6,12 +6,22 @@ using System.IO;
 
 namespace NerdBank.GitVersioning.Managed
 {
-    internal class GitPackIndexReader : IDisposable
+    /// <summary>
+    /// Supports reading data stored in a Git Pack file.
+    /// </summary>
+    /// <seealso href="https://git-scm.com/docs/pack-format"/>
+    public class GitPackIndexReader : IDisposable
     {
         private static readonly byte[] Header = new byte[] { 0xff, 0x74, 0x4f, 0x63 };
         private readonly Stream stream;
         private bool initialized = false;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GitPackIndexReader"/> class.
+        /// </summary>
+        /// <param name="stream">
+        /// A <see cref="Stream"/> which provides access to the Git Pack index.
+        /// </param>
         public GitPackIndexReader(Stream stream)
         {
             this.stream = stream ?? throw new ArgumentNullException(nameof(stream));
@@ -23,35 +33,16 @@ namespace NerdBank.GitVersioning.Managed
         // the first byte of whose object name is less than or equal to N.
         private readonly int[] fanoutTable = new int[257];
 
-        public void Initialize()
-        {
-            if (!this.initialized)
-            {
-                Span<byte> buffer = stackalloc byte[4];
-                this.stream.Seek(0, SeekOrigin.Begin);
-
-                this.stream.Read(buffer);
-                Debug.Assert(buffer.SequenceEqual(Header));
-
-                this.stream.Read(buffer);
-                var version = BinaryPrimitives.ReadInt32BigEndian(buffer);
-                Debug.Assert(version == 2);
-
-                for (int i = 1; i <= 256; i++)
-                {
-                    this.stream.ReadAll(buffer);
-                    this.fanoutTable[i] = BinaryPrimitives.ReadInt32BigEndian(buffer);
-                }
-
-                this.initialized = true;
-            }
-        }
-
-        public void Dispose()
-        {
-            this.stream.Dispose();
-        }
-
+        /// <summary>
+        /// Gets the offset of a Git object in the index file.
+        /// </summary>
+        /// <param name="objectId">
+        /// The Git object Id of the Git object for which to get the offset.
+        /// </param>
+        /// <returns>
+        /// If found, the offset of the Git object in the index file; otherwise,
+        /// <see langword="null"/>.
+        /// </returns>
         public int? GetOffset(GitObjectId objectId)
         {
             this.Initialize();
@@ -120,6 +111,39 @@ namespace NerdBank.GitVersioning.Managed
             Debug.Assert(buffer[0] < 128); // The most significant bit should not be set; otherwise we have a 8-byte offset
             var offset = BinaryPrimitives.ReadInt32BigEndian(buffer);
             return offset;
+        }
+
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+            this.stream.Dispose();
+        }
+
+        /// <summary>
+        /// Reads the index file format version number and the fanout table.
+        /// </summary>
+        protected void Initialize()
+        {
+            if (!this.initialized)
+            {
+                Span<byte> buffer = stackalloc byte[4];
+                this.stream.Seek(0, SeekOrigin.Begin);
+
+                this.stream.Read(buffer);
+                Debug.Assert(buffer.SequenceEqual(Header));
+
+                this.stream.Read(buffer);
+                var version = BinaryPrimitives.ReadInt32BigEndian(buffer);
+                Debug.Assert(version == 2);
+
+                for (int i = 1; i <= 256; i++)
+                {
+                    this.stream.ReadAll(buffer);
+                    this.fanoutTable[i] = BinaryPrimitives.ReadInt32BigEndian(buffer);
+                }
+
+                this.initialized = true;
+            }
         }
     }
 }

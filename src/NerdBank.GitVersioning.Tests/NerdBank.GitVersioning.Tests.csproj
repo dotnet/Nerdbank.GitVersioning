@@ -51,5 +51,14 @@
     <None Update="Managed\commit.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.idx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.pack">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Managed\tree.bin">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 </Project>
