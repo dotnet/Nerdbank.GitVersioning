@@ -44,7 +44,7 @@ namespace NerdBank.GitVersioning.Managed
                 var baseObjectRelativeOffset = ReadVariableLengthInteger(stream);
                 var baseObjectOffset = (int)(offset - baseObjectRelativeOffset);
 
-                var deltaStream = GitObjectStream.Create(stream, decompressedSize);
+                var deltaStream = new ZLibStream(stream, decompressedSize);
 
                 int baseObjectlength = ReadMbsInt(deltaStream);
                 int targetLength = ReadMbsInt(deltaStream);
@@ -60,7 +60,7 @@ namespace NerdBank.GitVersioning.Managed
 
                 Stream baseObject = pack.Repository.GetObjectBySha(GitObjectId.Parse(baseObjectId), objectType, seekable: true);
 
-                var deltaStream = GitObjectStream.Create(stream, decompressedSize);
+                var deltaStream = new ZLibStream(stream, decompressedSize);
 
                 int baseObjectlength = ReadMbsInt(deltaStream);
                 int targetLength = ReadMbsInt(deltaStream);
@@ -74,7 +74,7 @@ namespace NerdBank.GitVersioning.Managed
                 throw new GitException();
             }
 
-            return GitObjectStream.Create(stream, decompressedSize);
+            return new ZLibStream(stream, decompressedSize);
         }
 
         private static (GitPackObjectType, int) ReadObjectHeader(Stream stream)
@@ -118,7 +118,7 @@ namespace NerdBank.GitVersioning.Managed
             return offset;
         }
 
-        public static int ReadMbsInt(Stream stream, int initialValue = 0, int initialBit = 0)
+        private static int ReadMbsInt(Stream stream, int initialValue = 0, int initialBit = 0)
         {
             int value = initialValue;
             int currentBit = initialBit;

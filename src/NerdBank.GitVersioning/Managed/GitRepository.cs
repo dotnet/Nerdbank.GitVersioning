@@ -109,6 +109,10 @@ namespace NerdBank.GitVersioning.Managed
             this.packs = new Lazy<GitPack[]>(this.LoadPacks);
         }
 
+        // For mocking purposes only.
+        protected GitRepository()
+        {
+        }
         public string WorkingDirectory { get; private set; }
         public string GitDirectory { get; private set; }
         public string CommonDirectory { get; private set; }
@@ -205,8 +209,7 @@ namespace NerdBank.GitVersioning.Managed
                 return null;
             }
 
-            var file = GitObjectStream.Create(compressedFile, -1);
-            file.ReadObjectTypeAndLength(objectType);
+            var file = new GitObjectStream(compressedFile, objectType);
 
             if (string.CompareOrdinal(file.ObjectType, objectType) != 0)
             {
@@ -275,8 +278,6 @@ namespace NerdBank.GitVersioning.Managed
 
             return packs;
         }
-
-        public Func<GitPack, GitPackCache> CacheFactory { get; set; } = (cache) => new GitPackMemoryCache(cache);
 
         public string GetCacheStatistics()
         {
