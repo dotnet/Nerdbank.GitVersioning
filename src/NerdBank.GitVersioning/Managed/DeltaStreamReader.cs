@@ -2,8 +2,21 @@
 
 namespace NerdBank.GitVersioning.Managed
 {
-    internal static class DeltaStreamReader
+    /// <summary>
+    /// Reads delta instructions from a <see cref="Stream"/>.
+    /// </summary>
+    /// <seealso href="https://git-scm.com/docs/pack-format#_deltified_representation"/>
+    public static class DeltaStreamReader
     {
+        /// <summary>
+        /// Reads the next instruction from a <see cref="Stream"/>.
+        /// </summary>
+        /// <param name="stream">
+        /// The stream from which to read the instruction.
+        /// </param>
+        /// <returns>
+        /// The next instruction if found; otherwise, <see langword="null"/>.
+        /// </returns>
         public static DeltaInstruction? Read(Stream stream)
         {
             int next = stream.ReadByte();
