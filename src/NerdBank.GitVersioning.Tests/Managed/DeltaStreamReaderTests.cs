@@ -5,6 +5,7 @@ using Xunit;
 
 namespace NerdBank.GitVersioning.Tests.Managed
 {
+    // Test case borrowed from https://stefan.saasen.me/articles/git-clone-in-haskell-from-the-bottom-up/#format-of-the-delta-representation
     public class DeltaStreamReaderTests
     {
         [Fact]
@@ -40,7 +41,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
         }
 
         [Fact]
-        public void Foo()
+        public void ReadStreamTest()
         {
             using (Stream stream = new MemoryStream(
                 new byte[]
