@@ -5,7 +5,7 @@ using System.IO;
 
 namespace NerdBank.GitVersioning.Managed
 {
-    internal class GitPackDeltafiedStream : Stream
+    public class GitPackDeltafiedStream : Stream
     {
         private readonly long length;
         private long position;
@@ -22,6 +22,8 @@ namespace NerdBank.GitVersioning.Managed
             this.deltaStream = deltaStream ?? throw new ArgumentNullException(nameof(deltaStream));
             this.length = length;
         }
+
+        public Stream BaseStream => this.baseStream;
 
         public override bool CanRead => true;
 

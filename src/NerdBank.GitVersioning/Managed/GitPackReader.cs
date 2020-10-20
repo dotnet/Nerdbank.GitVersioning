@@ -58,7 +58,7 @@ namespace NerdBank.GitVersioning.Managed
                 Span<byte> baseObjectId = stackalloc byte[20];
                 stream.ReadAll(baseObjectId);
 
-                Stream baseObject = pack.Repository.GetObjectBySha(GitObjectId.Parse(baseObjectId), objectType, seekable: true);
+                Stream baseObject = pack.GetObjectFromRepository(GitObjectId.Parse(baseObjectId), objectType, seekable: true);
 
                 var deltaStream = new ZLibStream(stream, decompressedSize);
 
@@ -71,7 +71,7 @@ namespace NerdBank.GitVersioning.Managed
             // Tips for handling deltas: https://github.com/choffmeister/gitnet/blob/4d907623d5ce2d79a8875aee82e718c12a8aad0b/src/GitNet/GitPack.cs
             if (type != packObjectType)
             {
-                throw new GitException();
+                throw new GitException($"An object of type {objectType} could not be located at offset {offset}.");
             }
 
             return new ZLibStream(stream, decompressedSize);

@@ -8,11 +8,6 @@ namespace NerdBank.GitVersioning.Managed
     {
         private readonly Dictionary<int, Stream> cache = new Dictionary<int, Stream>();
 
-        public GitPackMemoryCache(GitPack pack)
-            : base(pack)
-        {
-        }
-
         public override Stream Add(int offset, Stream stream)
         {
             var cacheStream = new GitPackMemoryCacheStream(stream);

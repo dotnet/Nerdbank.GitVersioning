@@ -6,28 +6,120 @@ using System.Text;
 
 namespace NerdBank.GitVersioning.Managed
 {
-    internal class GitPack : IDisposable
+    /// <summary>
+    /// Supports retrieving objects from a Git pack file.
+    /// </summary>
+    public class GitPack : IDisposable
     {
-        private readonly string name;
+        /// <summary>
+        /// A delegate for methods which fetch objects from the Git object store.
+        /// </summary>
+        /// <param name="sha">
+        /// The Git object ID of the object to fetch.
+        /// </param>
+        /// <param name="objectType">
+        /// The object type of the object to fetch.
+        /// </param>
+        /// <param name="seekable">
+        /// A value indicating whether forward-only or seekable access is required.
+        /// </param>
+        /// <returns>
+        /// A <see cref="Stream"/> which represents the requested object.
+        /// </returns>
+        public delegate Stream GetObjectFromRepositoryDelegate(GitObjectId sha, string objectType, bool seekable = false);
+
         private readonly string packPath;
-        private readonly GitRepository repository;
+        private readonly string indexPath;
+        private readonly GetObjectFromRepositoryDelegate getObjectFromRepositoryDelegate;
         private readonly GitPackCache cache;
+
+        // Maps GitObjectIds to offets in the git pack.
         private readonly Dictionary<GitObjectId, int> offsets = new Dictionary<GitObjectId, int>();
+
+        // A histogram which tracks the objects which have been retrieved from this GitPack. The key is the offset
+        // of the object. Used to get some insights in usage patterns.
+        private readonly Dictionary<int, int> histogram = new Dictionary<int, int>();
 
         private Lazy<GitPackIndexReader> indexReader;
 
-        public GitPack(GitRepository repository, string name)
+        // Operating on git packfiles can potentially open a lot of streams which point to the pack file. For example,
+        // deltafied objects can have base objects which are in turn delafied. Opening and closing these streams has
+        // become a performance bottleneck. This is mitigated by pooling streams (i.e. reusing the streams after they
+        // are closed by the caller).
+        private readonly Queue<GitPackPooledStream> pooledStreams = new Queue<GitPackPooledStream>();
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GitPack"/> class.
+        /// </summary>
+        /// <param name="repository">
+        /// The repository to which this pack file belongs.
+        /// </param>
+        /// <param name="name">
+        /// The name of the pack file.
+        /// </param>
+        internal GitPack(GitRepository repository, string name)
+            : this(
+                  repository.GetObjectBySha,
+                  Path.Combine(repository.ObjectDirectory, "pack", $"{name}.pack"),
+                  Path.Combine(repository.ObjectDirectory, "pack", $"{name}.idx"))
         {
-            this.repository = repository ?? throw new ArgumentNullException(nameof(repository));
-            this.name = name ?? throw new ArgumentNullException(nameof(name));
-            this.indexReader = new Lazy<GitPackIndexReader>(this.OpenIndex);
-            this.packPath = Path.Combine(this.repository.ObjectDirectory, "pack", $"{this.name}.pack");
-            this.cache = repository.CacheFactory(this);
         }
 
-        public GitRepository Repository => this.repository;
-        public string Name => this.name;
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GitPack"/> class.
+        /// </summary>
+        /// <param name="getObjectFromRepositoryDelegate">
+        /// A delegate which fetches objects from the Git object store.
+        /// </param>
+        /// <param name="indexPath">
+        /// The full path to the index file.
+        /// </param>
+        /// <param name="packPath">
+        /// The full path to the pack file.
+        /// </param>
+        /// <param name="cache">
+        /// A <see cref="GitPackCache"/> which is used to cache <see cref="Stream"/> objects which operate
+        /// on the pack file.
+        /// </param>
+        public GitPack(GetObjectFromRepositoryDelegate getObjectFromRepositoryDelegate, string indexPath, string packPath, GitPackCache cache = null)
+        {
+            this.GetObjectFromRepository = getObjectFromRepositoryDelegate ?? throw new ArgumentNullException(nameof(getObjectFromRepositoryDelegate));
+            this.indexReader = new Lazy<GitPackIndexReader>(this.OpenIndex);
+            this.packPath = packPath ?? throw new ArgumentException(nameof(packPath));
+            this.indexPath = indexPath ?? throw new ArgumentNullException(nameof(indexPath));
+            this.cache = cache ?? new GitPackMemoryCache();
+        }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GitPack"/> class.
+        /// </summary>
+        /// <remarks>
+        /// Intended for mocking / unit testing purposes only.
+        /// </remarks>
+        protected GitPack()
+        {
+        }
+
+        /// <summary>
+        /// Gets a delegate which fetches objects from the Git object store.
+        /// </summary>
+        public GetObjectFromRepositoryDelegate GetObjectFromRepository { get; private set; }
+
+        /// <summary>
+        /// Attempts to retrieve a Git object from this Git pack.
+        /// </summary>
+        /// <param name="objectId">
+        /// The Git object Id of the object to retrieve.
+        /// </param>
+        /// <param name="objectType">
+        /// The object type of the object to retrieve.
+        /// </param>
+        /// <param name="value">
+        /// If found, receives a <see cref="Stream"/> which represents the object.
+        /// </param>
+        /// <returns>
+        /// <see langword="true"/> if the object was found; otherwise, <see langword="false"/>.
+        /// </returns>
         public bool TryGetObject(GitObjectId objectId, string objectType, out Stream value)
         {
             var offset = this.GetOffset(objectId);
@@ -44,26 +136,18 @@ namespace NerdBank.GitVersioning.Managed
             }
         }
 
-        public int? GetOffset(GitObjectId objectId)
-        {
-            if (this.offsets.TryGetValue(objectId, out int cachedOffset))
-            {
-                return cachedOffset;
-            }
-
-            var indexReader = this.indexReader.Value;
-            var offset = indexReader.GetOffset(objectId);
-
-            if (offset != null)
-            {
-                this.offsets.TryAdd(objectId, offset.Value);
-            }
-
-            return offset;
-        }
-
-        private readonly Dictionary<int, int> histogram = new Dictionary<int, int>();
-
+        /// <summary>
+        /// Gets a Git object at a specific offset.
+        /// </summary>
+        /// <param name="offset">
+        /// The offset of the Git object, relative to the pack file.
+        /// </param>
+        /// <param name="objectType">
+        /// The object type of the object to retrieve.
+        /// </param>
+        /// <returns>
+        /// A <see cref="Stream"/> which represents the object.
+        /// </returns>
         public Stream GetObject(int offset, string objectType)
         {
             if (!this.histogram.TryAdd(offset, 1))
@@ -93,7 +177,7 @@ namespace NerdBank.GitVersioning.Managed
                     break;
 
                 default:
-                    throw new GitException();
+                    throw new GitException($"The object type '{objectType}' is not supported by the {nameof(GitPack)} class.");
             }
 
             var packStream = this.GetPackStream();
@@ -102,7 +186,55 @@ namespace NerdBank.GitVersioning.Managed
             return this.cache.Add(offset, objectStream);
         }
 
-        private readonly Queue<GitPackPooledStream> pooledStreams = new Queue<GitPackPooledStream>();
+        /// <summary>
+        /// Writes cache statistics to a <see cref="StringBuilder"/>.
+        /// </summary>
+        /// <param name="builder">
+        /// A <see cref="StringBuilder"/> to which the cache statistics are written.
+        /// </param>
+        public void GetCacheStatistics(StringBuilder builder)
+        {
+            int histogramCount = 25;
+
+            builder.AppendLine($"Git Pack {this.packPath}:");
+            builder.AppendLine($"Top {histogramCount} / {this.histogram.Count} items:");
+
+            foreach (var item in this.histogram.OrderByDescending(v => v.Value).Take(25))
+            {
+                builder.AppendLine($"  {item.Key}: {item.Value}");
+            }
+
+            builder.AppendLine();
+
+            this.cache.GetCacheStatistics(builder);
+        }
+
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+            if (this.indexReader.IsValueCreated)
+            {
+                this.indexReader.Value.Dispose();
+            }
+        }
+
+        private int? GetOffset(GitObjectId objectId)
+        {
+            if (this.offsets.TryGetValue(objectId, out int cachedOffset))
+            {
+                return cachedOffset;
+            }
+
+            var indexReader = this.indexReader.Value;
+            var offset = indexReader.GetOffset(objectId);
+
+            if (offset != null)
+            {
+                this.offsets.TryAdd(objectId, offset.Value);
+            }
+
+            return offset;
+        }
 
         private GitPackPooledStream GetPackStream()
         {
@@ -122,36 +254,9 @@ namespace NerdBank.GitVersioning.Managed
             }
         }
 
-        public void Dispose()
-        {
-            if (this.indexReader.IsValueCreated)
-            {
-                this.indexReader.Value.Dispose();
-            }
-        }
-
-        public void GetCacheStatistics(StringBuilder builder)
-        {
-            int histogramCount = 25;
-
-            builder.AppendLine($"Git Pack {this.Name}:");
-            builder.AppendLine($"Top {histogramCount} / {this.histogram.Count} items:");
-
-            foreach (var item in this.histogram.OrderByDescending(v => v.Value).Take(25))
-            {
-                builder.AppendLine($"  {item.Key}: {item.Value}");
-            }
-
-            builder.AppendLine();
-
-            this.cache.GetCacheStatistics(builder);
-        }
-
         private GitPackIndexReader OpenIndex()
         {
-            var indexFileName = Path.Combine(this.repository.ObjectDirectory, "pack", $"{this.name}.idx");
-
-            return new GitPackIndexReader(File.OpenRead(indexFileName));
+            return new GitPackIndexReader(File.OpenRead(this.indexPath));
         }
     }
 }
