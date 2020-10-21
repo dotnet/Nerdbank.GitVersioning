@@ -210,6 +210,45 @@ namespace NerdBank.GitVersioning.Tests.Managed
         }
 
         [Fact]
+        public void GetObjectFromAlternateTest()
+        {
+            // Add 2 alternates for this repository, each with their own commit.
+            // Make sure that commits from the current repository and the alternates
+            // can be found.
+            //
+            // Alternate1    Alternate2
+            //     |             |
+            //     +-----+ +-----+
+            //            |
+            //          Repo
+            this.InitializeSourceControl();
+
+            var localCommit = this.Repo.Commit("Local", this.Signer, this.Signer, new CommitOptions() { AllowEmptyCommit = true });
+
+            var alternate1Path = this.CreateDirectoryForNewRepo();
+            var alternate1 = this.InitializeSourceControl(alternate1Path);
+            var alternate1Commit = alternate1.Commit("Alternate 1", this.Signer, this.Signer, new CommitOptions() { AllowEmptyCommit = true });
+
+            var alternate2Path = this.CreateDirectoryForNewRepo();
+            var alternate2 = this.InitializeSourceControl(alternate2Path);
+            var alternate2Commit = alternate2.Commit("Alternate 2", this.Signer, this.Signer, new CommitOptions() { AllowEmptyCommit = true });
+
+            var objectDatabasePath = Path.Combine(this.RepoPath, ".git", "objects");
+
+            Directory.CreateDirectory(Path.Combine(this.RepoPath, ".git", "objects", "info"));
+            File.WriteAllText(
+                Path.Combine(this.RepoPath, ".git", "objects", "info", "alternates"),
+                $"{Path.GetRelativePath(objectDatabasePath, Path.Combine(alternate1Path, ".git", "objects"))}:{Path.GetRelativePath(objectDatabasePath, Path.Combine(alternate2Path, ".git", "objects"))}:");
+
+            using (GitRepository repository = GitRepository.Create(this.RepoPath))
+            {
+                Assert.Equal(localCommit.Sha, repository.GetCommit(GitObjectId.Parse(localCommit.Sha)).Sha.ToString());
+                Assert.Equal(alternate1Commit.Sha, repository.GetCommit(GitObjectId.Parse(alternate1Commit.Sha)).Sha.ToString());
+                Assert.Equal(alternate2Commit.Sha, repository.GetCommit(GitObjectId.Parse(alternate2Commit.Sha)).Sha.ToString());
+            }
+        }
+
+        [Fact]
         public void GetObjectByShaAndWrongTypeTest()
         {
             this.InitializeSourceControl();

@@ -17,6 +17,8 @@ namespace NerdBank.GitVersioning.Managed
         private readonly byte[] objectPathBuffer;
         private readonly int objectDirLength;
 
+        private readonly List<GitRepository> alternates = new List<GitRepository>();
+
 #if DEBUG
         private Dictionary<GitObjectId, int> histogram = new Dictionary<GitObjectId, int>();
 #endif
@@ -68,7 +70,6 @@ namespace NerdBank.GitVersioning.Managed
             }
 
             var commonDirectory = gitDirectory;
-
             var commonDirFile = Path.Combine(gitDirectory, "commondir");
 
             if (File.Exists(commonDirFile))
@@ -77,7 +78,9 @@ namespace NerdBank.GitVersioning.Managed
                 commonDirectory = Path.Combine(gitDirectory, commonDirectoryRelativePath);
             }
 
-            return new GitRepository(workingDirectory, gitDirectory, commonDirectory);
+            var objectDirectory = Path.Combine(commonDirectory, "objects");
+
+            return new GitRepository(workingDirectory, gitDirectory, commonDirectory, objectDirectory);
         }
 
         /// <summary>
@@ -92,9 +95,9 @@ namespace NerdBank.GitVersioning.Managed
         /// <param name="commonDirectory">
         /// The common Git directory, in which Git objects are stored.
         /// </param>
-        public static GitRepository Create(string workingDirectory, string gitDirectory, string commonDirectory)
+        public static GitRepository Create(string workingDirectory, string gitDirectory, string commonDirectory, string objectDirectory)
         {
-            return new GitRepository(workingDirectory, gitDirectory, commonDirectory);
+            return new GitRepository(workingDirectory, gitDirectory, commonDirectory, objectDirectory);
         }
 
         /// <summary>
@@ -109,31 +112,42 @@ namespace NerdBank.GitVersioning.Managed
         /// <param name="commonDirectory">
         /// The common Git directory, in which Git objects are stored.
         /// </param>
-        public GitRepository(string workingDirectory, string gitDirectory, string commonDirectory)
+        public GitRepository(string workingDirectory, string gitDirectory, string commonDirectory, string objectDirectory)
         {
             this.WorkingDirectory = workingDirectory ?? throw new ArgumentNullException(nameof(workingDirectory));
             this.GitDirectory = gitDirectory ?? throw new ArgumentNullException(nameof(gitDirectory));
             this.CommonDirectory = commonDirectory ?? throw new ArgumentNullException(nameof(commonDirectory));
+            this.ObjectDirectory = objectDirectory ?? throw new ArgumentNullException(nameof(objectDirectory));
 
             // Normalize paths
             this.WorkingDirectory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(this.WorkingDirectory));
             this.GitDirectory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(this.GitDirectory));
             this.CommonDirectory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(this.CommonDirectory));
+            this.ObjectDirectory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(this.ObjectDirectory));
 
             if (FileHelpers.TryOpen(
-                Path.Combine(this.GitDirectory, "objects", "info", "alternates"),
+                Path.Combine(this.ObjectDirectory, "info", "alternates"),
                 CreateFileFlags.FILE_ATTRIBUTE_NORMAL,
                 out var alternateStream))
             {
-                Span<byte> filename = stackalloc byte[4096];
-                var length = alternateStream.Read(filename);
-                length = filename.IndexOf((byte)'\n');
+                // There's not a lot of documentation on git alternates; but this StackOverflow question
+                // https://stackoverflow.com/questions/36123655/what-is-the-git-alternates-mechanism
+                // provides a good starting point.
+                Span<byte> alternates = stackalloc byte[4096];
+                var length = alternateStream.Read(alternates);
+                alternates = alternates.Slice(0, length);
 
-                this.ObjectDirectory = Path.Combine(gitDirectory, "objects", Encoding.GetString(filename.Slice(0, length)));
-            }
-            else
-            {
-                this.ObjectDirectory = Path.Combine(this.CommonDirectory, "objects");
+                int index = 0;
+
+                while ((index = alternates.IndexOf((byte)':')) > 0)
+                {
+                    var alternate = Encoding.GetString(alternates.Slice(0, index));
+                    alternate = Path.GetFullPath(Path.Combine(this.ObjectDirectory, alternate));
+
+                    this.alternates.Add(GitRepository.Create(workingDirectory, gitDirectory, commonDirectory, alternate));
+
+                    alternates = alternates.Slice(index + 1);
+                }
             }
 
 
@@ -171,7 +185,7 @@ namespace NerdBank.GitVersioning.Managed
         public string WorkingDirectory { get; private set; }
 
         /// <summary>
-        /// Gets the path to the Git directory, in which metadata (e.g. references) is stored.
+        /// Gets the path to the Git directory, in which metadata (e.g. references and configuration) is stored.
         /// </summary>
         public string GitDirectory { get; private set; }
 
@@ -304,6 +318,34 @@ namespace NerdBank.GitVersioning.Managed
                 return null;
             }
 
+            if (this.TryGetObjectBySha(sha, objectType, out Stream value))
+            {
+                return value;
+            }
+            else
+            {
+                throw new GitException($"An {objectType} object with SHA {sha} could not be found.");
+            }
+        }
+
+        /// <summary>
+        /// Gets a Git object by its Git object Id.
+        /// </summary>
+        /// <param name="sha">
+        /// The Git object id of the object to retrieve.
+        /// </param>
+        /// <param name="objectType">
+        /// The type of object to retrieve.
+        /// </param>
+        /// <param name="value">
+        /// An output parameter which retrieves the requested Git object.
+        /// </param>
+        /// <returns>
+        /// <see langword="true"/> if the object could be found; otherwise,
+        /// <see langword="false"/>.
+        /// </returns>
+        public bool TryGetObjectBySha(GitObjectId sha, string objectType, out Stream value)
+        {
 #if DEBUG
             if (!this.histogram.TryAdd(sha, 1))
             {
@@ -311,22 +353,29 @@ namespace NerdBank.GitVersioning.Managed
             }
 #endif
 
-            Stream value = this.GetObjectByPath(sha, objectType);
-
-            if (value != null)
+            if (this.TryGetObjectByPath(sha, objectType, out value))
             {
-                return value;
+                return true;
             }
 
             foreach (var pack in this.packs.Value)
             {
-                if (pack.TryGetObject(sha, objectType, out Stream packValue))
+                if (pack.TryGetObject(sha, objectType, out value))
                 {
-                    return packValue;
+                    return true;
                 }
             }
 
-            throw new GitException($"An {objectType} object with SHA {sha} could not be found.");
+            foreach (var alternate in this.alternates)
+            {
+                if (alternate.TryGetObjectBySha(sha, objectType, out value))
+                {
+                    return true;
+                }
+            }
+
+            value = null;
+            return false;
         }
 
         /// <summary>
@@ -379,24 +428,26 @@ namespace NerdBank.GitVersioning.Managed
             }
         }
 
-        private Stream GetObjectByPath(GitObjectId sha, string objectType)
+        private bool TryGetObjectByPath(GitObjectId sha, string objectType, out Stream value)
         {
             sha.CopyToUnicodeString(0, 1, this.objectPathBuffer.AsSpan(this.objectDirLength + 2, 4));
             sha.CopyToUnicodeString(1, 19, this.objectPathBuffer.AsSpan(this.objectDirLength + 2 + 4 + 2));
 
             if (!FileHelpers.TryOpen(this.objectPathBuffer, CreateFileFlags.FILE_ATTRIBUTE_NORMAL | CreateFileFlags.FILE_FLAG_SEQUENTIAL_SCAN, out var compressedFile))
             {
-                return null;
+                value = null;
+                return false;
             }
 
-            var file = new GitObjectStream(compressedFile, objectType);
+            var objectStream = new GitObjectStream(compressedFile, objectType);
 
-            if (string.CompareOrdinal(file.ObjectType, objectType) != 0)
+            if (string.CompareOrdinal(objectStream.ObjectType, objectType) != 0)
             {
-                throw new GitException($"Got a {file.ObjectType} instead of a {objectType} when opening object {sha}");
+                throw new GitException($"Got a {objectStream.ObjectType} instead of a {objectType} when opening object {sha}");
             }
 
-            return file;
+            value = objectStream;
+            return true;
         }
 
         private GitObjectId ResolveReference(object reference)

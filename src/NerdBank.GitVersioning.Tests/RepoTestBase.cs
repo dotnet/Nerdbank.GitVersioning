@@ -70,22 +70,29 @@ public abstract class RepoTestBase : IDisposable
 
     protected virtual void InitializeSourceControl(bool withInitialCommit = true)
     {
-        Repository.Init(this.RepoPath);
-        this.Repo = new Repository(this.RepoPath);
-        this.Repo.Config.Set("user.name", this.Signer.Name, ConfigurationLevel.Local);
-        this.Repo.Config.Set("user.email", this.Signer.Email, ConfigurationLevel.Local);
-        foreach (var file in this.Repo.RetrieveStatus().Untracked)
+        this.Repo = this.InitializeSourceControl(this.RepoPath, withInitialCommit);
+    }
+
+    protected virtual Repository InitializeSourceControl(string repoPath, bool withInitialCommit = true)
+    {
+        Repository.Init(repoPath);
+        var repo = new Repository(repoPath);
+        repo.Config.Set("user.name", this.Signer.Name, ConfigurationLevel.Local);
+        repo.Config.Set("user.email", this.Signer.Email, ConfigurationLevel.Local);
+        foreach (var file in repo.RetrieveStatus().Untracked)
         {
             if (!Path.GetFileName(file.FilePath).StartsWith("_git2_", StringComparison.Ordinal))
             {
-                Commands.Stage(this.Repo, file.FilePath);
+                Commands.Stage(repo, file.FilePath);
             }
         }
 
-        if (this.Repo.Index.Count > 0 && withInitialCommit)
+        if (repo.Index.Count > 0 && withInitialCommit)
         {
-            this.Repo.Commit("initial commit", this.Signer, this.Signer);
+            repo.Commit("initial commit", this.Signer, this.Signer);
         }
+
+        return repo;
     }
 
     protected void Ignore_git2_UntrackedFile()
