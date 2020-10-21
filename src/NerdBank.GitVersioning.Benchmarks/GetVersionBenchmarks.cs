@@ -2,10 +2,11 @@
 using System.IO;
 using BenchmarkDotNet.Attributes;
 using Nerdbank.GitVersioning;
+using NerdBank.GitVersioning.Managed;
 
 namespace NerdBank.GitVersioning.Benchmarks
 {
-    class GetVersionBenchmarks
+    public class GetVersionBenchmarks
     {
         [Params(
             "xunit;version.json",
@@ -26,11 +27,18 @@ namespace NerdBank.GitVersioning.Benchmarks
         public Version Version
         { get; set; }
 
-        [Benchmark]
-        public void GetversionLibGit2()
+        [Benchmark(Baseline = true)]
+        public void GetVersionLibGit2()
         {
-            var oracleA = VersionOracle.Create(this.RepositoryPath, Path.GetDirectoryName(this.VersionPath));
-            this.Version = oracleA.Version;
+            var oracle = LibGit2VersionOracle.CreateLibGit2(this.RepositoryPath);
+            this.Version = oracle.Version;
+        }
+
+        [Benchmark]
+        public void GetVersionManaged()
+        {
+            var oracle = ManagedVersionOracle.CreateManaged(this.RepositoryPath);
+            this.Version = oracle.Version;
         }
     }
 }
