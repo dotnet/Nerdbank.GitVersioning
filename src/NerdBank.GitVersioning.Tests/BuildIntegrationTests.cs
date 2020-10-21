@@ -940,7 +940,7 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         Assert.Empty(result.LoggedEvents.OfType<BuildWarningEventArgs>());
     }
 
-#if !NETCORE
+#if !NETCOREAPP
     /// <summary>
     /// Create a native resource .dll and verify that its version
     ///  information is set correctly.
