@@ -5,6 +5,10 @@ using System.IO;
 
 namespace NerdBank.GitVersioning.Managed
 {
+    /// <summary>
+    /// Reads data from a deltafied object.
+    /// </summary>
+    /// <seealso href="https://git-scm.com/docs/pack-format#_deltified_representation"/>
     public class GitPackDeltafiedStream : Stream
     {
         private readonly long length;
@@ -16,29 +20,49 @@ namespace NerdBank.GitVersioning.Managed
         private DeltaInstruction? current;
         private int offset;
 
-        public GitPackDeltafiedStream(Stream baseStream, Stream deltaStream, long length)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GitPackDeltafiedStream"/> class.
+        /// </summary>
+        /// <param name="baseStream">
+        /// The base stream to which the deltas are applied.
+        /// </param>
+        /// <param name="deltaStream">
+        /// A <see cref="Stream"/> which contains a sequence of <see cref="DeltaInstruction"/>s.
+        /// </param>
+        public GitPackDeltafiedStream(Stream baseStream, Stream deltaStream)
         {
             this.baseStream = baseStream ?? throw new ArgumentNullException(nameof(baseStream));
             this.deltaStream = deltaStream ?? throw new ArgumentNullException(nameof(deltaStream));
-            this.length = length;
+
+            int baseObjectlength = deltaStream.ReadMbsInt();
+            this.length = deltaStream.ReadMbsInt();
         }
 
+        /// <summary>
+        /// Gets the base stream to which the deltas are applied.
+        /// </summary>
         public Stream BaseStream => this.baseStream;
 
+        /// <inheritdoc/>
         public override bool CanRead => true;
 
+        /// <inheritdoc/>
         public override bool CanSeek => false;
 
+        /// <inheritdoc/>
         public override bool CanWrite => false;
 
+        /// <inheritdoc/>
         public override long Length => this.length;
 
+        /// <inheritdoc/>
         public override long Position
         {
             get => this.position;
             set => throw new NotImplementedException();
         }
 
+        /// <inheritdoc/>
         public override int Read(Span<byte> buffer)
         {
             int read = 0;
@@ -63,9 +87,64 @@ namespace NerdBank.GitVersioning.Managed
             return read;
         }
 
+        /// <inheritdoc/>
         public override int Read(byte[] buffer, int offset, int count)
         {
             return this.Read(buffer.AsSpan(offset, count));
+        }
+
+        /// <inheritdoc/>
+        public override void Flush()
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <inheritdoc/>
+        public override long Seek(long offset, SeekOrigin origin)
+        {
+            if (origin == SeekOrigin.Begin && offset == this.position)
+            {
+                return this.position;
+            }
+
+            if (origin == SeekOrigin.Current && offset == 0)
+            {
+                return this.position;
+            }
+
+            if (origin == SeekOrigin.Begin && offset > this.position)
+            {
+                // We can optimise this by skipping over instructions rather than executing them
+                int length = (int)(offset - this.position);
+
+                byte[] buffer = ArrayPool<byte>.Shared.Rent(length);
+                this.Read(buffer, 0, length);
+                ArrayPool<byte>.Shared.Return(buffer);
+                return this.position;
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        /// <inheritdoc/>
+        public override void SetLength(long value)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <inheritdoc/>
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <inheritdoc/>
+        protected override void Dispose(bool disposing)
+        {
+            this.deltaStream.Dispose();
+            this.baseStream.Dispose();
         }
 
         private bool TryGetInstruction(out DeltaInstruction instruction)
@@ -103,55 +182,6 @@ namespace NerdBank.GitVersioning.Managed
             }
 
             return true;
-        }
-
-        public override void Flush()
-        {
-            throw new NotImplementedException();
-        }
-
-        public override long Seek(long offset, SeekOrigin origin)
-        {
-            if (origin == SeekOrigin.Begin && offset == this.position)
-            {
-                return this.position;
-            }
-
-            if (origin == SeekOrigin.Current && offset == 0)
-            {
-                return this.position;
-            }
-
-            if (origin == SeekOrigin.Begin && offset > this.position)
-            {
-                // We can optimise this by skipping over instructions rather than executing them
-                int length = (int)(offset - this.position);
-
-                byte[] buffer = ArrayPool<byte>.Shared.Rent(length);
-                this.Read(buffer, 0, length);
-                ArrayPool<byte>.Shared.Return(buffer);
-                return this.position;
-            }
-            else
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-        public override void SetLength(long value)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override void Write(byte[] buffer, int offset, int count)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            this.deltaStream.Dispose();
-            this.baseStream.Dispose();
         }
     }
 }

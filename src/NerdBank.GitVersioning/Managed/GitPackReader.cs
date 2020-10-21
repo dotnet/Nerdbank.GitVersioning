@@ -45,13 +45,9 @@ namespace NerdBank.GitVersioning.Managed
                 var baseObjectOffset = (int)(offset - baseObjectRelativeOffset);
 
                 var deltaStream = new ZLibStream(stream, decompressedSize);
-
-                int baseObjectlength = ReadMbsInt(deltaStream);
-                int targetLength = ReadMbsInt(deltaStream);
-
                 var baseObjectStream = pack.GetObject(baseObjectOffset, objectType);
 
-                return new GitPackDeltafiedStream(baseObjectStream, deltaStream, targetLength);
+                return new GitPackDeltafiedStream(baseObjectStream, deltaStream);
             }
             else if (type == GitPackObjectType.OBJ_REF_DELTA)
             {
@@ -62,10 +58,7 @@ namespace NerdBank.GitVersioning.Managed
 
                 var deltaStream = new ZLibStream(stream, decompressedSize);
 
-                int baseObjectlength = ReadMbsInt(deltaStream);
-                int targetLength = ReadMbsInt(deltaStream);
-
-                return new GitPackDeltafiedStream(baseObject, deltaStream, targetLength);
+                return new GitPackDeltafiedStream(baseObject, deltaStream);
             }
 
             // Tips for handling deltas: https://github.com/choffmeister/gitnet/blob/4d907623d5ce2d79a8875aee82e718c12a8aad0b/src/GitNet/GitPack.cs
@@ -116,27 +109,6 @@ namespace NerdBank.GitVersioning.Managed
             while ((b & (byte)128) != 0);
 
             return offset;
-        }
-
-        private static int ReadMbsInt(Stream stream, int initialValue = 0, int initialBit = 0)
-        {
-            int value = initialValue;
-            int currentBit = initialBit;
-            int read;
-
-            while (true)
-            {
-                read = stream.ReadByte();
-                value |= (read & 0b_0111_1111) << currentBit;
-                currentBit += 7;
-
-                if (read < 128)
-                {
-                    break;
-                }
-            }
-
-            return value;
         }
     }
 }

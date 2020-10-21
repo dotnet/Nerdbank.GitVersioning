@@ -52,7 +52,13 @@
     <None Update="Managed\3596ffe59898103a2675547d4597e742e1f2389c.gz">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Managed\commit.txt">
+    <None Update="Managed\commit-4497b0eaaa89abf0e6d70961ad5f04fd3a49cbc6.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Managed\commit-d56dc3ed179053abef2097d1120b4507769bcf1a.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Managed\commit.delta">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.idx">
@@ -61,7 +67,16 @@
     <None Update="Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.pack">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Managed\tree-bb36cf0ca445ccc8e5ce9cc88f7cf74128e96dc9.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Managed\tree-f914b48023c7c804a4f3be780d451f31aef74ac1.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Managed\tree.bin">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Managed\tree.delta">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
