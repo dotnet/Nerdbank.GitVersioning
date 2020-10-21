@@ -20,17 +20,13 @@ namespace NerdBank.GitVersioning.Managed
         /// <param name="objectType">
         /// The object type of the object to fetch.
         /// </param>
-        /// <param name="seekable">
-        /// A value indicating whether forward-only or seekable access is required.
-        /// </param>
         /// <returns>
         /// A <see cref="Stream"/> which represents the requested object.
         /// </returns>
-        public delegate Stream GetObjectFromRepositoryDelegate(GitObjectId sha, string objectType, bool seekable = false);
+        public delegate Stream GetObjectFromRepositoryDelegate(GitObjectId sha, string objectType);
 
         private readonly string packPath;
         private readonly string indexPath;
-        private readonly GetObjectFromRepositoryDelegate getObjectFromRepositoryDelegate;
         private readonly GitPackCache cache;
 
         // Maps GitObjectIds to offets in the git pack.

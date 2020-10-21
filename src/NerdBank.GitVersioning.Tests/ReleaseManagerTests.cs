@@ -590,9 +590,9 @@ public class ReleaseManagerTests : RepoTestBase
         Assert.Equal(expectedReleaseVersionOptions, releaseVersion);
     }
 
-    protected override void InitializeSourceControl()
+    protected override void InitializeSourceControl(bool withInitialCommit = true)
     {
-        base.InitializeSourceControl();
+        base.InitializeSourceControl(withInitialCommit);
         this.Ignore_git2_UntrackedFile();
     }
 

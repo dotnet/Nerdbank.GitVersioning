@@ -14,7 +14,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
         public void GetPackedObject()
         {
             using (var gitPack = new GitPack(
-                (sha, objectType, seekable) => null,
+                (sha, objectType) => null,
                 "Managed/pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.idx",
                 "Managed/pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.pack",
                 GitPackNullCache.Instance))
@@ -36,7 +36,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
         public void GetDeltafiedObject()
         {
             using (var gitPack = new GitPack(
-                (sha, objectType, seekable) => null,
+                (sha, objectType) => null,
                 "Managed/pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.idx",
                 "Managed/pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.pack",
                 GitPackNullCache.Instance))
@@ -59,7 +59,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
         public void GetInvalidObject()
         {
             using (var gitPack = new GitPack(
-                (sha, objectType, seekable) => null,
+                (sha, objectType) => null,
                 "Managed/pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.idx",
                 "Managed/pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.pack",
                 GitPackNullCache.Instance))
@@ -76,7 +76,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
         public void TryGetObjectTest()
         {
             using (var gitPack = new GitPack(
-                (sha, objectType, seekable) => null,
+                (sha, objectType) => null,
                 "Managed/pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.idx",
                 "Managed/pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.pack",
                 GitPackNullCache.Instance))
@@ -99,7 +99,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
         public void TryGetMissingObjectTest()
         {
             using (var gitPack = new GitPack(
-                (sha, objectType, seekable) => null,
+                (sha, objectType) => null,
                 "Managed/pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.idx",
                 "Managed/pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.pack",
                 GitPackNullCache.Instance))

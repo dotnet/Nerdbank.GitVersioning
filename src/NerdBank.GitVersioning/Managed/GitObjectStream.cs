@@ -45,12 +45,8 @@ namespace NerdBank.GitVersioning.Managed
             Span<byte> buffer = stackalloc byte[128];
             this.Read(buffer.Slice(0, objectType.Length + 1));
 
-#if DEBUG && !NETSTANDARD2_0
             var actualObjectType = Encoding.ASCII.GetString(buffer.Slice(0, objectType.Length));
-            Debug.Assert(buffer[objectType.Length] == ' ');
-#endif
-
-            this.ObjectType = objectType;
+            this.ObjectType = actualObjectType;
 
             int headerLength = 0;
             long length = 0;

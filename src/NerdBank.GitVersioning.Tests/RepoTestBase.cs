@@ -68,7 +68,7 @@ public abstract class RepoTestBase : IDisposable
         }
     }
 
-    protected virtual void InitializeSourceControl()
+    protected virtual void InitializeSourceControl(bool withInitialCommit = true)
     {
         Repository.Init(this.RepoPath);
         this.Repo = new Repository(this.RepoPath);
@@ -82,7 +82,7 @@ public abstract class RepoTestBase : IDisposable
             }
         }
 
-        if (this.Repo.Index.Count > 0)
+        if (this.Repo.Index.Count > 0 && withInitialCommit)
         {
             this.Repo.Commit("initial commit", this.Signer, this.Signer);
         }

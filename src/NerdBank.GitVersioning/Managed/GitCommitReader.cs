@@ -33,6 +33,11 @@ namespace NerdBank.GitVersioning.Managed
         /// </returns>
         public static GitCommit Read(Stream stream, GitObjectId sha)
         {
+            if (stream == null)
+            {
+                throw new ArgumentNullException(nameof(stream));
+            }
+
             byte[] buffer = null;
 
             try

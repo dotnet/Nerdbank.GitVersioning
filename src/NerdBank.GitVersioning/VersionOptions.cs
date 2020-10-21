@@ -5,13 +5,14 @@ namespace Nerdbank.GitVersioning
     using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
-    using System.ComponentModel;
     using System.Diagnostics;
     using System.Linq;
     using System.Reflection;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Converters;
     using Validation;
+    using EditorBrowsableAttribute = System.ComponentModel.EditorBrowsableAttribute;
+    using EditorBrowsableState = System.ComponentModel.EditorBrowsableState;
 
     /// <summary>
     /// Describes the various versions and options required for the build.

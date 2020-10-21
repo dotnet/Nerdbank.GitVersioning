@@ -6,7 +6,10 @@ using System.Text;
 
 namespace NerdBank.GitVersioning.Managed
 {
-    internal class GitRepository : IDisposable
+    /// <summary>
+    /// Provides access to a Git repository.
+    /// </summary>
+    public class GitRepository : IDisposable
     {
         private const string HeadFileName = "HEAD";
         private const string GitDirectoryName = ".git";
@@ -14,6 +17,20 @@ namespace NerdBank.GitVersioning.Managed
         private readonly byte[] objectPathBuffer;
         private readonly int objectDirLength;
 
+#if DEBUG
+        private Dictionary<GitObjectId, int> histogram = new Dictionary<GitObjectId, int>();
+#endif
+
+        /// <summary>
+        /// Creates a new instance of the <see cref="GitRepository"/> class.
+        /// </summary>
+        /// <param name="workingDirectory">
+        /// The current working directory. This can be a subdirectory of the Git repository.
+        /// </param>
+        /// <returns>
+        /// A <see cref="GitRepository"/> which represents the git repository, or <see langword="null"/>
+        /// if no git repository was found.
+        /// </returns>
         public static GitRepository Create(string workingDirectory)
         {
             // Search for the top-level directory of the current git repository. This is the directory
@@ -63,16 +80,45 @@ namespace NerdBank.GitVersioning.Managed
             return new GitRepository(workingDirectory, gitDirectory, commonDirectory);
         }
 
+        /// <summary>
+        /// Creates a new instance of the <see cref="GitRepository"/> class.
+        /// </summary>
+        /// <param name="workingDirectory">
+        /// The current working directory. This can be a subdirectory of the Git repository.
+        /// </param>
+        /// <param name="gitDirectory">
+        /// The directory in which git metadata (such as refs,...) is stored.
+        /// </param>
+        /// <param name="commonDirectory">
+        /// The common Git directory, in which Git objects are stored.
+        /// </param>
         public static GitRepository Create(string workingDirectory, string gitDirectory, string commonDirectory)
         {
             return new GitRepository(workingDirectory, gitDirectory, commonDirectory);
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GitRepository"/> class.
+        /// </summary>
+        /// <param name="workingDirectory">
+        /// The current working directory. This can be a subdirectory of the Git repository.
+        /// </param>
+        /// <param name="gitDirectory">
+        /// The directory in which git metadata (such as refs,...) is stored.
+        /// </param>
+        /// <param name="commonDirectory">
+        /// The common Git directory, in which Git objects are stored.
+        /// </param>
         public GitRepository(string workingDirectory, string gitDirectory, string commonDirectory)
         {
             this.WorkingDirectory = workingDirectory ?? throw new ArgumentNullException(nameof(workingDirectory));
             this.GitDirectory = gitDirectory ?? throw new ArgumentNullException(nameof(gitDirectory));
             this.CommonDirectory = commonDirectory ?? throw new ArgumentNullException(nameof(commonDirectory));
+
+            // Normalize paths
+            this.WorkingDirectory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(this.WorkingDirectory));
+            this.GitDirectory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(this.GitDirectory));
+            this.CommonDirectory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(this.CommonDirectory));
 
             if (FileHelpers.TryOpen(
                 Path.Combine(this.GitDirectory, "objects", "info", "alternates"),
@@ -109,17 +155,47 @@ namespace NerdBank.GitVersioning.Managed
             this.packs = new Lazy<GitPack[]>(this.LoadPacks);
         }
 
-        // For mocking purposes only.
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GitRepository"/> class.
+        /// </summary>
+        /// <remarks>
+        /// Intended for mocking purposes only.
+        /// </remarks>
         protected GitRepository()
         {
         }
+
+        /// <summary>
+        /// Gets the path to the current working directory.
+        /// </summary>
         public string WorkingDirectory { get; private set; }
+
+        /// <summary>
+        /// Gets the path to the Git directory, in which metadata (e.g. references) is stored.
+        /// </summary>
         public string GitDirectory { get; private set; }
+
+        /// <summary>
+        /// Gets the path to the common directory, in which shared Git data (e.g. objects) are stored.
+        /// </summary>
         public string CommonDirectory { get; private set; }
+
+        /// <summary>
+        /// Gets the path to the Git object directory. It is a subdirectory of <see cref="CommonDirectory"/>.
+        /// </summary>
         public string ObjectDirectory { get; private set; }
 
-        public static Encoding Encoding => Encoding.ASCII;
+        /// <summary>
+        /// Gets the encoding used by this Git repsitory.
+        /// </summary>
+        public static Encoding Encoding => Encoding.UTF8;
 
+        /// <summary>
+        /// Returns the current HEAD as a reference (if available) or a Git object id.
+        /// </summary>
+        /// <returns>
+        /// The current HEAD as a reference (if available) or a Git object id.
+        /// </returns>
         public object GetHeadAsReferenceOrSha()
         {
             using (var stream = File.OpenRead(Path.Combine(this.GitDirectory, HeadFileName)))
@@ -128,6 +204,12 @@ namespace NerdBank.GitVersioning.Managed
             }
         }
 
+        /// <summary>
+        /// Gets the object ID of the current HEAD.
+        /// </summary>
+        /// <returns>
+        /// The object ID of the current HEAD.
+        /// </returns>
         public GitObjectId GetHeadCommitSha()
         {
             var reference = this.GetHeadAsReferenceOrSha();
@@ -135,6 +217,12 @@ namespace NerdBank.GitVersioning.Managed
             return objectId;
         }
 
+        /// <summary>
+        /// Gets the current HEAD commit, if available.
+        /// </summary>
+        /// <returns>
+        /// The current HEAD commit, or <see langword="null"/> if not available.
+        /// </returns>
         public GitCommit? GetHeadCommit()
         {
             var headCommitId = this.GetHeadCommitSha();
@@ -147,14 +235,41 @@ namespace NerdBank.GitVersioning.Managed
             return this.GetCommit(headCommitId);
         }
 
+        /// <summary>
+        /// Gets a commit by its Git object Id.
+        /// </summary>
+        /// <param name="sha">
+        /// The Git object Id of the commit.
+        /// </param>
+        /// <returns>
+        /// The requested commit.
+        /// </returns>
         public GitCommit GetCommit(GitObjectId sha)
         {
             using (Stream stream = this.GetObjectBySha(sha, "commit"))
             {
+                if (stream == null)
+                {
+                    throw new GitException($"The commit {sha} was not found in this repository.");
+                }
+
                 return GitCommitReader.Read(stream, sha);
             }
         }
 
+        /// <summary>
+        /// Gets an entry in a git tree.
+        /// </summary>
+        /// <param name="treeId">
+        /// The Git object Id of the Git tree.
+        /// </param>
+        /// <param name="nodeName">
+        /// The name of the node in the Git tree.
+        /// </param>
+        /// <returns>
+        /// The object Id of the requested entry. Returns <see cref="GitObjectId.Empty"/> if the entry
+        /// could not be found.
+        /// </returns>
         public GitObjectId GetTreeEntry(GitObjectId treeId, ReadOnlySpan<byte> nodeName)
         {
             using (Stream treeStream = this.GetObjectBySha(treeId, "tree"))
@@ -163,11 +278,26 @@ namespace NerdBank.GitVersioning.Managed
             }
         }
 
-#if DEBUG
-        private Dictionary<GitObjectId, int> histogram = new Dictionary<GitObjectId, int>();
-#endif
-
-        public Stream GetObjectBySha(GitObjectId sha, string objectType, bool seekable = false)
+        /// <summary>
+        /// Gets a Git object by its Git object Id.
+        /// </summary>
+        /// <param name="sha">
+        /// The Git object id of the object to retrieve.
+        /// </param>
+        /// <param name="objectType">
+        /// The type of object to retrieve.
+        /// </param>
+        /// <returns>
+        /// A <see cref="Stream"/> which represents the requested object.
+        /// </returns>
+        /// <exception cref="GitException">
+        /// The requested object could not be found.
+        /// </exception>
+        /// <remarks>
+        /// As a special case, a <see langword="null"/> value will be returned for
+        /// <see cref="GitObjectId.Empty"/>.
+        /// </remarks>
+        public Stream GetObjectBySha(GitObjectId sha, string objectType)
         {
             if (sha == GitObjectId.Empty)
             {
@@ -181,7 +311,7 @@ namespace NerdBank.GitVersioning.Managed
             }
 #endif
 
-            Stream value = this.GetObjectByPath(sha, objectType, seekable);
+            Stream value = this.GetObjectByPath(sha, objectType);
 
             if (value != null)
             {
@@ -196,89 +326,15 @@ namespace NerdBank.GitVersioning.Managed
                 }
             }
 
-            throw new GitException();
+            throw new GitException($"An {objectType} object with SHA {sha} could not be found.");
         }
 
-        public Stream GetObjectByPath(GitObjectId sha, string objectType, bool seekable)
-        {
-            sha.CopyToUnicodeString(0, 1, this.objectPathBuffer.AsSpan(this.objectDirLength + 2, 4));
-            sha.CopyToUnicodeString(1, 19, this.objectPathBuffer.AsSpan(this.objectDirLength + 2 + 4 + 2));
-
-            if (!FileHelpers.TryOpen(this.objectPathBuffer, CreateFileFlags.FILE_ATTRIBUTE_NORMAL | CreateFileFlags.FILE_FLAG_SEQUENTIAL_SCAN, out var compressedFile))
-            {
-                return null;
-            }
-
-            var file = new GitObjectStream(compressedFile, objectType);
-
-            if (string.CompareOrdinal(file.ObjectType, objectType) != 0)
-            {
-                throw new GitException();
-            }
-
-            if (seekable)
-            {
-                return new GitPackMemoryCacheStream(file);
-            }
-            else
-            {
-                return file;
-            }
-        }
-
-        public GitObjectId ResolveReference(object reference)
-        {
-            if (reference is string)
-            {
-                if (!FileHelpers.TryOpen(Path.Combine(this.GitDirectory, (string)reference), CreateFileFlags.FILE_ATTRIBUTE_NORMAL, out FileStream stream))
-                {
-                    return GitObjectId.Empty;
-                }
-
-                using (stream)
-                {
-                    Span<byte> objectId = stackalloc byte[40];
-                    stream.Read(objectId);
-
-                    return GitObjectId.ParseHex(objectId);
-                }
-            }
-            else if (reference is GitObjectId)
-            {
-                return (GitObjectId)reference;
-            }
-            else
-            {
-                throw new GitException();
-            }
-        }
-
-        public override string ToString()
-        {
-            return $"Git Repository: {this.WorkingDirectory}";
-        }
-
-        private GitPack[] LoadPacks()
-        {
-            var packDirectory = Path.Combine(this.ObjectDirectory, "pack/");
-
-            if (!Directory.Exists(packDirectory))
-            {
-                return Array.Empty<GitPack>();
-            }
-
-            var indexFiles = Directory.GetFiles(packDirectory, "*.idx");
-            GitPack[] packs = new GitPack[indexFiles.Length];
-
-            for (int i = 0; i < indexFiles.Length; i++)
-            {
-                var name = Path.GetFileNameWithoutExtension(indexFiles[i]);
-                packs[i] = new GitPack(this, name);
-            }
-
-            return packs;
-        }
-
+        /// <summary>
+        /// Gets cache usage statistics.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="string"/> which represents the cache usage statistics.
+        /// </returns>
         public string GetCacheStatistics()
         {
             StringBuilder builder = new StringBuilder();
@@ -305,6 +361,13 @@ namespace NerdBank.GitVersioning.Managed
             return builder.ToString();
         }
 
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            return $"Git Repository: {this.WorkingDirectory}";
+        }
+
+        /// <inheritdoc/>
         public void Dispose()
         {
             if (this.packs.IsValueCreated)
@@ -314,6 +377,74 @@ namespace NerdBank.GitVersioning.Managed
                     pack.Dispose();
                 }
             }
+        }
+
+        private Stream GetObjectByPath(GitObjectId sha, string objectType)
+        {
+            sha.CopyToUnicodeString(0, 1, this.objectPathBuffer.AsSpan(this.objectDirLength + 2, 4));
+            sha.CopyToUnicodeString(1, 19, this.objectPathBuffer.AsSpan(this.objectDirLength + 2 + 4 + 2));
+
+            if (!FileHelpers.TryOpen(this.objectPathBuffer, CreateFileFlags.FILE_ATTRIBUTE_NORMAL | CreateFileFlags.FILE_FLAG_SEQUENTIAL_SCAN, out var compressedFile))
+            {
+                return null;
+            }
+
+            var file = new GitObjectStream(compressedFile, objectType);
+
+            if (string.CompareOrdinal(file.ObjectType, objectType) != 0)
+            {
+                throw new GitException($"Got a {file.ObjectType} instead of a {objectType} when opening object {sha}");
+            }
+
+            return file;
+        }
+
+        private GitObjectId ResolveReference(object reference)
+        {
+            if (reference is string)
+            {
+                if (!FileHelpers.TryOpen(Path.Combine(this.GitDirectory, (string)reference), CreateFileFlags.FILE_ATTRIBUTE_NORMAL, out FileStream stream))
+                {
+                    return GitObjectId.Empty;
+                }
+
+                using (stream)
+                {
+                    Span<byte> objectId = stackalloc byte[40];
+                    stream.Read(objectId);
+
+                    return GitObjectId.ParseHex(objectId);
+                }
+            }
+            else if (reference is GitObjectId)
+            {
+                return (GitObjectId)reference;
+            }
+            else
+            {
+                throw new GitException();
+            }
+        }
+
+        private GitPack[] LoadPacks()
+        {
+            var packDirectory = Path.Combine(this.ObjectDirectory, "pack/");
+
+            if (!Directory.Exists(packDirectory))
+            {
+                return Array.Empty<GitPack>();
+            }
+
+            var indexFiles = Directory.GetFiles(packDirectory, "*.idx");
+            GitPack[] packs = new GitPack[indexFiles.Length];
+
+            for (int i = 0; i < indexFiles.Length; i++)
+            {
+                var name = Path.GetFileNameWithoutExtension(indexFiles[i]);
+                packs[i] = new GitPack(this, name);
+            }
+
+            return packs;
         }
     }
 }

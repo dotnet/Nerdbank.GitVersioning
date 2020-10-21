@@ -49,13 +49,13 @@ namespace NerdBank.GitVersioning.Managed
 
             while (tree != GitObjectId.Empty)
             {
-                using (Stream treeStream = repository.GetObjectBySha(tree, "tree", false))
+                using (Stream treeStream = repository.GetObjectBySha(tree, "tree"))
                 {
                     var versionObject = GitTreeStreamingReader.FindNode(treeStream, Encoding.UTF8.GetBytes(JsonFileName));
 
                     if (versionObject != GitObjectId.Empty)
                     {
-                        using (Stream optionsStream = repository.GetObjectBySha(versionObject, "blob", false))
+                        using (Stream optionsStream = repository.GetObjectBySha(versionObject, "blob"))
                         using (StreamReader optionsReader = new StreamReader(optionsStream))
                         {
                             var versionJsonContent = optionsReader.ReadToEnd();
@@ -79,7 +79,7 @@ namespace NerdBank.GitVersioning.Managed
                     }
                 }
 
-                using (Stream treeStream = repository.GetObjectBySha(tree, "tree", false))
+                using (Stream treeStream = repository.GetObjectBySha(tree, "tree"))
                 {
                     if (directories.Count > 0)
                     {

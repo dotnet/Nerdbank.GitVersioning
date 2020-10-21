@@ -54,11 +54,12 @@ namespace NerdBank.GitVersioning.Managed
                 Span<byte> baseObjectId = stackalloc byte[20];
                 stream.ReadAll(baseObjectId);
 
-                Stream baseObject = pack.GetObjectFromRepository(GitObjectId.Parse(baseObjectId), objectType, seekable: true);
+                Stream baseObject = pack.GetObjectFromRepository(GitObjectId.Parse(baseObjectId), objectType);
+                var seekableBaseObject = new GitPackMemoryCacheStream(baseObject);
 
                 var deltaStream = new ZLibStream(stream, decompressedSize);
 
-                return new GitPackDeltafiedStream(baseObject, deltaStream);
+                return new GitPackDeltafiedStream(seekableBaseObject, deltaStream);
             }
 
             // Tips for handling deltas: https://github.com/choffmeister/gitnet/blob/4d907623d5ce2d79a8875aee82e718c12a8aad0b/src/GitNet/GitPack.cs
