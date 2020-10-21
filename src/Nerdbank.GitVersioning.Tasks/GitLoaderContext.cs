@@ -11,7 +11,7 @@ using RuntimeEnvironment = Microsoft.DotNet.PlatformAbstractions.RuntimeEnvironm
 
 namespace Nerdbank.GitVersioning
 {
-    internal class GitLoaderContext : AssemblyLoadContext
+    public class GitLoaderContext : AssemblyLoadContext
     {
         public static readonly GitLoaderContext Instance = new GitLoaderContext();
 

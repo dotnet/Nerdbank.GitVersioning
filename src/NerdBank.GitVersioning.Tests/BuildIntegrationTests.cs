@@ -57,6 +57,10 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
 
     private void Init()
     {
+#if !NET461
+        GitLoaderContext.RuntimePath = "./runtimes";
+#endif
+
         int seed = (int)DateTime.Now.Ticks;
         this.random = new Random(seed);
         this.Logger.WriteLine("Random seed: {0}", seed);
@@ -936,6 +940,7 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         Assert.Empty(result.LoggedEvents.OfType<BuildWarningEventArgs>());
     }
 
+#if !NETCOREAPP
     /// <summary>
     /// Create a native resource .dll and verify that its version
     ///  information is set correctly.
@@ -958,6 +963,7 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         Assert.Equal("NerdBank", fileInfo.CompanyName);
         Assert.Equal($"Copyright (c) {DateTime.Now.Year}. All rights reserved.", fileInfo.LegalCopyright);
     }
+#endif
 
     private static Version GetExpectedAssemblyVersion(VersionOptions versionOptions, Version version)
     {

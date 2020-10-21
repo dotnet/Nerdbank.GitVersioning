@@ -310,6 +310,10 @@
                 Directory.CreateDirectory(Path.GetDirectoryName(this.OutputFile));
                 Utilities.FileOperationWithRetry(() => File.WriteAllText(this.OutputFile, fileContent));
             }
+            else
+            {
+                this.Log.LogError("CodeDomProvider not available for language: {0}. No version info will be embedded into assembly.", this.CodeLanguage);
+            }
 
             return !this.Log.HasLoggedErrors;
         }
