@@ -10,7 +10,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
         [Fact]
         public void ReadTest()
         {
-            using (Stream stream = File.OpenRead("Managed/commit-d56dc3ed179053abef2097d1120b4507769bcf1a.txt"))
+            using (Stream stream = File.OpenRead("Managed/commit-d56dc3ed179053abef2097d1120b4507769bcf1a"))
             {
                 var commit = GitCommitReader.Read(stream, GitObjectId.Parse("d56dc3ed179053abef2097d1120b4507769bcf1a"));
 
