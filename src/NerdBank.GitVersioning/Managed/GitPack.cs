@@ -56,8 +56,8 @@ namespace NerdBank.GitVersioning.Managed
         internal GitPack(GitRepository repository, string name)
             : this(
                   repository.GetObjectBySha,
-                  Path.Combine(repository.ObjectDirectory, "pack", $"{name}.pack"),
-                  Path.Combine(repository.ObjectDirectory, "pack", $"{name}.idx"))
+                  indexPath: Path.Combine(repository.ObjectDirectory, "pack", $"{name}.idx"),
+                  packPath: Path.Combine(repository.ObjectDirectory, "pack", $"{name}.pack"))
         {
         }
 
