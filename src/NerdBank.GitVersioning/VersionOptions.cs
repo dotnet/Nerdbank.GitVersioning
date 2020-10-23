@@ -425,22 +425,7 @@ namespace Nerdbank.GitVersioning
         {
             get
             {
-                if (this.Version?.Prerelease?.Contains(VersionHeightPlaceholder) ?? false)
-                {
-                    return SemanticVersion.Position.Prerelease;
-                }
-                else if (this.Version?.Version.Build == -1)
-                {
-                    return SemanticVersion.Position.Build;
-                }
-                else if (this.Version?.Version.Revision == -1)
-                {
-                    return SemanticVersion.Position.Revision;
-                }
-                else
-                {
-                    return null;
-                }
+                return this.version?.VersionHeightPosition;
             }
         }
 

@@ -13,10 +13,10 @@ namespace NerdBank.GitVersioning.Managed
         public VersionResolver(GitRepository gitRepository, string versionPath)
         {
             this.gitRepository = gitRepository ?? throw new ArgumentNullException(nameof(gitRepository));
-            this.versionPath = versionPath ?? throw new ArgumentNullException(nameof(versionPath));
+            this.versionPath = versionPath;
         }
 
-        public abstract int GetGitHeight();
+        public abstract int GetGitHeight(Func<GitCommit, bool> continueStepping);
 
         /// <summary>
         /// The placeholder that may appear in the <see cref="Version"/> property's <see cref="SemanticVersion.Prerelease"/>
@@ -58,6 +58,11 @@ namespace NerdBank.GitVersioning.Managed
 
         protected static byte[][] GetPathComponents(string path)
         {
+            if (path == null)
+            {
+                return new byte[][] { };
+            }
+
             return path.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
                 .Select(p => GitRepository.Encoding.GetBytes(p))
                 .ToArray();

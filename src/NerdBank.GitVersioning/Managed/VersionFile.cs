@@ -151,14 +151,26 @@ namespace NerdBank.GitVersioning.Managed
 
         public static string GetVersion(string path)
         {
-            using (var stream = File.OpenRead(path))
+            if (FileHelpers.TryOpen(path, CreateFileFlags.FILE_ATTRIBUTE_NORMAL, out FileStream stream))
             {
-                return GetVersion(stream);
+                using (stream)
+                {
+                    return GetVersion(stream);
+                }
+            }
+            else
+            {
+                return null;
             }
         }
 
         public static string GetVersion(Stream stream)
         {
+            if (stream == null)
+            {
+                return null;
+            }
+
             string value = null;
 
             byte[] data = ArrayPool<byte>.Shared.Rent((int)stream.Length);

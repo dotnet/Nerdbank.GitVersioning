@@ -127,6 +127,32 @@
         public string BuildMetadata { get; }
 
         /// <summary>
+        /// Gets the position in a computed version that the version height should appear.
+        /// </summary>
+        internal SemanticVersion.Position? VersionHeightPosition
+        {
+            get
+            {
+                if (this.Prerelease?.Contains(VersionOptions.VersionHeightPlaceholder) ?? false)
+                {
+                    return SemanticVersion.Position.Prerelease;
+                }
+                else if (this.Version.Build == -1)
+                {
+                    return SemanticVersion.Position.Build;
+                }
+                else if (this.Version.Revision == -1)
+                {
+                    return SemanticVersion.Position.Revision;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+        }
+
+        /// <summary>
         /// Gets a value indicating whether this instance is the default "0.0" instance.
         /// </summary>
         internal bool IsDefault => this.Version?.Major == 0 && this.Version.Minor == 0 && this.Version.Build == -1 && this.Version.Revision == -1 && this.Prerelease == null && this.BuildMetadata == null;
@@ -221,6 +247,23 @@
             return this.Version == other.Version
                 && this.Prerelease == other.Prerelease
                 && this.BuildMetadata == other.BuildMetadata;
+        }
+
+        internal int ReadVersionPosition(SemanticVersion.Position position)
+        {
+            switch (position)
+            {
+                case SemanticVersion.Position.Major:
+                    return this.Version.Major;
+                case SemanticVersion.Position.Minor:
+                    return this.Version.Minor;
+                case SemanticVersion.Position.Build:
+                    return this.Version.Build;
+                case SemanticVersion.Position.Revision:
+                    return this.Version.Revision;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(position), position, "Must be one of the 4 integer parts.");
+            }
         }
 
         /// <summary>

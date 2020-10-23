@@ -126,7 +126,7 @@ namespace NerdBank.GitVersioning.Managed
             }
 
             WalkingVersionResolver resolver = new WalkingVersionResolver(repository, committedVersionPath);
-            return resolver.GetGitHeight();
+            return resolver.GetGitHeight(null);
         }
 
         private static Version GetIdAsVersion(GitCommit? headCommit, VersionOptions committedVersion, VersionOptions workingVersion, int versionHeight)
