@@ -272,6 +272,28 @@ namespace NerdBank.GitVersioning.Managed
         }
 
         /// <summary>
+        /// Gets a tree object by its Git object Id.
+        /// </summary>
+        /// <param name="sha">
+        /// The Git object Id of the tree.
+        /// </param>
+        /// <returns>
+        /// The requested tree.
+        /// </returns>
+        public GitTree GetTree(GitObjectId sha)
+        {
+            using (Stream stream = this.GetObjectBySha(sha, "tree"))
+            {
+                if (stream == null)
+                {
+                    throw new GitException($"The tree {sha} was not found in this repository.");
+                }
+
+                return GitTreeReader.Read(stream, sha);
+            }
+        }
+
+        /// <summary>
         /// Gets an entry in a git tree.
         /// </summary>
         /// <param name="treeId">
