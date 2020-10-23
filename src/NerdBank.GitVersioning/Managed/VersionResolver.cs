@@ -14,6 +14,11 @@ namespace NerdBank.GitVersioning.Managed
         {
             this.gitRepository = gitRepository ?? throw new ArgumentNullException(nameof(gitRepository));
             this.versionPath = versionPath;
+
+            if (this.versionPath != null && Path.IsPathFullyQualified(versionPath))
+            {
+                this.versionPath = Path.GetRelativePath(this.gitRepository.WorkingDirectory, versionPath);
+            }
         }
 
         public abstract int GetGitHeight(Func<GitCommit, bool> continueStepping);

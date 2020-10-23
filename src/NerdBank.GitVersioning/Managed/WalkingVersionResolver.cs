@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
-using LibGit2Sharp;
 using Nerdbank.GitVersioning;
 
 namespace NerdBank.GitVersioning.Managed
@@ -29,13 +29,28 @@ namespace NerdBank.GitVersioning.Managed
             Debug.WriteLine($"Determining the version based on '{this.versionPath}' in repository '{this.gitRepository.GitDirectory}'");
 
             var version = this.versionPath != null ? VersionFile.GetVersion(Path.Combine(this.gitRepository.WorkingDirectory, this.versionPath)) : null;
-            var semanticVersion = version == null ? null : SemanticVersion.Parse(version);
+            version = version ?? "0.0";
+            var semanticVersion = SemanticVersion.Parse(version);
+            var versionOptions = this.versionPath != null ? VersionFile.TryReadVersion(Path.Combine(this.gitRepository.WorkingDirectory, this.versionPath), Path.GetDirectoryName(this.versionPath)) : null;
+            bool hasPathFilters =
+                versionOptions?.PathFilters != null
+                && versionOptions.PathFilters.Count > 0
+                // If there are no include paths, then do not
+                // filter the diff at all.
+                && versionOptions.PathFilters.Any(p => p.IsInclude);
 
             // this.logger.LogInformation("The current version is '{version}'", version);
             Debug.WriteLine($"The current version is '{version}'");
 
             var pathComponents = GetPathComponents(this.versionPath);
-            var headCommit = this.gitRepository.GetHeadCommit().Value;
+            var maybeHeadCommit = this.gitRepository.GetHeadCommit();
+
+            if (maybeHeadCommit == null)
+            {
+                return 0;
+            }
+
+            var headCommit = maybeHeadCommit.Value;
             var commit = headCommit;
 
             Stack<GitCommit> commitsToAnalyze = new Stack<GitCommit>();
@@ -88,7 +103,7 @@ namespace NerdBank.GitVersioning.Managed
                         // Read the updated version information
                         using (Stream versionStream = this.gitRepository.GetObjectBySha(treeId, "blob"))
                         {
-                            var currentVersion = VersionFile.GetVersion(versionStream);
+                            var currentVersion = VersionFile.GetVersion(versionStream) ?? "0.0";
                             // this.logger.LogDebug("The version for this commit is '{version}'", currentVersion);
                             Debug.WriteLine($"The version for this commit is '{currentVersion}'");
 
@@ -163,7 +178,12 @@ namespace NerdBank.GitVersioning.Managed
                             var parentHeight = this.knownGitHeights[parent];
                             if (parentHeight > currentHeight)
                             {
-                                currentHeight = parentHeight + 1;
+                                currentHeight = parentHeight;
+
+                                if (!hasPathFilters || this.IsRelevantCommit(commit, this.gitRepository.GetCommit(parent), versionOptions.PathFilters))
+                                {
+                                    currentHeight += 1;
+                                }
                             }
 
                             hasParent = true;
@@ -201,6 +221,82 @@ namespace NerdBank.GitVersioning.Managed
 
             var gitHeight = this.knownGitHeights[headCommit.Sha];
             return gitHeight;
+        }
+
+        private bool IsRelevantCommit(GitCommit commit, GitCommit parent, IReadOnlyList<FilterPath> filters)
+        {
+            return this.IsRelevantCommit(
+                this.gitRepository.GetTree(commit.Tree),
+                this.gitRepository.GetTree(parent.Tree),
+                relativePath: string.Empty,
+                filters);
+        }
+
+        private bool IsRelevantCommit(GitTree tree, GitTree parent, string relativePath, IReadOnlyList<FilterPath> filters)
+        {
+            // Walk over all child nodes in the current tree. If a child node was found in the parent,
+            // remove it, so that after the iteration the parent contains all nodes which have been
+            // deleted.
+            foreach (var child in tree.Children)
+            {
+                var entry = child.Value;
+                GitTreeEntry parentEntry = null;
+
+                // If the entry is not present in the parent commit, it was added;
+                // if the Sha does not match, it was modified.
+                if (!parent.Children.TryGetValue(child.Key, out parentEntry)
+                    || parentEntry.Sha != child.Value.Sha)
+                {
+                    // Determine whether the change was relevant.
+                    var fullPath = $"{relativePath}{entry.Name}";
+
+                    bool isRelevant =
+                        // Either there are no include filters at all (i.e. everything is included), or there's an explicit include filter
+                        (!filters.Any(f => f.IsInclude) || filters.Any(f => f.Includes(fullPath, this.gitRepository.IgnoreCase)))
+                        // The path is not excluded by any filters
+                        && !filters.Any(f => f.Excludes(fullPath, this.gitRepository.IgnoreCase));
+
+                    // If the change was relevant, and the item is a directory, we need to recurse.
+                    if (isRelevant && !entry.IsFile)
+                    {
+                        isRelevant = this.IsRelevantCommit(
+                            this.gitRepository.GetTree(entry.Sha),
+                            parentEntry == null ? GitTree.Empty : this.gitRepository.GetTree(parentEntry.Sha),
+                            $"{fullPath}/",
+                            filters);
+                    }
+
+                    // Quit as soon as any relevant change has been detected.
+                    if (isRelevant)
+                    {
+                        return true;
+                    }
+                }
+
+                if (parentEntry != null)
+                {
+                    parent.Children.Remove(child.Key);
+                }
+            }
+
+            // Inspect removed entries (i.e. present in parent but not in the current tree)
+            foreach (var child in parent.Children)
+            {
+                // Determine whether the change was relevant.
+                var fullPath = Path.Combine(relativePath, child.Key);
+
+                bool isRelevant =
+                    filters.Any(f => f.Includes(fullPath, this.gitRepository.IgnoreCase))
+                    && !filters.Any(f => f.Excludes(fullPath, this.gitRepository.IgnoreCase));
+
+                if (isRelevant)
+                {
+                    return true;
+                }
+            }
+
+            // No relevant changes have been detected
+            return false;
         }
     }
 }

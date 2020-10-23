@@ -179,6 +179,9 @@ namespace NerdBank.GitVersioning.Managed
         {
         }
 
+        // TODO: read from Git settings
+        public bool IgnoreCase { get; private set; } = false;
+
         /// <summary>
         /// Gets the path to the current working directory.
         /// </summary>

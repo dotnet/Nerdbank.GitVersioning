@@ -63,7 +63,7 @@ namespace NerdBank.GitVersioning.Managed
                             try
                             {
                                 result =
-                                    TryReadVersionJsonContent(versionJsonContent, repoRelativeBaseDirectory: null);
+                                    TryReadVersionJsonContent(versionJsonContent, repoRelativeBaseDirectory: currentDirectory ?? string.Empty);
                             }
                             catch (Exception ex)
                             {
@@ -193,6 +193,11 @@ namespace NerdBank.GitVersioning.Managed
             ArrayPool<byte>.Shared.Return(data, clearArray: ClearArray);
 
             return value;
+        }
+
+        public static VersionOptions TryReadVersion(string path, string repoRelativeBaseDirectory)
+        {
+            return TryReadVersionJsonContent(File.ReadAllText(path), repoRelativeBaseDirectory);
         }
 
         /// <summary>
