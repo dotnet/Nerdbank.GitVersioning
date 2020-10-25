@@ -14,20 +14,26 @@ public class FilterPathTests
     [InlineData("../../some/dir/here", "foo/multi/wow", "foo/some/dir/here")]
     [InlineData("relativepath.txt", "foo", "foo/relativepath.txt")]
     [InlineData("./relativepath.txt", "foo", "foo/relativepath.txt")]
-    [InlineData("./dir\\hi/relativepath.txt", "foo", "foo/dir/hi/relativepath.txt")]
-    [InlineData(".\\relativepath.txt", "foo", "foo/relativepath.txt")]
     [InlineData(":^relativepath.txt", "foo", "foo/relativepath.txt")]
     [InlineData(":!relativepath.txt", "foo", "foo/relativepath.txt")]
     [InlineData(":!/absolutepath.txt", "foo", "absolutepath.txt")]
-    [InlineData(":!\\absolutepath.txt", "foo", "absolutepath.txt")]
     [InlineData("../bar/relativepath.txt", "foo", "bar/relativepath.txt")]
     [InlineData("/", "foo", "")]
     [InlineData("/absolute/file.txt", "foo", "absolute/file.txt")]
     [InlineData(":/", "foo", "")]
     [InlineData(":/absolutepath.txt", "foo", "absolutepath.txt")]
     [InlineData(":/bar/absolutepath.txt", "foo", "bar/absolutepath.txt")]
-    [InlineData(":\\bar\\absolutepath.txt", "foo", "bar/absolutepath.txt")]
     public void CanBeParsedToRepoRelativePath(string pathSpec, string relativeTo, string expected)
+    {
+        Assert.Equal(expected, new FilterPath(pathSpec, relativeTo).RepoRelativePath);
+    }
+
+    [WindowsTheory]
+    [InlineData("./dir\\hi/relativepath.txt", "foo", "foo/dir/hi/relativepath.txt")]
+    [InlineData(".\\relativepath.txt", "foo", "foo/relativepath.txt")]
+    [InlineData(":!\\absolutepath.txt", "foo", "absolutepath.txt")]
+    [InlineData(":\\bar\\absolutepath.txt", "foo", "bar/absolutepath.txt")]
+    public void CanBeParsedToRepoRelativePath_WindowsOnly(string pathSpec, string relativeTo, string expected)
     {
         Assert.Equal(expected, new FilterPath(pathSpec, relativeTo).RepoRelativePath);
     }

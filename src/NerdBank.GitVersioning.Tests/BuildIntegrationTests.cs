@@ -1152,7 +1152,7 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
     private void MakeItAVBProject()
     {
         var csharpImport = this.testProject.Imports.Single(i => i.Project.Contains("CSharp"));
-        csharpImport.Project = @"$(MSBuildToolsPath)\Microsoft.VisualBasic.targets";
+        csharpImport.Project = "$(MSBuildToolsPath)/Microsoft.VisualBasic.targets";
         var isVbProperty = this.testProject.Properties.Single(p => p.Name == "IsVB");
         isVbProperty.Value = "true";
     }
