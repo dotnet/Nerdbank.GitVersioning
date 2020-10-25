@@ -742,7 +742,9 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         }
     }
 
-    [Theory]
+    // This test builds projects using 'classic' MSBuild projects, which target net45.
+    // This is not supported on Linux.
+    [WindowsTheory]
     [PairwiseData]
     public async Task AssemblyInfo(bool isVB, bool includeNonVersionAttributes, bool gitRepo, bool isPrerelease, bool isPublicRelease)
     {
