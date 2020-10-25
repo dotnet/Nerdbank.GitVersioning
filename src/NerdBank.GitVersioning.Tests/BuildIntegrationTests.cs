@@ -844,7 +844,11 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
 
         this.WriteVersionFile();
         var result = await this.BuildAsync(Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal);
-        string versionCsContent = File.ReadAllText(Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile")));
+        string versionCsContent = File.ReadAllText(
+            Path.GetFullPath(
+                Path.Combine(
+                    this.projectDirectory,
+                    result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"))));
         this.Logger.WriteLine(versionCsContent);
 
         var sourceFile = CSharpSyntaxTree.ParseText(versionCsContent);
