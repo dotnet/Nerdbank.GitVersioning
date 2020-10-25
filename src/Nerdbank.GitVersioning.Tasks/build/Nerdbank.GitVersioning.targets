@@ -138,7 +138,7 @@
 
   <Target Name="GenerateAssemblyVersionInfo" DependsOnTargets="GetBuildVersion" Condition=" '$(GenerateAssemblyVersionInfo)' != 'false' ">
     <PropertyGroup>
-      <VersionSourceFile>$(IntermediateOutputPath)\$(AssemblyName).Version$(DefaultLanguageSourceExtension)</VersionSourceFile>
+      <VersionSourceFile>$([MSBuild]::NormalizePath('$(IntermediateOutputPath)', '$(AssemblyName).Version$(DefaultLanguageSourceExtension)'))</VersionSourceFile>
       <NewVersionSourceFile>$(VersionSourceFile).new</NewVersionSourceFile>
       <UltimateResourceFallbackLocation Condition=" '$(DevDivProjectSubType)' != 'portable' ">UltimateResourceFallbackLocation.MainAssembly</UltimateResourceFallbackLocation>
     </PropertyGroup>
@@ -181,7 +181,7 @@
 
   <Target Name="GenerateNativeVersionInfo" DependsOnTargets="GetBuildVersion" Condition=" '$(Language)'=='C++' and '$(GenerateAssemblyVersionInfo)' != 'false' ">
     <PropertyGroup>
-      <VersionSourceFile>$(IntermediateOutputPath)\$(AssemblyName).Version.rc</VersionSourceFile>
+      <VersionSourceFile>$([MSBuild]::NormalizePath('$(IntermediateOutputPath)', '$(AssemblyName).Version.rc'))</VersionSourceFile>
       <NewVersionSourceFile>$(VersionSourceFile).new</NewVersionSourceFile>
     </PropertyGroup>
     <MakeDir Directories="$(IntermediatePath)"/>
