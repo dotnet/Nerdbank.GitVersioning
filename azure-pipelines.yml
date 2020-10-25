@@ -141,6 +141,9 @@ stages:
         ArtifactName: deployables
         ArtifactType: Container
       displayName: Publish deployables artifacts
+      # Only deploy when from a single build in the build matrix
+      condition: and(succeeded(), eq(variables['imageName'], 'windows-2019'))
+
     - task: PublishBuildArtifacts@1
       inputs:
         PathtoPublish: $(Build.ArtifactStagingDirectory)/build_logs
@@ -156,23 +159,23 @@ stages:
         nuGetFeedType: internal
         publishVstsFeed: OSS/PublicCI
         allowPackageConflicts: true
-      condition: and(succeeded(), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
+      condition: and(succeeded(), eq(variables['imageName'], 'windows-2019'), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
 
     - pwsh: Set-Content -Path "$(Agent.TempDirectory)/.npmrc" -Value "registry=https://pkgs.dev.azure.com/andrewarnott/OSS/_packaging/PublicCI/npm/registry/`nalways-auth=true"
       displayName: Prepare to push to PublicCI
-      condition: and(succeeded(), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
+      condition: and(succeeded(), eq(variables['imageName'], 'windows-2019'), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
     - task: npmAuthenticate@0
       displayName: Authenticate to PublicCI
       inputs:
         workingFile: $(Agent.TempDirectory)/.npmrc
-      condition: and(succeeded(), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
+      condition: and(succeeded(), eq(variables['imageName'], 'windows-2019'), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
     - pwsh: |
         $tgz = (Get-ChildItem "$(Build.ArtifactStagingDirectory)/deployables/*.tgz")[0].FullName
         Write-Host "Will publish $tgz"
         npm publish $tgz
       workingDirectory: $(Agent.TempDirectory)
       displayName: npm publish to PublicCI feed
-      condition: and(succeeded(), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
+      condition: and(succeeded(), eq(variables['imageName'], 'windows-2019'), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
 
 - stage: Test
   jobs:
