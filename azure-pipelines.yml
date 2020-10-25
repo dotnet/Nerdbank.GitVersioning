@@ -68,12 +68,12 @@ stages:
         nugetConfigPath: src/nuget.config
         workingDirectory: src
 
-    - task: geeklearningio.gl-vsts-tasks-yarn.yarn-installer-task.YarnInstaller@2
+    - task: YarnInstaller@3
       displayName: 'Use Yarn 1.x'
-    - task: geeklearningio.gl-vsts-tasks-yarn.yarn-task.Yarn@2
+    - task: Yarn@3
       displayName: 'Yarn install'
       inputs:
-        ProjectDirectory: 'src/nerdbank-gitversioning.npm'
+        projectDirectory: 'src/nerdbank-gitversioning.npm'
 
     - script: dotnet build -c $(BuildConfiguration) --no-restore /t:build,pack /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
       displayName: Build NuGet package and tests
