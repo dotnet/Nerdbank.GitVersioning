@@ -35,7 +35,8 @@ stages:
   - job: Windows
     pool: Hosted Windows 2019 with VS2019
     variables:
-    - group: dotnetfoundation code signing
+    - ${{ if eq(variables['System.TeamFoundationCollectionUri	'], 'https://dev.azure.com/andrewarnott/') }}:
+      - group: dotnetfoundation code signing
     steps:
     - checkout: self
       clean: true
@@ -125,7 +126,7 @@ stages:
         --name 'Nerdbank.GitVersioning'
         --descriptionUrl 'https://github.com/dotnet/Nerdbank.GitVersioning'
       displayName: Code sign
-      condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+      condition: and(succeeded(), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
 
     - task: PublishBuildArtifacts@1
       inputs:
@@ -148,23 +149,23 @@ stages:
         nuGetFeedType: internal
         publishVstsFeed: OSS/PublicCI
         allowPackageConflicts: true
-      condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+      condition: and(succeeded(), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
 
     - pwsh: Set-Content -Path "$(Agent.TempDirectory)/.npmrc" -Value "registry=https://pkgs.dev.azure.com/andrewarnott/OSS/_packaging/PublicCI/npm/registry/`nalways-auth=true"
       displayName: Prepare to push to PublicCI
-      condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+      condition: and(succeeded(), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
     - task: npmAuthenticate@0
       displayName: Authenticate to PublicCI
       inputs:
         workingFile: $(Agent.TempDirectory)/.npmrc
-      condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+      condition: and(succeeded(), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
     - pwsh: |
         $tgz = (Get-ChildItem "$(Build.ArtifactStagingDirectory)/deployables/*.tgz")[0].FullName
         Write-Host "Will publish $tgz"
         npm publish $tgz
       workingDirectory: $(Agent.TempDirectory)
       displayName: npm publish to PublicCI feed
-      condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+      condition: and(succeeded(), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
 
 - stage: Test
   jobs:
