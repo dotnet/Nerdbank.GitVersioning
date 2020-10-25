@@ -32,11 +32,18 @@ variables:
 stages:
 - stage: Build
   jobs:
-  - job: Windows
-    pool: Hosted Windows 2019 with VS2019
+  - job: Build
+    strategy:
+      matrix:
+        linux:
+          imageName: 'ubuntu-20.04'
+        windows:
+          imageName: 'windows-2019'
     variables:
     - ${{ if eq(variables['System.TeamFoundationCollectionUri	'], 'https://dev.azure.com/andrewarnott/') }}:
       - group: dotnetfoundation code signing
+    pool:
+      vmImage: $(imageName)
     steps:
     - checkout: self
       clean: true
@@ -54,9 +61,9 @@ stages:
     - script: dotnet --info
       displayName: Show dotnet SDK info
 
-    - script: |
+    - pwsh: |
         dotnet tool install --tool-path . nbgv
-        .\nbgv cloud -a
+        ./nbgv cloud -a
       displayName: Set build number
 
     - task: DotNetCoreCLI@2
@@ -80,16 +87,16 @@ stages:
       displayName: Build NuGet package and tests
       workingDirectory: src
 
-    - script: dotnet publish -c $(BuildConfiguration) -o ..\nerdbank-gitversioning.npm\out\nbgv.cli\tools\netcoreapp2.1\any /bl:"$(Build.ArtifactStagingDirectory)/build_logs/nbgv_publish.binlog"
+    - script: dotnet publish -c $(BuildConfiguration) -o ../nerdbank-gitversioning.npm/out/nbgv.cli/tools/netcoreapp2.1/any /bl:"$(Build.ArtifactStagingDirectory)/build_logs/nbgv_publish.binlog"
       displayName: Publish nbgv tool
-      workingDirectory: src\nbgv
+      workingDirectory: src/nbgv
 
     - task: gulp@0
       displayName: Build nerdbank-gitversioning NPM package
       inputs:
-        gulpfile: src\nerdbank-gitversioning.npm\gulpfile.js
+        gulpfile: src/nerdbank-gitversioning.npm/gulpfile.js
 
-    - script: dotnet test Nerdbank.GitVersioning.Tests --no-build -c $(BuildConfiguration) --filter "TestCategory!=FailsOnAzurePipelines" --logger "trx;LogFileName=$(Build.ArtifactStagingDirectory)\TestLogs\TestResults.trx"
+    - script: dotnet test NerdBank.GitVersioning.Tests --no-build -c $(BuildConfiguration) --filter "TestCategory!=FailsOnAzurePipelines" --logger "trx;LogFileName=$(Build.ArtifactStagingDirectory)/TestLogs/TestResults.trx"
       displayName: Run tests
       workingDirectory: src
 
@@ -98,7 +105,7 @@ stages:
       inputs:
         testResultsFormat: VSTest
         testResultsFiles: '*.trx'
-        searchFolder: $(Build.ArtifactStagingDirectory)\TestLogs
+        searchFolder: $(Build.ArtifactStagingDirectory)/TestLogs
         buildPlatform: $(BuildPlatform)
         buildConfiguration: $(BuildConfiguration)
       condition: always()
