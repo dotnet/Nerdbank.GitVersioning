@@ -11,15 +11,22 @@ namespace NerdBank.GitVersioning.Tests.Managed
         // test tool which is located in the t/helper/ folder of the Git source repository.
         // Use with the delta -d [base file,in] [updated file,in] [delta file,out] arguments.
         [Theory]
-        [InlineData("Managed/commit-4497b0eaaa89abf0e6d70961ad5f04fd3a49cbc6", "Managed/commit.delta", "Managed/commit-d56dc3ed179053abef2097d1120b4507769bcf1a")]
-        [InlineData("Managed/tree-bb36cf0ca445ccc8e5ce9cc88f7cf74128e96dc9", "Managed/tree.delta", "Managed/tree-f914b48023c7c804a4f3be780d451f31aef74ac1")]
+        [InlineData(@"Managed\commit-4497b0eaaa89abf0e6d70961ad5f04fd3a49cbc6", @"Managed\commit.delta", @"Managed\commit-d56dc3ed179053abef2097d1120b4507769bcf1a")]
+        [InlineData(@"Managed\tree-bb36cf0ca445ccc8e5ce9cc88f7cf74128e96dc9", @"Managed\tree.delta", @"Managed\tree-f914b48023c7c804a4f3be780d451f31aef74ac1")]
         public void TestDeltaStream(string basePath, string deltaPath, string expectedPath)
         {
-            byte[] expected = File.ReadAllBytes(expectedPath);
+            byte[] expected = null;
+
+            using (Stream expectedStream = TestUtilities.GetEmbeddedResource(expectedPath))
+            {
+                expected = new byte[expectedStream.Length];
+                expectedStream.Read(expected);
+            }
+
             byte[] actual = new byte[expected.Length];
 
-            using (Stream baseStream = File.OpenRead(basePath))
-            using (Stream deltaStream = File.OpenRead(deltaPath))
+            using (Stream baseStream = TestUtilities.GetEmbeddedResource(basePath))
+            using (Stream deltaStream = TestUtilities.GetEmbeddedResource(deltaPath))
             using (GitPackDeltafiedStream deltafiedStream = new GitPackDeltafiedStream(baseStream, deltaStream))
             {
                 // Assert.Equal(expected.Length, deltafiedStream.Length);

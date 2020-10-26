@@ -15,8 +15,8 @@ namespace NerdBank.GitVersioning.Tests.Managed
         {
             using (var gitPack = new GitPack(
                 (sha, objectType) => null,
-                "Managed/pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.idx",
-                "Managed/pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.pack",
+                new Lazy<Stream>(() => TestUtilities.GetEmbeddedResource(@"Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.idx")),
+                () => TestUtilities.GetEmbeddedResource(@"Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.pack"),
                 GitPackNullCache.Instance))
             using (Stream commitStream = gitPack.GetObject(12, "commit"))
             using (SHA1 sha = SHA1.Create())
@@ -25,7 +25,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
                 var zlibStream = Assert.IsType<ZLibStream>(commitStream);
                 var deflateStream = Assert.IsType<DeflateStream>(zlibStream.BaseStream);
                 var pooledStream = Assert.IsType<GitPackPooledStream>(deflateStream.BaseStream);
-                var fileStream = Assert.IsType<FileStream>(pooledStream.BaseStream);
+                var fileStream = Assert.IsType<UnmanagedMemoryStream>(pooledStream.BaseStream);
 
                 Assert.Equal(222, commitStream.Length);
                 Assert.Equal("/zgldANj+jvgOwlecnOKylZDVQg=", Convert.ToBase64String(sha.ComputeHash(commitStream)));
@@ -37,8 +37,8 @@ namespace NerdBank.GitVersioning.Tests.Managed
         {
             using (var gitPack = new GitPack(
                 (sha, objectType) => null,
-                "Managed/pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.idx",
-                "Managed/pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.pack",
+                new Lazy<Stream>(() => TestUtilities.GetEmbeddedResource(@"Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.idx")),
+                () => TestUtilities.GetEmbeddedResource(@"Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.pack"),
                 GitPackNullCache.Instance))
             using (Stream commitStream = gitPack.GetObject(317, "commit"))
             using (SHA1 sha = SHA1.Create())
@@ -48,7 +48,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
                 var zlibStream = Assert.IsType<ZLibStream>(deltaStream.BaseStream);
                 var deflateStream = Assert.IsType<DeflateStream>(zlibStream.BaseStream);
                 var pooledStream = Assert.IsType<GitPackPooledStream>(deflateStream.BaseStream);
-                var fileStream = Assert.IsType<FileStream>(pooledStream.BaseStream);
+                var fileStream = Assert.IsType<UnmanagedMemoryStream>(pooledStream.BaseStream);
 
                 Assert.Equal(137, commitStream.Length);
                 Assert.Equal("lZu/7nGb0n1UuO9SlPluFnSvj4o=", Convert.ToBase64String(sha.ComputeHash(commitStream)));
@@ -60,8 +60,8 @@ namespace NerdBank.GitVersioning.Tests.Managed
         {
             using (var gitPack = new GitPack(
                 (sha, objectType) => null,
-                "Managed/pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.idx",
-                "Managed/pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.pack",
+                new Lazy<Stream>(() => TestUtilities.GetEmbeddedResource(@"Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.idx")),
+                () => TestUtilities.GetEmbeddedResource(@"Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.pack"),
                 GitPackNullCache.Instance))
             {
                 Assert.Throws<GitException>(() => gitPack.GetObject(12, "invalid"));
@@ -77,8 +77,8 @@ namespace NerdBank.GitVersioning.Tests.Managed
         {
             using (var gitPack = new GitPack(
                 (sha, objectType) => null,
-                "Managed/pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.idx",
-                "Managed/pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.pack",
+                new Lazy<Stream>(() => TestUtilities.GetEmbeddedResource(@"Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.idx")),
+                () => TestUtilities.GetEmbeddedResource(@"Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.pack"),
                 GitPackNullCache.Instance))
             using (SHA1 sha = SHA1.Create())
             {
@@ -88,7 +88,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
                 var zlibStream = Assert.IsType<ZLibStream>(commitStream);
                 var deflateStream = Assert.IsType<DeflateStream>(zlibStream.BaseStream);
                 var pooledStream = Assert.IsType<GitPackPooledStream>(deflateStream.BaseStream);
-                var fileStream = Assert.IsType<FileStream>(pooledStream.BaseStream);
+                var fileStream = Assert.IsType<UnmanagedMemoryStream>(pooledStream.BaseStream);
 
                 Assert.Equal(222, commitStream.Length);
                 Assert.Equal("/zgldANj+jvgOwlecnOKylZDVQg=", Convert.ToBase64String(sha.ComputeHash(commitStream)));
@@ -100,8 +100,8 @@ namespace NerdBank.GitVersioning.Tests.Managed
         {
             using (var gitPack = new GitPack(
                 (sha, objectType) => null,
-                "Managed/pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.idx",
-                "Managed/pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.pack",
+                new Lazy<Stream>(() => TestUtilities.GetEmbeddedResource(@"Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.idx")),
+                () => TestUtilities.GetEmbeddedResource(@"Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.pack"),
                 GitPackNullCache.Instance))
             {
                 Assert.False(gitPack.TryGetObject(GitObjectId.Empty, "commit", out Stream commitStream));

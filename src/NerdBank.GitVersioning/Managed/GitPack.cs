@@ -25,8 +25,8 @@ namespace NerdBank.GitVersioning.Managed
         /// </returns>
         public delegate Stream GetObjectFromRepositoryDelegate(GitObjectId sha, string objectType);
 
-        private readonly string packPath;
-        private readonly string indexPath;
+        private readonly Func<Stream> packStream;
+        private readonly Lazy<Stream> indexStream;
         private readonly GitPackCache cache;
 
         // Maps GitObjectIds to offets in the git pack.
@@ -80,11 +80,34 @@ namespace NerdBank.GitVersioning.Managed
         /// on the pack file.
         /// </param>
         public GitPack(GetObjectFromRepositoryDelegate getObjectFromRepositoryDelegate, string indexPath, string packPath, GitPackCache cache = null)
+            : this(getObjectFromRepositoryDelegate, new Lazy<Stream>(() => File.OpenRead(indexPath)), () => File.OpenRead(packPath), cache)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GitPack"/> class.
+        /// </summary>
+        /// <param name="getObjectFromRepositoryDelegate">
+        /// A delegate which fetches objects from the Git object store.
+        /// </param>
+        /// <param name="indexStream">
+        /// A function which creates a new <see cref="Stream"/> which provides read-only
+        /// access to the index file.
+        /// </param>
+        /// <param name="packStream">
+        /// A function which creates a new <see cref="Stream"/> which provides read-only
+        /// access to the pack file.
+        /// </param>
+        /// <param name="cache">
+        /// A <see cref="GitPackCache"/> which is used to cache <see cref="Stream"/> objects which operate
+        /// on the pack file.
+        /// </param>
+        public GitPack(GetObjectFromRepositoryDelegate getObjectFromRepositoryDelegate, Lazy<Stream> indexStream, Func<Stream> packStream, GitPackCache cache = null)
         {
             this.GetObjectFromRepository = getObjectFromRepositoryDelegate ?? throw new ArgumentNullException(nameof(getObjectFromRepositoryDelegate));
             this.indexReader = new Lazy<GitPackIndexReader>(this.OpenIndex);
-            this.packPath = packPath ?? throw new ArgumentException(nameof(packPath));
-            this.indexPath = indexPath ?? throw new ArgumentNullException(nameof(indexPath));
+            this.packStream = packStream ?? throw new ArgumentException(nameof(packStream));
+            this.indexStream = indexStream ?? throw new ArgumentNullException(nameof(indexStream));
             this.cache = cache ?? new GitPackMemoryCache();
         }
 
@@ -194,7 +217,7 @@ namespace NerdBank.GitVersioning.Managed
         /// </param>
         public void GetCacheStatistics(StringBuilder builder)
         {
-            builder.AppendLine($"Git Pack {this.packPath}:");
+            builder.AppendLine($"Git Pack:");
 
 #if DEBUG && !NETSTANDARD
             int histogramCount = 25;
@@ -247,19 +270,19 @@ namespace NerdBank.GitVersioning.Managed
                 return result;
             }
 
-            if (FileHelpers.TryOpen(this.packPath, CreateFileFlags.FILE_ATTRIBUTE_NORMAL | CreateFileFlags.FILE_FLAG_RANDOM_ACCESS, out var fileStream))
+            try
             {
-                return new GitPackPooledStream(fileStream, this.pooledStreams);
+                return new GitPackPooledStream(this.packStream(), this.pooledStreams);
             }
-            else
+            catch (Exception ex)
             {
-                throw new GitException();
+                throw new GitException($"Failed to open the Git pack: {ex.Message}", ex);
             }
         }
 
         private GitPackIndexReader OpenIndex()
         {
-            return new GitPackIndexReader(File.OpenRead(this.indexPath));
+            return new GitPackIndexReader(this.indexStream.Value);
         }
     }
 }

@@ -12,7 +12,7 @@ namespace NerdBank.GitVersioning.Managed
     /// </summary>
     public class GitPackPooledStream : Stream
     {
-        private readonly FileStream stream;
+        private readonly Stream stream;
         private readonly Queue<GitPackPooledStream> pool;
 
         /// <summary>
@@ -24,7 +24,7 @@ namespace NerdBank.GitVersioning.Managed
         /// <param name="pool">
         /// A <see cref="Queue{T}"/> to which the stream will be returned.
         /// </param>
-        public GitPackPooledStream(FileStream stream, Queue<GitPackPooledStream> pool)
+        public GitPackPooledStream(Stream stream, Queue<GitPackPooledStream> pool)
         {
             this.stream = stream ?? throw new ArgumentNullException(nameof(stream));
             this.pool = pool ?? throw new ArgumentNullException(nameof(pool));

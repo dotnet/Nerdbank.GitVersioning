@@ -43,12 +43,19 @@ internal static class TestUtilities
         }
     }
 
+    internal static Stream GetEmbeddedResource(string resourcePath)
+    {
+        Requires.NotNullOrEmpty(resourcePath, nameof(resourcePath));
+
+        return Assembly.GetExecutingAssembly().GetManifestResourceStream($"{ThisAssembly.RootNamespace}.{resourcePath.Replace('\\', '.')}");
+    }
+
     internal static void ExtractEmbeddedResource(string resourcePath, string extractedFilePath)
     {
         Requires.NotNullOrEmpty(resourcePath, nameof(resourcePath));
         Requires.NotNullOrEmpty(extractedFilePath, nameof(extractedFilePath));
 
-        using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"{ThisAssembly.RootNamespace}.{resourcePath.Replace('\\', '.')}"))
+        using (var stream = GetEmbeddedResource(resourcePath))
         {
             Requires.Argument(stream != null, nameof(resourcePath), "Resource not found.");
             using (var extractedFile = File.OpenWrite(extractedFilePath))

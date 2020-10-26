@@ -24,5 +24,20 @@ namespace NerdBank.GitVersioning.Managed
         public GitException(string message) : base(message)
         {
         }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GitException"/> with an
+        /// error message and an inner message.
+        /// </summary>
+        /// <param name="message">
+        /// A message which describes the error.
+        /// </param>
+        /// <param name="innerException">
+        /// The <see cref="Exception"/> which caused this exception to be thrown.
+        /// </param>
+        public GitException(string message, Exception innerException)
+            : base(message, innerException)
+        {
+        }
     }
 }

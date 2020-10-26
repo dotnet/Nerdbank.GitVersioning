@@ -16,7 +16,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
         [Fact]
         public void GetOffsetTest()
         {
-            using (Stream stream = File.OpenRead("Managed/pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.idx"))
+            using (Stream stream = TestUtilities.GetEmbeddedResource(@"Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.idx"))
             using (GitPackIndexReader reader = new GitPackIndexReader(stream))
             {
                 // Offset of an object which is present

@@ -12,7 +12,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
         [Fact]
         public void ReadTest()
         {
-            using (Stream rawStream = File.OpenRead("Managed/3596ffe59898103a2675547d4597e742e1f2389c.gz"))
+            using (Stream rawStream = TestUtilities.GetEmbeddedResource(@"Managed\3596ffe59898103a2675547d4597e742e1f2389c.gz"))
             using (GitObjectStream stream = new GitObjectStream(rawStream, "commit"))
             using (var sha = SHA1.Create())
             {
