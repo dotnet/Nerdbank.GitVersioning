@@ -37,6 +37,7 @@
                         $(OutputPath)Nerdbank.GitVersioning.*dll;
                         $(OutputPath)Newtonsoft.Json.dll;
                         $(OutputPath)System.Text.Json.dll;
+                        $(OutputPath)System.Runtime.CompilerServices.Unsafe.dll;
                         $(OutputPath)Validation.dll;
                ">
         <PackagePath>build\$(BuildSubDir)</PackagePath>
