@@ -85,7 +85,8 @@ namespace NerdBank.GitVersioning.Managed
             }
             else
             {
-                var fullPath = GetUnicodeString(path);
+                // Make sure to trim the trailing \0
+                var fullPath = GetUnicodeString(path.Slice(0, path.Length - 2));
 
                 if (!File.Exists(fullPath))
                 {
