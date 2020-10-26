@@ -44,7 +44,7 @@ stages:
           imageName: 'windows-2019'
           testModifier:
     variables:
-    - ${{ if eq(variables['System.TeamFoundationCollectionUri	'], 'https://dev.azure.com/andrewarnott/') }}:
+    - ${{ if eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/') }}:
       - group: dotnetfoundation code signing
     pool:
       vmImage: $(imageName)
