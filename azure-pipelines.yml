@@ -14,11 +14,13 @@ resources:
   containers:
   - container: xenial
     image: andrewarnott/linux-buildagent
-  - container: bionic
+  - container: bionic-2.1
     image: microsoft/dotnet:2.1-sdk-bionic
-  - container: bionic-3.0
-    image: mcr.microsoft.com/dotnet/core/sdk:3.0-bionic
-  - container: disco
+  - container: bionic
+    image: mcr.microsoft.com/dotnet/core/sdk:3.1-bionic
+  - container: focal
+    image: mcr.microsoft.com/dotnet/core/sdk:3.1-focal
+  - container: disco-3.0
     image: mcr.microsoft.com/dotnet/core/sdk:3.0-disco
   - container: archlinux
     image: andrewarnott/archlinux
@@ -188,6 +190,13 @@ stages:
       displayName: Install git
     - template: azure-pipelines/xplattest-pipeline.yml
 
+  - job: Ubuntu_Bionic_2_1
+    pool:
+      vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
+    container: bionic-2.1
+    steps:
+    - template: azure-pipelines/xplattest-pipeline.yml
+
   - job: Ubuntu_Bionic
     pool:
       vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
@@ -195,17 +204,17 @@ stages:
     steps:
     - template: azure-pipelines/xplattest-pipeline.yml
 
-  - job: Ubuntu_Bionic_3_0
+  - job: Ubuntu_Focal
     pool:
       vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
-    container: bionic-3.0
+    container: focal
     steps:
     - template: azure-pipelines/xplattest-pipeline.yml
 
-  - job: Ubuntu_Disco
+  - job: Ubuntu_Disco_3_0
     pool:
       vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
-    container: disco
+    container: disco-3.0
     steps:
     - template: azure-pipelines/xplattest-pipeline.yml
 
