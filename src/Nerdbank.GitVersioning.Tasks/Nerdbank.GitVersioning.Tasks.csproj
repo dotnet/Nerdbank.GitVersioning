@@ -36,6 +36,7 @@
                         $(OutputPath)Microsoft.DotNet.PlatformAbstractions.dll;
                         $(OutputPath)Nerdbank.GitVersioning.*dll;
                         $(OutputPath)Newtonsoft.Json.dll;
+                        $(OutputPath)System.Text.Json.dll;
                         $(OutputPath)Validation.dll;
                ">
         <PackagePath>build\$(BuildSubDir)</PackagePath>

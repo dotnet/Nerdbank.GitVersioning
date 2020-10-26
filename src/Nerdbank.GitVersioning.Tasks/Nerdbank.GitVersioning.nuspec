@@ -23,6 +23,7 @@ IMPORTANT: The 3.x release may produce a different version height than prior maj
     <file src="$BaseOutputPath$net461\NerdBank.GitVersioning.dll" target="build\MSBuildFull\NerdBank.GitVersioning.dll" />    
     <file src="$BaseOutputPath$net461\Nerdbank.GitVersioning.Tasks.dll" target="build\MSBuildFull\Nerdbank.GitVersioning.Tasks.dll" />
     <file src="$BaseOutputPath$net461\Newtonsoft.Json.dll" target="build\MSBuildFull\Newtonsoft.Json.dll" />
+    <file src="$BaseOutputPath$net461\System.Text.Json.dll" target="build\MSBuildFull\System.Text.Json.dll" />
     <file src="$BaseOutputPath$net461\Validation.dll" target="build\MSBuildFull\Validation.dll" />
     <file src="$LibGit2SharpNativeBinaries$runtimes\**" target="build\runtimes\" />
 
@@ -40,6 +41,7 @@ IMPORTANT: The 3.x release may produce a different version height than prior maj
     <file src="$BaseOutputPath$netcoreapp2.1\NerdBank.GitVersioning.dll" target="build\MSBuildCore\NerdBank.GitVersioning.dll" />
     <file src="$BaseOutputPath$netcoreapp2.1\Nerdbank.GitVersioning.Tasks.dll" target="build\MSBuildCore\Nerdbank.GitVersioning.Tasks.dll" />
     <file src="$BaseOutputPath$netcoreapp2.1\Newtonsoft.Json.dll" target="build\MSBuildCore\Newtonsoft.Json.dll" />
+    <file src="$BaseOutputPath$netcoreapp2.1\System.Text.Json.dll" target="build\MSBuildCore\System.Text.Json.dll" />
     <file src="$BaseOutputPath$netcoreapp2.1\Validation.dll" target="build\MSBuildCore\Validation.dll" />
 
     <file src="build\Nerdbank.GitVersioning.targets" target="build\Nerdbank.GitVersioning.targets" />
