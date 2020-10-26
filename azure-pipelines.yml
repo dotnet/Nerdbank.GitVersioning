@@ -14,11 +14,13 @@ resources:
   containers:
   - container: xenial
     image: andrewarnott/linux-buildagent
-  - container: bionic
+  - container: bionic-2.1
     image: microsoft/dotnet:2.1-sdk-bionic
-  - container: bionic-3.0
-    image: mcr.microsoft.com/dotnet/core/sdk:3.0-bionic
-  - container: disco
+  - container: bionic
+    image: mcr.microsoft.com/dotnet/core/sdk:3.1-bionic
+  - container: focal
+    image: mcr.microsoft.com/dotnet/core/sdk:3.1-focal
+  - container: disco-3.0
     image: mcr.microsoft.com/dotnet/core/sdk:3.0-disco
   - container: archlinux
     image: andrewarnott/archlinux
@@ -32,10 +34,20 @@ variables:
 stages:
 - stage: Build
   jobs:
-  - job: Windows
-    pool: Hosted Windows 2019 with VS2019
+  - job: Build
+    strategy:
+      matrix:
+        linux:
+          imageName: 'ubuntu-20.04'
+          testModifier: -f netcoreapp3.1
+        windows:
+          imageName: 'windows-2019'
+          testModifier:
     variables:
-    - group: dotnetfoundation code signing
+    - ${{ if eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/') }}:
+      - group: dotnetfoundation code signing
+    pool:
+      vmImage: $(imageName)
     steps:
     - checkout: self
       clean: true
@@ -53,9 +65,9 @@ stages:
     - script: dotnet --info
       displayName: Show dotnet SDK info
 
-    - script: |
+    - pwsh: |
         dotnet tool install --tool-path . nbgv
-        .\nbgv cloud -a
+        ./nbgv cloud -a
       displayName: Set build number
 
     - task: DotNetCoreCLI@2
@@ -68,27 +80,27 @@ stages:
         nugetConfigPath: src/nuget.config
         workingDirectory: src
 
-    - task: geeklearningio.gl-vsts-tasks-yarn.yarn-installer-task.YarnInstaller@2
+    - task: YarnInstaller@3
       displayName: 'Use Yarn 1.x'
-    - task: geeklearningio.gl-vsts-tasks-yarn.yarn-task.Yarn@2
+    - task: Yarn@3
       displayName: 'Yarn install'
       inputs:
-        ProjectDirectory: 'src/nerdbank-gitversioning.npm'
+        projectDirectory: 'src/nerdbank-gitversioning.npm'
 
     - script: dotnet build -c $(BuildConfiguration) --no-restore /t:build,pack /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
       displayName: Build NuGet package and tests
       workingDirectory: src
 
-    - script: dotnet publish -c $(BuildConfiguration) -o ..\nerdbank-gitversioning.npm\out\nbgv.cli\tools\netcoreapp2.1\any /bl:"$(Build.ArtifactStagingDirectory)/build_logs/nbgv_publish.binlog"
+    - script: dotnet publish -c $(BuildConfiguration) -o ../nerdbank-gitversioning.npm/out/nbgv.cli/tools/netcoreapp2.1/any /bl:"$(Build.ArtifactStagingDirectory)/build_logs/nbgv_publish.binlog"
       displayName: Publish nbgv tool
-      workingDirectory: src\nbgv
+      workingDirectory: src/nbgv
 
     - task: gulp@0
       displayName: Build nerdbank-gitversioning NPM package
       inputs:
-        gulpfile: src\nerdbank-gitversioning.npm\gulpfile.js
+        gulpfile: src/nerdbank-gitversioning.npm/gulpfile.js
 
-    - script: dotnet test Nerdbank.GitVersioning.Tests --no-build -c $(BuildConfiguration) --filter "TestCategory!=FailsOnAzurePipelines" --logger "trx;LogFileName=$(Build.ArtifactStagingDirectory)\TestLogs\TestResults.trx"
+    - script: dotnet test NerdBank.GitVersioning.Tests --no-build $(testModifier) -c $(BuildConfiguration) --filter "TestCategory!=FailsOnAzurePipelines" --logger "trx;LogFileName=$(Build.ArtifactStagingDirectory)/TestLogs/TestResults.trx"
       displayName: Run tests
       workingDirectory: src
 
@@ -97,7 +109,7 @@ stages:
       inputs:
         testResultsFormat: VSTest
         testResultsFiles: '*.trx'
-        searchFolder: $(Build.ArtifactStagingDirectory)\TestLogs
+        searchFolder: $(Build.ArtifactStagingDirectory)/TestLogs
         buildPlatform: $(BuildPlatform)
         buildConfiguration: $(BuildConfiguration)
       condition: always()
@@ -125,7 +137,7 @@ stages:
         --name 'Nerdbank.GitVersioning'
         --descriptionUrl 'https://github.com/dotnet/Nerdbank.GitVersioning'
       displayName: Code sign
-      condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+      condition: and(succeeded(), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), eq(variables['Agent.OS'], 'Windows_NT'), ne(variables['Build.Reason'], 'PullRequest'))
 
     - task: PublishBuildArtifacts@1
       inputs:
@@ -133,6 +145,9 @@ stages:
         ArtifactName: deployables
         ArtifactType: Container
       displayName: Publish deployables artifacts
+      # Only deploy when from a single build in the build matrix
+      condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))
+
     - task: PublishBuildArtifacts@1
       inputs:
         PathtoPublish: $(Build.ArtifactStagingDirectory)/build_logs
@@ -148,23 +163,23 @@ stages:
         nuGetFeedType: internal
         publishVstsFeed: OSS/PublicCI
         allowPackageConflicts: true
-      condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+      condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
 
     - pwsh: Set-Content -Path "$(Agent.TempDirectory)/.npmrc" -Value "registry=https://pkgs.dev.azure.com/andrewarnott/OSS/_packaging/PublicCI/npm/registry/`nalways-auth=true"
       displayName: Prepare to push to PublicCI
-      condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+      condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
     - task: npmAuthenticate@0
       displayName: Authenticate to PublicCI
       inputs:
         workingFile: $(Agent.TempDirectory)/.npmrc
-      condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+      condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
     - pwsh: |
         $tgz = (Get-ChildItem "$(Build.ArtifactStagingDirectory)/deployables/*.tgz")[0].FullName
         Write-Host "Will publish $tgz"
         npm publish $tgz
       workingDirectory: $(Agent.TempDirectory)
       displayName: npm publish to PublicCI feed
-      condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+      condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
 
 - stage: Test
   jobs:
@@ -177,6 +192,13 @@ stages:
       displayName: Install git
     - template: azure-pipelines/xplattest-pipeline.yml
 
+  - job: Ubuntu_Bionic_2_1
+    pool:
+      vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
+    container: bionic-2.1
+    steps:
+    - template: azure-pipelines/xplattest-pipeline.yml
+
   - job: Ubuntu_Bionic
     pool:
       vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
@@ -184,17 +206,17 @@ stages:
     steps:
     - template: azure-pipelines/xplattest-pipeline.yml
 
-  - job: Ubuntu_Bionic_3_0
+  - job: Ubuntu_Focal
     pool:
       vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
-    container: bionic-3.0
+    container: focal
     steps:
     - template: azure-pipelines/xplattest-pipeline.yml
 
-  - job: Ubuntu_Disco
+  - job: Ubuntu_Disco_3_0
     pool:
       vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
-    container: disco
+    container: disco-3.0
     steps:
     - template: azure-pipelines/xplattest-pipeline.yml
 

@@ -7,7 +7,7 @@ using System.Diagnostics;
 
 namespace Nerdbank.GitVersioning
 {
-    internal static class RuntimeIdMap
+    public static class RuntimeIdMap
     {
         // This functionality needs to be provided as .NET Core API.
         // Releated issues:
@@ -256,6 +256,10 @@ namespace Nerdbank.GitVersioning
             "ubuntu.19.04-x64",
             "ubuntu.19.10-arm64",
             "ubuntu.19.10-x64",
+            "ubuntu.20.04-arm64",
+            "ubuntu.20.04-x64",
+            "ubuntu.20.10-arm64",
+            "ubuntu.20.10-x64",
             "win-x64",
             "win-x64-aot",
             "win-x86",
@@ -371,6 +375,10 @@ namespace Nerdbank.GitVersioning
             "linux-x64",
             "ubuntu.16.04-arm64",
             "linux-x64",
+            "debian-arm64",
+            "ubuntu.18.04-x64",
+            "debian-arm64",
+            "ubuntu.18.04-x64",
             "debian-arm64",
             "ubuntu.18.04-x64",
             "debian-arm64",

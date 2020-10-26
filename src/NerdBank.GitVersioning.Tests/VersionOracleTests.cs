@@ -19,8 +19,8 @@ public class VersionOracleTests : RepoTestBase
     [Fact]
     public void NotRepo()
     {
-        // Seems safe to assume the system directory is not a repository.
-        var oracle = VersionOracle.Create(Environment.SystemDirectory);
+        // Seems safe to assume a temporary path is not a Git directory.
+        var oracle = VersionOracle.Create(Path.GetTempPath());
         Assert.Equal(0, oracle.VersionHeight);
     }
 

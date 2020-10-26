@@ -515,20 +515,20 @@ public class VersionFileTests : RepoTestBase
                 Inherit = true,
                 VersionHeightOffset = 1,
             },
-            @"foo\bar");
+            "foo/bar");
         this.WriteVersionFile(
             level2NoInherit = new VersionOptions
             {
                 Version = SemanticVersion.Parse("10.1"),
             },
-            @"noInherit");
+            "noInherit");
         this.WriteVersionFile(
             level2InheritButResetVersion = new VersionOptions
             {
                 Inherit = true,
                 Version = SemanticVersion.Parse("8.2"),
             },
-            @"inheritWithVersion");
+            "inheritWithVersion");
 
         Repository operatingRepo = this.Repo;
         if (bareRepo)
@@ -550,7 +550,7 @@ public class VersionFileTests : RepoTestBase
             Assert.Equal(level2.AssemblyVersion.Precision, level2Options.AssemblyVersion.Precision);
             Assert.True(level2Options.Inherit);
 
-            var level3Options = GetOption(@"foo\bar");
+            var level3Options = GetOption("foo/bar");
             Assert.Equal(level1.Version.Version.Major, level3Options.Version.Version.Major);
             Assert.Equal(level1.Version.Version.Minor, level3Options.Version.Version.Minor);
             Assert.Equal(level2.AssemblyVersion.Precision, level3Options.AssemblyVersion.Precision);
@@ -575,7 +575,7 @@ public class VersionFileTests : RepoTestBase
                 // even though the inheriting files were introduced in successive commits.
                 Assert.Equal(totalCommits, operatingRepo.GetVersionHeight());
                 Assert.Equal(totalCommits, operatingRepo.GetVersionHeight("foo"));
-                Assert.Equal(totalCommits, operatingRepo.GetVersionHeight(@"foo\bar"));
+                Assert.Equal(totalCommits, operatingRepo.GetVersionHeight("foo/bar"));
 
                 // These either don't inherit, or inherit but reset versions, so the commits were reset.
                 Assert.Equal(2, operatingRepo.GetVersionHeight("noInherit"));

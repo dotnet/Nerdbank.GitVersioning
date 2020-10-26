@@ -742,7 +742,9 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         }
     }
 
-    [Theory]
+    // This test builds projects using 'classic' MSBuild projects, which target net45.
+    // This is not supported on Linux.
+    [WindowsTheory]
     [PairwiseData]
     public async Task AssemblyInfo(bool isVB, bool includeNonVersionAttributes, bool gitRepo, bool isPrerelease, bool isPublicRelease)
     {
@@ -844,7 +846,11 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
 
         this.WriteVersionFile();
         var result = await this.BuildAsync(Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal);
-        string versionCsContent = File.ReadAllText(Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile")));
+        string versionCsContent = File.ReadAllText(
+            Path.GetFullPath(
+                Path.Combine(
+                    this.projectDirectory,
+                    result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"))));
         this.Logger.WriteLine(versionCsContent);
 
         var sourceFile = CSharpSyntaxTree.ParseText(versionCsContent);
@@ -1152,7 +1158,7 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
     private void MakeItAVBProject()
     {
         var csharpImport = this.testProject.Imports.Single(i => i.Project.Contains("CSharp"));
-        csharpImport.Project = @"$(MSBuildToolsPath)\Microsoft.VisualBasic.targets";
+        csharpImport.Project = "$(MSBuildToolsPath)/Microsoft.VisualBasic.targets";
         var isVbProperty = this.testProject.Properties.Single(p => p.Name == "IsVB");
         isVbProperty.Value = "true";
     }
