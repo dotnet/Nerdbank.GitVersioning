@@ -137,7 +137,7 @@ stages:
         --name 'Nerdbank.GitVersioning'
         --descriptionUrl 'https://github.com/dotnet/Nerdbank.GitVersioning'
       displayName: Code sign
-      condition: and(succeeded(), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
+      condition: and(succeeded(), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), eq(variables['Agent.OS'], 'Windows_NT'), ne(variables['Build.Reason'], 'PullRequest'))
 
     - task: PublishBuildArtifacts@1
       inputs:
