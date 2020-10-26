@@ -39,8 +39,10 @@ stages:
       matrix:
         linux:
           imageName: 'ubuntu-20.04'
+          testModifier: -f netcoreapp3.1
         windows:
           imageName: 'windows-2019'
+          testModifier:
     variables:
     - ${{ if eq(variables['System.TeamFoundationCollectionUri	'], 'https://dev.azure.com/andrewarnott/') }}:
       - group: dotnetfoundation code signing
@@ -98,7 +100,7 @@ stages:
       inputs:
         gulpfile: src/nerdbank-gitversioning.npm/gulpfile.js
 
-    - script: dotnet test NerdBank.GitVersioning.Tests --no-build -c $(BuildConfiguration) --filter "TestCategory!=FailsOnAzurePipelines" --logger "trx;LogFileName=$(Build.ArtifactStagingDirectory)/TestLogs/TestResults.trx"
+    - script: dotnet test NerdBank.GitVersioning.Tests --no-build $(testModifier) -c $(BuildConfiguration) --filter "TestCategory!=FailsOnAzurePipelines" --logger "trx;LogFileName=$(Build.ArtifactStagingDirectory)/TestLogs/TestResults.trx"
       displayName: Run tests
       workingDirectory: src
 
@@ -144,7 +146,7 @@ stages:
         ArtifactType: Container
       displayName: Publish deployables artifacts
       # Only deploy when from a single build in the build matrix
-      condition: and(succeeded(), eq(variables['imageName'], 'windows-2019'))
+      condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))
 
     - task: PublishBuildArtifacts@1
       inputs:
@@ -161,23 +163,23 @@ stages:
         nuGetFeedType: internal
         publishVstsFeed: OSS/PublicCI
         allowPackageConflicts: true
-      condition: and(succeeded(), eq(variables['imageName'], 'windows-2019'), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
+      condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
 
     - pwsh: Set-Content -Path "$(Agent.TempDirectory)/.npmrc" -Value "registry=https://pkgs.dev.azure.com/andrewarnott/OSS/_packaging/PublicCI/npm/registry/`nalways-auth=true"
       displayName: Prepare to push to PublicCI
-      condition: and(succeeded(), eq(variables['imageName'], 'windows-2019'), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
+      condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
     - task: npmAuthenticate@0
       displayName: Authenticate to PublicCI
       inputs:
         workingFile: $(Agent.TempDirectory)/.npmrc
-      condition: and(succeeded(), eq(variables['imageName'], 'windows-2019'), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
+      condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
     - pwsh: |
         $tgz = (Get-ChildItem "$(Build.ArtifactStagingDirectory)/deployables/*.tgz")[0].FullName
         Write-Host "Will publish $tgz"
         npm publish $tgz
       workingDirectory: $(Agent.TempDirectory)
       displayName: npm publish to PublicCI feed
-      condition: and(succeeded(), eq(variables['imageName'], 'windows-2019'), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
+      condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
 
 - stage: Test
   jobs:
