@@ -7,6 +7,9 @@ using Validation;
 
 namespace NerdBank.GitVersioning.Managed
 {
+    /// <summary>
+    /// A managed implementation of the <see cref="VersionOracle"/>.
+    /// </summary>
     public class ManagedVersionOracle : VersionOracle
     {
         /// <summary>

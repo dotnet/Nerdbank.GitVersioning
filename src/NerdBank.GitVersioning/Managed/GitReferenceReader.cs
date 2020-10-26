@@ -30,7 +30,7 @@ namespace NerdBank.GitVersioning.Managed
                 Span<byte> reference = stackalloc byte[(int)stream.Length - RefPrefix.Length - 1];
                 stream.Read(reference);
 
-                return GitRepository.Encoding.GetString(reference);
+                return GitRepository.GetString(reference);
             }
         }
     }

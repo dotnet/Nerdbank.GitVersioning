@@ -45,7 +45,7 @@ namespace NerdBank.GitVersioning.Managed
             Span<byte> buffer = stackalloc byte[128];
             this.Read(buffer.Slice(0, objectType.Length + 1));
 
-            var actualObjectType = Encoding.ASCII.GetString(buffer.Slice(0, objectType.Length));
+            var actualObjectType = GitRepository.GetString(buffer.Slice(0, objectType.Length));
             this.ObjectType = actualObjectType;
 
             int headerLength = 0;

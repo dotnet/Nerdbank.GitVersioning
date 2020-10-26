@@ -6,6 +6,9 @@ using Validation;
 
 namespace Nerdbank.GitVersioning
 {
+    /// <summary>
+    /// An implementation of the <see cref="VersionOptions"/> class which uses LibGit2 as its back-end.
+    /// </summary>
     public class LibGit2VersionOracle : VersionOracle
     {
         /// <summary>

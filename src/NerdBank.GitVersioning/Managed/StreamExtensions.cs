@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Diagnostics;
 using System.IO;
 
@@ -53,5 +54,68 @@ namespace NerdBank.GitVersioning.Managed
 
             return value;
         }
+
+#if NETSTANDARD
+        /// <summary>
+        /// Reads a sequence of bytes from the current stream and advances the position within the stream by
+        /// the number of bytes read.
+        /// </summary>
+        /// <param name="stream">
+        /// The <see cref="Stream"/> from which to read the data.
+        /// </param>
+        /// <param name="span">
+        /// A region of memory. When this method returns, the contents of this region are replaced by the bytes
+        /// read from the current source.
+        /// </param>
+        /// <returns>
+        /// The total number of bytes read into the buffer. This can be less than the number of bytes allocated
+        /// in the buffer if that many bytes are not currently available, or zero (0) if the end of the stream
+        /// has been reached.
+        /// </returns>
+        public static int Read(this Stream stream, Span<byte> span)
+        {
+            byte[] buffer = null;
+
+            try
+            {
+                buffer = ArrayPool<byte>.Shared.Rent(span.Length);
+                int read = stream.Read(buffer, 0, span.Length);
+
+                buffer.AsSpan(0, read).CopyTo(span);
+                return read;
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
+        }
+
+        /// <summary>
+        /// Writes a sequence of bytes to the current stream and advances the current position within this stream
+        /// by the number of bytes written.
+        /// </summary>
+        /// <param name="stream">
+        /// The <see cref="Stream"/> to which to write the data.
+        /// </param>
+        /// <param name="span">
+        /// A region of memory. This method copies the contents of this region to the current stream.
+        /// </param>
+        public static void Write(this Stream stream, Span<byte> span)
+        {
+            byte[] buffer = null;
+
+            try
+            {
+                buffer = ArrayPool<byte>.Shared.Rent(span.Length);
+                span.CopyTo(buffer.AsSpan(0, span.Length));
+
+                stream.Write(buffer, 0, span.Length);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
+        }
+#endif
     }
 }

@@ -299,6 +299,9 @@
         /// </summary>
         public int SemVer1NumericIdentifierPadding => this.VersionOptions?.SemVer1NumericIdentifierPaddingOrDefault ?? 4;
 
+        /// <summary>
+        /// Getse or sets the <see cref="VersionOracle.CloudBuildNumberOptions"/>.
+        /// </summary>
         protected VersionOptions.CloudBuildNumberOptions CloudBuildNumberOptions { get; set; }
 
         /// <summary>
@@ -380,6 +383,16 @@
         /// <returns>The specified string, with macros substituted for actual values.</returns>
         protected string ReplaceMacros(string prereleaseOrBuildMetadata) => prereleaseOrBuildMetadata?.Replace(VersionOptions.VersionHeightPlaceholder, this.VersionHeightWithOffset.ToString(CultureInfo.InvariantCulture));
 
+        /// <summary>
+        /// Gets a value indicating whether the version file has changed in the working tree.
+        /// </summary>
+        /// <param name="committedVersion">
+        /// The commited <see cref="VersionOptions"/>.
+        /// </param>
+        /// <param name="workingVersion">
+        /// The working version of <see cref="VersionOptions"/>.
+        /// </param>
+        /// <returns></returns>
         protected static bool IsVersionFileChangedInWorkingTree(VersionOptions committedVersion, VersionOptions workingVersion)
         {
             if (workingVersion != null)

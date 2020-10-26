@@ -209,6 +209,8 @@ namespace NerdBank.GitVersioning.Tests.Managed
             }
         }
 
+        // This test runs on netcoreapp only; netstandard/netfx don't support Path.GetRelativePath
+#if NETCOREAPP
         [Fact]
         public void GetObjectFromAlternateTest()
         {
@@ -247,6 +249,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
                 Assert.Equal(alternate2Commit.Sha, repository.GetCommit(GitObjectId.Parse(alternate2Commit.Sha)).Sha.ToString());
             }
         }
+#endif
 
         [Fact]
         public void GetObjectByShaAndWrongTypeTest()

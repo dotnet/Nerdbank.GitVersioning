@@ -34,7 +34,9 @@ namespace NerdBank.GitVersioning.Managed
 
         // A histogram which tracks the objects which have been retrieved from this GitPack. The key is the offset
         // of the object. Used to get some insights in usage patterns.
+#if DEBUG && !NETSTANDARD
         private readonly Dictionary<int, int> histogram = new Dictionary<int, int>();
+#endif
 
         private Lazy<GitPackIndexReader> indexReader;
 
@@ -146,10 +148,12 @@ namespace NerdBank.GitVersioning.Managed
         /// </returns>
         public Stream GetObject(int offset, string objectType)
         {
+#if DEBUG && !NETSTANDARD
             if (!this.histogram.TryAdd(offset, 1))
             {
                 this.histogram[offset] += 1;
             }
+#endif
 
             if (this.cache.TryOpen(offset, out Stream stream))
             {
@@ -190,9 +194,10 @@ namespace NerdBank.GitVersioning.Managed
         /// </param>
         public void GetCacheStatistics(StringBuilder builder)
         {
-            int histogramCount = 25;
-
             builder.AppendLine($"Git Pack {this.packPath}:");
+
+#if DEBUG && !NETSTANDARD
+            int histogramCount = 25;
             builder.AppendLine($"Top {histogramCount} / {this.histogram.Count} items:");
 
             foreach (var item in this.histogram.OrderByDescending(v => v.Value).Take(25))
@@ -201,6 +206,7 @@ namespace NerdBank.GitVersioning.Managed
             }
 
             builder.AppendLine();
+#endif
 
             this.cache.GetCacheStatistics(builder);
         }
@@ -226,7 +232,7 @@ namespace NerdBank.GitVersioning.Managed
 
             if (offset != null)
             {
-                this.offsets.TryAdd(objectId, offset.Value);
+                this.offsets.Add(objectId, offset.Value);
             }
 
             return offset;
@@ -234,8 +240,9 @@ namespace NerdBank.GitVersioning.Managed
 
         private GitPackPooledStream GetPackStream()
         {
-            if (this.pooledStreams.TryDequeue(out var result))
+            if (this.pooledStreams.Count > 0)
             {
+                var result = this.pooledStreams.Dequeue();
                 result.Seek(0, SeekOrigin.Begin);
                 return result;
             }

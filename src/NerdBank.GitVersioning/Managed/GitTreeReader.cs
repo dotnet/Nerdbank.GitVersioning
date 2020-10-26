@@ -35,7 +35,7 @@ namespace NerdBank.GitVersioning.Managed
                     var currentName = contents.Slice(modeLength, fileNameEnds - modeLength);
                     var currentObjectId = GitObjectId.Parse(contents.Slice(fileNameEnds + 1, 20));
 
-                    var name = GitRepository.Encoding.GetString(currentName);
+                    var name = GitRepository.GetString(currentName);
 
                     value.Children.Add(
                         name,

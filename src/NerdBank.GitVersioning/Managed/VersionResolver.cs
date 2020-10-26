@@ -15,9 +15,9 @@ namespace NerdBank.GitVersioning.Managed
             this.gitRepository = gitRepository ?? throw new ArgumentNullException(nameof(gitRepository));
             this.versionPath = versionPath;
 
-            if (this.versionPath != null && Path.IsPathFullyQualified(versionPath))
+            if (this.versionPath != null && IsPathFullyQualified(versionPath))
             {
-                this.versionPath = Path.GetRelativePath(this.gitRepository.WorkingDirectory, versionPath);
+                this.versionPath = GetRelativePath(this.gitRepository.WorkingDirectory, versionPath);
             }
         }
 
@@ -71,6 +71,33 @@ namespace NerdBank.GitVersioning.Managed
             return path.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
                 .Select(p => GitRepository.Encoding.GetBytes(p))
                 .ToArray();
+        }
+
+        private static bool IsPathFullyQualified(string path)
+        {
+#if NETSTANDARD
+            return Path.GetFullPath(path) == path;
+#else
+            return Path.IsPathFullyQualified(path);
+#endif
+        }
+
+        private static string GetRelativePath(string relativeTo, string path)
+        {
+#if NETSTANDARD
+            if (!IsPathFullyQualified(path))
+            {
+                return path;
+            }
+
+            Uri relativeToUri = new Uri($"file:///{relativeTo}");
+            Uri pathUri = new Uri($"file:///{path}");
+
+            Uri relativeUri = relativeToUri.MakeRelativeUri(pathUri);
+            return relativeUri.ToString();
+#else
+            return Path.GetRelativePath(relativeTo, path);
+#endif
         }
     }
 }

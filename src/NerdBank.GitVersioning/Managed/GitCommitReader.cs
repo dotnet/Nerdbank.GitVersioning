@@ -150,11 +150,11 @@ namespace NerdBank.GitVersioning.Managed
             var email = line.Slice(emailStart + 1, emailEnd - emailStart - 1);
             var time = line.Slice(emailEnd + 2, lineEnd - emailEnd - 2);
 
-            signature.Name = GitRepository.Encoding.GetString(name);
-            signature.Email = GitRepository.Encoding.GetString(email);
+            signature.Name = GitRepository.GetString(name);
+            signature.Email = GitRepository.GetString(email);
 
             var offsetStart = time.IndexOf((byte)' ');
-            var ticks = long.Parse(GitRepository.Encoding.GetString(time.Slice(0, offsetStart)));
+            var ticks = long.Parse(GitRepository.GetString(time.Slice(0, offsetStart)));
             signature.Date = DateTimeOffset.FromUnixTimeSeconds(ticks);
 
             return true;

@@ -8,7 +8,6 @@ namespace NerdBank.GitVersioning.Managed
     {
         private Stream stream;
         private readonly MemoryStream cacheStream = new MemoryStream();
-        private long position = 0;
         private long length;
 
         public GitPackMemoryCacheStream(Stream stream)
@@ -36,7 +35,12 @@ namespace NerdBank.GitVersioning.Managed
             throw new NotSupportedException();
         }
 
+#if NETSTANDARD
+        public int Read(Span<byte> buffer)
+#else
+        /// <inheritdoc/>
         public override int Read(Span<byte> buffer)
+#endif
         {
             if (this.cacheStream.Length < this.length
                 && this.cacheStream.Position + buffer.Length > this.cacheStream.Length)

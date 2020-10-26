@@ -36,7 +36,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
             {
                 // Seek past the commit 137 header, and make sure we can read the 'tree' word
                 Assert.Equal(11, stream.Seek(11, SeekOrigin.Begin));
-                Span<byte> tree = new byte[4];
+                var tree = new byte[4];
                 stream.Read(tree);
                 Assert.Equal("tree", Encoding.UTF8.GetString(tree));
 

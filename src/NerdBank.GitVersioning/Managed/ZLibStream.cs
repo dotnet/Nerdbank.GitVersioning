@@ -21,7 +21,7 @@ namespace NerdBank.GitVersioning.Managed
     /// </para>
     /// <para>
     ///   This class wraps a <see cref="DeflateStream"/> rather than inheriting from it, because
-    ///   <see cref="DeflateStream"/> detects whether <see cref="Read(Span{byte})"/> is being overriden
+    ///   <see cref="DeflateStream"/> detects whether <c>Read(Span{byte})</c> is being overriden
     ///   and behaves differently when it is.
     /// </para>
     /// <para>
@@ -91,6 +91,7 @@ namespace NerdBank.GitVersioning.Managed
             return read;
         }
 
+#if !NETSTANDARD
         /// <inheritdoc/>
         public override int Read(Span<byte> buffer)
         {
@@ -98,6 +99,7 @@ namespace NerdBank.GitVersioning.Managed
             this.position += read;
             return read;
         }
+#endif
 
         /// <inheritdoc/>
         public override async Task<int> ReadAsync(byte[] array, int offset, int count, CancellationToken cancellationToken)
@@ -107,6 +109,7 @@ namespace NerdBank.GitVersioning.Managed
             return read;
         }
 
+#if !NETSTANDARD
         /// <inheritdoc/>
         public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
         {
@@ -114,6 +117,7 @@ namespace NerdBank.GitVersioning.Managed
             this.position += read;
             return read;
         }
+#endif
 
         /// <inheritdoc/>
         public override int ReadByte()
@@ -181,6 +185,12 @@ namespace NerdBank.GitVersioning.Managed
             this.stream.Dispose();
         }
 
+        /// <summary>
+        /// Initializes the length and position properties.
+        /// </summary>
+        /// <param name="length">
+        /// The length of this <see cref="ZLibStream"/> class.
+        /// </param>
         protected void Initialize(long length)
         {
             this.position = 0;

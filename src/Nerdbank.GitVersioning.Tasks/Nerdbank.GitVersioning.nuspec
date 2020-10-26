@@ -35,12 +35,12 @@ IMPORTANT: The 3.x release may produce a different version height than prior maj
     <file src="$LibGit2SharpNativeBinaries$runtimes\win-x86\native\git2-106a5f2.dll" target="build\MSBuildFull\lib\win32\x86\git2-106a5f2.dll" />
 
     <file src="$LibGit2SharpNativeBinaries$libgit2\LibGit2Sharp.dll.config" target="build\MSBuildCore\LibGit2Sharp.dll.config" />
-    <file src="$BaseOutputPath$netcoreapp2.0\LibGit2Sharp.dll" target="build\MSBuildCore\LibGit2Sharp.dll" />
-    <file src="$BaseOutputPath$netcoreapp2.0\Microsoft.DotNet.PlatformAbstractions.dll" target="build\MSBuildCore\Microsoft.DotNet.PlatformAbstractions.dll" />
-    <file src="$BaseOutputPath$netcoreapp2.0\NerdBank.GitVersioning.dll" target="build\MSBuildCore\NerdBank.GitVersioning.dll" />
-    <file src="$BaseOutputPath$netcoreapp2.0\Nerdbank.GitVersioning.Tasks.dll" target="build\MSBuildCore\Nerdbank.GitVersioning.Tasks.dll" />
-    <file src="$BaseOutputPath$netcoreapp2.0\Newtonsoft.Json.dll" target="build\MSBuildCore\Newtonsoft.Json.dll" />
-    <file src="$BaseOutputPath$netcoreapp2.0\Validation.dll" target="build\MSBuildCore\Validation.dll" />
+    <file src="$BaseOutputPath$netcoreapp2.1\LibGit2Sharp.dll" target="build\MSBuildCore\LibGit2Sharp.dll" />
+    <file src="$BaseOutputPath$netcoreapp2.1\Microsoft.DotNet.PlatformAbstractions.dll" target="build\MSBuildCore\Microsoft.DotNet.PlatformAbstractions.dll" />
+    <file src="$BaseOutputPath$netcoreapp2.1\NerdBank.GitVersioning.dll" target="build\MSBuildCore\NerdBank.GitVersioning.dll" />
+    <file src="$BaseOutputPath$netcoreapp2.1\Nerdbank.GitVersioning.Tasks.dll" target="build\MSBuildCore\Nerdbank.GitVersioning.Tasks.dll" />
+    <file src="$BaseOutputPath$netcoreapp2.1\Newtonsoft.Json.dll" target="build\MSBuildCore\Newtonsoft.Json.dll" />
+    <file src="$BaseOutputPath$netcoreapp2.1\Validation.dll" target="build\MSBuildCore\Validation.dll" />
 
     <file src="build\Nerdbank.GitVersioning.targets" target="build\Nerdbank.GitVersioning.targets" />
     <file src="build\Nerdbank.GitVersioning.Common.targets" target="build\Nerdbank.GitVersioning.Common.targets" />

@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp3.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;netcoreapp3.1</TargetFrameworks>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <DebugType>Full</DebugType>
     <IsPackable>false</IsPackable>
@@ -12,7 +12,6 @@
     <PackageReference Include="LibGit2Sharp" Version="0.26.2" PrivateAssets="none" />
     <PackageReference Include="Microsoft.DotNet.PlatformAbstractions" Version="2.1.0" />
     <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
-    <PackageReference Include="System.Diagnostics.Tools" Version="4.3.0" Condition=" '$(TargetFramework)' == 'netcoreapp2.0' " />
     <PackageReference Include="Validation" Version="2.4.18" />
     <PackageReference Include="Nerdbank.GitVersioning.LKG" Version="3.1.93" />
     <PackageReference Include="System.Text.Json" Version="4.7.2" />

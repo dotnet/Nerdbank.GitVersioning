@@ -60,11 +60,13 @@ namespace NerdBank.GitVersioning.Managed
             this.stream.Flush();
         }
 
+#if !NETSTANDARD
         /// <inheritdoc/>
         public override int Read(Span<byte> buffer)
         {
             return this.stream.Read(buffer);
         }
+#endif
 
         /// <inheritdoc/>
         public override int Read(byte[] buffer, int offset, int count)

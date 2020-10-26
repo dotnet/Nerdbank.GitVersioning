@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -19,7 +20,7 @@ namespace NerdBank.GitVersioning.Managed
 
         private readonly List<GitRepository> alternates = new List<GitRepository>();
 
-#if DEBUG
+#if DEBUG && !NETSTANDARD
         private Dictionary<GitObjectId, int> histogram = new Dictionary<GitObjectId, int>();
 #endif
 
@@ -39,7 +40,7 @@ namespace NerdBank.GitVersioning.Managed
             // which contains a directory of file named .git.
             // Loop until Path.GetDirectoryName returns null; in this case, we've reached the root of
             // the file system (and we're not in a git repository).
-            while (workingDirectory != null
+            while (!string.IsNullOrEmpty(workingDirectory)
                 && !File.Exists(Path.Combine(workingDirectory, GitDirectoryName))
                 && !Directory.Exists(Path.Combine(workingDirectory, GitDirectoryName)))
             {
@@ -95,6 +96,9 @@ namespace NerdBank.GitVersioning.Managed
         /// <param name="commonDirectory">
         /// The common Git directory, in which Git objects are stored.
         /// </param>
+        /// <param name="objectDirectory">
+        /// The object directory in which Git objects are stored.
+        /// </param>
         public static GitRepository Create(string workingDirectory, string gitDirectory, string commonDirectory, string objectDirectory)
         {
             return new GitRepository(workingDirectory, gitDirectory, commonDirectory, objectDirectory);
@@ -112,6 +116,9 @@ namespace NerdBank.GitVersioning.Managed
         /// <param name="commonDirectory">
         /// The common Git directory, in which Git objects are stored.
         /// </param>
+        /// <param name="objectDirectory">
+        /// The object directory in which Git objects are stored.
+        /// </param>
         public GitRepository(string workingDirectory, string gitDirectory, string commonDirectory, string objectDirectory)
         {
             this.WorkingDirectory = workingDirectory ?? throw new ArgumentNullException(nameof(workingDirectory));
@@ -120,10 +127,10 @@ namespace NerdBank.GitVersioning.Managed
             this.ObjectDirectory = objectDirectory ?? throw new ArgumentNullException(nameof(objectDirectory));
 
             // Normalize paths
-            this.WorkingDirectory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(this.WorkingDirectory));
-            this.GitDirectory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(this.GitDirectory));
-            this.CommonDirectory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(this.CommonDirectory));
-            this.ObjectDirectory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(this.ObjectDirectory));
+            this.WorkingDirectory = TrimEndingDirectorySeparator(Path.GetFullPath(this.WorkingDirectory));
+            this.GitDirectory = TrimEndingDirectorySeparator(Path.GetFullPath(this.GitDirectory));
+            this.CommonDirectory = TrimEndingDirectorySeparator(Path.GetFullPath(this.CommonDirectory));
+            this.ObjectDirectory = TrimEndingDirectorySeparator(Path.GetFullPath(this.ObjectDirectory));
 
             if (FileHelpers.TryOpen(
                 Path.Combine(this.ObjectDirectory, "info", "alternates"),
@@ -141,7 +148,7 @@ namespace NerdBank.GitVersioning.Managed
 
                 while ((index = alternates.IndexOf((byte)':')) > 0)
                 {
-                    var alternate = Encoding.GetString(alternates.Slice(0, index));
+                    var alternate = GetString(alternates.Slice(0, index));
                     alternate = Path.GetFullPath(Path.Combine(this.ObjectDirectory, alternate));
 
                     this.alternates.Add(GitRepository.Create(workingDirectory, gitDirectory, commonDirectory, alternate));
@@ -160,9 +167,9 @@ namespace NerdBank.GitVersioning.Managed
             pathLength += 2; // Trailing 0 character
             this.objectPathBuffer = new byte[pathLength];
 
-            Encoding.Unicode.GetBytes(this.ObjectDirectory, this.objectPathBuffer.AsSpan(0, this.objectDirLength));
-            Encoding.Unicode.GetBytes("/", this.objectPathBuffer.AsSpan(this.objectDirLength, 2));
-            Encoding.Unicode.GetBytes("/".ToCharArray().AsSpan(), this.objectPathBuffer.AsSpan(this.objectDirLength + 2 + 4, 2));
+            GetUnicodeBytes(this.ObjectDirectory, this.objectPathBuffer.AsSpan(0, this.objectDirLength));
+            GetUnicodeBytes("/", this.objectPathBuffer.AsSpan(this.objectDirLength, 2));
+            GetUnicodeBytes("/", this.objectPathBuffer.AsSpan(this.objectDirLength + 2 + 4, 2));
             this.objectPathBuffer[pathLength - 2] = 0; // Make sure to initialize with zeros
             this.objectPathBuffer[pathLength - 1] = 0;
 
@@ -180,6 +187,9 @@ namespace NerdBank.GitVersioning.Managed
         }
 
         // TODO: read from Git settings
+        /// <summary>
+        /// Gets a value indicating whether this Git repository is case-insensitive.
+        /// </summary>
         public bool IgnoreCase { get; private set; } = false;
 
         /// <summary>
@@ -371,7 +381,7 @@ namespace NerdBank.GitVersioning.Managed
         /// </returns>
         public bool TryGetObjectBySha(GitObjectId sha, string objectType, out Stream value)
         {
-#if DEBUG
+#if DEBUG && !NETSTANDARD
             if (!this.histogram.TryAdd(sha, 1))
             {
                 this.histogram[sha] += 1;
@@ -413,7 +423,7 @@ namespace NerdBank.GitVersioning.Managed
         {
             StringBuilder builder = new StringBuilder();
 
-#if DEBUG
+#if DEBUG && !NETSTANDARD
             int histogramCount = 25;
 
             builder.AppendLine("Overall repository:");
@@ -521,6 +531,83 @@ namespace NerdBank.GitVersioning.Managed
             }
 
             return packs;
+        }
+
+        private static string TrimEndingDirectorySeparator(string path)
+        {
+#if NETSTANDARD
+            if (string.IsNullOrEmpty(path) || path.Length == 1)
+            {
+                return path;
+            }
+
+            var last = path[path.Length - 1];
+
+            if (last == Path.DirectorySeparatorChar || last == Path.AltDirectorySeparatorChar)
+            {
+                return path.Substring(0, path.Length - 1);
+            }
+
+            return path;
+#else
+            return Path.TrimEndingDirectorySeparator(path);
+#endif
+        }
+
+        /// <summary>
+        /// Decodes a sequence of bytes from the specified byte array into a <see cref="string"/>.
+        /// </summary>
+        /// <param name="bytes">
+        /// The span containing the sequence of bytes to decode.
+        /// </param>
+        /// <returns>
+        /// A <see cref="string"/> that contains the results of decoding the specified sequence of bytes.
+        /// </returns>
+        public static string GetString(ReadOnlySpan<byte> bytes)
+        {
+#if NETSTANDARD
+            byte[] buffer = null;
+
+            try
+            {
+                buffer = ArrayPool<byte>.Shared.Rent(bytes.Length);
+                bytes.CopyTo(buffer);
+                return Encoding.GetString(buffer, 0, bytes.Length);
+            }
+            finally
+            {
+                if (buffer != null)
+                {
+                    ArrayPool<byte>.Shared.Return(buffer);
+                }
+            }
+#else
+            return Encoding.GetString(bytes);
+#endif
+        }
+
+        private static int GetUnicodeBytes(string s, Span<byte> bytes)
+        {
+#if NETSTANDARD
+            byte[] buffer = null;
+
+            try
+            {
+                buffer = ArrayPool<byte>.Shared.Rent(bytes.Length);
+                int length = Encoding.Unicode.GetBytes(s, 0, s.Length, buffer, 0);
+                buffer.AsSpan(0, length).CopyTo(bytes);
+                return length;
+            }
+            finally
+            {
+                if (buffer != null)
+                {
+                    ArrayPool<byte>.Shared.Return(buffer);
+                }
+            }
+#else
+            return Encoding.Unicode.GetBytes(s, bytes);
+#endif
         }
     }
 }

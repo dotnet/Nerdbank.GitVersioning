@@ -1,5 +1,6 @@
 ﻿using Microsoft.Win32.SafeHandles;
 using System;
+using System.Buffers;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -84,7 +85,7 @@ namespace NerdBank.GitVersioning.Managed
             }
             else
             {
-                var fullPath = Encoding.Unicode.GetString(path);
+                var fullPath = GetUnicodeString(path);
 
                 if (!File.Exists(fullPath))
                 {
@@ -95,6 +96,27 @@ namespace NerdBank.GitVersioning.Managed
                 stream = File.OpenRead(fullPath);
                 return true;
             }
+        }
+
+        private static string GetUnicodeString(ReadOnlySpan<byte> bytes)
+        {
+#if NETSTANDARD
+            byte[] buffer = null;
+
+            try
+            {
+                buffer = ArrayPool<byte>.Shared.Rent(bytes.Length);
+                bytes.CopyTo(buffer);
+
+                return Encoding.Unicode.GetString(buffer, 0, bytes.Length);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
+#else
+            return Encoding.Unicode.GetString(bytes);
+#endif
         }
     }
 }

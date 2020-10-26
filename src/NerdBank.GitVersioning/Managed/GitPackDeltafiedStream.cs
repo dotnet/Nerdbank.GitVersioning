@@ -62,20 +62,37 @@ namespace NerdBank.GitVersioning.Managed
             set => throw new NotImplementedException();
         }
 
+#if NETSTANDARD
+        /// <summary>
+        /// Reads a sequence of bytes from the current <see cref="GitPackDeltafiedStream"/> and advances the position
+        /// within the stream by the number of bytes read.
+        /// </summary>
+        /// <param name="span">
+        /// A region of memory. When this method returns, the contents of this region are replaced by the bytes
+        /// read from the current source.
+        /// </param>
+        /// <returns>
+        /// The total number of bytes read into the buffer. This can be less than the number of bytes allocated
+        /// in the buffer if that many bytes are not currently available, or zero (0) if the end of the stream
+        /// has been reached.
+        /// </returns>
+        public int Read(Span<byte> span)
+#else
         /// <inheritdoc/>
-        public override int Read(Span<byte> buffer)
+        public override int Read(Span<byte> span)
+#endif
         {
             int read = 0;
             int canRead = 0;
             int didRead = 0;
 
-            while (read < buffer.Length && this.TryGetInstruction(out DeltaInstruction instruction))
+            while (read < span.Length && this.TryGetInstruction(out DeltaInstruction instruction))
             {
                 var source = instruction.InstructionType == DeltaInstructionType.Copy ? this.baseStream : this.deltaStream;
 
                 Debug.Assert(instruction.Size > this.offset);
-                canRead = Math.Min(buffer.Length - read, instruction.Size - this.offset);
-                didRead = source.Read(buffer.Slice(read, canRead));
+                canRead = Math.Min(span.Length - read, instruction.Size - this.offset);
+                didRead = source.Read(span.Slice(read, canRead));
 
                 Debug.Assert(didRead != 0);
                 read += didRead;
@@ -83,7 +100,7 @@ namespace NerdBank.GitVersioning.Managed
             }
 
             this.position += read;
-            Debug.Assert(read <= buffer.Length);
+            Debug.Assert(read <= span.Length);
             return read;
         }
 
