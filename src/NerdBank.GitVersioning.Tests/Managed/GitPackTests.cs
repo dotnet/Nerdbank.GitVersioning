@@ -25,7 +25,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
                 var zlibStream = Assert.IsType<ZLibStream>(commitStream);
                 var deflateStream = Assert.IsType<DeflateStream>(zlibStream.BaseStream);
                 var pooledStream = Assert.IsType<GitPackPooledStream>(deflateStream.BaseStream);
-                var fileStream = Assert.IsType<UnmanagedMemoryStream>(pooledStream.BaseStream);
+                var fileStream = Assert.IsAssignableFrom<Stream>(pooledStream.BaseStream);
 
                 Assert.Equal(222, commitStream.Length);
                 Assert.Equal("/zgldANj+jvgOwlecnOKylZDVQg=", Convert.ToBase64String(sha.ComputeHash(commitStream)));
@@ -48,7 +48,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
                 var zlibStream = Assert.IsType<ZLibStream>(deltaStream.BaseStream);
                 var deflateStream = Assert.IsType<DeflateStream>(zlibStream.BaseStream);
                 var pooledStream = Assert.IsType<GitPackPooledStream>(deflateStream.BaseStream);
-                var fileStream = Assert.IsType<UnmanagedMemoryStream>(pooledStream.BaseStream);
+                var fileStream = Assert.IsAssignableFrom<Stream>(pooledStream.BaseStream);
 
                 Assert.Equal(137, commitStream.Length);
                 Assert.Equal("lZu/7nGb0n1UuO9SlPluFnSvj4o=", Convert.ToBase64String(sha.ComputeHash(commitStream)));
@@ -88,7 +88,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
                 var zlibStream = Assert.IsType<ZLibStream>(commitStream);
                 var deflateStream = Assert.IsType<DeflateStream>(zlibStream.BaseStream);
                 var pooledStream = Assert.IsType<GitPackPooledStream>(deflateStream.BaseStream);
-                var fileStream = Assert.IsType<UnmanagedMemoryStream>(pooledStream.BaseStream);
+                var fileStream = Assert.IsAssignableFrom<Stream>(pooledStream.BaseStream);
 
                 Assert.Equal(222, commitStream.Length);
                 Assert.Equal("/zgldANj+jvgOwlecnOKylZDVQg=", Convert.ToBase64String(sha.ComputeHash(commitStream)));
