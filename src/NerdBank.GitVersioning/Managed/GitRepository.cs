@@ -49,7 +49,7 @@ namespace NerdBank.GitVersioning.Managed
                 workingDirectory = Path.GetDirectoryName(workingDirectory);
             }
 
-            if (workingDirectory == null)
+            if (string.IsNullOrEmpty(workingDirectory))
             {
                 return null;
             }
@@ -83,7 +83,7 @@ namespace NerdBank.GitVersioning.Managed
 
             var objectDirectory = Path.Combine(commonDirectory, "objects");
 
-            return new GitRepository(workingDirectory, gitDirectory, commonDirectory, objectDirectory);
+            return new GitRepository(workingDirectory!, gitDirectory, commonDirectory, objectDirectory);
         }
 
         /// <summary>
