@@ -1,4 +1,6 @@
-﻿using Microsoft.Win32.SafeHandles;
+﻿#nullable enable
+
+using Microsoft.Win32.SafeHandles;
 using System;
 using System.Buffers;
 using System.IO;
@@ -31,7 +33,7 @@ namespace NerdBank.GitVersioning.Managed
 
         private static readonly bool IsWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
-        public static bool TryOpen(string path, CreateFileFlags attributes, out FileStream stream)
+        public static bool TryOpen(string path, CreateFileFlags attributes, out FileStream? stream)
         {
             if (IsWindows)
             {
@@ -61,7 +63,7 @@ namespace NerdBank.GitVersioning.Managed
             }
         }
 
-        public static unsafe bool TryOpen(Span<byte> path, CreateFileFlags attributes, out FileStream stream)
+        public static unsafe bool TryOpen(Span<byte> path, CreateFileFlags attributes, out FileStream? stream)
         {
             if (IsWindows)
             {
@@ -102,7 +104,7 @@ namespace NerdBank.GitVersioning.Managed
         private static string GetUnicodeString(ReadOnlySpan<byte> bytes)
         {
 #if NETSTANDARD
-            byte[] buffer = null;
+            byte[]? buffer = null;
 
             try
             {

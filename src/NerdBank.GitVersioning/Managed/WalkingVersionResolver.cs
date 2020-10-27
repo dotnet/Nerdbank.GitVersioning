@@ -1,4 +1,6 @@
-﻿using System;
+﻿#nullable enable
+
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -22,7 +24,7 @@ namespace NerdBank.GitVersioning.Managed
         {
         }
 
-        public override int GetGitHeight(Func<GitCommit, bool> continueStepping)
+        public override int GetGitHeight(Func<GitCommit, bool>? continueStepping)
         {
             // Get the commit at which the version number changed, and calculate the git height
             // this.logger.LogInformation("Determining the version based on '{versionPath}' in repository '{repositoryPath}'", this.versionPath, this.gitRepository.GitDirectory);
@@ -31,7 +33,7 @@ namespace NerdBank.GitVersioning.Managed
             var version = this.versionPath != null ? VersionFile.GetVersion(Path.Combine(this.gitRepository.WorkingDirectory, this.versionPath)) : null;
             version = version ?? "0.0";
             var semanticVersion = SemanticVersion.Parse(version);
-            var versionOptions = this.versionPath != null ? VersionFile.TryReadVersion(Path.Combine(this.gitRepository.WorkingDirectory, this.versionPath), Path.GetDirectoryName(this.versionPath)) : null;
+            var versionOptions = this.versionPath != null ? VersionFile.TryReadVersion(Path.Combine(this.gitRepository.WorkingDirectory, this.versionPath), Path.GetDirectoryName(this.versionPath)!) : null;
             bool hasPathFilters =
                 versionOptions?.PathFilters != null
                 && versionOptions.PathFilters.Count > 0
@@ -101,7 +103,7 @@ namespace NerdBank.GitVersioning.Managed
                     if (i == pathComponents.Length)
                     {
                         // Read the updated version information
-                        using (Stream versionStream = this.gitRepository.GetObjectBySha(treeId, "blob"))
+                        using (Stream versionStream = this.gitRepository.GetObjectBySha(treeId, "blob")!)
                         {
                             var currentVersion = VersionFile.GetVersion(versionStream) ?? "0.0";
                             // this.logger.LogDebug("The version for this commit is '{version}'", currentVersion);
@@ -180,7 +182,7 @@ namespace NerdBank.GitVersioning.Managed
                             {
                                 currentHeight = parentHeight;
 
-                                if (!hasPathFilters || this.IsRelevantCommit(commit, this.gitRepository.GetCommit(parent), versionOptions.PathFilters))
+                                if (!hasPathFilters || this.IsRelevantCommit(commit, this.gitRepository.GetCommit(parent), versionOptions!.PathFilters))
                                 {
                                     currentHeight += 1;
                                 }
@@ -240,7 +242,7 @@ namespace NerdBank.GitVersioning.Managed
             foreach (var child in tree.Children)
             {
                 var entry = child.Value;
-                GitTreeEntry parentEntry = null;
+                GitTreeEntry? parentEntry = null;
 
                 // If the entry is not present in the parent commit, it was added;
                 // if the Sha does not match, it was modified.

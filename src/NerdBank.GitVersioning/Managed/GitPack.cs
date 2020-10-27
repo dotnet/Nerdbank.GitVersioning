@@ -1,4 +1,6 @@
-﻿using System;
+﻿#nullable enable
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -23,7 +25,7 @@ namespace NerdBank.GitVersioning.Managed
         /// <returns>
         /// A <see cref="Stream"/> which represents the requested object.
         /// </returns>
-        public delegate Stream GetObjectFromRepositoryDelegate(GitObjectId sha, string objectType);
+        public delegate Stream? GetObjectFromRepositoryDelegate(GitObjectId sha, string objectType);
 
         private readonly Func<Stream> packStream;
         private readonly Lazy<Stream> indexStream;
@@ -79,7 +81,7 @@ namespace NerdBank.GitVersioning.Managed
         /// A <see cref="GitPackCache"/> which is used to cache <see cref="Stream"/> objects which operate
         /// on the pack file.
         /// </param>
-        public GitPack(GetObjectFromRepositoryDelegate getObjectFromRepositoryDelegate, string indexPath, string packPath, GitPackCache cache = null)
+        public GitPack(GetObjectFromRepositoryDelegate getObjectFromRepositoryDelegate, string indexPath, string packPath, GitPackCache? cache = null)
             : this(getObjectFromRepositoryDelegate, new Lazy<Stream>(() => File.OpenRead(indexPath)), () => File.OpenRead(packPath), cache)
         {
         }
@@ -102,23 +104,13 @@ namespace NerdBank.GitVersioning.Managed
         /// A <see cref="GitPackCache"/> which is used to cache <see cref="Stream"/> objects which operate
         /// on the pack file.
         /// </param>
-        public GitPack(GetObjectFromRepositoryDelegate getObjectFromRepositoryDelegate, Lazy<Stream> indexStream, Func<Stream> packStream, GitPackCache cache = null)
+        public GitPack(GetObjectFromRepositoryDelegate getObjectFromRepositoryDelegate, Lazy<Stream> indexStream, Func<Stream> packStream, GitPackCache? cache = null)
         {
             this.GetObjectFromRepository = getObjectFromRepositoryDelegate ?? throw new ArgumentNullException(nameof(getObjectFromRepositoryDelegate));
             this.indexReader = new Lazy<GitPackIndexReader>(this.OpenIndex);
             this.packStream = packStream ?? throw new ArgumentException(nameof(packStream));
             this.indexStream = indexStream ?? throw new ArgumentNullException(nameof(indexStream));
             this.cache = cache ?? new GitPackMemoryCache();
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="GitPack"/> class.
-        /// </summary>
-        /// <remarks>
-        /// Intended for mocking / unit testing purposes only.
-        /// </remarks>
-        protected GitPack()
-        {
         }
 
         /// <summary>
@@ -141,7 +133,7 @@ namespace NerdBank.GitVersioning.Managed
         /// <returns>
         /// <see langword="true"/> if the object was found; otherwise, <see langword="false"/>.
         /// </returns>
-        public bool TryGetObject(GitObjectId objectId, string objectType, out Stream value)
+        public bool TryGetObject(GitObjectId objectId, string objectType, out Stream? value)
         {
             var offset = this.GetOffset(objectId);
 
@@ -178,9 +170,9 @@ namespace NerdBank.GitVersioning.Managed
             }
 #endif
 
-            if (this.cache.TryOpen(offset, out Stream stream))
+            if (this.cache.TryOpen(offset, out Stream? stream))
             {
-                return stream;
+                return stream!;
             }
 
             GitPackObjectType packObjectType;

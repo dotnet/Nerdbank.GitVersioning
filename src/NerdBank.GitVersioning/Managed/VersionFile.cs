@@ -1,4 +1,6 @@
-﻿using System;
+﻿#nullable enable
+
+using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
@@ -24,15 +26,15 @@ namespace NerdBank.GitVersioning.Managed
             false;
 #endif
 
-        public static (string, VersionOptions) GetVersionOptions(GitRepository repository, GitCommit? commit, string relativeRepoProjectDirectory)
+        public static (string?, VersionOptions?) GetVersionOptions(GitRepository? repository, GitCommit? commit, string? relativeRepoProjectDirectory)
         {
-            if (commit == null)
+            if (repository == null || commit == null)
             {
                 return (null, null);
             }
 
             Stack<string> directories = new Stack<string>();
-            string currentDirectory = relativeRepoProjectDirectory;
+            string? currentDirectory = relativeRepoProjectDirectory;
 
             while (!string.IsNullOrEmpty(currentDirectory))
             {
@@ -49,13 +51,13 @@ namespace NerdBank.GitVersioning.Managed
 
             while (tree != GitObjectId.Empty)
             {
-                using (Stream treeStream = repository.GetObjectBySha(tree, "tree"))
+                using (Stream treeStream = repository.GetObjectBySha(tree, "tree")!)
                 {
                     var versionObject = GitTreeStreamingReader.FindNode(treeStream, Encoding.UTF8.GetBytes(JsonFileName));
 
                     if (versionObject != GitObjectId.Empty)
                     {
-                        using (Stream optionsStream = repository.GetObjectBySha(versionObject, "blob"))
+                        using (Stream optionsStream = repository.GetObjectBySha(versionObject, "blob")!)
                         using (StreamReader optionsReader = new StreamReader(optionsStream))
                         {
                             var versionJsonContent = optionsReader.ReadToEnd();
@@ -63,7 +65,7 @@ namespace NerdBank.GitVersioning.Managed
                             try
                             {
                                 result =
-                                    TryReadVersionJsonContent(versionJsonContent, repoRelativeBaseDirectory: currentDirectory ?? string.Empty);
+                                    TryReadVersionJsonContent(versionJsonContent, repoRelativeBaseDirectory: currentDirectory ?? string.Empty)!;
                             }
                             catch (Exception ex)
                             {
@@ -79,7 +81,7 @@ namespace NerdBank.GitVersioning.Managed
                     }
                 }
 
-                using (Stream treeStream = repository.GetObjectBySha(tree, "tree"))
+                using (Stream treeStream = repository.GetObjectBySha(tree, "tree")!)
                 {
                     if (directories.Count > 0)
                     {
@@ -97,25 +99,25 @@ namespace NerdBank.GitVersioning.Managed
             return versionOptions.Count > 0 ? (versionFileNames.Pop(), versionOptions.Pop()) : (null, null);
         }
 
-        public static (string, VersionOptions) GetVersionOptions(string projectDirectory) =>
+        public static (string?, VersionOptions?) GetVersionOptions(string? projectDirectory) =>
             GetVersionOptions(projectDirectory, out _);
 
-        public static (string, VersionOptions) GetVersionOptions(string projectDirectory, out string actualDirectory)
+        public static (string?, VersionOptions?) GetVersionOptions(string? projectDirectory, out string? actualDirectory)
         {
             Requires.NotNullOrEmpty(projectDirectory, nameof(projectDirectory));
 
-            string searchDirectory = projectDirectory;
+            string? searchDirectory = projectDirectory;
             while (searchDirectory != null)
             {
-                string parentDirectory = Path.GetDirectoryName(searchDirectory);
+                string? parentDirectory = Path.GetDirectoryName(searchDirectory);
 
                 string versionJsonPath = Path.Combine(searchDirectory, JsonFileName);
                 if (File.Exists(versionJsonPath))
                 {
                     string versionJsonContent = File.ReadAllText(versionJsonPath);
 
-                    string repoRelativeBaseDirectory = null; // repo?.GetRepoRelativePath(searchDirectory);
-                    VersionOptions result =
+                    string? repoRelativeBaseDirectory = null; // repo?.GetRepoRelativePath(searchDirectory);
+                    VersionOptions? result =
                         TryReadVersionJsonContent(versionJsonContent, repoRelativeBaseDirectory);
                     if (result?.Inherit ?? false)
                     {
@@ -149,13 +151,13 @@ namespace NerdBank.GitVersioning.Managed
             return (null, null);
         }
 
-        public static string GetVersion(string path)
+        public static string? GetVersion(string path)
         {
-            if (FileHelpers.TryOpen(path, CreateFileFlags.FILE_ATTRIBUTE_NORMAL, out FileStream stream))
+            if (FileHelpers.TryOpen(path, CreateFileFlags.FILE_ATTRIBUTE_NORMAL, out FileStream? stream))
             {
                 using (stream)
                 {
-                    return GetVersion(stream);
+                    return GetVersion(stream!);
                 }
             }
             else
@@ -164,14 +166,14 @@ namespace NerdBank.GitVersioning.Managed
             }
         }
 
-        public static string GetVersion(Stream stream)
+        public static string? GetVersion(Stream stream)
         {
             if (stream == null)
             {
                 return null;
             }
 
-            string value = null;
+            string? value = null;
 
             byte[] data = ArrayPool<byte>.Shared.Rent((int)stream.Length);
             stream.Read(data);
@@ -195,7 +197,7 @@ namespace NerdBank.GitVersioning.Managed
             return value;
         }
 
-        public static VersionOptions TryReadVersion(string path, string repoRelativeBaseDirectory)
+        public static VersionOptions? TryReadVersion(string path, string repoRelativeBaseDirectory)
         {
             return TryReadVersionJsonContent(File.ReadAllText(path), repoRelativeBaseDirectory);
         }
@@ -206,7 +208,7 @@ namespace NerdBank.GitVersioning.Managed
         /// <param name="jsonContent">The content of the version.json file.</param>
         /// <param name="repoRelativeBaseDirectory">Directory that this version.json file is relative to the root of the repository.</param>
         /// <returns>The deserialized <see cref="VersionOptions"/> object, if deserialization was successful.</returns>
-        private static VersionOptions TryReadVersionJsonContent(string jsonContent, string repoRelativeBaseDirectory)
+        private static VersionOptions? TryReadVersionJsonContent(string? jsonContent, string? repoRelativeBaseDirectory)
         {
             try
             {

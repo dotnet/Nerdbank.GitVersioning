@@ -1,4 +1,6 @@
-﻿namespace NerdBank.GitVersioning.Managed
+﻿#nullable enable
+
+namespace NerdBank.GitVersioning.Managed
 {
     /// <summary>
     /// Represents an individual entry in the Git tree.
@@ -6,19 +8,38 @@
     public class GitTreeEntry
     {
         /// <summary>
-        /// Gets or sets the name of the entry.
+        /// Initializes a new instance of the <see cref="GitTreeEntry"/> class.
         /// </summary>
-        public string Name { get; set; }
+        /// <param name="name">
+        /// The name of the entry.
+        /// </param>
+        /// <param name="isFile">
+        /// A vaolue indicating whether the current entry is a file.
+        /// </param>
+        /// <param name="sha">
+        /// The Git object Id of the blob or tree of the current entry.
+        /// </param>
+        public GitTreeEntry(string name, bool isFile, GitObjectId sha)
+        {
+            this.Name = name;
+            this.IsFile = isFile;
+            this.Sha = sha;
+        }
 
         /// <summary>
-        /// Gets or sets a value indicating whether the current entry is a file.
+        /// Gets the name of the entry.
         /// </summary>
-        public bool IsFile { get; set; }
+        public string Name { get; }
 
         /// <summary>
-        /// Gets or sets the Git object Id of the blob or tree of the current entry.
+        /// Gets a value indicating whether the current entry is a file.
         /// </summary>
-        public GitObjectId Sha { get; set; }
+        public bool IsFile { get; }
+
+        /// <summary>
+        /// Gets the Git object Id of the blob or tree of the current entry.
+        /// </summary>
+        public GitObjectId Sha { get; }
 
         /// <inheritdoc/>
         public override string ToString()

@@ -1,4 +1,6 @@
-﻿using System;
+﻿#nullable enable
+
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
@@ -20,7 +22,9 @@ namespace NerdBank.GitVersioning.Managed
         /// <param name="objectType">
         /// The expected object type of the git object.
         /// </param>
+#pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable. ObjectType is assigned in ReadObjectTypeAndLength.
         public GitObjectStream(Stream stream, string objectType)
+#pragma warning restore CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
             : base(stream, -1)
         {
             this.ReadObjectTypeAndLength(objectType);

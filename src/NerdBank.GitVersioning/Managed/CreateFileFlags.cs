@@ -1,4 +1,6 @@
-﻿using System.IO;
+﻿#nullable enable
+
+using System.IO;
 
 namespace NerdBank.GitVersioning.Managed
 {

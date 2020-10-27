@@ -1,4 +1,6 @@
-﻿using System;
+﻿#nullable enable
+
+using System;
 using System.Buffers.Binary;
 using System.Diagnostics;
 using System.IO;
@@ -54,7 +56,7 @@ namespace NerdBank.GitVersioning.Managed
                 Span<byte> baseObjectId = stackalloc byte[20];
                 stream.ReadAll(baseObjectId);
 
-                Stream baseObject = pack.GetObjectFromRepository(GitObjectId.Parse(baseObjectId), objectType);
+                Stream baseObject = pack.GetObjectFromRepository(GitObjectId.Parse(baseObjectId), objectType)!;
                 var seekableBaseObject = new GitPackMemoryCacheStream(baseObject);
 
                 var deltaStream = new ZLibStream(stream, decompressedSize);

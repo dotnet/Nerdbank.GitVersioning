@@ -1,4 +1,6 @@
-﻿using System;
+﻿#nullable enable
+
+using System;
 using System.Buffers.Binary;
 using System.Diagnostics;
 
@@ -122,7 +124,7 @@ namespace NerdBank.GitVersioning.Managed
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is GitObjectId)
             {

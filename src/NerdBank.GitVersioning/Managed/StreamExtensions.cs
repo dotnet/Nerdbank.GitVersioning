@@ -1,4 +1,6 @@
-﻿using System;
+﻿#nullable enable
+
+using System;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO;
@@ -74,7 +76,7 @@ namespace NerdBank.GitVersioning.Managed
         /// </returns>
         public static int Read(this Stream stream, Span<byte> span)
         {
-            byte[] buffer = null;
+            byte[]? buffer = null;
 
             try
             {
@@ -102,7 +104,7 @@ namespace NerdBank.GitVersioning.Managed
         /// </param>
         public static void Write(this Stream stream, Span<byte> span)
         {
-            byte[] buffer = null;
+            byte[]? buffer = null;
 
             try
             {

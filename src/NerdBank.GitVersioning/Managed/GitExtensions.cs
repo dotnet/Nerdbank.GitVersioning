@@ -1,4 +1,6 @@
-﻿using System;
+﻿#nullable enable
+
+using System;
 using System.Buffers.Binary;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -25,7 +27,7 @@ namespace NerdBank.GitVersioning.Managed
         /// </summary>
         private const ushort MaximumBuildNumberOrRevisionComponent = 0xfffe;
 
-        internal static string GetRepoRelativePath(this GitRepository repo, string absolutePath)
+        internal static string? GetRepoRelativePath(this GitRepository repo, string absolutePath)
         {
             var repoRoot = repo.WorkingDirectory/* repo?.Info?.WorkingDirectory */?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && repoRoot != null && repoRoot.StartsWith("\\") && (repoRoot.Length == 1 || repoRoot[1] != '\\'))
@@ -63,7 +65,7 @@ namespace NerdBank.GitVersioning.Managed
         /// the height of the git commit while the <see cref="Version.Revision"/>
         /// component is the first four bytes of the git commit id (forced to be a positive integer).
         /// </remarks>
-        internal static Version GetIdAsVersionHelper(this GitCommit? commit, VersionOptions versionOptions, int versionHeight)
+        internal static Version GetIdAsVersionHelper(this GitCommit? commit, VersionOptions? versionOptions, int versionHeight)
         {
             var baseVersion = versionOptions?.Version?.Version ?? Version0;
             int buildNumber = baseVersion.Build;

@@ -1,4 +1,6 @@
-﻿using System;
+﻿#nullable enable
+
+using System;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -15,7 +17,7 @@ namespace NerdBank.GitVersioning.Managed
         /// <summary>
         /// Initializes a new instance of the <see cref="VersionOracle"/> class.
         /// </summary>
-        public static VersionOracle CreateManaged(string projectDirectory, string gitRepoDirectory = null, ICloudBuild cloudBuild = null, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null)
+        public static VersionOracle CreateManaged(string projectDirectory, string? gitRepoDirectory = null, ICloudBuild? cloudBuild = null, int? overrideBuildNumberOffset = null, string? projectPathRelativeToGitRepoRoot = null)
         {
             Requires.NotNull(projectDirectory, nameof(projectDirectory));
             if (string.IsNullOrEmpty(gitRepoDirectory))
@@ -23,16 +25,16 @@ namespace NerdBank.GitVersioning.Managed
                 gitRepoDirectory = projectDirectory;
             }
 
-            GitRepository repository = GitRepository.Create(gitRepoDirectory);
+            GitRepository? repository = GitRepository.Create(gitRepoDirectory);
             return new ManagedVersionOracle(projectDirectory, repository, null, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot);
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="VersionOracle"/> class.
         /// </summary>
-        internal ManagedVersionOracle(string projectDirectory, GitRepository repo, GitCommit? head, ICloudBuild cloudBuild, int? overrideVersionHeightOffset = null, string projectPathRelativeToGitRepoRoot = null)
+        internal ManagedVersionOracle(string projectDirectory, GitRepository? repo, GitCommit? head, ICloudBuild? cloudBuild, int? overrideVersionHeightOffset = null, string? projectPathRelativeToGitRepoRoot = null)
         {
-            var relativeRepoProjectDirectory = projectPathRelativeToGitRepoRoot ?? repo?.GetRepoRelativePath(projectDirectory);
+            var relativeRepoProjectDirectory = projectPathRelativeToGitRepoRoot ?? repo?.GetRepoRelativePath(projectDirectory)!;
             if (repo is object)
             {
                 // If we're particularly git focused, normalize/reset projectDirectory to be the path we *actually* want to look at in case we're being redirected.
@@ -90,7 +92,7 @@ namespace NerdBank.GitVersioning.Managed
                 }
                 else
                 {
-                    this.GitCommitIdShort = this.GitCommitId.Substring(0, gitCommitIdShortFixedLength);
+                    this.GitCommitIdShort = this.GitCommitId!.Substring(0, gitCommitIdShortFixedLength);
                 }
             }
 
@@ -107,7 +109,7 @@ namespace NerdBank.GitVersioning.Managed
             }
         }
 
-        private static int CalculateVersionHeight(GitRepository repository, string relativeRepoProjectDirectory, GitCommit? headCommit, string committedVersionPath, VersionOptions committedVersion, VersionOptions workingVersion)
+        private static int CalculateVersionHeight(GitRepository? repository, string relativeRepoProjectDirectory, GitCommit? headCommit, string? committedVersionPath, VersionOptions? committedVersion, VersionOptions? workingVersion)
         {
             if (repository == null || headCommit == null || committedVersionPath == null)
             {
@@ -132,7 +134,7 @@ namespace NerdBank.GitVersioning.Managed
             return resolver.GetGitHeight(null);
         }
 
-        private static Version GetIdAsVersion(GitCommit? headCommit, VersionOptions committedVersion, VersionOptions workingVersion, int versionHeight)
+        private static Version GetIdAsVersion(GitCommit? headCommit, VersionOptions? committedVersion, VersionOptions? workingVersion, int versionHeight)
         {
             var version = IsVersionFileChangedInWorkingTree(committedVersion, workingVersion) ? workingVersion : committedVersion;
 

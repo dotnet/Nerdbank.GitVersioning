@@ -1,4 +1,6 @@
-﻿using System;
+﻿#nullable enable
+
+using System;
 using System.IO;
 using System.Linq;
 using Nerdbank.GitVersioning;
@@ -61,7 +63,7 @@ namespace NerdBank.GitVersioning.Managed
             }
         }
 
-        protected static byte[][] GetPathComponents(string path)
+        protected static byte[][] GetPathComponents(string? path)
         {
             if (path == null)
             {

@@ -1,4 +1,6 @@
-﻿using System;
+﻿#nullable enable
+
+using System;
 using System.Buffers;
 using System.IO;
 
@@ -99,10 +101,9 @@ namespace NerdBank.GitVersioning.Managed
 
         private void DisposeStreamIfRead()
         {
-            if(this.cacheStream.Length == this.stream.Length)
+            if (this.cacheStream.Length == this.stream.Length)
             {
                 this.stream.Dispose();
-                this.stream = null;
             }
         }
     }

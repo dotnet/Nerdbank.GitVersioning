@@ -1,4 +1,6 @@
-﻿using System;
+﻿#nullable enable
+
+using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -38,7 +40,7 @@ namespace NerdBank.GitVersioning.Managed
                 throw new ArgumentNullException(nameof(stream));
             }
 
-            byte[] buffer = null;
+            byte[]? buffer = null;
 
             try
             {

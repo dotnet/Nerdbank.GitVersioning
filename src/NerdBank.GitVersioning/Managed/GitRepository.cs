@@ -1,4 +1,6 @@
-﻿using System;
+﻿#nullable enable
+
+using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
@@ -34,7 +36,7 @@ namespace NerdBank.GitVersioning.Managed
         /// A <see cref="GitRepository"/> which represents the git repository, or <see langword="null"/>
         /// if no git repository was found.
         /// </returns>
-        public static GitRepository Create(string workingDirectory)
+        public static GitRepository? Create(string? workingDirectory)
         {
             // Search for the top-level directory of the current git repository. This is the directory
             // which contains a directory of file named .git.
@@ -141,7 +143,7 @@ namespace NerdBank.GitVersioning.Managed
                 // https://stackoverflow.com/questions/36123655/what-is-the-git-alternates-mechanism
                 // provides a good starting point.
                 Span<byte> alternates = stackalloc byte[4096];
-                var length = alternateStream.Read(alternates);
+                var length = alternateStream!.Read(alternates);
                 alternates = alternates.Slice(0, length);
 
                 int index = 0;
@@ -174,16 +176,6 @@ namespace NerdBank.GitVersioning.Managed
             this.objectPathBuffer[pathLength - 1] = 0;
 
             this.packs = new Lazy<GitPack[]>(this.LoadPacks);
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="GitRepository"/> class.
-        /// </summary>
-        /// <remarks>
-        /// Intended for mocking purposes only.
-        /// </remarks>
-        protected GitRepository()
-        {
         }
 
         // TODO: read from Git settings
@@ -273,7 +265,7 @@ namespace NerdBank.GitVersioning.Managed
         /// </returns>
         public GitCommit GetCommit(GitObjectId sha)
         {
-            using (Stream stream = this.GetObjectBySha(sha, "commit"))
+            using (Stream? stream = this.GetObjectBySha(sha, "commit"))
             {
                 if (stream == null)
                 {
@@ -295,7 +287,7 @@ namespace NerdBank.GitVersioning.Managed
         /// </returns>
         public GitTree GetTree(GitObjectId sha)
         {
-            using (Stream stream = this.GetObjectBySha(sha, "tree"))
+            using (Stream? stream = this.GetObjectBySha(sha, "tree"))
             {
                 if (stream == null)
                 {
@@ -321,8 +313,13 @@ namespace NerdBank.GitVersioning.Managed
         /// </returns>
         public GitObjectId GetTreeEntry(GitObjectId treeId, ReadOnlySpan<byte> nodeName)
         {
-            using (Stream treeStream = this.GetObjectBySha(treeId, "tree"))
+            using (Stream? treeStream = this.GetObjectBySha(treeId, "tree"))
             {
+                if (treeStream == null)
+                {
+                    throw new GitException($"The tree {treeId} was not found in this repository.");
+                }
+
                 return GitTreeStreamingReader.FindNode(treeStream, nodeName);
             }
         }
@@ -346,14 +343,14 @@ namespace NerdBank.GitVersioning.Managed
         /// As a special case, a <see langword="null"/> value will be returned for
         /// <see cref="GitObjectId.Empty"/>.
         /// </remarks>
-        public Stream GetObjectBySha(GitObjectId sha, string objectType)
+        public Stream? GetObjectBySha(GitObjectId sha, string objectType)
         {
             if (sha == GitObjectId.Empty)
             {
                 return null;
             }
 
-            if (this.TryGetObjectBySha(sha, objectType, out Stream value))
+            if (this.TryGetObjectBySha(sha, objectType, out Stream? value))
             {
                 return value;
             }
@@ -379,7 +376,7 @@ namespace NerdBank.GitVersioning.Managed
         /// <see langword="true"/> if the object could be found; otherwise,
         /// <see langword="false"/>.
         /// </returns>
-        public bool TryGetObjectBySha(GitObjectId sha, string objectType, out Stream value)
+        public bool TryGetObjectBySha(GitObjectId sha, string objectType, out Stream? value)
         {
 #if DEBUG && !NETSTANDARD
             if (!this.histogram.TryAdd(sha, 1))
@@ -463,7 +460,7 @@ namespace NerdBank.GitVersioning.Managed
             }
         }
 
-        private bool TryGetObjectByPath(GitObjectId sha, string objectType, out Stream value)
+        private bool TryGetObjectByPath(GitObjectId sha, string objectType, out Stream? value)
         {
             sha.CopyToUnicodeString(0, 1, this.objectPathBuffer.AsSpan(this.objectDirLength + 2, 4));
             sha.CopyToUnicodeString(1, 19, this.objectPathBuffer.AsSpan(this.objectDirLength + 2 + 4 + 2));
@@ -474,7 +471,7 @@ namespace NerdBank.GitVersioning.Managed
                 return false;
             }
 
-            var objectStream = new GitObjectStream(compressedFile, objectType);
+            var objectStream = new GitObjectStream(compressedFile!, objectType);
 
             if (string.CompareOrdinal(objectStream.ObjectType, objectType) != 0)
             {
@@ -489,7 +486,7 @@ namespace NerdBank.GitVersioning.Managed
         {
             if (reference is string)
             {
-                if (!FileHelpers.TryOpen(Path.Combine(this.GitDirectory, (string)reference), CreateFileFlags.FILE_ATTRIBUTE_NORMAL, out FileStream stream))
+                if (!FileHelpers.TryOpen(Path.Combine(this.GitDirectory, (string)reference), CreateFileFlags.FILE_ATTRIBUTE_NORMAL, out FileStream? stream))
                 {
                     return GitObjectId.Empty;
                 }
@@ -497,7 +494,7 @@ namespace NerdBank.GitVersioning.Managed
                 using (stream)
                 {
                     Span<byte> objectId = stackalloc byte[40];
-                    stream.Read(objectId);
+                    stream!.Read(objectId);
 
                     return GitObjectId.ParseHex(objectId);
                 }
@@ -566,7 +563,7 @@ namespace NerdBank.GitVersioning.Managed
         public static string GetString(ReadOnlySpan<byte> bytes)
         {
 #if NETSTANDARD
-            byte[] buffer = null;
+            byte[]? buffer = null;
 
             try
             {
@@ -589,7 +586,7 @@ namespace NerdBank.GitVersioning.Managed
         private static int GetUnicodeBytes(string s, Span<byte> bytes)
         {
 #if NETSTANDARD
-            byte[] buffer = null;
+            byte[]? buffer = null;
 
             try
             {

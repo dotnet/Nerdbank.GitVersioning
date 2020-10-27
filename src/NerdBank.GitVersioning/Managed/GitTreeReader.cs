@@ -1,4 +1,6 @@
-﻿using System;
+﻿#nullable enable
+
+using System;
 using System.Buffers;
 using System.IO;
 
@@ -39,12 +41,7 @@ namespace NerdBank.GitVersioning.Managed
 
                     value.Children.Add(
                         name,
-                        new GitTreeEntry()
-                        {
-                            Name = name,
-                            Sha = currentObjectId,
-                            IsFile = isFile,
-                        });
+                        new GitTreeEntry(name, isFile, currentObjectId));
 
                     contents = contents.Slice(fileNameEnds + 1 + 20);
                 }

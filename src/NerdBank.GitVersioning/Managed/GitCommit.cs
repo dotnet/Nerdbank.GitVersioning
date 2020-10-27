@@ -1,4 +1,6 @@
-﻿using System;
+﻿#nullable enable
+
+using System;
 using System.Collections.Generic;
 
 namespace NerdBank.GitVersioning.Managed
@@ -30,7 +32,7 @@ namespace NerdBank.GitVersioning.Managed
         public GitSignature Author { get; set; }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is GitCommit)
             {
