@@ -18,21 +18,35 @@ namespace NerdBank.GitVersioning.Managed
         private readonly static byte[] hexBytes = new byte[] { (byte)'0', (byte)'1', (byte)'2', (byte)'3', (byte)'4', (byte)'5', (byte)'6', (byte)'7', (byte)'8', (byte)'9', (byte)'a', (byte)'b', (byte)'c', (byte)'d', (byte)'e', (byte)'f' };
         private const int NativeSize = 20;
         private fixed byte value[NativeSize];
-        private string sha;
+        private string? sha;
+
+        /// <summary>
+        /// Gets the 20 byte ID of this object as a span from the <see cref="value"/> field.
+        /// </summary>
+        private Span<byte> Value
+        {
+            get
+            {
+                fixed (byte* value = this.value)
+                {
+                    return new Span<byte>(value, NativeSize);
+                }
+            }
+        }
 
         private static readonly byte[] ReverseHexDigits = BuildReverseHexDigits();
 
         /// <summary>
         /// Gets a <see cref="GitObjectId"/> which represents an empty <see cref="GitObjectId"/>.
         /// </summary>
-        public static GitObjectId Empty { get; } = GitObjectId.Parse(new byte[20]);
+        public static GitObjectId Empty => default(GitObjectId);
 
         /// <summary>
         /// Parses a <see cref="ReadOnlySpan{T}"/> which contains the <see cref="GitObjectId"/>
         /// as a sequence of byte values.
         /// </summary>
         /// <param name="value">
-        /// The <see cref="GitObjectId"/> as a sequence of byte values.
+        /// The <see cref="GitObjectId"/> as a sequence of byte values. Must be exactly 20 bytes in length.
         /// </param>
         /// <returns>
         /// A <see cref="GitObjectId"/>.
@@ -42,8 +56,7 @@ namespace NerdBank.GitVersioning.Managed
             Debug.Assert(value.Length == 20);
 
             GitObjectId objectId = new GitObjectId();
-            Span<byte> bytes = new Span<byte>(objectId.value, NativeSize);
-            value.CopyTo(bytes);
+            value.CopyTo(objectId.Value);
             return objectId;
         }
 
@@ -63,7 +76,7 @@ namespace NerdBank.GitVersioning.Managed
             Debug.Assert(value.Length == 40);
 
             GitObjectId objectId = new GitObjectId();
-            Span<byte> bytes = new Span<byte>(objectId.value, NativeSize);
+            Span<byte> bytes = objectId.Value;
 
             for (int i = 0; i < value.Length; i++)
             {
@@ -83,7 +96,7 @@ namespace NerdBank.GitVersioning.Managed
         /// </summary>
         /// <param name="value">
         /// A <see cref="ReadOnlySpan{T}"/> which contains the hexadecimal representation of the
-        /// <see cref="GitObjectId"/>.
+        /// <see cref="GitObjectId"/> encoded in ASCII.
         /// </param>
         /// <returns>
         /// A <see cref="GitObjectId"/>.
@@ -93,7 +106,7 @@ namespace NerdBank.GitVersioning.Managed
             Debug.Assert(value.Length == 40);
 
             GitObjectId objectId = new GitObjectId();
-            Span<byte> bytes = new Span<byte>(objectId.value, NativeSize);
+            Span<byte> bytes = objectId.Value;
 
             for (int i = 0; i < value.Length; i++)
             {
@@ -135,34 +148,16 @@ namespace NerdBank.GitVersioning.Managed
         }
 
         /// <inheritdoc/>
-        public bool Equals(GitObjectId other)
-        {
-            fixed (byte* thisValue = this.value)
-            {
-                return new ReadOnlySpan<byte>(thisValue, NativeSize).SequenceEqual(new ReadOnlySpan<byte>(other.value, NativeSize));
-            }
-        }
+        public bool Equals(GitObjectId other) => this.Value.SequenceEqual(other.Value);
 
         /// <inheritdoc/>
-        public static bool operator ==(GitObjectId left, GitObjectId right)
-        {
-            return Equals(left, right);
-        }
+        public static bool operator ==(GitObjectId left, GitObjectId right) => Equals(left, right);
 
         /// <inheritdoc/>
-        public static bool operator !=(GitObjectId left, GitObjectId right)
-        {
-            return !Equals(left, right);
-        }
+        public static bool operator !=(GitObjectId left, GitObjectId right) => !Equals(left, right);
 
         /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            fixed (byte* thisValue = this.value)
-            {
-                return BinaryPrimitives.ReadInt32LittleEndian(new ReadOnlySpan<byte>(thisValue, 4));
-            }
-        }
+        public override int GetHashCode() => BinaryPrimitives.ReadInt32LittleEndian(this.Value.Slice(0, 4));
 
         /// <summary>
         /// Gets a <see cref="ushort"/> which represents the first two bytes of this <see cref="GitObjectId"/>.
@@ -170,13 +165,7 @@ namespace NerdBank.GitVersioning.Managed
         /// <returns>
         /// A <see cref="ushort"/> which represents the first two bytes of this <see cref="GitObjectId"/>.
         /// </returns>
-        public ushort AsUInt16()
-        {
-            fixed (byte* thisValue = this.value)
-            {
-                return BinaryPrimitives.ReadUInt16LittleEndian(new ReadOnlySpan<byte>(thisValue, 2));
-            }
-        }
+        public ushort AsUInt16() => BinaryPrimitives.ReadUInt16LittleEndian(this.Value.Slice(0, 2));
 
         /// <inheritdoc/>
         public override string ToString()
@@ -248,12 +237,6 @@ namespace NerdBank.GitVersioning.Managed
         /// <param name="value">
         /// The memory to which to copy this <see cref="GitObjectId"/>.
         /// </param>
-        public void CopyTo(Span<byte> value)
-        {
-            fixed (byte* thisValue = this.value)
-            {
-                new ReadOnlySpan<byte>(thisValue, NativeSize).CopyTo(value);
-            }
-        }
+        public void CopyTo(Span<byte> value) => this.Value.CopyTo(value);
     }
 }
