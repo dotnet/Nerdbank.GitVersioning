@@ -126,6 +126,7 @@ stages:
         searchFolder: $(Build.ArtifactStagingDirectory)/TestLogs
         buildPlatform: $(BuildPlatform)
         buildConfiguration: $(BuildConfiguration)
+        publishRunAttachments: false
       condition: always()
 
     - task: CopyFiles@1
