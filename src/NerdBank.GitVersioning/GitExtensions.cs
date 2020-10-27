@@ -212,7 +212,7 @@
         /// the height of the git commit while the <see cref="Version.Revision"/>
         /// component is the first four bytes of the git commit id (forced to be a positive integer).
         /// </remarks>
-        public static Version GetIdAsVersion(this Commit commit, string repoRelativeProjectDirectory = null, int? versionHeight = null)
+        internal static Version GetIdAsVersion(this Commit commit, string repoRelativeProjectDirectory = null, int? versionHeight = null)
         {
             Requires.NotNull(commit, nameof(commit));
             Requires.Argument(repoRelativeProjectDirectory == null || !Path.IsPathRooted(repoRelativeProjectDirectory), nameof(repoRelativeProjectDirectory), "Path should be relative to repo root.");
@@ -225,47 +225,6 @@
             }
 
             return GetIdAsVersionHelper(commit, versionOptions, versionHeight.Value);
-        }
-
-        /// <summary>
-        /// Encodes HEAD (or a modified working copy) from history in a <see cref="Version"/>
-        /// so that the original commit can be found later.
-        /// </summary>
-        /// <param name="repo">The repo whose ID and position in history is to be encoded.</param>
-        /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
-        /// <param name="versionHeight">
-        /// The version height, previously calculated by a call to <see cref="GetVersionHeight(Commit, string, Version)"/>
-        /// with the same value for <paramref name="repoRelativeProjectDirectory"/>.
-        /// </param>
-        /// <returns>
-        /// A version whose <see cref="Version.Build"/> and
-        /// <see cref="Version.Revision"/> components are calculated based on the commit.
-        /// </returns>
-        /// <remarks>
-        /// In the returned version, the <see cref="Version.Build"/> component is
-        /// the height of the git commit while the <see cref="Version.Revision"/>
-        /// component is the first four bytes of the git commit id (forced to be a positive integer).
-        /// </remarks>
-        public static Version GetIdAsVersion(this Repository repo, string repoRelativeProjectDirectory = null, int? versionHeight = null)
-        {
-            Requires.NotNull(repo, nameof(repo));
-
-            var headCommit = repo.Head.Tip;
-            VersionOptions workingCopyVersionOptions, committedVersionOptions;
-            if (IsVersionFileChangedInWorkingCopy(repo, repoRelativeProjectDirectory, out committedVersionOptions, out workingCopyVersionOptions))
-            {
-                // Apply ordinary logic, but to the working copy version info.
-                if (!versionHeight.HasValue)
-                {
-                    var baseVersion = workingCopyVersionOptions?.Version?.Version;
-                    versionHeight = GetVersionHeight(headCommit, repoRelativeProjectDirectory, baseVersion);
-                }
-
-                Version result = GetIdAsVersionHelper(headCommit, workingCopyVersionOptions, versionHeight.Value);
-                return result;
-            }
-
-            return GetIdAsVersion(headCommit, repoRelativeProjectDirectory);
         }
 
         /// <summary>

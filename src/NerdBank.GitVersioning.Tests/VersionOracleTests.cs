@@ -112,7 +112,7 @@ public class VersionOracleTests : RepoTestBase
 
         foreach (var commit in this.Repo.Head.Commits)
         {
-            var versionFromId = commit.GetIdAsVersion();
+            var versionFromId = this.GetIdAsVersion(commit);
             Assert.Contains(commit, this.Repo.GetCommitsFromVersion(versionFromId));
         }
     }

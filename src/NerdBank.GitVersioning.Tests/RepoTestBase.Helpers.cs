@@ -51,4 +51,44 @@ public partial class RepoTestBase
         VersionOracle oracle = new VersionOracle(repoRelativeProjectDirectory == null ? repository.Info.WorkingDirectory : Path.Combine(repository.Info.WorkingDirectory, repoRelativeProjectDirectory), repository, null);
         return oracle.VersionHeight;
     }
+
+    /// <summary>
+    /// Encodes HEAD (or a modified working copy) from history in a <see cref="Version"/>
+    /// so that the original commit can be found later.
+    /// </summary>
+    /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
+    /// <returns>
+    /// A version whose <see cref="Version.Build"/> and
+    /// <see cref="Version.Revision"/> components are calculated based on the commit.
+    /// </returns>
+    /// <remarks>
+    /// In the returned version, the <see cref="Version.Build"/> component is
+    /// the height of the git commit while the <see cref="Version.Revision"/>
+    /// component is the first four bytes of the git commit id (forced to be a positive integer).
+    /// </remarks>
+    protected System.Version GetIdAsVersion(string repoRelativeProjectDirectory = null)
+    {
+        VersionOracle oracle = new VersionOracle(
+            repoRelativeProjectDirectory == null ? this.Repo.Info.WorkingDirectory : Path.Combine(this.Repo.Info.WorkingDirectory, repoRelativeProjectDirectory),
+            this.Repo,
+            null);
+
+        return oracle.Version;
+    }
+
+    protected System.Version GetIdAsVersion(Commit commit, string repoRelativeProjectDirectory = null)
+    {
+        return GetIdAsVersion(this.Repo, commit, repoRelativeProjectDirectory);
+    }
+
+    protected static System.Version GetIdAsVersion(Repository repository, Commit commit, string repoRelativeProjectDirectory = null)
+    {
+        VersionOracle oracle = new VersionOracle(
+            repoRelativeProjectDirectory == null ? repository.Info.WorkingDirectory : Path.Combine(repository.Info.WorkingDirectory, repoRelativeProjectDirectory),
+            repository,
+            commit,
+            null);
+
+        return oracle.Version;
+    }
 }
