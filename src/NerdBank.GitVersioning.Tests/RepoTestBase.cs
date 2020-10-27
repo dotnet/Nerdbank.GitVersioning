@@ -6,7 +6,7 @@ using Nerdbank.GitVersioning;
 using Validation;
 using Xunit.Abstractions;
 
-public abstract class RepoTestBase : IDisposable
+public abstract partial class RepoTestBase : IDisposable
 {
     private readonly List<string> repoDirectories = new List<string>();
 

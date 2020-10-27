@@ -101,14 +101,14 @@ public class VersionOracleTests : RepoTestBase
 
         var oracle = VersionOracle.Create(this.RepoPath);
         Assert.Equal(11, oracle.VersionHeight);
-        Assert.Equal(11, this.Repo.Head.GetVersionHeight());
+        Assert.Equal(11, this.GetVersionHeight(this.Repo.Head));
 
         options.Version = SemanticVersion.Parse(next);
 
         this.WriteVersionFile(options);
         oracle = VersionOracle.Create(this.RepoPath);
         Assert.Equal(1, oracle.VersionHeight);
-        Assert.Equal(1, this.Repo.Head.GetVersionHeight());
+        Assert.Equal(1, this.GetVersionHeight(this.Repo.Head));
 
         foreach (var commit in this.Repo.Head.Commits)
         {
