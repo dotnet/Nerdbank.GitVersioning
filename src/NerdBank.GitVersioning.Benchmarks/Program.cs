@@ -5,9 +5,7 @@ namespace NerdBank.GitVersioning.Benchmarks
 {
     class Program
     {
-        static void Main(string[] args)
-        {
-            var summary = BenchmarkRunner.Run<GetVersionBenchmarks>();
-        }
+        static void Main(string[] args) =>
+                   BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
     }
 }

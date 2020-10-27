@@ -181,6 +181,53 @@ stages:
       displayName: npm publish to PublicCI feed
       condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
 
+  - job: PerfTest
+    strategy:
+      matrix:
+        ubuntu:
+          imageName: 'ubuntu-18.04'
+        windows:
+          imageName: 'windows-2019'
+        macOS:
+          imageName: 'macOS-10.15'
+    pool:
+      vmImage: $(imageName)
+    steps:
+    - task: UseDotNet@2
+      displayName: Install .NET Core SDK 3.1.100
+      inputs:
+        packageType: sdk
+        version: 3.1.100
+    - script: dotnet --info
+      displayName: Show dotnet SDK info
+    - script: |
+        git clone https://github.com/xunit/xunit ~/xunit
+        git clone https://github.com/gimlichael/Cuemon ~/Cuemon
+        git clone https://github.com/kerryjiang/SuperSocket ~/SuperSocket
+        git clone https://github.com/dotnet/NerdBank.GitVersioning ~/NerdBank.GitVersioning
+      displayName: Clone test repositories
+    - script: |
+        dotnet run -c Release -- --filter * -artifacts $(Build.ArtifactStagingDirectory)
+      workingDirectory: src/NerdBank.GitVersioning.Benchmarks
+      displayName: Run benchmarks (packed)
+    - script: |
+        cd ~/xunit
+        git unpack-objects < .git/objects/pack/*.pack
+
+        cd ~/Cuemon
+        git unpack-objects < .git/objects/pack/*.pack
+
+        cd ~/SuperSocket
+        git unpack-objects < .git/objects/pack/*.pack
+
+        cd ~/NerdBank.GitVersioning
+        git unpack-objects < .git/objects/pack/*.pack
+      displayName: Unpack Git repositories
+    - script: |
+        dotnet run -c Release -- --filter GetVersionBenchmarks -artifacts $(Build.ArtifactStagingDirectory)
+      workingDirectory: src/NerdBank.GitVersioning.Benchmarks
+      displayName: Run benchmarks (unpacked)
+
 - stage: Test
   jobs:
   - job: Ubuntu_Xenial

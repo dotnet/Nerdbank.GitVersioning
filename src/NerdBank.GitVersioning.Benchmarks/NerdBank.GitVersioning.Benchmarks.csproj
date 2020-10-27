@@ -1,21 +1,14 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFrameworks>netcoreapp3.1;netcoreapp2.1;net461</TargetFrameworks>
     <OutputType>Exe</OutputType>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugType>portable</DebugType>
-    <DebugSymbols>true</DebugSymbols>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Optimize>true</Optimize>
-    <Configuration>Release</Configuration>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BenchmarkDotNet" Version="0.12.0" />
+    <PackageReference Include="BenchmarkDotNet" Version="0.12.1" />
     <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.12.0" />
     <PackageReference Include="Nerdbank.GitVersioning.LKG" Version="3.1.93" />
   </ItemGroup>
