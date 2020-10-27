@@ -521,7 +521,7 @@ public partial class GitExtensionsTests : RepoTestBase
         this.WriteVersionFile("4.8");
         var firstCommit = this.Repo.Commits.First();
 
-        Version v1 = firstCommit.GetIdAsVersion();
+        Version v1 = this.GetIdAsVersion(firstCommit);
         Assert.Equal(4, v1.Major);
         Assert.Equal(8, v1.Minor);
     }
@@ -532,7 +532,7 @@ public partial class GitExtensionsTests : RepoTestBase
         this.WriteVersionFile("4.8", relativeDirectory: "foo/bar");
         var firstCommit = this.Repo.Commits.First();
 
-        Version v1 = firstCommit.GetIdAsVersion("foo/bar");
+        Version v1 = this.GetIdAsVersion(firstCommit, "foo/bar");
         Assert.Equal(4, v1.Major);
         Assert.Equal(8, v1.Minor);
     }
@@ -543,7 +543,7 @@ public partial class GitExtensionsTests : RepoTestBase
         this.AddCommits();
         var firstCommit = this.Repo.Commits.First();
 
-        Version v1 = firstCommit.GetIdAsVersion();
+        Version v1 = this.GetIdAsVersion(firstCommit);
         Assert.Equal(0, v1.Major);
         Assert.Equal(0, v1.Minor);
     }
@@ -555,7 +555,7 @@ public partial class GitExtensionsTests : RepoTestBase
         var expectedVersion = new Version(1, 1, 0);
         var unstagedVersionData = VersionOptions.FromVersion(expectedVersion);
         string versionFilePath = VersionFile.SetVersion(this.RepoPath, unstagedVersionData);
-        Version actualVersion = this.Repo.GetIdAsVersion();
+        Version actualVersion = this.GetIdAsVersion();
         Assert.Equal(expectedVersion.Major, actualVersion.Major);
         Assert.Equal(expectedVersion.Minor, actualVersion.Minor);
         Assert.Equal(expectedVersion.Build, actualVersion.Build);
@@ -572,7 +572,7 @@ public partial class GitExtensionsTests : RepoTestBase
         var expectedVersion = new Version(1, 1);
         var unstagedVersionData = VersionOptions.FromVersion(expectedVersion);
         string versionFilePath = VersionFile.SetVersion(this.RepoPath, unstagedVersionData);
-        Version actualVersion = this.Repo.GetIdAsVersion();
+        Version actualVersion = this.GetIdAsVersion();
         Assert.Equal(expectedVersion.Major, actualVersion.Major);
         Assert.Equal(expectedVersion.Minor, actualVersion.Minor);
         Assert.Equal(0, actualVersion.Build); // height is 0 since the change hasn't been committed.
@@ -587,7 +587,7 @@ public partial class GitExtensionsTests : RepoTestBase
         this.AddCommits();
 
         // Verify that we're seeing the original version.
-        Version actualVersion = this.Repo.GetIdAsVersion();
+        Version actualVersion = this.GetIdAsVersion();
         Assert.Equal(1, actualVersion.Major);
         Assert.Equal(2, actualVersion.Minor);
         Assert.Equal(2, actualVersion.Build);
@@ -597,7 +597,7 @@ public partial class GitExtensionsTests : RepoTestBase
         string versionFile = VersionFile.SetVersion(this.RepoPath, new Version("1.3"));
 
         // Verify that HEAD reports whatever is on disk at the time.
-        actualVersion = this.Repo.GetIdAsVersion();
+        actualVersion = this.GetIdAsVersion();
         Assert.Equal(1, actualVersion.Major);
         Assert.Equal(3, actualVersion.Minor);
         Assert.Equal(0, actualVersion.Build);
@@ -605,7 +605,7 @@ public partial class GitExtensionsTests : RepoTestBase
 
         // Now commit it and verify the height advances 0->1
         this.CommitVersionFile(versionFile, "1.3");
-        actualVersion = this.Repo.GetIdAsVersion();
+        actualVersion = this.GetIdAsVersion();
         Assert.Equal(1, actualVersion.Major);
         Assert.Equal(3, actualVersion.Minor);
         Assert.Equal(1, actualVersion.Build);
@@ -650,7 +650,7 @@ public partial class GitExtensionsTests : RepoTestBase
         for (int i = 0; i < commits.Length; i++)
         {
             commits[i] = this.Repo.Commit($"Commit {i + 1}", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
-            versions[i] = commits[i].GetIdAsVersion(repoRelativeSubDirectory);
+            versions[i] = this.GetIdAsVersion(commits[i], repoRelativeSubDirectory);
             this.Logger.WriteLine($"Commit {commits[i].Id.Sha.Substring(0, 8)} as version: {versions[i]}");
         }
 
@@ -689,10 +689,10 @@ public partial class GitExtensionsTests : RepoTestBase
         {
             versionOptions.VersionHeightOffset += offsetStepChange;
             commits[i] = this.WriteVersionFile(versionOptions);
-            versions[i] = commits[i].GetIdAsVersion();
+            versions[i] = this.GetIdAsVersion(commits[i]);
 
             commits[i + 1] = this.Repo.Commit($"Commit {i + 1}", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
-            versions[i + 1] = commits[i + 1].GetIdAsVersion();
+            versions[i + 1] = this.GetIdAsVersion(commits[i + 1]);
 
             this.Logger.WriteLine($"Commit {commits[i].Id.Sha.Substring(0, 8)} as version: {versions[i]}");
             this.Logger.WriteLine($"Commit {commits[i + 1].Id.Sha.Substring(0, 8)} as version: {versions[i + 1]}");
@@ -731,8 +731,8 @@ public partial class GitExtensionsTests : RepoTestBase
         this.InitializeSourceControl();
 
         Commit head = this.Repo.Head.Commits.First();
-        Version rootVersionActual = head.GetIdAsVersion();
-        Version subPathVersionActual = head.GetIdAsVersion(subPathRelative);
+        Version rootVersionActual = this.GetIdAsVersion(head);
+        Version subPathVersionActual = this.GetIdAsVersion(head, subPathRelative);
 
         // Verify that the versions calculated took the path into account.
         Assert.Equal(rootVersionExpected.Version.Version.Minor, rootVersionActual?.Minor);
@@ -753,7 +753,7 @@ public partial class GitExtensionsTests : RepoTestBase
         this.WriteVersionFile("2.5");
         var firstCommit = this.Repo.Commits.First();
 
-        Version version = firstCommit.GetIdAsVersion();
+        Version version = this.GetIdAsVersion(firstCommit);
         this.Logger.WriteLine(version.ToString());
 
         // The C# compiler produces a build warning and truncates the version number if it exceeds 0xfffe,
@@ -772,12 +772,12 @@ public partial class GitExtensionsTests : RepoTestBase
         var jsonCommit = this.WriteVersionFile("4.8");
         Assert.True(File.Exists(Path.Combine(this.RepoPath, "version.json")));
 
-        Version v1 = txtCommit.GetIdAsVersion();
+        Version v1 = this.GetIdAsVersion(txtCommit);
         Assert.Equal(4, v1.Major);
         Assert.Equal(8, v1.Minor);
         Assert.Equal(1, v1.Build);
 
-        Version v2 = jsonCommit.GetIdAsVersion();
+        Version v2 = this.GetIdAsVersion(jsonCommit);
         Assert.Equal(4, v2.Major);
         Assert.Equal(8, v2.Minor);
         Assert.Equal(2, v2.Build);
@@ -793,7 +793,7 @@ public partial class GitExtensionsTests : RepoTestBase
         {
             foreach (var commit in this.Repo.Head.Commits)
             {
-                var version = commit.GetIdAsVersion("src");
+                var version = this.GetIdAsVersion(commit, "src");
                 this.Logger.WriteLine($"commit {commit.Id} got version {version}");
                 var backAgain = this.Repo.GetCommitFromVersion(version, "src");
                 Assert.Equal(commit, backAgain);
@@ -820,7 +820,7 @@ public partial class GitExtensionsTests : RepoTestBase
 
         for (int i = 0; i < commits.Length; i++)
         {
-            Version encodedVersion = commits[i].GetIdAsVersion();
+            Version encodedVersion = this.GetIdAsVersion(commits[i]);
             Assert.Equal(i + 1, encodedVersion.Build);
             Assert.Equal(commits[i], this.Repo.GetCommitFromVersion(encodedVersion));
         }
