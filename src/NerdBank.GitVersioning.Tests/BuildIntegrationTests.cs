@@ -1001,7 +1001,7 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
 
     private void AssertStandardProperties(VersionOptions versionOptions, BuildResults buildResult, string relativeProjectDirectory = null)
     {
-        int versionHeight = this.Repo.GetVersionHeight(relativeProjectDirectory);
+        int versionHeight = this.GetVersionHeight(relativeProjectDirectory);
         Version idAsVersion = this.Repo.GetIdAsVersion(relativeProjectDirectory);
         string commitIdShort = this.CommitIdShort;
         Version version = this.Repo.GetIdAsVersion(relativeProjectDirectory);
