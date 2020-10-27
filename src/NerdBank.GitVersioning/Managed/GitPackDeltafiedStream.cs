@@ -85,8 +85,8 @@ namespace NerdBank.GitVersioning.Managed
 #endif
         {
             int read = 0;
-            int canRead = 0;
-            int didRead = 0;
+            int canRead;
+            int didRead;
 
             while (read < span.Length && this.TryGetInstruction(out DeltaInstruction instruction))
             {
