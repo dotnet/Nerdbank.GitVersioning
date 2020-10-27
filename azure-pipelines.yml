@@ -220,7 +220,7 @@ stages:
       workingDirectory: src/
       displayName: Build in Release mode
     - script: |
-        dotnet run -c Release -- --filter GetVersionBenchmarks -artifacts $(Build.ArtifactStagingDirectory)
+        dotnet run -c Release -f netcoreapp3.1 -- --filter GetVersionBenchmarks -artifacts $(Build.ArtifactStagingDirectory)
       workingDirectory: src/NerdBank.GitVersioning.Benchmarks
       displayName: Run benchmarks (packed)
     - bash: |
@@ -237,7 +237,7 @@ stages:
         git unpack-objects < .git/objects/pack/*.pack
       displayName: Unpack Git repositories
     - script: |
-        dotnet run -c Release -- --filter GetVersionBenchmarks -artifacts $(Build.ArtifactStagingDirectory)
+        dotnet run -c Release -f netcoreapp3.1 -- --filter GetVersionBenchmarks -artifacts $(Build.ArtifactStagingDirectory)
       workingDirectory: src/NerdBank.GitVersioning.Benchmarks
       displayName: Run benchmarks (unpacked)
 
