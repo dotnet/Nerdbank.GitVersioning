@@ -17,7 +17,7 @@ namespace NerdBank.GitVersioning.Managed
             this.gitRepository = gitRepository ?? throw new ArgumentNullException(nameof(gitRepository));
             this.versionPath = versionPath;
 
-            if (this.versionPath != null && IsPathFullyQualified(versionPath))
+            if (IsPathFullyQualified(versionPath))
             {
                 this.versionPath = GetRelativePath(this.gitRepository.WorkingDirectory, versionPath);
             }
