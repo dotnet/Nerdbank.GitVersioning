@@ -216,6 +216,10 @@ stages:
         git clone https://github.com/dotnet/NerdBank.GitVersioning $(repoDir)/NerdBank.GitVersioning
       displayName: Clone test repositories
     - script: |
+        dotnet build -c Release
+      workingDirectory: src/
+      displayName: Build in Release mode
+    - script: |
         dotnet run -c Release -- --filter GetVersionBenchmarks -artifacts $(Build.ArtifactStagingDirectory)
       workingDirectory: src/NerdBank.GitVersioning.Benchmarks
       displayName: Run benchmarks (packed)
