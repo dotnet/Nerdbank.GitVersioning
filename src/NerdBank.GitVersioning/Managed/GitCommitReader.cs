@@ -40,11 +40,10 @@ namespace NerdBank.GitVersioning.Managed
                 throw new ArgumentNullException(nameof(stream));
             }
 
-            byte[]? buffer = null;
+            byte[] buffer = ArrayPool<byte>.Shared.Rent((int)stream.Length);
 
             try
             {
-                buffer = ArrayPool<byte>.Shared.Rent((int)stream.Length);
                 Span<byte> span = buffer.AsSpan(0, (int)stream.Length);
                 stream.ReadAll(span);
 
@@ -52,10 +51,7 @@ namespace NerdBank.GitVersioning.Managed
             }
             finally
             {
-                if (buffer != null)
-                {
-                    ArrayPool<byte>.Shared.Return(buffer);
-                }
+                ArrayPool<byte>.Shared.Return(buffer);
             }
         }
 
