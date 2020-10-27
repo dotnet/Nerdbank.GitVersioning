@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 using System.Text;
 using NerdBank.GitVersioning.Managed;
 using Xunit;
@@ -10,7 +11,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
     {
         private readonly byte[] shaAsByteArray = new byte[] { 0x4e, 0x91, 0x27, 0x36, 0xc2, 0x7e, 0x40, 0xb3, 0x89, 0x90, 0x4d, 0x04, 0x6d, 0xc6, 0x3d, 0xc9, 0xf5, 0x78, 0x11, 0x7f };
         private const string shaAsHexString = "4e912736c27e40b389904d046dc63dc9f578117f";
-        private readonly byte[] shaAsHexByteArray = Encoding.ASCII.GetBytes(shaAsHexString);
+        private readonly byte[] shaAsHexAsciiByteArray = Encoding.ASCII.GetBytes(shaAsHexString);
 
         [Fact]
         public void ParseByteArrayTest()
@@ -35,7 +36,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
         [Fact]
         public void ParseHexArrayTest()
         {
-            var objectId = GitObjectId.ParseHex(this.shaAsHexByteArray);
+            var objectId = GitObjectId.ParseHex(this.shaAsHexAsciiByteArray);
 
             Span<byte> value = stackalloc byte[20];
             objectId.CopyTo(value);
@@ -45,8 +46,8 @@ namespace NerdBank.GitVersioning.Tests.Managed
         [Fact]
         public void EqualsObjectTest()
         {
-            var objectId = GitObjectId.ParseHex(this.shaAsHexByteArray);
-            var objectId2 = GitObjectId.ParseHex(this.shaAsHexByteArray);
+            var objectId = GitObjectId.ParseHex(this.shaAsHexAsciiByteArray);
+            var objectId2 = GitObjectId.ParseHex(this.shaAsHexAsciiByteArray);
 
             // Must be equal to itself
             Assert.True(objectId.Equals((object)objectId));
@@ -56,7 +57,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
             Assert.False(objectId.Equals(null));
 
             // Not equal to other representations of the object id
-            Assert.False(objectId.Equals(this.shaAsHexByteArray));
+            Assert.False(objectId.Equals(this.shaAsHexAsciiByteArray));
             Assert.False(objectId.Equals(this.shaAsByteArray));
             Assert.False(objectId.Equals(shaAsHexString));
 
@@ -67,8 +68,8 @@ namespace NerdBank.GitVersioning.Tests.Managed
         [Fact]
         public void EqualsObjectIdTest()
         {
-            var objectId = GitObjectId.ParseHex(this.shaAsHexByteArray);
-            var objectId2 = GitObjectId.ParseHex(this.shaAsHexByteArray);
+            var objectId = GitObjectId.ParseHex(this.shaAsHexAsciiByteArray);
+            var objectId2 = GitObjectId.ParseHex(this.shaAsHexAsciiByteArray);
 
             // Must be equal to itself
             Assert.True(objectId.Equals(objectId));
@@ -82,7 +83,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
         public void GetHashCodeTest()
         {
             // The hash code is the int32 representation of the first 4 bytes
-            var objectId = GitObjectId.ParseHex(this.shaAsHexByteArray);
+            var objectId = GitObjectId.ParseHex(this.shaAsHexAsciiByteArray);
             Assert.Equal(0x3627914e, objectId.GetHashCode());
             Assert.Equal(0, GitObjectId.Empty.GetHashCode());
         }
@@ -91,7 +92,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
         public void AsUInt16Test()
         {
             // The hash code is the int32 representation of the first 4 bytes
-            var objectId = GitObjectId.ParseHex(this.shaAsHexByteArray);
+            var objectId = GitObjectId.ParseHex(this.shaAsHexAsciiByteArray);
             Assert.Equal(0x914e, objectId.AsUInt16());
             Assert.Equal(0, GitObjectId.Empty.GetHashCode());
         }
@@ -108,13 +109,14 @@ namespace NerdBank.GitVersioning.Tests.Managed
         {
             // Common use case: create the path to the object in the Git object store,
             // e.g. git/objects/[byte 0]/[bytes 1 - 19]
-            byte[] value = Encoding.Unicode.GetBytes("git/objects/00/01020304050607080910111213141516171819");
+            byte[] valueAsBytes = Encoding.Unicode.GetBytes("git/objects/00/01020304050607080910111213141516171819");
+            Span<char> valueAsChars = MemoryMarshal.Cast<byte, char>(valueAsBytes);
 
-            var objectId = GitObjectId.ParseHex(this.shaAsHexByteArray);
-            objectId.CopyToUtf16String(0, 1, value.AsSpan(24, 1 *4));
-            objectId.CopyToUtf16String(1, 19, value.AsSpan(30, 19 * 4));
+            var objectId = GitObjectId.ParseHex(this.shaAsHexAsciiByteArray);
+            objectId.CopyAsHex(0, 1, valueAsChars.Slice(12, 1 * 2));
+            objectId.CopyAsHex(1, 19, valueAsChars.Slice(15, 19 * 2));
 
-            var path = Encoding.Unicode.GetString(value);
+            var path = Encoding.Unicode.GetString(valueAsBytes);
             Assert.Equal("git/objects/4e/912736c27e40b389904d046dc63dc9f578117f", path);
         }
 

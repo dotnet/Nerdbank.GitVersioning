@@ -3,6 +3,7 @@
 using System;
 using System.Buffers.Binary;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace NerdBank.GitVersioning.Managed
 {
@@ -198,8 +199,7 @@ namespace NerdBank.GitVersioning.Managed
         }
 
         /// <summary>
-        /// Populates a <see cref="Span{T}"/> with a series of bytes which are the UTF-16 representation of
-        /// the hexadecimal representation of this <see cref="GitObjectId"/>.
+        /// Encodes a portion of this <see cref="GitObjectId"/> as hex.
         /// </summary>
         /// <param name="start">
         /// The index of the first byte of this <see cref="GitObjectId"/> to start copying.
@@ -207,14 +207,15 @@ namespace NerdBank.GitVersioning.Managed
         /// <param name="length">
         /// The number of bytes of this <see cref="GitObjectId"/> to copy.
         /// </param>
-        /// <param name="bytes">
-        /// A <see cref="Span{T}"/> to which to write.
-        /// </param>
+        /// <param name="chars">The buffer that receives the hex characters. It must be at least twice as long as <paramref name="length"/>.</param>
         /// <remarks>
         /// This method is used to populate file paths as byte* objects which are passed to UTF-16-based
-        /// Windows APIs.</remarks>
-        public void CopyToUtf16String(int start, int length, Span<byte> bytes)
+        /// Windows APIs.
+        /// </remarks>
+        public void CopyAsHex(int start, int length, Span<char> chars)
         {
+            Span<byte> bytes = MemoryMarshal.Cast<char, byte>(chars);
+
             // Inspired by http://stackoverflow.com/questions/623104/c-byte-to-hex-string/3974535#3974535
             int lengthInNibbles = length * 2;
 

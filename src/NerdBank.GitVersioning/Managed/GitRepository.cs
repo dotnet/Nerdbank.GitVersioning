@@ -3,6 +3,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -17,8 +18,11 @@ namespace NerdBank.GitVersioning.Managed
         private const string HeadFileName = "HEAD";
         private const string GitDirectoryName = ".git";
         private readonly Lazy<GitPack[]> packs;
-        private readonly byte[] objectPathBuffer;
-        private readonly int objectDirLength;
+
+        /// <summary>
+        /// UTF-16 encoded string.
+        /// </summary>
+        private readonly char[] objectPathBuffer;
 
         private readonly List<GitRepository> alternates = new List<GitRepository>();
 
@@ -160,20 +164,18 @@ namespace NerdBank.GitVersioning.Managed
             }
 
 
-            this.objectDirLength = Encoding.Unicode.GetByteCount(this.ObjectDirectory);
-            int pathLength = this.objectDirLength;
-            pathLength += 2; // '/'
-            pathLength += 4; // 'xy'
-            pathLength += 2; // '/'
-            pathLength += 76; // 19 bytes * 2 chars / byte * 2 bytes / char
-            pathLength += 2; // Trailing 0 character
-            this.objectPathBuffer = new byte[pathLength];
+            int pathLengthInChars = this.ObjectDirectory.Length
+                + 1 // '/'
+                + 2 // 'xy' is first byte as 2 hex characters.
+                + 1 // '/'
+                + 38 // 19 bytes * 2 hex chars each
+                + 1; // Trailing null character
+            this.objectPathBuffer = new char[pathLengthInChars];
+            this.ObjectDirectory.CopyTo(0, this.objectPathBuffer, 0, this.ObjectDirectory.Length);
 
-            GetUtf16Bytes(this.ObjectDirectory, this.objectPathBuffer.AsSpan(0, this.objectDirLength));
-            GetUtf16Bytes("/", this.objectPathBuffer.AsSpan(this.objectDirLength, 2));
-            GetUtf16Bytes("/", this.objectPathBuffer.AsSpan(this.objectDirLength + 2 + 4, 2));
-            this.objectPathBuffer[pathLength - 2] = 0; // Make sure to initialize with zeros
-            this.objectPathBuffer[pathLength - 1] = 0;
+            this.objectPathBuffer[this.ObjectDirectory.Length] = '/';
+            this.objectPathBuffer[this.ObjectDirectory.Length + 3] = '/';
+            this.objectPathBuffer[pathLengthInChars - 1] = '\0'; // Make sure to initialize with zeros
 
             this.packs = new Lazy<GitPack[]>(this.LoadPacks);
         }
@@ -205,7 +207,7 @@ namespace NerdBank.GitVersioning.Managed
         public string ObjectDirectory { get; private set; }
 
         /// <summary>
-        /// Gets the encoding used by this Git repsitory.
+        /// Gets the encoding used by this Git repository.
         /// </summary>
         public static Encoding Encoding => Encoding.UTF8;
 
@@ -460,10 +462,10 @@ namespace NerdBank.GitVersioning.Managed
             }
         }
 
-        private bool TryGetObjectByPath(GitObjectId sha, string objectType, out Stream? value)
+        private bool TryGetObjectByPath(GitObjectId sha, string objectType, [NotNullWhen(true)] out Stream? value)
         {
-            sha.CopyToUtf16String(0, 1, this.objectPathBuffer.AsSpan(this.objectDirLength + 2, 4));
-            sha.CopyToUtf16String(1, 19, this.objectPathBuffer.AsSpan(this.objectDirLength + 2 + 4 + 2));
+            sha.CopyAsHex(0, 1, this.objectPathBuffer.AsSpan(this.ObjectDirectory.Length + 1, 2));
+            sha.CopyAsHex(1, 19, this.objectPathBuffer.AsSpan(this.ObjectDirectory.Length + 1 + 2 + 1));
 
             if (!FileHelpers.TryOpen(this.objectPathBuffer, CreateFileFlags.FILE_ATTRIBUTE_NORMAL | CreateFileFlags.FILE_FLAG_SEQUENTIAL_SCAN, out var compressedFile))
             {
@@ -555,56 +557,17 @@ namespace NerdBank.GitVersioning.Managed
         /// Decodes a sequence of bytes from the specified byte array into a <see cref="string"/>.
         /// </summary>
         /// <param name="bytes">
-        /// The span containing the sequence of bytes to decode.
+        /// The span containing the sequence of UTF-8 bytes to decode.
         /// </param>
         /// <returns>
         /// A <see cref="string"/> that contains the results of decoding the specified sequence of bytes.
         /// </returns>
-        public static string GetString(ReadOnlySpan<byte> bytes)
+        public static unsafe string GetString(ReadOnlySpan<byte> bytes)
         {
-#if NETSTANDARD
-            byte[]? buffer = null;
-
-            try
+            fixed (byte* pBytes = bytes)
             {
-                buffer = ArrayPool<byte>.Shared.Rent(bytes.Length);
-                bytes.CopyTo(buffer);
-                return Encoding.GetString(buffer, 0, bytes.Length);
+                return Encoding.GetString(pBytes, bytes.Length);
             }
-            finally
-            {
-                if (buffer != null)
-                {
-                    ArrayPool<byte>.Shared.Return(buffer);
-                }
-            }
-#else
-            return Encoding.GetString(bytes);
-#endif
-        }
-
-        private static int GetUtf16Bytes(string s, Span<byte> bytes)
-        {
-#if NETSTANDARD
-            byte[]? buffer = null;
-
-            try
-            {
-                buffer = ArrayPool<byte>.Shared.Rent(bytes.Length);
-                int length = Encoding.Unicode.GetBytes(s, 0, s.Length, buffer, 0);
-                buffer.AsSpan(0, length).CopyTo(bytes);
-                return length;
-            }
-            finally
-            {
-                if (buffer != null)
-                {
-                    ArrayPool<byte>.Shared.Return(buffer);
-                }
-            }
-#else
-            return Encoding.Unicode.GetBytes(s, bytes);
-#endif
         }
     }
 }

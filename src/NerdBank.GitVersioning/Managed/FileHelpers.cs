@@ -3,6 +3,7 @@
 using Microsoft.Win32.SafeHandles;
 using System;
 using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -23,7 +24,7 @@ namespace NerdBank.GitVersioning.Managed
 
         [DllImport("kernel32.dll", EntryPoint = "CreateFileW", SetLastError = true, CharSet = CharSet.Unicode, BestFitMapping = false, ExactSpelling = true)]
         public static unsafe extern SafeFileHandle CreateFile(
-            byte* filename,
+            char* filename,
             FileAccess access,
             FileShare share,
             IntPtr securityAttributes,
@@ -63,13 +64,20 @@ namespace NerdBank.GitVersioning.Managed
             }
         }
 
-        public static unsafe bool TryOpen(ReadOnlySpan<byte> path, CreateFileFlags attributes, out FileStream? stream)
+        /// <summary>
+        /// Opens the file with a given path, if it exists.
+        /// </summary>
+        /// <param name="path">The path to the file, as a null-terminated UTF-16 character array.</param>
+        /// <param name="attributes">Attributes to open the file with, when running on Windows.</param>
+        /// <param name="stream">The stream to open to, if the file exists.</param>
+        /// <returns><see langword="true" /> if the file exists; otherwise <see langword="false" />.</returns>
+        public static unsafe bool TryOpen(ReadOnlySpan<char> path, CreateFileFlags attributes, [NotNullWhen(true)] out FileStream? stream)
         {
             if (IsWindows)
             {
                 SafeFileHandle handle;
 
-                fixed (byte* pathPtr = path)
+                fixed (char* pathPtr = path)
                 {
                     handle = CreateFile(pathPtr, FileAccess.Read, FileShare.Read, IntPtr.Zero, FileMode.Open, attributes, IntPtr.Zero);
                 }
@@ -88,7 +96,7 @@ namespace NerdBank.GitVersioning.Managed
             else
             {
                 // Make sure to trim the trailing \0
-                var fullPath = GetUtf16String(path.Slice(0, path.Length - 2));
+                string fullPath = GetUtf16String(path.Slice(0, path.Length - 1));
 
                 if (!File.Exists(fullPath))
                 {
@@ -101,25 +109,12 @@ namespace NerdBank.GitVersioning.Managed
             }
         }
 
-        private static string GetUtf16String(ReadOnlySpan<byte> bytes)
+        private static unsafe string GetUtf16String(ReadOnlySpan<char> chars)
         {
-#if NETSTANDARD
-            byte[]? buffer = null;
-
-            try
+            fixed (char* pChars = chars)
             {
-                buffer = ArrayPool<byte>.Shared.Rent(bytes.Length);
-                bytes.CopyTo(buffer);
-
-                return Encoding.Unicode.GetString(buffer, 0, bytes.Length);
+                return new string(pChars, 0, chars.Length);
             }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(buffer);
-            }
-#else
-            return Encoding.Unicode.GetString(bytes);
-#endif
         }
     }
 }
