@@ -186,10 +186,13 @@ stages:
       matrix:
         ubuntu:
           imageName: 'ubuntu-18.04'
+          repoDir: '~/git'
         windows:
           imageName: 'windows-2019'
+          repoDir: '${USERPROFILE}/source/repos'
         macOS:
           imageName: 'macOS-10.15'
+          repoDir: '~/git'
     pool:
       vmImage: $(imageName)
     steps:
@@ -205,28 +208,28 @@ stages:
         version: 3.1.100
     - script: dotnet --info
       displayName: Show dotnet SDK info
-    - script: |
-        mkdir -p ~/git
-        git clone https://github.com/xunit/xunit ~/git/xunit
-        git clone https://github.com/gimlichael/Cuemon ~/git/Cuemon
-        git clone https://github.com/kerryjiang/SuperSocket ~/git/SuperSocket
-        git clone https://github.com/dotnet/NerdBank.GitVersioning ~/git/NerdBank.GitVersioning
+    - bash: |
+        mkdir -p $(repoDir)
+        git clone https://github.com/xunit/xunit $(repoDir)/xunit
+        git clone https://github.com/gimlichael/Cuemon $(repoDir)/Cuemon
+        git clone https://github.com/kerryjiang/SuperSocket $(repoDir)/SuperSocket
+        git clone https://github.com/dotnet/NerdBank.GitVersioning $(repoDir)/NerdBank.GitVersioning
       displayName: Clone test repositories
     - script: |
         dotnet run -c Release -- --filter GetVersionBenchmarks -artifacts $(Build.ArtifactStagingDirectory)
       workingDirectory: src/NerdBank.GitVersioning.Benchmarks
       displayName: Run benchmarks (packed)
-    - pwsh: |
-        cd ~/git/xunit
+    - bash: |
+        cd $(repoDir)/xunit
         git unpack-objects < .git/objects/pack/*.pack
 
-        cd ~/git/Cuemon
+        cd $(repoDir)/Cuemon
         git unpack-objects < .git/objects/pack/*.pack
 
-        cd ~/git/SuperSocket
+        cd $(repoDir)/SuperSocket
         git unpack-objects < .git/objects/pack/*.pack
 
-        cd ~/git/NerdBank.GitVersioning
+        cd $(repoDir)/NerdBank.GitVersioning
         git unpack-objects < .git/objects/pack/*.pack
       displayName: Unpack Git repositories
     - script: |
