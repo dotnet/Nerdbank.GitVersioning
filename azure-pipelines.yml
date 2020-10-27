@@ -194,6 +194,11 @@ stages:
       vmImage: $(imageName)
     steps:
     - task: UseDotNet@2
+      displayName: Install .NET Core SDK 2.1.811
+      inputs:
+        packageType: sdk
+        version: 2.1.811
+    - task: UseDotNet@2
       displayName: Install .NET Core SDK 3.1.100
       inputs:
         packageType: sdk

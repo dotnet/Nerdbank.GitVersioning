@@ -6,6 +6,7 @@
     <TargetFrameworks Condition="'$(MSBuildRuntimeType)' == 'Full'">$(TargetFrameworks);net461</TargetFrameworks>
     <OutputType>Exe</OutputType>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
 
   <ItemGroup>
