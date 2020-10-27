@@ -485,10 +485,9 @@ public class VersionFileTests : RepoTestBase
     }
 
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(true, false)]
-    [InlineData(true, true)]
-    public void VersionJson_Inheritance(bool commitInSourceControl, bool bareRepo)
+    [InlineData(false)]
+    [InlineData(true)]
+    public void VersionJson_Inheritance(bool commitInSourceControl)
     {
         if (commitInSourceControl)
         {
@@ -531,11 +530,6 @@ public class VersionFileTests : RepoTestBase
             "inheritWithVersion");
 
         Repository operatingRepo = this.Repo;
-        if (bareRepo)
-        {
-            operatingRepo = new Repository(
-                Repository.Clone(this.RepoPath, this.CreateDirectoryForNewRepo(), new CloneOptions { IsBare = true }));
-        }
 
         using (operatingRepo)
         {
