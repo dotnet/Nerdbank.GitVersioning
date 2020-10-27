@@ -13,7 +13,7 @@ namespace NerdBank.GitVersioning.Managed
     public static class StreamExtensions
     {
         /// <summary>
-        /// Reads data from a <see cref="Stream"/>, and asserts the amount of data read equals the size of the buffer.
+        /// Reads data from a <see cref="Stream"/> to fill a given buffer.
         /// </summary>
         /// <param name="stream">
         /// The <see cref="Stream"/> from which to read data.
@@ -21,10 +21,25 @@ namespace NerdBank.GitVersioning.Managed
         /// <param name="buffer">
         /// A buffer into which to store the data read.
         /// </param>
+        /// <exception cref="EndOfStreamException">Thrown when the stream runs out of data before <paramref name="buffer"/> could be filled.</exception>
         public static void ReadAll(this Stream stream, Span<byte> buffer)
         {
-            int read = stream.Read(buffer);
-            Debug.Assert(read == buffer.Length);
+            if (buffer.Length == 0)
+            {
+                return;
+            }
+
+            int totalBytesRead = 0;
+            while (totalBytesRead < buffer.Length)
+            {
+                int bytesRead = stream.Read(buffer.Slice(totalBytesRead));
+                if (bytesRead == 0)
+                {
+                    throw new EndOfStreamException();
+                }
+
+                totalBytesRead += bytesRead;
+            }
         }
 
         /// <summary>
@@ -36,6 +51,7 @@ namespace NerdBank.GitVersioning.Managed
         /// <returns>
         /// The requested value.
         /// </returns>
+        /// <exception cref="EndOfStreamException">Thrown when the stream runs out of data before the integer could be read.</exception>
         public static int ReadMbsInt(this Stream stream)
         {
             int value = 0;
@@ -45,6 +61,11 @@ namespace NerdBank.GitVersioning.Managed
             while (true)
             {
                 read = stream.ReadByte();
+                if (read == -1)
+                {
+                    throw new EndOfStreamException();
+                }
+
                 value |= (read & 0b_0111_1111) << currentBit;
                 currentBit += 7;
 
