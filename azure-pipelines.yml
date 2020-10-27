@@ -206,26 +206,27 @@ stages:
     - script: dotnet --info
       displayName: Show dotnet SDK info
     - script: |
-        git clone https://github.com/xunit/xunit ~/xunit
-        git clone https://github.com/gimlichael/Cuemon ~/Cuemon
-        git clone https://github.com/kerryjiang/SuperSocket ~/SuperSocket
-        git clone https://github.com/dotnet/NerdBank.GitVersioning ~/NerdBank.GitVersioning
+        mkdir -p ~/git
+        git clone https://github.com/xunit/xunit ~/git/xunit
+        git clone https://github.com/gimlichael/Cuemon ~/git/Cuemon
+        git clone https://github.com/kerryjiang/SuperSocket ~/git/SuperSocket
+        git clone https://github.com/dotnet/NerdBank.GitVersioning ~/git/NerdBank.GitVersioning
       displayName: Clone test repositories
     - script: |
         dotnet run -c Release -- --filter GetVersionBenchmarks -artifacts $(Build.ArtifactStagingDirectory)
       workingDirectory: src/NerdBank.GitVersioning.Benchmarks
       displayName: Run benchmarks (packed)
     - script: |
-        cd ~/xunit
+        cd ~/git/xunit
         git unpack-objects < .git/objects/pack/*.pack
 
-        cd ~/Cuemon
+        cd ~/git/Cuemon
         git unpack-objects < .git/objects/pack/*.pack
 
-        cd ~/SuperSocket
+        cd ~/git/SuperSocket
         git unpack-objects < .git/objects/pack/*.pack
 
-        cd ~/NerdBank.GitVersioning
+        cd ~/git/NerdBank.GitVersioning
         git unpack-objects < .git/objects/pack/*.pack
       displayName: Unpack Git repositories
     - script: |
