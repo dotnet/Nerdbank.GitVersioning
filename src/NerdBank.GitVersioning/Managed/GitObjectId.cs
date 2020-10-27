@@ -139,7 +139,7 @@ namespace NerdBank.GitVersioning.Managed
         {
             fixed (byte* thisValue = this.value)
             {
-                return new Span<byte>(thisValue, NativeSize).SequenceEqual(new Span<byte>(other.value, NativeSize));
+                return new ReadOnlySpan<byte>(thisValue, NativeSize).SequenceEqual(new ReadOnlySpan<byte>(other.value, NativeSize));
             }
         }
 
@@ -160,7 +160,7 @@ namespace NerdBank.GitVersioning.Managed
         {
             fixed (byte* thisValue = this.value)
             {
-                return BinaryPrimitives.ReadInt32LittleEndian(new Span<byte>(thisValue, 4));
+                return BinaryPrimitives.ReadInt32LittleEndian(new ReadOnlySpan<byte>(thisValue, 4));
             }
         }
 
@@ -174,7 +174,7 @@ namespace NerdBank.GitVersioning.Managed
         {
             fixed (byte* thisValue = this.value)
             {
-                return BinaryPrimitives.ReadUInt16LittleEndian(new Span<byte>(thisValue, 2));
+                return BinaryPrimitives.ReadUInt16LittleEndian(new ReadOnlySpan<byte>(thisValue, 2));
             }
         }
 
@@ -252,7 +252,7 @@ namespace NerdBank.GitVersioning.Managed
         {
             fixed (byte* thisValue = this.value)
             {
-                new Span<byte>(thisValue, NativeSize).CopyTo(value);
+                new ReadOnlySpan<byte>(thisValue, NativeSize).CopyTo(value);
             }
         }
     }

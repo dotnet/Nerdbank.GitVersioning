@@ -63,7 +63,7 @@ namespace NerdBank.GitVersioning.Managed
             }
         }
 
-        public static unsafe bool TryOpen(Span<byte> path, CreateFileFlags attributes, out FileStream? stream)
+        public static unsafe bool TryOpen(ReadOnlySpan<byte> path, CreateFileFlags attributes, out FileStream? stream)
         {
             if (IsWindows)
             {
