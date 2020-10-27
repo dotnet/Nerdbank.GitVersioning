@@ -1,6 +1,7 @@
 ﻿#nullable enable
 
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
 
@@ -17,7 +18,7 @@ namespace NerdBank.GitVersioning.Managed
             return cacheStream;
         }
 
-        public override bool TryOpen(int offset, out Stream? stream)
+        public override bool TryOpen(int offset, [NotNullWhen(true)] out Stream? stream)
         {
             if (this.cache.TryGetValue(offset, out stream))
             {

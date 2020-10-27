@@ -1,5 +1,6 @@
 ﻿#nullable enable
 
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
 
@@ -22,7 +23,7 @@ namespace NerdBank.GitVersioning.Managed
         }
 
         /// <inheritdoc/>
-        public override bool TryOpen(int offset, out Stream? stream)
+        public override bool TryOpen(int offset, [NotNullWhen(true)] out Stream? stream)
         {
             stream = null;
             return false;

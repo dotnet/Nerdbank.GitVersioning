@@ -1,5 +1,6 @@
 ﻿#nullable enable
 
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
 
@@ -26,7 +27,7 @@ namespace NerdBank.GitVersioning.Managed
         /// <see langword="true"/> if the object was found in cache; otherwise,
         /// <see langword="false"/>.
         /// </returns>
-        public abstract bool TryOpen(int offset, out Stream? stream);
+        public abstract bool TryOpen(int offset, [NotNullWhen(true)] out Stream? stream);
 
         /// <summary>
         /// Gets statistics about the cache usage.
