@@ -209,7 +209,7 @@ namespace NerdBank.GitVersioning.Managed
         }
 
         /// <summary>
-        /// Populates a <see cref="Span{T}"/> with a series of bytes which are the Unicode representation of
+        /// Populates a <see cref="Span{T}"/> with a series of bytes which are the UTF-16 representation of
         /// the hexadecimal representation of this <see cref="GitObjectId"/>.
         /// </summary>
         /// <param name="start">
@@ -222,9 +222,9 @@ namespace NerdBank.GitVersioning.Managed
         /// A <see cref="Span{T}"/> to which to write.
         /// </param>
         /// <remarks>
-        /// This method is used to populate file paths as byte* objects which are passed to Unicode-based
+        /// This method is used to populate file paths as byte* objects which are passed to UTF-16-based
         /// Windows APIs.</remarks>
-        public void CopyToUnicodeString(int start, int length, Span<byte> bytes)
+        public void CopyToUtf16String(int start, int length, Span<byte> bytes)
         {
             // Inspired by http://stackoverflow.com/questions/623104/c-byte-to-hex-string/3974535#3974535
             int lengthInNibbles = length * 2;

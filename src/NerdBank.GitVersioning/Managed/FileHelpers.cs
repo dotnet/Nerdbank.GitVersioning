@@ -88,7 +88,7 @@ namespace NerdBank.GitVersioning.Managed
             else
             {
                 // Make sure to trim the trailing \0
-                var fullPath = GetUnicodeString(path.Slice(0, path.Length - 2));
+                var fullPath = GetUtf16String(path.Slice(0, path.Length - 2));
 
                 if (!File.Exists(fullPath))
                 {
@@ -101,7 +101,7 @@ namespace NerdBank.GitVersioning.Managed
             }
         }
 
-        private static string GetUnicodeString(ReadOnlySpan<byte> bytes)
+        private static string GetUtf16String(ReadOnlySpan<byte> bytes)
         {
 #if NETSTANDARD
             byte[]? buffer = null;

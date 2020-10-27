@@ -104,15 +104,15 @@ namespace NerdBank.GitVersioning.Tests.Managed
         }
 
         [Fact]
-        public void CopyToUnicodeStringTest()
+        public void CopyToUtf16StringTest()
         {
             // Common use case: create the path to the object in the Git object store,
             // e.g. git/objects/[byte 0]/[bytes 1 - 19]
             byte[] value = Encoding.Unicode.GetBytes("git/objects/00/01020304050607080910111213141516171819");
 
             var objectId = GitObjectId.ParseHex(this.shaAsHexByteArray);
-            objectId.CopyToUnicodeString(0, 1, value.AsSpan(24, 1 *4));
-            objectId.CopyToUnicodeString(1, 19, value.AsSpan(30, 19 * 4));
+            objectId.CopyToUtf16String(0, 1, value.AsSpan(24, 1 *4));
+            objectId.CopyToUtf16String(1, 19, value.AsSpan(30, 19 * 4));
 
             var path = Encoding.Unicode.GetString(value);
             Assert.Equal("git/objects/4e/912736c27e40b389904d046dc63dc9f578117f", path);

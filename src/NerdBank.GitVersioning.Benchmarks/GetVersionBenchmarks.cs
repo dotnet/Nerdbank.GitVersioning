@@ -24,8 +24,7 @@ namespace NerdBank.GitVersioning.Benchmarks
                 @"Source\Repos",
                 this.RepositoryName);
 
-        public Version Version
-        { get; set; }
+        public Version Version { get; set; }
 
         [Benchmark(Baseline = true)]
         public void GetVersionLibGit2()

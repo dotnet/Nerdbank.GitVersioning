@@ -169,9 +169,9 @@ namespace NerdBank.GitVersioning.Managed
             pathLength += 2; // Trailing 0 character
             this.objectPathBuffer = new byte[pathLength];
 
-            GetUnicodeBytes(this.ObjectDirectory, this.objectPathBuffer.AsSpan(0, this.objectDirLength));
-            GetUnicodeBytes("/", this.objectPathBuffer.AsSpan(this.objectDirLength, 2));
-            GetUnicodeBytes("/", this.objectPathBuffer.AsSpan(this.objectDirLength + 2 + 4, 2));
+            GetUtf16Bytes(this.ObjectDirectory, this.objectPathBuffer.AsSpan(0, this.objectDirLength));
+            GetUtf16Bytes("/", this.objectPathBuffer.AsSpan(this.objectDirLength, 2));
+            GetUtf16Bytes("/", this.objectPathBuffer.AsSpan(this.objectDirLength + 2 + 4, 2));
             this.objectPathBuffer[pathLength - 2] = 0; // Make sure to initialize with zeros
             this.objectPathBuffer[pathLength - 1] = 0;
 
@@ -462,8 +462,8 @@ namespace NerdBank.GitVersioning.Managed
 
         private bool TryGetObjectByPath(GitObjectId sha, string objectType, out Stream? value)
         {
-            sha.CopyToUnicodeString(0, 1, this.objectPathBuffer.AsSpan(this.objectDirLength + 2, 4));
-            sha.CopyToUnicodeString(1, 19, this.objectPathBuffer.AsSpan(this.objectDirLength + 2 + 4 + 2));
+            sha.CopyToUtf16String(0, 1, this.objectPathBuffer.AsSpan(this.objectDirLength + 2, 4));
+            sha.CopyToUtf16String(1, 19, this.objectPathBuffer.AsSpan(this.objectDirLength + 2 + 4 + 2));
 
             if (!FileHelpers.TryOpen(this.objectPathBuffer, CreateFileFlags.FILE_ATTRIBUTE_NORMAL | CreateFileFlags.FILE_FLAG_SEQUENTIAL_SCAN, out var compressedFile))
             {
@@ -583,7 +583,7 @@ namespace NerdBank.GitVersioning.Managed
 #endif
         }
 
-        private static int GetUnicodeBytes(string s, Span<byte> bytes)
+        private static int GetUtf16Bytes(string s, Span<byte> bytes)
         {
 #if NETSTANDARD
             byte[]? buffer = null;
