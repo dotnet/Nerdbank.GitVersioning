@@ -240,10 +240,13 @@ namespace NerdBank.GitVersioning.Managed
         /// <summary>
         /// Gets the current HEAD commit, if available.
         /// </summary>
+        /// <param name="readAuthor">
+        /// A value indicating whether to populate the <see cref="GitCommit.Author"/> field.
+        /// </param>
         /// <returns>
         /// The current HEAD commit, or <see langword="null"/> if not available.
         /// </returns>
-        public GitCommit? GetHeadCommit()
+        public GitCommit? GetHeadCommit(bool readAuthor = false)
         {
             var headCommitId = this.GetHeadCommitSha();
 
@@ -252,7 +255,7 @@ namespace NerdBank.GitVersioning.Managed
                 return null;
             }
 
-            return this.GetCommit(headCommitId);
+            return this.GetCommit(headCommitId, readAuthor);
         }
 
         /// <summary>
@@ -261,10 +264,13 @@ namespace NerdBank.GitVersioning.Managed
         /// <param name="sha">
         /// The Git object Id of the commit.
         /// </param>
+        /// <param name="readAuthor">
+        /// A value indicating whether to populate the <see cref="GitCommit.Author"/> field.
+        /// </param>
         /// <returns>
         /// The requested commit.
         /// </returns>
-        public GitCommit GetCommit(GitObjectId sha)
+        public GitCommit GetCommit(GitObjectId sha, bool readAuthor = false)
         {
             using (Stream? stream = this.GetObjectBySha(sha, "commit"))
             {
@@ -273,7 +279,7 @@ namespace NerdBank.GitVersioning.Managed
                     throw new GitException($"The commit {sha} was not found in this repository.");
                 }
 
-                return GitCommitReader.Read(stream, sha);
+                return GitCommitReader.Read(stream, sha, readAuthor);
             }
         }
 

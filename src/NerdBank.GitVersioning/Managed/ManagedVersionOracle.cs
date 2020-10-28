@@ -1,6 +1,7 @@
 ﻿#nullable enable
 
 using System;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -41,7 +42,7 @@ namespace NerdBank.GitVersioning.Managed
                 projectDirectory = Path.Combine(repo.WorkingDirectory /* repo.Info.WorkingDirectory */, relativeRepoProjectDirectory);
             }
 
-            var commit = head ?? repo?.GetHeadCommit();
+            var commit = head ?? repo?.GetHeadCommit(readAuthor: true);
 
             (var commitedVersionPath, var committedVersion) = VersionFile.GetVersionOptions(repo, commit, relativeRepoProjectDirectory);
 
@@ -65,7 +66,7 @@ namespace NerdBank.GitVersioning.Managed
             this.VersionOptions = committedVersion ?? workingVersion;
 
             this.GitCommitId = commit?.Sha.ToString() ?? cloudBuild?.GitCommitId ?? null;
-            this.GitCommitDate = commit?.Author.Date;
+            this.GitCommitDate = commit?.Author?.Date;
             this.VersionHeight = CalculateVersionHeight(repo, relativeRepoProjectDirectory, commit, commitedVersionPath, committedVersion, workingVersion);
             this.BuildingRef = cloudBuild?.BuildingTag ?? cloudBuild?.BuildingBranch ?? repo?.GetHeadAsReferenceOrSha() as string;
 
