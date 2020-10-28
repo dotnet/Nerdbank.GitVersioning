@@ -153,7 +153,7 @@ namespace NerdBank.GitVersioning.Managed
 
         public static string? GetVersion(string path)
         {
-            if (FileHelpers.TryOpen(path, CreateFileFlags.FILE_ATTRIBUTE_NORMAL, out FileStream? stream))
+            if (FileHelpers.TryOpen(path, out FileStream? stream))
             {
                 using (stream)
                 {

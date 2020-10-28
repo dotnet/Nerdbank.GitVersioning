@@ -140,7 +140,6 @@ namespace NerdBank.GitVersioning.Managed
 
             if (FileHelpers.TryOpen(
                 Path.Combine(this.ObjectDirectory, "info", "alternates"),
-                CreateFileFlags.FILE_ATTRIBUTE_NORMAL,
                 out var alternateStream))
             {
                 // There's not a lot of documentation on git alternates; but this StackOverflow question
@@ -467,7 +466,7 @@ namespace NerdBank.GitVersioning.Managed
             sha.CopyAsHex(0, 1, this.objectPathBuffer.AsSpan(this.ObjectDirectory.Length + 1, 2));
             sha.CopyAsHex(1, 19, this.objectPathBuffer.AsSpan(this.ObjectDirectory.Length + 1 + 2 + 1));
 
-            if (!FileHelpers.TryOpen(this.objectPathBuffer, CreateFileFlags.FILE_ATTRIBUTE_NORMAL | CreateFileFlags.FILE_FLAG_SEQUENTIAL_SCAN, out var compressedFile))
+            if (!FileHelpers.TryOpen(this.objectPathBuffer, out var compressedFile))
             {
                 value = null;
                 return false;
@@ -488,7 +487,7 @@ namespace NerdBank.GitVersioning.Managed
         {
             if (reference is string)
             {
-                if (!FileHelpers.TryOpen(Path.Combine(this.GitDirectory, (string)reference), CreateFileFlags.FILE_ATTRIBUTE_NORMAL, out FileStream? stream))
+                if (!FileHelpers.TryOpen(Path.Combine(this.GitDirectory, (string)reference), out FileStream? stream))
                 {
                     return GitObjectId.Empty;
                 }

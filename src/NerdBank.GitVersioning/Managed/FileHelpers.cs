@@ -1,48 +1,36 @@
 ﻿#nullable enable
 
-using Microsoft.Win32.SafeHandles;
 using System;
-using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Text;
+using Microsoft.Win32.SafeHandles;
+using static PInvoke.Kernel32;
+using FileShare = PInvoke.Kernel32.FileShare;
 
 namespace NerdBank.GitVersioning.Managed
 {
     internal static class FileHelpers
     {
-        [DllImport("kernel32.dll", EntryPoint = "CreateFileW", SetLastError = true, CharSet = CharSet.Unicode, BestFitMapping = false, ExactSpelling = true)]
-        public static unsafe extern SafeFileHandle CreateFile(
-            string filename,
-            FileAccess access,
-            FileShare share,
-            IntPtr securityAttributes,
-            FileMode creationDisposition,
-            CreateFileFlags flagsAndAttributes,
-            IntPtr templateFile);
-
-        [DllImport("kernel32.dll", EntryPoint = "CreateFileW", SetLastError = true, CharSet = CharSet.Unicode, BestFitMapping = false, ExactSpelling = true)]
-        public static unsafe extern SafeFileHandle CreateFile(
-            char* filename,
-            FileAccess access,
-            FileShare share,
-            IntPtr securityAttributes,
-            FileMode creationDisposition,
-            CreateFileFlags flagsAndAttributes,
-            IntPtr templateFile);
-
         private static readonly bool IsWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
-        public static bool TryOpen(string path, CreateFileFlags attributes, out FileStream? stream)
+        /// <summary>
+        /// Opens the file with a given path, if it exists.
+        /// </summary>
+        /// <param name="path">The path to the file.</param>
+        /// <param name="stream">The stream to open to, if the file exists.</param>
+        /// <returns><see langword="true" /> if the file exists; otherwise <see langword="false" />.</returns>
+        public static bool TryOpen(string path, out FileStream? stream)
         {
             if (IsWindows)
             {
-                var handle = CreateFile(path, FileAccess.Read, FileShare.Read, IntPtr.Zero, FileMode.Open, attributes, IntPtr.Zero);
+                var handle = CreateFile(path, ACCESS_MASK.GenericRight.GENERIC_READ, FileShare.FILE_SHARE_READ, (SECURITY_ATTRIBUTES?)null, CreationDisposition.OPEN_EXISTING, CreateFileFlags.FILE_ATTRIBUTE_NORMAL, SafeObjectHandle.Null);
 
                 if (!handle.IsInvalid)
                 {
-                    stream = new FileStream(handle, FileAccess.Read);
+                    var fileHandle = new SafeFileHandle(handle.DangerousGetHandle(), ownsHandle: true);
+                    handle.SetHandleAsInvalid();
+                    stream = new FileStream(fileHandle, System.IO.FileAccess.Read);
                     return true;
                 }
                 else
@@ -68,23 +56,19 @@ namespace NerdBank.GitVersioning.Managed
         /// Opens the file with a given path, if it exists.
         /// </summary>
         /// <param name="path">The path to the file, as a null-terminated UTF-16 character array.</param>
-        /// <param name="attributes">Attributes to open the file with, when running on Windows.</param>
         /// <param name="stream">The stream to open to, if the file exists.</param>
         /// <returns><see langword="true" /> if the file exists; otherwise <see langword="false" />.</returns>
-        public static unsafe bool TryOpen(ReadOnlySpan<char> path, CreateFileFlags attributes, [NotNullWhen(true)] out FileStream? stream)
+        public static unsafe bool TryOpen(ReadOnlySpan<char> path, [NotNullWhen(true)] out FileStream? stream)
         {
             if (IsWindows)
             {
-                SafeFileHandle handle;
-
-                fixed (char* pathPtr = path)
-                {
-                    handle = CreateFile(pathPtr, FileAccess.Read, FileShare.Read, IntPtr.Zero, FileMode.Open, attributes, IntPtr.Zero);
-                }
+                var handle = CreateFile(path, ACCESS_MASK.GenericRight.GENERIC_READ, FileShare.FILE_SHARE_READ, null, CreationDisposition.OPEN_EXISTING, CreateFileFlags.FILE_ATTRIBUTE_NORMAL, SafeObjectHandle.Null);
 
                 if (!handle.IsInvalid)
                 {
-                    stream = new FileStream(handle, FileAccess.Read);
+                    var fileHandle = new SafeFileHandle(handle.DangerousGetHandle(), ownsHandle: true);
+                    handle.SetHandleAsInvalid();
+                    stream = new FileStream(fileHandle, System.IO.FileAccess.Read);
                     return true;
                 }
                 else

@@ -26,6 +26,7 @@ IMPORTANT: The 3.x release may produce a different version height than prior maj
     <file src="$BaseOutputPath$net461\System.Text.Json.dll" target="build\MSBuildFull\System.Text.Json.dll" />
     <file src="$BaseOutputPath$net461\Validation.dll" target="build\MSBuildFull\Validation.dll" />
     <file src="$BaseOutputPath$net461\System.Runtime.CompilerServices.Unsafe.dll" target="build\MSBuildFull\System.Runtime.CompilerServices.Unsafe.dll" />
+    <file src="$BaseOutputPath$net461\PInvoke.Kernel32.dll" target="build\MSBuildFull\PInvoke.Kernel32.dll" />
     <file src="$LibGit2SharpNativeBinaries$runtimes\**" target="build\runtimes\" />
 
     <!-- Additional copies to work around DllNotFoundException on Mono (https://github.com/dotnet/Nerdbank.GitVersioning/issues/222) -->
@@ -45,6 +46,7 @@ IMPORTANT: The 3.x release may produce a different version height than prior maj
     <file src="$BaseOutputPath$netcoreapp2.1\System.Text.Json.dll" target="build\MSBuildCore\System.Text.Json.dll" />
     <file src="$BaseOutputPath$netcoreapp2.1\Validation.dll" target="build\MSBuildCore\Validation.dll" />
     <file src="$BaseOutputPath$netcoreapp2.1\System.Runtime.CompilerServices.Unsafe.dll" target="build\MSBuildCore\System.Runtime.CompilerServices.Unsafe.dll" />
+    <file src="$BaseOutputPath$netcoreapp2.1\PInvoke.Kernel32.dll" target="build\MSBuildCore\PInvoke.Kernel32.dll" />
 
     <file src="build\Nerdbank.GitVersioning.targets" target="build\Nerdbank.GitVersioning.targets" />
     <file src="build\Nerdbank.GitVersioning.Common.targets" target="build\Nerdbank.GitVersioning.Common.targets" />
