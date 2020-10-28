@@ -100,9 +100,23 @@ stages:
       inputs:
         gulpfile: src/nerdbank-gitversioning.npm/gulpfile.js
 
-    - script: dotnet test NerdBank.GitVersioning.Tests --no-build $(testModifier) -c $(BuildConfiguration) --filter "TestCategory!=FailsOnAzurePipelines" --logger "trx;LogFileName=$(Build.ArtifactStagingDirectory)/TestLogs/TestResults.trx"
+    - script: >
+        dotnet test NerdBank.GitVersioning.Tests
+        --no-build $(testModifier)
+        -c $(BuildConfiguration)
+        --filter "TestCategory!=FailsOnAzurePipelines"
+        --logger "trx;LogFileName=$(Build.ArtifactStagingDirectory)/TestLogs/TestResults.trx"
+        --results-directory $(Build.ArtifactStagingDirectory)/CodeCoverage/
+        --collect:"XPlat Code Coverage" 
+        -- 
+        RunConfiguration.DisableAppDomain=true
       displayName: Run tests
       workingDirectory: src
+
+    - task: PublishCodeCoverageResults@1
+      inputs:
+        codeCoverageTool: 'cobertura'
+        summaryFileLocation: $(Build.ArtifactStagingDirectory)/CodeCoverage/**/coverage.cobertura.xml
 
     - task: PublishTestResults@2
       displayName: Publish test results
@@ -112,6 +126,7 @@ stages:
         searchFolder: $(Build.ArtifactStagingDirectory)/TestLogs
         buildPlatform: $(BuildPlatform)
         buildConfiguration: $(BuildConfiguration)
+        publishRunAttachments: false
       condition: always()
 
     - task: CopyFiles@1
