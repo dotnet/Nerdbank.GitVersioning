@@ -392,17 +392,17 @@ namespace NerdBank.GitVersioning.Managed
             }
 #endif
 
-            if (this.TryGetObjectByPath(sha, objectType, out value))
-            {
-                return true;
-            }
-
             foreach (var pack in this.packs.Value)
             {
                 if (pack.TryGetObject(sha, objectType, out value))
                 {
                     return true;
                 }
+            }
+
+            if (this.TryGetObjectByPath(sha, objectType, out value))
+            {
+                return true;
             }
 
             foreach (var alternate in this.alternates)
