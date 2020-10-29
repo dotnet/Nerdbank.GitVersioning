@@ -8,14 +8,30 @@ using Xunit;
 
 namespace NerdBank.GitVersioning.Tests.Managed
 {
-    public class GitPackTests
+    public class GitPackTests : IDisposable
     {
+        private readonly string indexFile = Path.GetTempFileName();
+
+        public GitPackTests()
+        {
+            using (Stream resourceStream = TestUtilities.GetEmbeddedResource(@"Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.idx"))
+            using (FileStream stream = File.Open(this.indexFile, FileMode.Open))
+            {
+                resourceStream.CopyTo(stream);
+            }
+        }
+
+        public void Dispose()
+        {
+            File.Delete(this.indexFile);
+        }
+
         [Fact]
         public void GetPackedObject()
         {
             using (var gitPack = new GitPack(
                 (sha, objectType) => null,
-                new Lazy<Stream>(() => TestUtilities.GetEmbeddedResource(@"Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.idx")),
+                new Lazy<FileStream>(() => File.OpenRead(this.indexFile)),
                 () => TestUtilities.GetEmbeddedResource(@"Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.pack"),
                 GitPackNullCache.Instance))
             using (Stream commitStream = gitPack.GetObject(12, "commit"))
@@ -37,7 +53,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
         {
             using (var gitPack = new GitPack(
                 (sha, objectType) => null,
-                new Lazy<Stream>(() => TestUtilities.GetEmbeddedResource(@"Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.idx")),
+                new Lazy<FileStream>(() => File.OpenRead(this.indexFile)),
                 () => TestUtilities.GetEmbeddedResource(@"Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.pack"),
                 GitPackNullCache.Instance))
             using (Stream commitStream = gitPack.GetObject(317, "commit"))
@@ -60,7 +76,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
         {
             using (var gitPack = new GitPack(
                 (sha, objectType) => null,
-                new Lazy<Stream>(() => TestUtilities.GetEmbeddedResource(@"Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.idx")),
+                new Lazy<FileStream>(() => File.OpenRead(this.indexFile)),
                 () => TestUtilities.GetEmbeddedResource(@"Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.pack"),
                 GitPackNullCache.Instance))
             {
@@ -77,7 +93,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
         {
             using (var gitPack = new GitPack(
                 (sha, objectType) => null,
-                new Lazy<Stream>(() => TestUtilities.GetEmbeddedResource(@"Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.idx")),
+                new Lazy<FileStream>(() => File.OpenRead(this.indexFile)),
                 () => TestUtilities.GetEmbeddedResource(@"Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.pack"),
                 GitPackNullCache.Instance))
             using (SHA1 sha = SHA1.Create())
@@ -100,7 +116,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
         {
             using (var gitPack = new GitPack(
                 (sha, objectType) => null,
-                new Lazy<Stream>(() => TestUtilities.GetEmbeddedResource(@"Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.idx")),
+                new Lazy<FileStream>(() => File.OpenRead(this.indexFile)),
                 () => TestUtilities.GetEmbeddedResource(@"Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.pack"),
                 GitPackNullCache.Instance))
             {

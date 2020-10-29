@@ -5,19 +5,19 @@ using Xunit;
 
 namespace NerdBank.GitVersioning.Tests.Managed
 {
-    public class GitPackIndexReaderTests
+    public class GitPackIndexStreamReaderTests
     {
         [Fact]
         public void ConstructorNullTest()
         {
-            Assert.Throws<ArgumentNullException>(() => new GitPackIndexReader(null));
+            Assert.Throws<ArgumentNullException>(() => new GitPackIndexStreamReader(null));
         }
 
         [Fact]
         public void GetOffsetTest()
         {
             using (Stream stream = TestUtilities.GetEmbeddedResource(@"Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.idx"))
-            using (GitPackIndexReader reader = new GitPackIndexReader(stream))
+            using (GitPackIndexReader reader = new GitPackIndexStreamReader(stream))
             {
                 // Offset of an object which is present
                 Assert.Equal(12, reader.GetOffset(GitObjectId.Parse("f5b401f40ad83f13030e946c9ea22cb54cb853cd")));

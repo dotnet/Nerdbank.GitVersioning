@@ -28,7 +28,7 @@ namespace NerdBank.GitVersioning.Managed
         public delegate Stream? GetObjectFromRepositoryDelegate(GitObjectId sha, string objectType);
 
         private readonly Func<Stream> packStream;
-        private readonly Lazy<Stream> indexStream;
+        private readonly Lazy<FileStream> indexStream;
         private readonly GitPackCache cache;
 
         // Maps GitObjectIds to offets in the git pack.
@@ -82,7 +82,7 @@ namespace NerdBank.GitVersioning.Managed
         /// on the pack file.
         /// </param>
         public GitPack(GetObjectFromRepositoryDelegate getObjectFromRepositoryDelegate, string indexPath, string packPath, GitPackCache? cache = null)
-            : this(getObjectFromRepositoryDelegate, new Lazy<Stream>(() => File.OpenRead(indexPath)), () => File.OpenRead(packPath), cache)
+            : this(getObjectFromRepositoryDelegate, new Lazy<FileStream>(() => File.OpenRead(indexPath)), () => File.OpenRead(packPath), cache)
         {
         }
 
@@ -104,7 +104,7 @@ namespace NerdBank.GitVersioning.Managed
         /// A <see cref="GitPackCache"/> which is used to cache <see cref="Stream"/> objects which operate
         /// on the pack file.
         /// </param>
-        public GitPack(GetObjectFromRepositoryDelegate getObjectFromRepositoryDelegate, Lazy<Stream> indexStream, Func<Stream> packStream, GitPackCache? cache = null)
+        public GitPack(GetObjectFromRepositoryDelegate getObjectFromRepositoryDelegate, Lazy<FileStream> indexStream, Func<Stream> packStream, GitPackCache? cache = null)
         {
             this.GetObjectFromRepository = getObjectFromRepositoryDelegate ?? throw new ArgumentNullException(nameof(getObjectFromRepositoryDelegate));
             this.indexReader = new Lazy<GitPackIndexReader>(this.OpenIndex);
@@ -274,7 +274,7 @@ namespace NerdBank.GitVersioning.Managed
 
         private GitPackIndexReader OpenIndex()
         {
-            return new GitPackIndexReader(this.indexStream.Value);
+            return new GitPackIndexMappedReader(this.indexStream.Value);
         }
     }
 }
