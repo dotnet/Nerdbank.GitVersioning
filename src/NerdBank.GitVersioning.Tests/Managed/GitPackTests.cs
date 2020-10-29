@@ -29,8 +29,23 @@ namespace NerdBank.GitVersioning.Tests.Managed
 
         public void Dispose()
         {
-            File.Delete(this.indexFile);
-            //File.Delete(this.packFile);
+            try
+            {
+                File.Delete(this.indexFile);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // TBD: Figure out what's keeping a lock on the file. Seems to be unique to Windows.
+            }
+
+            try
+            {
+                File.Delete(this.packFile);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // TBD: Figure out what's keeping a lock on the file. Seems to be unique to Windows.
+            }
         }
 
         [Fact]

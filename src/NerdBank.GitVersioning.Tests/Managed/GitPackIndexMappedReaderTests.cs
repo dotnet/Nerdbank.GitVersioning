@@ -35,7 +35,15 @@ namespace NerdBank.GitVersioning.Tests.Managed
                 Assert.Null(reader.GetOffset(GitObjectId.Empty));
             }
 
-            File.Delete(indexFile);
+            try
+            {
+                File.Delete(indexFile);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // TBD: Figure out what's keeping a lock on the file. Seems to be unique to Windows.
+            }
+
         }
     }
 }
