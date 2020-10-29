@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.MemoryMappedFiles;
 using System.Linq;
 using System.Text;
 
@@ -27,9 +28,11 @@ namespace NerdBank.GitVersioning.Managed
         /// </returns>
         public delegate Stream? GetObjectFromRepositoryDelegate(GitObjectId sha, string objectType);
 
-        private readonly Func<Stream> packStream;
+        private readonly Func<FileStream> packStream;
         private readonly Lazy<FileStream> indexStream;
         private readonly GitPackCache cache;
+        private MemoryMappedFile packFile;
+        private MemoryMappedViewAccessor accessor;
 
         // Maps GitObjectIds to offets in the git pack.
         private readonly Dictionary<GitObjectId, int> offsets = new Dictionary<GitObjectId, int>();
@@ -104,13 +107,16 @@ namespace NerdBank.GitVersioning.Managed
         /// A <see cref="GitPackCache"/> which is used to cache <see cref="Stream"/> objects which operate
         /// on the pack file.
         /// </param>
-        public GitPack(GetObjectFromRepositoryDelegate getObjectFromRepositoryDelegate, Lazy<FileStream> indexStream, Func<Stream> packStream, GitPackCache? cache = null)
+        public GitPack(GetObjectFromRepositoryDelegate getObjectFromRepositoryDelegate, Lazy<FileStream> indexStream, Func<FileStream> packStream, GitPackCache? cache = null)
         {
             this.GetObjectFromRepository = getObjectFromRepositoryDelegate ?? throw new ArgumentNullException(nameof(getObjectFromRepositoryDelegate));
             this.indexReader = new Lazy<GitPackIndexReader>(this.OpenIndex);
             this.packStream = packStream ?? throw new ArgumentException(nameof(packStream));
             this.indexStream = indexStream ?? throw new ArgumentNullException(nameof(indexStream));
             this.cache = cache ?? new GitPackMemoryCache();
+
+            this.packFile = MemoryMappedFile.CreateFromFile(this.packStream(), mapName: null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None, leaveOpen: false);
+            this.accessor = this.packFile.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
         }
 
         /// <summary>
@@ -233,6 +239,9 @@ namespace NerdBank.GitVersioning.Managed
             {
                 this.indexReader.Value.Dispose();
             }
+
+            this.accessor.Dispose();
+            this.packFile.Dispose();
         }
 
         private int? GetOffset(GitObjectId objectId)
@@ -253,23 +262,9 @@ namespace NerdBank.GitVersioning.Managed
             return offset;
         }
 
-        private GitPackPooledStream GetPackStream()
+        private Stream GetPackStream()
         {
-            if (this.pooledStreams.Count > 0)
-            {
-                var result = this.pooledStreams.Dequeue();
-                result.Seek(0, SeekOrigin.Begin);
-                return result;
-            }
-
-            try
-            {
-                return new GitPackPooledStream(this.packStream(), this.pooledStreams);
-            }
-            catch (Exception ex)
-            {
-                throw new GitException($"Failed to open the Git pack: {ex.Message}", ex);
-            }
+            return new MemoryMappedStream(this.accessor);
         }
 
         private GitPackIndexReader OpenIndex()

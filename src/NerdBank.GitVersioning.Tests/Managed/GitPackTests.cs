@@ -2,7 +2,6 @@
 using System.IO;
 using System.IO.Compression;
 using System.Security.Cryptography;
-using LibGit2Sharp;
 using NerdBank.GitVersioning.Managed;
 using Xunit;
 
@@ -11,6 +10,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
     public class GitPackTests : IDisposable
     {
         private readonly string indexFile = Path.GetTempFileName();
+        private readonly string packFile = Path.GetTempFileName();
 
         public GitPackTests()
         {
@@ -19,11 +19,18 @@ namespace NerdBank.GitVersioning.Tests.Managed
             {
                 resourceStream.CopyTo(stream);
             }
+
+            using (Stream resourceStream = TestUtilities.GetEmbeddedResource(@"Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.pack"))
+            using (FileStream stream = File.Open(this.packFile, FileMode.Open))
+            {
+                resourceStream.CopyTo(stream);
+            }
         }
 
         public void Dispose()
         {
             File.Delete(this.indexFile);
+            //File.Delete(this.packFile);
         }
 
         [Fact]
@@ -32,7 +39,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
             using (var gitPack = new GitPack(
                 (sha, objectType) => null,
                 new Lazy<FileStream>(() => File.OpenRead(this.indexFile)),
-                () => TestUtilities.GetEmbeddedResource(@"Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.pack"),
+                () => File.OpenRead(this.packFile),
                 GitPackNullCache.Instance))
             using (Stream commitStream = gitPack.GetObject(12, "commit"))
             using (SHA1 sha = SHA1.Create())
@@ -40,8 +47,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
                 // This commit is not deltafied. It is stored as a .gz-compressed stream in the pack file.
                 var zlibStream = Assert.IsType<ZLibStream>(commitStream);
                 var deflateStream = Assert.IsType<DeflateStream>(zlibStream.BaseStream);
-                var pooledStream = Assert.IsType<GitPackPooledStream>(deflateStream.BaseStream);
-                var fileStream = Assert.IsAssignableFrom<Stream>(pooledStream.BaseStream);
+                var pooledStream = Assert.IsType<MemoryMappedStream>(deflateStream.BaseStream);
 
                 Assert.Equal(222, commitStream.Length);
                 Assert.Equal("/zgldANj+jvgOwlecnOKylZDVQg=", Convert.ToBase64String(sha.ComputeHash(commitStream)));
@@ -54,7 +60,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
             using (var gitPack = new GitPack(
                 (sha, objectType) => null,
                 new Lazy<FileStream>(() => File.OpenRead(this.indexFile)),
-                () => TestUtilities.GetEmbeddedResource(@"Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.pack"),
+                () => File.OpenRead(this.packFile),
                 GitPackNullCache.Instance))
             using (Stream commitStream = gitPack.GetObject(317, "commit"))
             using (SHA1 sha = SHA1.Create())
@@ -63,8 +69,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
                 var deltaStream = Assert.IsType<GitPackDeltafiedStream>(commitStream);
                 var zlibStream = Assert.IsType<ZLibStream>(deltaStream.BaseStream);
                 var deflateStream = Assert.IsType<DeflateStream>(zlibStream.BaseStream);
-                var pooledStream = Assert.IsType<GitPackPooledStream>(deflateStream.BaseStream);
-                var fileStream = Assert.IsAssignableFrom<Stream>(pooledStream.BaseStream);
+                var pooledStream = Assert.IsType<MemoryMappedStream>(deflateStream.BaseStream);
 
                 Assert.Equal(137, commitStream.Length);
                 Assert.Equal("lZu/7nGb0n1UuO9SlPluFnSvj4o=", Convert.ToBase64String(sha.ComputeHash(commitStream)));
@@ -77,7 +82,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
             using (var gitPack = new GitPack(
                 (sha, objectType) => null,
                 new Lazy<FileStream>(() => File.OpenRead(this.indexFile)),
-                () => TestUtilities.GetEmbeddedResource(@"Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.pack"),
+                () => File.OpenRead(this.packFile),
                 GitPackNullCache.Instance))
             {
                 Assert.Throws<GitException>(() => gitPack.GetObject(12, "invalid"));
@@ -94,7 +99,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
             using (var gitPack = new GitPack(
                 (sha, objectType) => null,
                 new Lazy<FileStream>(() => File.OpenRead(this.indexFile)),
-                () => TestUtilities.GetEmbeddedResource(@"Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.pack"),
+                () => File.OpenRead(this.packFile),
                 GitPackNullCache.Instance))
             using (SHA1 sha = SHA1.Create())
             {
@@ -103,8 +108,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
                 // This commit is not deltafied. It is stored as a .gz-compressed stream in the pack file.
                 var zlibStream = Assert.IsType<ZLibStream>(commitStream);
                 var deflateStream = Assert.IsType<DeflateStream>(zlibStream.BaseStream);
-                var pooledStream = Assert.IsType<GitPackPooledStream>(deflateStream.BaseStream);
-                var fileStream = Assert.IsAssignableFrom<Stream>(pooledStream.BaseStream);
+                var pooledStream = Assert.IsType<MemoryMappedStream>(deflateStream.BaseStream);
 
                 Assert.Equal(222, commitStream.Length);
                 Assert.Equal("/zgldANj+jvgOwlecnOKylZDVQg=", Convert.ToBase64String(sha.ComputeHash(commitStream)));
@@ -117,7 +121,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
             using (var gitPack = new GitPack(
                 (sha, objectType) => null,
                 new Lazy<FileStream>(() => File.OpenRead(this.indexFile)),
-                () => TestUtilities.GetEmbeddedResource(@"Managed\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.pack"),
+                () => File.OpenRead(this.packFile),
                 GitPackNullCache.Instance))
             {
                 Assert.False(gitPack.TryGetObject(GitObjectId.Empty, "commit", out Stream commitStream));
