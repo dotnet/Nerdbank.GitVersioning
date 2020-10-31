@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.IO.Compression;
-using System.IO.MemoryMappedFiles;
 using System.Security.Cryptography;
 using NerdBank.GitVersioning.Managed;
 using Xunit;
@@ -63,7 +62,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
                 // This commit is not deltafied. It is stored as a .gz-compressed stream in the pack file.
                 var zlibStream = Assert.IsType<ZLibStream>(commitStream);
                 var deflateStream = Assert.IsType<DeflateStream>(zlibStream.BaseStream);
-                var pooledStream = Assert.IsType<MemoryMappedViewStream>(deflateStream.BaseStream);
+                var pooledStream = Assert.IsType<MemoryMappedStream>(deflateStream.BaseStream);
 
                 Assert.Equal(222, commitStream.Length);
                 Assert.Equal("/zgldANj+jvgOwlecnOKylZDVQg=", Convert.ToBase64String(sha.ComputeHash(commitStream)));
@@ -85,7 +84,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
                 var deltaStream = Assert.IsType<GitPackDeltafiedStream>(commitStream);
                 var zlibStream = Assert.IsType<ZLibStream>(deltaStream.BaseStream);
                 var deflateStream = Assert.IsType<DeflateStream>(zlibStream.BaseStream);
-                var pooledStream = Assert.IsType<MemoryMappedViewStream>(deflateStream.BaseStream);
+                var pooledStream = Assert.IsType<MemoryMappedStream>(deflateStream.BaseStream);
 
                 Assert.Equal(137, commitStream.Length);
                 Assert.Equal("lZu/7nGb0n1UuO9SlPluFnSvj4o=", Convert.ToBase64String(sha.ComputeHash(commitStream)));
@@ -124,7 +123,7 @@ namespace NerdBank.GitVersioning.Tests.Managed
                 // This commit is not deltafied. It is stored as a .gz-compressed stream in the pack file.
                 var zlibStream = Assert.IsType<ZLibStream>(commitStream);
                 var deflateStream = Assert.IsType<DeflateStream>(zlibStream.BaseStream);
-                var pooledStream = Assert.IsType<MemoryMappedViewStream>(deflateStream.BaseStream);
+                var pooledStream = Assert.IsType<MemoryMappedStream>(deflateStream.BaseStream);
 
                 Assert.Equal(222, commitStream.Length);
                 Assert.Equal("/zgldANj+jvgOwlecnOKylZDVQg=", Convert.ToBase64String(sha.ComputeHash(commitStream)));
