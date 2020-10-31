@@ -202,26 +202,26 @@ stages:
     strategy:
       matrix:
         xenial:
-          containerImage: 'xenial'
-          installGit: 'sudo apt update && sudo apt-get install -y git'
+          containerImage: xenial
+          configureContainerCommand: 'sudo apt update && sudo apt-get install -y git'
         Ubuntu_Bionic_2_1:
-          containerImage: 'bionic-2.1'
+          containerImage: bionic-2.1
         Ubuntu_Bionic:
-          containerImage: 'bionic'
+          containerImage: bionic
         Ubuntu_Focal:
-          containerImage: 'focal'
+          containerImage: focal
         Ubuntu_Disco_3_0:
-          containerImage: 'disco-3.0'
+          containerImage: disco-3.0
         Arch_Linux:
-          containerImage: 'disco-3.0'
-          installGit: 'sudo pacman -Sy --noconfirm git dotnet-sdk openssl-1.0'
+          containerImage: archlinux
+          configureContainerCommand: 'sudo pacman -Sy --noconfirm git dotnet-sdk openssl-1.0'
     pool:
       vmImage: ubuntu-20.04
     container: $[ variables['containerImage'] ]
     steps:
-    - bash: $(installGit)
-      displayName: Install git
-      condition: ne(variables['installGit'], '')
+    - bash: $(configureContainerCommand)
+      displayName: Configure container
+      condition: ne(variables['configureContainerCommand'], '')
     - template: azure-pipelines/xplattest-pipeline.yml
 
   - job: macOS
