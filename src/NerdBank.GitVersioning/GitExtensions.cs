@@ -49,7 +49,7 @@
         /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
         /// <param name="baseVersion">Optional base version to calculate the height. If not specified, the base version will be calculated by scanning the repository.</param>
         /// <returns>The height of the commit. Always a positive integer.</returns>
-        public static int GetVersionHeight(this Commit commit, string repoRelativeProjectDirectory = null, Version baseVersion = null)
+        internal static int GetVersionHeight(this Commit commit, string repoRelativeProjectDirectory = null, Version baseVersion = null)
         {
             Requires.NotNull(commit, nameof(commit));
             Requires.Argument(repoRelativeProjectDirectory == null || !Path.IsPathRooted(repoRelativeProjectDirectory), nameof(repoRelativeProjectDirectory), "Path should be relative to repo root.");
@@ -74,52 +74,6 @@
             }
 
             return 0;
-        }
-
-        /// <summary>
-        /// Gets the number of commits in the longest single path between
-        /// HEAD in a repo and the most distant ancestor (inclusive)
-        /// that set the version to the value in the working copy
-        /// (or HEAD for bare repositories).
-        /// </summary>
-        /// <param name="repo">The repo with the working copy / HEAD to measure the height of.</param>
-        /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
-        /// <returns>The height of the repo at HEAD. Always a positive integer.</returns>
-        public static int GetVersionHeight(this Repository repo, string repoRelativeProjectDirectory = null)
-        {
-            if (repo == null)
-            {
-                return 0;
-            }
-
-            VersionOptions workingCopyVersionOptions, committedVersionOptions;
-            if (IsVersionFileChangedInWorkingCopy(repo, repoRelativeProjectDirectory, out committedVersionOptions, out workingCopyVersionOptions))
-            {
-                Version workingCopyVersion = workingCopyVersionOptions?.Version?.Version;
-                Version headCommitVersion = committedVersionOptions?.Version?.Version ?? Version0;
-                if (workingCopyVersion == null || !workingCopyVersion.Equals(headCommitVersion))
-                {
-                    // The working copy has changed the major.minor version.
-                    // So by definition the version height is 0, since no commit represents it yet.
-                    return 0;
-                }
-            }
-
-            // No special changes in the working directory, so apply regular logic.
-            return GetVersionHeight(repo.Head, repoRelativeProjectDirectory);
-        }
-
-        /// <summary>
-        /// Gets the number of commits in the longest single path between
-        /// the specified commit and the most distant ancestor (inclusive)
-        /// that set the version to the value at the tip of the <paramref name="branch"/>.
-        /// </summary>
-        /// <param name="branch">The branch to measure the height of.</param>
-        /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
-        /// <returns>The height of the branch till the version is changed.</returns>
-        public static int GetVersionHeight(this Branch branch, string repoRelativeProjectDirectory = null)
-        {
-            return GetVersionHeight(branch.Tip ?? throw new InvalidOperationException("No commit exists."), repoRelativeProjectDirectory);
         }
 
         /// <summary>
@@ -258,7 +212,7 @@
         /// the height of the git commit while the <see cref="Version.Revision"/>
         /// component is the first four bytes of the git commit id (forced to be a positive integer).
         /// </remarks>
-        public static Version GetIdAsVersion(this Commit commit, string repoRelativeProjectDirectory = null, int? versionHeight = null)
+        internal static Version GetIdAsVersion(this Commit commit, string repoRelativeProjectDirectory = null, int? versionHeight = null)
         {
             Requires.NotNull(commit, nameof(commit));
             Requires.Argument(repoRelativeProjectDirectory == null || !Path.IsPathRooted(repoRelativeProjectDirectory), nameof(repoRelativeProjectDirectory), "Path should be relative to repo root.");
@@ -271,47 +225,6 @@
             }
 
             return GetIdAsVersionHelper(commit, versionOptions, versionHeight.Value);
-        }
-
-        /// <summary>
-        /// Encodes HEAD (or a modified working copy) from history in a <see cref="Version"/>
-        /// so that the original commit can be found later.
-        /// </summary>
-        /// <param name="repo">The repo whose ID and position in history is to be encoded.</param>
-        /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
-        /// <param name="versionHeight">
-        /// The version height, previously calculated by a call to <see cref="GetVersionHeight(Commit, string, Version)"/>
-        /// with the same value for <paramref name="repoRelativeProjectDirectory"/>.
-        /// </param>
-        /// <returns>
-        /// A version whose <see cref="Version.Build"/> and
-        /// <see cref="Version.Revision"/> components are calculated based on the commit.
-        /// </returns>
-        /// <remarks>
-        /// In the returned version, the <see cref="Version.Build"/> component is
-        /// the height of the git commit while the <see cref="Version.Revision"/>
-        /// component is the first four bytes of the git commit id (forced to be a positive integer).
-        /// </remarks>
-        public static Version GetIdAsVersion(this Repository repo, string repoRelativeProjectDirectory = null, int? versionHeight = null)
-        {
-            Requires.NotNull(repo, nameof(repo));
-
-            var headCommit = repo.Head.Tip;
-            VersionOptions workingCopyVersionOptions, committedVersionOptions;
-            if (IsVersionFileChangedInWorkingCopy(repo, repoRelativeProjectDirectory, out committedVersionOptions, out workingCopyVersionOptions))
-            {
-                // Apply ordinary logic, but to the working copy version info.
-                if (!versionHeight.HasValue)
-                {
-                    var baseVersion = workingCopyVersionOptions?.Version?.Version;
-                    versionHeight = GetVersionHeight(headCommit, repoRelativeProjectDirectory, baseVersion);
-                }
-
-                Version result = GetIdAsVersionHelper(headCommit, workingCopyVersionOptions, versionHeight.Value);
-                return result;
-            }
-
-            return GetIdAsVersion(headCommit, repoRelativeProjectDirectory);
         }
 
         /// <summary>

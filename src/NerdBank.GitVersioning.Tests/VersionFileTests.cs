@@ -485,10 +485,9 @@ public class VersionFileTests : RepoTestBase
     }
 
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(true, false)]
-    [InlineData(true, true)]
-    public void VersionJson_Inheritance(bool commitInSourceControl, bool bareRepo)
+    [InlineData(false)]
+    [InlineData(true)]
+    public void VersionJson_Inheritance(bool commitInSourceControl)
     {
         if (commitInSourceControl)
         {
@@ -531,11 +530,6 @@ public class VersionFileTests : RepoTestBase
             "inheritWithVersion");
 
         Repository operatingRepo = this.Repo;
-        if (bareRepo)
-        {
-            operatingRepo = new Repository(
-                Repository.Clone(this.RepoPath, this.CreateDirectoryForNewRepo(), new CloneOptions { IsBare = true }));
-        }
 
         using (operatingRepo)
         {
@@ -573,13 +567,13 @@ public class VersionFileTests : RepoTestBase
 
                 // The version height should be the same for all those that inherit the version from the base,
                 // even though the inheriting files were introduced in successive commits.
-                Assert.Equal(totalCommits, operatingRepo.GetVersionHeight());
-                Assert.Equal(totalCommits, operatingRepo.GetVersionHeight("foo"));
-                Assert.Equal(totalCommits, operatingRepo.GetVersionHeight("foo/bar"));
+                Assert.Equal(totalCommits, GetVersionHeight(operatingRepo));
+                Assert.Equal(totalCommits, GetVersionHeight(operatingRepo, "foo"));
+                Assert.Equal(totalCommits, GetVersionHeight(operatingRepo, "foo/bar"));
 
                 // These either don't inherit, or inherit but reset versions, so the commits were reset.
-                Assert.Equal(2, operatingRepo.GetVersionHeight("noInherit"));
-                Assert.Equal(1, operatingRepo.GetVersionHeight("inheritWithVersion"));
+                Assert.Equal(2, GetVersionHeight(operatingRepo, "noInherit"));
+                Assert.Equal(1, GetVersionHeight(operatingRepo, "inheritWithVersion"));
             }
         }
     }
