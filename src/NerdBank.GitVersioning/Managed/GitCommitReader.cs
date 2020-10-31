@@ -81,10 +81,25 @@ namespace NerdBank.GitVersioning.Managed
 
             buffer = buffer.Slice(TreeLineLength);
 
+            GitObjectId? firstParent = null, secondParent = null;
+            List<GitObjectId>? additionalParents = null;
             List<GitObjectId> parents = new List<GitObjectId>();
             while (TryReadParent(buffer, out GitObjectId parent))
             {
-                parents.Add(parent);
+                if (!firstParent.HasValue)
+                {
+                    firstParent = parent;
+                }
+                else if (!secondParent.HasValue)
+                {
+                    secondParent = parent;
+                }
+                else
+                {
+                    additionalParents ??= new List<GitObjectId>();
+                    additionalParents.Add(parent);
+                }
+
                 buffer = buffer.Slice(ParentLineLength);
             }
 
@@ -98,7 +113,9 @@ namespace NerdBank.GitVersioning.Managed
             return new GitCommit()
             {
                 Sha = sha,
-                Parents = parents,
+                FirstParent = firstParent,
+                SecondParent = secondParent,
+                AdditionalParents = additionalParents,
                 Tree = tree,
                 Author = readAuthor ? signature : (GitSignature?)null,
             };

@@ -1,6 +1,7 @@
 ﻿#nullable enable
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace NerdBank.GitVersioning.Managed
@@ -22,9 +23,24 @@ namespace NerdBank.GitVersioning.Managed
         public GitObjectId Sha { get; set; }
 
         /// <summary>
-        /// Gets or sets a list of all parents of this commit.
+        /// Gets or sets the first parent of this commit.
         /// </summary>
-        public List<GitObjectId> Parents { get; set; }
+        public GitObjectId? FirstParent { get; set; }
+
+        /// <summary>
+        /// Gets or sets the second parent of this commit.
+        /// </summary>
+        public GitObjectId? SecondParent { get; set; }
+
+        /// <summary>
+        /// Gets or sets additional parents (3rd parent and on) of this commit, if any.
+        /// </summary>
+        public List<GitObjectId>? AdditionalParents { get; set; }
+
+        /// <summary>
+        /// Gets an enumerator for parents of this commit.
+        /// </summary>
+        public ParentEnumerable Parents => new ParentEnumerable(this);
 
         /// <summary>
         /// Gets or sets the author of this commit.
@@ -70,6 +86,90 @@ namespace NerdBank.GitVersioning.Managed
         public override string ToString()
         {
             return $"Git Commit: {this.Sha}";
+        }
+
+        /// <summary>
+        /// An enumerable for parents of a commit.
+        /// </summary>
+        public struct ParentEnumerable : IEnumerable<GitObjectId>
+        {
+            private readonly GitCommit owner;
+
+            /// <summary>
+            /// Initializes an instance of the <see cref="ParentEnumerable"/> struct.
+            /// </summary>
+            /// <param name="owner">The commit whose parents are to be enumerated.</param>
+            public ParentEnumerable(GitCommit owner)
+            {
+                this.owner = owner;
+            }
+
+            /// <inheritdoc />
+            public IEnumerator<GitObjectId> GetEnumerator() => new ParentEnumerator(this.owner);
+
+            /// <inheritdoc />
+            IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
+        }
+
+        /// <summary>
+        /// An enumerator for a commit's parents.
+        /// </summary>
+        public struct ParentEnumerator : IEnumerator<GitObjectId>
+        {
+            private readonly GitCommit owner;
+
+            private int position;
+
+            /// <summary>
+            /// Initializes an instance of the <see cref="ParentEnumerator"/> struct.
+            /// </summary>
+            /// <param name="owner">The commit whose parents are to be enumerated.</param>
+            public ParentEnumerator(GitCommit owner)
+            {
+                this.owner = owner;
+                this.position = -1;
+            }
+
+            /// <inheritdoc />
+            public GitObjectId Current
+            {
+                get
+                {
+                    if (this.position < 0)
+                    {
+                        throw new InvalidOperationException("Call MoveNext first.");
+                    }
+
+                    return this.position switch
+                    {
+                        0 => this.owner.FirstParent ?? throw new InvalidOperationException("No more elements."),
+                        1 => this.owner.SecondParent ?? throw new InvalidOperationException("No more elements."),
+                        _ => this.owner.AdditionalParents?[this.position - 2] ?? throw new InvalidOperationException("No more elements."),
+                    };
+                }
+            }
+
+            /// <inheritdoc />
+            object IEnumerator.Current => this.Current;
+
+            /// <inheritdoc />
+            public void Dispose()
+            {
+            }
+
+            /// <inheritdoc />
+            public bool MoveNext()
+            {
+                return ++this.position switch
+                {
+                    0 => this.owner.FirstParent.HasValue,
+                    1 => this.owner.SecondParent.HasValue,
+                    _ => this.owner.AdditionalParents?.Count >= this.position - 2,
+                };
+            }
+
+            /// <inheritdoc />
+            public void Reset() => this.position = -1;
         }
     }
 }
