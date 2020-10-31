@@ -412,6 +412,8 @@ public class VersionOracleTests : RepoTestBase
     [Fact]
     public void GetHeight_EmptyRepo()
     {
+        this.InitializeSourceControl();
+
         Branch head = this.Repo.Head;
         Assert.Throws<InvalidOperationException>(() => head.GetHeight());
         Assert.Throws<InvalidOperationException>(() => head.GetHeight(c => true));
@@ -420,6 +422,8 @@ public class VersionOracleTests : RepoTestBase
     [Fact]
     public void GetVersionHeight_Test()
     {
+        this.InitializeSourceControl();
+
         var first = this.Repo.Commit("First", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         var second = this.Repo.Commit("Second", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         this.WriteVersionFile();
@@ -430,6 +434,8 @@ public class VersionOracleTests : RepoTestBase
     [Fact]
     public void GetVersionHeight_VersionJsonHasUnrelatedHistory()
     {
+        this.InitializeSourceControl();
+
         // Emulate a repo that used version.json for something else.
         string versionJsonPath = Path.Combine(this.RepoPath, "version.json");
         File.WriteAllText(versionJsonPath, @"{ ""unrelated"": false }");
@@ -453,6 +459,7 @@ public class VersionOracleTests : RepoTestBase
     [Fact]
     public void GetVersionHeight_VersionJsonHasParsingErrorsInHistory()
     {
+        this.InitializeSourceControl();
         this.WriteVersionFile();
         Assert.Equal(1, this.GetVersionHeight());
 
@@ -476,6 +483,8 @@ public class VersionOracleTests : RepoTestBase
     [Fact]
     public void GetVersionHeight_IntroducingFiltersIncrementsHeight()
     {
+        this.InitializeSourceControl();
+
         string relativeDirectory = "some-sub-dir";
 
         this.WriteVersionFile(relativeDirectory: relativeDirectory);
@@ -494,6 +503,8 @@ public class VersionOracleTests : RepoTestBase
     [InlineData(":/some-sub-dir")]
     public void GetVersionHeight_IncludeFilter(string includeFilter)
     {
+        this.InitializeSourceControl();
+
         string relativeDirectory = "some-sub-dir";
 
         var versionData = VersionOptions.FromVersion(new Version("1.2"));
@@ -519,6 +530,8 @@ public class VersionOracleTests : RepoTestBase
     [Fact]
     public void GetVersionHeight_IncludeExcludeFilter()
     {
+        this.InitializeSourceControl();
+
         string relativeDirectory = "some-sub-dir";
 
         var versionData = VersionOptions.FromVersion(new Version("1.2"));
@@ -559,6 +572,8 @@ public class VersionOracleTests : RepoTestBase
     [Fact]
     public void GetVersionHeight_IncludeExcludeFilter_NoProjectDirectory()
     {
+        this.InitializeSourceControl();
+
         var versionData = VersionOptions.FromVersion(new Version("1.2"));
         versionData.PathFilters = new[]
         {
@@ -600,6 +615,8 @@ public class VersionOracleTests : RepoTestBase
     [InlineData(":^../excluded-dir")]
     public void GetVersionHeight_AddingExcludeDoesNotLowerHeight(string excludePathFilter)
     {
+        this.InitializeSourceControl();
+
         string relativeDirectory = "some-sub-dir";
 
         var versionData = VersionOptions.FromVersion(new Version("1.2"));
@@ -628,6 +645,8 @@ public class VersionOracleTests : RepoTestBase
     [Fact]
     public void GetVersionHeight_IncludeRoot()
     {
+        this.InitializeSourceControl();
+
         string relativeDirectory = "some-sub-dir";
 
         var versionData = VersionOptions.FromVersion(new Version("1.2"));
@@ -653,6 +672,8 @@ public class VersionOracleTests : RepoTestBase
     [Fact]
     public void GetVersionHeight_IncludeRootExcludeSome()
     {
+        this.InitializeSourceControl();
+
         string relativeDirectory = "some-sub-dir";
 
         var versionData = VersionOptions.FromVersion(new Version("1.2"));
@@ -684,6 +705,8 @@ public class VersionOracleTests : RepoTestBase
     [Fact]
     public void GetVersionHeight_ProjectDirectoryDifferentToVersionJsonDirectory()
     {
+        this.InitializeSourceControl();
+
         string relativeDirectory = "some-sub-dir";
 
         var versionData = VersionOptions.FromVersion(new Version("1.2"));
@@ -706,6 +729,8 @@ public class VersionOracleTests : RepoTestBase
     [Fact]
     public void GetVersionHeight_ProjectDirectoryIsMoved()
     {
+        this.InitializeSourceControl();
+
         string relativeDirectory = "some-sub-dir";
 
         var versionData = VersionOptions.FromVersion(new Version("1.2"));
