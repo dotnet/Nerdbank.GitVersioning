@@ -29,7 +29,7 @@ public partial class RepoTestBase
     /// <returns>The height of the commit. Always a positive integer.</returns>
     protected int GetVersionHeight(Commit commit, string repoRelativeProjectDirectory = null)
     {
-        VersionOracle oracle = new VersionOracle(repoRelativeProjectDirectory == null ? this.RepoPath : Path.Combine(this.RepoPath, repoRelativeProjectDirectory), this.Repo, commit, null);
+        VersionOracle oracle = new LibGit2VersionOracle(repoRelativeProjectDirectory == null ? this.RepoPath : Path.Combine(this.RepoPath, repoRelativeProjectDirectory), this.Repo, commit, null);
         return oracle.VersionHeight;
     }
 
@@ -48,7 +48,7 @@ public partial class RepoTestBase
 
     protected static int GetVersionHeight(Repository repository, string repoRelativeProjectDirectory = null)
     {
-        VersionOracle oracle = new VersionOracle(repoRelativeProjectDirectory == null ? repository.Info.WorkingDirectory : Path.Combine(repository.Info.WorkingDirectory, repoRelativeProjectDirectory), repository, null);
+        VersionOracle oracle = new LibGit2VersionOracle(repoRelativeProjectDirectory == null ? repository.Info.WorkingDirectory : Path.Combine(repository.Info.WorkingDirectory, repoRelativeProjectDirectory), repository, null);
         return oracle.VersionHeight;
     }
 
@@ -68,7 +68,7 @@ public partial class RepoTestBase
     /// </remarks>
     protected System.Version GetIdAsVersion(string repoRelativeProjectDirectory = null)
     {
-        VersionOracle oracle = new VersionOracle(
+        VersionOracle oracle = new LibGit2VersionOracle(
             repoRelativeProjectDirectory == null ? this.Repo.Info.WorkingDirectory : Path.Combine(this.Repo.Info.WorkingDirectory, repoRelativeProjectDirectory),
             this.Repo,
             null);
@@ -83,7 +83,7 @@ public partial class RepoTestBase
 
     protected static System.Version GetIdAsVersion(Repository repository, Commit commit, string repoRelativeProjectDirectory = null)
     {
-        VersionOracle oracle = new VersionOracle(
+        VersionOracle oracle = new LibGit2VersionOracle(
             repoRelativeProjectDirectory == null ? repository.Info.WorkingDirectory : Path.Combine(repository.Info.WorkingDirectory, repoRelativeProjectDirectory),
             repository,
             commit,
