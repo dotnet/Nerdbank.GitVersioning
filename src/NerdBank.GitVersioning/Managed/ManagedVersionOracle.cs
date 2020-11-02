@@ -18,7 +18,7 @@ namespace NerdBank.GitVersioning.Managed
         /// <summary>
         /// Initializes a new instance of the <see cref="VersionOracle"/> class.
         /// </summary>
-        public static VersionOracle CreateManaged(string projectDirectory, string? gitRepoDirectory = null, ICloudBuild? cloudBuild = null, int? overrideBuildNumberOffset = null, string? projectPathRelativeToGitRepoRoot = null)
+        public static VersionOracle CreateManaged(string projectDirectory, string? gitRepoDirectory = null, string? head = null, ICloudBuild? cloudBuild = null, int? overrideBuildNumberOffset = null, string? projectPathRelativeToGitRepoRoot = null)
         {
             Requires.NotNull(projectDirectory, nameof(projectDirectory));
             if (string.IsNullOrEmpty(gitRepoDirectory))
@@ -27,7 +27,9 @@ namespace NerdBank.GitVersioning.Managed
             }
 
             GitRepository? repository = GitRepository.Create(gitRepoDirectory);
-            return new ManagedVersionOracle(projectDirectory, repository, null, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot);
+            GitCommit? headCommit = head == null ? null : repository?.GetCommit(GitObjectId.Parse(head));
+
+            return new ManagedVersionOracle(projectDirectory, repository, headCommit, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot);
         }
 
         /// <summary>
@@ -42,13 +44,13 @@ namespace NerdBank.GitVersioning.Managed
                 projectDirectory = Path.Combine(repo.WorkingDirectory /* repo.Info.WorkingDirectory */, relativeRepoProjectDirectory);
             }
 
-            var commit = head ?? repo?.GetHeadCommit(readAuthor: true);
+            GitCommit? commit = head ?? repo?.GetHeadCommit(readAuthor: true);
 
             (var commitedVersionPath, var committedVersion) = VersionFile.GetVersionOptions(repo, commit, relativeRepoProjectDirectory);
 
             (var workingVersionPath, var workingVersion) = head.HasValue
                 ? VersionFile.GetVersionOptions(repo, head.Value, relativeRepoProjectDirectory)
-                : VersionFile.GetVersionOptions(projectDirectory);
+                : VersionFile.GetVersionOptions(repo, projectDirectory);
 
             if (overrideVersionHeightOffset.HasValue)
             {
@@ -112,7 +114,7 @@ namespace NerdBank.GitVersioning.Managed
 
         private static int CalculateVersionHeight(GitRepository? repository, string relativeRepoProjectDirectory, GitCommit? headCommit, string? committedVersionPath, VersionOptions? committedVersion, VersionOptions? workingVersion)
         {
-            if (repository == null || headCommit == null || committedVersionPath == null)
+            if (repository == null || headCommit == null || committedVersionPath == null || committedVersion?.Version == null)
             {
                 return 0;
             }
@@ -132,7 +134,7 @@ namespace NerdBank.GitVersioning.Managed
             }
 
             WalkingVersionResolver resolver = new WalkingVersionResolver(repository, committedVersionPath);
-            return resolver.GetGitHeight(null);
+            return resolver.GetGitHeight(headCommit, committedVersion, null);
         }
 
         private static Version GetIdAsVersion(GitCommit? headCommit, VersionOptions? committedVersion, VersionOptions? workingVersion, int versionHeight)

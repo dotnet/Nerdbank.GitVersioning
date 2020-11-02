@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Validation;
+using static LibGit2Sharp.RepositoryExtensions;
 
 namespace Nerdbank.GitVersioning
 {
@@ -14,7 +15,7 @@ namespace Nerdbank.GitVersioning
         /// <summary>
         /// Initializes a new instance of the <see cref="VersionOracle"/> class.
         /// </summary>
-        public static VersionOracle CreateLibGit2(string projectDirectory, string gitRepoDirectory = null, ICloudBuild cloudBuild = null, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null)
+        public static VersionOracle CreateLibGit2(string projectDirectory, string gitRepoDirectory = null, string head = null, ICloudBuild cloudBuild = null, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null)
         {
             Requires.NotNull(projectDirectory, nameof(projectDirectory));
             if (string.IsNullOrEmpty(gitRepoDirectory))
@@ -24,7 +25,7 @@ namespace Nerdbank.GitVersioning
 
             using (var git = GitExtensions.OpenGitRepo(gitRepoDirectory))
             {
-                return new LibGit2VersionOracle(projectDirectory, git, null, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot);
+                return new LibGit2VersionOracle(projectDirectory, git, head == null ? null : git?.Lookup<LibGit2Sharp.Commit>(head), cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot);
             }
         }
 

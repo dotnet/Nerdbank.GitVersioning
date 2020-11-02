@@ -47,7 +47,8 @@ namespace NerdBank.GitVersioning.Managed
 
             GitObjectId tree = commit.Value.Tree;
             VersionOptions result;
-            string versionFileName = "";
+            string versionFileName = string.Empty;
+            currentDirectory = currentDirectory ?? string.Empty;
 
             while (tree != GitObjectId.Empty)
             {
@@ -87,6 +88,7 @@ namespace NerdBank.GitVersioning.Managed
                     {
                         string directoryName = directories.Pop();
                         tree = GitTreeStreamingReader.FindNode(treeStream, Encoding.UTF8.GetBytes(directoryName));
+                        currentDirectory = Path.Combine(currentDirectory, directoryName);
                         versionFileName = Path.Combine(versionFileName, directoryName);
                     }
                     else
@@ -99,10 +101,10 @@ namespace NerdBank.GitVersioning.Managed
             return versionOptions.Count > 0 ? (versionFileNames.Pop(), versionOptions.Pop()) : (null, null);
         }
 
-        public static (string?, VersionOptions?) GetVersionOptions(string? projectDirectory) =>
-            GetVersionOptions(projectDirectory, out _);
+        public static (string?, VersionOptions?) GetVersionOptions(GitRepository? repository, string projectDirectory) =>
+            GetVersionOptions(repository, projectDirectory, out _);
 
-        public static (string?, VersionOptions?) GetVersionOptions(string? projectDirectory, out string? actualDirectory)
+        public static (string?, VersionOptions?) GetVersionOptions(GitRepository? repository, string projectDirectory, out string? actualDirectory)
         {
             Requires.NotNullOrEmpty(projectDirectory, nameof(projectDirectory));
 
@@ -116,14 +118,14 @@ namespace NerdBank.GitVersioning.Managed
                 {
                     string versionJsonContent = File.ReadAllText(versionJsonPath);
 
-                    string? repoRelativeBaseDirectory = null; // repo?.GetRepoRelativePath(searchDirectory);
+                    string? repoRelativeBaseDirectory = repository?.GetRepoRelativePath(projectDirectory);
                     VersionOptions? result =
                         TryReadVersionJsonContent(versionJsonContent, repoRelativeBaseDirectory);
                     if (result?.Inherit ?? false)
                     {
                         if (parentDirectory != null)
                         {
-                            (_, result) = GetVersionOptions(parentDirectory);
+                            (_, result) = GetVersionOptions(repository, parentDirectory);
                             if (result != null)
                             {
                                 JsonConvert.PopulateObject(versionJsonContent, result,

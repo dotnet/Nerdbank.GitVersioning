@@ -23,7 +23,7 @@ namespace NerdBank.GitVersioning.Managed
             }
         }
 
-        public abstract int GetGitHeight(Func<GitCommit, bool> continueStepping);
+        public abstract int GetGitHeight(GitCommit? headCommit, VersionOptions initialVersion, Func<GitCommit, bool> continueStepping);
 
         /// <summary>
         /// The placeholder that may appear in the <see cref="Version"/> property's <see cref="SemanticVersion.Prerelease"/>

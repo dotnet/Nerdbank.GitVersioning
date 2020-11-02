@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using LibGit2Sharp;
 using Nerdbank.GitVersioning;
@@ -29,7 +30,10 @@ public partial class RepoTestBase
     /// <returns>The height of the commit. Always a positive integer.</returns>
     protected int GetVersionHeight(Commit commit, string repoRelativeProjectDirectory = null)
     {
-        VersionOracle oracle = new LibGit2VersionOracle(repoRelativeProjectDirectory == null ? this.RepoPath : Path.Combine(this.RepoPath, repoRelativeProjectDirectory), this.Repo, commit, null);
+        VersionOracle oracle = VersionOracle.Create(
+            projectDirectory: repoRelativeProjectDirectory == null ? this.RepoPath : Path.Combine(this.RepoPath, repoRelativeProjectDirectory),
+            head: commit.Sha);
+
         return oracle.VersionHeight;
     }
 
@@ -48,7 +52,9 @@ public partial class RepoTestBase
 
     protected static int GetVersionHeight(Repository repository, string repoRelativeProjectDirectory = null)
     {
-        VersionOracle oracle = new LibGit2VersionOracle(repoRelativeProjectDirectory == null ? repository.Info.WorkingDirectory : Path.Combine(repository.Info.WorkingDirectory, repoRelativeProjectDirectory), repository, null);
+        VersionOracle oracle = VersionOracle.Create(
+            projectDirectory: repoRelativeProjectDirectory == null ? repository.Info.WorkingDirectory : Path.Combine(repository.Info.WorkingDirectory, repoRelativeProjectDirectory));
+
         return oracle.VersionHeight;
     }
 
@@ -90,5 +96,33 @@ public partial class RepoTestBase
             null);
 
         return oracle.Version;
+    }
+
+    private class FakeCloudBuild : ICloudBuild
+    {
+        public FakeCloudBuild(string gitCommitId)
+        {
+            this.GitCommitId = gitCommitId;
+        }
+
+        public bool IsApplicable => true;
+
+        public bool IsPullRequest => false;
+
+        public string BuildingBranch => null;
+
+        public string BuildingTag => null;
+
+        public string GitCommitId { get; private set; }
+
+        public IReadOnlyDictionary<string, string> SetCloudBuildNumber(string buildNumber, TextWriter stdout, TextWriter stderr)
+        {
+            return new Dictionary<string, string>();
+        }
+
+        public IReadOnlyDictionary<string, string> SetCloudBuildVariable(string name, string value, TextWriter stdout, TextWriter stderr)
+        {
+            return new Dictionary<string, string>();
+        }
     }
 }

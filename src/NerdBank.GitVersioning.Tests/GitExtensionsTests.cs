@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using LibGit2Sharp;
 using Nerdbank.GitVersioning;
 using Validation;
@@ -387,7 +386,7 @@ public partial class GitExtensionsTests : RepoTestBase
         Directory.CreateDirectory(Path.GetDirectoryName(fileInExcludedDirPath));
         File.WriteAllText(fileInExcludedDirPath, "hello");
         Commands.Stage(this.Repo, fileInExcludedDirPath);
-        this.Repo.Commit("Add file to excluded dir", this.Signer, this.Signer);
+        var commit = this.Repo.Commit("Add file to excluded dir", this.Signer, this.Signer).Sha;
         Assert.Equal(2, this.GetVersionHeight(relativeDirectory));
 
         // Rename the project directory
@@ -467,16 +466,16 @@ public partial class GitExtensionsTests : RepoTestBase
     }
 
     [Theory]
-    [InlineData("2.2-alpha", "2.2-rc", false)]
-    [InlineData("2.2-rc", "2.2", false)]
-    [InlineData("2.2", "2.3-alpha", true)]
-    [InlineData("2.2", "2.3", true)]
-    [InlineData("2.2-rc", "2.3", true)]
-    [InlineData("2.2-alpha.{height}", "2.2-rc.{height}", true)]
-    [InlineData("2.2-alpha.{height}", "2.3-rc.{height}", true)]
-    [InlineData("2.2-alpha.{height}", "2.2", true)]
-    [InlineData("2.2", "2.2-alpha.{height}", true)]
-    public void GetVersionHeight_ProgressAndReset(string version1, string version2, bool versionHeightReset)
+    [InlineData("2.2", "2.2-alpha.{height}", 1, 1, true)]
+    [InlineData("2.2", "2.3", 1, 1, true)]
+    [InlineData("2.2", "2.3-alpha", 1, 1, true)]
+    [InlineData("2.2-alpha", "2.2-rc", 1, 2, false)]
+    [InlineData("2.2-alpha.{height}", "2.2", 1, 1, true)]
+    [InlineData("2.2-alpha.{height}", "2.2-rc.{height}", 1, 1, true)]
+    [InlineData("2.2-alpha.{height}", "2.3-rc.{height}", 1, 1, true)]
+    [InlineData("2.2-rc", "2.2", 1, 2, false)]
+    [InlineData("2.2-rc", "2.3", 1, 1, true)]
+    public void GetVersionHeight_ProgressAndReset(string version1, string version2, int expectedHeight1, int expectedHeight2, bool versionHeightReset)
     {
         const string repoRelativeSubDirectory = "subdir";
 
@@ -491,10 +490,14 @@ public partial class GitExtensionsTests : RepoTestBase
             repoRelativeSubDirectory);
 
         int height2 = this.GetVersionHeight(repoRelativeSubDirectory);
+        Debug.WriteLine("---");
         int height1 = this.GetVersionHeight(this.Repo.Head.Commits.Skip(1).First(), repoRelativeSubDirectory);
 
         this.Logger.WriteLine("Height 1: {0}", height1);
         this.Logger.WriteLine("Height 2: {0}", height2);
+
+        Assert.Equal(expectedHeight1, height1);
+        Assert.Equal(expectedHeight2, height2);
 
         Assert.Equal(!versionHeightReset, height2 > height1);
     }

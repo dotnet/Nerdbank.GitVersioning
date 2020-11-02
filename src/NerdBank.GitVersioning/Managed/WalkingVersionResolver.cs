@@ -24,16 +24,16 @@ namespace NerdBank.GitVersioning.Managed
         {
         }
 
-        public override int GetGitHeight(Func<GitCommit, bool>? continueStepping)
+        public override int GetGitHeight(GitCommit? headCommit, VersionOptions initialVersion, Func<GitCommit, bool>? continueStepping)
         {
             // Get the commit at which the version number changed, and calculate the git height
             // this.logger.LogInformation("Determining the version based on '{versionPath}' in repository '{repositoryPath}'", this.versionPath, this.gitRepository.GitDirectory);
             Debug.WriteLine($"Determining the version based on '{this.versionPath}' in repository '{this.gitRepository.GitDirectory}'");
 
-            var version = this.versionPath != null ? VersionFile.GetVersion(Path.Combine(this.gitRepository.WorkingDirectory, this.versionPath)) : null;
-            version = version ?? "0.0";
-            var semanticVersion = SemanticVersion.Parse(version);
-            var versionOptions = this.versionPath != null ? VersionFile.TryReadVersion(Path.Combine(this.gitRepository.WorkingDirectory, this.versionPath), Path.GetDirectoryName(this.versionPath)!) : null;
+            var semanticVersion = initialVersion?.Version;
+            var version = semanticVersion?.ToString();
+
+            var versionOptions = initialVersion;
             bool hasPathFilters =
                 versionOptions?.PathFilters != null
                 && versionOptions.PathFilters.Count > 0
@@ -45,15 +45,14 @@ namespace NerdBank.GitVersioning.Managed
             Debug.WriteLine($"The current version is '{version}'");
 
             var pathComponents = GetPathComponents(this.versionPath);
-            var maybeHeadCommit = this.gitRepository.GetHeadCommit();
-
-            if (maybeHeadCommit == null)
+            var maybeCommit = headCommit ?? this.gitRepository.GetHeadCommit();
+            if (maybeCommit == null)
             {
-                return 0;
+                throw new GitException();
             }
 
-            var headCommit = maybeHeadCommit.Value;
-            var commit = headCommit;
+            var initialCommit = maybeCommit.Value;
+            var commit = initialCommit;
 
             Stack<GitCommit> commitsToAnalyze = new Stack<GitCommit>();
             commitsToAnalyze.Push(commit);
@@ -61,10 +60,10 @@ namespace NerdBank.GitVersioning.Managed
             while (commitsToAnalyze.Count > 0)
             {
                 // Analyze the current commit
-                // this.logger.LogDebug("Analyzing commit '{sha}'. '{commitCount}' commits to analyze.", commit.Sha, commitsToAnalyze.Count);
-                Debug.WriteLine($"Analyzing commit '{commit.Sha}'. '{commitsToAnalyze.Count}' commits to analyze.");
-
                 commit = commitsToAnalyze.Peek();
+
+                // this.logger.LogDebug("Analyzing commit '{sha}'. '{commitCount}' commits to analyze.", commit.Sha, commitsToAnalyze.Count);
+                Debug.WriteLine($"Analyzing commit '{commit.Sha}'. {commitsToAnalyze.Count} commits to analyze.");
 
                 if (this.knownGitHeights.ContainsKey(commit.Sha))
                 {
@@ -85,7 +84,7 @@ namespace NerdBank.GitVersioning.Managed
                     {
                         // A version.json file was added in this revision
                         // this.logger.LogDebug("The component '{pathComponent}' could not be found in this commit. Assuming the version.json file was not present.", i == pathComponents.Length ? Array.Empty<byte>() : pathComponents[i]);
-                        Debug.WriteLine($"The component '{(i == pathComponents.Length ? Array.Empty<byte>() : pathComponents[i])}' could not be found in this commit. Assuming the version.json file was not present.");
+                        Debug.WriteLine($"{commit.Sha}: The component '{(i == pathComponents.Length ? Array.Empty<byte>() : pathComponents[i])}' could not be found in this commit. Assuming the version.json file was not present.");
                         versionChanged = true;
                         break;
                     }
@@ -94,7 +93,7 @@ namespace NerdBank.GitVersioning.Managed
                     {
                         // Nothing changed, no need to recurse.
                         // this.logger.LogDebug("The tree ID did not change in this commit. Not inspecting the contents of the tree.");
-                        Debug.WriteLine("The tree ID did not change in this commit. Not inspecting the contents of the tree.");
+                        Debug.WriteLine($"{commit.Sha}: The tree ID did not change in this commit. Not inspecting the contents of the tree.");
                         break;
                     }
 
@@ -107,7 +106,7 @@ namespace NerdBank.GitVersioning.Managed
                         {
                             var currentVersion = VersionFile.GetVersion(versionStream) ?? "0.0";
                             // this.logger.LogDebug("The version for this commit is '{version}'", currentVersion);
-                            Debug.WriteLine($"The version for this commit is '{currentVersion}'");
+                            Debug.WriteLine($"{commit.Sha}: The version for this commit is '{currentVersion}'");
 
                             if (currentVersion != version)
                             {
@@ -137,14 +136,14 @@ namespace NerdBank.GitVersioning.Managed
                                     }
                                 }
 
-                                version = currentVersion;
-                                semanticVersion = currentSemanticVersion;
-
                                 if (versionChanged)
                                 {
                                     // this.logger.LogInformation("The version number changed from '{version}' to '{currentVersion}' in commit '{commit}'. Using this commit as the baseline.", version, currentVersion, commit.Sha);
-                                    Debug.WriteLine($"The version number changed from '{version}' to '{currentVersion}' in commit '{commit.Sha}'. Using this commit as the baseline.");
+                                    Debug.WriteLine($"{commit.Sha}: The version number changed from '{version}' to '{currentVersion}' in commit '{commit.Sha}'. Using this commit as the baseline.");
                                 }
+
+                                version = currentVersion;
+                                semanticVersion = currentSemanticVersion;
                             }
                         }
                     }
@@ -152,7 +151,7 @@ namespace NerdBank.GitVersioning.Managed
                     {
                         treeId = this.gitRepository.GetTreeEntry(treeId, pathComponents[i]);
                         // this.logger.LogDebug("The tree ID for '{pathComponent}' is '{treeId}'", pathComponents[i], treeId);
-                        Debug.WriteLine($"The tree ID for '{Encoding.UTF8.GetString(pathComponents[i])}' is '{treeId}'");
+                        Debug.WriteLine($"{commit.Sha}: The tree ID for '{Encoding.UTF8.GetString(pathComponents[i])}' is '{treeId}'");
                     }
                 }
 
@@ -162,6 +161,7 @@ namespace NerdBank.GitVersioning.Managed
                     // the version actually changed a child of this commit.
                     // Assign this commit git height 0; this will cause the child to end up with
                     // git height 1.
+                    Debug.WriteLine($"{commit.Sha}: The git height for this commit is 0, because a version change has been detected.");
                     this.knownGitHeights.Add(commit.Sha, 0);
                     var poppedCommit = commitsToAnalyze.Pop();
 
@@ -178,13 +178,18 @@ namespace NerdBank.GitVersioning.Managed
                         if (this.knownGitHeights.ContainsKey(parent))
                         {
                             var parentHeight = this.knownGitHeights[parent];
+
+                            Debug.WriteLine($"{commit.Sha}: parent {parent} has height {parentHeight}. Current height is {currentHeight}");
+
                             if (parentHeight > currentHeight)
                             {
                                 currentHeight = parentHeight;
+                                Debug.WriteLine($"{commit.Sha}: Copying height from parent {parent}, current height is {currentHeight}");
 
                                 if (!hasPathFilters || this.IsRelevantCommit(commit, this.gitRepository.GetCommit(parent), versionOptions!.PathFilters))
                                 {
                                     currentHeight += 1;
+                                    Debug.WriteLine($"{commit.Sha}: This commit is a relevant commit, incremented current height to {currentHeight}");
                                 }
                             }
 
@@ -193,6 +198,8 @@ namespace NerdBank.GitVersioning.Managed
                         else
                         {
                             var parentCommit = this.gitRepository.GetCommit(parent);
+                            Debug.WriteLine($"{commit.Sha}: Height of parent commit {parent} is unknown; pushing parent to the queue.");
+
                             if (continueStepping == null || continueStepping(parentCommit))
                             {
                                 commitsToAnalyze.Push(this.gitRepository.GetCommit(parent));
@@ -205,6 +212,7 @@ namespace NerdBank.GitVersioning.Managed
                     if (!hasParent)
                     {
                         // This is the first commit in the repository. This commit has git height 1 by definition.
+                        Debug.WriteLine($"The git height for commit '{commit.Sha}' is 1, because this commit has no parents");
                         this.knownGitHeights.Add(commit.Sha, 1);
                         var poppedCommit = commitsToAnalyze.Pop();
 
@@ -213,6 +221,7 @@ namespace NerdBank.GitVersioning.Managed
                     else if (!hasParentWithUnknownGitHeight)
                     {
                         // The current height of this commit is exact.
+                        Debug.WriteLine($"The git height for commit '{commit.Sha}' is {currentHeight}");
                         this.knownGitHeights.Add(commit.Sha, currentHeight);
                         var poppedCommit = commitsToAnalyze.Pop();
 
@@ -221,7 +230,7 @@ namespace NerdBank.GitVersioning.Managed
                 }
             }
 
-            var gitHeight = this.knownGitHeights[headCommit.Sha];
+            var gitHeight = this.knownGitHeights[initialCommit.Sha];
             return gitHeight;
         }
 

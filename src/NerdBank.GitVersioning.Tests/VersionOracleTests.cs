@@ -357,7 +357,7 @@ public class VersionOracleTests : RepoTestBase
         Assert.Equal("1.1", oracle.MajorMinorVersion.ToString());
 
         // Check ChildProject with projectRelativeDir, with version file. Child project version will be used.
-        oracle = VersionOracle.Create(childProjectAbsoluteDir, this.RepoPath, null, null, childProjectRelativeDir);
+        oracle = VersionOracle.Create(childProjectAbsoluteDir, this.RepoPath, projectPathRelativeToGitRepoRoot: childProjectRelativeDir);
         Assert.Equal("2.2", oracle.MajorMinorVersion.ToString());
 
         // Check ChildProject withOUT projectRelativeDir, with Version file. Child project version will be used.
@@ -365,7 +365,7 @@ public class VersionOracleTests : RepoTestBase
         Assert.Equal("2.2", oracle.MajorMinorVersion.ToString());
 
         // Check ChildProject withOUT Version file. Root version will be used.
-        oracle = VersionOracle.Create(Path.Combine(this.RepoPath, "otherChildProject"), this.RepoPath, null, null, "otherChildProject");
+        oracle = VersionOracle.Create(Path.Combine(this.RepoPath, "otherChildProject"), this.RepoPath, projectPathRelativeToGitRepoRoot: "otherChildProject");
         Assert.Equal("1.1", oracle.MajorMinorVersion.ToString());
     }
 

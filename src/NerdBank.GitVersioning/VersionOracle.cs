@@ -1,4 +1,6 @@
-﻿namespace Nerdbank.GitVersioning
+﻿#nullable enable
+
+namespace Nerdbank.GitVersioning
 {
     using System;
     using System.Collections.Generic;
@@ -27,9 +29,9 @@
         /// <summary>
         /// Initializes a new instance of the <see cref="VersionOracle"/> class.
         /// </summary>
-        public static VersionOracle Create(string projectDirectory, string gitRepoDirectory = null, ICloudBuild cloudBuild = null, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null)
-            => UseLibGit2 ? LibGit2VersionOracle.CreateLibGit2(projectDirectory, gitRepoDirectory, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot)
-                : ManagedVersionOracle.CreateManaged(projectDirectory, gitRepoDirectory, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot);
+        public static VersionOracle Create(string projectDirectory, string? gitRepoDirectory = null, string? head = null, ICloudBuild? cloudBuild = null, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null)
+            => UseLibGit2 ? LibGit2VersionOracle.CreateLibGit2(projectDirectory, gitRepoDirectory, head, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot)
+                : ManagedVersionOracle.CreateManaged(projectDirectory, gitRepoDirectory, head, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot);
 
         /// <summary>
         /// Gets the BuildNumber to set the cloud build to (if applicable).
