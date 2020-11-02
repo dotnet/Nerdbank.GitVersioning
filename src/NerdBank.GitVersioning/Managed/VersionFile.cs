@@ -76,6 +76,15 @@ namespace NerdBank.GitVersioning.Managed
                                     "https://github.com/dotnet/Nerdbank.GitVersioning/blob/master/doc/migrating.md", ex);
                             }
 
+                            if (result.Inherit)
+                            {
+                                result = versionOptions.Peek();
+
+                                JsonConvert.PopulateObject(versionJsonContent, result,
+                                    VersionOptions.GetJsonSettings(
+                                        repoRelativeBaseDirectory: currentDirectory));
+                            }
+
                             versionOptions.Push(result);
                             versionFileNames.Push(Path.Combine(versionFileName, JsonFileName));
                         }
@@ -153,29 +162,15 @@ namespace NerdBank.GitVersioning.Managed
             return (null, null);
         }
 
-        public static string? GetVersion(string path)
-        {
-            if (FileHelpers.TryOpen(path, out FileStream? stream))
-            {
-                using (stream)
-                {
-                    return GetVersion(stream!);
-                }
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        public static string? GetVersion(Stream stream)
+        public static (string?, bool) GetVersion(Stream stream)
         {
             if (stream == null)
             {
-                return null;
+                return (null, false);
             }
 
             string? value = null;
+            bool inherit = false;
 
             byte[] data = ArrayPool<byte>.Shared.Rent((int)stream.Length);
             stream.Read(data);
@@ -190,13 +185,18 @@ namespace NerdBank.GitVersioning.Managed
                 {
                     reader.Read();
                     value = reader.GetString();
-                    break;
+                }
+                else if(reader.TokenType == JsonTokenType.PropertyName
+                    && reader.ValueTextEquals("inherit"))
+                {
+                    reader.Read();
+                    inherit = reader.GetBoolean();
                 }
             }
 
             ArrayPool<byte>.Shared.Return(data, clearArray: ClearArray);
 
-            return value;
+            return (value, inherit);
         }
 
         public static VersionOptions? TryReadVersion(string path, string repoRelativeBaseDirectory)

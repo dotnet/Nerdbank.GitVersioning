@@ -213,7 +213,7 @@
 
                 var cloudBuild = CloudBuild.Active;
                 var overrideBuildNumberOffset = (this.OverrideBuildNumberOffset == int.MaxValue) ? (int?)null : this.OverrideBuildNumberOffset;
-                var oracle = VersionOracle.Create(this.ProjectDirectory, this.GitRepoRoot, cloudBuild, overrideBuildNumberOffset, this.ProjectPathRelativeToGitRepoRoot);
+                var oracle = VersionOracle.Create(this.ProjectDirectory, this.GitRepoRoot, null, cloudBuild, overrideBuildNumberOffset, this.ProjectPathRelativeToGitRepoRoot);
                 if (!string.IsNullOrEmpty(this.DefaultPublicRelease))
                 {
                     oracle.PublicRelease = string.Equals(this.DefaultPublicRelease, "true", StringComparison.OrdinalIgnoreCase);
