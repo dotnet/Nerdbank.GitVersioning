@@ -1,7 +1,4 @@
-﻿#nullable enable
-
-using System;
-using System.ComponentModel;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -11,14 +8,14 @@ using Validation;
 namespace NerdBank.GitVersioning.Managed
 {
     /// <summary>
-    /// A managed implementation of the <see cref="VersionOracle"/>.
+    /// An implementation of the <see cref="VersionOptions"/> class which uses LibGit2 as its back-end.
     /// </summary>
     public class ManagedVersionOracle : VersionOracle
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="VersionOracle"/> class.
         /// </summary>
-        public static VersionOracle CreateManaged(string projectDirectory, string? gitRepoDirectory = null, string? head = null, ICloudBuild? cloudBuild = null, int? overrideBuildNumberOffset = null, string? projectPathRelativeToGitRepoRoot = null)
+        public static VersionOracle CreateManaged(string projectDirectory, string gitRepoDirectory = null, string head = null, ICloudBuild cloudBuild = null, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null)
         {
             Requires.NotNull(projectDirectory, nameof(projectDirectory));
             if (string.IsNullOrEmpty(gitRepoDirectory))
@@ -26,31 +23,37 @@ namespace NerdBank.GitVersioning.Managed
                 gitRepoDirectory = projectDirectory;
             }
 
-            GitRepository? repository = GitRepository.Create(gitRepoDirectory);
-            GitCommit? headCommit = head == null ? null : repository?.GetCommit(GitObjectId.Parse(head));
-
-            return new ManagedVersionOracle(projectDirectory, repository, headCommit, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot);
+            using (var git = GitRepository.Create(gitRepoDirectory))
+            {
+                return new ManagedVersionOracle(projectDirectory, git, head == null ? (GitCommit?)null : git.GetCommit(GitObjectId.Parse(head), readAuthor: true), cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot);
+            }
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="VersionOracle"/> class.
         /// </summary>
-        internal ManagedVersionOracle(string projectDirectory, GitRepository? repo, GitCommit? head, ICloudBuild? cloudBuild, int? overrideVersionHeightOffset = null, string? projectPathRelativeToGitRepoRoot = null)
+        public ManagedVersionOracle(string projectDirectory, GitRepository repo, ICloudBuild cloudBuild, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null)
+            : this(projectDirectory, repo, null, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot)
         {
-            var relativeRepoProjectDirectory = projectPathRelativeToGitRepoRoot ?? repo?.GetRepoRelativePath(projectDirectory)!;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="VersionOracle"/> class.
+        /// </summary>
+        public ManagedVersionOracle(string projectDirectory, GitRepository repo, GitCommit? head, ICloudBuild cloudBuild, int? overrideVersionHeightOffset = null, string projectPathRelativeToGitRepoRoot = null)
+        {
+            var relativeRepoProjectDirectory = projectPathRelativeToGitRepoRoot ?? repo?.GetRepoRelativePath(projectDirectory);
             if (repo is object)
             {
                 // If we're particularly git focused, normalize/reset projectDirectory to be the path we *actually* want to look at in case we're being redirected.
-                projectDirectory = Path.Combine(repo.WorkingDirectory /* repo.Info.WorkingDirectory */, relativeRepoProjectDirectory);
+                projectDirectory = Path.Combine(repo.WorkingDirectory, relativeRepoProjectDirectory);
             }
 
-            GitCommit? commit = head ?? repo?.GetHeadCommit(readAuthor: true);
+            var commit = head ?? repo?.GetHeadCommit(readAuthor: true);
 
-            (var commitedVersionPath, var committedVersion) = VersionFile.GetVersionOptions(repo, commit, relativeRepoProjectDirectory);
+            var committedVersion = VersionFile.GetVersion(repo, commit, relativeRepoProjectDirectory);
 
-            (var workingVersionPath, var workingVersion) = head.HasValue
-                ? VersionFile.GetVersionOptions(repo, head.Value, relativeRepoProjectDirectory)
-                : VersionFile.GetVersionOptions(repo, projectDirectory);
+            var workingVersion = head is object ? VersionFile.GetVersion(repo, head.Value, relativeRepoProjectDirectory) : VersionFile.GetVersion(projectDirectory);
 
             if (overrideVersionHeightOffset.HasValue)
             {
@@ -69,7 +72,7 @@ namespace NerdBank.GitVersioning.Managed
 
             this.GitCommitId = commit?.Sha.ToString() ?? cloudBuild?.GitCommitId ?? null;
             this.GitCommitDate = commit?.Author?.Date;
-            this.VersionHeight = CalculateVersionHeight(repo, relativeRepoProjectDirectory, commit, commitedVersionPath, committedVersion, workingVersion);
+            this.VersionHeight = CalculateVersionHeight(repo, relativeRepoProjectDirectory, commit, committedVersion, workingVersion);
             this.BuildingRef = cloudBuild?.BuildingTag ?? cloudBuild?.BuildingBranch ?? repo?.GetHeadAsReferenceOrSha() as string;
 
             // Override the typedVersion with the special build number and revision components, when available.
@@ -90,12 +93,11 @@ namespace NerdBank.GitVersioning.Managed
                 // get it from the git repository if there is a repository present and it is enabled
                 if (repo != null && gitCommitIdShortAutoMinimum > 0)
                 {
-                    throw new NotImplementedException();
-                    // this.GitCommitIdShort = repo.ObjectDatabase.ShortenObjectId(commit, gitCommitIdShortAutoMinimum);
+                    this.GitCommitIdShort = repo.ShortenObjectId(commit.Value.Sha, gitCommitIdShortAutoMinimum);
                 }
                 else
                 {
-                    this.GitCommitIdShort = this.GitCommitId!.Substring(0, gitCommitIdShortFixedLength);
+                    this.GitCommitIdShort = this.GitCommitId.Substring(0, gitCommitIdShortFixedLength);
                 }
             }
 
@@ -112,13 +114,8 @@ namespace NerdBank.GitVersioning.Managed
             }
         }
 
-        private static int CalculateVersionHeight(GitRepository? repository, string relativeRepoProjectDirectory, GitCommit? headCommit, string? committedVersionPath, VersionOptions? committedVersion, VersionOptions? workingVersion)
+        private static int CalculateVersionHeight(GitRepository repository, string relativeRepoProjectDirectory, GitCommit? headCommit, VersionOptions committedVersion, VersionOptions workingVersion)
         {
-            if (repository == null || headCommit == null || committedVersionPath == null || committedVersion?.Version == null)
-            {
-                return 0;
-            }
-
             var headCommitVersion = committedVersion?.Version ?? SemVer0;
 
             if (IsVersionFileChangedInWorkingTree(committedVersion, workingVersion))
@@ -133,11 +130,15 @@ namespace NerdBank.GitVersioning.Managed
                 }
             }
 
-            WalkingVersionResolver resolver = new WalkingVersionResolver(repository, committedVersionPath);
-            return resolver.GetGitHeight(headCommit, committedVersion, null);
+            if (headCommit == null)
+            {
+                return 0;
+            }
+
+            return GitExtensions.GetVersionHeight(repository, headCommit.Value, relativeRepoProjectDirectory);
         }
 
-        private static Version GetIdAsVersion(GitCommit? headCommit, VersionOptions? committedVersion, VersionOptions? workingVersion, int versionHeight)
+        private static Version GetIdAsVersion(GitCommit? headCommit, VersionOptions committedVersion, VersionOptions workingVersion, int versionHeight)
         {
             var version = IsVersionFileChangedInWorkingTree(committedVersion, workingVersion) ? workingVersion : committedVersion;
 

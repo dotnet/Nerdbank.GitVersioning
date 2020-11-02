@@ -1,40 +1,61 @@
-﻿#nullable enable
-
-using System;
-using System.Buffers;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-using System.Text.Json;
-using Nerdbank.GitVersioning;
-using Newtonsoft.Json;
-using Validation;
-
-namespace NerdBank.GitVersioning.Managed
+﻿namespace NerdBank.GitVersioning.Managed
 {
-    internal static class VersionFile
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Text;
+    using Nerdbank.GitVersioning;
+    using Newtonsoft.Json;
+    using Validation;
+
+    /// <summary>
+    /// Extension methods for interacting with the version.txt file.
+    /// </summary>
+    public static class VersionFile
     {
+        /// <summary>
+        /// The filename of the version.txt file.
+        /// </summary>
+        public const string TxtFileName = "version.txt";
+
+        /// <summary>
+        /// The filename of the version.txt file, as a byte array.
+        /// </summary>
+        public static readonly byte[] TxtFileNameBytes = Encoding.ASCII.GetBytes(TxtFileName);
+
         /// <summary>
         /// The filename of the version.json file.
         /// </summary>
         public const string JsonFileName = "version.json";
 
-        const bool ClearArray =
-#if DEBUG
-            true;
-#else
-            false;
-#endif
+        /// <summary>
+        /// The filename of the version.json file, as a byte array.
+        /// </summary>
+        public static readonly byte[] JsonFileNameBytes = Encoding.ASCII.GetBytes(JsonFileName);
 
-        public static (string?, VersionOptions?) GetVersionOptions(GitRepository? repository, GitCommit? commit, string? relativeRepoProjectDirectory)
+        /// <summary>
+        /// A sequence of possible filenames for the version file in preferred order.
+        /// </summary>
+        public static readonly IReadOnlyList<string> PreferredFileNames = new[] { JsonFileName, TxtFileName };
+
+        /// <summary>
+        /// Reads the version.json file and returns the <see cref="Version"/> and prerelease tag from it.
+        /// </summary>
+        /// <param name="repository">The repository from which to read data.</param>
+        /// <param name="commit">The commit to read the version file from.</param>
+        /// <param name="repoRelativeProjectDirectory">The directory to consider when searching for the version.txt file.</param>
+        /// <param name="blobVersionCache">An optional blob cache for storing the raw parse results of a version.txt or version.json file (before any inherit merge operations are applied).</param>
+        /// <returns>The version information read from the file.</returns>
+        public static VersionOptions GetVersion(GitRepository repository, GitCommit? commit, string repoRelativeProjectDirectory = null, Dictionary<GitObjectId, VersionOptions> blobVersionCache = null)
         {
-            if (repository == null || commit == null)
+            if (commit == null)
             {
-                return (null, null);
+                return null;
             }
 
             Stack<string> directories = new Stack<string>();
-            string? currentDirectory = relativeRepoProjectDirectory;
+
+            string currentDirectory = repoRelativeProjectDirectory;
 
             while (!string.IsNullOrEmpty(currentDirectory))
             {
@@ -42,166 +63,347 @@ namespace NerdBank.GitVersioning.Managed
                 currentDirectory = Path.GetDirectoryName(currentDirectory);
             }
 
-            Stack<VersionOptions> versionOptions = new Stack<VersionOptions>();
-            Stack<string> versionFileNames = new Stack<string>();
-
             GitObjectId tree = commit.Value.Tree;
-            VersionOptions result;
-            string versionFileName = string.Empty;
-            currentDirectory = currentDirectory ?? string.Empty;
+            string searchDirectory = string.Empty;
+            string parentDirectory = null;
+
+            VersionOptions finalResult = null;
 
             while (tree != GitObjectId.Empty)
             {
-                using (Stream treeStream = repository.GetObjectBySha(tree, "tree")!)
+                var versionTxtBlob = repository.GetTreeEntry(tree, TxtFileNameBytes);
+                if (versionTxtBlob != GitObjectId.Empty)
                 {
-                    var versionObject = GitTreeStreamingReader.FindNode(treeStream, Encoding.UTF8.GetBytes(JsonFileName));
-
-                    if (versionObject != GitObjectId.Empty)
+                    if (blobVersionCache is null || !blobVersionCache.TryGetValue(versionTxtBlob, out VersionOptions result))
                     {
-                        using (Stream optionsStream = repository.GetObjectBySha(versionObject, "blob")!)
-                        using (StreamReader optionsReader = new StreamReader(optionsStream))
+                        result = TryReadVersionFile(new StreamReader(repository.GetObjectBySha(versionTxtBlob, "blob")));
+                        if (blobVersionCache is object)
                         {
-                            var versionJsonContent = optionsReader.ReadToEnd();
-
-                            try
-                            {
-                                result =
-                                    TryReadVersionJsonContent(versionJsonContent, repoRelativeBaseDirectory: currentDirectory ?? string.Empty)!;
-                            }
-                            catch (Exception ex)
-                            {
-                                throw new FormatException(
-                                    $"Failure while reading {JsonFileName} from commit {commit.Value.Sha}. " +
-                                    "Fix this commit with rebase if this is an error, or review this doc on how to migrate to Nerdbank.GitVersioning: " +
-                                    "https://github.com/dotnet/Nerdbank.GitVersioning/blob/master/doc/migrating.md", ex);
-                            }
-
-                            if (result.Inherit)
-                            {
-                                result = versionOptions.Peek();
-
-                                JsonConvert.PopulateObject(versionJsonContent, result,
-                                    VersionOptions.GetJsonSettings(
-                                        repoRelativeBaseDirectory: currentDirectory));
-                            }
-
-                            versionOptions.Push(result);
-                            versionFileNames.Push(Path.Combine(versionFileName, JsonFileName));
+                            result?.Freeze();
+                            blobVersionCache.Add(versionTxtBlob, result);
                         }
                     }
-                }
 
-                using (Stream treeStream = repository.GetObjectBySha(tree, "tree")!)
-                {
-                    if (directories.Count > 0)
+                    if (result != null)
                     {
-                        string directoryName = directories.Pop();
-                        tree = GitTreeStreamingReader.FindNode(treeStream, Encoding.UTF8.GetBytes(directoryName));
-                        currentDirectory = Path.Combine(currentDirectory, directoryName);
-                        versionFileName = Path.Combine(versionFileName, directoryName);
-                    }
-                    else
-                    {
-                        tree = GitObjectId.Empty;
+                        finalResult = result;
                     }
                 }
-            }
 
-            return versionOptions.Count > 0 ? (versionFileNames.Pop(), versionOptions.Pop()) : (null, null);
-        }
-
-        public static (string?, VersionOptions?) GetVersionOptions(GitRepository? repository, string projectDirectory) =>
-            GetVersionOptions(repository, projectDirectory, out _);
-
-        public static (string?, VersionOptions?) GetVersionOptions(GitRepository? repository, string projectDirectory, out string? actualDirectory)
-        {
-            Requires.NotNullOrEmpty(projectDirectory, nameof(projectDirectory));
-
-            string? searchDirectory = projectDirectory;
-            while (searchDirectory != null)
-            {
-                string? parentDirectory = Path.GetDirectoryName(searchDirectory);
-
-                string versionJsonPath = Path.Combine(searchDirectory, JsonFileName);
-                if (File.Exists(versionJsonPath))
+                var versionJsonBlob =  repository.GetTreeEntry(tree, JsonFileNameBytes);
+                if (versionJsonBlob != GitObjectId.Empty)
                 {
-                    string versionJsonContent = File.ReadAllText(versionJsonPath);
+                    string versionJsonContent = null;
+                    if (blobVersionCache is null || !blobVersionCache.TryGetValue(versionJsonBlob, out VersionOptions result))
+                    {
+                        using (var sr = new StreamReader(repository.GetObjectBySha(versionJsonBlob, "blob")))
+                        {
+                            versionJsonContent = sr.ReadToEnd();
+                        }
 
-                    string? repoRelativeBaseDirectory = repository?.GetRepoRelativePath(projectDirectory);
-                    VersionOptions? result =
-                        TryReadVersionJsonContent(versionJsonContent, repoRelativeBaseDirectory);
+                        try
+                        {
+                            result = TryReadVersionJsonContent(versionJsonContent, searchDirectory);
+                        }
+                        catch (FormatException ex)
+                        {
+                            throw new FormatException(
+                                $"Failure while reading {JsonFileName} from commit {commit.Value.Sha}. " +
+                                "Fix this commit with rebase if this is an error, or review this doc on how to migrate to Nerdbank.GitVersioning: " +
+                                "https://github.com/dotnet/Nerdbank.GitVersioning/blob/master/doc/migrating.md", ex);
+                        }
+
+                        if (blobVersionCache is object)
+                        {
+                            result?.Freeze();
+                            blobVersionCache.Add(versionJsonBlob, result);
+                        }
+                    }
+
                     if (result?.Inherit ?? false)
                     {
                         if (parentDirectory != null)
                         {
-                            (_, result) = GetVersionOptions(repository, parentDirectory);
+                            result = GetVersion(repository, commit, parentDirectory, blobVersionCache);
                             if (result != null)
                             {
-                                JsonConvert.PopulateObject(versionJsonContent, result,
-                                    VersionOptions.GetJsonSettings(
-                                        repoRelativeBaseDirectory: repoRelativeBaseDirectory));
-                                actualDirectory = searchDirectory;
-                                return (versionJsonPath, result);
+                                if (versionJsonContent is null)
+                                {
+                                    // We reused a cache VersionOptions, but now we need the actual JSON string.
+                                    using (var sr = new StreamReader(repository.GetObjectBySha(versionJsonBlob, "blob")))
+                                    {
+                                        versionJsonContent = sr.ReadToEnd();
+                                    }
+                                }
+
+                                if (result.IsFrozen)
+                                {
+                                    result = new VersionOptions(result);
+                                }
+
+                                JsonConvert.PopulateObject(versionJsonContent, result, VersionOptions.GetJsonSettings(repoRelativeBaseDirectory: searchDirectory));
+                                finalResult = result;
+                            }
+                            else
+                            {
+                                var candidatePath = Path.Combine(currentDirectory, JsonFileName);
+                                throw new InvalidOperationException($"\"{candidatePath}\" inherits from a parent directory version.json file but none exists.");
                             }
                         }
-
-                        throw new InvalidOperationException(
-                            $"\"{versionJsonPath}\" inherits from a parent directory version.json file but none exists.");
                     }
-                    else if (result != null)
+
+                    if (result != null)
                     {
-                        actualDirectory = searchDirectory;
-                        return (versionJsonPath, result);
+                        finalResult = result;
                     }
                 }
 
-                searchDirectory = parentDirectory;
+
+                if (directories.Count > 0)
+                {
+                    var directoryName = directories.Pop();
+                    tree = repository.GetTreeEntry(tree, GitRepository.Encoding.GetBytes(directoryName));
+                    parentDirectory = searchDirectory;
+                    searchDirectory = Path.Combine(searchDirectory, directoryName);
+                }
+                else
+                {
+                    tree = GitObjectId.Empty;
+                    parentDirectory = null;
+                    searchDirectory = null;
+                }
+            }
+
+            return finalResult;
+        }
+
+        /// <summary>
+        /// Reads the version.txt file and returns the <see cref="Version"/> and prerelease tag from it.
+        /// </summary>
+        /// <param name="repo">The repo to read the version file from.</param>
+        /// <param name="repoRelativeProjectDirectory">The directory to consider when searching for the version.txt file.</param>
+        /// <returns>The version information read from the file.</returns>
+        public static VersionOptions GetVersion(GitRepository repo, string repoRelativeProjectDirectory = null)
+        {
+            if (repo == null)
+            {
+                return null;
+            }
+
+            // if (repo.Info.IsBare)
+            // {
+            //     return GetVersion(repo.GetHeadCommit().Value, repoRelativeProjectDirectory);
+            // }
+
+            string fullDirectory = Path.Combine(repo.WorkingDirectory, repoRelativeProjectDirectory ?? string.Empty);
+            var workingCopyVersion = GetVersion(fullDirectory);
+            return workingCopyVersion;
+
+        }
+
+        /// <summary>
+        /// Reads the version.txt file and returns the <see cref="Version"/> and prerelease tag from it.
+        /// </summary>
+        /// <param name="projectDirectory">The path to the directory which may (or its ancestors may) define the version.txt file.</param>
+        /// <returns>The version information read from the file, or <c>null</c> if the file wasn't found.</returns>
+        public static VersionOptions GetVersion(string projectDirectory) => GetVersion(projectDirectory, out string _);
+
+        /// <summary>
+        /// Reads the version.txt file and returns the <see cref="Version"/> and prerelease tag from it.
+        /// </summary>
+        /// <param name="projectDirectory">The path to the directory which may (or its ancestors may) define the version.txt file.</param>
+        /// <param name="actualDirectory">Set to the actual directory that the version file was found in, which may be <paramref name="projectDirectory"/> or one of its ancestors.</param>
+        /// <returns>The version information read from the file, or <c>null</c> if the file wasn't found.</returns>
+        public static VersionOptions GetVersion(string projectDirectory, out string actualDirectory)
+        {
+            Requires.NotNullOrEmpty(projectDirectory, nameof(projectDirectory));
+            using (var repo = GitRepository.Create(projectDirectory))
+            {
+                string searchDirectory = projectDirectory;
+                while (searchDirectory != null)
+                {
+                    string parentDirectory = Path.GetDirectoryName(searchDirectory);
+                    string versionTxtPath = Path.Combine(searchDirectory, TxtFileName);
+                    if (File.Exists(versionTxtPath))
+                    {
+                        using (var sr = new StreamReader(File.OpenRead(versionTxtPath)))
+                        {
+                            var result = TryReadVersionFile(sr);
+                            if (result != null)
+                            {
+                                actualDirectory = searchDirectory;
+                                return result;
+                            }
+                        }
+                    }
+
+                    string versionJsonPath = Path.Combine(searchDirectory, JsonFileName);
+                    if (File.Exists(versionJsonPath))
+                    {
+                        string versionJsonContent = File.ReadAllText(versionJsonPath);
+
+                        var repoRelativeBaseDirectory = repo?.GetRepoRelativePath(searchDirectory);
+                        VersionOptions result =
+                            TryReadVersionJsonContent(versionJsonContent, repoRelativeBaseDirectory);
+                        if (result?.Inherit ?? false)
+                        {
+                            if (parentDirectory != null)
+                            {
+                                result = GetVersion(parentDirectory);
+                                if (result != null)
+                                {
+                                    JsonConvert.PopulateObject(versionJsonContent, result,
+                                        VersionOptions.GetJsonSettings(
+                                            repoRelativeBaseDirectory: repoRelativeBaseDirectory));
+                                    actualDirectory = searchDirectory;
+                                    return result;
+                                }
+                            }
+
+                            throw new InvalidOperationException(
+                                $"\"{versionJsonPath}\" inherits from a parent directory version.json file but none exists.");
+                        }
+                        else if (result != null)
+                        {
+                            actualDirectory = searchDirectory;
+                            return result;
+                        }
+                    }
+
+                    searchDirectory = parentDirectory;
+                }
             }
 
             actualDirectory = null;
-            return (null, null);
+            return null;
         }
 
-        public static (string?, bool) GetVersion(Stream stream)
+        /// <summary>
+        /// Checks whether the version.txt file is defined in the specified commit.
+        /// </summary>
+        /// <param name="repository">The Git repository.</param>
+        /// <param name="commit">The commit to search.</param>
+        /// <param name="projectDirectory">The directory to consider when searching for the version.txt file.</param>
+        /// <returns><c>true</c> if the version.txt file is found; otherwise <c>false</c>.</returns>
+        public static bool IsVersionDefined(GitRepository repository, GitCommit commit, string projectDirectory = null)
         {
-            if (stream == null)
-            {
-                return (null, false);
-            }
-
-            string? value = null;
-            bool inherit = false;
-
-            byte[] data = ArrayPool<byte>.Shared.Rent((int)stream.Length);
-            stream.Read(data);
-
-            var span = data.AsSpan(0, (int)stream.Length);
-            var reader = new Utf8JsonReader(span, isFinalBlock: true, default);
-
-            while (reader.Read())
-            {
-                if (reader.TokenType == JsonTokenType.PropertyName
-                    && reader.ValueTextEquals("version"))
-                {
-                    reader.Read();
-                    value = reader.GetString();
-                }
-                else if(reader.TokenType == JsonTokenType.PropertyName
-                    && reader.ValueTextEquals("inherit"))
-                {
-                    reader.Read();
-                    inherit = reader.GetBoolean();
-                }
-            }
-
-            ArrayPool<byte>.Shared.Return(data, clearArray: ClearArray);
-
-            return (value, inherit);
+            return GetVersion(repository, commit, projectDirectory) != null;
         }
 
-        public static VersionOptions? TryReadVersion(string path, string repoRelativeBaseDirectory)
+        /// <summary>
+        /// Checks whether the version.txt file is defined in the specified project directory
+        /// or one of its ancestors.
+        /// </summary>
+        /// <param name="projectDirectory">The directory to start searching within.</param>
+        /// <returns><c>true</c> if the version.txt file is found; otherwise <c>false</c>.</returns>
+        public static bool IsVersionDefined(string projectDirectory)
         {
-            return TryReadVersionJsonContent(File.ReadAllText(path), repoRelativeBaseDirectory);
+            Requires.NotNullOrEmpty(projectDirectory, nameof(projectDirectory));
+
+            return GetVersion(projectDirectory) != null;
+        }
+
+        /// <summary>
+        /// Writes the version.json file to a directory within a repo with the specified version information.
+        /// The $schema property is included.
+        /// </summary>
+        /// <param name="projectDirectory">
+        /// The path to the directory in which to write the version.json file.
+        /// The file's impact will be all descendent projects and directories from this specified directory,
+        /// except where any of those directories have their own version.json file.
+        /// </param>
+        /// <param name="version">The version information to write to the file.</param>
+        /// <returns>The path to the file written.</returns>
+        public static string SetVersion(string projectDirectory, VersionOptions version) => SetVersion(projectDirectory, version, includeSchemaProperty: true);
+
+        /// <summary>
+        /// Writes the version.json file to a directory within a repo with the specified version information.
+        /// </summary>
+        /// <param name="projectDirectory">
+        /// The path to the directory in which to write the version.json file.
+        /// The file's impact will be all descendent projects and directories from this specified directory,
+        /// except where any of those directories have their own version.json file.
+        /// </param>
+        /// <param name="version">The version information to write to the file.</param>
+        /// <param name="includeSchemaProperty">A value indicating whether to serialize the $schema property for easier editing in most JSON editors.</param>
+        /// <returns>The path to the file written.</returns>
+        public static string SetVersion(string projectDirectory, VersionOptions version, bool includeSchemaProperty)
+        {
+            Requires.NotNullOrEmpty(projectDirectory, nameof(projectDirectory));
+            Requires.NotNull(version, nameof(version));
+            Requires.Argument(version.Version != null || version.Inherit, nameof(version), $"{nameof(VersionOptions.Version)} must be set for a root-level version.json file.");
+
+            Directory.CreateDirectory(projectDirectory);
+
+            string versionTxtPath = Path.Combine(projectDirectory, TxtFileName);
+            if (File.Exists(versionTxtPath))
+            {
+                if (version.IsDefaultVersionTheOnlyPropertySet)
+                {
+                    File.WriteAllLines(
+                        versionTxtPath,
+                        new[] { version.Version.Version.ToString(), version.Version.Prerelease });
+                    return versionTxtPath;
+                }
+                else
+                {
+                    // The file must be upgraded to use the more descriptive JSON format.
+                    File.Delete(versionTxtPath);
+                }
+            }
+
+            using (var repo = GitRepository.Create(projectDirectory))
+            {
+                string repoRelativeProjectDirectory = repo?.GetRepoRelativePath(projectDirectory);
+                string versionJsonPath = Path.Combine(projectDirectory, JsonFileName);
+                var jsonContent = JsonConvert.SerializeObject(version,
+                    VersionOptions.GetJsonSettings(version.Inherit, includeSchemaProperty,
+                        repoRelativeProjectDirectory));
+                File.WriteAllText(versionJsonPath, jsonContent);
+                return versionJsonPath;
+            }
+        }
+
+        /// <summary>
+        /// Writes the version.txt file to a directory within a repo with the specified version information.
+        /// </summary>
+        /// <param name="projectDirectory">
+        /// The path to the directory in which to write the version.txt file.
+        /// The file's impact will be all descendent projects and directories from this specified directory,
+        /// except where any of those directories have their own version.txt file.
+        /// </param>
+        /// <param name="version">The version information to write to the file.</param>
+        /// <param name="unstableTag">The optional unstable tag to include in the file.</param>
+        /// <returns>The path to the file written.</returns>
+        public static string SetVersion(string projectDirectory, Version version, string unstableTag = null)
+        {
+            return SetVersion(projectDirectory, VersionOptions.FromVersion(version, unstableTag), includeSchemaProperty: false);
+        }
+
+        /// <summary>
+        /// Reads the version.txt file and returns the <see cref="Version"/> and prerelease tag from it.
+        /// </summary>
+        /// <param name="versionTextContent">The content of the version.txt file to read.</param>
+        /// <returns>The version information read from the file; or <c>null</c> if a deserialization error occurs.</returns>
+        private static VersionOptions TryReadVersionFile(TextReader versionTextContent)
+        {
+            string versionLine = versionTextContent.ReadLine();
+            string prereleaseVersion = versionTextContent.ReadLine();
+            if (!string.IsNullOrEmpty(prereleaseVersion))
+            {
+                if (!prereleaseVersion.StartsWith("-"))
+                {
+                    // SemVer requires that prerelease suffixes begin with a hyphen, so add one if it's missing.
+                    prereleaseVersion = "-" + prereleaseVersion;
+                }
+            }
+
+            SemanticVersion semVer;
+            Verify.Operation(SemanticVersion.TryParse(versionLine + prereleaseVersion, out semVer), "Unrecognized version format.");
+            return new VersionOptions
+            {
+                Version = semVer,
+            };
         }
 
         /// <summary>
@@ -210,7 +412,7 @@ namespace NerdBank.GitVersioning.Managed
         /// <param name="jsonContent">The content of the version.json file.</param>
         /// <param name="repoRelativeBaseDirectory">Directory that this version.json file is relative to the root of the repository.</param>
         /// <returns>The deserialized <see cref="VersionOptions"/> object, if deserialization was successful.</returns>
-        private static VersionOptions? TryReadVersionJsonContent(string? jsonContent, string? repoRelativeBaseDirectory)
+        private static VersionOptions TryReadVersionJsonContent(string jsonContent, string repoRelativeBaseDirectory)
         {
             try
             {

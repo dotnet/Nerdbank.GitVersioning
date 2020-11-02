@@ -211,6 +211,23 @@ namespace NerdBank.GitVersioning.Managed
         public static Encoding Encoding => Encoding.UTF8;
 
         /// <summary>
+        /// Shortens the object id
+        /// </summary>
+        /// <param name="objectId">
+        /// The object Id to shorten.
+        /// </param>
+        /// <param name="minimum">
+        /// The minimum string length.
+        /// </param>
+        /// <returns>
+        /// The short object id.
+        /// </returns>
+        public string ShortenObjectId(GitObjectId objectId, int minimum)
+        {
+            return objectId.ToString().Substring(0, 8);
+        }
+
+        /// <summary>
         /// Returns the current HEAD as a reference (if available) or a Git object id.
         /// </summary>
         /// <returns>
