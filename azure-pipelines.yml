@@ -265,50 +265,30 @@ stages:
 
 - stage: Test
   jobs:
-  - job: Ubuntu_Xenial
+  - job: linux
+    strategy:
+      matrix:
+        xenial:
+          containerImage: xenial
+          configureContainerCommand: 'sudo apt update && sudo apt-get install -y git'
+        Ubuntu_Bionic_2_1:
+          containerImage: bionic-2.1
+        Ubuntu_Bionic:
+          containerImage: bionic
+        Ubuntu_Focal:
+          containerImage: focal
+        Ubuntu_Disco_3_0:
+          containerImage: disco-3.0
+        Arch_Linux:
+          containerImage: archlinux
+          configureContainerCommand: 'sudo pacman -Sy --noconfirm git dotnet-sdk openssl-1.0'
     pool:
-      vmImage: Ubuntu 16.04
-    container: xenial
+      vmImage: ubuntu-20.04
+    container: $[ variables['containerImage'] ]
     steps:
-    - bash: sudo apt update && sudo apt-get install -y git
-      displayName: Install git
-    - template: azure-pipelines/xplattest-pipeline.yml
-
-  - job: Ubuntu_Bionic_2_1
-    pool:
-      vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
-    container: bionic-2.1
-    steps:
-    - template: azure-pipelines/xplattest-pipeline.yml
-
-  - job: Ubuntu_Bionic
-    pool:
-      vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
-    container: bionic
-    steps:
-    - template: azure-pipelines/xplattest-pipeline.yml
-
-  - job: Ubuntu_Focal
-    pool:
-      vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
-    container: focal
-    steps:
-    - template: azure-pipelines/xplattest-pipeline.yml
-
-  - job: Ubuntu_Disco_3_0
-    pool:
-      vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
-    container: disco-3.0
-    steps:
-    - template: azure-pipelines/xplattest-pipeline.yml
-
-  - job: Arch_Linux
-    pool:
-      vmImage: Ubuntu 16.04 # not a bug. we always use this pool, but use containers for the specific version
-    container: archlinux
-    steps:
-    - bash: sudo pacman -Sy --noconfirm git dotnet-sdk openssl-1.0
-      displayName: Install git
+    - bash: $(configureContainerCommand)
+      displayName: Configure container
+      condition: ne(variables['configureContainerCommand'], '')
     - template: azure-pipelines/xplattest-pipeline.yml
 
   - job: macOS
