@@ -65,7 +65,7 @@ namespace Cake.GitVersioning
                 }
             }
 
-            return VersionOracle.Create(fullProjectDirectory, null, CloudBuild.Active);
+            return VersionOracle.Create(fullProjectDirectory, cloudBuild: CloudBuild.Active);
         }
     }
 }
