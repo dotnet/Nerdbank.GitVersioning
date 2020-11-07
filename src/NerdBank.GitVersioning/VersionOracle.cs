@@ -17,12 +17,12 @@
         /// <summary>
         /// The 0.0 version.
         /// </summary>
-        protected static readonly Version Version0 = new Version(0, 0);
+        private protected static readonly Version Version0 = new Version(0, 0);
 
         /// <summary>
         /// The 0.0 semver.
         /// </summary>
-        protected static readonly SemanticVersion SemVer0 = SemanticVersion.Parse("0.0");
+        private protected static readonly SemanticVersion SemVer0 = SemanticVersion.Parse("0.0");
 
         /// <summary>
         /// Initializes a new instance of the <see cref="VersionOracle"/> class.
@@ -300,7 +300,7 @@
         public int SemVer1NumericIdentifierPadding => this.VersionOptions?.SemVer1NumericIdentifierPaddingOrDefault ?? 4;
 
         /// <summary>
-        /// Getse or sets the <see cref="VersionOracle.CloudBuildNumberOptions"/>.
+        /// Gets or sets the <see cref="VersionOracle.CloudBuildNumberOptions"/>.
         /// </summary>
         protected VersionOptions.CloudBuildNumberOptions CloudBuildNumberOptions { get; set; }
 
@@ -392,7 +392,7 @@
         /// <param name="workingVersion">
         /// The working version of <see cref="VersionOptions"/>.
         /// </param>
-        /// <returns></returns>
+        /// <returns><see langword="true" /> if the version file is dirty; <see langword="false"/> otherwise.</returns>
         protected static bool IsVersionFileChangedInWorkingTree(VersionOptions committedVersion, VersionOptions workingVersion)
         {
             if (workingVersion != null)
@@ -400,7 +400,7 @@
                 return !EqualityComparer<VersionOptions>.Default.Equals(workingVersion, committedVersion);
             }
 
-            // A missing working version is a change only if it was previously commited.
+            // A missing working version is a change only if it was previously committed.
             return committedVersion != null;
         }
 

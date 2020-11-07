@@ -107,8 +107,8 @@ stages:
         --filter "TestCategory!=FailsOnAzurePipelines"
         --logger "trx;LogFileName=$(Build.ArtifactStagingDirectory)/TestLogs/TestResults.trx"
         --results-directory $(Build.ArtifactStagingDirectory)/CodeCoverage/
-        --collect:"XPlat Code Coverage" 
-        -- 
+        --collect:"XPlat Code Coverage"
+        --
         RunConfiguration.DisableAppDomain=true
       displayName: Run tests
       workingDirectory: src
@@ -200,13 +200,13 @@ stages:
     strategy:
       matrix:
         ubuntu:
-          imageName: 'ubuntu-18.04'
+          imageName: ubuntu-18.04
           repoDir: '~/git'
         windows:
-          imageName: 'windows-2019'
+          imageName: windows-2019
           repoDir: '${USERPROFILE}/source/repos'
         macOS:
-          imageName: 'macOS-10.15'
+          imageName: macOS-10.15
           repoDir: '~/git'
     pool:
       vmImage: $(imageName)

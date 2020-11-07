@@ -23,10 +23,8 @@ namespace NerdBank.GitVersioning.Managed
                 gitRepoDirectory = projectDirectory;
             }
 
-            using (var git = GitRepository.Create(gitRepoDirectory))
-            {
-                return new ManagedVersionOracle(projectDirectory, git, head == null ? (GitCommit?)null : git.GetCommit(GitObjectId.Parse(head), readAuthor: true), cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot);
-            }
+            using var git = GitRepository.Create(gitRepoDirectory);
+            return new ManagedVersionOracle(projectDirectory, git, head == null ? (GitCommit?)null : git.GetCommit(GitObjectId.Parse(head), readAuthor: true), cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot);
         }
 
         /// <summary>

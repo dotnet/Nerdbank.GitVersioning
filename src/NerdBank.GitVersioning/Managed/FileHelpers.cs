@@ -20,7 +20,7 @@ namespace NerdBank.GitVersioning.Managed
         /// <param name="path">The path to the file.</param>
         /// <param name="stream">The stream to open to, if the file exists.</param>
         /// <returns><see langword="true" /> if the file exists; otherwise <see langword="false" />.</returns>
-        public static bool TryOpen(string path, out FileStream? stream)
+        internal static bool TryOpen(string path, out FileStream? stream)
         {
             if (IsWindows)
             {
@@ -58,7 +58,7 @@ namespace NerdBank.GitVersioning.Managed
         /// <param name="path">The path to the file, as a null-terminated UTF-16 character array.</param>
         /// <param name="stream">The stream to open to, if the file exists.</param>
         /// <returns><see langword="true" /> if the file exists; otherwise <see langword="false" />.</returns>
-        public static unsafe bool TryOpen(ReadOnlySpan<char> path, [NotNullWhen(true)] out FileStream? stream)
+        internal static unsafe bool TryOpen(ReadOnlySpan<char> path, [NotNullWhen(true)] out FileStream? stream)
         {
             if (IsWindows)
             {
