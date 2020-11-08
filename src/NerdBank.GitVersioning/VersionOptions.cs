@@ -1,6 +1,4 @@
-﻿using LibGit2Sharp;
-
-namespace Nerdbank.GitVersioning
+﻿namespace Nerdbank.GitVersioning
 {
     using System;
     using System.Collections.Generic;

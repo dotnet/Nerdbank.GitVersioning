@@ -90,7 +90,7 @@ namespace Nerdbank.GitVersioning.Managed
                 return false;
             }
 
-            return !LibGit2.GitExtensions.WillVersionChangeResetVersionHeight(commitVersionData.Version, expectedVersion, comparisonPrecision);
+            return !SemanticVersion.WillVersionChangeResetVersionHeight(commitVersionData.Version, expectedVersion, comparisonPrecision);
         }
 
         /// <summary>
@@ -329,13 +329,7 @@ namespace Nerdbank.GitVersioning.Managed
 
         internal static string? GetRepoRelativePath(this GitRepository repo, string absolutePath)
         {
-            var repoRoot = repo.WorkingDirectory/* repo?.Info?.WorkingDirectory */?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && repoRoot != null && repoRoot.StartsWith("\\") && (repoRoot.Length == 1 || repoRoot[1] != '\\'))
-            {
-                // We're in a worktree, which libgit2sharp only gives us as a path relative to the root of the assumed drive.
-                // Add the drive: to the front of the repoRoot.
-                // repoRoot = repo.Info.Path.Substring(0, 2) + repoRoot;
-            }
+            var repoRoot = repo.WorkingDirectory?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
             if (repoRoot == null)
                 return null;

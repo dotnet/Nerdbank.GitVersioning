@@ -9,7 +9,7 @@ using Validation;
 namespace Nerdbank.GitVersioning.Managed
 {
     /// <summary>
-    /// An implementation of the <see cref="VersionOptions"/> class which uses LibGit2 as its back-end.
+    /// An implementation of the <see cref="VersionOracle"/> class which uses our own managed git implementation as its back-end.
     /// </summary>
     public class ManagedVersionOracle : VersionOracle
     {

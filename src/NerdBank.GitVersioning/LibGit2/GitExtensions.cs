@@ -320,43 +320,6 @@
         }
 
         /// <summary>
-        /// Tests whether two <see cref="SemanticVersion" /> instances are compatible enough that version height is not reset
-        /// when progressing from one to the next.
-        /// </summary>
-        /// <param name="first">The first semantic version.</param>
-        /// <param name="second">The second semantic version.</param>
-        /// <param name="versionHeightPosition">The position within the version where height is tracked.</param>
-        /// <returns><c>true</c> if transitioning from one version to the next should reset the version height; <c>false</c> otherwise.</returns>
-        internal static bool WillVersionChangeResetVersionHeight(SemanticVersion first, SemanticVersion second, SemanticVersion.Position versionHeightPosition)
-        {
-            Requires.NotNull(first, nameof(first));
-            Requires.NotNull(second, nameof(second));
-
-            if (first == second)
-            {
-                return false;
-            }
-
-            if (versionHeightPosition == SemanticVersion.Position.Prerelease)
-            {
-                // The entire version spec must match exactly.
-                return !first.Equals(second);
-            }
-
-            for (SemanticVersion.Position position = SemanticVersion.Position.Major; position <= versionHeightPosition; position++)
-            {
-                int expectedValue = ReadVersionPosition(second.Version, position);
-                int actualValue = ReadVersionPosition(first.Version, position);
-                if (expectedValue != actualValue)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        /// <summary>
         /// Tests whether a commit is of a specified version, comparing major and minor components
         /// with the version.txt file defined by that commit.
         /// </summary>
@@ -383,7 +346,7 @@
                 return false;
             }
 
-            return !WillVersionChangeResetVersionHeight(commitVersionData.Version, expectedVersion, comparisonPrecision);
+            return !SemanticVersion.WillVersionChangeResetVersionHeight(commitVersionData.Version, expectedVersion, comparisonPrecision);
         }
 
         /// <summary>
@@ -408,8 +371,8 @@
 
             for (SemanticVersion.Position position = SemanticVersion.Position.Major; position <= comparisonPrecision; position++)
             {
-                int expectedValue = ReadVersionPosition(expectedVersion, position);
-                int actualValue = ReadVersionPosition(semVerFromFile.Version, position);
+                int expectedValue = SemanticVersion.ReadVersionPosition(expectedVersion, position);
+                int actualValue = SemanticVersion.ReadVersionPosition(semVerFromFile.Version, position);
                 if (expectedValue != actualValue)
                 {
                     return false;
@@ -417,25 +380,6 @@
             }
 
             return true;
-        }
-
-        private static int ReadVersionPosition(Version version, SemanticVersion.Position position)
-        {
-            Requires.NotNull(version, nameof(version));
-
-            switch (position)
-            {
-                case SemanticVersion.Position.Major:
-                    return version.Major;
-                case SemanticVersion.Position.Minor:
-                    return version.Minor;
-                case SemanticVersion.Position.Build:
-                    return version.Build;
-                case SemanticVersion.Position.Revision:
-                    return version.Revision;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(position), position, "Must be one of the 4 integer parts.");
-            }
         }
 
         private static bool IsVersionHeightMismatch(Version version, VersionOptions versionOptions, Commit commit, GitWalkTracker tracker)
@@ -448,7 +392,7 @@
             var position = versionOptions.VersionHeightPosition;
             if (position.HasValue && position.Value <= SemanticVersion.Position.Revision)
             {
-                int expectedVersionHeight = ReadVersionPosition(version, position.Value);
+                int expectedVersionHeight = SemanticVersion.ReadVersionPosition(version, position.Value);
 
                 var actualVersionOffset = versionOptions.VersionHeightOffsetOrDefault;
                 var actualVersionHeight = GetCommitHeight(commit, tracker, c => CommitMatchesVersion(c, version, position.Value - 1, tracker));
@@ -474,7 +418,7 @@
                 // The revision is a 16-bit unsigned integer, but is not allowed to be 0xffff.
                 // So if the value is 0xfffe, consider that the actual last bit is insignificant
                 // since the original git commit ID could have been either 0xffff or 0xfffe.
-                var expectedCommitIdLeadingValue = ReadVersionPosition(version, position.Value);
+                var expectedCommitIdLeadingValue = SemanticVersion.ReadVersionPosition(version, position.Value);
                 if (expectedCommitIdLeadingValue != -1)
                 {
                     ushort objectIdLeadingValue = (ushort)expectedCommitIdLeadingValue;

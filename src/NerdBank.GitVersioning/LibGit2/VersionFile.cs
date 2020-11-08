@@ -1,13 +1,9 @@
 ﻿namespace Nerdbank.GitVersioning.LibGit2
 {
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Converters;
-    using Newtonsoft.Json.Linq;
-    using Newtonsoft.Json.Serialization;
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
+    using Newtonsoft.Json;
     using Validation;
 
     /// <summary>

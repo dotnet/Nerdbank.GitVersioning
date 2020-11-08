@@ -8,7 +8,7 @@ using static LibGit2Sharp.RepositoryExtensions;
 namespace Nerdbank.GitVersioning.LibGit2
 {
     /// <summary>
-    /// An implementation of the <see cref="VersionOptions"/> class which uses LibGit2 as its back-end.
+    /// An implementation of the <see cref="VersionOracle"/> class which uses LibGit2 as its back-end.
     /// </summary>
     public class LibGit2VersionOracle : VersionOracle
     {
