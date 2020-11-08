@@ -5,6 +5,7 @@
     using System.IO;
     using System.Text;
     using Nerdbank.GitVersioning;
+    using Nerdbank.GitVersioning.ManagedGit;
     using Newtonsoft.Json;
     using Validation;
 

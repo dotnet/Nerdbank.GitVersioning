@@ -19,10 +19,10 @@
     <EmbeddedResource Include="Keys\*.snk" />
     <EmbeddedResource Include="Keys\*.pfx" />
     <EmbeddedResource Include="..\NerdBank.GitVersioning\version.schema.json" Link="version.schema.json" />
-    <EmbeddedResource Include="Managed\*.gz" />
-    <EmbeddedResource Include="Managed\commit*" />
-    <EmbeddedResource Include="Managed\pack*" />
-    <EmbeddedResource Include="Managed\tree*" />
+    <EmbeddedResource Include="ManagedGit\*.gz" />
+    <EmbeddedResource Include="ManagedGit\commit*" />
+    <EmbeddedResource Include="ManagedGit\pack*" />
+    <EmbeddedResource Include="ManagedGit\tree*" />
     <EmbeddedResource Include="test.vcprj" />
     <EmbeddedResource Include="test.prj" />
     <EmbeddedResource Include="repos\submodules.7z" />

@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using Nerdbank.GitVersioning;
+using Nerdbank.GitVersioning.ManagedGit;
 using Validation;
 
 namespace Nerdbank.GitVersioning.Managed

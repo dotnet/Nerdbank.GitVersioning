@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Nerdbank.GitVersioning;
+using Nerdbank.GitVersioning.ManagedGit;
 using Validation;
 
 namespace Nerdbank.GitVersioning.Managed
