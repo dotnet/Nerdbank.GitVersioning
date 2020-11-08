@@ -81,22 +81,6 @@
         /// the specified commit and the most distant ancestor (inclusive).
         /// </summary>
         /// <param name="commit">The commit to measure the height of.</param>
-        /// <param name="continueStepping">
-        /// A function that returns <c>false</c> when we reach a commit that
-        /// should not be included in the height calculation.
-        /// May be null to count the height to the original commit.
-        /// </param>
-        /// <returns>The height of the commit. Always a positive integer.</returns>
-        public static int GetHeight(this Commit commit, Func<Commit, bool> continueStepping = null)
-        {
-            return commit.GetHeight(null, continueStepping);
-        }
-
-        /// <summary>
-        /// Gets the number of commits in the longest single path between
-        /// the specified commit and the most distant ancestor (inclusive).
-        /// </summary>
-        /// <param name="commit">The commit to measure the height of.</param>
         /// <param name="repoRelativeProjectDirectory">The path to the directory of the project whose version is being queried, relative to the repo root.</param>
         /// <param name="continueStepping">
         /// A function that returns <c>false</c> when we reach a commit that
@@ -123,10 +107,7 @@
         /// May be null to count the height to the original commit.
         /// </param>
         /// <returns>The height of the branch.</returns>
-        public static int GetHeight(this Branch branch, Func<Commit, bool> continueStepping = null)
-        {
-            return branch.GetHeight(null, continueStepping);
-        }
+        public static int GetHeight(this Branch branch, Func<Commit, bool> continueStepping = null) => branch.GetHeight(null, continueStepping);
 
         /// <summary>
         /// Gets the number of commits in the longest single path between
@@ -269,75 +250,6 @@
         }
 
         /// <summary>
-        /// Assists the operating system in finding the appropriate native libgit2 module.
-        /// </summary>
-        /// <param name="basePath">The path to the directory that contains the lib folder.</param>
-        /// <exception cref="ArgumentException">Thrown if the provided path does not lead to an existing directory.</exception>
-        public static void HelpFindLibGit2NativeBinaries(string basePath)
-        {
-            HelpFindLibGit2NativeBinaries(basePath, out string _);
-        }
-
-        /// <summary>
-        /// Assists the operating system in finding the appropriate native libgit2 module.
-        /// </summary>
-        /// <param name="basePath">The path to the directory that contains the lib folder.</param>
-        /// <param name="attemptedDirectory">Receives the directory that native binaries are expected.</param>
-        /// <exception cref="ArgumentException">Thrown if the provided path does not lead to an existing directory.</exception>
-        public static void HelpFindLibGit2NativeBinaries(string basePath, out string attemptedDirectory)
-        {
-            if (!TryHelpFindLibGit2NativeBinaries(basePath, out attemptedDirectory))
-            {
-                throw new ArgumentException($"Unable to find native binaries under directory: \"{attemptedDirectory}\".");
-            }
-        }
-
-        /// <summary>
-        /// Assists the operating system in finding the appropriate native libgit2 module.
-        /// </summary>
-        /// <param name="basePath">The path to the directory that contains the lib folder.</param>
-        /// <returns><c>true</c> if the libgit2 native binaries have been found; <c>false</c> otherwise.</returns>
-        public static bool TryHelpFindLibGit2NativeBinaries(string basePath)
-        {
-            return TryHelpFindLibGit2NativeBinaries(basePath, out string _);
-        }
-
-        /// <summary>
-        /// Assists the operating system in finding the appropriate native libgit2 module.
-        /// </summary>
-        /// <param name="basePath">The path to the directory that contains the lib folder.</param>
-        /// <param name="attemptedDirectory">Receives the directory that native binaries are expected.</param>
-        /// <returns><c>true</c> if the libgit2 native binaries have been found; <c>false</c> otherwise.</returns>
-        public static bool TryHelpFindLibGit2NativeBinaries(string basePath, out string attemptedDirectory)
-        {
-            attemptedDirectory = FindLibGit2NativeBinaries(basePath);
-            if (Directory.Exists(attemptedDirectory))
-            {
-                AddDirectoryToPath(attemptedDirectory);
-                return true;
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// Add a directory to the PATH environment variable if it isn't already present.
-        /// </summary>
-        /// <param name="directory">The directory to be added.</param>
-        public static void AddDirectoryToPath(string directory)
-        {
-            Requires.NotNullOrEmpty(directory, nameof(directory));
-
-            string pathEnvVar = Environment.GetEnvironmentVariable("PATH");
-            string[] searchPaths = pathEnvVar.Split(Path.PathSeparator);
-            if (!searchPaths.Contains(directory, StringComparer.OrdinalIgnoreCase))
-            {
-                pathEnvVar += Path.PathSeparator + directory;
-                Environment.SetEnvironmentVariable("PATH", pathEnvVar);
-            }
-        }
-
-        /// <summary>
         /// Finds the directory that contains the appropriate native libgit2 module.
         /// </summary>
         /// <param name="basePath">The path to the directory that contains the lib folder.</param>
@@ -405,34 +317,6 @@
             }
 
             return gitDir == null ? null : new Repository(gitDir);
-        }
-
-        /// <summary>
-        /// Tests whether two <see cref="VersionOptions" /> instances are compatible enough that version height is not reset
-        /// when progressing from one to the next.
-        /// </summary>
-        /// <param name="first">One set of version options.</param>
-        /// <param name="second">Another set of version options.</param>
-        /// <returns><c>true</c> if transitioning from one version to the next should reset the version height; <c>false</c> otherwise.</returns>
-        internal static bool WillVersionChangeResetVersionHeight(VersionOptions first, VersionOptions second)
-        {
-            Requires.NotNull(first, nameof(first));
-            Requires.NotNull(second, nameof(second));
-
-            // If the version height position moved, that's an automatic reset in version height.
-            if (first.VersionHeightPosition != second.VersionHeightPosition)
-            {
-                return true;
-            }
-
-            if (!first.VersionHeightPosition.HasValue)
-            {
-                // There's no version height anywhere, so go ahead and say it would be reset.
-                // This is useful to our `nbgv prepare-release` command to know that it can remove the version height adjustment property.
-                return true;
-            }
-
-            return WillVersionChangeResetVersionHeight(first.Version, second.Version, first.VersionHeightPosition.Value);
         }
 
         /// <summary>
@@ -886,32 +770,6 @@
             }
 
             return VersionExtensions.Create(baseVersion.Major, baseVersion.Minor, buildNumber, revision);
-        }
-
-        /// <summary>
-        /// Gets the version options from HEAD and the working copy (if applicable),
-        /// and tests their equality.
-        /// </summary>
-        /// <param name="repo">The repo to scan for version info.</param>
-        /// <param name="repoRelativeProjectDirectory">The path to the directory of the project whose version is being queried, relative to the repo root.</param>
-        /// <param name="committedVersion">Receives the version options from the HEAD commit.</param>
-        /// <param name="workingCopyVersion">Receives the version options from the working copy, when applicable.</param>
-        /// <returns><c>true</c> if <paramref name="committedVersion"/> and <paramref name="workingCopyVersion"/> are not equal.</returns>
-        private static bool IsVersionFileChangedInWorkingCopy(Repository repo, string repoRelativeProjectDirectory, out VersionOptions committedVersion, out VersionOptions workingCopyVersion)
-        {
-            Requires.NotNull(repo, nameof(repo));
-            Commit headCommit = repo.Head.Tip;
-            committedVersion = VersionFile.GetVersion(headCommit, repoRelativeProjectDirectory);
-
-            if (!repo.Info.IsBare)
-            {
-                string fullDirectory = Path.Combine(repo.Info.WorkingDirectory, repoRelativeProjectDirectory ?? string.Empty);
-                workingCopyVersion = VersionFile.GetVersion(fullDirectory);
-                return !EqualityComparer<VersionOptions>.Default.Equals(workingCopyVersion, committedVersion);
-            }
-
-            workingCopyVersion = null;
-            return false;
         }
 
         internal static string GetRepoRelativePath(this Repository repo, string absolutePath)
