@@ -5,7 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
 
-namespace NerdBank.GitVersioning.Managed
+namespace Nerdbank.GitVersioning.Managed
 {
     internal class GitPackMemoryCache : GitPackCache
     {

@@ -5,7 +5,7 @@ using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace NerdBank.GitVersioning.Managed
+namespace Nerdbank.GitVersioning.Managed
 {
     /// <summary>
     /// A <see cref="GitObjectId"/> identifies an object stored in the Git repository. The

@@ -7,7 +7,7 @@ using System.IO.MemoryMappedFiles;
 using System.Linq;
 using System.Text;
 
-namespace NerdBank.GitVersioning.Managed
+namespace Nerdbank.GitVersioning.Managed
 {
     /// <summary>
     /// Supports retrieving objects from a Git pack file.

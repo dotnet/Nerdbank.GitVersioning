@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.ObjectModel;
 using System.IO;
-using NerdBank.GitVersioning.Managed;
+using Nerdbank.GitVersioning.Managed;
 using Xunit;
 
-namespace NerdBank.GitVersioning.Tests.Managed
+namespace Managed
 {
     // Test case borrowed from https://stefan.saasen.me/articles/git-clone-in-haskell-from-the-bottom-up/#format-of-the-delta-representation
     public class DeltaStreamReaderTests

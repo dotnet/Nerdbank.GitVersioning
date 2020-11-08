@@ -8,7 +8,7 @@ using Microsoft.Win32.SafeHandles;
 using static PInvoke.Kernel32;
 using FileShare = PInvoke.Kernel32.FileShare;
 
-namespace NerdBank.GitVersioning.Managed
+namespace Nerdbank.GitVersioning.Managed
 {
     internal static class FileHelpers
     {

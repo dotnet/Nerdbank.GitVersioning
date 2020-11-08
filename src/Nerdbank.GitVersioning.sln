@@ -28,7 +28,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "nbgv", "nbgv\nbgv.csproj", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cake.GitVersioning", "Cake.GitVersioning\Cake.GitVersioning.csproj", "{1F267A97-DFE3-4166-83B1-9D236B7A09BD}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NerdBank.GitVersioning.Benchmarks", "NerdBank.GitVersioning.Benchmarks\NerdBank.GitVersioning.Benchmarks.csproj", "{B0B7955D-E51F-4091-BF7F-55D07D381D15}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nerdbank.GitVersioning.Benchmarks", "NerdBank.GitVersioning.Benchmarks\Nerdbank.GitVersioning.Benchmarks.csproj", "{B0B7955D-E51F-4091-BF7F-55D07D381D15}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

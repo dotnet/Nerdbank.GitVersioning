@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 
-namespace NerdBank.GitVersioning.Managed
+namespace Nerdbank.GitVersioning.Managed
 {
     /// <summary>
     /// A pooled <see cref="Stream"/>, which wraps around a

@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 using Nerdbank.GitVersioning;
 using Validation;
 
-namespace NerdBank.GitVersioning.Managed
+namespace Nerdbank.GitVersioning.Managed
 {
     /// <summary>
     /// An implementation of the <see cref="VersionOptions"/> class which uses LibGit2 as its back-end.

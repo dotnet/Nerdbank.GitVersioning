@@ -2,7 +2,7 @@
 using System.IO;
 using System.IO.MemoryMappedFiles;
 
-namespace NerdBank.GitVersioning.Managed
+namespace Nerdbank.GitVersioning.Managed
 {
     /// <summary>
     /// Provides read-only, seekable access to a <see cref="MemoryMappedFile"/>.

@@ -4,7 +4,7 @@ using System;
 using System.Buffers;
 using System.IO;
 
-namespace NerdBank.GitVersioning.Managed
+namespace Nerdbank.GitVersioning.Managed
 {
     internal static class GitTreeReader
     {

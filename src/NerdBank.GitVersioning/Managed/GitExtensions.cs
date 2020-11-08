@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 using Nerdbank.GitVersioning;
 using Validation;
 
-namespace NerdBank.GitVersioning.Managed
+namespace Nerdbank.GitVersioning.Managed
 {
     internal static class GitExtensions
     {

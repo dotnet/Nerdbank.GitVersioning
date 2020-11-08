@@ -3,10 +3,10 @@ using System.IO;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
-using NerdBank.GitVersioning.Managed;
+using Nerdbank.GitVersioning.Managed;
 using Xunit;
 
-namespace NerdBank.GitVersioning.Tests.Managed
+namespace Managed
 {
     public class ZLibStreamTest
     {

@@ -2,7 +2,7 @@
 
 using System.Collections.Generic;
 
-namespace NerdBank.GitVersioning.Managed
+namespace Nerdbank.GitVersioning.Managed
 {
     /// <summary>
     /// Represents a git tree.

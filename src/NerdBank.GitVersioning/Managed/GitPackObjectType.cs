@@ -1,6 +1,6 @@
 ﻿#nullable enable
 
-namespace NerdBank.GitVersioning.Managed
+namespace Nerdbank.GitVersioning.Managed
 {
     internal enum GitPackObjectType
     {

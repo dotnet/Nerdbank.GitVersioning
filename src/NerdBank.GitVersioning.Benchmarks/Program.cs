@@ -1,7 +1,7 @@
 ﻿using System;
 using BenchmarkDotNet.Running;
 
-namespace NerdBank.GitVersioning.Benchmarks
+namespace Nerdbank.GitVersioning.Benchmarks
 {
     class Program
     {

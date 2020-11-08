@@ -3,7 +3,6 @@
     using System;
     using System.Linq;
     using CloudBuildServices;
-    using NerdBank.GitVersioning.CloudBuildServices;
 
     /// <summary>
     /// Provides access to cloud build providers.

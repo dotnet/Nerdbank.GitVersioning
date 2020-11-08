@@ -2,7 +2,7 @@
 
 using System;
 
-namespace NerdBank.GitVersioning.Managed
+namespace Nerdbank.GitVersioning.Managed
 {
     /// <summary>
     /// Represents the signature of a Git committer or author.

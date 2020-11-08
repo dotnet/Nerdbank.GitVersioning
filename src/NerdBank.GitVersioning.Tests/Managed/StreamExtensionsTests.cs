@@ -1,8 +1,8 @@
 ﻿using System.IO;
 using Xunit;
-using NerdBank.GitVersioning.Managed;
+using Nerdbank.GitVersioning.Managed;
 
-namespace NerdBank.GitVersioning.Tests.Managed
+namespace Managed
 {
     public class StreamExtensionsTests
     {

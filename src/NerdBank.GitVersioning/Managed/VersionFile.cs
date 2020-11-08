@@ -1,4 +1,4 @@
-﻿namespace NerdBank.GitVersioning.Managed
+﻿namespace Nerdbank.GitVersioning.Managed
 {
     using System;
     using System.Collections.Generic;

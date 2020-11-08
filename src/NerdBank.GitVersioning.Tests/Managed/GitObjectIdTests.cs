@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using System.Text;
-using NerdBank.GitVersioning.Managed;
+using Nerdbank.GitVersioning.Managed;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace NerdBank.GitVersioning.Tests.Managed
+namespace Managed
 {
     public class GitObjectIdTests
     {

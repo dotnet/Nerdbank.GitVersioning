@@ -3,10 +3,9 @@ using System.IO;
 using System.Runtime.InteropServices;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
-using Nerdbank.GitVersioning;
-using NerdBank.GitVersioning.Managed;
+using Nerdbank.GitVersioning.Managed;
 
-namespace NerdBank.GitVersioning.Benchmarks
+namespace Nerdbank.GitVersioning.Benchmarks
 {
     [SimpleJob(RuntimeMoniker.NetCoreApp31, baseline: true)]
     [SimpleJob(RuntimeMoniker.NetCoreApp21)]

@@ -5,7 +5,6 @@
     using System.Globalization;
     using System.Linq;
     using System.Reflection;
-    using NerdBank.GitVersioning.Managed;
 
     /// <summary>
     /// Assembles version information in a variety of formats.
@@ -29,7 +28,7 @@
         /// </summary>
         public static VersionOracle Create(string projectDirectory, string gitRepoDirectory = null, string head = null, ICloudBuild cloudBuild = null, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null)
             => UseLibGit2 ? LibGit2VersionOracle.CreateLibGit2(projectDirectory, gitRepoDirectory, head, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot)
-                : ManagedVersionOracle.CreateManaged(projectDirectory, gitRepoDirectory, head, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot);
+                : Managed.ManagedVersionOracle.CreateManaged(projectDirectory, gitRepoDirectory, head, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot);
 
         /// <summary>
         /// Gets the BuildNumber to set the cloud build to (if applicable).
@@ -356,9 +355,6 @@
 
         private static string FormatBuildMetadata(IEnumerable<string> identifiers) =>
             (identifiers?.Any() ?? false) ? "+" + string.Join(".", identifiers) : string.Empty;
-
-        private static string FormatBuildMetadataSemVerV1(IEnumerable<string> identifiers) =>
-            (identifiers?.Any() ?? false) ? "-" + string.Join("-", identifiers) : string.Empty;
 
         private static Version GetAssemblyVersion(Version version, VersionOptions versionOptions)
         {

@@ -2,7 +2,7 @@
 
 using System;
 
-namespace NerdBank.GitVersioning.Managed
+namespace Nerdbank.GitVersioning.Managed
 {
     /// <summary>
     /// The exception which is thrown by the managed Git layer.

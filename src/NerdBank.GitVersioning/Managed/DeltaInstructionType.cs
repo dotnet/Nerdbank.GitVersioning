@@ -1,6 +1,6 @@
 ﻿#nullable enable
 
-namespace NerdBank.GitVersioning.Managed
+namespace Nerdbank.GitVersioning.Managed
 {
     /// <summary>
     /// Enumerates the various instruction types which can be found in a deltafied stream.

@@ -6,7 +6,7 @@ using System.Buffers.Binary;
 using System.Diagnostics;
 using System.IO;
 
-namespace NerdBank.GitVersioning.Managed
+namespace Nerdbank.GitVersioning.Managed
 {
     /// <summary>
     /// Supports reading data stored in a Git Pack file.

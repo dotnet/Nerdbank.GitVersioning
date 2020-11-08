@@ -3,11 +3,11 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using LibGit2Sharp;
-using NerdBank.GitVersioning.Managed;
+using Nerdbank.GitVersioning.Managed;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace NerdBank.GitVersioning.Tests.Managed
+namespace Managed
 {
     public class GitRepositoryTests : RepoTestBase
     {
