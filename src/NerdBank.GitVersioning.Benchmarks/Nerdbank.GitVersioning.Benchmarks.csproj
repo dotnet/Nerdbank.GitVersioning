@@ -6,6 +6,7 @@
     <OutputType>Exe</OutputType>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PlatformTarget>AnyCPU</PlatformTarget>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,9 +14,9 @@
     <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.12.0" />
     <PackageReference Include="Nerdbank.GitVersioning.LKG" Version="3.1.93" />
   </ItemGroup>
-  
+
   <ItemGroup>
     <ProjectReference Include="../NerdBank.GitVersioning/NerdBank.GitVersioning.csproj" />
   </ItemGroup>
-  
+
 </Project>
