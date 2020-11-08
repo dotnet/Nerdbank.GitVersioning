@@ -139,7 +139,7 @@ public abstract partial class RepoTestBase : IDisposable
             relativeDirectory = string.Empty;
         }
 
-        string versionFilePath = VersionFile.SetVersion(Path.Combine(this.RepoPath, relativeDirectory), versionData);
+        string versionFilePath = Nerdbank.GitVersioning.LibGit2.VersionFile.SetVersion(Path.Combine(this.RepoPath, relativeDirectory), versionData);
         return this.CommitVersionFile(versionFilePath, versionData.Version?.ToString());
     }
 

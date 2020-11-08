@@ -15,7 +15,7 @@ namespace Nerdbank.GitVersioning.Managed
         /// <summary>
         /// Initializes a new instance of the <see cref="VersionOracle"/> class.
         /// </summary>
-        public static VersionOracle CreateManaged(string projectDirectory, string gitRepoDirectory = null, string head = null, ICloudBuild cloudBuild = null, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null)
+        public static new VersionOracle Create(string projectDirectory, string gitRepoDirectory = null, string head = null, ICloudBuild cloudBuild = null, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null)
         {
             Requires.NotNull(projectDirectory, nameof(projectDirectory));
             if (string.IsNullOrEmpty(gitRepoDirectory))

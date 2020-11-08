@@ -113,7 +113,7 @@ public class VersionOracleTests : RepoTestBase
         foreach (var commit in this.Repo.Head.Commits)
         {
             var versionFromId = this.GetIdAsVersion(commit);
-            Assert.Contains(commit, this.Repo.GetCommitsFromVersion(versionFromId));
+            Assert.Contains(commit, Nerdbank.GitVersioning.LibGit2.GitExtensions.GetCommitsFromVersion(this.Repo, versionFromId));
         }
     }
 
@@ -372,7 +372,7 @@ public class VersionOracleTests : RepoTestBase
     [Fact]
     public void VersionJsonWithoutVersion()
     {
-        File.WriteAllText(Path.Combine(this.RepoPath, VersionFile.JsonFileName), "{}");
+        File.WriteAllText(Path.Combine(this.RepoPath, Nerdbank.GitVersioning.LibGit2.VersionFile.JsonFileName), "{}");
         this.InitializeSourceControl();
         var oracle = VersionOracle.Create(this.RepoPath);
         Assert.Equal(0, oracle.Version.Major);
@@ -382,7 +382,7 @@ public class VersionOracleTests : RepoTestBase
     [Fact]
     public void VersionJsonWithSingleIntegerForVersion()
     {
-        File.WriteAllText(Path.Combine(this.RepoPath, VersionFile.JsonFileName), @"{""version"":""3""}");
+        File.WriteAllText(Path.Combine(this.RepoPath, Nerdbank.GitVersioning.LibGit2.VersionFile.JsonFileName), @"{""version"":""3""}");
         this.InitializeSourceControl();
         var ex = Assert.Throws<FormatException>(() => VersionOracle.Create(this.RepoPath));
         Assert.Contains(this.Repo.Head.Commits.First().Sha, ex.Message);
@@ -415,8 +415,8 @@ public class VersionOracleTests : RepoTestBase
         this.InitializeSourceControl();
 
         Branch head = this.Repo.Head;
-        Assert.Throws<InvalidOperationException>(() => head.GetHeight());
-        Assert.Throws<InvalidOperationException>(() => head.GetHeight(c => true));
+        Assert.Throws<InvalidOperationException>(() => Nerdbank.GitVersioning.LibGit2.GitExtensions.GetHeight(head));
+        Assert.Throws<InvalidOperationException>(() => Nerdbank.GitVersioning.LibGit2.GitExtensions.GetHeight(head, c => true));
     }
 
     [Fact]

@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using LibGit2Sharp;
 using Nerdbank.GitVersioning;
+using Nerdbank.GitVersioning.LibGit2;
 using Validation;
 using Xunit;
 using Xunit.Abstractions;

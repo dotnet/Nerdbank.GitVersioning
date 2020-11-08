@@ -1,4 +1,4 @@
-﻿namespace Nerdbank.GitVersioning
+﻿namespace Nerdbank.GitVersioning.LibGit2
 {
     using System;
     using System.Collections.Generic;

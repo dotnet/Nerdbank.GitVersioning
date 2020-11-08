@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using LibGit2Sharp;
 using Nerdbank.GitVersioning;
+using Nerdbank.GitVersioning.LibGit2;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Xunit;

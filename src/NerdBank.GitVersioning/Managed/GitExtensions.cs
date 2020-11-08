@@ -90,7 +90,7 @@ namespace Nerdbank.GitVersioning.Managed
                 return false;
             }
 
-            return !Nerdbank.GitVersioning.GitExtensions.WillVersionChangeResetVersionHeight(commitVersionData.Version, expectedVersion, comparisonPrecision);
+            return !LibGit2.GitExtensions.WillVersionChangeResetVersionHeight(commitVersionData.Version, expectedVersion, comparisonPrecision);
         }
 
         /// <summary>

@@ -11,7 +11,7 @@
     /// </summary>
     public abstract class VersionOracle
     {
-        private static bool UseLibGit2 = false;
+        private const bool UseLibGit2 = false;
 
         /// <summary>
         /// The 0.0 version.
@@ -27,8 +27,8 @@
         /// Initializes a new instance of the <see cref="VersionOracle"/> class.
         /// </summary>
         public static VersionOracle Create(string projectDirectory, string gitRepoDirectory = null, string head = null, ICloudBuild cloudBuild = null, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null)
-            => UseLibGit2 ? LibGit2VersionOracle.CreateLibGit2(projectDirectory, gitRepoDirectory, head, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot)
-                : Managed.ManagedVersionOracle.CreateManaged(projectDirectory, gitRepoDirectory, head, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot);
+            => UseLibGit2 ? LibGit2.LibGit2VersionOracle.Create(projectDirectory, gitRepoDirectory, head, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot)
+                : Managed.ManagedVersionOracle.Create(projectDirectory, gitRepoDirectory, head, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot);
 
         /// <summary>
         /// Gets the BuildNumber to set the cloud build to (if applicable).

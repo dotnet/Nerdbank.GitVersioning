@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.IO;
     using LibGit2Sharp;
+    using Nerdbank.GitVersioning.LibGit2;
     using Newtonsoft.Json;
     using Validation;
     using Version = System.Version;

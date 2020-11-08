@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 using Validation;
 using static LibGit2Sharp.RepositoryExtensions;
 
-namespace Nerdbank.GitVersioning
+namespace Nerdbank.GitVersioning.LibGit2
 {
     /// <summary>
     /// An implementation of the <see cref="VersionOptions"/> class which uses LibGit2 as its back-end.
@@ -15,7 +15,7 @@ namespace Nerdbank.GitVersioning
         /// <summary>
         /// Initializes a new instance of the <see cref="VersionOracle"/> class.
         /// </summary>
-        public static VersionOracle CreateLibGit2(string projectDirectory, string gitRepoDirectory = null, string head = null, ICloudBuild cloudBuild = null, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null)
+        public static new VersionOracle Create(string projectDirectory, string gitRepoDirectory = null, string head = null, ICloudBuild cloudBuild = null, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null)
         {
             Requires.NotNull(projectDirectory, nameof(projectDirectory));
             if (string.IsNullOrEmpty(gitRepoDirectory))

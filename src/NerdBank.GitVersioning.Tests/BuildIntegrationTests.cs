@@ -188,7 +188,7 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         var repo = new Repository(this.RepoPath); // do not assign Repo property to avoid commits being generated later
         repo.Commit("empty", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         this.WriteVersionFile("3.4");
-        Assumes.True(repo.Index[VersionFile.JsonFileName] == null);
+        Assumes.True(repo.Index[Nerdbank.GitVersioning.LibGit2.VersionFile.JsonFileName] == null);
         var buildResult = await this.BuildAsync();
         Assert.Equal("3.4.0." + GetIdAsVersion(repo, repo.Head.Tip).Revision, buildResult.BuildVersion);
         Assert.Equal("3.4.0+" + repo.Head.Tip.Id.Sha.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength), buildResult.AssemblyInformationalVersion);
@@ -203,7 +203,7 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         this.WriteVersionFile(majorMinorVersion, prerelease);
         this.InitializeSourceControl();
         var workingCopyVersion = VersionOptions.FromVersion(new Version("6.0"));
-        VersionFile.SetVersion(this.RepoPath, workingCopyVersion);
+        Nerdbank.GitVersioning.LibGit2.VersionFile.SetVersion(this.RepoPath, workingCopyVersion);
         var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(workingCopyVersion, buildResult);
     }
@@ -422,7 +422,7 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
             Version = new SemanticVersion(new Version(14, 1)),
             VersionHeightOffset = -1,
         };
-        VersionFile.SetVersion(this.RepoPath, versionOptions);
+        Nerdbank.GitVersioning.LibGit2.VersionFile.SetVersion(this.RepoPath, versionOptions);
         var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(versionOptions, buildResult);
     }

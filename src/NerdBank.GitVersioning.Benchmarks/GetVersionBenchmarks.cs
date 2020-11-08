@@ -27,14 +27,14 @@ namespace Nerdbank.GitVersioning.Benchmarks
         [Benchmark(Baseline = true)]
         public void GetVersionLibGit2()
         {
-            var oracle = LibGit2VersionOracle.CreateLibGit2(GetPath(this.ProjectDirectory));
+            var oracle = LibGit2.LibGit2VersionOracle.Create(GetPath(this.ProjectDirectory));
             this.Version = oracle.Version;
         }
 
         [Benchmark]
         public void GetVersionManaged()
         {
-            var oracle = ManagedVersionOracle.CreateManaged(GetPath(this.ProjectDirectory));
+            var oracle = ManagedVersionOracle.Create(GetPath(this.ProjectDirectory));
             this.Version = oracle.Version;
         }
 

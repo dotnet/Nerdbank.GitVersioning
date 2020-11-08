@@ -195,7 +195,7 @@
         [Output]
         public ITaskItem[] CloudBuildVersionVars { get; private set; }
 
-        protected override string UnmanagedDllDirectory => GitExtensions.FindLibGit2NativeBinaries(this.TargetsPath);
+        protected override string UnmanagedDllDirectory => LibGit2.GitExtensions.FindLibGit2NativeBinaries(this.TargetsPath);
 
         protected override bool ExecuteInner()
         {
