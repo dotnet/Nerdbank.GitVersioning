@@ -6,7 +6,7 @@
     <IsPackable>false</IsPackable>
     <PackageId>Nerdbank.GitVersioning.Core</PackageId>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <RootNamespace>Nerdbank</RootNamespace>
+    <RootNamespace>Nerdbank.GitVersioning</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="DotNetMDDocs" Version="0.111.0" PrivateAssets="all" Condition=" '$(GenerateMarkdownApiDocs)' == 'true' " />
