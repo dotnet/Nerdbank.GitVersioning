@@ -27,7 +27,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// <see langword="true"/> if the object was found in cache; otherwise,
         /// <see langword="false"/>.
         /// </returns>
-        public abstract bool TryOpen(int offset, [NotNullWhen(true)] out Stream? stream);
+        public abstract bool TryOpen(long offset, [NotNullWhen(true)] out Stream? stream);
 
         /// <summary>
         /// Gets statistics about the cache usage.
@@ -50,6 +50,6 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// <returns>
         /// A <see cref="Stream"/> which represents the cached entry.
         /// </returns>
-        public abstract Stream Add(int offset, Stream stream);
+        public abstract Stream Add(long offset, Stream stream);
     }
 }

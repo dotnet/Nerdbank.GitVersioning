@@ -10,8 +10,8 @@ namespace Nerdbank.GitVersioning.ManagedGit
     public unsafe class MemoryMappedStream : Stream
     {
         private readonly MemoryMappedViewAccessor accessor;
-        private readonly int length;
-        private int position;
+        private readonly long length;
+        private long position;
         private byte* ptr;
 
         /// <summary>
@@ -24,7 +24,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
         {
             this.accessor = accessor ?? throw new ArgumentNullException(nameof(accessor));
             this.accessor.SafeMemoryMappedViewHandle.AcquirePointer(ref this.ptr);
-            this.length = (int)this.accessor.Capacity;
+            this.length = this.accessor.Capacity;
         }
 
         /// <inheritdoc/>
@@ -57,10 +57,9 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// <inheritdoc/>
         public override int Read(byte[] buffer, int offset, int count)
         {
-            int read = Math.Min(count, this.length - this.position);
+            int read = (int)Math.Min(count, this.length - this.position);
 
-            new Span<byte>(this.ptr, this.length)
-                .Slice(this.position, read)
+            new Span<byte>(this.ptr + this.position, read)
                 .CopyTo(buffer.AsSpan(offset, count));
 
             this.position += read;
@@ -71,10 +70,9 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// <inheritdoc/>
         public override int Read(Span<byte> buffer)
         {
-            int read = Math.Min(buffer.Length, this.length - this.position);
-
-            new Span<byte>(this.ptr, this.length)
-                .Slice(this.position, read)
+            int read = (int)Math.Min(buffer.Length, this.length - this.position);
+            
+            new Span<byte>(this.ptr + this.position, read)
                 .CopyTo(buffer);
 
             this.position += read;
@@ -85,16 +83,16 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// <inheritdoc/>
         public override long Seek(long offset, SeekOrigin origin)
         {
-            int newPosition = this.position;
+            long newPosition = this.position;
 
             switch (origin)
             {
                 case SeekOrigin.Begin:
-                    newPosition = (int)offset;
+                    newPosition = offset;
                     break;
 
                 case SeekOrigin.Current:
-                    newPosition += (int)offset;
+                    newPosition += offset;
                     break;
 
                 case SeekOrigin.End:

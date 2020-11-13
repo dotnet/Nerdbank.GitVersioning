@@ -35,12 +35,12 @@ namespace Nerdbank.GitVersioning.ManagedGit
         private MemoryMappedViewAccessor accessor;
 
         // Maps GitObjectIds to offets in the git pack.
-        private readonly Dictionary<GitObjectId, int> offsets = new Dictionary<GitObjectId, int>();
+        private readonly Dictionary<GitObjectId, long> offsets = new Dictionary<GitObjectId, long>();
 
         // A histogram which tracks the objects which have been retrieved from this GitPack. The key is the offset
         // of the object. Used to get some insights in usage patterns.
 #if DEBUG && !NETSTANDARD
-        private readonly Dictionary<int, int> histogram = new Dictionary<int, int>();
+        private readonly Dictionary<long, int> histogram = new Dictionary<long, int>();
 #endif
 
         private Lazy<GitPackIndexReader> indexReader;
@@ -167,7 +167,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// <returns>
         /// A <see cref="Stream"/> which represents the object.
         /// </returns>
-        public Stream GetObject(int offset, string objectType)
+        public Stream GetObject(long offset, string objectType)
         {
 #if DEBUG && !NETSTANDARD
             if (!this.histogram.TryAdd(offset, 1))
@@ -244,9 +244,9 @@ namespace Nerdbank.GitVersioning.ManagedGit
             this.packFile.Dispose();
         }
 
-        private int? GetOffset(GitObjectId objectId)
+        private long? GetOffset(GitObjectId objectId)
         {
-            if (this.offsets.TryGetValue(objectId, out int cachedOffset))
+            if (this.offsets.TryGetValue(objectId, out long cachedOffset))
             {
                 return cachedOffset;
             }

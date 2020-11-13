@@ -44,7 +44,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// If found, the offset of the Git object in the index file; otherwise,
         /// <see langword="null"/>.
         /// </returns>
-        public override int? GetOffset(GitObjectId objectId)
+        public override long? GetOffset(GitObjectId objectId)
         {
             this.Initialize();
 
@@ -110,7 +110,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
             this.stream.ReadAll(buffer);
 
             Debug.Assert(buffer[0] < 128); // The most significant bit should not be set; otherwise we have a 8-byte offset
-            var offset = BinaryPrimitives.ReadInt32BigEndian(buffer);
+            var offset = BinaryPrimitives.ReadUInt32BigEndian(buffer);
             return offset;
         }
 

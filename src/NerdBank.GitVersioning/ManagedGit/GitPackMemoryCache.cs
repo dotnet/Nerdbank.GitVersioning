@@ -9,16 +9,16 @@ namespace Nerdbank.GitVersioning.ManagedGit
 {
     internal class GitPackMemoryCache : GitPackCache
     {
-        private readonly Dictionary<int, Stream> cache = new Dictionary<int, Stream>();
+        private readonly Dictionary<long, Stream> cache = new Dictionary<long, Stream>();
 
-        public override Stream Add(int offset, Stream stream)
+        public override Stream Add(long offset, Stream stream)
         {
             var cacheStream = new GitPackMemoryCacheStream(stream);
             this.cache.Add(offset, cacheStream);
             return cacheStream;
         }
 
-        public override bool TryOpen(int offset, [NotNullWhen(true)] out Stream? stream)
+        public override bool TryOpen(long offset, [NotNullWhen(true)] out Stream? stream)
         {
             if (this.cache.TryGetValue(offset, out stream))
             {

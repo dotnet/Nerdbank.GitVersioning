@@ -17,13 +17,13 @@ namespace Nerdbank.GitVersioning.ManagedGit
         public static GitPackNullCache Instance { get; } = new GitPackNullCache();
 
         /// <inheritdoc/>
-        public override Stream Add(int offset, Stream stream)
+        public override Stream Add(long offset, Stream stream)
         {
             return stream;
         }
 
         /// <inheritdoc/>
-        public override bool TryOpen(int offset, [NotNullWhen(true)] out Stream? stream)
+        public override bool TryOpen(long offset, [NotNullWhen(true)] out Stream? stream)
         {
             stream = null;
             return false;
