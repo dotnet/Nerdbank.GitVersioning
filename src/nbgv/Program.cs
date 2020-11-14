@@ -8,6 +8,7 @@ namespace Nerdbank.GitVersioning.Tool
     using System.Reflection;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Build.Construction;
     using Newtonsoft.Json;
     using NuGet.Common;
     using NuGet.Configuration;
@@ -16,7 +17,6 @@ namespace Nerdbank.GitVersioning.Tool
     using NuGet.Protocol.Core.Types;
     using NuGet.Resolver;
     using Validation;
-    using MSBuild = Microsoft.Build.Evaluation;
 
     internal class Program
     {
@@ -246,18 +246,12 @@ namespace Nerdbank.GitVersioning.Tool
 
             // Create/update the Directory.Build.props file in the directory of the version.json file to add the NB.GV package.
             string directoryBuildPropsPath = Path.Combine(versionJsonRoot, "Directory.Build.props");
-            MSBuild.Project propsFile;
-            if (File.Exists(directoryBuildPropsPath))
-            {
-                propsFile = new MSBuild.Project(directoryBuildPropsPath);
-            }
-            else
-            {
-                propsFile = new MSBuild.Project();
-            }
+            ProjectRootElement propsFile = File.Exists(directoryBuildPropsPath)
+                ? ProjectRootElement.Open(directoryBuildPropsPath)
+                : ProjectRootElement.Create(directoryBuildPropsPath);
 
             const string PackageReferenceItemType = "PackageReference";
-            if (!propsFile.GetItemsByEvaluatedInclude(PackageId).Any(i => i.ItemType == "PackageReference"))
+            if (!propsFile.Items.Any(i => i.ItemType == PackageReferenceItemType && i.Include == PackageId))
             {
                 // Validate given sources
                 foreach (var source in sources)
@@ -279,7 +273,7 @@ namespace Nerdbank.GitVersioning.Tool
                     return ExitCodes.PackageIdNotFound;
                 }
 
-                propsFile.AddItem(
+                var item = propsFile.AddItem(
                     PackageReferenceItemType,
                     PackageId,
                     new Dictionary<string, string>
@@ -287,6 +281,7 @@ namespace Nerdbank.GitVersioning.Tool
                         { "Version", packageVersion },
                         { "PrivateAssets", "all" },
                     });
+                item.Condition = " '$(PlatformToolset)' == '' ";
 
                 propsFile.Save(directoryBuildPropsPath);
             }
