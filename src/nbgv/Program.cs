@@ -281,7 +281,7 @@ namespace Nerdbank.GitVersioning.Tool
                         { "Version", packageVersion },
                         { "PrivateAssets", "all" },
                     });
-                item.Condition = " '$(PlatformToolset)' == '' ";
+                item.Condition = "!Exists('packages.config')";
 
                 propsFile.Save(directoryBuildPropsPath);
             }
