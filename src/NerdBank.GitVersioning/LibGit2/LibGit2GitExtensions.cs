@@ -1,4 +1,6 @@
-﻿namespace Nerdbank.GitVersioning.LibGit2
+﻿#nullable enable
+
+namespace Nerdbank.GitVersioning.LibGit2
 {
     using System;
     using System.Collections.Generic;
@@ -14,7 +16,7 @@
     /// <summary>
     /// Git extension methods.
     /// </summary>
-    public static class GitExtensions
+    public static class LibGit2GitExtensions
     {
         /// <summary>
         /// The 0.0 version.
@@ -43,20 +45,16 @@
         /// <summary>
         /// Gets the number of commits in the longest single path between
         /// the specified commit and the most distant ancestor (inclusive)
-        /// that set the version to the value at <paramref name="commit"/>.
+        /// that set the version to the value at <paramref name="context"/>.
         /// </summary>
-        /// <param name="commit">The commit to measure the height of.</param>
-        /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
+        /// <param name="context">The git context to read from.</param>
         /// <param name="baseVersion">Optional base version to calculate the height. If not specified, the base version will be calculated by scanning the repository.</param>
         /// <returns>The height of the commit. Always a positive integer.</returns>
-        internal static int GetVersionHeight(this Commit commit, string repoRelativeProjectDirectory = null, Version baseVersion = null)
+        internal static int GetVersionHeight(LibGit2Context context, Version? baseVersion = null)
         {
-            Requires.NotNull(commit, nameof(commit));
-            Requires.Argument(repoRelativeProjectDirectory == null || !Path.IsPathRooted(repoRelativeProjectDirectory), nameof(repoRelativeProjectDirectory), "Path should be relative to repo root.");
+            var tracker = new GitWalkTracker(context);
 
-            var tracker = new GitWalkTracker(repoRelativeProjectDirectory);
-
-            var versionOptions = tracker.GetVersion(commit);
+            var versionOptions = tracker.GetVersion(context.Commit);
             if (versionOptions == null)
             {
                 return 0;
@@ -69,7 +67,7 @@
             var versionHeightPosition = versionOptions.VersionHeightPosition;
             if (versionHeightPosition.HasValue)
             {
-                int height = commit.GetHeight(repoRelativeProjectDirectory, c => CommitMatchesVersion(c, baseSemVer, versionHeightPosition.Value, tracker));
+                int height = GetHeight(context, c => CommitMatchesVersion(c, baseSemVer, versionHeightPosition.Value, tracker));
                 return height;
             }
 
@@ -80,50 +78,17 @@
         /// Gets the number of commits in the longest single path between
         /// the specified commit and the most distant ancestor (inclusive).
         /// </summary>
-        /// <param name="commit">The commit to measure the height of.</param>
-        /// <param name="repoRelativeProjectDirectory">The path to the directory of the project whose version is being queried, relative to the repo root.</param>
+        /// <param name="context">The git context to read from.</param>
         /// <param name="continueStepping">
         /// A function that returns <c>false</c> when we reach a commit that
         /// should not be included in the height calculation.
         /// May be null to count the height to the original commit.
         /// </param>
         /// <returns>The height of the commit. Always a positive integer.</returns>
-        public static int GetHeight(this Commit commit, string repoRelativeProjectDirectory, Func<Commit, bool> continueStepping = null)
+        internal static int GetHeight(LibGit2Context context, Func<Commit, bool>? continueStepping = null)
         {
-            Requires.NotNull(commit, nameof(commit));
-
-            var tracker = new GitWalkTracker(repoRelativeProjectDirectory);
-            return GetCommitHeight(commit, tracker, continueStepping);
-        }
-
-        /// <summary>
-        /// Gets the number of commits in the longest single path between
-        /// the specified branch's head and the most distant ancestor (inclusive).
-        /// </summary>
-        /// <param name="branch">The branch to measure the height of.</param>
-        /// <param name="continueStepping">
-        /// A function that returns <c>false</c> when we reach a commit that
-        /// should not be included in the height calculation.
-        /// May be null to count the height to the original commit.
-        /// </param>
-        /// <returns>The height of the branch.</returns>
-        public static int GetHeight(this Branch branch, Func<Commit, bool> continueStepping = null) => branch.GetHeight(null, continueStepping);
-
-        /// <summary>
-        /// Gets the number of commits in the longest single path between
-        /// the specified branch's head and the most distant ancestor (inclusive).
-        /// </summary>
-        /// <param name="branch">The branch to measure the height of.</param>
-        /// <param name="repoRelativeProjectDirectory">The path to the directory of the project whose version is being queried, relative to the repo root.</param>
-        /// <param name="continueStepping">
-        /// A function that returns <c>false</c> when we reach a commit that
-        /// should not be included in the height calculation.
-        /// May be null to count the height to the original commit.
-        /// </param>
-        /// <returns>The height of the branch.</returns>
-        public static int GetHeight(this Branch branch, string repoRelativeProjectDirectory, Func<Commit, bool> continueStepping = null)
-        {
-            return GetHeight(branch.Tip ?? throw new InvalidOperationException("No commit exists."), repoRelativeProjectDirectory, continueStepping);
+            var tracker = new GitWalkTracker(context);
+            return GetCommitHeight(context.Commit, tracker, continueStepping);
         }
 
         /// <summary>
@@ -175,71 +140,33 @@
         }
 
         /// <summary>
-        /// Encodes a commit from history in a <see cref="Version"/>
-        /// so that the original commit can be found later.
-        /// </summary>
-        /// <param name="commit">The commit whose ID and position in history is to be encoded.</param>
-        /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
-        /// <param name="versionHeight">
-        /// The version height, previously calculated by a call to <see cref="GetVersionHeight(Commit, string, Version)"/>
-        /// with the same value for <paramref name="repoRelativeProjectDirectory"/>.
-        /// </param>
-        /// <returns>
-        /// A version whose <see cref="Version.Build"/> and
-        /// <see cref="Version.Revision"/> components are calculated based on the commit.
-        /// </returns>
-        /// <remarks>
-        /// In the returned version, the <see cref="Version.Build"/> component is
-        /// the height of the git commit while the <see cref="Version.Revision"/>
-        /// component is the first four bytes of the git commit id (forced to be a positive integer).
-        /// </remarks>
-        internal static Version GetIdAsVersion(this Commit commit, string repoRelativeProjectDirectory = null, int? versionHeight = null)
-        {
-            Requires.NotNull(commit, nameof(commit));
-            Requires.Argument(repoRelativeProjectDirectory == null || !Path.IsPathRooted(repoRelativeProjectDirectory), nameof(repoRelativeProjectDirectory), "Path should be relative to repo root.");
-
-            var versionOptions = VersionFile.GetVersion(commit, repoRelativeProjectDirectory);
-
-            if (!versionHeight.HasValue)
-            {
-                versionHeight = GetVersionHeight(commit, repoRelativeProjectDirectory);
-            }
-
-            return GetIdAsVersionHelper(commit, versionOptions, versionHeight.Value);
-        }
-
-        /// <summary>
         /// Looks up the commit that matches a specified version number.
         /// </summary>
-        /// <param name="repo">The repository to search for a matching commit.</param>
+        /// <param name="context">The git context to read from.</param>
         /// <param name="version">The version previously obtained from <see cref="GetIdAsVersion(Commit, string, int?)"/>.</param>
-        /// <param name="repoRelativeProjectDirectory">
-        /// The repo-relative project directory from which <paramref name="version"/> was originally calculated.
-        /// </param>
         /// <returns>The matching commit, or <c>null</c> if no match is found.</returns>
         /// <exception cref="InvalidOperationException">
         /// Thrown in the very rare situation that more than one matching commit is found.
         /// </exception>
-        public static Commit GetCommitFromVersion(this Repository repo, Version version, string repoRelativeProjectDirectory = null)
+        internal static Commit GetCommitFromVersion(LibGit2Context context, Version version)
         {
             // Note we'll accept no match, or one match. But we throw if there is more than one match.
-            return GetCommitsFromVersion(repo, version, repoRelativeProjectDirectory).SingleOrDefault();
+            return GetCommitsFromVersion(context, version).SingleOrDefault();
         }
 
         /// <summary>
         /// Looks up the commits that match a specified version number.
         /// </summary>
-        /// <param name="repo">The repository to search for a matching commit.</param>
+        /// <param name="context">The git context to read from.</param>
         /// <param name="version">The version previously obtained from <see cref="GetIdAsVersion(Commit, string, int?)"/>.</param>
-        /// <param name="repoRelativeProjectDirectory">The repo-relative project directory from which <paramref name="version"/> was originally calculated.</param>
         /// <returns>The matching commits, or an empty enumeration if no match is found.</returns>
-        public static IEnumerable<Commit> GetCommitsFromVersion(this Repository repo, Version version, string repoRelativeProjectDirectory = null)
+        public static IEnumerable<Commit> GetCommitsFromVersion(LibGit2Context context, Version version)
         {
-            Requires.NotNull(repo, nameof(repo));
+            Requires.NotNull(context, nameof(context));
             Requires.NotNull(version, nameof(version));
 
-            var tracker = new GitWalkTracker(repoRelativeProjectDirectory);
-            var possibleCommits = from commit in GetCommitsReachableFromRefs(repo)
+            var tracker = new GitWalkTracker(context);
+            var possibleCommits = from commit in GetCommitsReachableFromRefs(context.Repository)
                                   let commitVersionOptions = tracker.GetVersion(commit)
                                   where commitVersionOptions != null
                                   where !IsCommitIdMismatch(version, commitVersionOptions, commit)
@@ -254,7 +181,7 @@
         /// </summary>
         /// <param name="basePath">The path to the directory that contains the lib folder.</param>
         /// <returns>Receives the directory that native binaries are expected.</returns>
-        public static string FindLibGit2NativeBinaries(string basePath)
+        public static string? FindLibGit2NativeBinaries(string basePath)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
@@ -270,53 +197,6 @@
             }
 
             return null;
-        }
-
-        /// <summary>
-        /// Opens a <see cref="Repository"/> found at or above a specified path.
-        /// </summary>
-        /// <param name="pathUnderGitRepo">The path at or beneath the git repo root.</param>
-        /// <param name="useDefaultConfigSearchPaths">
-        /// Specifies whether to use default settings for looking up global and system settings.
-        /// <para>
-        /// By default (<paramref name="useDefaultConfigSearchPaths"/> == <c>false</c>), the repository will be configured to only
-        /// use the repository-level configuration ignoring system or user-level configuration (set using <c>git config --global</c>.
-        /// Thus only settings explicitly set for the repo will be available.
-        /// </para>
-        /// <para>
-        /// For example using <c>Repository.Configuration.Get{string}("user.name")</c> to get the user's name will
-        /// return the value set in the repository config or <c>null</c> if the user name has not been explicitly set for the repository.
-        /// </para>
-        /// <para>
-        /// When the caller specifies to use the default configuration search paths (<paramref name="useDefaultConfigSearchPaths"/> == <c>true</c>)
-        /// both repository level and global configuration will be available to the repo as well.
-        /// </para>
-        /// <para>
-        /// In this mode, using <c>Repository.Configuration.Get{string}("user.name")</c> will return the
-        /// value set in the user's global git configuration unless set on the repository level,
-        /// matching the behavior of the <c>git</c> command.
-        /// </para>
-        /// </param>
-        /// <returns>The <see cref="Repository"/> found for the specified path, or <c>null</c> if no git repo is found.</returns>
-        public static Repository OpenGitRepo(string pathUnderGitRepo, bool useDefaultConfigSearchPaths = false)
-        {
-            Requires.NotNullOrEmpty(pathUnderGitRepo, nameof(pathUnderGitRepo));
-            var gitDir = FindGitDir(pathUnderGitRepo);
-
-            if (useDefaultConfigSearchPaths)
-            {
-                // pass null to reset to defaults
-                GlobalSettings.SetConfigSearchPaths(ConfigurationLevel.Global, null);
-                GlobalSettings.SetConfigSearchPaths(ConfigurationLevel.System, null);
-            }
-            else
-            {
-                // Override Config Search paths to empty path to avoid new Repository instance to lookup for Global\System .gitconfig file
-                GlobalSettings.SetConfigSearchPaths(ConfigurationLevel.Global, string.Empty);
-                GlobalSettings.SetConfigSearchPaths(ConfigurationLevel.System, string.Empty);
-            }
-
-            return gitDir == null ? null : new Repository(gitDir);
         }
 
         /// <summary>
@@ -341,7 +221,7 @@
             }
 
             // If the version height position moved, that's an automatic reset in version height.
-            if (commitVersionData.VersionHeightPosition != comparisonPrecision)
+            if (commitVersionData!.VersionHeightPosition != comparisonPrecision)
             {
                 return false;
             }
@@ -432,46 +312,6 @@
             return false;
         }
 
-        private static string FindGitDir(string startingDir)
-        {
-            while (startingDir != null)
-            {
-                var dirOrFilePath = Path.Combine(startingDir, ".git");
-                if (Directory.Exists(dirOrFilePath))
-                {
-                    return dirOrFilePath;
-                }
-                else if (File.Exists(dirOrFilePath))
-                {
-                    var relativeGitDirPath = ReadGitDirFromFile(dirOrFilePath);
-                    if (!string.IsNullOrWhiteSpace(relativeGitDirPath))
-                    {
-                        var fullGitDirPath = Path.GetFullPath(Path.Combine(startingDir, relativeGitDirPath));
-                        if (Directory.Exists(fullGitDirPath))
-                        {
-                            return fullGitDirPath;
-                        }
-                    }
-                }
-
-                startingDir = Path.GetDirectoryName(startingDir);
-            }
-
-            return null;
-        }
-
-        private static string ReadGitDirFromFile(string fileName)
-        {
-            const string expectedPrefix = "gitdir: ";
-            var firstLineOfFile = File.ReadLines(fileName).FirstOrDefault();
-            if (firstLineOfFile?.StartsWith(expectedPrefix) ?? false)
-            {
-                return firstLineOfFile.Substring(expectedPrefix.Length); // strip off the prefix, leaving just the path
-            }
-
-            return null;
-        }
-
         /// <summary>
         /// Tests whether an object's ID starts with the specified 16-bits, or a subset of them.
         /// </summary>
@@ -515,7 +355,7 @@
         /// May be null to count the height to the original commit.
         /// </param>
         /// <returns>The height of the branch.</returns>
-        private static int GetCommitHeight(Commit startingCommit, GitWalkTracker tracker, Func<Commit, bool> continueStepping)
+        private static int GetCommitHeight(Commit startingCommit, GitWalkTracker tracker, Func<Commit, bool>? continueStepping)
         {
             Requires.NotNull(startingCommit, nameof(startingCommit));
             Requires.NotNull(tracker, nameof(tracker));
@@ -673,7 +513,7 @@
         /// the height of the git commit while the <see cref="Version.Revision"/>
         /// component is the first four bytes of the git commit id (forced to be a positive integer).
         /// </remarks>
-        internal static Version GetIdAsVersionHelper(this Commit commit, VersionOptions versionOptions, int versionHeight)
+        internal static Version GetIdAsVersionHelper(this Commit commit, VersionOptions? versionOptions, int versionHeight)
         {
             var baseVersion = versionOptions?.Version?.Version ?? Version0;
             int buildNumber = baseVersion.Build;
@@ -716,52 +556,29 @@
             return VersionExtensions.Create(baseVersion.Major, baseVersion.Minor, buildNumber, revision);
         }
 
-        internal static string GetRepoRelativePath(this Repository repo, string absolutePath)
-        {
-            var repoRoot = repo?.Info?.WorkingDirectory?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && repoRoot != null && repoRoot.StartsWith("\\") && (repoRoot.Length == 1 || repoRoot[1] != '\\'))
-            {
-                // We're in a worktree, which libgit2sharp only gives us as a path relative to the root of the assumed drive.
-                // Add the drive: to the front of the repoRoot.
-                repoRoot = repo.Info.Path.Substring(0, 2) + repoRoot;
-            }
-
-            if (repoRoot == null)
-                return null;
-
-            if (!absolutePath.StartsWith(repoRoot, StringComparison.OrdinalIgnoreCase))
-            {
-                throw new ArgumentException($"Path '{absolutePath}' is not within repository '{repoRoot}'", nameof(absolutePath));
-            }
-
-            return absolutePath.Substring(repoRoot.Length)
-                .TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        }
-
         private class GitWalkTracker
         {
-            private readonly Dictionary<ObjectId, VersionOptions> commitVersionCache = new Dictionary<ObjectId, VersionOptions>();
-            private readonly Dictionary<ObjectId, VersionOptions> blobVersionCache = new Dictionary<ObjectId, VersionOptions>();
+            private readonly Dictionary<ObjectId, VersionOptions?> commitVersionCache = new Dictionary<ObjectId, VersionOptions?>();
+            private readonly Dictionary<ObjectId, VersionOptions?> blobVersionCache = new Dictionary<ObjectId, VersionOptions?>();
             private readonly Dictionary<ObjectId, int> heights = new Dictionary<ObjectId, int>();
+            private readonly LibGit2Context context;
 
-            internal GitWalkTracker(string repoRelativeDirectory)
+            internal GitWalkTracker(LibGit2Context context)
             {
-                this.RepoRelativeDirectory = repoRelativeDirectory;
+                this.context = context;
             }
-
-            internal string RepoRelativeDirectory { get; }
 
             internal bool TryGetVersionHeight(Commit commit, out int height) => this.heights.TryGetValue(commit.Id, out height);
 
             internal void RecordHeight(Commit commit, int height) => this.heights.Add(commit.Id, height);
 
-            internal VersionOptions GetVersion(Commit commit)
+            internal VersionOptions? GetVersion(Commit commit)
             {
-                if (!this.commitVersionCache.TryGetValue(commit.Id, out VersionOptions options))
+                if (!this.commitVersionCache.TryGetValue(commit.Id, out VersionOptions? options))
                 {
                     try
                     {
-                        options = VersionFile.GetVersion(commit, this.RepoRelativeDirectory, this.blobVersionCache);
+                        options = ((LibGit2VersionFile)this.context.VersionFile).GetVersion(commit, this.context.RepoRelativeProjectDirectory, this.blobVersionCache, out string? actualDirectory);
                     }
                     catch (Exception ex)
                     {

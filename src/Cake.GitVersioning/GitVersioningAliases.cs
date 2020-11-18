@@ -27,11 +27,11 @@ namespace Cake.GitVersioning
         ///     Information(GetVersioningGetVersion().SemVer2)
         /// });
         /// </example>
-        /// <param name="context">The context.</param>
+        /// <param name="cakeContext">The context.</param>
         /// <param name="projectDirectory">Directory to start the search for version.json.</param>
         /// <returns>The version information from Git Versioning.</returns>
         [CakeMethodAlias]
-        public static VersionOracle GitVersioningGetVersion(this ICakeContext context, string projectDirectory = ".")
+        public static VersionOracle GitVersioningGetVersion(this ICakeContext cakeContext, string projectDirectory = ".")
         {
             var fullProjectDirectory = (new DirectoryInfo(projectDirectory)).FullName;
 
@@ -42,7 +42,8 @@ namespace Cake.GitVersioning
                 throw new InvalidOperationException("Could not locate the Cake.GitVersioning library");
             }
 
-            return VersionOracle.Create(fullProjectDirectory, cloudBuild: CloudBuild.Active);
+            var gitContext = GitContext.Create(fullProjectDirectory);
+            return new VersionOracle(gitContext, cloudBuild: CloudBuild.Active);
         }
     }
 }

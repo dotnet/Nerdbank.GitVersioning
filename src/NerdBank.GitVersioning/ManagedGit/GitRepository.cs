@@ -224,7 +224,8 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// </returns>
         public string ShortenObjectId(GitObjectId objectId, int minimum)
         {
-            return objectId.ToString().Substring(0, 8);
+            // TODO: implement this properly.
+            return objectId.ToString().Substring(0, Math.Max(minimum, 8));
         }
 
         /// <summary>

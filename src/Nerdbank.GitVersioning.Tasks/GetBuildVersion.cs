@@ -195,7 +195,7 @@
         [Output]
         public ITaskItem[] CloudBuildVersionVars { get; private set; }
 
-        protected override string UnmanagedDllDirectory => LibGit2.GitExtensions.FindLibGit2NativeBinaries(this.TargetsPath);
+        protected override string UnmanagedDllDirectory => LibGit2.LibGit2GitExtensions.FindLibGit2NativeBinaries(this.TargetsPath);
 
         protected override bool ExecuteInner()
         {
@@ -213,7 +213,9 @@
 
                 var cloudBuild = CloudBuild.Active;
                 var overrideBuildNumberOffset = (this.OverrideBuildNumberOffset == int.MaxValue) ? (int?)null : this.OverrideBuildNumberOffset;
-                var oracle = VersionOracle.Create(this.ProjectDirectory, this.GitRepoRoot, null, cloudBuild, overrideBuildNumberOffset, this.ProjectPathRelativeToGitRepoRoot);
+                using var context = GitContext.Create(this.ProjectDirectory);
+                //var oracle = VersionOracle.Create(this.ProjectDirectory, this.GitRepoRoot, null, cloudBuild, overrideBuildNumberOffset, this.ProjectPathRelativeToGitRepoRoot);
+                var oracle = new VersionOracle(context, cloudBuild, overrideBuildNumberOffset);
                 if (!string.IsNullOrEmpty(this.DefaultPublicRelease))
                 {
                     oracle.PublicRelease = string.Equals(this.DefaultPublicRelease, "true", StringComparison.OrdinalIgnoreCase);

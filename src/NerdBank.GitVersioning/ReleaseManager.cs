@@ -83,6 +83,14 @@
             /// </summary>
             /// <param name="error">The error that occurred.</param>
             public ReleasePreparationException(ReleasePreparationError error) => this.Error = error;
+
+            /// <summary>
+            /// Initializes a new instance of <see cref="ReleasePreparationException"/>
+            /// </summary>
+            /// <param name="error">The error that occurred.</param>
+            /// <param name="innerException">The inner exception.</param>
+            public ReleasePreparationException(ReleasePreparationError error, Exception innerException)
+                : base(null, innerException) => this.Error = error;
         }
 
         /// <summary>
@@ -224,7 +232,8 @@
             Requires.NotNull(projectDirectory, nameof(projectDirectory));
 
             // open the git repository
-            var repository = this.GetRepository(projectDirectory);
+            var context = this.GetRepository(projectDirectory);
+            var repository = context.Repository;
 
             if (repository.Info.IsHeadDetached)
             {
@@ -233,7 +242,7 @@
             }
 
             // get the current version
-            var versionOptions = VersionFile.GetVersion(projectDirectory);
+            var versionOptions = context.VersionFile.GetVersion();
             if (versionOptions == null)
             {
                 this.stderr.WriteLine($"Failed to load version file for directory '{projectDirectory}'.");
@@ -258,7 +267,7 @@
                     var releaseInfo = new ReleaseInfo(new ReleaseBranchInfo(releaseBranchName, repository.Head.Tip.Id.ToString(), releaseVersion));
                     this.WriteToOutput(releaseInfo);
                 }
-                this.UpdateVersion(projectDirectory, repository, versionOptions.Version, releaseVersion);
+                this.UpdateVersion(context, versionOptions.Version, releaseVersion);
                 return;
             }
 
@@ -274,7 +283,7 @@
             // create release branch and update version
             var releaseBranch = repository.CreateBranch(releaseBranchName);
             Commands.Checkout(repository, releaseBranch);
-            this.UpdateVersion(projectDirectory, repository, versionOptions.Version, releaseVersion);
+            this.UpdateVersion(context, versionOptions.Version, releaseVersion);
 
             if (outputMode == ReleaseManagerOutputMode.Text)
             {
@@ -283,7 +292,7 @@
 
             // update version on main branch
             Commands.Checkout(repository, originalBranchName);
-            this.UpdateVersion(projectDirectory, repository, versionOptions.Version, nextDevVersion);
+            this.UpdateVersion(context, versionOptions.Version, nextDevVersion);
 
             if (outputMode == ReleaseManagerOutputMode.Text)
             {
@@ -325,13 +334,12 @@
             return branchNameFormat.Replace("{version}", versionOptions.Version.Version.ToString());
         }
 
-        private void UpdateVersion(string projectDirectory, Repository repository, SemanticVersion oldVersion, SemanticVersion newVersion)
+        private void UpdateVersion(LibGit2Context context, SemanticVersion oldVersion, SemanticVersion newVersion)
         {
-            Requires.NotNull(projectDirectory, nameof(projectDirectory));
-            Requires.NotNull(repository, nameof(repository));
+            Requires.NotNull(context, nameof(context));
 
-            var signature = this.GetSignature(repository);
-            var versionOptions = VersionFile.GetVersion(repository, projectDirectory);
+            var signature = this.GetSignature(context.Repository);
+            var versionOptions = context.VersionFile.GetVersion();
 
             if (IsVersionDecrement(oldVersion, newVersion))
             {
@@ -348,14 +356,14 @@
                 }
 
                 versionOptions.Version = newVersion;
-                var filePath = VersionFile.SetVersion(projectDirectory, versionOptions, includeSchemaProperty: true);
+                var filePath = context.VersionFile.SetVersion(context.AbsoluteProjectDirectory, versionOptions, includeSchemaProperty: true);
 
-                Commands.Stage(repository, filePath);
+                Commands.Stage(context.Repository, filePath);
 
                 // Author a commit only if we effectively changed something.
-                if (!repository.Head.Tip.Tree.Equals(repository.Index.WriteToTree()))
+                if (!context.Repository.Head.Tip.Tree.Equals(context.Repository.Index.WriteToTree()))
                 {
-                    repository.Commit($"Set version to '{versionOptions.Version}'", signature, signature, new CommitOptions() { AllowEmptyCommit = false });
+                    context.Repository.Commit($"Set version to '{versionOptions.Version}'", signature, signature, new CommitOptions() { AllowEmptyCommit = false });
                 }
             }
         }
@@ -372,28 +380,32 @@
             return signature;
         }
 
-        private Repository GetRepository(string projectDirectory)
+        private LibGit2Context GetRepository(string projectDirectory)
         {
             // open git repo and use default configuration (in order to commit we need a configured user name and email
-            // which is most likely configured on a user/system level rather than the repo level
-            var repository = GitExtensions.OpenGitRepo(projectDirectory, useDefaultConfigSearchPaths: true);
-            if (repository == null)
+            // which is most likely configured on a user/system level rather than the repo level.
+            LibGit2Context context;
+            try
+            {
+                context = (LibGit2Context)GitContext.Create(projectDirectory, writable: true);
+            }
+            catch (InvalidOperationException ex)
             {
                 this.stderr.WriteLine($"No git repository found above directory '{projectDirectory}'.");
-                throw new ReleasePreparationException(ReleasePreparationError.NoGitRepo);
+                throw new ReleasePreparationException(ReleasePreparationError.NoGitRepo, ex);
             }
 
             // abort if there are any pending changes
-            if (repository.RetrieveStatus().IsDirty)
+            if (context.Repository.RetrieveStatus().IsDirty)
             {
                 this.stderr.WriteLine($"Uncommitted changes in directory '{projectDirectory}'.");
                 throw new ReleasePreparationException(ReleasePreparationError.UncommittedChanges);
             }
 
             // check if repo is configured so we can create commits
-            _ = this.GetSignature(repository);
+            _ = this.GetSignature(context.Repository);
 
-            return repository;
+            return context;
         }
 
         private static bool IsVersionDecrement(SemanticVersion oldVersion, SemanticVersion newVersion)

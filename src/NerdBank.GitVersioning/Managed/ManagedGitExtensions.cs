@@ -13,38 +13,23 @@ namespace Nerdbank.GitVersioning.Managed
     internal static class GitExtensions
     {
         /// <summary>
-        /// The 0.0 version.
-        /// </summary>
-        private static readonly Version Version0 = new Version(0, 0);
-
-        /// <summary>
         /// The 0.0 semver.
         /// </summary>
         private static readonly SemanticVersion SemVer0 = SemanticVersion.Parse("0.0");
 
         /// <summary>
-        /// Maximum allowable value for the <see cref="Version.Build"/>
-        /// and <see cref="Version.Revision"/> components.
-        /// </summary>
-        private const ushort MaximumBuildNumberOrRevisionComponent = 0xfffe;
-
-        /// <summary>
         /// Gets the number of commits in the longest single path between
         /// the specified commit and the most distant ancestor (inclusive)
-        /// that set the version to the value at <paramref name="commit"/>.
+        /// that set the version to the value at <paramref name="context"/>.
         /// </summary>
-        /// <param name="repository">The git repository.</param>
-        /// <param name="commit">The commit to measure the height of.</param>
-        /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
+        /// <param name="context">The git context for which to calculate the height.</param>
         /// <param name="baseVersion">Optional base version to calculate the height. If not specified, the base version will be calculated by scanning the repository.</param>
         /// <returns>The height of the commit. Always a positive integer.</returns>
-        internal static int GetVersionHeight(GitRepository repository, GitCommit commit, string? repoRelativeProjectDirectory = null, Version? baseVersion = null)
+        internal static int GetVersionHeight(ManagedGitContext context, Version? baseVersion = null)
         {
-            Requires.Argument(repoRelativeProjectDirectory == null || !Path.IsPathRooted(repoRelativeProjectDirectory), nameof(repoRelativeProjectDirectory), "Path should be relative to repo root.");
+            var tracker = new GitWalkTracker(context);
 
-            var tracker = new GitWalkTracker(repository, repoRelativeProjectDirectory);
-
-            var versionOptions = tracker.GetVersion(commit);
+            var versionOptions = tracker.GetVersion(context.Commit);
             if (versionOptions == null)
             {
                 return 0;
@@ -57,7 +42,7 @@ namespace Nerdbank.GitVersioning.Managed
             var versionHeightPosition = versionOptions.VersionHeightPosition;
             if (versionHeightPosition.HasValue)
             {
-                int height = GetHeight(repository, commit, repoRelativeProjectDirectory, c => CommitMatchesVersion(c, baseSemVer, versionHeightPosition.Value, tracker));
+                int height = GetHeight(context, c => CommitMatchesVersion(c, baseSemVer, versionHeightPosition.Value, tracker));
                 return height;
             }
 
@@ -97,19 +82,17 @@ namespace Nerdbank.GitVersioning.Managed
         /// Gets the number of commits in the longest single path between
         /// the specified commit and the most distant ancestor (inclusive).
         /// </summary>
-        /// <param name="repository">The Git repository.</param>
-        /// <param name="commit">The commit to measure the height of.</param>
-        /// <param name="repoRelativeProjectDirectory">The path to the directory of the project whose version is being queried, relative to the repo root.</param>
+        /// <param name="context">The git context.</param>
         /// <param name="continueStepping">
         /// A function that returns <c>false</c> when we reach a commit that
         /// should not be included in the height calculation.
         /// May be null to count the height to the original commit.
         /// </param>
         /// <returns>The height of the commit. Always a positive integer.</returns>
-        public static int GetHeight(GitRepository repository, GitCommit commit, string? repoRelativeProjectDirectory, Func<GitCommit, bool>? continueStepping = null)
+        public static int GetHeight(ManagedGitContext context, Func<GitCommit, bool>? continueStepping = null)
         {
-            var tracker = new GitWalkTracker(repository, repoRelativeProjectDirectory);
-            return GetCommitHeight(repository, commit, tracker, continueStepping);
+            var tracker = new GitWalkTracker(context);
+            return GetCommitHeight(context.Repository, context.Commit, tracker, continueStepping);
         }
 
         /// <summary>
@@ -327,81 +310,6 @@ namespace Nerdbank.GitVersioning.Managed
             return false;
         }
 
-        internal static string? GetRepoRelativePath(this GitRepository repo, string absolutePath)
-        {
-            var repoRoot = repo.WorkingDirectory?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-
-            if (repoRoot == null)
-                return null;
-
-            if (!absolutePath.StartsWith(repoRoot, StringComparison.OrdinalIgnoreCase))
-            {
-                throw new ArgumentException($"Path '{absolutePath}' is not within repository '{repoRoot}'", nameof(absolutePath));
-            }
-
-            return absolutePath.Substring(repoRoot.Length)
-                .TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        }
-
-        /// <summary>
-        /// Encodes a commit from history in a <see cref="Version"/>
-        /// so that the original commit can be found later.
-        /// </summary>
-        /// <param name="commit">The commit whose ID and position in history is to be encoded.</param>
-        /// <param name="versionOptions">The version options applicable at this point (either from commit or working copy).</param>
-        /// <param name="versionHeight">The version height, previously calculated.</param>
-        /// <returns>
-        /// A version whose <see cref="Version.Build"/> and
-        /// <see cref="Version.Revision"/> components are calculated based on the commit.
-        /// </returns>
-        /// <remarks>
-        /// In the returned version, the <see cref="Version.Build"/> component is
-        /// the height of the git commit while the <see cref="Version.Revision"/>
-        /// component is the first four bytes of the git commit id (forced to be a positive integer).
-        /// </remarks>
-        internal static Version GetIdAsVersionHelper(this GitCommit? commit, VersionOptions? versionOptions, int versionHeight)
-        {
-            var baseVersion = versionOptions?.Version?.Version ?? Version0;
-            int buildNumber = baseVersion.Build;
-            int revision = baseVersion.Revision;
-
-            // Don't use the ?? coalescing operator here because the position property getters themselves can return null, which should NOT be overridden with our default.
-            // The default value is only appropriate if versionOptions itself is null.
-            var versionHeightPosition = versionOptions != null ? versionOptions.VersionHeightPosition : SemanticVersion.Position.Build;
-            var commitIdPosition = versionOptions != null ? versionOptions.GitCommitIdPosition : SemanticVersion.Position.Revision;
-
-            // The compiler (due to WinPE header requirements) only allows 16-bit version components,
-            // and forbids 0xffff as a value.
-            if (versionHeightPosition.HasValue)
-            {
-                int adjustedVersionHeight = versionHeight == 0 ? 0 : versionHeight + (versionOptions?.VersionHeightOffset ?? 0);
-                Verify.Operation(adjustedVersionHeight <= MaximumBuildNumberOrRevisionComponent, "Git height is {0}, which is greater than the maximum allowed {0}.", adjustedVersionHeight, MaximumBuildNumberOrRevisionComponent);
-                switch (versionHeightPosition.Value)
-                {
-                    case SemanticVersion.Position.Build:
-                        buildNumber = adjustedVersionHeight;
-                        break;
-                    case SemanticVersion.Position.Revision:
-                        revision = adjustedVersionHeight;
-                        break;
-                }
-            }
-
-            if (commitIdPosition.HasValue)
-            {
-                switch (commitIdPosition.Value)
-                {
-                    case SemanticVersion.Position.Revision:
-                        revision = commit != null
-                            ? Math.Min(MaximumBuildNumberOrRevisionComponent, commit.Value.GetTruncatedCommitIdAsUInt16())
-                            : 0;
-                        break;
-                }
-            }
-
-            return VersionExtensions.Create(baseVersion.Major, baseVersion.Minor, buildNumber, revision);
-        }
-
         /// <summary>
         /// Takes the first 2 bytes of a commit ID (i.e. first 4 characters of its hex-encoded SHA)
         /// and returns them as an 16-bit unsigned integer.
@@ -415,31 +323,27 @@ namespace Nerdbank.GitVersioning.Managed
 
         private class GitWalkTracker
         {
-            private readonly Dictionary<GitObjectId, VersionOptions> commitVersionCache = new Dictionary<GitObjectId, VersionOptions>();
-            private readonly Dictionary<GitObjectId, VersionOptions> blobVersionCache = new Dictionary<GitObjectId, VersionOptions>();
+            private readonly Dictionary<GitObjectId, VersionOptions?> commitVersionCache = new Dictionary<GitObjectId, VersionOptions?>();
+            private readonly Dictionary<GitObjectId, VersionOptions?> blobVersionCache = new Dictionary<GitObjectId, VersionOptions?>();
             private readonly Dictionary<GitObjectId, int> heights = new Dictionary<GitObjectId, int>();
+            private readonly ManagedGitContext context;
 
-            internal GitWalkTracker(GitRepository repository, string? repoRelativeDirectory)
+            internal GitWalkTracker(ManagedGitContext context)
             {
-                this.Repository = repository;
-                this.RepoRelativeDirectory = repoRelativeDirectory;
+                this.context = context;
             }
-
-            internal GitRepository Repository { get; }
-
-            internal string? RepoRelativeDirectory { get; }
 
             internal bool TryGetVersionHeight(GitCommit commit, out int height) => this.heights.TryGetValue(commit.Sha, out height);
 
             internal void RecordHeight(GitCommit commit, int height) => this.heights.Add(commit.Sha, height);
 
-            internal VersionOptions GetVersion(GitCommit commit)
+            internal VersionOptions? GetVersion(GitCommit commit)
             {
                 if (!this.commitVersionCache.TryGetValue(commit.Sha, out VersionOptions? options))
                 {
                     try
                     {
-                        options = VersionFile.GetVersion(this.Repository, commit, this.RepoRelativeDirectory, this.blobVersionCache);
+                        options = ((ManagedVersionFile)this.context.VersionFile).GetVersion(commit, this.context.RepoRelativeProjectDirectory, this.blobVersionCache, out string? actualDirectory);
                     }
                     catch (Exception ex)
                     {

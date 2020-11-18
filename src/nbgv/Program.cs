@@ -215,8 +215,8 @@ namespace Nerdbank.GitVersioning.Tool
                 return ExitCodes.NoGitRepo;
             }
 
-            var repository = GitExtensions.OpenGitRepo(searchPath);
-            if (repository == null)
+            using var context = GitContext.Create(searchPath, writable: true);
+            if (!context.IsRepository)
             {
                 Console.Error.WriteLine("No git repo found at or above: \"{0}\"", searchPath);
                 return ExitCodes.NoGitRepo;
@@ -224,10 +224,10 @@ namespace Nerdbank.GitVersioning.Tool
 
             if (string.IsNullOrEmpty(versionJsonRoot))
             {
-                versionJsonRoot = repository.Info.WorkingDirectory;
+                versionJsonRoot = context.WorkingTreePath;
             }
 
-            var existingOptions = VersionFile.GetVersion(versionJsonRoot);
+            var existingOptions = context.VersionFile.GetVersion();
             if (existingOptions != null)
             {
                 if (!string.IsNullOrEmpty(version))
@@ -241,8 +241,8 @@ namespace Nerdbank.GitVersioning.Tool
             }
             else
             {
-                string versionJsonPath = VersionFile.SetVersion(versionJsonRoot, options);
-                LibGit2Sharp.Commands.Stage(repository, versionJsonPath);
+                string versionJsonPath = context.VersionFile.SetVersion(versionJsonRoot, options);
+                context.Stage(versionJsonPath);
             }
 
             // Create/update the Directory.Build.props file in the directory of the version.json file to add the NB.GV package.
@@ -292,7 +292,7 @@ namespace Nerdbank.GitVersioning.Tool
                 propsFile.Save(directoryBuildPropsPath);
             }
 
-            LibGit2Sharp.Commands.Stage(repository, directoryBuildPropsPath);
+            context.Stage(directoryBuildPropsPath);
 
             return ExitCodes.OK;
         }
@@ -311,28 +311,20 @@ namespace Nerdbank.GitVersioning.Tool
 
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(projectPath);
 
-            var repository = GitExtensions.OpenGitRepo(searchPath);
-            if (repository == null)
+            using var context = GitContext.Create(searchPath);
+            if (!context.IsRepository)
             {
                 Console.Error.WriteLine("No git repo found at or above: \"{0}\"", searchPath);
                 return ExitCodes.NoGitRepo;
             }
 
-            LibGit2Sharp.GitObject refObject = null;
-            try
-            {
-                repository.RevParse(versionOrRef, out var reference, out refObject);
-            }
-            catch (LibGit2Sharp.NotFoundException) { }
-
-            var commit = refObject as LibGit2Sharp.Commit;
-            if (commit == null)
+            if (!context.TrySelectCommit(versionOrRef))
             {
                 Console.Error.WriteLine("rev-parse produced no commit for {0}", versionOrRef);
                 return ExitCodes.BadGitRef;
             }
 
-            var oracle = new LibGit2.LibGit2VersionOracle(searchPath, repository, commit, CloudBuild.Active);
+            var oracle = new VersionOracle(context, CloudBuild.Active);
             oracle.BuildMetadata.AddRange(buildMetadata);
 
             // Take the PublicRelease environment variable into account, since the build would as well.
@@ -399,32 +391,32 @@ namespace Nerdbank.GitVersioning.Tool
             };
 
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(projectPath);
-            var repository = GitExtensions.OpenGitRepo(searchPath);
-            var existingOptions = VersionFile.GetVersion(searchPath, out string actualDirectory);
+            using var context = GitContext.Create(searchPath, writable: true);
+            var existingOptions = context.VersionFile.GetVersion(out string actualDirectory);
             string versionJsonPath;
             if (existingOptions != null)
             {
                 existingOptions.Version = semver;
-                versionJsonPath = VersionFile.SetVersion(actualDirectory, existingOptions);
+                versionJsonPath = context.VersionFile.SetVersion(actualDirectory, existingOptions);
             }
             else if (string.IsNullOrEmpty(projectPath))
             {
-                if (repository == null)
+                if (!context.IsRepository)
                 {
                     Console.Error.WriteLine("No version file and no git repo found at or above: \"{0}\"", searchPath);
                     return ExitCodes.NoGitRepo;
                 }
 
-                versionJsonPath = VersionFile.SetVersion(repository.Info.WorkingDirectory, defaultOptions);
+                versionJsonPath = context.VersionFile.SetVersion(context.WorkingTreePath, defaultOptions);
             }
             else
             {
-                versionJsonPath = VersionFile.SetVersion(projectPath, defaultOptions);
+                versionJsonPath = context.VersionFile.SetVersion(projectPath, defaultOptions);
             }
 
-            if (repository != null)
+            if (context.IsRepository)
             {
-                LibGit2Sharp.Commands.Stage(repository, versionJsonPath);
+                context.Stage(versionJsonPath);
             }
 
             return ExitCodes.OK;
@@ -439,22 +431,15 @@ namespace Nerdbank.GitVersioning.Tool
 
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(projectPath);
 
-            var repository = GitExtensions.OpenGitRepo(searchPath);
-            if (repository == null)
+            using var context = (LibGit2Context)GitContext.Create(searchPath, writable: true);
+            if (context is null)
             {
                 Console.Error.WriteLine("No git repo found at or above: \"{0}\"", searchPath);
                 return ExitCodes.NoGitRepo;
             }
 
-            LibGit2Sharp.GitObject refObject = null;
-            try
-            {
-                repository.RevParse(versionOrRef, out var reference, out refObject);
-            }
-            catch (LibGit2Sharp.NotFoundException) { }
-
-            var commit = refObject as LibGit2Sharp.Commit;
-            if (commit == null)
+            var repository = context.Repository;
+            if (!context.TrySelectCommit(versionOrRef))
             {
                 if (!Version.TryParse(versionOrRef, out Version parsedVersion))
                 {
@@ -463,7 +448,7 @@ namespace Nerdbank.GitVersioning.Tool
                 }
 
                 string repoRelativeProjectDir = GetRepoRelativePath(searchPath, repository);
-                var candidateCommits = GitExtensions.GetCommitsFromVersion(repository, parsedVersion, repoRelativeProjectDir).ToList();
+                var candidateCommits = LibGit2GitExtensions.GetCommitsFromVersion(context, parsedVersion).ToList();
                 if (candidateCommits.Count == 0)
                 {
                     Console.Error.WriteLine("No commit with that version found.");
@@ -471,25 +456,25 @@ namespace Nerdbank.GitVersioning.Tool
                 }
                 else if (candidateCommits.Count > 1)
                 {
-                    PrintCommits(false, searchPath, repository, candidateCommits, includeOptions: true);
+                    PrintCommits(false, context, candidateCommits, includeOptions: true);
                     int selection;
                     do
                     {
                         Console.Write("Enter selection: ");
                     }
                     while (!int.TryParse(Console.ReadLine(), out selection) || selection > candidateCommits.Count || selection < 1);
-                    commit = candidateCommits[selection - 1];
+                    context.TrySelectCommit(candidateCommits[selection - 1].Sha);
                 }
                 else
                 {
-                    commit = candidateCommits.Single();
+                    context.TrySelectCommit(candidateCommits.Single().Sha);
                 }
             }
 
-            var oracle = new LibGit2.LibGit2VersionOracle(searchPath, repository, commit, CloudBuild.Active);
+            var oracle = new VersionOracle(context, CloudBuild.Active);
             if (!oracle.VersionFileFound)
             {
-                Console.Error.WriteLine("No version.json file found in or above \"{0}\" in commit {1}.", searchPath, commit.Sha);
+                Console.Error.WriteLine("No version.json file found in or above \"{0}\" in commit {1}.", searchPath, context.GitCommitId);
                 return ExitCodes.NoVersionJsonFound;
             }
 
@@ -497,17 +482,17 @@ namespace Nerdbank.GitVersioning.Tool
             string tagName = $"v{oracle.SemVer2}";
             try
             {
-                repository.Tags.Add(tagName, commit);
+                context.ApplyTag(tagName);
             }
             catch (LibGit2Sharp.NameConflictException)
             {
                 var taggedCommit = repository.Tags[tagName].Target as LibGit2Sharp.Commit;
-                bool correctTag = taggedCommit?.Sha == commit.Sha;
-                Console.Error.WriteLine("The tag {0} is already defined ({1}).", tagName, correctTag ? "to the right commit" : $"expected {commit.Sha} but was on {taggedCommit.Sha}");
+                bool correctTag = taggedCommit?.Sha == context.GitCommitId;
+                Console.Error.WriteLine("The tag {0} is already defined ({1}).", tagName, correctTag ? "to the right commit" : $"expected {context.GitCommitId} but was on {taggedCommit.Sha}");
                 return correctTag ? ExitCodes.OK : ExitCodes.TagConflict;
             }
 
-            Console.WriteLine("{0} tag created at {1}.", tagName, commit.Sha);
+            Console.WriteLine("{0} tag created at {1}.", tagName, context.GitCommitId);
             Console.WriteLine("Remember to push to a remote: git push origin {0}", tagName);
 
             return ExitCodes.OK;
@@ -523,16 +508,15 @@ namespace Nerdbank.GitVersioning.Tool
 
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(projectPath);
 
-            var repository = GitExtensions.OpenGitRepo(searchPath);
-            if (repository == null)
+            using var context = (LibGit2Context)GitContext.Create(searchPath, writable: true);
+            if (!context.IsRepository)
             {
                 Console.Error.WriteLine("No git repo found at or above: \"{0}\"", searchPath);
                 return ExitCodes.NoGitRepo;
             }
 
-            string repoRelativeProjectDir = GetRepoRelativePath(searchPath, repository);
-            var candidateCommits = GitExtensions.GetCommitsFromVersion(repository, parsedVersion, repoRelativeProjectDir);
-            PrintCommits(quiet, searchPath, repository, candidateCommits);
+            var candidateCommits = LibGit2GitExtensions.GetCommitsFromVersion(context, parsedVersion);
+            PrintCommits(quiet, context, candidateCommits);
 
             return ExitCodes.OK;
         }
@@ -559,7 +543,8 @@ namespace Nerdbank.GitVersioning.Tool
                 activeCloudBuild = CloudBuild.SupportedCloudBuilds[matchingIndex];
             }
 
-            var oracle = VersionOracle.Create(searchPath, cloudBuild: activeCloudBuild);
+            using var context = GitContext.Create(searchPath);
+            var oracle = new VersionOracle(context, cloudBuild: activeCloudBuild);
             oracle.BuildMetadata.AddRange(buildMetadata);
             var variables = new Dictionary<string, string>();
             if (cloudBuildAllVars)
@@ -773,7 +758,7 @@ namespace Nerdbank.GitVersioning.Tool
             return path + Path.DirectorySeparatorChar;
         }
 
-        private static void PrintCommits(bool quiet, string projectDirectory, LibGit2Sharp.Repository repository, IEnumerable<LibGit2Sharp.Commit> candidateCommits, bool includeOptions = false)
+        private static void PrintCommits(bool quiet, GitContext context, IEnumerable<LibGit2Sharp.Commit> candidateCommits, bool includeOptions = false)
         {
             int index = 1;
             foreach (var commit in candidateCommits)
@@ -789,7 +774,8 @@ namespace Nerdbank.GitVersioning.Tool
                 }
                 else
                 {
-                    var oracle = new LibGit2.LibGit2VersionOracle(projectDirectory, repository, commit, null);
+                    Assumes.True(context.TrySelectCommit(commit.Sha));
+                    var oracle = new VersionOracle(context, null);
                     Console.WriteLine($"{commit.Sha} {oracle.Version} {commit.MessageShort}");
                 }
             }

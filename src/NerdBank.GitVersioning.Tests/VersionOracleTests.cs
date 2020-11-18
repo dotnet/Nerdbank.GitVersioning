@@ -7,20 +7,43 @@ using Xunit;
 using Xunit.Abstractions;
 using Version = System.Version;
 
-public class VersionOracleTests : RepoTestBase
+public class VersionOracleManagedTests : VersionOracleTests
+{
+    public VersionOracleManagedTests(ITestOutputHelper logger)
+        : base(logger)
+    {
+    }
+
+    protected override GitContext CreateGitContext(string path, string committish = null)
+        => GitContext.Create(path, committish, writable: false);
+}
+
+public class VersionOracleLibGit2Tests : VersionOracleTests
+{
+    public VersionOracleLibGit2Tests(ITestOutputHelper logger)
+        : base(logger)
+    {
+    }
+
+    protected override GitContext CreateGitContext(string path, string committish = null)
+        => GitContext.Create(path, committish, writable: true);
+}
+
+public abstract class VersionOracleTests : RepoTestBase
 {
     public VersionOracleTests(ITestOutputHelper logger)
         : base(logger)
     {
     }
 
-    private string CommitIdShort => this.Repo.Head.Commits.First().Id.Sha.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength);
+    private string CommitIdShort => this.Context.GitCommitId?.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength);
 
     [Fact]
     public void NotRepo()
     {
         // Seems safe to assume a temporary path is not a Git directory.
-        var oracle = VersionOracle.Create(Path.GetTempPath());
+        var context = this.CreateGitContext(Path.GetTempPath());
+        var oracle = new VersionOracle(context);
         Assert.Equal(0, oracle.VersionHeight);
     }
 
@@ -29,13 +52,15 @@ public class VersionOracleTests : RepoTestBase
     {
         using (var expandedRepo = TestUtilities.ExtractRepoArchive("submodules"))
         {
-            this.Repo = new Repository(expandedRepo.RepoPath);
+            this.Context = this.CreateGitContext(expandedRepo.RepoPath);
 
-            var oracleA = VersionOracle.Create(Path.Combine(expandedRepo.RepoPath, "a"));
+            this.Context.RepoRelativeProjectDirectory = "a";
+            var oracleA = new VersionOracle(this.Context);
             Assert.Equal("1.3.1", oracleA.SimpleVersion.ToString());
             Assert.Equal("e238b03e75", oracleA.GitCommitIdShort);
 
-            var oracleB = VersionOracle.Create(Path.Combine(expandedRepo.RepoPath, "b", "projB"));
+            this.Context.RepoRelativeProjectDirectory = Path.Combine("b", "projB");
+            var oracleB = new VersionOracle(this.Context);
             Assert.Equal("2.5.2", oracleB.SimpleVersion.ToString());
             Assert.Equal("3ea7f010c3", oracleB.GitCommitIdShort);
         }
@@ -50,7 +75,7 @@ public class VersionOracleTests : RepoTestBase
         };
         this.WriteVersionFile(workingCopyVersion);
         this.InitializeSourceControl();
-        var oracle = VersionOracle.Create(this.RepoPath);
+        var oracle = new VersionOracle(this.Context);
         Assert.Equal("7.8", oracle.MajorMinorVersion.ToString());
         Assert.Equal(oracle.VersionHeight, oracle.BuildNumber);
 
@@ -70,7 +95,7 @@ public class VersionOracleTests : RepoTestBase
         };
         this.WriteVersionFile(workingCopyVersion);
         this.InitializeSourceControl();
-        var oracle = VersionOracle.Create(this.RepoPath);
+        var oracle = new VersionOracle(this.Context);
         Assert.Equal("7.8", oracle.MajorMinorVersion.ToString());
         Assert.Equal(9, oracle.BuildNumber);
         Assert.Equal(oracle.VersionHeight + oracle.VersionHeightOffset, oracle.Version.Revision);
@@ -99,21 +124,22 @@ public class VersionOracleTests : RepoTestBase
         this.InitializeSourceControl();
         this.AddCommits(10);
 
-        var oracle = VersionOracle.Create(this.RepoPath);
+        var oracle = new VersionOracle(this.Context);
         Assert.Equal(11, oracle.VersionHeight);
-        Assert.Equal(11, this.GetVersionHeight(this.Repo.Head));
 
         options.Version = SemanticVersion.Parse(next);
 
         this.WriteVersionFile(options);
-        oracle = VersionOracle.Create(this.RepoPath);
+        oracle = new VersionOracle(this.Context);
         Assert.Equal(1, oracle.VersionHeight);
-        Assert.Equal(1, this.GetVersionHeight(this.Repo.Head));
 
-        foreach (var commit in this.Repo.Head.Commits)
+        if (this.Context is Nerdbank.GitVersioning.LibGit2.LibGit2Context libgit2Context)
         {
-            var versionFromId = this.GetIdAsVersion(commit);
-            Assert.Contains(commit, Nerdbank.GitVersioning.LibGit2.GitExtensions.GetCommitsFromVersion(this.Repo, versionFromId));
+            foreach (var commit in libgit2Context.Repository.Head.Commits)
+            {
+                var versionFromId = this.GetVersion(committish: commit.Sha);
+                Assert.Contains(commit, Nerdbank.GitVersioning.LibGit2.LibGit2GitExtensions.GetCommitsFromVersion(libgit2Context, versionFromId));
+            }
         }
     }
 
@@ -127,7 +153,7 @@ public class VersionOracleTests : RepoTestBase
         };
         this.WriteVersionFile(workingCopyVersion);
         this.InitializeSourceControl();
-        var oracle = VersionOracle.Create(this.RepoPath);
+        var oracle = new VersionOracle(this.Context);
         Assert.Equal("7.8", oracle.MajorMinorVersion.ToString());
         Assert.Equal(9, oracle.BuildNumber);
         Assert.Equal(-1, oracle.Version.Revision);
@@ -148,7 +174,7 @@ public class VersionOracleTests : RepoTestBase
         };
         this.WriteVersionFile(workingCopyVersion);
         this.InitializeSourceControl();
-        var oracle = VersionOracle.Create(this.RepoPath);
+        var oracle = new VersionOracle(this.Context);
         Assert.Equal("7.8", oracle.MajorMinorVersion.ToString());
         Assert.Equal(9, oracle.BuildNumber);
         Assert.Equal(oracle.VersionHeight + oracle.VersionHeightOffset, oracle.Version.Revision);
@@ -176,7 +202,7 @@ public class VersionOracleTests : RepoTestBase
         };
         this.WriteVersionFile(workingCopyVersion);
         this.InitializeSourceControl();
-        var oracle = VersionOracle.Create(this.RepoPath);
+        var oracle = new VersionOracle(this.Context);
         oracle.PublicRelease = true;
         Assert.Equal(semVer1, oracle.SemVer1);
     }
@@ -192,7 +218,7 @@ public class VersionOracleTests : RepoTestBase
         };
         this.WriteVersionFile(workingCopyVersion);
         this.InitializeSourceControl();
-        var oracle = VersionOracle.Create(this.RepoPath);
+        var oracle = new VersionOracle(this.Context);
         oracle.PublicRelease = true;
         Assert.Equal("7.8.9-foo-025", oracle.SemVer1);
     }
@@ -206,7 +232,7 @@ public class VersionOracleTests : RepoTestBase
         };
         this.WriteVersionFile(workingCopyVersion);
         this.InitializeSourceControl();
-        var oracle = VersionOracle.Create(this.RepoPath);
+        var oracle = new VersionOracle(this.Context);
         oracle.PublicRelease = false;
         Assert.Matches(@"^2.3.1-[^g]{10}$", oracle.SemVer1);
         Assert.Matches(@"^2.3.1-g[a-f0-9]{10}$", oracle.SemVer2);
@@ -224,7 +250,7 @@ public class VersionOracleTests : RepoTestBase
         };
         this.WriteVersionFile(workingCopyVersion);
         this.InitializeSourceControl();
-        var oracle = VersionOracle.Create(this.RepoPath);
+        var oracle = new VersionOracle(this.Context);
         oracle.PublicRelease = false;
         Assert.Matches(@"^2.3.1-[^g]{7}$", oracle.SemVer1);
         Assert.Matches(@"^2.3.1-g[a-f0-9]{7}$", oracle.SemVer2);
@@ -242,7 +268,7 @@ public class VersionOracleTests : RepoTestBase
         };
         this.WriteVersionFile(workingCopyVersion);
         this.InitializeSourceControl();
-        var oracle = VersionOracle.Create(this.RepoPath);
+        var oracle = new VersionOracle(this.Context);
         oracle.PublicRelease = true;
         Assert.Equal($"7.8.9-foo-25", oracle.NuGetPackageVersion);
     }
@@ -257,7 +283,7 @@ public class VersionOracleTests : RepoTestBase
         };
         this.WriteVersionFile(workingCopyVersion);
         this.InitializeSourceControl();
-        var oracle = VersionOracle.Create(this.RepoPath);
+        var oracle = new VersionOracle(this.Context);
         oracle.PublicRelease = false;
         Assert.Equal($"7.8.9-foo-25-g{this.CommitIdShort}", oracle.NuGetPackageVersion);
     }
@@ -272,7 +298,7 @@ public class VersionOracleTests : RepoTestBase
         };
         this.WriteVersionFile(workingCopyVersion);
         this.InitializeSourceControl();
-        var oracle = VersionOracle.Create(this.RepoPath);
+        var oracle = new VersionOracle(this.Context);
         oracle.PublicRelease = true;
         Assert.Equal("7.8.9-foo.25", oracle.NpmPackageVersion);
     }
@@ -290,7 +316,7 @@ public class VersionOracleTests : RepoTestBase
         };
         this.WriteVersionFile(workingCopyVersion);
         this.InitializeSourceControl();
-        var oracle = VersionOracle.Create(this.RepoPath);
+        var oracle = new VersionOracle(this.Context);
         oracle.PublicRelease = true;
         Assert.Equal($"7.8.9-foo.25", oracle.NuGetPackageVersion);
     }
@@ -308,7 +334,7 @@ public class VersionOracleTests : RepoTestBase
         };
         this.WriteVersionFile(workingCopyVersion);
         this.InitializeSourceControl();
-        var oracle = VersionOracle.Create(this.RepoPath);
+        var oracle = new VersionOracle(this.Context);
         oracle.PublicRelease = false;
         Assert.Equal($"7.8.9-foo.25.g{this.CommitIdShort}", oracle.NuGetPackageVersion);
     }
@@ -327,7 +353,7 @@ public class VersionOracleTests : RepoTestBase
         };
         this.WriteVersionFile(workingCopyVersion);
         this.InitializeSourceControl();
-        var oracle = VersionOracle.Create(this.RepoPath);
+        var oracle = new VersionOracle(this.Context);
         oracle.PublicRelease = false;
         Assert.Equal($"7.8.9-foo.25.git{this.CommitIdShort}", oracle.NuGetPackageVersion);
     }
@@ -353,28 +379,26 @@ public class VersionOracleTests : RepoTestBase
         this.InitializeSourceControl();
 
         // Check Root Version. Root version will be used
-        var oracle = VersionOracle.Create(this.RepoPath, this.RepoPath, null, null);
+        var oracle = new VersionOracle(this.Context);
         Assert.Equal("1.1", oracle.MajorMinorVersion.ToString());
 
         // Check ChildProject with projectRelativeDir, with version file. Child project version will be used.
-        oracle = VersionOracle.Create(childProjectAbsoluteDir, this.RepoPath, projectPathRelativeToGitRepoRoot: childProjectRelativeDir);
-        Assert.Equal("2.2", oracle.MajorMinorVersion.ToString());
-
-        // Check ChildProject withOUT projectRelativeDir, with Version file. Child project version will be used.
-        oracle = VersionOracle.Create(childProjectAbsoluteDir, this.RepoPath);
+        this.Context.RepoRelativeProjectDirectory = childProjectRelativeDir;
+        oracle = new VersionOracle(this.Context);
         Assert.Equal("2.2", oracle.MajorMinorVersion.ToString());
 
         // Check ChildProject withOUT Version file. Root version will be used.
-        oracle = VersionOracle.Create(Path.Combine(this.RepoPath, "otherChildProject"), this.RepoPath, projectPathRelativeToGitRepoRoot: "otherChildProject");
+        this.Context.RepoRelativeProjectDirectory = "otherChildProject";
+        oracle = new VersionOracle(this.Context);
         Assert.Equal("1.1", oracle.MajorMinorVersion.ToString());
     }
 
     [Fact]
     public void VersionJsonWithoutVersion()
     {
-        File.WriteAllText(Path.Combine(this.RepoPath, Nerdbank.GitVersioning.LibGit2.VersionFile.JsonFileName), "{}");
+        File.WriteAllText(Path.Combine(this.RepoPath, VersionFile.JsonFileName), "{}");
         this.InitializeSourceControl();
-        var oracle = VersionOracle.Create(this.RepoPath);
+        var oracle = new VersionOracle(this.Context);
         Assert.Equal(0, oracle.Version.Major);
         Assert.Equal(0, oracle.Version.Minor);
     }
@@ -382,10 +406,10 @@ public class VersionOracleTests : RepoTestBase
     [Fact]
     public void VersionJsonWithSingleIntegerForVersion()
     {
-        File.WriteAllText(Path.Combine(this.RepoPath, Nerdbank.GitVersioning.LibGit2.VersionFile.JsonFileName), @"{""version"":""3""}");
+        File.WriteAllText(Path.Combine(this.RepoPath, VersionFile.JsonFileName), @"{""version"":""3""}");
         this.InitializeSourceControl();
-        var ex = Assert.Throws<FormatException>(() => VersionOracle.Create(this.RepoPath));
-        Assert.Contains(this.Repo.Head.Commits.First().Sha, ex.Message);
+        var ex = Assert.Throws<FormatException>(() => new VersionOracle(this.Context));
+        Assert.Contains(this.Context.GitCommitId, ex.Message);
         Assert.Contains("\"3\"", ex.InnerException.Message);
         this.Logger.WriteLine(ex.ToString());
     }
@@ -399,24 +423,15 @@ public class VersionOracleTests : RepoTestBase
         };
         this.WriteVersionFile(workingCopyVersion);
         this.InitializeSourceControl();
-        var oracleOriginal = VersionOracle.Create(this.RepoPath);
+        var oracleOriginal = new VersionOracle(this.Context);
         this.AddCommits();
 
         string workTreePath = this.CreateDirectoryForNewRepo();
         Directory.Delete(workTreePath);
-        this.Repo.Worktrees.Add("HEAD~1", "myworktree", workTreePath, isLocked: false);
-        var oracleWorkTree = VersionOracle.Create(workTreePath);
+        this.LibGit2Repository.Worktrees.Add("HEAD~1", "myworktree", workTreePath, isLocked: false);
+        var context = this.CreateGitContext(workTreePath);
+        var oracleWorkTree = new VersionOracle(context);
         Assert.Equal(oracleOriginal.Version, oracleWorkTree.Version);
-    }
-
-    [Fact]
-    public void GetHeight_EmptyRepo()
-    {
-        this.InitializeSourceControl();
-
-        Branch head = this.Repo.Head;
-        Assert.Throws<InvalidOperationException>(() => Nerdbank.GitVersioning.LibGit2.GitExtensions.GetHeight(head));
-        Assert.Throws<InvalidOperationException>(() => Nerdbank.GitVersioning.LibGit2.GitExtensions.GetHeight(head, c => true));
     }
 
     [Fact]
@@ -424,11 +439,11 @@ public class VersionOracleTests : RepoTestBase
     {
         this.InitializeSourceControl();
 
-        var first = this.Repo.Commit("First", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
-        var second = this.Repo.Commit("Second", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
+        var first = this.LibGit2Repository.Commit("First", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
+        var second = this.LibGit2Repository.Commit("Second", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         this.WriteVersionFile();
-        var third = this.Repo.Commit("Third", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
-        Assert.Equal(2, this.GetVersionHeight(this.Repo.Head));
+        var third = this.LibGit2Repository.Commit("Third", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
+        Assert.Equal(2, this.GetVersionHeight());
     }
 
     [Fact]
@@ -440,19 +455,18 @@ public class VersionOracleTests : RepoTestBase
         string versionJsonPath = Path.Combine(this.RepoPath, "version.json");
         File.WriteAllText(versionJsonPath, @"{ ""unrelated"": false }");
         Assert.Equal(0, this.GetVersionHeight()); // exercise code that handles the file not yet checked in.
-        Commands.Stage(this.Repo, versionJsonPath);
-        this.Repo.Commit("Add unrelated version.json file.", this.Signer, this.Signer);
+        Commands.Stage(this.LibGit2Repository, versionJsonPath);
+        this.LibGit2Repository.Commit("Add unrelated version.json file.", this.Signer, this.Signer);
         Assert.Equal(0, this.GetVersionHeight()); // exercise code that handles a checked in file.
 
         // And now the repo has decided to use this package.
         this.WriteVersionFile();
 
-        Assert.Equal(1, this.GetVersionHeight(this.Repo.Head));
         Assert.Equal(1, this.GetVersionHeight());
 
         // Also emulate case of where the related version.json was just changed to conform,
         // but not yet checked in.
-        this.Repo.Reset(ResetMode.Mixed, this.Repo.Head.Tip.Parents.Single());
+        this.LibGit2Repository.Reset(ResetMode.Mixed, this.LibGit2Repository.Head.Tip.Parents.Single());
         Assert.Equal(0, this.GetVersionHeight());
     }
 
@@ -467,8 +481,8 @@ public class VersionOracleTests : RepoTestBase
         string versionJsonPath = Path.Combine(this.RepoPath, "version.json");
         File.WriteAllText(versionJsonPath, @"{ ""version"": ""1.0"""); // no closing curly brace for parsing error
         Assert.Equal(0, this.GetVersionHeight());
-        Commands.Stage(this.Repo, versionJsonPath);
-        this.Repo.Commit("Add broken version.json file.", this.Signer, this.Signer);
+        Commands.Stage(this.LibGit2Repository, versionJsonPath);
+        this.LibGit2Repository.Commit("Add broken version.json file.", this.Signer, this.Signer);
         Assert.Equal(0, this.GetVersionHeight());
 
         // Now fix it.
@@ -476,7 +490,7 @@ public class VersionOracleTests : RepoTestBase
         Assert.Equal(1, this.GetVersionHeight());
 
         // And emulate fixing it without having checked in yet.
-        this.Repo.Reset(ResetMode.Mixed, this.Repo.Head.Tip.Parents.Single());
+        this.LibGit2Repository.Reset(ResetMode.Mixed, this.LibGit2Repository.Head.Tip.Parents.Single());
         Assert.Equal(0, this.GetVersionHeight());
     }
 
@@ -515,15 +529,15 @@ public class VersionOracleTests : RepoTestBase
         // Expect commit outside of project tree to not affect version height
         var otherFilePath = Path.Combine(this.RepoPath, "my-file.txt");
         File.WriteAllText(otherFilePath, "hello");
-        Commands.Stage(this.Repo, otherFilePath);
-        this.Repo.Commit("Add other file outside of project root", this.Signer, this.Signer);
+        Commands.Stage(this.LibGit2Repository, otherFilePath);
+        this.LibGit2Repository.Commit("Add other file outside of project root", this.Signer, this.Signer);
         Assert.Equal(1, this.GetVersionHeight(relativeDirectory));
 
         // Expect commit inside project tree to affect version height
         var containedFilePath = Path.Combine(this.RepoPath, relativeDirectory, "another-file.txt");
         File.WriteAllText(containedFilePath, "hello");
-        Commands.Stage(this.Repo, containedFilePath);
-        this.Repo.Commit("Add file within project root", this.Signer, this.Signer);
+        Commands.Stage(this.LibGit2Repository, containedFilePath);
+        this.LibGit2Repository.Commit("Add file within project root", this.Signer, this.Signer);
         Assert.Equal(2, this.GetVersionHeight(relativeDirectory));
     }
 
@@ -547,25 +561,25 @@ public class VersionOracleTests : RepoTestBase
         // Commit touching excluded path does not affect version height
         var ignoredFilePath = Path.Combine(this.RepoPath, relativeDirectory, "ignore.txt");
         File.WriteAllText(ignoredFilePath, "hello");
-        Commands.Stage(this.Repo, ignoredFilePath);
-        this.Repo.Commit("Add excluded file", this.Signer, this.Signer);
+        Commands.Stage(this.LibGit2Repository, ignoredFilePath);
+        this.LibGit2Repository.Commit("Add excluded file", this.Signer, this.Signer);
         Assert.Equal(1, this.GetVersionHeight(relativeDirectory));
 
         // Commit touching both excluded and included path does affect height
         var includedFilePath = Path.Combine(this.RepoPath, relativeDirectory, "another-file.txt");
         File.WriteAllText(includedFilePath, "hello");
         File.WriteAllText(ignoredFilePath, "changed");
-        Commands.Stage(this.Repo, includedFilePath);
-        Commands.Stage(this.Repo, ignoredFilePath);
-        this.Repo.Commit("Change both excluded and included file", this.Signer, this.Signer);
+        Commands.Stage(this.LibGit2Repository, includedFilePath);
+        Commands.Stage(this.LibGit2Repository, ignoredFilePath);
+        this.LibGit2Repository.Commit("Change both excluded and included file", this.Signer, this.Signer);
         Assert.Equal(2, this.GetVersionHeight(relativeDirectory));
 
         // Commit touching excluded directory does not affect version height
         var fileInExcludedDirPath = Path.Combine(this.RepoPath, relativeDirectory, "excluded-dir", "ignore.txt");
         Directory.CreateDirectory(Path.GetDirectoryName(fileInExcludedDirPath));
         File.WriteAllText(fileInExcludedDirPath, "hello");
-        Commands.Stage(this.Repo, fileInExcludedDirPath);
-        this.Repo.Commit("Add file to excluded dir", this.Signer, this.Signer);
+        Commands.Stage(this.LibGit2Repository, fileInExcludedDirPath);
+        this.LibGit2Repository.Commit("Add file to excluded dir", this.Signer, this.Signer);
         Assert.Equal(2, this.GetVersionHeight(relativeDirectory));
     }
 
@@ -588,25 +602,25 @@ public class VersionOracleTests : RepoTestBase
         var ignoredFilePath = Path.Combine(this.RepoPath, "some-sub-dir", "ignore.txt");
         Directory.CreateDirectory(Path.GetDirectoryName(ignoredFilePath));
         File.WriteAllText(ignoredFilePath, "hello");
-        Commands.Stage(this.Repo, ignoredFilePath);
-        this.Repo.Commit("Add excluded file", this.Signer, this.Signer);
+        Commands.Stage(this.LibGit2Repository, ignoredFilePath);
+        this.LibGit2Repository.Commit("Add excluded file", this.Signer, this.Signer);
         Assert.Equal(1, this.GetVersionHeight());
 
         // Commit touching both excluded and included path does affect height
         var includedFilePath = Path.Combine(this.RepoPath, "some-sub-dir", "another-file.txt");
         File.WriteAllText(includedFilePath, "hello");
         File.WriteAllText(ignoredFilePath, "changed");
-        Commands.Stage(this.Repo, includedFilePath);
-        Commands.Stage(this.Repo, ignoredFilePath);
-        this.Repo.Commit("Change both excluded and included file", this.Signer, this.Signer);
+        Commands.Stage(this.LibGit2Repository, includedFilePath);
+        Commands.Stage(this.LibGit2Repository, ignoredFilePath);
+        this.LibGit2Repository.Commit("Change both excluded and included file", this.Signer, this.Signer);
         Assert.Equal(2, this.GetVersionHeight());
 
         // Commit touching excluded directory does not affect version height
         var fileInExcludedDirPath = Path.Combine(this.RepoPath, "excluded-dir", "ignore.txt");
         Directory.CreateDirectory(Path.GetDirectoryName(fileInExcludedDirPath));
         File.WriteAllText(fileInExcludedDirPath, "hello");
-        Commands.Stage(this.Repo, fileInExcludedDirPath);
-        this.Repo.Commit("Add file to excluded dir", this.Signer, this.Signer);
+        Commands.Stage(this.LibGit2Repository, fileInExcludedDirPath);
+        this.LibGit2Repository.Commit("Add file to excluded dir", this.Signer, this.Signer);
         Assert.Equal(2, this.GetVersionHeight());
     }
 
@@ -627,8 +641,8 @@ public class VersionOracleTests : RepoTestBase
         var ignoredFilePath = Path.Combine(this.RepoPath, "excluded-dir", "ignore.txt");
         Directory.CreateDirectory(Path.GetDirectoryName(ignoredFilePath));
         File.WriteAllText(ignoredFilePath, "hello");
-        Commands.Stage(this.Repo, ignoredFilePath);
-        this.Repo.Commit("Add file which will later be excluded", this.Signer, this.Signer);
+        Commands.Stage(this.LibGit2Repository, ignoredFilePath);
+        this.LibGit2Repository.Commit("Add file which will later be excluded", this.Signer, this.Signer);
         Assert.Equal(2, this.GetVersionHeight(relativeDirectory));
 
         versionData.PathFilters = new[] { new FilterPath(excludePathFilter, relativeDirectory), };
@@ -637,8 +651,8 @@ public class VersionOracleTests : RepoTestBase
 
         // Committing a change to an ignored file does not increment the version height
         File.WriteAllText(ignoredFilePath, "changed");
-        Commands.Stage(this.Repo, ignoredFilePath);
-        this.Repo.Commit("Change now excluded file", this.Signer, this.Signer);
+        Commands.Stage(this.LibGit2Repository, ignoredFilePath);
+        this.LibGit2Repository.Commit("Change now excluded file", this.Signer, this.Signer);
         Assert.Equal(3, this.GetVersionHeight(relativeDirectory));
     }
 
@@ -657,15 +671,15 @@ public class VersionOracleTests : RepoTestBase
         // Expect commit outside of project tree to affect version height
         var otherFilePath = Path.Combine(this.RepoPath, "my-file.txt");
         File.WriteAllText(otherFilePath, "hello");
-        Commands.Stage(this.Repo, otherFilePath);
-        this.Repo.Commit("Add other file outside of project root", this.Signer, this.Signer);
+        Commands.Stage(this.LibGit2Repository, otherFilePath);
+        this.LibGit2Repository.Commit("Add other file outside of project root", this.Signer, this.Signer);
         Assert.Equal(2, this.GetVersionHeight(relativeDirectory));
 
         // Expect commit inside project tree to affect version height
         var containedFilePath = Path.Combine(this.RepoPath, relativeDirectory, "another-file.txt");
         File.WriteAllText(containedFilePath, "hello");
-        Commands.Stage(this.Repo, containedFilePath);
-        this.Repo.Commit("Add file within project root", this.Signer, this.Signer);
+        Commands.Stage(this.LibGit2Repository, containedFilePath);
+        this.LibGit2Repository.Commit("Add file within project root", this.Signer, this.Signer);
         Assert.Equal(3, this.GetVersionHeight(relativeDirectory));
     }
 
@@ -689,16 +703,16 @@ public class VersionOracleTests : RepoTestBase
         var ignoredFilePath = Path.Combine(this.RepoPath, "excluded-dir", "my-file.txt");
         Directory.CreateDirectory(Path.GetDirectoryName(ignoredFilePath));
         File.WriteAllText(ignoredFilePath, "hello");
-        Commands.Stage(this.Repo, ignoredFilePath);
-        this.Repo.Commit("Add other file to excluded directory", this.Signer, this.Signer);
+        Commands.Stage(this.LibGit2Repository, ignoredFilePath);
+        this.LibGit2Repository.Commit("Add other file to excluded directory", this.Signer, this.Signer);
         Assert.Equal(1, this.GetVersionHeight(relativeDirectory));
 
         // Expect commit within another directory to affect version height
         var otherFilePath = Path.Combine(this.RepoPath, "another-dir", "another-file.txt");
         Directory.CreateDirectory(Path.GetDirectoryName(otherFilePath));
         File.WriteAllText(otherFilePath, "hello");
-        Commands.Stage(this.Repo, otherFilePath);
-        this.Repo.Commit("Add file within project root", this.Signer, this.Signer);
+        Commands.Stage(this.LibGit2Repository, otherFilePath);
+        this.LibGit2Repository.Commit("Add file within project root", this.Signer, this.Signer);
         Assert.Equal(2, this.GetVersionHeight(relativeDirectory));
     }
 
@@ -721,8 +735,8 @@ public class VersionOracleTests : RepoTestBase
         var ignoredFilePath = Path.Combine(this.RepoPath, "other-dir", "my-file.txt");
         Directory.CreateDirectory(Path.GetDirectoryName(ignoredFilePath));
         File.WriteAllText(ignoredFilePath, "hello");
-        Commands.Stage(this.Repo, ignoredFilePath);
-        this.Repo.Commit("Add file to other directory", this.Signer, this.Signer);
+        Commands.Stage(this.LibGit2Repository, ignoredFilePath);
+        this.LibGit2Repository.Commit("Add file to other directory", this.Signer, this.Signer);
         Assert.Equal(2, this.GetVersionHeight(relativeDirectory));
     }
 
@@ -746,32 +760,32 @@ public class VersionOracleTests : RepoTestBase
         // Commit touching excluded path does not affect version height
         var ignoredFilePath = Path.Combine(this.RepoPath, relativeDirectory, "ignore.txt");
         File.WriteAllText(ignoredFilePath, "hello");
-        Commands.Stage(this.Repo, ignoredFilePath);
-        this.Repo.Commit("Add excluded file", this.Signer, this.Signer);
+        Commands.Stage(this.LibGit2Repository, ignoredFilePath);
+        this.LibGit2Repository.Commit("Add excluded file", this.Signer, this.Signer);
         Assert.Equal(1, this.GetVersionHeight(relativeDirectory));
 
         // Commit touching both excluded and included path does affect height
         var includedFilePath = Path.Combine(this.RepoPath, relativeDirectory, "another-file.txt");
         File.WriteAllText(includedFilePath, "hello");
         File.WriteAllText(ignoredFilePath, "changed");
-        Commands.Stage(this.Repo, includedFilePath);
-        Commands.Stage(this.Repo, ignoredFilePath);
-        this.Repo.Commit("Change both excluded and included file", this.Signer, this.Signer);
+        Commands.Stage(this.LibGit2Repository, includedFilePath);
+        Commands.Stage(this.LibGit2Repository, ignoredFilePath);
+        this.LibGit2Repository.Commit("Change both excluded and included file", this.Signer, this.Signer);
         Assert.Equal(2, this.GetVersionHeight(relativeDirectory));
 
         // Commit touching excluded directory does not affect version height
         var fileInExcludedDirPath = Path.Combine(this.RepoPath, relativeDirectory, "excluded-dir", "ignore.txt");
         Directory.CreateDirectory(Path.GetDirectoryName(fileInExcludedDirPath));
         File.WriteAllText(fileInExcludedDirPath, "hello");
-        Commands.Stage(this.Repo, fileInExcludedDirPath);
-        this.Repo.Commit("Add file to excluded dir", this.Signer, this.Signer);
+        Commands.Stage(this.LibGit2Repository, fileInExcludedDirPath);
+        this.LibGit2Repository.Commit("Add file to excluded dir", this.Signer, this.Signer);
         Assert.Equal(2, this.GetVersionHeight(relativeDirectory));
 
         // Rename the project directory
         Directory.Move(Path.Combine(this.RepoPath, relativeDirectory), Path.Combine(this.RepoPath, "new-project-dir"));
-        Commands.Stage(this.Repo, relativeDirectory);
-        Commands.Stage(this.Repo, "new-project-dir");
-        this.Repo.Commit("Move project directory", this.Signer, this.Signer);
+        Commands.Stage(this.LibGit2Repository, relativeDirectory);
+        Commands.Stage(this.LibGit2Repository, "new-project-dir");
+        this.LibGit2Repository.Commit("Move project directory", this.Signer, this.Signer);
 
         // Version is reset as project directory cannot be find in the ancestor commit
         Assert.Equal(1, this.GetVersionHeight("new-project-dir"));

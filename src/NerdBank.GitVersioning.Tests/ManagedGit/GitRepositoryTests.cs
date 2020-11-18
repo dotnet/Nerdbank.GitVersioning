@@ -16,6 +16,9 @@ namespace ManagedGit
         {
         }
 
+        protected override Nerdbank.GitVersioning.GitContext CreateGitContext(string path, string committish = null)
+            => Nerdbank.GitVersioning.Managed.ManagedGitContext.Create(path, committish);
+
         [Fact]
         public void CreateTest()
         {
@@ -39,7 +42,7 @@ namespace ManagedGit
 
             string workTreePath = this.CreateDirectoryForNewRepo();
             Directory.Delete(workTreePath);
-            this.Repo.Worktrees.Add("HEAD~1", "myworktree", workTreePath, isLocked: false);
+            this.LibGit2Repository.Worktrees.Add("HEAD~1", "myworktree", workTreePath, isLocked: false);
 
             using (var repository = GitRepository.Create(workTreePath))
             {
@@ -66,7 +69,7 @@ namespace ManagedGit
             this.InitializeSourceControl();
             this.AddCommits(2);
 
-            var headObjectId = GitObjectId.Parse(this.Repo.Head.Tip.Sha);
+            var headObjectId = GitObjectId.Parse(this.LibGit2Repository.Head.Tip.Sha);
 
             using (var repository = GitRepository.Create(this.RepoPath))
             {
@@ -89,9 +92,9 @@ namespace ManagedGit
             this.InitializeSourceControl();
             this.AddCommits(2);
 
-            var newHead = this.Repo.Head.Tip.Parents.Single();
+            var newHead = this.LibGit2Repository.Head.Tip.Parents.Single();
             var newHeadObjectId = GitObjectId.Parse(newHead.Sha);
-            Commands.Checkout(this.Repo, this.Repo.Head.Tip.Parents.Single());
+            Commands.Checkout(this.LibGit2Repository, this.LibGit2Repository.Head.Tip.Parents.Single());
 
             using (var repository = GitRepository.Create(this.RepoPath))
             {
@@ -132,7 +135,7 @@ namespace ManagedGit
             this.InitializeSourceControl();
             this.AddCommits(2);
 
-            var headObjectId = GitObjectId.Parse(this.Repo.Head.Tip.Sha);
+            var headObjectId = GitObjectId.Parse(this.LibGit2Repository.Head.Tip.Sha);
 
             using (var repository = GitRepository.Create(this.RepoPath))
             {
@@ -147,7 +150,7 @@ namespace ManagedGit
             this.InitializeSourceControl();
             this.AddCommits(2);
 
-            var headObjectId = GitObjectId.Parse(this.Repo.Head.Tip.Sha);
+            var headObjectId = GitObjectId.Parse(this.LibGit2Repository.Head.Tip.Sha);
 
             using (var repository = GitRepository.Create(this.RepoPath))
             {
@@ -160,7 +163,7 @@ namespace ManagedGit
         {
             this.InitializeSourceControl();
             File.WriteAllText(Path.Combine(this.RepoPath, "hello.txt"), "Hello, World");
-            Commands.Stage(this.Repo, "hello.txt");
+            Commands.Stage(this.LibGit2Repository, "hello.txt");
             this.AddCommits();
 
             using (var repository = GitRepository.Create(this.RepoPath))
@@ -178,7 +181,7 @@ namespace ManagedGit
         {
             this.InitializeSourceControl();
             File.WriteAllText(Path.Combine(this.RepoPath, "hello.txt"), "Hello, World");
-            Commands.Stage(this.Repo, "hello.txt");
+            Commands.Stage(this.LibGit2Repository, "hello.txt");
             this.AddCommits();
 
             using (var repository = GitRepository.Create(this.RepoPath))
@@ -196,7 +199,7 @@ namespace ManagedGit
             this.InitializeSourceControl();
             this.AddCommits(2);
 
-            var headObjectId = GitObjectId.Parse(this.Repo.Head.Tip.Sha);
+            var headObjectId = GitObjectId.Parse(this.LibGit2Repository.Head.Tip.Sha);
 
             using (var repository = GitRepository.Create(this.RepoPath))
             {
@@ -225,14 +228,16 @@ namespace ManagedGit
             //          Repo
             this.InitializeSourceControl();
 
-            var localCommit = this.Repo.Commit("Local", this.Signer, this.Signer, new CommitOptions() { AllowEmptyCommit = true });
+            var localCommit = this.LibGit2Repository.Commit("Local", this.Signer, this.Signer, new CommitOptions() { AllowEmptyCommit = true });
 
             var alternate1Path = this.CreateDirectoryForNewRepo();
-            var alternate1 = this.InitializeSourceControl(alternate1Path);
+            this.InitializeSourceControl(alternate1Path).Dispose();
+            var alternate1 = new Repository(alternate1Path);
             var alternate1Commit = alternate1.Commit("Alternate 1", this.Signer, this.Signer, new CommitOptions() { AllowEmptyCommit = true });
 
             var alternate2Path = this.CreateDirectoryForNewRepo();
-            var alternate2 = this.InitializeSourceControl(alternate2Path);
+            this.InitializeSourceControl(alternate2Path).Dispose();
+            var alternate2 = new Repository(alternate2Path);
             var alternate2Commit = alternate2.Commit("Alternate 2", this.Signer, this.Signer, new CommitOptions() { AllowEmptyCommit = true });
 
             var objectDatabasePath = Path.Combine(this.RepoPath, ".git", "objects");
@@ -257,7 +262,7 @@ namespace ManagedGit
             this.InitializeSourceControl();
             this.AddCommits(2);
 
-            var headObjectId = GitObjectId.Parse(this.Repo.Head.Tip.Sha);
+            var headObjectId = GitObjectId.Parse(this.LibGit2Repository.Head.Tip.Sha);
 
             using (var repository = GitRepository.Create(this.RepoPath))
             {
@@ -271,7 +276,7 @@ namespace ManagedGit
             this.InitializeSourceControl();
             this.AddCommits(2);
 
-            var headObjectId = GitObjectId.Parse(this.Repo.Head.Tip.Sha);
+            var headObjectId = GitObjectId.Parse(this.LibGit2Repository.Head.Tip.Sha);
 
             using (var repository = GitRepository.Create(this.RepoPath))
             {

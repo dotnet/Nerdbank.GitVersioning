@@ -3,7 +3,6 @@ using System.IO;
 using System.Runtime.InteropServices;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
-using Nerdbank.GitVersioning.Managed;
 
 namespace Nerdbank.GitVersioning.Benchmarks
 {
@@ -27,14 +26,16 @@ namespace Nerdbank.GitVersioning.Benchmarks
         [Benchmark(Baseline = true)]
         public void GetVersionLibGit2()
         {
-            var oracle = LibGit2.LibGit2VersionOracle.Create(GetPath(this.ProjectDirectory));
+            using var context = GitContext.Create(GetPath(this.ProjectDirectory), writable: true);
+            var oracle = new VersionOracle(context, cloudBuild: null);
             this.Version = oracle.Version;
         }
 
         [Benchmark]
         public void GetVersionManaged()
         {
-            var oracle = ManagedVersionOracle.Create(GetPath(this.ProjectDirectory));
+            using var context = GitContext.Create(GetPath(this.ProjectDirectory), writable: false);
+            var oracle = new VersionOracle(context, cloudBuild: null);
             this.Version = oracle.Version;
         }
 

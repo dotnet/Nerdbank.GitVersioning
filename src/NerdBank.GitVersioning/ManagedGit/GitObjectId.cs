@@ -168,7 +168,9 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// </returns>
         public ushort AsUInt16() => BinaryPrimitives.ReadUInt16LittleEndian(this.Value.Slice(0, 2));
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Returns the SHA1 hash of this object.
+        /// </summary>
         public override string ToString()
         {
             if (this.sha == null)
