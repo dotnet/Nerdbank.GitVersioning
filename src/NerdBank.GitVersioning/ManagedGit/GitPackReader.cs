@@ -11,7 +11,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
     {
         private static readonly byte[] Signature = GitRepository.Encoding.GetBytes("PACK");
 
-        public static Stream GetObject(GitPack pack, Stream stream, int offset, string objectType, GitPackObjectType packObjectType)
+        public static Stream GetObject(GitPack pack, Stream stream, long offset, string objectType, GitPackObjectType packObjectType)
         {
             if (pack == null)
             {
@@ -73,13 +73,13 @@ namespace Nerdbank.GitVersioning.ManagedGit
             return new ZLibStream(stream, decompressedSize);
         }
 
-        private static (GitPackObjectType, int) ReadObjectHeader(Stream stream)
+        private static (GitPackObjectType, long) ReadObjectHeader(Stream stream)
         {
             Span<byte> value = stackalloc byte[1];
             stream.Read(value);
 
             var type = (GitPackObjectType)((value[0] & 0b0111_0000) >> 4);
-            int length = value[0] & 0b_1111;
+            long length = value[0] & 0b_1111;
 
             if ((value[0] & 0b1000_0000) == 0)
             {
@@ -91,7 +91,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
             do
             {
                 stream.Read(value);
-                length = length | ((value[0] & 0b0111_1111) << shift);
+                length = length | ((value[0] & (long)0b0111_1111) << shift);
                 shift += 7;
             } while ((value[0] & 0b1000_0000) != 0);
 

@@ -9,6 +9,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
     /// <summary>
     /// A <see cref="GitPackIndexReader"/> which uses a memory-mapped file to read from the index.
     /// </summary>
+    /// <seealso href="https://git-scm.com/docs/pack-format"/>
     public unsafe class GitPackIndexMappedReader : GitPackIndexReader
     {
         private readonly MemoryMappedFile file;
@@ -50,7 +51,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
         }
 
         /// <inheritdoc/>
-        public override int? GetOffset(GitObjectId objectId)
+        public override long? GetOffset(GitObjectId objectId)
         {
             this.Initialize();
 
@@ -106,10 +107,24 @@ namespace Nerdbank.GitVersioning.ManagedGit
 
             // Get the offset value. It's located at:
             // 4 (header) + 4 (version) + 256 * 4 (fanout table) + 20 * objectCount (SHA1 object name table) + 4 * objectCount (CRC32) + 4 * i (offset values)
-            var offsetBuffer = this.Value.Slice(4 + 4 + 256 * 4 + 20 * objectCount + 4 * objectCount + 4 * (i + originalPackStart), 4);
-            Debug.Assert(offsetBuffer[0] < 128); // The most significant bit should not be set; otherwise we have a 8-byte offset
-            var offset = BinaryPrimitives.ReadInt32BigEndian(offsetBuffer);
-            return offset;
+            int offsetTableStart = 4 + 4 + 256 * 4 + 20 * objectCount + 4 * objectCount;
+            var offsetBuffer = this.Value.Slice(offsetTableStart + 4 * (i + originalPackStart), 4);
+            var offset = BinaryPrimitives.ReadUInt32BigEndian(offsetBuffer);
+
+            if (offsetBuffer[0] < 128)
+            {
+                return offset;
+            }
+            else
+            {
+                // If the first bit of the offset address is set, the offset is stored as a 64-bit value in the table of 8-byte offset entries,
+                // which follows the table of 4-byte offset entries: "large offsets are encoded as an index into the next table with the msbit set."
+                offset = offset & 0x7FF;
+
+                offsetBuffer = this.Value.Slice(offsetTableStart + 4 * objectCount + 8 * (int)offset, 8);
+                var offset64 = BinaryPrimitives.ReadInt64BigEndian(offsetBuffer);
+                return offset64;
+            }
         }
 
         /// <inheritdoc/>

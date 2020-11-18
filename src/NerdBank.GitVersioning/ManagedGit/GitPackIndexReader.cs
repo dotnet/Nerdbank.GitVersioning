@@ -25,7 +25,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// If found, the offset of the Git object in the index file; otherwise,
         /// <see langword="null"/>.
         /// </returns>
-        public abstract int? GetOffset(GitObjectId objectId);
+        public abstract long? GetOffset(GitObjectId objectId);
 
         /// <inheritdoc/>
         public abstract void Dispose();
