@@ -16,14 +16,7 @@ public partial class RepoTestBase
     /// <param name="commit">The commit, branch or tag to measure the height of. Leave as null to check HEAD.</param>
     /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
     /// <returns>The height of the commit. Always a positive integer.</returns>
-    protected int GetVersionHeight(string? committish, string? repoRelativeProjectDirectory = null)
-    {
-        using var context = this.CreateGitContext(
-            repoRelativeProjectDirectory == null ? this.RepoPath : Path.Combine(this.RepoPath, repoRelativeProjectDirectory),
-            committish);
-        VersionOracle oracle = new VersionOracle(context, cloudBuild: null);
-        return oracle.VersionHeight;
-    }
+    protected int GetVersionHeight(string? committish, string? repoRelativeProjectDirectory = null) => this.GetVersionOracle(repoRelativeProjectDirectory, committish).VersionHeight;
 
     /// <summary>
     /// Gets the number of commits in the longest single path between

@@ -219,7 +219,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         this.WriteVersionFile("3.4");
         Assumes.True(repo.Index[VersionFile.JsonFileName] == null);
         var buildResult = await this.BuildAsync();
-        Assert.Equal("3.4.0." + this.GetIdAsVersion().Revision, buildResult.BuildVersion);
+        Assert.Equal("3.4.0." + this.GetVersion().Revision, buildResult.BuildVersion);
         Assert.Equal("3.4.0+" + repo.Head.Tip.Id.Sha.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength), buildResult.AssemblyInformationalVersion);
     }
 
@@ -244,7 +244,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         var repo = new Repository(this.RepoPath); // do not assign Repo property to avoid commits being generated later
         repo.Commit("empty", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         var buildResult = await this.BuildAsync();
-        Assert.Equal("0.0.0." + this.GetIdAsVersion().Revision, buildResult.BuildVersion);
+        Assert.Equal("0.0.0." + this.GetVersion().Revision, buildResult.BuildVersion);
         Assert.Equal("0.0.0+" + repo.Head.Tip.Id.Sha.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength), buildResult.AssemblyInformationalVersion);
     }
 
@@ -324,7 +324,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(VersionOptions.FromVersion(new Version(majorMinorVersion)), buildResult);
 
-        Version version = this.GetIdAsVersion();
+        Version version = this.GetVersion();
         Assert.Equal($"{version.Major}.{version.Minor}.{buildResult.GitVersionHeight}", buildResult.NuGetPackageVersion);
     }
 
@@ -1033,9 +1033,9 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
     private void AssertStandardProperties(VersionOptions versionOptions, BuildResults buildResult, string relativeProjectDirectory = null)
     {
         int versionHeight = this.GetVersionHeight(relativeProjectDirectory);
-        Version idAsVersion = this.GetIdAsVersion(relativeProjectDirectory);
+        Version idAsVersion = this.GetVersion(relativeProjectDirectory);
         string commitIdShort = this.CommitIdShort;
-        Version version = this.GetIdAsVersion(relativeProjectDirectory);
+        Version version = this.GetVersion(relativeProjectDirectory);
         Version assemblyVersion = GetExpectedAssemblyVersion(versionOptions, version);
         var additionalBuildMetadata = from item in buildResult.BuildResult.ProjectStateAfterBuild.GetItems("BuildMetadata")
                                       select item.EvaluatedInclude;

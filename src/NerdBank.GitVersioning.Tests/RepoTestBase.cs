@@ -46,6 +46,8 @@ public abstract partial class RepoTestBase : IDisposable
 
     protected abstract GitContext CreateGitContext(string path, string? committish = null);
 
+    protected void SetContextToHead() => Assumes.True(this.Context?.TrySelectCommit("HEAD") ?? false);
+
     protected VersionOptions? GetVersionOptions(string? path = null, string? committish = null)
     {
         using var context = this.CreateGitContext(path is null ? this.RepoPath : Path.Combine(this.RepoPath, path), committish);

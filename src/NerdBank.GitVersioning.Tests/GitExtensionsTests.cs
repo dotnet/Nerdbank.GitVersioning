@@ -19,22 +19,18 @@ public partial class GitExtensionsTests : RepoTestBase
         this.InitializeSourceControl();
     }
 
-    [Fact]
-    public void GetHeight_EmptyRepo()
-    {
-        Branch head = this.Repo.Head;
-        Assert.Throws<InvalidOperationException>(() => head.GetHeight());
-        Assert.Throws<InvalidOperationException>(() => head.GetHeight(c => true));
-    }
+    protected new LibGit2Context Context => (LibGit2Context)base.Context;
+
+    protected override GitContext CreateGitContext(string path, string committish = null) => LibGit2Context.Create(path, committish);
 
     [Fact]
     public void GetHeight_EmptyRepo()
     {
         this.InitializeSourceControl();
 
-        Branch head = this.Repo.Head;
-        Assert.Throws<InvalidOperationException>(() => Nerdbank.GitVersioning.LibGit2.GitExtensions.GetHeight(head));
-        Assert.Throws<InvalidOperationException>(() => Nerdbank.GitVersioning.LibGit2.GitExtensions.GetHeight(head, c => true));
+        Branch head = this.LibGit2Repository.Head;
+        Assert.Throws<InvalidOperationException>(() => LibGit2GitExtensions.GetHeight(this.Context));
+        Assert.Throws<InvalidOperationException>(() => LibGit2GitExtensions.GetHeight(this.Context, c => true));
     }
 
     [Fact]
@@ -43,36 +39,38 @@ public partial class GitExtensionsTests : RepoTestBase
         var first = this.LibGit2Repository.Commit("First", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         var second = this.LibGit2Repository.Commit("Second", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         var third = this.LibGit2Repository.Commit("Third", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
-        Assert.Equal(3, this.Repo.Head.GetHeight());
-        Assert.Equal(3, this.Repo.Head.GetHeight(c => true));
+        this.SetContextToHead();
+        Assert.Equal(3, LibGit2GitExtensions.GetHeight(this.Context));
+        Assert.Equal(3, LibGit2GitExtensions.GetHeight(this.Context, c => true));
 
-        Assert.Equal(2, this.Repo.Head.GetHeight(c => c != first));
-        Assert.Equal(1, this.Repo.Head.GetHeight(c => c != second));
+        Assert.Equal(2, LibGit2GitExtensions.GetHeight(this.Context, c => c != first));
+        Assert.Equal(1, LibGit2GitExtensions.GetHeight(this.Context, c => c != second));
     }
 
     [Fact]
     public void GetHeight_Merge()
     {
         var firstCommit = this.LibGit2Repository.Commit("First", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
-        var anotherBranch = this.Repo.CreateBranch("another");
+        var anotherBranch = this.LibGit2Repository.CreateBranch("another");
         var secondCommit = this.LibGit2Repository.Commit("Second", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
-        Commands.Checkout(this.Repo, anotherBranch);
+        Commands.Checkout(this.LibGit2Repository, anotherBranch);
         Commit[] branchCommits = new Commit[5];
         for (int i = 1; i <= branchCommits.Length; i++)
         {
             branchCommits[i - 1] = this.LibGit2Repository.Commit($"branch commit #{i}", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         }
 
-        this.Repo.Merge(secondCommit, new Signature("t", "t@t.com", DateTimeOffset.Now), new MergeOptions { FastForwardStrategy = FastForwardStrategy.NoFastForward });
+        this.LibGit2Repository.Merge(secondCommit, new Signature("t", "t@t.com", DateTimeOffset.Now), new MergeOptions { FastForwardStrategy = FastForwardStrategy.NoFastForward });
+        this.SetContextToHead();
 
         // While we've created 8 commits, the tallest height is only 7.
-        Assert.Equal(7, this.Repo.Head.GetHeight());
+        Assert.Equal(7, LibGit2GitExtensions.GetHeight(this.Context));
 
         // Now stop enumerating early on just one branch of the ancestry -- the number should remain high.
-        Assert.Equal(7, this.Repo.Head.GetHeight(c => c != secondCommit));
+        Assert.Equal(7, LibGit2GitExtensions.GetHeight(this.Context, c => c != secondCommit));
 
         // This time stop in both branches of history, and verify that we count the taller one.
-        Assert.Equal(3, this.Repo.Head.GetHeight(c => c != secondCommit && c != branchCommits[2]));
+        Assert.Equal(3, LibGit2GitExtensions.GetHeight(this.Context, c => c != secondCommit && c != branchCommits[2]));
     }
 
     [Fact]
@@ -119,15 +117,16 @@ public partial class GitExtensionsTests : RepoTestBase
         Commands.Stage(this.LibGit2Repository, includedFilePath);
         commitsAt123.Add(this.LibGit2Repository.Commit("Changed included file", this.Signer, this.Signer));
 
+        this.Context.RepoRelativeProjectDirectory = relativeDirectory;
         Assert.Equal(
             commitsAt121.OrderBy(c => c.Sha),
-            this.LibGit2Repository.GetCommitsFromVersion(new Version(1, 2, 1), relativeDirectory).OrderBy(c => c.Sha));
+            LibGit2GitExtensions.GetCommitsFromVersion(this.Context, new Version(1, 2, 1)).OrderBy(c => c.Sha));
         Assert.Equal(
             commitsAt122.OrderBy(c => c.Sha),
-            this.LibGit2Repository.GetCommitsFromVersion(new Version(1, 2, 2), relativeDirectory).OrderBy(c => c.Sha));
+            LibGit2GitExtensions.GetCommitsFromVersion(this.Context, new Version(1, 2, 2)).OrderBy(c => c.Sha));
         Assert.Equal(
             commitsAt123.OrderBy(c => c.Sha),
-            this.LibGit2Repository.GetCommitsFromVersion(new Version(1, 2, 3), relativeDirectory).OrderBy(c => c.Sha));
+            LibGit2GitExtensions.GetCommitsFromVersion(this.Context, new Version(1, 2, 3)).OrderBy(c => c.Sha));
     }
 
     [Theory]
@@ -156,7 +155,7 @@ public partial class GitExtensionsTests : RepoTestBase
 
         int height2 = this.GetVersionHeight(repoRelativeSubDirectory);
         Debug.WriteLine("---");
-        int height1 = this.GetVersionHeight(this.Repo.Head.Commits.Skip(1).First(), repoRelativeSubDirectory);
+        int height1 = this.GetVersionHeight(this.LibGit2Repository.Head.Commits.Skip(1).First().Sha, repoRelativeSubDirectory);
 
         this.Logger.WriteLine("Height 1: {0}", height1);
         this.Logger.WriteLine("Height 2: {0}", height2);
@@ -179,8 +178,8 @@ public partial class GitExtensionsTests : RepoTestBase
         this.Logger.WriteLine($"Commit {firstCommit.Id.Sha.Substring(0, 8)} as int: {id1}");
         this.Logger.WriteLine($"Commit {secondCommit.Id.Sha.Substring(0, 8)} as int: {id2}");
 
-        Assert.Equal(firstCommit, this.Repo.GetCommitFromTruncatedIdInteger(id1));
-        Assert.Equal(secondCommit, this.Repo.GetCommitFromTruncatedIdInteger(id2));
+        Assert.Equal(firstCommit, this.LibGit2Repository.GetCommitFromTruncatedIdInteger(id1));
+        Assert.Equal(secondCommit, this.LibGit2Repository.GetCommitFromTruncatedIdInteger(id2));
     }
 
     [Fact]
@@ -189,7 +188,7 @@ public partial class GitExtensionsTests : RepoTestBase
         this.WriteVersionFile("4.8");
         var firstCommit = this.LibGit2Repository.Commits.First();
 
-        Version v1 = this.GetIdAsVersion(committish: firstCommit.Sha);
+        Version v1 = this.GetVersion(committish: firstCommit.Sha);
         Assert.Equal(4, v1.Major);
         Assert.Equal(8, v1.Minor);
     }
@@ -200,7 +199,7 @@ public partial class GitExtensionsTests : RepoTestBase
         this.WriteVersionFile("4.8", relativeDirectory: "foo/bar");
         var firstCommit = this.LibGit2Repository.Commits.First();
 
-        Version v1 = this.GetIdAsVersion(committish: firstCommit.Sha, "foo/bar");
+        Version v1 = this.GetVersion("foo/bar", firstCommit.Sha);
         Assert.Equal(4, v1.Major);
         Assert.Equal(8, v1.Minor);
     }
@@ -211,7 +210,7 @@ public partial class GitExtensionsTests : RepoTestBase
         this.AddCommits();
         var firstCommit = this.LibGit2Repository.Commits.First();
 
-        Version v1 = this.GetIdAsVersion(committish: firstCommit.Sha);
+        Version v1 = this.GetVersion(committish: firstCommit.Sha);
         Assert.Equal(0, v1.Major);
         Assert.Equal(0, v1.Minor);
     }
@@ -222,8 +221,8 @@ public partial class GitExtensionsTests : RepoTestBase
         this.AddCommits();
         var expectedVersion = new Version(1, 1, 0);
         var unstagedVersionData = VersionOptions.FromVersion(expectedVersion);
-        string versionFilePath = VersionFile.SetVersion(this.RepoPath, unstagedVersionData);
-        Version actualVersion = this.GetIdAsVersion();
+        string versionFilePath = this.Context.VersionFile.SetVersion(this.RepoPath, unstagedVersionData);
+        Version actualVersion = this.GetVersion();
         Assert.Equal(expectedVersion.Major, actualVersion.Major);
         Assert.Equal(expectedVersion.Minor, actualVersion.Minor);
         Assert.Equal(expectedVersion.Build, actualVersion.Build);
@@ -239,12 +238,12 @@ public partial class GitExtensionsTests : RepoTestBase
         this.AddCommits();
         var expectedVersion = new Version(1, 1);
         var unstagedVersionData = VersionOptions.FromVersion(expectedVersion);
-        string versionFilePath = VersionFile.SetVersion(this.RepoPath, unstagedVersionData);
-        Version actualVersion = this.GetIdAsVersion();
+        string versionFilePath = this.Context.VersionFile.SetVersion(this.RepoPath, unstagedVersionData);
+        Version actualVersion = this.GetVersion();
         Assert.Equal(expectedVersion.Major, actualVersion.Major);
         Assert.Equal(expectedVersion.Minor, actualVersion.Minor);
         Assert.Equal(0, actualVersion.Build); // height is 0 since the change hasn't been committed.
-        Assert.Equal(this.Repo.Head.Commits.First().GetTruncatedCommitIdAsUInt16(), actualVersion.Revision);
+        Assert.Equal(this.LibGit2Repository.Head.Commits.First().GetTruncatedCommitIdAsUInt16(), actualVersion.Revision);
     }
 
     [Fact]
@@ -255,29 +254,29 @@ public partial class GitExtensionsTests : RepoTestBase
         this.AddCommits();
 
         // Verify that we're seeing the original version.
-        Version actualVersion = this.GetIdAsVersion();
+        Version actualVersion = this.GetVersion();
         Assert.Equal(1, actualVersion.Major);
         Assert.Equal(2, actualVersion.Minor);
         Assert.Equal(2, actualVersion.Build);
-        Assert.Equal(this.Repo.Head.Commits.First().GetTruncatedCommitIdAsUInt16(), actualVersion.Revision);
+        Assert.Equal(this.LibGit2Repository.Head.Commits.First().GetTruncatedCommitIdAsUInt16(), actualVersion.Revision);
 
         // Now make a change on disk that isn't committed yet.
-        string versionFile = VersionFile.SetVersion(this.RepoPath, new Version("1.3"));
+        string versionFile = this.Context.VersionFile.SetVersion(this.RepoPath, new Version("1.3"));
 
         // Verify that HEAD reports whatever is on disk at the time.
-        actualVersion = this.GetIdAsVersion();
+        actualVersion = this.GetVersion();
         Assert.Equal(1, actualVersion.Major);
         Assert.Equal(3, actualVersion.Minor);
         Assert.Equal(0, actualVersion.Build);
-        Assert.Equal(this.Repo.Head.Commits.First().GetTruncatedCommitIdAsUInt16(), actualVersion.Revision);
+        Assert.Equal(this.LibGit2Repository.Head.Commits.First().GetTruncatedCommitIdAsUInt16(), actualVersion.Revision);
 
         // Now commit it and verify the height advances 0->1
         this.CommitVersionFile(versionFile, "1.3");
-        actualVersion = this.GetIdAsVersion();
+        actualVersion = this.GetVersion();
         Assert.Equal(1, actualVersion.Major);
         Assert.Equal(3, actualVersion.Minor);
         Assert.Equal(1, actualVersion.Build);
-        Assert.Equal(this.Repo.Head.Commits.First().GetTruncatedCommitIdAsUInt16(), actualVersion.Revision);
+        Assert.Equal(this.LibGit2Repository.Head.Commits.First().GetTruncatedCommitIdAsUInt16(), actualVersion.Revision);
     }
 
     [Fact]
@@ -318,13 +317,14 @@ public partial class GitExtensionsTests : RepoTestBase
         for (int i = 0; i < commits.Length; i++)
         {
             commits[i] = this.LibGit2Repository.Commit($"Commit {i + 1}", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
-            versions[i] = this.GetIdAsVersion(commits[i], repoRelativeSubDirectory);
+            versions[i] = this.GetVersion(repoRelativeSubDirectory, commits[i].Sha);
             this.Logger.WriteLine($"Commit {commits[i].Id.Sha.Substring(0, 8)} as version: {versions[i]}");
         }
 
+        this.Context.RepoRelativeProjectDirectory = repoRelativeSubDirectory;
         for (int i = 0; i < commits.Length; i++)
         {
-            Assert.Equal(commits[i], this.Repo.GetCommitFromVersion(versions[i], repoRelativeSubDirectory));
+            Assert.Equal(commits[i], LibGit2GitExtensions.GetCommitFromVersion(this.Context, versions[i]));
 
             // Also verify that we can find it without the revision number.
             // This is important because stable, publicly released NuGet packages
@@ -332,7 +332,7 @@ public partial class GitExtensionsTests : RepoTestBase
             // But folks who specify a.b.c version numbers don't have any unique version component for the commit at all without the 4th integer.
             if (semanticVersion.Version.Build == -1)
             {
-                Assert.Equal(commits[i], this.Repo.GetCommitFromVersion(new Version(versions[i].Major, versions[i].Minor, versions[i].Build), repoRelativeSubDirectory));
+                Assert.Equal(commits[i], LibGit2GitExtensions.GetCommitFromVersion(this.Context, new Version(versions[i].Major, versions[i].Minor, versions[i].Build)));
             }
         }
     }
@@ -357,25 +357,25 @@ public partial class GitExtensionsTests : RepoTestBase
         {
             versionOptions.VersionHeightOffset += offsetStepChange;
             commits[i] = this.WriteVersionFile(versionOptions);
-            versions[i] = this.GetIdAsVersion(commits[i]);
+            versions[i] = this.GetVersion(committish: commits[i].Sha);
 
             commits[i + 1] = this.LibGit2Repository.Commit($"Commit {i + 1}", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
-            versions[i + 1] = this.GetIdAsVersion(commits[i + 1]);
+            versions[i + 1] = this.GetVersion(committish: commits[i + 1].Sha);
 
             this.Logger.WriteLine($"Commit {commits[i].Id.Sha.Substring(0, 8)} as version: {versions[i]}");
             this.Logger.WriteLine($"Commit {commits[i + 1].Id.Sha.Substring(0, 8)} as version: {versions[i + 1]}");
 
             // Find the commits we just wrote while they are still at the tip of the branch.
-            var matchingCommits = this.LibGit2Repository.GetCommitsFromVersion(versions[i]);
+            var matchingCommits = LibGit2GitExtensions.GetCommitsFromVersion(this.Context, versions[i]);
             Assert.Contains(commits[i], matchingCommits);
-            matchingCommits = this.LibGit2Repository.GetCommitsFromVersion(versions[i + 1]);
+            matchingCommits = LibGit2GitExtensions.GetCommitsFromVersion(this.Context, versions[i + 1]);
             Assert.Contains(commits[i + 1], matchingCommits);
         }
 
         // Find all commits (again) now that history has been written.
         for (int i = 0; i < commits.Length; i++)
         {
-            var matchingCommits = this.LibGit2Repository.GetCommitsFromVersion(versions[i]).ToList();
+            var matchingCommits = LibGit2GitExtensions.GetCommitsFromVersion(this.Context, versions[i]).ToList();
             Assert.Contains(commits[i], matchingCommits);
             if (!allowCollisions)
             {
@@ -388,31 +388,33 @@ public partial class GitExtensionsTests : RepoTestBase
     public void GetIdAsVersion_Roundtrip_WithSubdirectoryVersionFiles()
     {
         var rootVersionExpected = VersionOptions.FromVersion(new Version(1, 0));
-        VersionFile.SetVersion(this.RepoPath, rootVersionExpected);
+        this.Context.VersionFile.SetVersion(this.RepoPath, rootVersionExpected);
 
         var subPathVersionExpected = VersionOptions.FromVersion(new Version(1, 1));
         const string subPathRelative = "a";
         string subPath = Path.Combine(this.RepoPath, subPathRelative);
         Directory.CreateDirectory(subPath);
-        VersionFile.SetVersion(subPath, subPathVersionExpected);
+        this.Context.VersionFile.SetVersion(subPath, subPathVersionExpected);
 
         this.InitializeSourceControl();
 
-        Commit head = this.Repo.Head.Commits.First();
-        Version rootVersionActual = this.GetIdAsVersion(head);
-        Version subPathVersionActual = this.GetIdAsVersion(head, subPathRelative);
+        Commit head = this.LibGit2Repository.Head.Commits.First();
+        Version rootVersionActual = this.GetVersion(committish: head.Sha);
+        Version subPathVersionActual = this.GetVersion(subPathRelative, head.Sha);
 
         // Verify that the versions calculated took the path into account.
         Assert.Equal(rootVersionExpected.Version.Version.Minor, rootVersionActual?.Minor);
         Assert.Equal(subPathVersionExpected.Version.Version.Minor, subPathVersionActual?.Minor);
 
         // Verify that we can find the commit given the version and path.
-        Assert.Equal(head, this.Repo.GetCommitFromVersion(rootVersionActual));
-        Assert.Equal(head, this.Repo.GetCommitFromVersion(subPathVersionActual, subPathRelative));
+        Assert.Equal(head, LibGit2GitExtensions.GetCommitFromVersion(this.Context, rootVersionActual));
+        this.Context.RepoRelativeProjectDirectory = subPathRelative;
+        Assert.Equal(head, LibGit2GitExtensions.GetCommitFromVersion(this.Context, subPathVersionActual));
 
         // Verify that mismatching path and version results in a null value.
-        Assert.Null(this.Repo.GetCommitFromVersion(rootVersionActual, subPathRelative));
-        Assert.Null(this.Repo.GetCommitFromVersion(subPathVersionActual));
+        Assert.Null(LibGit2GitExtensions.GetCommitFromVersion(this.Context, rootVersionActual));
+        this.Context.RepoRelativeProjectDirectory = string.Empty;
+        Assert.Null(LibGit2GitExtensions.GetCommitFromVersion(this.Context, subPathVersionActual));
     }
 
     [Fact]
@@ -463,7 +465,8 @@ public partial class GitExtensionsTests : RepoTestBase
             {
                 var version = this.GetVersion("src", commit.Sha);
                 this.Logger.WriteLine($"commit {commit.Id} got version {version}");
-                var backAgain = this.Repo.GetCommitFromVersion(version, "src");
+                using var context = LibGit2Context.Create("src", commit.Sha);
+                var backAgain = LibGit2GitExtensions.GetCommitFromVersion(context, version);
                 Assert.Equal(commit, backAgain);
             }
         }
@@ -488,9 +491,9 @@ public partial class GitExtensionsTests : RepoTestBase
 
         for (int i = 0; i < commits.Length; i++)
         {
-            Version encodedVersion = this.GetIdAsVersion(commits[i]);
+            Version encodedVersion = this.GetVersion(committish: commits[i].Sha);
             Assert.Equal(i + 1, encodedVersion.Build);
-            Assert.Equal(commits[i], this.Repo.GetCommitFromVersion(encodedVersion));
+            Assert.Equal(commits[i], LibGit2GitExtensions.GetCommitFromVersion(this.Context, encodedVersion));
         }
     }
 }

@@ -85,7 +85,7 @@ namespace Nerdbank.GitVersioning.LibGit2
         /// May be null to count the height to the original commit.
         /// </param>
         /// <returns>The height of the commit. Always a positive integer.</returns>
-        internal static int GetHeight(LibGit2Context context, Func<Commit, bool>? continueStepping = null)
+        public static int GetHeight(LibGit2Context context, Func<Commit, bool>? continueStepping = null)
         {
             var tracker = new GitWalkTracker(context);
             return GetCommitHeight(context.Commit, tracker, continueStepping);
@@ -143,12 +143,12 @@ namespace Nerdbank.GitVersioning.LibGit2
         /// Looks up the commit that matches a specified version number.
         /// </summary>
         /// <param name="context">The git context to read from.</param>
-        /// <param name="version">The version previously obtained from <see cref="GetIdAsVersion(Commit, string, int?)"/>.</param>
+        /// <param name="version">The version previously obtained from <see cref="VersionOracle.Version"/>.</param>
         /// <returns>The matching commit, or <c>null</c> if no match is found.</returns>
         /// <exception cref="InvalidOperationException">
         /// Thrown in the very rare situation that more than one matching commit is found.
         /// </exception>
-        internal static Commit GetCommitFromVersion(LibGit2Context context, Version version)
+        public static Commit GetCommitFromVersion(LibGit2Context context, Version version)
         {
             // Note we'll accept no match, or one match. But we throw if there is more than one match.
             return GetCommitsFromVersion(context, version).SingleOrDefault();
@@ -158,7 +158,7 @@ namespace Nerdbank.GitVersioning.LibGit2
         /// Looks up the commits that match a specified version number.
         /// </summary>
         /// <param name="context">The git context to read from.</param>
-        /// <param name="version">The version previously obtained from <see cref="GetIdAsVersion(Commit, string, int?)"/>.</param>
+        /// <param name="version">The version previously obtained from <see cref="VersionOracle.Version"/>.</param>
         /// <returns>The matching commits, or an empty enumeration if no match is found.</returns>
         public static IEnumerable<Commit> GetCommitsFromVersion(LibGit2Context context, Version version)
         {
