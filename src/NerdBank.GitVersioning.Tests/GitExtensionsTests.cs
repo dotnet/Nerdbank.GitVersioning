@@ -459,16 +459,14 @@ public partial class GitExtensionsTests : RepoTestBase
         var testBiggerRepoPath = @"D:\git\NerdBank.GitVersioning";
         Skip.If(!Directory.Exists(testBiggerRepoPath));
 
-        using (this.LibGit2Repository = new Repository(testBiggerRepoPath))
+        using var largeRepo = new Repository(testBiggerRepoPath);
+        foreach (var commit in largeRepo.Head.Commits)
         {
-            foreach (var commit in this.LibGit2Repository.Head.Commits)
-            {
-                var version = this.GetVersion("src", commit.Sha);
-                this.Logger.WriteLine($"commit {commit.Id} got version {version}");
-                using var context = LibGit2Context.Create("src", commit.Sha);
-                var backAgain = LibGit2GitExtensions.GetCommitFromVersion(context, version);
-                Assert.Equal(commit, backAgain);
-            }
+            var version = this.GetVersion("src", commit.Sha);
+            this.Logger.WriteLine($"commit {commit.Id} got version {version}");
+            using var context = LibGit2Context.Create("src", commit.Sha);
+            var backAgain = LibGit2GitExtensions.GetCommitFromVersion(context, version);
+            Assert.Equal(commit, backAgain);
         }
     }
 

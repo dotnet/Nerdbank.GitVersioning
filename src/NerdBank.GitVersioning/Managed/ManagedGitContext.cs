@@ -24,7 +24,7 @@ namespace Nerdbank.GitVersioning.Managed
 
             this.Commit = committish is object
                 ? repo.GetCommit(GitObjectId.Parse(committish))
-                : repo.GetHeadCommit() ?? throw new ArgumentException("Unable to find commit.", nameof(committish));
+                : repo.GetHeadCommit();
 
             this.Repository = repo;
             this.VersionFile = new ManagedVersionFile(this);
@@ -37,13 +37,13 @@ namespace Nerdbank.GitVersioning.Managed
         public GitRepository Repository { get; }
 
         /// <inheritdoc />
-        public GitCommit Commit { get; }
+        public GitCommit? Commit { get; }
 
         /// <inheritdoc />
         public override VersionFile VersionFile { get; }
 
         /// <inheritdoc />
-        public override string? GitCommitId => this.Commit.Sha.ToString();
+        public override string? GitCommitId => this.Commit?.Sha.ToString();
 
         /// <inheritdoc />
         public override DateTimeOffset? GitCommitDate => throw new NotImplementedException();
@@ -147,8 +147,8 @@ namespace Nerdbank.GitVersioning.Managed
                 switch (commitIdPosition.Value)
                 {
                     case SemanticVersion.Position.Revision:
-                        revision = this.Commit != null
-                            ? Math.Min(MaximumBuildNumberOrRevisionComponent, this.Commit.GetTruncatedCommitIdAsUInt16())
+                        revision = this.Commit.HasValue
+                            ? Math.Min(MaximumBuildNumberOrRevisionComponent, this.Commit.Value.GetTruncatedCommitIdAsUInt16())
                             : 0;
                         break;
                 }

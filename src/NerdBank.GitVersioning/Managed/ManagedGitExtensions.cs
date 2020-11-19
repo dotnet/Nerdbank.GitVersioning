@@ -29,7 +29,7 @@ namespace Nerdbank.GitVersioning.Managed
         {
             var tracker = new GitWalkTracker(context);
 
-            var versionOptions = tracker.GetVersion(context.Commit);
+            var versionOptions = tracker.GetVersion(context.Commit.Value);
             if (versionOptions == null)
             {
                 return 0;
@@ -92,7 +92,7 @@ namespace Nerdbank.GitVersioning.Managed
         public static int GetHeight(ManagedGitContext context, Func<GitCommit, bool>? continueStepping = null)
         {
             var tracker = new GitWalkTracker(context);
-            return GetCommitHeight(context.Repository, context.Commit, tracker, continueStepping);
+            return GetCommitHeight(context.Repository, context.Commit.Value, tracker, continueStepping);
         }
 
         /// <summary>

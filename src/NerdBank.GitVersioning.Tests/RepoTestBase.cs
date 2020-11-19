@@ -34,9 +34,7 @@ public abstract partial class RepoTestBase : IDisposable
 
     protected Signature Signer => new Signature("a", "a@a.com", new DateTimeOffset(2015, 8, 2, 0, 0, 0, TimeSpan.Zero));
 
-    protected Repository? LibGit2Repository { get; set; }
-
-    private LibGit2Context? LibGit2Context { get; set; }
+    protected Repository? LibGit2Repository { get; private set; }
 
     public void Dispose()
     {
@@ -99,6 +97,7 @@ public abstract partial class RepoTestBase : IDisposable
     {
         this.Context?.Dispose();
         this.Context = this.InitializeSourceControl(this.RepoPath, withInitialCommit);
+        this.LibGit2Repository = new Repository(this.RepoPath);
     }
 
     protected virtual GitContext InitializeSourceControl(string repoPath, bool withInitialCommit = true)
@@ -162,14 +161,13 @@ public abstract partial class RepoTestBase : IDisposable
     protected Commit? WriteVersionFile(VersionOptions versionData, string? relativeDirectory = null)
     {
         Requires.NotNull(versionData, nameof(versionData));
-        Verify.Operation(this.LibGit2Context is object, "No libgit2 repo exists.");
 
         if (relativeDirectory == null)
         {
             relativeDirectory = string.Empty;
         }
 
-        string versionFilePath = this.LibGit2Context.VersionFile.SetVersion(Path.Combine(this.RepoPath, relativeDirectory), versionData);
+        string versionFilePath = this.Context.VersionFile.SetVersion(Path.Combine(this.RepoPath, relativeDirectory), versionData);
         return this.CommitVersionFile(versionFilePath, versionData.Version?.ToString());
     }
 

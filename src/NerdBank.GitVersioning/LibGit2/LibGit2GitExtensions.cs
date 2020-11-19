@@ -408,7 +408,7 @@ namespace Nerdbank.GitVersioning.LibGit2
 
                 var ignoreCase = commit.GetRepository().Config.Get<bool>("core.ignorecase")?.Value ?? false;
                 bool ContainsRelevantChanges(IEnumerable<TreeEntryChanges> changes) =>
-                    excludePaths.Count == 0
+                    excludePaths?.Count == 0
                         ? changes.Any()
                         // If there is a single change that isn't excluded,
                         // then this commit is relevant.

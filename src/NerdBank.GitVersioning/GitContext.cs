@@ -87,7 +87,7 @@ namespace Nerdbank.GitVersioning
         /// <summary>
         /// Gets the canonical name for HEAD's position (e.g. <c>refs/heads/master</c>)
         /// </summary>
-        public abstract string HeadCanonicalName { get; }
+        public abstract string? HeadCanonicalName { get; }
 
         /// <inheritdoc />
         public void Dispose()
@@ -115,7 +115,7 @@ namespace Nerdbank.GitVersioning
             }
             else
             {
-                throw new ArgumentException("Path is not within a git directory.", nameof(path));
+                return new NoGitContext(path);
             }
         }
 

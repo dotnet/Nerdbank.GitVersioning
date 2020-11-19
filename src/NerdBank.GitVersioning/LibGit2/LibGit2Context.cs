@@ -20,7 +20,7 @@ namespace Nerdbank.GitVersioning.LibGit2
             }
 
             Commit? commit = committish is null ? this.Repository.Head.Tip : this.Repository.Lookup<Commit>(committish);
-            if (commit is null)
+            if (commit is null && committish is object)
             {
                 throw new ArgumentException("No matching commit found.", nameof(committish));
             }
@@ -39,7 +39,7 @@ namespace Nerdbank.GitVersioning.LibGit2
         public Repository Repository { get; }
 
         /// <inheritdoc />
-        public Commit Commit { get; private set; }
+        public Commit? Commit { get; private set; }
 
         /// <inheritdoc />
         public override string? GitCommitId => this.Commit.Sha;

@@ -38,7 +38,7 @@ namespace Nerdbank.GitVersioning.Managed
 
         protected new ManagedGitContext Context => (ManagedGitContext)base.Context;
 
-        public override VersionOptions? GetVersion(out string? actualDirectory) => this.GetVersion(this.Context.Commit, this.Context.RepoRelativeProjectDirectory, null, out actualDirectory);
+        public override VersionOptions? GetVersion(out string? actualDirectory) => this.GetVersion(this.Context.Commit.Value, this.Context.RepoRelativeProjectDirectory, null, out actualDirectory);
 
         /// <summary>
         /// Reads the version.json file and returns the <see cref="VersionOptions"/> deserialized from it.
