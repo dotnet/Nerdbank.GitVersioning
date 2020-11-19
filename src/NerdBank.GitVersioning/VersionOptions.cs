@@ -1,4 +1,6 @@
-﻿namespace Nerdbank.GitVersioning
+﻿#nullable enable
+
+namespace Nerdbank.GitVersioning
 {
     using System;
     using System.Collections.Generic;
@@ -25,19 +27,19 @@
         private bool isFrozen;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private string gitCommitIdPrefix;
+        private string? gitCommitIdPrefix;
 
         /// <summary>
         /// Backing field for the <see cref="Version"/> property.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private SemanticVersion version;
+        private SemanticVersion? version;
 
         /// <summary>
         /// Backing field for the <see cref="AssemblyVersion"/> property.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private AssemblyVersionOptions assemblyVersion;
+        private AssemblyVersionOptions? assemblyVersion;
 
         /// <summary>
         /// Backing field for the <see cref="BuildNumberOffset"/> property.
@@ -67,31 +69,31 @@
         /// Backing field for the <see cref="NuGetPackageVersion"/> property.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private NuGetPackageVersionOptions nuGetPackageVersion;
+        private NuGetPackageVersionOptions? nuGetPackageVersion;
 
         /// <summary>
         /// Backing field for the <see cref="PublicReleaseRefSpec"/> property.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private IReadOnlyList<string> publicReleaseRefSpec;
+        private IReadOnlyList<string>? publicReleaseRefSpec;
 
         /// <summary>
         /// Backing field for the <see cref="CloudBuild"/> property.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private CloudBuildOptions cloudBuild;
+        private CloudBuildOptions? cloudBuild;
 
         /// <summary>
         /// Backing field for the <see cref="Release"/> property.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private ReleaseOptions release;
+        private ReleaseOptions? release;
 
         /// <summary>
         /// Backing field for the <see cref="PathFilters"/> property.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private IReadOnlyList<FilterPath> pathFilters;
+        private IReadOnlyList<FilterPath>? pathFilters;
 
         /// <summary>
         /// Backing field for the <see cref="Inherit"/> property.
@@ -163,7 +165,7 @@
         /// Gets or sets the default version to use.
         /// </summary>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public SemanticVersion Version
+        public SemanticVersion? Version
         {
             get => this.version;
             set => this.SetIfNotReadOnly(ref this.version, value);
@@ -175,7 +177,7 @@
         /// </summary>
         /// <value>An instance of <see cref="System.Version"/> or <c>null</c> to simply use the default <see cref="Version"/>.</value>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public AssemblyVersionOptions AssemblyVersion
+        public AssemblyVersionOptions? AssemblyVersion
         {
             get => this.assemblyVersion;
             set => this.SetIfNotReadOnly(ref this.assemblyVersion, value);
@@ -188,7 +190,7 @@
         /// </summary>
         /// <value>A prefix for git commit id.</value>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public string GitCommitIdPrefix
+        public string? GitCommitIdPrefix
         {
             get => this.gitCommitIdPrefix;
             set
@@ -197,7 +199,7 @@
                 {
                     throw new ArgumentNullException(nameof(value), $"{nameof(this.GitCommitIdPrefix)} can't be empty");
                 }
-                char first = value[0];
+                char first = value![0];
                 if (first < 'A' || (first > 'Z' && first < 'a' && first != '_') || first > 'z')
                 {
                     throw new ArgumentException(nameof(value), $"{nameof(this.GitCommitIdPrefix)} must lead with a [A-z_] character (not a number)");
@@ -322,7 +324,7 @@
         /// Gets or sets the options around NuGet version strings
         /// </summary>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public NuGetPackageVersionOptions NuGetPackageVersion
+        public NuGetPackageVersionOptions? NuGetPackageVersion
         {
             get => this.nuGetPackageVersion;
             set => this.SetIfNotReadOnly(ref this.nuGetPackageVersion, value);
@@ -339,7 +341,7 @@
         /// be built with PublicRelease=true as the default value on build servers.
         /// </summary>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public IReadOnlyList<string> PublicReleaseRefSpec
+        public IReadOnlyList<string>? PublicReleaseRefSpec
         {
             get => this.publicReleaseRefSpec;
             set => this.SetIfNotReadOnly(ref this.publicReleaseRefSpec, value);
@@ -356,7 +358,7 @@
         /// Gets or sets the options around cloud build.
         /// </summary>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public CloudBuildOptions CloudBuild
+        public CloudBuildOptions? CloudBuild
         {
             get => this.cloudBuild;
             set => this.SetIfNotReadOnly(ref this.cloudBuild, value);
@@ -372,7 +374,7 @@
         /// Gets or sets the options for the prepare-release command
         /// </summary>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public ReleaseOptions Release
+        public ReleaseOptions? Release
         {
             get => this.release;
             set => this.SetIfNotReadOnly(ref this.release, value);
@@ -390,7 +392,7 @@
         /// Paths should be relative to the root of the repository.
         /// </summary>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public IReadOnlyList<FilterPath> PathFilters
+        public IReadOnlyList<FilterPath>? PathFilters
         {
             get => this.pathFilters;
             set => this.SetIfNotReadOnly(ref this.pathFilters, value);
@@ -462,7 +464,7 @@
         /// <param name="version">The version number.</param>
         /// <param name="unstableTag">The prerelease tag, if any.</param>
         /// <returns>The new instance of <see cref="VersionOptions"/>.</returns>
-        public static VersionOptions FromVersion(Version version, string unstableTag = null)
+        public static VersionOptions FromVersion(Version version, string? unstableTag = null)
         {
             return new VersionOptions
             {
@@ -500,7 +502,7 @@
         /// Passing <c>null</c> will mean path filters cannot be serialized.
         /// </param>
         /// <returns>The serializer settings to use.</returns>
-        public static JsonSerializerSettings GetJsonSettings(bool includeDefaults = false, bool includeSchemaProperty = false, string repoRelativeBaseDirectory = null)
+        public static JsonSerializerSettings GetJsonSettings(bool includeDefaults = false, bool includeSchemaProperty = false, string? repoRelativeBaseDirectory = null)
         {
             return new JsonSerializerSettings
             {
@@ -525,7 +527,7 @@
         /// </summary>
         /// <param name="obj">The other instance.</param>
         /// <returns><c>true</c> if the instances have equal values; <c>false</c> otherwise.</returns>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return this.Equals(obj as VersionOptions);
         }
@@ -541,7 +543,7 @@
         /// </summary>
         /// <param name="other">The other instance.</param>
         /// <returns><c>true</c> if the instances have equal values; <c>false</c> otherwise.</returns>
-        public bool Equals(VersionOptions other) => EqualWithDefaultsComparer.Singleton.Equals(this, other);
+        public bool Equals(VersionOptions? other) => EqualWithDefaultsComparer.Singleton.Equals(this, other);
 
         /// <summary>
         /// Freezes this instance so no more changes can be made to it.
@@ -570,7 +572,7 @@
             {
                 return this.Version != null
                     && this.AssemblyVersion == null
-                    && this.CloudBuild.IsDefault
+                    && (this.CloudBuild?.IsDefault ?? true)
                     && this.VersionHeightOffset == 0
                     && !this.SemVer1NumericIdentifierPadding.HasValue
                     && !this.Inherit;
@@ -652,10 +654,10 @@
             public void Freeze() => this.isFrozen = true;
 
             /// <inheritdoc />
-            public override bool Equals(object obj) => this.Equals(obj as NuGetPackageVersionOptions);
+            public override bool Equals(object? obj) => this.Equals(obj as NuGetPackageVersionOptions);
 
             /// <inheritdoc />
-            public bool Equals(NuGetPackageVersionOptions other) => EqualWithDefaultsComparer.Singleton.Equals(this, other);
+            public bool Equals(NuGetPackageVersionOptions? other) => EqualWithDefaultsComparer.Singleton.Equals(this, other);
 
             /// <inheritdoc />
             public override int GetHashCode() => EqualWithDefaultsComparer.Singleton.GetHashCode(this);
@@ -677,32 +679,32 @@
                 field = value;
             }
 
-            internal class EqualWithDefaultsComparer : IEqualityComparer<NuGetPackageVersionOptions>
+            internal class EqualWithDefaultsComparer : IEqualityComparer<NuGetPackageVersionOptions?>
             {
                 internal static readonly EqualWithDefaultsComparer Singleton = new EqualWithDefaultsComparer();
 
                 private EqualWithDefaultsComparer() { }
 
                 /// <inheritdoc />
-                public bool Equals(NuGetPackageVersionOptions x, NuGetPackageVersionOptions y)
+                public bool Equals(NuGetPackageVersionOptions? x, NuGetPackageVersionOptions? y)
                 {
-                    if (x == null ^ y == null)
-                    {
-                        return false;
-                    }
-
-                    if (x == null)
+                    if (ReferenceEquals(x, y))
                     {
                         return true;
+                    }
+
+                    if (x == null || y == null)
+                    {
+                        return false;
                     }
 
                     return x.SemVerOrDefault == y.SemVerOrDefault;
                 }
 
                 /// <inheritdoc />
-                public int GetHashCode(NuGetPackageVersionOptions obj)
+                public int GetHashCode(NuGetPackageVersionOptions? obj)
                 {
-                    return obj.SemVerOrDefault.GetHashCode();
+                    return obj?.SemVerOrDefault.GetHashCode() ?? 0;
                 }
             }
         }
@@ -725,7 +727,7 @@
             private bool isFrozen;
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-            private Version version;
+            private Version? version;
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
             private VersionPrecision? precision;
@@ -761,7 +763,7 @@
             /// Gets or sets the major.minor components of the assembly version.
             /// </summary>
             [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-            public Version Version
+            public Version? Version
             {
                 get => this.version;
                 set => this.SetIfNotReadOnly(ref this.version, value);
@@ -795,10 +797,10 @@
             public void Freeze() => this.isFrozen = true;
 
             /// <inheritdoc />
-            public override bool Equals(object obj) => this.Equals(obj as AssemblyVersionOptions);
+            public override bool Equals(object? obj) => this.Equals(obj as AssemblyVersionOptions);
 
             /// <inheritdoc />
-            public bool Equals(AssemblyVersionOptions other) => EqualWithDefaultsComparer.Singleton.Equals(this, other);
+            public bool Equals(AssemblyVersionOptions? other) => EqualWithDefaultsComparer.Singleton.Equals(this, other);
 
             /// <inheritdoc />
             public override int GetHashCode() => EqualWithDefaultsComparer.Singleton.GetHashCode(this);
@@ -820,32 +822,37 @@
                 field = value;
             }
 
-            internal class EqualWithDefaultsComparer : IEqualityComparer<AssemblyVersionOptions>
+            internal class EqualWithDefaultsComparer : IEqualityComparer<AssemblyVersionOptions?>
             {
                 internal static readonly EqualWithDefaultsComparer Singleton = new EqualWithDefaultsComparer();
 
                 private EqualWithDefaultsComparer() { }
 
                 /// <inheritdoc />
-                public bool Equals(AssemblyVersionOptions x, AssemblyVersionOptions y)
+                public bool Equals(AssemblyVersionOptions? x, AssemblyVersionOptions? y)
                 {
-                    if (x == null ^ y == null)
-                    {
-                        return false;
-                    }
-
-                    if (x == null)
+                    if (ReferenceEquals(x, y))
                     {
                         return true;
                     }
 
-                    return EqualityComparer<Version>.Default.Equals(x.Version, y.Version)
+                    if (x is null || y is null)
+                    {
+                        return false;
+                    }
+
+                    return EqualityComparer<Version?>.Default.Equals(x.Version, y.Version)
                         && x.PrecisionOrDefault == y.PrecisionOrDefault;
                 }
 
                 /// <inheritdoc />
-                public int GetHashCode(AssemblyVersionOptions obj)
+                public int GetHashCode(AssemblyVersionOptions? obj)
                 {
+                    if (obj is null)
+                    {
+                        return 0;
+                    }
+
                     return (obj.Version?.GetHashCode() ?? 0) + (int)obj.PrecisionOrDefault;
                 }
             }
@@ -876,7 +883,7 @@
             private bool? setVersionVariables;
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-            private CloudBuildNumberOptions buildNumber;
+            private CloudBuildNumberOptions? buildNumber;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="CloudBuildOptions"/> class.
@@ -918,18 +925,18 @@
             /// Gets a value indicating whether to elevate all build properties to cloud build variables prefaced with "NBGV_".
             /// </summary>
             [JsonIgnore]
-            public bool SetAllVariablesOrDefault => this.SetAllVariables ?? DefaultInstance.SetAllVariables.Value;
+            public bool SetAllVariablesOrDefault => this.SetAllVariables ?? DefaultInstance.SetAllVariables!.Value;
 
             /// <summary>
             /// Gets a value indicating whether to elevate certain calculated version build properties to cloud build variables.
             /// </summary>
             [JsonIgnore]
-            public bool SetVersionVariablesOrDefault => this.SetVersionVariables ?? DefaultInstance.SetVersionVariables.Value;
+            public bool SetVersionVariablesOrDefault => this.SetVersionVariables ?? DefaultInstance.SetVersionVariables!.Value;
 
             /// <summary>
             /// Gets or sets options around how and whether to set the build number preset by the cloud build with one enriched with version information.
             /// </summary>
-            public CloudBuildNumberOptions BuildNumber
+            public CloudBuildNumberOptions? BuildNumber
             {
                 get => this.buildNumber;
                 set => this.SetIfNotReadOnly(ref this.buildNumber, value);
@@ -960,10 +967,10 @@
             }
 
             /// <inheritdoc />
-            public override bool Equals(object obj) => this.Equals(obj as CloudBuildOptions);
+            public override bool Equals(object? obj) => this.Equals(obj as CloudBuildOptions);
 
             /// <inheritdoc />
-            public bool Equals(CloudBuildOptions other) => EqualWithDefaultsComparer.Singleton.Equals(this, other);
+            public bool Equals(CloudBuildOptions? other) => EqualWithDefaultsComparer.Singleton.Equals(this, other);
 
             /// <inheritdoc />
             public override int GetHashCode() => EqualWithDefaultsComparer.Singleton.GetHashCode(this);
@@ -985,23 +992,23 @@
                 field = value;
             }
 
-            internal class EqualWithDefaultsComparer : IEqualityComparer<CloudBuildOptions>
+            internal class EqualWithDefaultsComparer : IEqualityComparer<CloudBuildOptions?>
             {
                 internal static readonly EqualWithDefaultsComparer Singleton = new EqualWithDefaultsComparer();
 
                 private EqualWithDefaultsComparer() { }
 
                 /// <inheritdoc />
-                public bool Equals(CloudBuildOptions x, CloudBuildOptions y)
+                public bool Equals(CloudBuildOptions? x, CloudBuildOptions? y)
                 {
-                    if (x == null ^ y == null)
-                    {
-                        return false;
-                    }
-
-                    if (x == null)
+                    if (ReferenceEquals(x, y))
                     {
                         return true;
+                    }
+
+                    if (x is null || y is null)
+                    {
+                        return false;
                     }
 
                     return x.SetVersionVariablesOrDefault == y.SetVersionVariablesOrDefault
@@ -1010,8 +1017,13 @@
                 }
 
                 /// <inheritdoc />
-                public int GetHashCode(CloudBuildOptions obj)
+                public int GetHashCode(CloudBuildOptions? obj)
                 {
+                    if (obj is null)
+                    {
+                        return 0;
+                    }
+
                     return (obj.SetVersionVariablesOrDefault ? 1 : 0)
                         + (obj.SetAllVariablesOrDefault ? 1 : 0)
                         + obj.BuildNumberOrDefault.GetHashCode();
@@ -1038,7 +1050,7 @@
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
             private bool? enabled;
-            private CloudBuildNumberCommitIdOptions includeCommitId;
+            private CloudBuildNumberCommitIdOptions? includeCommitId;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="CloudBuildNumberOptions"/> class.
@@ -1069,12 +1081,12 @@
             /// Gets a value indicating whether to override the build number preset by the cloud build.
             /// </summary>
             [JsonIgnore]
-            public bool EnabledOrDefault => this.Enabled ?? DefaultInstance.Enabled.Value;
+            public bool EnabledOrDefault => this.Enabled ?? DefaultInstance.Enabled!.Value;
 
             /// <summary>
             /// Gets or sets when and where to include information about the git commit being built.
             /// </summary>
-            public CloudBuildNumberCommitIdOptions IncludeCommitId
+            public CloudBuildNumberCommitIdOptions? IncludeCommitId
             {
                 get => this.includeCommitId;
                 set => this.SetIfNotReadOnly(ref this.includeCommitId, value);
@@ -1105,10 +1117,10 @@
             }
 
             /// <inheritdoc />
-            public override bool Equals(object obj) => this.Equals(obj as CloudBuildNumberOptions);
+            public override bool Equals(object? obj) => this.Equals(obj as CloudBuildNumberOptions);
 
             /// <inheritdoc />
-            public bool Equals(CloudBuildNumberOptions other) => EqualWithDefaultsComparer.Singleton.Equals(this, other);
+            public bool Equals(CloudBuildNumberOptions? other) => EqualWithDefaultsComparer.Singleton.Equals(this, other);
 
             /// <inheritdoc />
             public override int GetHashCode() => EqualWithDefaultsComparer.Singleton.GetHashCode(this);
@@ -1130,23 +1142,23 @@
                 field = value;
             }
 
-            internal class EqualWithDefaultsComparer : IEqualityComparer<CloudBuildNumberOptions>
+            internal class EqualWithDefaultsComparer : IEqualityComparer<CloudBuildNumberOptions?>
             {
                 internal static readonly EqualWithDefaultsComparer Singleton = new EqualWithDefaultsComparer();
 
                 private EqualWithDefaultsComparer() { }
 
                 /// <inheritdoc />
-                public bool Equals(CloudBuildNumberOptions x, CloudBuildNumberOptions y)
+                public bool Equals(CloudBuildNumberOptions? x, CloudBuildNumberOptions? y)
                 {
-                    if (x == null ^ y == null)
-                    {
-                        return false;
-                    }
-
-                    if (x == null)
+                    if (ReferenceEquals(x, y))
                     {
                         return true;
+                    }
+
+                    if (x is null || y is null)
+                    {
+                        return false;
                     }
 
                     return x.EnabledOrDefault == y.EnabledOrDefault
@@ -1154,8 +1166,13 @@
                 }
 
                 /// <inheritdoc />
-                public int GetHashCode(CloudBuildNumberOptions obj)
+                public int GetHashCode(CloudBuildNumberOptions? obj)
                 {
+                    if (obj is null)
+                    {
+                        return 0;
+                    }
+
                     return obj.EnabledOrDefault ? 1 : 0
                         + obj.IncludeCommitIdOrDefault.GetHashCode();
                 }
@@ -1215,7 +1232,7 @@
             /// Gets the conditions when the commit ID is included in the build number.
             /// </summary>
             [JsonIgnore]
-            public CloudBuildNumberCommitWhen WhenOrDefault => this.When ?? DefaultInstance.When.Value;
+            public CloudBuildNumberCommitWhen WhenOrDefault => this.When ?? DefaultInstance.When!.Value;
 
             /// <summary>
             /// Gets or sets the position to include the commit ID information.
@@ -1230,7 +1247,7 @@
             /// Gets the position to include the commit ID information.
             /// </summary>
             [JsonIgnore]
-            public CloudBuildNumberCommitWhere WhereOrDefault => this.Where ?? DefaultInstance.Where.Value;
+            public CloudBuildNumberCommitWhere WhereOrDefault => this.Where ?? DefaultInstance.Where!.Value;
 
             /// <summary>
             /// Gets a value indicating whether this instance rejects all attempts to mutate it.
@@ -1244,10 +1261,10 @@
             public void Freeze() => this.isFrozen = true;
 
             /// <inheritdoc />
-            public override bool Equals(object obj) => this.Equals(obj as CloudBuildNumberCommitIdOptions);
+            public override bool Equals(object? obj) => this.Equals(obj as CloudBuildNumberCommitIdOptions);
 
             /// <inheritdoc />
-            public bool Equals(CloudBuildNumberCommitIdOptions other) => EqualWithDefaultsComparer.Singleton.Equals(this, other);
+            public bool Equals(CloudBuildNumberCommitIdOptions? other) => EqualWithDefaultsComparer.Singleton.Equals(this, other);
             /// <inheritdoc />
             public override int GetHashCode() => EqualWithDefaultsComparer.Singleton.GetHashCode(this);
 
@@ -1268,23 +1285,23 @@
                 field = value;
             }
 
-            internal class EqualWithDefaultsComparer : IEqualityComparer<CloudBuildNumberCommitIdOptions>
+            internal class EqualWithDefaultsComparer : IEqualityComparer<CloudBuildNumberCommitIdOptions?>
             {
                 internal static readonly EqualWithDefaultsComparer Singleton = new EqualWithDefaultsComparer();
 
                 private EqualWithDefaultsComparer() { }
 
                 /// <inheritdoc />
-                public bool Equals(CloudBuildNumberCommitIdOptions x, CloudBuildNumberCommitIdOptions y)
+                public bool Equals(CloudBuildNumberCommitIdOptions? x, CloudBuildNumberCommitIdOptions? y)
                 {
-                    if (x == null ^ y == null)
-                    {
-                        return false;
-                    }
-
-                    if (x == null)
+                    if (ReferenceEquals(x, y))
                     {
                         return true;
+                    }
+
+                    if (x is null || y is null)
+                    {
+                        return false;
                     }
 
                     return x.WhenOrDefault == y.WhenOrDefault
@@ -1292,33 +1309,38 @@
                 }
 
                 /// <inheritdoc />
-                public int GetHashCode(CloudBuildNumberCommitIdOptions obj)
+                public int GetHashCode(CloudBuildNumberCommitIdOptions? obj)
                 {
+                    if (obj is null)
+                    {
+                        return 0;
+                    }
+
                     return (int)obj.WhereOrDefault + (int)obj.WhenOrDefault * 0x10;
                 }
             }
         }
 
-        private class EqualWithDefaultsComparer : IEqualityComparer<VersionOptions>
+        private class EqualWithDefaultsComparer : IEqualityComparer<VersionOptions?>
         {
             internal static readonly EqualWithDefaultsComparer Singleton = new EqualWithDefaultsComparer();
 
             private EqualWithDefaultsComparer() { }
 
             /// <inheritdoc />
-            public bool Equals(VersionOptions x, VersionOptions y)
+            public bool Equals(VersionOptions? x, VersionOptions? y)
             {
-                if (x == null ^ y == null)
-                {
-                    return false;
-                }
-
-                if (x == null)
+                if (ReferenceEquals(x, y))
                 {
                     return true;
                 }
 
-                return EqualityComparer<SemanticVersion>.Default.Equals(x.Version, y.Version)
+                if (x is null || y is null)
+                {
+                    return false;
+                }
+
+                return EqualityComparer<SemanticVersion?>.Default.Equals(x.Version, y.Version)
                     && AssemblyVersionOptions.EqualWithDefaultsComparer.Singleton.Equals(x.AssemblyVersionOrDefault, y.AssemblyVersionOrDefault)
                     && NuGetPackageVersionOptions.EqualWithDefaultsComparer.Singleton.Equals(x.NuGetPackageVersionOrDefault, y.NuGetPackageVersionOrDefault)
                     && CloudBuildOptions.EqualWithDefaultsComparer.Singleton.Equals(x.CloudBuildOrDefault, y.CloudBuildOrDefault)
@@ -1327,9 +1349,9 @@
             }
 
             /// <inheritdoc />
-            public int GetHashCode(VersionOptions obj)
+            public int GetHashCode(VersionOptions? obj)
             {
-                return obj.Version?.GetHashCode() ?? 0;
+                return obj?.Version?.GetHashCode() ?? 0;
             }
         }
 
@@ -1416,13 +1438,13 @@
             private bool isFrozen;
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-            private string branchName;
+            private string? branchName;
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
             private ReleaseVersionIncrement? versionIncrement;
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-            private string firstUnstableTag;
+            private string? firstUnstableTag;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="ReleaseOptions"/> class
@@ -1445,7 +1467,7 @@
             /// Gets or sets the branch name template for release branches
             /// </summary>
             [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-            public string BranchName
+            public string? BranchName
             {
                 get => this.branchName;
                 set => this.SetIfNotReadOnly(ref this.branchName, value);
@@ -1455,7 +1477,7 @@
             /// Gets the set branch name template for release branches
             /// </summary>
             [JsonIgnore]
-            public string BranchNameOrDefault => this.BranchName ?? DefaultInstance.BranchName;
+            public string BranchNameOrDefault => this.BranchName ?? DefaultInstance.BranchName!;
 
             /// <summary>
             /// Gets or sets the setting specifying how to increment the version when creating a release
@@ -1471,13 +1493,13 @@
             /// Gets or sets the setting specifying how to increment the version when creating a release.
             /// </summary>
             [JsonIgnore]
-            public ReleaseVersionIncrement VersionIncrementOrDefault => this.VersionIncrement ?? DefaultInstance.VersionIncrement.Value;
+            public ReleaseVersionIncrement VersionIncrementOrDefault => this.VersionIncrement ?? DefaultInstance.VersionIncrement!.Value;
 
             /// <summary>
             /// Gets or sets the first/default prerelease tag for new versions.
             /// </summary>
             [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-            public string FirstUnstableTag
+            public string? FirstUnstableTag
             {
                 get => this.firstUnstableTag;
                 set => this.SetIfNotReadOnly(ref this.firstUnstableTag, value);
@@ -1487,7 +1509,7 @@
             /// Gets or sets the first/default prerelease tag for new versions.
             /// </summary>
             [JsonIgnore]
-            public string FirstUnstableTagOrDefault => this.FirstUnstableTag ?? DefaultInstance.FirstUnstableTag;
+            public string FirstUnstableTagOrDefault => this.FirstUnstableTag ?? DefaultInstance.FirstUnstableTag!;
 
             /// <summary>
             /// Gets a value indicating whether this instance rejects all attempts to mutate it.
@@ -1501,10 +1523,10 @@
             public void Freeze() => this.isFrozen = true;
 
             /// <inheritdoc />
-            public override bool Equals(object obj) => this.Equals(obj as ReleaseOptions);
+            public override bool Equals(object? obj) => this.Equals(obj as ReleaseOptions);
 
             /// <inheritdoc />
-            public bool Equals(ReleaseOptions other) => EqualWithDefaultsComparer.Singleton.Equals(this, other);
+            public bool Equals(ReleaseOptions? other) => EqualWithDefaultsComparer.Singleton.Equals(this, other);
 
             /// <inheritdoc />
             public override int GetHashCode() => EqualWithDefaultsComparer.Singleton.GetHashCode(this);
@@ -1526,23 +1548,23 @@
                 field = value;
             }
 
-            internal class EqualWithDefaultsComparer : IEqualityComparer<ReleaseOptions>
+            internal class EqualWithDefaultsComparer : IEqualityComparer<ReleaseOptions?>
             {
                 internal static readonly EqualWithDefaultsComparer Singleton = new EqualWithDefaultsComparer();
 
                 private EqualWithDefaultsComparer() { }
 
                 /// <inheritdoc />
-                public bool Equals(ReleaseOptions x, ReleaseOptions y)
+                public bool Equals(ReleaseOptions? x, ReleaseOptions? y)
                 {
-                    if (x == null ^ y == null)
-                    {
-                        return false;
-                    }
-
-                    if (x == null)
+                    if (ReferenceEquals(x, y))
                     {
                         return true;
+                    }
+
+                    if (x is null || y is null)
+                    {
+                        return false;
                     }
 
                     return StringComparer.Ordinal.Equals(x.BranchNameOrDefault, y.BranchNameOrDefault) &&
@@ -1551,7 +1573,7 @@
                 }
 
                 /// <inheritdoc />
-                public int GetHashCode(ReleaseOptions obj)
+                public int GetHashCode(ReleaseOptions? obj)
                 {
                     if (obj == null)
                         return 0;

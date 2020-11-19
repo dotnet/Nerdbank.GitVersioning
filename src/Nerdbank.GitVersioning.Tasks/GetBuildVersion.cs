@@ -62,6 +62,11 @@
         public int OverrideBuildNumberOffset { get; set; } = int.MaxValue;
 
         /// <summary>
+        /// Gets or sets the git engine to use.
+        /// </summary>
+        public string GitEngine { get; set; }
+
+        /// <summary>
         /// Gets or sets the path to the folder that contains the NB.GV .targets file.
         /// </summary>
         /// <remarks>
@@ -211,9 +216,18 @@
                         "Path must not use ..\\");
                 }
 
+                bool useLibGit2 = false;
+                if (!string.IsNullOrWhiteSpace(this.GitEngine))
+                {
+                    useLibGit2 =
+                        this.GitEngine == "Managed" ? false :
+                        this.GitEngine == "LibGit2" ? true :
+                        throw new ArgumentException("GitEngine property must be set to either \"Managed\" or \"LibGit2\" or left empty.");
+                }
+
                 var cloudBuild = CloudBuild.Active;
                 var overrideBuildNumberOffset = (this.OverrideBuildNumberOffset == int.MaxValue) ? (int?)null : this.OverrideBuildNumberOffset;
-                using var context = GitContext.Create(this.ProjectDirectory);
+                using var context = GitContext.Create(this.ProjectDirectory, writable: useLibGit2);
                 //var oracle = VersionOracle.Create(this.ProjectDirectory, this.GitRepoRoot, null, cloudBuild, overrideBuildNumberOffset, this.ProjectPathRelativeToGitRepoRoot);
                 var oracle = new VersionOracle(context, cloudBuild, overrideBuildNumberOffset);
                 if (!string.IsNullOrEmpty(this.DefaultPublicRelease))

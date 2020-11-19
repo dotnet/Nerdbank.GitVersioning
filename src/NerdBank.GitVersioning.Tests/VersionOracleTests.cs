@@ -7,6 +7,7 @@ using Xunit;
 using Xunit.Abstractions;
 using Version = System.Version;
 
+[Trait("Engine", "Managed")]
 public class VersionOracleManagedTests : VersionOracleTests
 {
     public VersionOracleManagedTests(ITestOutputHelper logger)
@@ -18,6 +19,7 @@ public class VersionOracleManagedTests : VersionOracleTests
         => GitContext.Create(path, committish, writable: false);
 }
 
+[Trait("Engine", "LibGit2")]
 public class VersionOracleLibGit2Tests : VersionOracleTests
 {
     public VersionOracleLibGit2Tests(ITestOutputHelper logger)
@@ -130,6 +132,7 @@ public abstract class VersionOracleTests : RepoTestBase
         options.Version = SemanticVersion.Parse(next);
 
         this.WriteVersionFile(options);
+        this.SetContextToHead();
         oracle = new VersionOracle(this.Context);
         Assert.Equal(1, oracle.VersionHeight);
 

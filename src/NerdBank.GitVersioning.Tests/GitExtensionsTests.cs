@@ -21,7 +21,7 @@ public partial class GitExtensionsTests : RepoTestBase
 
     protected new LibGit2Context Context => (LibGit2Context)base.Context;
 
-    protected override GitContext CreateGitContext(string path, string committish = null) => LibGit2Context.Create(path, committish);
+    protected override GitContext CreateGitContext(string path, string committish = null) => GitContext.Create(path, committish, writable: true);
 
     [Fact]
     public void GetHeight_EmptyRepo()

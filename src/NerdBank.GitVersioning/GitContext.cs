@@ -80,6 +80,11 @@ namespace Nerdbank.GitVersioning
         public abstract string? GitCommitId { get; }
 
         /// <summary>
+        /// Gets a value indicating whether <see cref="GitCommitId"/> refers to the commit at HEAD.
+        /// </summary>
+        public abstract bool IsHead { get; }
+
+        /// <summary>
         /// Gets the date that the commit identified by <see cref="GitCommitId"/> was created.
         /// </summary>
         public abstract DateTimeOffset? GitCommitDate { get; }
@@ -115,7 +120,18 @@ namespace Nerdbank.GitVersioning
             }
             else
             {
-                return new NoGitContext(path);
+                // Consider the working tree to be the entire volume.
+                string workingTree = path;
+                string? candidate;
+                while ((candidate = Path.GetDirectoryName(workingTree)) is object)
+                {
+                    workingTree = candidate;
+                }
+
+                return new NoGitContext(workingTree)
+                {
+                    RepoRelativeProjectDirectory = path.Substring(workingTree.Length),
+                };
             }
         }
 

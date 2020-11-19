@@ -17,7 +17,7 @@ namespace ManagedGit
         }
 
         protected override Nerdbank.GitVersioning.GitContext CreateGitContext(string path, string committish = null)
-            => Nerdbank.GitVersioning.Managed.ManagedGitContext.Create(path, committish);
+            => Nerdbank.GitVersioning.GitContext.Create(path, committish, writable: false);
 
         [Fact]
         public void CreateTest()

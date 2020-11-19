@@ -302,6 +302,27 @@ namespace Nerdbank.GitVersioning.ManagedGit
         }
 
         /// <summary>
+        /// Parses any committish to an object id.
+        /// </summary>
+        /// <param name="objectish">Any "objectish" string (e.g. commit ID (partial or full), branch name, tag name, or "HEAD").</param>
+        /// <returns>The object ID referenced by <paramref name="objectish"/> if found; otherwise <see langword="null"/>.</returns>
+        public GitObjectId? Lookup(string objectish)
+        {
+            if (objectish == "HEAD")
+            {
+                return this.GetHeadCommitSha();
+            }
+
+            // Properly handle tag names, branch names, partial commit id's with support for both capitalizations.
+            if (objectish.Length == 40)
+            {
+                return GitObjectId.Parse(objectish);
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// Gets a tree object by its Git object Id.
         /// </summary>
         /// <param name="sha">

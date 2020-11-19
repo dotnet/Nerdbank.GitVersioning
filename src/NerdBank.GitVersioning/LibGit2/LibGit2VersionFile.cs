@@ -7,7 +7,6 @@ namespace Nerdbank.GitVersioning.LibGit2
     using System.IO;
     using LibGit2Sharp;
     using Newtonsoft.Json;
-    using Validation;
 
     /// <summary>
     /// Exposes queries and mutations on a version.json or version.txt file,
@@ -27,7 +26,7 @@ namespace Nerdbank.GitVersioning.LibGit2
 
         protected new LibGit2Context Context => (LibGit2Context)base.Context;
 
-        public override VersionOptions? GetVersion(out string? actualDirectory) => this.GetVersion(this.Context.Commit, this.Context.RepoRelativeProjectDirectory, null, out actualDirectory);
+        protected override VersionOptions? GetVersionCore(out string? actualDirectory) => this.GetVersion(this.Context.Commit!, this.Context.RepoRelativeProjectDirectory, null, out actualDirectory);
 
         /// <summary>
         /// Reads the version.json file and returns the <see cref="VersionOptions"/> deserialized from it.
@@ -45,7 +44,7 @@ namespace Nerdbank.GitVersioning.LibGit2
                 string? parentDirectory = searchDirectory.Length > 0 ? Path.GetDirectoryName(searchDirectory) : null;
 
                 string candidatePath = Path.Combine(searchDirectory, TxtFileName).Replace('\\', '/');
-                var versionTxtBlob = commit.Tree[candidatePath]?.Target as LibGit2Sharp.Blob;
+                var versionTxtBlob = commit.Tree[candidatePath]?.Target as Blob;
                 if (versionTxtBlob is object)
                 {
                     if (blobVersionCache is null || !blobVersionCache.TryGetValue(versionTxtBlob.Id, out VersionOptions? result))

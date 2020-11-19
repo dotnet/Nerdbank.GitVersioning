@@ -11,6 +11,7 @@ using Xunit;
 using Xunit.Abstractions;
 using Version = System.Version;
 
+[Trait("Engine", "Managed")]
 public class VersionFileManagedTests : VersionFileTests
 {
     public VersionFileManagedTests(ITestOutputHelper logger)
@@ -22,6 +23,7 @@ public class VersionFileManagedTests : VersionFileTests
         => GitContext.Create(path, committish, writable: false);
 }
 
+[Trait("Engine", "LibGit2")]
 public class VersionFileLibGit2Tests : VersionFileTests
 {
     public VersionFileLibGit2Tests(ITestOutputHelper logger)
@@ -151,7 +153,7 @@ public abstract class VersionFileTests : RepoTestBase
     }
 
     [Fact]
-    public void SetVersion_PathFilters_ThrowsOutsideOfGitRepo()
+    public void SetVersion_PathFilters_OutsideGitRepo()
     {
         var versionOptions = new VersionOptions
         {
@@ -162,7 +164,7 @@ public abstract class VersionFileTests : RepoTestBase
             }
         };
 
-        Assert.Throws<ArgumentNullException>(() => this.Context.VersionFile.SetVersion(this.RepoPath, versionOptions));
+        this.Context.VersionFile.SetVersion(this.RepoPath, versionOptions);
     }
 
     [Fact]
@@ -549,7 +551,7 @@ public abstract class VersionFileTests : RepoTestBase
 
         VersionOptions GetOption(string path)
         {
-            using var context = this.CreateGitContext(path);
+            using var context = this.CreateGitContext(Path.Combine(this.RepoPath, path));
             return context.VersionFile.GetVersion();
         }
         

@@ -27,6 +27,7 @@ namespace Nerdbank.GitVersioning.Managed
         /// <returns>The height of the commit. Always a positive integer.</returns>
         internal static int GetVersionHeight(ManagedGitContext context, Version? baseVersion = null)
         {
+            Verify.Operation(context.Commit.HasValue, "No commit is selected.");
             var tracker = new GitWalkTracker(context);
 
             var versionOptions = tracker.GetVersion(context.Commit.Value);
@@ -91,6 +92,7 @@ namespace Nerdbank.GitVersioning.Managed
         /// <returns>The height of the commit. Always a positive integer.</returns>
         public static int GetHeight(ManagedGitContext context, Func<GitCommit, bool>? continueStepping = null)
         {
+            Verify.Operation(context.Commit.HasValue, "No commit is selected.");
             var tracker = new GitWalkTracker(context);
             return GetCommitHeight(context.Repository, context.Commit.Value, tracker, continueStepping);
         }

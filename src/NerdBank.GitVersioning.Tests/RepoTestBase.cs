@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using LibGit2Sharp;
 using Nerdbank.GitVersioning;
@@ -48,6 +49,8 @@ public abstract partial class RepoTestBase : IDisposable
 
     protected VersionOptions? GetVersionOptions(string? path = null, string? committish = null)
     {
+        Debug.Assert(path?.Length != 40, "commit passed as path");
+
         using var context = this.CreateGitContext(path is null ? this.RepoPath : Path.Combine(this.RepoPath, path), committish);
         return context.VersionFile.GetVersion();
     }
@@ -58,7 +61,7 @@ public abstract partial class RepoTestBase : IDisposable
         return new VersionOracle(context);
     }
 
-    protected System.Version GetVersion(string? path = null, string? committish = null) => this.GetVersionOracle().Version;
+    protected System.Version GetVersion(string? path = null, string? committish = null) => this.GetVersionOracle(path, committish).Version;
 
     protected string CreateDirectoryForNewRepo()
     {
@@ -138,6 +141,8 @@ public abstract partial class RepoTestBase : IDisposable
         {
             this.LibGit2Repository.Commit($"filler commit {i}", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         }
+  
+        this.SetContextToHead();
     }
 
     protected Commit? WriteVersionTxtFile(string version = "1.2", string prerelease = "", string? relativeDirectory = null)
@@ -167,8 +172,20 @@ public abstract partial class RepoTestBase : IDisposable
             relativeDirectory = string.Empty;
         }
 
-        string versionFilePath = this.Context.VersionFile.SetVersion(Path.Combine(this.RepoPath, relativeDirectory), versionData);
-        return this.CommitVersionFile(versionFilePath, versionData.Version?.ToString());
+        bool localContextCreated = this.Context is null;
+        var context = this.Context ?? GitContext.Create(this.RepoPath, writable: true);
+        try
+        {
+            string versionFilePath = context.VersionFile.SetVersion(Path.Combine(this.RepoPath, relativeDirectory), versionData);
+            return this.CommitVersionFile(versionFilePath, versionData.Version?.ToString());
+        }
+        finally
+        {
+            if (localContextCreated)
+            {
+                context.Dispose();
+            }
+        }
     }
 
     protected Commit? CommitVersionFile(string versionFilePath, string? version)

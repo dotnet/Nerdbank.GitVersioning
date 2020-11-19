@@ -23,9 +23,10 @@ using Xunit;
 using Xunit.Abstractions;
 using Version = System.Version;
 
-public class ManagedBuildIntegrationTests : BuildIntegrationTests
+[Trait("Engine", "Managed")]
+public class BuildIntegrationManagedTests : BuildIntegrationTests
 {
-    public ManagedBuildIntegrationTests(ITestOutputHelper logger)
+    public BuildIntegrationManagedTests(ITestOutputHelper logger)
         : base(logger)
     {
     }
@@ -34,11 +35,13 @@ public class ManagedBuildIntegrationTests : BuildIntegrationTests
         => GitContext.Create(path, committish, writable: false);
 
     protected override void ApplyGlobalProperties(IDictionary<string, string> globalProperties)
-        => globalProperties["NBGV_ForceImplementation"] = "Managed";
+        => globalProperties["NBGV_GitEngine"] = "Managed";
 }
-public class LibGit2BuildIntegrationTests : BuildIntegrationTests
+
+[Trait("Engine", "LibGit2")]
+public class BuildIntegrationLibGit2Tests : BuildIntegrationTests
 {
-    public LibGit2BuildIntegrationTests(ITestOutputHelper logger)
+    public BuildIntegrationLibGit2Tests(ITestOutputHelper logger)
         : base(logger)
     {
     }
@@ -47,7 +50,7 @@ public class LibGit2BuildIntegrationTests : BuildIntegrationTests
         => GitContext.Create(path, committish, writable: true);
 
     protected override void ApplyGlobalProperties(IDictionary<string, string> globalProperties)
-        => globalProperties["NBGV_ForceImplementation"] = "LibGit2";
+        => globalProperties["NBGV_GitEngine"] = "LibGit2";
 }
 
 public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
@@ -111,7 +114,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         }
     }
 
-    private string CommitIdShort => this.Context.GitCommitId.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength);
+    private string CommitIdShort => this.Context.GitCommitId?.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength);
 
     protected abstract void ApplyGlobalProperties(IDictionary<string, string> globalProperties);
 
@@ -1128,6 +1131,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         var eventLogger = new MSBuildLogger { Verbosity = LoggerVerbosity.Minimal };
         var loggers = new ILogger[] { eventLogger };
         this.testProject.Save(); // persist generated project on disk for analysis
+        this.ApplyGlobalProperties(this.globalProperties);
         var buildResult = await this.buildManager.BuildAsync(
             this.Logger,
             this.projectCollection,

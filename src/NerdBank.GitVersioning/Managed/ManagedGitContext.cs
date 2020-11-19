@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using Nerdbank.GitVersioning.ManagedGit;
 using Validation;
@@ -11,6 +12,7 @@ namespace Nerdbank.GitVersioning.Managed
     /// <summary>
     /// A git context implemented without any native code dependency.
     /// </summary>
+    [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
     public class ManagedGitContext : GitContext
     {
         internal ManagedGitContext(string workingDirectory, string? committish = null)
@@ -22,9 +24,11 @@ namespace Nerdbank.GitVersioning.Managed
                 throw new ArgumentException("No git repo found here.", nameof(workingDirectory));
             }
 
-            this.Commit = committish is object
-                ? repo.GetCommit(GitObjectId.Parse(committish))
-                : repo.GetHeadCommit();
+            this.Commit = committish is null ? repo.GetHeadCommit() : (repo.Lookup(committish) is { } objectId ? (GitCommit?)repo.GetCommit(objectId) : null);
+            if (this.Commit is null && committish is object)
+            {
+                throw new ArgumentException("No matching commit found.", nameof(committish));
+            }
 
             this.Repository = repo;
             this.VersionFile = new ManagedVersionFile(this);
@@ -37,7 +41,7 @@ namespace Nerdbank.GitVersioning.Managed
         public GitRepository Repository { get; }
 
         /// <inheritdoc />
-        public GitCommit? Commit { get; }
+        public GitCommit? Commit { get; private set; }
 
         /// <inheritdoc />
         public override VersionFile VersionFile { get; }
@@ -46,16 +50,30 @@ namespace Nerdbank.GitVersioning.Managed
         public override string? GitCommitId => this.Commit?.Sha.ToString();
 
         /// <inheritdoc />
+        public override bool IsHead => this.Repository.GetHeadCommit().Equals(this.Commit);
+
+        /// <inheritdoc />
         public override DateTimeOffset? GitCommitDate => throw new NotImplementedException();
 
         /// <inheritdoc />
         public override string HeadCanonicalName => this.Repository.GetHeadAsReferenceOrSha().ToString() ?? throw new InvalidOperationException("Unable to determine the HEAD position.");
 
+        private string DebuggerDisplay => $"\"{this.WorkingTreePath}\" (managed)";
+
         /// <inheritdoc />
         public override void ApplyTag(string name) => throw new NotSupportedException();
 
         /// <inheritdoc />
-        public override bool TrySelectCommit(string committish) => throw new NotSupportedException();
+        public override bool TrySelectCommit(string committish)
+        {
+            if (this.Repository.Lookup(committish) is { } objectId)
+            {
+                this.Commit = this.Repository.GetCommit(objectId);
+                return true;
+            }
+
+            return false;
+        }
 
         /// <inheritdoc />
         public override void Stage(string path) => throw new NotSupportedException();

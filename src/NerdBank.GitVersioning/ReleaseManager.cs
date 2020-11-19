@@ -384,28 +384,27 @@
         {
             // open git repo and use default configuration (in order to commit we need a configured user name and email
             // which is most likely configured on a user/system level rather than the repo level.
-            LibGit2Context context;
-            try
-            {
-                context = (LibGit2Context)GitContext.Create(projectDirectory, writable: true);
-            }
-            catch (InvalidOperationException ex)
+            var context = GitContext.Create(projectDirectory, writable: true);
+            if (!context.IsRepository)
             {
                 this.stderr.WriteLine($"No git repository found above directory '{projectDirectory}'.");
-                throw new ReleasePreparationException(ReleasePreparationError.NoGitRepo, ex);
+                throw new ReleasePreparationException(ReleasePreparationError.NoGitRepo);
             }
 
+            var libgit2context = (LibGit2Context)context;
+
+
             // abort if there are any pending changes
-            if (context.Repository.RetrieveStatus().IsDirty)
+            if (libgit2context.Repository.RetrieveStatus().IsDirty)
             {
                 this.stderr.WriteLine($"Uncommitted changes in directory '{projectDirectory}'.");
                 throw new ReleasePreparationException(ReleasePreparationError.UncommittedChanges);
             }
 
             // check if repo is configured so we can create commits
-            _ = this.GetSignature(context.Repository);
+            _ = this.GetSignature(libgit2context.Repository);
 
-            return context;
+            return libgit2context;
         }
 
         private static bool IsVersionDecrement(SemanticVersion oldVersion, SemanticVersion newVersion)

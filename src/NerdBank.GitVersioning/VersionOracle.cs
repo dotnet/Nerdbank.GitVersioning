@@ -37,7 +37,10 @@ namespace Nerdbank.GitVersioning
             this.cloudBuild = cloudBuild;
 
             this.CommittedVersion = context.VersionFile.GetVersion();
-            this.WorkingVersion = context.VersionFile.GetWorkingCopyVersion();
+
+            // Consider the working version only if the commit being inspected is HEAD.
+            // Otherwise we're looking at historical data and should not consider the state of the working tree at all.
+            this.WorkingVersion = context.IsHead ? context.VersionFile.GetWorkingCopyVersion() : this.CommittedVersion;
 
             if (overrideVersionHeightOffset.HasValue)
             {
@@ -51,9 +54,12 @@ namespace Nerdbank.GitVersioning
                     this.WorkingVersion.VersionHeightOffset = overrideVersionHeightOffset.Value;
                 }
             }
-    
+         
+            this.BuildingRef = cloudBuild?.BuildingTag ?? cloudBuild?.BuildingBranch ?? context.HeadCanonicalName;
+            this.VersionHeight = context.CalculateVersionHeight(this.CommittedVersion, this.WorkingVersion);
+
             this.VersionOptions = this.CommittedVersion ?? this.WorkingVersion;
-            this.Version = this.VersionOptions?.Version.Version ?? Version0;
+            this.Version = this.VersionOptions?.Version?.Version ?? Version0;
 
             // Override the typedVersion with the special build number and revision components, when available.
             if (context.GitCommitId is object)
@@ -74,9 +80,6 @@ namespace Nerdbank.GitVersioning
                     ? this.context.GetShortUniqueCommitId(gitCommitIdShortAutoMinimum)
                     : this.GitCommitId!.Substring(0, gitCommitIdShortFixedLength);
             }
-     
-            this.BuildingRef = cloudBuild?.BuildingTag ?? cloudBuild?.BuildingBranch ?? context.HeadCanonicalName;
-            this.VersionHeight = context.CalculateVersionHeight(this.CommittedVersion, this.WorkingVersion);
 
             if (!string.IsNullOrEmpty(this.BuildingRef) && this.VersionOptions?.PublicReleaseRefSpec?.Count > 0)
             {

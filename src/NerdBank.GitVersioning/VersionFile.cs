@@ -50,7 +50,7 @@ namespace Nerdbank.GitVersioning
         /// </summary>
         /// <param name="actualDirectory">Set to the actual directory that the version file was found in, which may be <see cref="GitContext.WorkingTreePath"/> or one of its ancestors.</param>
         /// <returns>The version information read from the file, or <c>null</c> if the file wasn't found.</returns>
-        public VersionOptions? GetWorkingCopyVersion(out string? actualDirectory) => this.GetWorkingCopyVersion(this.Context.WorkingTreePath, out actualDirectory);
+        public VersionOptions? GetWorkingCopyVersion(out string? actualDirectory) => this.GetWorkingCopyVersion(this.Context.AbsoluteProjectDirectory, out actualDirectory);
 
         /// <inheritdoc cref="SetVersion(string, VersionOptions, bool)"/>
         /// <param name="unstableTag">The optional unstable tag to include in the file.</param>
@@ -107,14 +107,27 @@ namespace Nerdbank.GitVersioning
         }
 
         /// <summary>
-        /// Reads the version file from the selected git commit and returns the <see cref="VersionOptions"/> deserialized from it.
+        /// Reads the version file from <see cref="GitContext.GitCommitId"/> in the <see cref="Context"/> and returns the <see cref="VersionOptions"/> deserialized from it.
         /// </summary>
         /// <param name="actualDirectory">Receives the absolute path to the directory where the version file was found, if any.</param>
         /// <returns>The version information read from the file, or <see langword="null"/> if the file wasn't found.</returns>
-        public abstract VersionOptions? GetVersion(out string? actualDirectory);
+        /// <remarks>This method is only called if <see cref="GitContext.GitCommitId"/> is not null.</remarks>
+        protected abstract VersionOptions? GetVersionCore(out string? actualDirectory);
 
         /// <inheritdoc cref="GetVersion(out string?)"/>
         public VersionOptions? GetVersion() => this.GetVersion(out string? actualDirectory);
+
+        /// <summary>
+        /// Reads the version file from the selected git commit (or working copy if no commit is selected) and returns the <see cref="VersionOptions"/> deserialized from it.
+        /// </summary>
+        /// <param name="actualDirectory">Receives the absolute path to the directory where the version file was found, if any.</param>
+        /// <returns>The version information read from the file, or <see langword="null"/> if the file wasn't found.</returns>
+        public VersionOptions? GetVersion(out string? actualDirectory)
+        {
+            return this.Context.GitCommitId is null
+               ? this.GetWorkingCopyVersion(out actualDirectory)
+               : this.GetVersionCore(out actualDirectory);
+        }
 
         /// <summary>
         /// Tries to read a version.json file from the specified string, but favors returning null instead of throwing a <see cref="JsonSerializationException"/>.
@@ -160,12 +173,21 @@ namespace Nerdbank.GitVersioning
             };
         }
 
-        private VersionOptions? GetWorkingCopyVersion(string startingDirectory, out string? actualDirectory)
+        /// <summary>
+        /// Reads a version file from the working tree, without any regard to a git repo.
+        /// </summary>
+        /// <param name="startingDirectory">The path to start the search from.</param>
+        /// <param name="actualDirectory">Receives the directory where the version file was found.</param>
+        /// <returns>The version options, if found.</returns>
+        protected VersionOptions? GetWorkingCopyVersion(string startingDirectory, out string? actualDirectory)
         {
             string? searchDirectory = startingDirectory;
             while (searchDirectory is object)
             {
-                string? parentDirectory = Path.GetDirectoryName(searchDirectory);
+                // Do not search above the working tree root.
+                string? parentDirectory = string.Equals(searchDirectory, this.Context.WorkingTreePath, StringComparison.OrdinalIgnoreCase)
+                    ? null
+                    : Path.GetDirectoryName(searchDirectory);
                 string versionTxtPath = Path.Combine(searchDirectory, TxtFileName);
                 if (File.Exists(versionTxtPath))
                 {

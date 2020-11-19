@@ -1,13 +1,16 @@
 ﻿#nullable enable
 
 using System;
+using System.Diagnostics;
 using LibGit2Sharp;
+using Validation;
 
 namespace Nerdbank.GitVersioning.LibGit2
 {
     /// <summary>
     /// A git context implemented in terms of LibGit2Sharp.
     /// </summary>
+    [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
     public class LibGit2Context : GitContext
     {
         internal LibGit2Context(string workingTreeDirectory, string? committish = null)
@@ -19,13 +22,12 @@ namespace Nerdbank.GitVersioning.LibGit2
                 throw new ArgumentException("Bare repositories not supported.", nameof(workingTreeDirectory));
             }
 
-            Commit? commit = committish is null ? this.Repository.Head.Tip : this.Repository.Lookup<Commit>(committish);
-            if (commit is null && committish is object)
+            this.Commit = committish is null ? this.Repository.Head.Tip : this.Repository.Lookup<Commit>(committish);
+            if (this.Commit is null && committish is object)
             {
                 throw new ArgumentException("No matching commit found.", nameof(committish));
             }
 
-            this.Commit = commit;
             this.VersionFile = new LibGit2VersionFile(this);
         }
 
@@ -42,13 +44,18 @@ namespace Nerdbank.GitVersioning.LibGit2
         public Commit? Commit { get; private set; }
 
         /// <inheritdoc />
-        public override string? GitCommitId => this.Commit.Sha;
+        public override string? GitCommitId => this.Commit?.Sha;
 
         /// <inheritdoc />
-        public override DateTimeOffset? GitCommitDate => this.Commit.Author.When;
+        public override bool IsHead => this.Repository.Head.Tip.Equals(this.Commit);
+
+        /// <inheritdoc />
+        public override DateTimeOffset? GitCommitDate => this.Commit?.Author.When;
 
         /// <inheritdoc />
         public override string HeadCanonicalName => this.Repository.Head.CanonicalName;
+
+        private string DebuggerDisplay => $"\"{this.WorkingTreePath}\" (libgit2)";
 
         /// <inheritdoc />
         public override void ApplyTag(string name) => this.Repository.Tags.Add(name, this.Commit);
@@ -98,6 +105,7 @@ namespace Nerdbank.GitVersioning.LibGit2
 
         internal override System.Version GetIdAsVersion(VersionOptions? committedVersion, VersionOptions? workingVersion, int versionHeight)
         {
+            Verify.Operation(this.Commit is object, "No commit is selected.");
             VersionOptions? version = IsVersionFileChangedInWorkingTree(committedVersion, workingVersion) ? workingVersion : committedVersion;
 
             return this.Commit.GetIdAsVersionHelper(version, versionHeight);
