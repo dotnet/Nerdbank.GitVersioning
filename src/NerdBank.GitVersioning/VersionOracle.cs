@@ -20,7 +20,7 @@ namespace Nerdbank.GitVersioning
         /// The 0.0 version.
         /// </summary>
         private protected static readonly Version Version0 = new Version(0, 0);
-        
+
         private readonly GitContext context;
 
         private readonly ICloudBuild? cloudBuild;
@@ -54,9 +54,24 @@ namespace Nerdbank.GitVersioning
                     this.WorkingVersion.VersionHeightOffset = overrideVersionHeightOffset.Value;
                 }
             }
-         
+
             this.BuildingRef = cloudBuild?.BuildingTag ?? cloudBuild?.BuildingBranch ?? context.HeadCanonicalName;
-            this.VersionHeight = context.CalculateVersionHeight(this.CommittedVersion, this.WorkingVersion);
+            try
+            {
+                this.VersionHeight = context.CalculateVersionHeight(this.CommittedVersion, this.WorkingVersion);
+            }
+            catch (GitException ex) when (context.IsShallow && ex.ErrorCode == GitException.ErrorCodes.ObjectNotFound)
+            {
+                // Our managed git implementation throws this on shallow clones.
+                throw ThrowShallowClone(ex);
+            }
+            catch (InvalidOperationException ex) when (context.IsShallow && (ex.InnerException is NullReferenceException || ex.InnerException is LibGit2Sharp.NotFoundException))
+            {
+                // Libgit2 throws this on shallow clones.
+                throw ThrowShallowClone(ex);
+            }
+
+            static Exception ThrowShallowClone(Exception inner) => throw new GitException("Shallow clone lacks the objects required to calculate version height. Use full clones or clones with a history at least as deep as the last version height resetting change.", inner) { iSShallowClone = true, ErrorCode = GitException.ErrorCodes.ObjectNotFound };
 
             this.VersionOptions = this.CommittedVersion ?? this.WorkingVersion;
             this.Version = this.VersionOptions?.Version?.Version ?? Version0;

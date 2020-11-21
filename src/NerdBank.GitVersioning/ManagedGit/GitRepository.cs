@@ -294,7 +294,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
             {
                 if (stream == null)
                 {
-                    throw new GitException($"The commit {sha} was not found in this repository.");
+                    throw new GitException($"The commit {sha} was not found in this repository.") { ErrorCode = GitException.ErrorCodes.ObjectNotFound };
                 }
 
                 return GitCommitReader.Read(stream, sha, readAuthor);
@@ -313,7 +313,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
                 return this.GetHeadCommitSha();
             }
 
-            // Properly handle tag names, branch names, partial commit id's with support for both capitalizations.
+            // TODO: Properly handle tag names, branch names, partial commit id's with support for both capitalizations.
             if (objectish.Length == 40)
             {
                 return GitObjectId.Parse(objectish);
@@ -337,7 +337,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
             {
                 if (stream == null)
                 {
-                    throw new GitException($"The tree {sha} was not found in this repository.");
+                    throw new GitException($"The tree {sha} was not found in this repository.") { ErrorCode = GitException.ErrorCodes.ObjectNotFound };
                 }
 
                 return GitTreeReader.Read(stream, sha);
@@ -363,7 +363,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
             {
                 if (treeStream == null)
                 {
-                    throw new GitException($"The tree {treeId} was not found in this repository.");
+                    throw new GitException($"The tree {treeId} was not found in this repository.") { ErrorCode = GitException.ErrorCodes.ObjectNotFound };
                 }
 
                 return GitTreeStreamingReader.FindNode(treeStream, nodeName);
@@ -402,7 +402,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
             }
             else
             {
-                throw new GitException($"An {objectType} object with SHA {sha} could not be found.");
+                throw new GitException($"An {objectType} object with SHA {sha} could not be found.") { ErrorCode = GitException.ErrorCodes.ObjectNotFound };
             }
         }
 

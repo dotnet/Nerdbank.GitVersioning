@@ -67,7 +67,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
             // Tips for handling deltas: https://github.com/choffmeister/gitnet/blob/4d907623d5ce2d79a8875aee82e718c12a8aad0b/src/GitNet/GitPack.cs
             if (type != packObjectType)
             {
-                throw new GitException($"An object of type {objectType} could not be located at offset {offset}.");
+                throw new GitException($"An object of type {objectType} could not be located at offset {offset}.") { ErrorCode = GitException.ErrorCodes.ObjectNotFound };
             }
 
             return new ZLibStream(stream, decompressedSize);

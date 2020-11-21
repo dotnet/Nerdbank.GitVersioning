@@ -2,6 +2,7 @@
 using System.IO;
 using System.IO.Compression;
 using System.Security.Cryptography;
+using Nerdbank.GitVersioning;
 using Nerdbank.GitVersioning.ManagedGit;
 using Xunit;
 

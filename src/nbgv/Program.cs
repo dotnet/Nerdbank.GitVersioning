@@ -56,6 +56,8 @@ namespace Nerdbank.GitVersioning.Tool
             InvalidVersionIncrement,
             InvalidNuGetPackageSource,
             PackageIdNotFound,
+            ShallowClone,
+            InternalError,
         }
 
         private static ExitCodes exitCode;
@@ -152,33 +154,45 @@ namespace Nerdbank.GitVersioning.Tool
                 }
             });
 
-            if (install.IsActive)
+            try
             {
-                exitCode = OnInstallCommand(versionJsonRoot, version, sources);
+                if (install.IsActive)
+                {
+                    exitCode = OnInstallCommand(versionJsonRoot, version, sources);
+                }
+                else if (getVersion.IsActive)
+                {
+                    exitCode = OnGetVersionCommand(projectPath, buildMetadata, format, singleVariable, version);
+                }
+                else if (setVersion.IsActive)
+                {
+                    exitCode = OnSetVersionCommand(projectPath, version);
+                }
+                else if (tag.IsActive)
+                {
+                    exitCode = OnTagCommand(projectPath, version);
+                }
+                else if (getCommits.IsActive)
+                {
+                    exitCode = OnGetCommitsCommand(projectPath, version, quiet);
+                }
+                else if (cloud.IsActive)
+                {
+                    exitCode = OnCloudCommand(projectPath, buildMetadata, version, cisystem, cloudBuildAllVars, cloudBuildCommonVars, cloudVariables);
+                }
+                else if (prepareRelease.IsActive)
+                {
+                    exitCode = OnPrepareReleaseCommand(projectPath, releasePreReleaseTag, releaseNextVersion, releaseVersionIncrement, format);
+                }
             }
-            else if (getVersion.IsActive)
+            catch (GitException ex)
             {
-                exitCode = OnGetVersionCommand(projectPath, buildMetadata, format, singleVariable, version);
-            }
-            else if (setVersion.IsActive)
-            {
-                exitCode = OnSetVersionCommand(projectPath, version);
-            }
-            else if (tag.IsActive)
-            {
-                exitCode = OnTagCommand(projectPath, version);
-            }
-            else if (getCommits.IsActive)
-            {
-                exitCode = OnGetCommitsCommand(projectPath, version, quiet);
-            }
-            else if (cloud.IsActive)
-            {
-                exitCode = OnCloudCommand(projectPath, buildMetadata, version, cisystem, cloudBuildAllVars, cloudBuildCommonVars, cloudVariables);
-            }
-            else if (prepareRelease.IsActive)
-            {
-                exitCode = OnPrepareReleaseCommand(projectPath, releasePreReleaseTag, releaseNextVersion, releaseVersionIncrement, format);
+                Console.Error.WriteLine($"ERROR: {ex.Message}");
+                exitCode = ex.ErrorCode switch
+                {
+                    GitException.ErrorCodes.ObjectNotFound when ex.iSShallowClone => ExitCodes.ShallowClone,
+                    _ => ExitCodes.InternalError,
+                };
             }
 
             return (int)exitCode;
