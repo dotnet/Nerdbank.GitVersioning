@@ -509,7 +509,7 @@ namespace Nerdbank.GitVersioning.LibGit2
         /// </summary>
         /// <param name="commit">The commit whose ID and position in history is to be encoded.</param>
         /// <param name="versionOptions">The version options applicable at this point (either from commit or working copy).</param>
-        /// <param name="versionHeight">The version height, previously calculated by a call to <see cref="GetVersionHeight(Commit, string, Version)"/>.</param>
+        /// <param name="versionHeight">The version height, previously calculated by a call to <see cref="GetVersionHeight(LibGit2Context, Version?)"/>.</param>
         /// <returns>
         /// A version whose <see cref="Version.Build"/> and
         /// <see cref="Version.Revision"/> components are calculated based on the commit.

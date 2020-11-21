@@ -145,13 +145,13 @@ namespace Nerdbank.GitVersioning.Managed
                             }
                             else
                             {
-                                var candidatePath = Path.Combine(currentDirectory, JsonFileName);
+                                var candidatePath = Path.Combine(searchDirectory, JsonFileName);
                                 throw new InvalidOperationException($"\"{candidatePath}\" inherits from a parent directory version.json file but none exists.");
                             }
                         }
                         else
                         {
-                            var candidatePath = Path.Combine(currentDirectory, JsonFileName);
+                            var candidatePath = Path.Combine(searchDirectory, JsonFileName);
                             throw new InvalidOperationException($"\"{candidatePath}\" inherits from a parent directory version.json file but none exists.");
                         }
                     }
@@ -176,6 +176,7 @@ namespace Nerdbank.GitVersioning.Managed
                     tree = GitObjectId.Empty;
                     parentDirectory = null;
                     searchDirectory = null;
+                    break;
                 }
             }
 
