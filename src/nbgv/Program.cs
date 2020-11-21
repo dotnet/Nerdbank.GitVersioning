@@ -62,6 +62,8 @@ namespace Nerdbank.GitVersioning.Tool
 
         private static ExitCodes exitCode;
 
+        private static bool AlwaysUseLibGit2 => string.Equals(Environment.GetEnvironmentVariable("NBGV_GitEngine"), "LibGit2", StringComparison.Ordinal);
+
         public static int Main(string[] args)
         {
             GitLoaderContext.RuntimePath = "./runtimes";
@@ -325,7 +327,7 @@ namespace Nerdbank.GitVersioning.Tool
 
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(projectPath);
 
-            using var context = GitContext.Create(searchPath);
+            using var context = GitContext.Create(searchPath, writable: AlwaysUseLibGit2);
             if (!context.IsRepository)
             {
                 Console.Error.WriteLine("No git repo found at or above: \"{0}\"", searchPath);
@@ -557,7 +559,7 @@ namespace Nerdbank.GitVersioning.Tool
                 activeCloudBuild = CloudBuild.SupportedCloudBuilds[matchingIndex];
             }
 
-            using var context = GitContext.Create(searchPath);
+            using var context = GitContext.Create(searchPath, writable: AlwaysUseLibGit2);
             var oracle = new VersionOracle(context, cloudBuild: activeCloudBuild);
             oracle.BuildMetadata.AddRange(buildMetadata);
             var variables = new Dictionary<string, string>();
