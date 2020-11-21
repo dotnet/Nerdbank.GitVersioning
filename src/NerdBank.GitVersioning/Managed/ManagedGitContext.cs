@@ -115,7 +115,11 @@ namespace Nerdbank.GitVersioning.Managed
             return this.GetIdAsVersionHelper(version, versionHeight);
         }
 
-        internal override string GetShortUniqueCommitId(int minLength) => throw new NotImplementedException();
+        internal override string GetShortUniqueCommitId(int minLength)
+        {
+            Verify.Operation(this.Commit is object, "No commit is selected.");
+            return this.Repository.ShortenObjectId(this.Commit.Value.Sha, minLength);
+        }
 
         /// <summary>
         /// Encodes a commit from history in a <see cref="Version"/>
