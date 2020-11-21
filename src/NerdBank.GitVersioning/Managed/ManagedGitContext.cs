@@ -53,7 +53,7 @@ namespace Nerdbank.GitVersioning.Managed
         public override bool IsHead => this.Repository.GetHeadCommit().Equals(this.Commit);
 
         /// <inheritdoc />
-        public override DateTimeOffset? GitCommitDate => throw new NotImplementedException();
+        public override DateTimeOffset? GitCommitDate => this.Commit is { } commit ? (commit.Author?.Date ?? this.Repository.GetCommit(commit.Sha, readAuthor: true).Author?.Date) : null;
 
         /// <inheritdoc />
         public override string HeadCanonicalName => this.Repository.GetHeadAsReferenceOrSha().ToString() ?? throw new InvalidOperationException("Unable to determine the HEAD position.");

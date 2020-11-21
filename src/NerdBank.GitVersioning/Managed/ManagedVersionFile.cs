@@ -149,6 +149,11 @@ namespace Nerdbank.GitVersioning.Managed
                                 throw new InvalidOperationException($"\"{candidatePath}\" inherits from a parent directory version.json file but none exists.");
                             }
                         }
+                        else
+                        {
+                            var candidatePath = Path.Combine(currentDirectory, JsonFileName);
+                            throw new InvalidOperationException($"\"{candidatePath}\" inherits from a parent directory version.json file but none exists.");
+                        }
                     }
 
                     if (result is object)
