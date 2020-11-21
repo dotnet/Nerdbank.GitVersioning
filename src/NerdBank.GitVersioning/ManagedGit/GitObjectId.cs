@@ -87,7 +87,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
                 bytes[i >> 1] = (byte)(c1 + c2);
             }
 
-            objectId.sha = value;
+            objectId.sha = value.ToLower();
             return objectId;
         }
 
@@ -131,7 +131,8 @@ namespace Nerdbank.GitVersioning.ManagedGit
 
             for (int i = 10; i < 16; i++)
             {
-                bytes[i + 'a' - '0' - 0x0a] = (byte)(i);
+                bytes[i + 'a' - '0' - 0x0a] = (byte)i;
+                bytes[i + 'A' - '0' - 0x0a] = (byte)i;
             }
 
             return bytes;

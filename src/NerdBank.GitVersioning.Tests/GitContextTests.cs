@@ -55,18 +55,28 @@ public abstract class GitContextTests : RepoTestBase
     public void SelectHead()
     {
         Assert.True(this.Context.TrySelectCommit("HEAD"));
+        Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
     }
 
     [Fact]
-    public void SelectCommitByFullId()
+    public void SelectCommitByFullId_Uppercase()
     {
-        Assert.True(this.Context.TrySelectCommit(this.Context.GitCommitId));
+        Assert.True(this.Context.TrySelectCommit(this.Context.GitCommitId.ToUpperInvariant()));
+        Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
+    }
+
+    [Fact]
+    public void SelectCommitByFullId_Lowercase()
+    {
+        Assert.True(this.Context.TrySelectCommit(this.Context.GitCommitId.ToLowerInvariant()));
+        Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
     }
 
     [Fact]
     public void SelectCommitByPartialId()
     {
         Assert.True(this.Context.TrySelectCommit(this.Context.GitCommitId.Substring(0, 12)));
+        Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
     }
 
     [Fact]
@@ -74,6 +84,7 @@ public abstract class GitContextTests : RepoTestBase
     {
         this.LibGit2Repository.Tags.Add("test", this.LibGit2Repository.Head.Tip);
         Assert.True(this.Context.TrySelectCommit("test"));
+        Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
     }
 
     [Fact]
@@ -81,18 +92,21 @@ public abstract class GitContextTests : RepoTestBase
     {
         this.LibGit2Repository.Tags.Add("test", this.LibGit2Repository.Head.Tip);
         Assert.True(this.Context.TrySelectCommit("refs/tags/test"));
+        Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
     }
 
     [Fact]
     public void SelectCommitByBranchSimpleName()
     {
         Assert.True(this.Context.TrySelectCommit("master"));
+        Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
     }
 
     [Fact]
     public void SelectCommitByBranchCanonicalName()
     {
         Assert.True(this.Context.TrySelectCommit("refs/heads/master"));
+        Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
     }
 
     [Fact]
