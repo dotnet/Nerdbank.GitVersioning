@@ -313,7 +313,58 @@ namespace Nerdbank.GitVersioning.ManagedGit
                 return this.GetHeadCommitSha();
             }
 
-            // TODO: Properly handle tag names, branch names, partial commit id's with support for both capitalizations.
+            var possibleLooseFileMatches = new List<string>();
+            if (objectish.StartsWith("refs/", StringComparison.Ordinal))
+            {
+                // Match on loose ref files by their canonical name.
+                possibleLooseFileMatches.Add(Path.Combine(this.GitDirectory, objectish));
+            }
+            else
+            {
+                // Look for simple names for branch or tag.
+                possibleLooseFileMatches.Add(Path.Combine(this.GitDirectory, "refs", "heads", objectish));
+                possibleLooseFileMatches.Add(Path.Combine(this.GitDirectory, "refs", "tags", objectish));
+            }
+
+            if (possibleLooseFileMatches.FirstOrDefault(File.Exists) is string existingPath)
+            {
+                return GitObjectId.Parse(File.ReadAllText(existingPath).TrimEnd());
+            }
+
+            // Match in packed-refs file.
+            string packedRefPath = Path.Combine(this.GitDirectory, "packed-refs");
+            if (File.Exists(packedRefPath))
+            {
+                using var refReader = File.OpenText(packedRefPath);
+                string? line;
+                while ((line = refReader.ReadLine()) is object)
+                {
+                    if (line.StartsWith("#", StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    string refName = line.Substring(41);
+                    if (string.Equals(refName, objectish, StringComparison.Ordinal))
+                    {
+                        return GitObjectId.Parse(line.Substring(0, 40));
+                    }
+                    else if (!objectish.StartsWith("refs/", StringComparison.Ordinal))
+                    {
+                        // Not a canonical ref, so try heads and tags
+                        if (string.Equals(refName, "refs/heads/" + objectish, StringComparison.Ordinal))
+                        {
+                            return GitObjectId.Parse(line.Substring(0, 40));
+                        }
+                        else if (string.Equals(refName, "refs/tags/" + objectish, StringComparison.Ordinal))
+                        {
+                            return GitObjectId.Parse(line.Substring(0, 40));
+                        }
+
+                    }
+                }
+            }
+
             if (objectish.Length == 40)
             {
                 return GitObjectId.Parse(objectish);

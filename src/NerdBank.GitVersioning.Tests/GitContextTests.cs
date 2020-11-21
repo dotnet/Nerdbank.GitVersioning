@@ -58,17 +58,10 @@ public abstract class GitContextTests : RepoTestBase
         Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
     }
 
-    [Fact]
-    public void SelectCommitByFullId_Uppercase()
+    [Theory, CombinatorialData]
+    public void SelectCommitByFullId(bool uppercase)
     {
-        Assert.True(this.Context.TrySelectCommit(this.Context.GitCommitId.ToUpperInvariant()));
-        Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
-    }
-
-    [Fact]
-    public void SelectCommitByFullId_Lowercase()
-    {
-        Assert.True(this.Context.TrySelectCommit(this.Context.GitCommitId.ToLowerInvariant()));
+        Assert.True(this.Context.TrySelectCommit(uppercase ? this.Context.GitCommitId.ToUpperInvariant() : this.Context.GitCommitId));
         Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
     }
 
@@ -79,33 +72,35 @@ public abstract class GitContextTests : RepoTestBase
         Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
     }
 
-    [Fact]
-    public void SelectCommitByTagSimpleName()
+    [Theory, CombinatorialData]
+    public void SelectCommitByTag(bool packedRefs, bool canonicalName)
     {
-        this.LibGit2Repository.Tags.Add("test", this.LibGit2Repository.Head.Tip);
-        Assert.True(this.Context.TrySelectCommit("test"));
+        if (packedRefs)
+        {
+            File.WriteAllText(Path.Combine(this.RepoPath, ".git", "packed-refs"), $"# pack-refs with: peeled fully-peeled sorted \n{this.Context.GitCommitId} refs/tags/test\n");
+        }
+        else
+        {
+            this.LibGit2Repository.Tags.Add("test", this.LibGit2Repository.Head.Tip);
+        }
+
+        Assert.True(this.Context.TrySelectCommit(canonicalName ? "refs/tags/test" : "test"));
         Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
     }
 
-    [Fact]
-    public void SelectCommitByTagCanonicalName()
+    [Theory, CombinatorialData]
+    public void SelectCommitByBranch(bool packedRefs, bool canonicalName)
     {
-        this.LibGit2Repository.Tags.Add("test", this.LibGit2Repository.Head.Tip);
-        Assert.True(this.Context.TrySelectCommit("refs/tags/test"));
-        Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
-    }
+        if (packedRefs)
+        {
+            File.WriteAllText(Path.Combine(this.RepoPath, ".git", "packed-refs"), $"# pack-refs with: peeled fully-peeled sorted \n{this.Context.GitCommitId} refs/heads/test\n");
+        }
+        else
+        {
+            this.LibGit2Repository.Branches.Add("test", this.LibGit2Repository.Head.Tip);
+        }
 
-    [Fact]
-    public void SelectCommitByBranchSimpleName()
-    {
-        Assert.True(this.Context.TrySelectCommit("master"));
-        Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
-    }
-
-    [Fact]
-    public void SelectCommitByBranchCanonicalName()
-    {
-        Assert.True(this.Context.TrySelectCommit("refs/heads/master"));
+        Assert.True(this.Context.TrySelectCommit(canonicalName ? "refs/heads/test" : "test"));
         Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
     }
 
