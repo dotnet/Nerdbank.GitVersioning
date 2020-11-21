@@ -34,10 +34,12 @@ namespace Nerdbank.GitVersioning
 
         /// <summary>Initializes a new instance of the <see cref="GitContext"/> class.</summary>
         /// <param name="workingTreePath">The absolute path to the root of the working tree.</param>
-        protected GitContext(string workingTreePath)
+        /// <param name="dotGitPath">The path to the .git folder.</param>
+        protected GitContext(string workingTreePath, string? dotGitPath)
         {
             this.WorkingTreePath = workingTreePath;
             this.repoRelativeProjectDirectory = string.Empty;
+            this.DotGitPath = dotGitPath;
         }
 
         /// <summary>
@@ -72,7 +74,7 @@ namespace Nerdbank.GitVersioning
         /// <summary>
         /// Gets a value indicating whether a git repository was found at <see cref="WorkingTreePath"/>;
         /// </summary>
-        public abstract bool IsRepository { get; }
+        public bool IsRepository => this.DotGitPath is object;
 
         /// <summary>
         /// Gets the full SHA-1 id of the commit to be read.
@@ -85,6 +87,11 @@ namespace Nerdbank.GitVersioning
         public abstract bool IsHead { get; }
 
         /// <summary>
+        /// Gets a value indicating whether the repo is a shallow repo.
+        /// </summary>
+        public bool IsShallow => this.DotGitPath is object && File.Exists(Path.Combine(this.DotGitPath, "shallow"));
+
+        /// <summary>
         /// Gets the date that the commit identified by <see cref="GitCommitId"/> was created.
         /// </summary>
         public abstract DateTimeOffset? GitCommitDate { get; }
@@ -93,6 +100,11 @@ namespace Nerdbank.GitVersioning
         /// Gets the canonical name for HEAD's position (e.g. <c>refs/heads/master</c>)
         /// </summary>
         public abstract string? HeadCanonicalName { get; }
+
+        /// <summary>
+        /// Gets the path to the .git folder.
+        /// </summary>
+        protected string? DotGitPath { get; }
 
         /// <inheritdoc />
         public void Dispose()
@@ -113,8 +125,8 @@ namespace Nerdbank.GitVersioning
             if (TryFindGitPaths(path, out string? gitDirectory, out string? workingTreeDirectory, out string? workingTreeRelativePath))
             {
                 GitContext result = writable
-                    ? (GitContext)new LibGit2.LibGit2Context(workingTreeDirectory, committish)
-                    : new Managed.ManagedGitContext(workingTreeDirectory, committish);
+                    ? (GitContext)new LibGit2.LibGit2Context(workingTreeDirectory, gitDirectory, committish)
+                    : new Managed.ManagedGitContext(workingTreeDirectory, gitDirectory, committish);
                 result.RepoRelativeProjectDirectory = workingTreeRelativePath;
                 return result;
             }

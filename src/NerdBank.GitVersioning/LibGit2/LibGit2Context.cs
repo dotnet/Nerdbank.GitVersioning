@@ -13,8 +13,8 @@ namespace Nerdbank.GitVersioning.LibGit2
     [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
     public class LibGit2Context : GitContext
     {
-        internal LibGit2Context(string workingTreeDirectory, string? committish = null)
-            : base(workingTreeDirectory)
+        internal LibGit2Context(string workingTreeDirectory, string dotGitPath, string? committish = null)
+            : base(workingTreeDirectory, dotGitPath)
         {
             this.Repository = OpenGitRepo(workingTreeDirectory, useDefaultConfigSearchPaths: true);
             if (this.Repository.Info.WorkingDirectory is null)
@@ -33,9 +33,6 @@ namespace Nerdbank.GitVersioning.LibGit2
 
         /// <inheritdoc />
         public override VersionFile VersionFile { get; }
-
-        /// <inheritdoc />
-        public override bool IsRepository => true;
 
         /// <inheritdoc />
         public Repository Repository { get; }
@@ -115,7 +112,7 @@ namespace Nerdbank.GitVersioning.LibGit2
         public static LibGit2Context Create(string path, string? committish = null)
         {
             FindGitPaths(path, out string? gitDirectory, out string? workingTreeDirectory, out string? workingTreeRelativePath);
-            return new LibGit2Context(workingTreeDirectory, committish)
+            return new LibGit2Context(workingTreeDirectory, gitDirectory, committish)
             {
                 RepoRelativeProjectDirectory = workingTreeRelativePath,
             };

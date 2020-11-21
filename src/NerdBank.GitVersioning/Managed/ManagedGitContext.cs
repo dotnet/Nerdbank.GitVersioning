@@ -15,8 +15,8 @@ namespace Nerdbank.GitVersioning.Managed
     [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
     public class ManagedGitContext : GitContext
     {
-        internal ManagedGitContext(string workingDirectory, string? committish = null)
-            : base(workingDirectory)
+        internal ManagedGitContext(string workingDirectory, string dotGitPath, string? committish = null)
+            : base(workingDirectory, dotGitPath)
         {
             GitRepository? repo = GitRepository.Create(workingDirectory);
             if (repo is null)
@@ -33,9 +33,6 @@ namespace Nerdbank.GitVersioning.Managed
             this.Repository = repo;
             this.VersionFile = new ManagedVersionFile(this);
         }
-
-        /// <inheritdoc />
-        public override bool IsRepository => true;
 
         /// <inheritdoc />
         public GitRepository Repository { get; }
@@ -83,7 +80,7 @@ namespace Nerdbank.GitVersioning.Managed
         public static ManagedGitContext Create(string path, string? committish = null)
         {
             FindGitPaths(path, out string? gitDirectory, out string? workingTreeDirectory, out string? workingTreeRelativePath);
-            return new ManagedGitContext(workingTreeDirectory, committish)
+            return new ManagedGitContext(workingTreeDirectory, gitDirectory, committish)
             {
                 RepoRelativeProjectDirectory = workingTreeRelativePath,
             };

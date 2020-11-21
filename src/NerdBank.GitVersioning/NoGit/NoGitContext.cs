@@ -11,14 +11,12 @@ namespace Nerdbank.GitVersioning
         private const string NotAGitRepoMessage = "Not a git repo";
 
         public NoGitContext(string workingTreePath)
-            : base(workingTreePath)
+            : base(workingTreePath, null)
         {
             this.VersionFile = new NoGitVersionFile(this);
         }
 
         public override VersionFile VersionFile { get; }
-
-        public override bool IsRepository => false;
 
         public override string? GitCommitId => null;
 
