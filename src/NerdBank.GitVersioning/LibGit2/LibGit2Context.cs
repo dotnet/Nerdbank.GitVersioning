@@ -47,7 +47,7 @@ namespace Nerdbank.GitVersioning.LibGit2
         public override string? GitCommitId => this.Commit?.Sha;
 
         /// <inheritdoc />
-        public override bool IsHead => this.Repository.Head.Tip.Equals(this.Commit);
+        public override bool IsHead => this.Repository.Head?.Tip?.Equals(this.Commit) ?? false;
 
         /// <inheritdoc />
         public override DateTimeOffset? GitCommitDate => this.Commit?.Author.When;
@@ -105,7 +105,6 @@ namespace Nerdbank.GitVersioning.LibGit2
 
         internal override System.Version GetIdAsVersion(VersionOptions? committedVersion, VersionOptions? workingVersion, int versionHeight)
         {
-            Verify.Operation(this.Commit is object, "No commit is selected.");
             VersionOptions? version = IsVersionFileChangedInWorkingTree(committedVersion, workingVersion) ? workingVersion : committedVersion;
 
             return this.Commit.GetIdAsVersionHelper(version, versionHeight);

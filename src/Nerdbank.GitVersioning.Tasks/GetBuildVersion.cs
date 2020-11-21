@@ -227,8 +227,10 @@
 
                 var cloudBuild = CloudBuild.Active;
                 var overrideBuildNumberOffset = (this.OverrideBuildNumberOffset == int.MaxValue) ? (int?)null : this.OverrideBuildNumberOffset;
-                using var context = GitContext.Create(this.ProjectDirectory, writable: useLibGit2);
-                //var oracle = VersionOracle.Create(this.ProjectDirectory, this.GitRepoRoot, null, cloudBuild, overrideBuildNumberOffset, this.ProjectPathRelativeToGitRepoRoot);
+                string projectDirectory = this.ProjectPathRelativeToGitRepoRoot is object && this.GitRepoRoot is object
+                    ? Path.Combine(this.GitRepoRoot, this.ProjectPathRelativeToGitRepoRoot)
+                    : this.ProjectDirectory;
+                using var context = GitContext.Create(projectDirectory, writable: useLibGit2);
                 var oracle = new VersionOracle(context, cloudBuild, overrideBuildNumberOffset);
                 if (!string.IsNullOrEmpty(this.DefaultPublicRelease))
                 {

@@ -605,6 +605,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
 
             versionOptions.CloudBuild.SetVersionVariables = false;
             this.WriteVersionFile(versionOptions);
+            this.SetContextToHead();
             buildResult = await this.BuildAsync();
             this.AssertStandardProperties(versionOptions, buildResult);
 

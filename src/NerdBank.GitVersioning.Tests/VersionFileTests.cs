@@ -465,13 +465,13 @@ public abstract class VersionFileTests : RepoTestBase
     }
 
     [Fact]
-    public void GetVersion_ThrowsWithPathFiltersOutsideOfGitRepo()
+    public void GetVersion_WithPathFiltersOutsideOfGitRepo()
     {
         var json = @"{ ""version"" : ""1.2"", ""pathFilters"" : [ ""."" ] }";
         var path = Path.Combine(this.RepoPath, "version.json");
         File.WriteAllText(path, json);
 
-        Assert.Throws<ArgumentNullException>(() => this.Context.VersionFile.GetVersion());
+        this.Context.VersionFile.GetVersion();
     }
 
     [Fact]

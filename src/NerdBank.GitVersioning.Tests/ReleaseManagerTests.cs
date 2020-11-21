@@ -608,6 +608,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         var releaseManager = new ReleaseManager();
         releaseManager.PrepareRelease(this.RepoPath);
 
+        this.SetContextToHead();
         var newVersion = this.Context.VersionFile.GetVersion();
         Assert.Equal(expectedMainVersionOptions, newVersion);
 

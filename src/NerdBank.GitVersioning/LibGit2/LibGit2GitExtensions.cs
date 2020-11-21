@@ -519,7 +519,7 @@ namespace Nerdbank.GitVersioning.LibGit2
         /// the height of the git commit while the <see cref="Version.Revision"/>
         /// component is the first four bytes of the git commit id (forced to be a positive integer).
         /// </remarks>
-        internal static Version GetIdAsVersionHelper(this Commit commit, VersionOptions? versionOptions, int versionHeight)
+        internal static Version GetIdAsVersionHelper(this Commit? commit, VersionOptions? versionOptions, int versionHeight)
         {
             var baseVersion = versionOptions?.Version?.Version ?? Version0;
             int buildNumber = baseVersion.Build;
@@ -552,7 +552,7 @@ namespace Nerdbank.GitVersioning.LibGit2
                 switch (commitIdPosition.Value)
                 {
                     case SemanticVersion.Position.Revision:
-                        revision = commit != null
+                        revision = commit is object
                             ? Math.Min(MaximumBuildNumberOrRevisionComponent, commit.GetTruncatedCommitIdAsUInt16())
                             : 0;
                         break;

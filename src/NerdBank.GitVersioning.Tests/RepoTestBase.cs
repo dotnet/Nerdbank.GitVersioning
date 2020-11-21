@@ -141,7 +141,7 @@ public abstract partial class RepoTestBase : IDisposable
         {
             this.LibGit2Repository.Commit($"filler commit {i}", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         }
-  
+
         this.SetContextToHead();
     }
 
@@ -207,7 +207,9 @@ public abstract partial class RepoTestBase : IDisposable
                 }
             }
 
-            return this.LibGit2Repository.Commit($"Add/write {relativeFilePath} set to {version ?? "Inherited"}", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
+            Commit? result = this.LibGit2Repository.Commit($"Add/write {relativeFilePath} set to {version ?? "Inherited"}", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
+            this.SetContextToHead();
+            return result;
         }
 
         return null;

@@ -62,7 +62,7 @@ namespace Nerdbank.GitVersioning
             this.Version = this.VersionOptions?.Version?.Version ?? Version0;
 
             // Override the typedVersion with the special build number and revision components, when available.
-            if (context.GitCommitId is object)
+            if (context.IsRepository)
             {
                 this.Version = context.GetIdAsVersion(this.CommittedVersion, this.WorkingVersion, this.VersionHeight);
             }
