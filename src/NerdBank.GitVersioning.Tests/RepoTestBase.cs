@@ -68,7 +68,7 @@ public abstract partial class RepoTestBase : IDisposable
         string repoPath;
         do
         {
-            repoPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+            repoPath = Path.Combine(Path.GetTempPath(), this.GetType().Name + "_" + Path.GetRandomFileName());
         } while (Directory.Exists(repoPath));
         Directory.CreateDirectory(repoPath);
 

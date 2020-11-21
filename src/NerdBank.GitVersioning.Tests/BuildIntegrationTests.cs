@@ -24,6 +24,7 @@ using Xunit.Abstractions;
 using Version = System.Version;
 
 [Trait("Engine", "Managed")]
+[Collection("Build")] // msbuild sets current directory in the process, so we can't have it be concurrent with other build tests.
 public class BuildIntegrationManagedTests : BuildIntegrationTests
 {
     public BuildIntegrationManagedTests(ITestOutputHelper logger)
@@ -39,6 +40,7 @@ public class BuildIntegrationManagedTests : BuildIntegrationTests
 }
 
 [Trait("Engine", "LibGit2")]
+[Collection("Build")] // msbuild sets current directory in the process, so we can't have it be concurrent with other build tests.
 public class BuildIntegrationLibGit2Tests : BuildIntegrationTests
 {
     public BuildIntegrationLibGit2Tests(ITestOutputHelper logger)
@@ -62,6 +64,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         "APPVEYOR",
         "SYSTEM_",
         "BUILD_",
+        "NBGV_GitEngine",
     };
     private BuildManager buildManager;
     private ProjectCollection projectCollection;
