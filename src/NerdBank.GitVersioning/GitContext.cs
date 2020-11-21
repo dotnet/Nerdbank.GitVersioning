@@ -155,14 +155,6 @@ namespace Nerdbank.GitVersioning
         public abstract bool TrySelectCommit(string committish);
 
         /// <summary>
-        /// Shifts the context referenced by <see cref="RepoRelativeProjectDirectory"/> to a new path within the same git repo.
-        /// </summary>
-        /// <param name="repoRelativeDirectory">A path to the new directory, relative to the git working tree root.</param>
-        public void SelectDirectory(string repoRelativeDirectory)
-        {
-        }
-
-        /// <summary>
         /// Adds a tag with the given name to the commit identified by <see cref="GitCommitId"/>.
         /// </summary>
         /// <param name="name">The name of the tag.</param>
