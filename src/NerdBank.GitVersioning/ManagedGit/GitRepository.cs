@@ -324,6 +324,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
                 // Look for simple names for branch or tag.
                 possibleLooseFileMatches.Add(Path.Combine(this.GitDirectory, "refs", "heads", objectish));
                 possibleLooseFileMatches.Add(Path.Combine(this.GitDirectory, "refs", "tags", objectish));
+                possibleLooseFileMatches.Add(Path.Combine(this.GitDirectory, "refs", "remotes", objectish));
             }
 
             if (possibleLooseFileMatches.FirstOrDefault(File.Exists) is string existingPath)
@@ -360,7 +361,10 @@ namespace Nerdbank.GitVersioning.ManagedGit
                         {
                             return GitObjectId.Parse(line.Substring(0, 40));
                         }
-
+                        else if (string.Equals(refName, "refs/remotes/" + objectish, StringComparison.Ordinal))
+                        {
+                            return GitObjectId.Parse(line.Substring(0, 40));
+                        }
                     }
                 }
             }

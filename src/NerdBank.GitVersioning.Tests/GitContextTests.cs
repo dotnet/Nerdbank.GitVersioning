@@ -104,6 +104,24 @@ public abstract class GitContextTests : RepoTestBase
         Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
     }
 
+    [Theory, CombinatorialData]
+    public void SelectCommitByRemoteBranch(bool packedRefs, bool canonicalName)
+    {
+        if (packedRefs)
+        {
+            File.WriteAllText(Path.Combine(this.RepoPath, ".git", "packed-refs"), $"# pack-refs with: peeled fully-peeled sorted \n{this.Context.GitCommitId} refs/remotes/origin/test\n");
+        }
+        else
+        {
+            string fileName = Path.Combine(this.RepoPath, ".git", "refs", "remotes", "origin", "test");
+            Directory.CreateDirectory(Path.GetDirectoryName(fileName));
+            File.WriteAllText(fileName, $"{this.Context.GitCommitId}\n");
+        }
+
+        Assert.True(this.Context.TrySelectCommit(canonicalName ? "refs/remotes/origin/test" : "origin/test"));
+        Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
+    }
+
     [Fact]
     public void SelectDirectory_Empty()
     {
