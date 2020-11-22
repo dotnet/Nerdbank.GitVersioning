@@ -65,9 +65,18 @@ public abstract class GitContextTests : RepoTestBase
         Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
     }
 
-    [Fact]
-    public void SelectCommitByPartialId()
+    [Theory, CombinatorialData]
+    public void SelectCommitByPartialId(bool fromPack)
     {
+        if (fromPack)
+        {
+            this.LibGit2Repository.ObjectDatabase.Pack(new LibGit2Sharp.PackBuilderOptions(Path.Combine(this.RepoPath, ".git", "objects", "pack")));
+            foreach (string obDirectory in Directory.EnumerateDirectories(Path.Combine(this.RepoPath, ".git", "objects"), "??"))
+            {
+                TestUtilities.DeleteDirectory(obDirectory);
+            }
+        }
+
         Assert.True(this.Context.TrySelectCommit(this.Context.GitCommitId.Substring(0, 12)));
         Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
     }
