@@ -66,7 +66,7 @@ public abstract class GitContextTests : RepoTestBase
     }
 
     [Theory, CombinatorialData]
-    public void SelectCommitByPartialId(bool fromPack)
+    public void SelectCommitByPartialId(bool fromPack, bool oddLength)
     {
         if (fromPack)
         {
@@ -81,7 +81,7 @@ public abstract class GitContextTests : RepoTestBase
             this.Context = this.CreateGitContext(this.RepoPath, null);
         }
 
-        Assert.True(this.Context.TrySelectCommit(this.Context.GitCommitId.Substring(0, 12)));
+        Assert.True(this.Context.TrySelectCommit(this.Context.GitCommitId.Substring(0, oddLength ? 11 : 13)));
         Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
     }
 
