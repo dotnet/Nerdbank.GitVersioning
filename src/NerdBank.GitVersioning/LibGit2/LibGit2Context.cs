@@ -79,7 +79,8 @@ namespace Nerdbank.GitVersioning.LibGit2
         /// <inheritdoc />
         public override void Stage(string path) => Commands.Stage(this.Repository, path);
 
-        internal override string GetShortUniqueCommitId(int minLength) => this.Repository.ObjectDatabase.ShortenObjectId(this.Commit, minLength);
+        /// <inheritdoc/>
+        public override string GetShortUniqueCommitId(int minLength) => this.Repository.ObjectDatabase.ShortenObjectId(this.Commit, minLength);
 
         internal override int CalculateVersionHeight(VersionOptions? committedVersion, VersionOptions? workingVersion)
         {

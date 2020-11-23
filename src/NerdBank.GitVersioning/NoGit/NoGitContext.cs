@@ -30,9 +30,9 @@ namespace Nerdbank.GitVersioning
 
         public override void ApplyTag(string name) => throw new InvalidOperationException(NotAGitRepoMessage);
         public override void Stage(string path) => throw new InvalidOperationException(NotAGitRepoMessage);
+        public override string GetShortUniqueCommitId(int minLength) => throw new InvalidOperationException(NotAGitRepoMessage);
         public override bool TrySelectCommit(string committish) => throw new InvalidOperationException(NotAGitRepoMessage);
         internal override int CalculateVersionHeight(VersionOptions? committedVersion, VersionOptions? workingVersion) => 0;
         internal override Version GetIdAsVersion(VersionOptions? committedVersion, VersionOptions? workingVersion, int versionHeight) => throw new NotImplementedException();
-        internal override string GetShortUniqueCommitId(int minLength) => throw new InvalidOperationException(NotAGitRepoMessage);
     }
 }

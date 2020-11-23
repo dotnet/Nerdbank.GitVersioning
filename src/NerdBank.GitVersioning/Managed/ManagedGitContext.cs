@@ -112,7 +112,8 @@ namespace Nerdbank.GitVersioning.Managed
             return this.GetIdAsVersionHelper(version, versionHeight);
         }
 
-        internal override string GetShortUniqueCommitId(int minLength)
+        /// <inheritdoc/>
+        public override string GetShortUniqueCommitId(int minLength)
         {
             Verify.Operation(this.Commit is object, "No commit is selected.");
             return this.Repository.ShortenObjectId(this.Commit.Value.Sha, minLength);

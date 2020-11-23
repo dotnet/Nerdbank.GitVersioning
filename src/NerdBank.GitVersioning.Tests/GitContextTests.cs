@@ -85,6 +85,12 @@ public abstract class GitContextTests : RepoTestBase
         Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
     }
 
+    [Fact]
+    public void GetShortUniqueCommitId()
+    {
+        Assert.Equal("51cd9ed3", this.Context.GetShortUniqueCommitId(8));
+    }
+
     [Theory, CombinatorialData]
     public void SelectCommitByTag(bool packedRefs, bool canonicalName)
     {

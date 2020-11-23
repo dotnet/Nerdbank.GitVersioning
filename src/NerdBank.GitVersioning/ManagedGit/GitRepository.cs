@@ -224,8 +224,19 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// </returns>
         public string ShortenObjectId(GitObjectId objectId, int minimum)
         {
-            // TODO: implement this properly.
-            return objectId.ToString().Substring(0, Math.Max(minimum, 8));
+            var sha = objectId.ToString();
+
+            for (int length = minimum; length < sha.Length; length += 2)
+            {
+                var objectish = sha.Substring(0, length);
+
+                if (this.Lookup(objectish) != null)
+                {
+                    return objectish;
+                }
+            }
+
+            return sha;
         }
 
         /// <summary>
@@ -402,7 +413,16 @@ namespace Nerdbank.GitVersioning.ManagedGit
                     // or in multiple pack files.
                     if (objectId != null && !possibleObjectIds.Contains(objectId.Value))
                     {
-                        possibleObjectIds.Add(objectId.Value);
+                        if (possibleObjectIds.Count > 0)
+                        {
+                            // If objectish already resolved to at least one object which is different from the current
+                            // object id, objectish is not well-defined; so stop resolving and return null instead.
+                            return null;
+                        }
+                        else
+                        {
+                            possibleObjectIds.Add(objectId.Value);
+                        }
                     }
                 }
             }
