@@ -75,6 +75,10 @@ public abstract class GitContextTests : RepoTestBase
             {
                 TestUtilities.DeleteDirectory(obDirectory);
             }
+
+            // The managed git context always assumes read-only access. It won't detect a new Git pack file being
+            // created on the fly, so we have to re-initialize.
+            this.Context = this.CreateGitContext(this.RepoPath, null);
         }
 
         Assert.True(this.Context.TrySelectCommit(this.Context.GitCommitId.Substring(0, 12)));

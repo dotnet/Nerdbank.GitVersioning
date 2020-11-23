@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Nerdbank.GitVersioning.ManagedGit
 {
@@ -25,7 +23,25 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// If found, the offset of the Git object in the index file; otherwise,
         /// <see langword="null"/>.
         /// </returns>
-        public abstract long? GetOffset(GitObjectId objectId);
+        public long? GetOffset(GitObjectId objectId)
+        {
+            Span<byte> name = stackalloc byte[20];
+            objectId.CopyTo(name);
+            (var offset, var _) = this.GetOffset(name);
+            return offset;
+        }
+
+        /// <summary>
+        /// Gets the offset of a Git object in the index file.
+        /// </summary>
+        /// <param name="objectId">
+        /// A partial or full Git object id, in its binary representation.
+        /// </param>
+        /// <returns>
+        /// If found, the offset of the Git object in the index file; otherwise,
+        /// <see langword="null"/>.
+        /// </returns>
+        public abstract (long?, GitObjectId?) GetOffset(Span<byte> objectId);
 
         /// <inheritdoc/>
         public abstract void Dispose();

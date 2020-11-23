@@ -125,6 +125,22 @@ namespace Nerdbank.GitVersioning.ManagedGit
         public GetObjectFromRepositoryDelegate GetObjectFromRepository { get; private set; }
 
         /// <summary>
+        /// Finds a git object using a partial object ID.
+        /// </summary>
+        /// <param name="objectId">
+        /// A partial object ID.
+        /// </param>
+        /// <returns>
+        /// If found, a full object ID which matches the partial object ID.
+        /// Otherwise, <see langword="false"/>.
+        /// </returns>
+        public GitObjectId? Lookup(Span<byte> objectId)
+        {
+            (var _, var actualObjectId) = this.indexReader.Value.GetOffset(objectId);
+            return actualObjectId;
+        }
+
+        /// <summary>
         /// Attempts to retrieve a Git object from this Git pack.
         /// </summary>
         /// <param name="objectId">

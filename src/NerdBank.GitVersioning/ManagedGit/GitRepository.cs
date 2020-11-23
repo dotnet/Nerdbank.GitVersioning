@@ -1,9 +1,9 @@
 ﻿#nullable enable
 
 using System;
-using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -374,6 +374,44 @@ namespace Nerdbank.GitVersioning.ManagedGit
                 return GitObjectId.Parse(objectish);
             }
 
+            var possibleObjectIds = new List<GitObjectId>();
+            if (objectish.Length > 2 && objectish.Length < 40)
+            {
+                // Search for _any_ object whose id starts with objectish in the object database
+                var directory = Path.Combine(this.ObjectDirectory, objectish.Substring(0, 2));
+
+                if (Directory.Exists(directory))
+                {
+                    var files = Directory.GetFiles(directory, $"{objectish.Substring(2)}*");
+
+                    foreach (var file in files)
+                    {
+                        var objectId = $"{objectish.Substring(0, 2)}{Path.GetFileName(file)}";
+                        possibleObjectIds.Add(GitObjectId.Parse(objectId));
+                    }
+                }
+
+                // Search for _any_ object whose id starts with objectish in the packfile
+                var hex = ConvertHexStringToByteArray(objectish);
+
+                foreach (var pack in this.packs.Value)
+                {
+                    var objectId = pack.Lookup(hex);
+
+                    // It's possible for the same object to be present in both the object database and the pack files,
+                    // or in multiple pack files.
+                    if (objectId != null && !possibleObjectIds.Contains(objectId.Value))
+                    {
+                        possibleObjectIds.Add(objectId.Value);
+                    }
+                }
+            }
+
+            if (possibleObjectIds.Count == 1)
+            {
+                return possibleObjectIds[0];
+            }
+
             return null;
         }
 
@@ -650,6 +688,24 @@ namespace Nerdbank.GitVersioning.ManagedGit
 #else
             return Path.TrimEndingDirectorySeparator(path);
 #endif
+        }
+
+        private static byte[] ConvertHexStringToByteArray(string hexString)
+        {
+            // https://stackoverflow.com/questions/321370/how-can-i-convert-a-hex-string-to-a-byte-array
+            if (hexString.Length % 2 != 0)
+            {
+                throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, "The binary key cannot have an odd number of digits: {0}", hexString));
+            }
+
+            byte[] data = new byte[hexString.Length / 2];
+            for (int index = 0; index < data.Length; index++)
+            {
+                string byteValue = hexString.Substring(index * 2, 2);
+                data[index] = byte.Parse(byteValue, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+            }
+
+            return data;
         }
 
         /// <summary>

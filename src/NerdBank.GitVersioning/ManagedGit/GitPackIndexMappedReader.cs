@@ -51,13 +51,11 @@ namespace Nerdbank.GitVersioning.ManagedGit
         }
 
         /// <inheritdoc/>
-        public override long? GetOffset(GitObjectId objectId)
+        public override (long?, GitObjectId?) GetOffset(Span<byte> objectName)
         {
             this.Initialize();
 
             Span<byte> buffer = stackalloc byte[4];
-            Span<byte> objectName = stackalloc byte[20];
-            objectId.CopyTo(objectName);
 
             var packStart = this.fanoutTable[objectName[0]];
             var packEnd = this.fanoutTable[objectName[0] + 1];
@@ -84,7 +82,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
             {
                 i = (packStart + packEnd) / 2;
 
-                order = table.Slice(20 * i, 20).SequenceCompareTo(objectName);
+                order = table.Slice(20 * i, objectName.Length).SequenceCompareTo(objectName);
 
                 if (order < 0)
                 {
@@ -102,7 +100,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
 
             if (order != 0)
             {
-                return null;
+                return (null, null);
             }
 
             // Get the offset value. It's located at:
@@ -113,7 +111,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
 
             if (offsetBuffer[0] < 128)
             {
-                return offset;
+                return (offset, GitObjectId.Parse(table.Slice(20 * i, 20)));
             }
             else
             {
@@ -123,7 +121,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
 
                 offsetBuffer = this.Value.Slice(offsetTableStart + 4 * objectCount + 8 * (int)offset, 8);
                 var offset64 = BinaryPrimitives.ReadInt64BigEndian(offsetBuffer);
-                return offset64;
+                return (offset64, GitObjectId.Parse(table.Slice(20 * i, 20)));
             }
         }
 
