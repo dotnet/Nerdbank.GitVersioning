@@ -85,10 +85,15 @@ public abstract class GitContextTests : RepoTestBase
         Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
     }
 
-    [Fact]
-    public void GetShortUniqueCommitId()
+    [SkippableTheory]
+    [InlineData(4)]
+    [InlineData(7)]
+    [InlineData(8)]
+    [InlineData(11)]
+    public void GetShortUniqueCommitId(int length)
     {
-        Assert.Equal("51cd9ed3", this.Context.GetShortUniqueCommitId(8));
+        Skip.If(length < 7 && this.Context is Nerdbank.GitVersioning.LibGit2.LibGit2Context);
+        Assert.Equal(this.Context.GitCommitId.Substring(0, length), this.Context.GetShortUniqueCommitId(length));
     }
 
     [Theory, CombinatorialData]

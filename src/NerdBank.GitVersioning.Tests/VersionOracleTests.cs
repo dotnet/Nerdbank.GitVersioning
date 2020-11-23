@@ -795,15 +795,22 @@ public abstract class VersionOracleTests : RepoTestBase
     }
 
     [Fact]
-    public void OptimallyShortCommitId()
+    public void GitCommitIdShort()
     {
         this.WriteVersionFile(new VersionOptions { Version = SemanticVersion.Parse("1.2"), GitCommitIdShortAutoMinimum = 4 });
         this.InitializeSourceControl();
         this.AddCommits(1);
         var oracle = new VersionOracle(this.Context);
 
-        // I'm not sure why libgit2 returns 7 as the minimum length when clearly a two commit repo would need fewer.
-        Assert.Equal(7, oracle.GitCommitIdShort.Length);
+        if (this.Context is Nerdbank.GitVersioning.LibGit2.LibGit2Context)
+        {
+            // I'm not sure why libgit2 returns 7 as the minimum length when clearly a two commit repo would need fewer.
+            Assert.Equal(7, oracle.GitCommitIdShort.Length);
+        }
+        else
+        {
+            Assert.Equal(4, oracle.GitCommitIdShort.Length);
+        }
     }
 
     [Fact(Skip = "Slow test")]
