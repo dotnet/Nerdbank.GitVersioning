@@ -794,6 +794,18 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(1, this.GetVersionHeight("new-project-dir"));
     }
 
+    [Fact]
+    public void OptimallyShortCommitId()
+    {
+        this.WriteVersionFile(new VersionOptions { Version = SemanticVersion.Parse("1.2"), GitCommitIdShortAutoMinimum = 4 });
+        this.InitializeSourceControl();
+        this.AddCommits(1);
+        var oracle = new VersionOracle(this.Context);
+
+        // I'm not sure why libgit2 returns 7 as the minimum length when clearly a two commit repo would need fewer.
+        Assert.Equal(7, oracle.GitCommitIdShort.Length);
+    }
+
     [Fact(Skip = "Slow test")]
     public void GetVersionHeight_VeryLongHistory()
     {
