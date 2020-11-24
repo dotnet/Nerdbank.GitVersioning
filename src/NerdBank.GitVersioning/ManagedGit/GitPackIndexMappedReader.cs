@@ -42,20 +42,18 @@ namespace Nerdbank.GitVersioning.ManagedGit
             this.accessor.SafeMemoryMappedViewHandle.AcquirePointer(ref this.ptr);
         }
 
-        private Span<byte> Value
+        private ReadOnlySpan<byte> Value
         {
             get
             {
-                return new Span<byte>(this.ptr, (int)this.accessor.Capacity);
+                return new ReadOnlySpan<byte>(this.ptr, (int)this.accessor.Capacity);
             }
         }
 
         /// <inheritdoc/>
-        public override (long?, GitObjectId?) GetOffset(Span<byte> objectName)
+        public override (long?, GitObjectId?) GetOffset(Span<byte> objectName, bool endsWithHalfByte = false)
         {
             this.Initialize();
-
-            Span<byte> buffer = stackalloc byte[4];
 
             var packStart = this.fanoutTable[objectName[0]];
             var packEnd = this.fanoutTable[objectName[0] + 1];
@@ -82,7 +80,20 @@ namespace Nerdbank.GitVersioning.ManagedGit
             {
                 i = (packStart + packEnd) / 2;
 
-                order = table.Slice(20 * i, objectName.Length).SequenceCompareTo(objectName);
+                ReadOnlySpan<byte> comparand = table.Slice(20 * i, objectName.Length);
+                if (endsWithHalfByte)
+                {
+                    // Copy out the value to be checked so we can zero out the last four bits,
+                    // so that it matches the last 4 bits of the objectName that isn't supposed to be compared.
+                    Span<byte> buffer = stackalloc byte[20];
+                    comparand.CopyTo(buffer);
+                    buffer[objectName.Length - 1] &= 0xf0;
+                    order = buffer.Slice(0, objectName.Length).SequenceCompareTo(objectName);
+                }
+                else
+                {
+                    order = comparand.SequenceCompareTo(objectName);
+                }
 
                 if (order < 0)
                 {

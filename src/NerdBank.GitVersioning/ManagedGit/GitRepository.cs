@@ -403,11 +403,19 @@ namespace Nerdbank.GitVersioning.ManagedGit
                 }
 
                 // Search for _any_ object whose id starts with objectish in the packfile
+                bool endsWithHalfByte = objectish.Length % 2 == 1;
+                if (endsWithHalfByte)
+                {
+                    // Add one more character so hex can be converted to bytes.
+                    // The bit length to be compared will not consider the last four bits.
+                    objectish += "0";
+                }
+
                 var hex = ConvertHexStringToByteArray(objectish);
 
                 foreach (var pack in this.packs.Value)
                 {
-                    var objectId = pack.Lookup(hex);
+                    var objectId = pack.Lookup(hex, endsWithHalfByte);
 
                     // It's possible for the same object to be present in both the object database and the pack files,
                     // or in multiple pack files.

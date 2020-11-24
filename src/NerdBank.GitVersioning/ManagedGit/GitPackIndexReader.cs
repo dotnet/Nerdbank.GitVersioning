@@ -37,11 +37,12 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// <param name="objectId">
         /// A partial or full Git object id, in its binary representation.
         /// </param>
+        /// <param name="endsWithHalfByte"><see langword="true"/> if <paramref name="objectId"/> ends with a byte whose last 4 bits are all zeros and not intended for inclusion in the search; <see langword="false"/> otherwise.</param>
         /// <returns>
         /// If found, the offset of the Git object in the index file; otherwise,
         /// <see langword="null"/>.
         /// </returns>
-        public abstract (long?, GitObjectId?) GetOffset(Span<byte> objectId);
+        public abstract (long?, GitObjectId?) GetOffset(Span<byte> objectId, bool endsWithHalfByte = false);
 
         /// <inheritdoc/>
         public abstract void Dispose();

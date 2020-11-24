@@ -130,13 +130,14 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// <param name="objectId">
         /// A partial object ID.
         /// </param>
+        /// <param name="endsWithHalfByte"><inheritdoc cref="GitPackIndexReader.GetOffset(Span{byte}, bool)" path="/param[@name='endsWithHalfByte']"/></param>
         /// <returns>
         /// If found, a full object ID which matches the partial object ID.
         /// Otherwise, <see langword="false"/>.
         /// </returns>
-        public GitObjectId? Lookup(Span<byte> objectId)
+        public GitObjectId? Lookup(Span<byte> objectId, bool endsWithHalfByte = false)
         {
-            (var _, var actualObjectId) = this.indexReader.Value.GetOffset(objectId);
+            (var _, var actualObjectId) = this.indexReader.Value.GetOffset(objectId, endsWithHalfByte);
             return actualObjectId;
         }
 

@@ -81,7 +81,7 @@ public abstract class GitContextTests : RepoTestBase
             this.Context = this.CreateGitContext(this.RepoPath, null);
         }
 
-        Assert.True(this.Context.TrySelectCommit(this.Context.GitCommitId.Substring(0, oddLength ? 11 : 13)));
+        Assert.True(this.Context.TrySelectCommit(this.Context.GitCommitId.Substring(0, oddLength ? 11 : 12)));
         Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
     }
 
@@ -92,7 +92,7 @@ public abstract class GitContextTests : RepoTestBase
     [InlineData(11)]
     public void GetShortUniqueCommitId(int length)
     {
-        Skip.If(length < 7 && this.Context is Nerdbank.GitVersioning.LibGit2.LibGit2Context);
+        Skip.If(length < 7 && this.Context is Nerdbank.GitVersioning.LibGit2.LibGit2Context, "LibGit2Sharp never returns commit IDs with fewer than 7 characters.");
         Assert.Equal(this.Context.GitCommitId.Substring(0, length), this.Context.GetShortUniqueCommitId(length));
     }
 
