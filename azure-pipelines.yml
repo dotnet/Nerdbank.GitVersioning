@@ -39,7 +39,7 @@ stages:
       matrix:
         linux:
           imageName: 'ubuntu-20.04'
-          testModifier: -f netcoreapp3.1
+          testModifier: -f net5.0
         windows:
           imageName: 'windows-2019'
           testModifier:
@@ -58,10 +58,17 @@ stages:
       displayName: Configure git commit author for testing
 
     - task: UseDotNet@2
-      displayName: Install .NET Core SDK 3.1.100
+      displayName: Install .NET Core SDK 5.0.100
       inputs:
         packageType: sdk
-        version: 3.1.100
+        version: 5.0.100
+
+    - task: UseDotNet@2
+      displayName: Install .NET Core 3.1
+      inputs:
+        packageType: runtime
+        version: 3.1.x
+
     - script: dotnet --info
       displayName: Show dotnet SDK info
 

@@ -66,8 +66,6 @@ namespace Nerdbank.GitVersioning.Tool
 
         public static int Main(string[] args)
         {
-            GitLoaderContext.RuntimePath = "./runtimes";
-
             string thisAssemblyPath = new Uri(typeof(Program).GetTypeInfo().Assembly.CodeBase).LocalPath;
 
             Assembly inContextAssembly = GitLoaderContext.Instance.LoadFromAssemblyPath(thisAssemblyPath);

@@ -15,19 +15,13 @@ namespace Nerdbank.GitVersioning
     {
         public static readonly GitLoaderContext Instance = new GitLoaderContext();
 
-        // When invoked as a MSBuild task, the native libraries will be at
-        // ../runtimes. When invoked from the nbgv CLI, the libraries
-        // will be at ./runtimes.
-        // This property allows code which consumes GitLoaderContext to 
-        // differentiate between these different locations.
-        // In the case of the nbgv CLI, the value is set in Program.Main()
-        public static string RuntimePath = "../runtimes";
+        public const string RuntimePath = "./runtimes";
 
         protected override Assembly Load(AssemblyName assemblyName)
         {
             var path = Path.Combine(Path.GetDirectoryName(typeof(GitLoaderContext).Assembly.Location), assemblyName.Name + ".dll");
             return File.Exists(path)
-                ? LoadFromAssemblyPath(path)
+                ? this.LoadFromAssemblyPath(path)
                 : Default.LoadFromAssemblyName(assemblyName);
         }
 
@@ -52,7 +46,7 @@ namespace Nerdbank.GitVersioning
                     nativeLibraryPath = Path.Combine(directory, "lib" + unmanagedDllName);
                 }
 
-                modulePtr = LoadUnmanagedDllFromPath(nativeLibraryPath);
+                modulePtr = this.LoadUnmanagedDllFromPath(nativeLibraryPath);
             }
 
             return (modulePtr != IntPtr.Zero) ? modulePtr : base.LoadUnmanagedDll(unmanagedDllName);
@@ -61,7 +55,17 @@ namespace Nerdbank.GitVersioning
         internal static string GetNativeLibraryDirectory()
         {
             var dir = Path.GetDirectoryName(typeof(GitLoaderContext).Assembly.Location);
-            return Path.Combine(dir, RuntimePath, RuntimeIdMap.GetNativeLibraryDirectoryName(RuntimeEnvironment.GetRuntimeIdentifier()), "native");
+
+            // When invoked as a MSBuild task, the native libraries will be at
+            // ../runtimes. When invoked from the nbgv CLI, the libraries
+            // will be at ./runtimes.
+            string runtimePath = RuntimePath;
+            if (!Directory.Exists(Path.Combine(dir, runtimePath)))
+            {
+                runtimePath = "." + runtimePath;
+            }
+
+            return Path.Combine(dir, runtimePath, RuntimeIdMap.GetNativeLibraryDirectoryName(RuntimeEnvironment.GetRuntimeIdentifier()), "native");
         }
 
         private static string GetNativeLibraryExtension()
