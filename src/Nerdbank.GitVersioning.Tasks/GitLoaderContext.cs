@@ -24,69 +24,6 @@ namespace Nerdbank.GitVersioning
                 ? this.LoadFromAssemblyPath(path)
                 : Default.LoadFromAssemblyName(assemblyName);
         }
-
-        protected override IntPtr LoadUnmanagedDll(string unmanagedDllName)
-        {
-            var modulePtr = IntPtr.Zero;
-
-            if (unmanagedDllName.StartsWith("git2-", StringComparison.Ordinal) ||
-                unmanagedDllName.StartsWith("libgit2-", StringComparison.Ordinal))
-            {
-                var directory = GetNativeLibraryDirectory();
-                var extension = GetNativeLibraryExtension();
-
-                if (!unmanagedDllName.EndsWith(extension, StringComparison.Ordinal))
-                {
-                    unmanagedDllName += extension;
-                }
-
-                var nativeLibraryPath = Path.Combine(directory, unmanagedDllName);
-                if (!File.Exists(nativeLibraryPath))
-                {
-                    nativeLibraryPath = Path.Combine(directory, "lib" + unmanagedDllName);
-                }
-
-                modulePtr = this.LoadUnmanagedDllFromPath(nativeLibraryPath);
-            }
-
-            return (modulePtr != IntPtr.Zero) ? modulePtr : base.LoadUnmanagedDll(unmanagedDllName);
-        }
-
-        internal static string GetNativeLibraryDirectory()
-        {
-            var dir = Path.GetDirectoryName(typeof(GitLoaderContext).Assembly.Location);
-
-            // When invoked as a MSBuild task, the native libraries will be at
-            // ../runtimes. When invoked from the nbgv CLI, the libraries
-            // will be at ./runtimes.
-            string runtimePath = RuntimePath;
-            if (!Directory.Exists(Path.Combine(dir, runtimePath)))
-            {
-                runtimePath = "." + runtimePath;
-            }
-
-            return Path.Combine(dir, runtimePath, RuntimeIdMap.GetNativeLibraryDirectoryName(RuntimeEnvironment.GetRuntimeIdentifier()), "native");
-        }
-
-        private static string GetNativeLibraryExtension()
-        {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                return ".dll";
-            }
-
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            {
-                return ".dylib";
-            }
-
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            {
-                return ".so";
-            }
-
-            throw new PlatformNotSupportedException();
-        }
     }
 }
 #endif

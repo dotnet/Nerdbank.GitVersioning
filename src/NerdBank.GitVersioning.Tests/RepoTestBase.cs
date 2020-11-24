@@ -16,10 +16,6 @@ public abstract partial class RepoTestBase : IDisposable
 
     public RepoTestBase(ITestOutputHelper logger)
     {
-#if NETCOREAPP
-        LibGit2Loader.EnsureRegistered();
-#endif
-
         Requires.NotNull(logger, nameof(logger));
 
         this.Logger = logger;
