@@ -203,6 +203,45 @@ stages:
       displayName: npm publish to PublicCI feed
       condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
 
+- stage: Test
+  displayName: Functional testing
+  jobs:
+  - job: linux
+    strategy:
+      matrix:
+        xenial:
+          containerImage: xenial
+          configureContainerCommand: 'sudo apt update && sudo apt-get install -y git'
+        Ubuntu_Bionic_2_1:
+          containerImage: bionic-2.1
+        Ubuntu_Bionic:
+          containerImage: bionic
+        Ubuntu_Focal:
+          containerImage: focal
+        Ubuntu_Disco_3_0:
+          containerImage: disco-3.0
+        Arch_Linux:
+          containerImage: archlinux
+          configureContainerCommand: 'sudo pacman -Sy --noconfirm git dotnet-sdk openssl-1.0'
+    pool:
+      vmImage: ubuntu-20.04
+    container: $[ variables['containerImage'] ]
+    steps:
+    - bash: $(configureContainerCommand)
+      displayName: Configure container
+      condition: ne(variables['configureContainerCommand'], '')
+    - template: azure-pipelines/xplattest-pipeline.yml
+
+  - job: macOS
+    pool:
+      vmImage: macOS-10.15
+    steps:
+    - template: azure-pipelines/xplattest-pipeline.yml
+
+- stage: PerfAnalysis
+  displayName: Perf analysis
+  dependsOn: []
+  jobs:
   - job: PerfTest
     strategy:
       matrix:
@@ -274,37 +313,3 @@ stages:
         ArtifactType: Container
       displayName: Publish benchmarks artifacts
       condition: succeededOrFailed()
-
-- stage: Test
-  jobs:
-  - job: linux
-    strategy:
-      matrix:
-        xenial:
-          containerImage: xenial
-          configureContainerCommand: 'sudo apt update && sudo apt-get install -y git'
-        Ubuntu_Bionic_2_1:
-          containerImage: bionic-2.1
-        Ubuntu_Bionic:
-          containerImage: bionic
-        Ubuntu_Focal:
-          containerImage: focal
-        Ubuntu_Disco_3_0:
-          containerImage: disco-3.0
-        Arch_Linux:
-          containerImage: archlinux
-          configureContainerCommand: 'sudo pacman -Sy --noconfirm git dotnet-sdk openssl-1.0'
-    pool:
-      vmImage: ubuntu-20.04
-    container: $[ variables['containerImage'] ]
-    steps:
-    - bash: $(configureContainerCommand)
-      displayName: Configure container
-      condition: ne(variables['configureContainerCommand'], '')
-    - template: azure-pipelines/xplattest-pipeline.yml
-
-  - job: macOS
-    pool:
-      vmImage: macOS-10.15
-    steps:
-    - template: azure-pipelines/xplattest-pipeline.yml
