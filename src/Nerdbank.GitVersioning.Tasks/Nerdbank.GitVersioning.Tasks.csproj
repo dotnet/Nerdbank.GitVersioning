@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp2.0;net461</TargetFrameworks>
+    <TargetFrameworks>net461;netcoreapp2.1</TargetFrameworks>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
     <NuSpecFile>Nerdbank.GitVersioning.nuspec</NuSpecFile>
@@ -25,7 +25,7 @@
 
   <Target Name="PackBuildOutputs" DependsOnTargets="SatelliteDllsProjectOutputGroup;DebugSymbolsProjectOutputGroup">
     <PropertyGroup>
-      <BuildSubDir Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">MSBuildCore\</BuildSubDir>
+      <BuildSubDir Condition=" '$(TargetFramework)' == 'netcoreapp2.1' ">MSBuildCore\</BuildSubDir>
       <BuildSubDir Condition=" '$(TargetFramework)' == 'net461' ">MSBuildFull\</BuildSubDir>
     </PropertyGroup>
     <Error Text="Unrecognized TargetFramework" Condition=" '$(BuildSubDir)' == '' " />
@@ -36,6 +36,8 @@
                         $(OutputPath)Microsoft.DotNet.PlatformAbstractions.dll;
                         $(OutputPath)Nerdbank.GitVersioning.*dll;
                         $(OutputPath)Newtonsoft.Json.dll;
+                        $(OutputPath)System.Text.Json.dll;
+                        $(OutputPath)System.Runtime.CompilerServices.Unsafe.dll;
                         $(OutputPath)Validation.dll;
                ">
         <PackagePath>build\$(BuildSubDir)</PackagePath>
@@ -56,10 +58,6 @@
       <Pack>true</Pack>
       <PackagePath>buildCrossTargeting\</PackagePath>
     </None>
-    <None Include="tools\**">
-      <Pack>true</Pack>
-      <PackagePath>tools\</PackagePath>
-    </None>
     <None Include="readme.txt">
       <Pack>true</Pack>
       <PackagePath>readme.txt</PackagePath>
@@ -76,7 +74,7 @@
   </ItemDefinitionGroup>
 
   <ItemGroup>
-    <PackageReference Include="Nerdbank.GitVersioning.LKG" Version="3.1.93" />
+    <PackageReference Include="Nerdbank.GitVersioning.LKG" Version="3.3.37" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\NerdBank.GitVersioning\NerdBank.GitVersioning.csproj" />
@@ -84,7 +82,7 @@
   <ItemGroup Condition="'$(TargetFramework)' == 'net461' ">
     <PackageReference Include="Microsoft.Build.Tasks.Core" Version="15.9.20" />
   </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' == 'netcoreapp2.0'">
+  <ItemGroup Condition="'$(TargetFramework)' == 'netcoreapp2.1'">
     <PackageReference Include="Microsoft.Build.Tasks.Core" Version="15.9.20" />
     <PackageReference Include="System.Runtime.Loader" Version="4.3.0" />
   </ItemGroup>

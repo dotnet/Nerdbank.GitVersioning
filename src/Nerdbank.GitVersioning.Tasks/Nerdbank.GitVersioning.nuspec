@@ -20,10 +20,13 @@ IMPORTANT: The 3.x release may produce a different version height than prior maj
     <file src="$BaseOutputPath$net461\LibGit2Sharp.dll" target="build\MSBuildFull\LibGit2Sharp.dll" />
     <file src="$BaseOutputPath$net461\LibGit2Sharp.dll.config" target="build\MSBuildFull\LibGit2Sharp.dll.config" />
     <file src="$BaseOutputPath$net461\Microsoft.DotNet.PlatformAbstractions.dll" target="build\MSBuildFull\Microsoft.DotNet.PlatformAbstractions.dll" />
-    <file src="$BaseOutputPath$net461\NerdBank.GitVersioning.dll" target="build\MSBuildFull\NerdBank.GitVersioning.dll" />    
+    <file src="$BaseOutputPath$net461\NerdBank.GitVersioning.dll" target="build\MSBuildFull\NerdBank.GitVersioning.dll" />
     <file src="$BaseOutputPath$net461\Nerdbank.GitVersioning.Tasks.dll" target="build\MSBuildFull\Nerdbank.GitVersioning.Tasks.dll" />
     <file src="$BaseOutputPath$net461\Newtonsoft.Json.dll" target="build\MSBuildFull\Newtonsoft.Json.dll" />
+    <file src="$BaseOutputPath$net461\System.Text.Json.dll" target="build\MSBuildFull\System.Text.Json.dll" />
     <file src="$BaseOutputPath$net461\Validation.dll" target="build\MSBuildFull\Validation.dll" />
+    <file src="$BaseOutputPath$net461\System.Runtime.CompilerServices.Unsafe.dll" target="build\MSBuildFull\System.Runtime.CompilerServices.Unsafe.dll" />
+    <file src="$BaseOutputPath$net461\PInvoke.Kernel32.dll" target="build\MSBuildFull\PInvoke.Kernel32.dll" />
     <file src="$LibGit2SharpNativeBinaries$runtimes\**" target="build\runtimes\" />
 
     <!-- Additional copies to work around DllNotFoundException on Mono (https://github.com/dotnet/Nerdbank.GitVersioning/issues/222) -->
@@ -35,21 +38,20 @@ IMPORTANT: The 3.x release may produce a different version height than prior maj
     <file src="$LibGit2SharpNativeBinaries$runtimes\win-x86\native\git2-106a5f2.dll" target="build\MSBuildFull\lib\win32\x86\git2-106a5f2.dll" />
 
     <file src="$LibGit2SharpNativeBinaries$libgit2\LibGit2Sharp.dll.config" target="build\MSBuildCore\LibGit2Sharp.dll.config" />
-    <file src="$BaseOutputPath$netcoreapp2.0\LibGit2Sharp.dll" target="build\MSBuildCore\LibGit2Sharp.dll" />
-    <file src="$BaseOutputPath$netcoreapp2.0\Microsoft.DotNet.PlatformAbstractions.dll" target="build\MSBuildCore\Microsoft.DotNet.PlatformAbstractions.dll" />
-    <file src="$BaseOutputPath$netcoreapp2.0\NerdBank.GitVersioning.dll" target="build\MSBuildCore\NerdBank.GitVersioning.dll" />
-    <file src="$BaseOutputPath$netcoreapp2.0\Nerdbank.GitVersioning.Tasks.dll" target="build\MSBuildCore\Nerdbank.GitVersioning.Tasks.dll" />
-    <file src="$BaseOutputPath$netcoreapp2.0\Newtonsoft.Json.dll" target="build\MSBuildCore\Newtonsoft.Json.dll" />
-    <file src="$BaseOutputPath$netcoreapp2.0\Validation.dll" target="build\MSBuildCore\Validation.dll" />
+    <file src="$BaseOutputPath$netcoreapp2.1\LibGit2Sharp.dll" target="build\MSBuildCore\LibGit2Sharp.dll" />
+    <file src="$BaseOutputPath$netcoreapp2.1\Microsoft.DotNet.PlatformAbstractions.dll" target="build\MSBuildCore\Microsoft.DotNet.PlatformAbstractions.dll" />
+    <file src="$BaseOutputPath$netcoreapp2.1\NerdBank.GitVersioning.dll" target="build\MSBuildCore\NerdBank.GitVersioning.dll" />
+    <file src="$BaseOutputPath$netcoreapp2.1\Nerdbank.GitVersioning.Tasks.dll" target="build\MSBuildCore\Nerdbank.GitVersioning.Tasks.dll" />
+    <file src="$BaseOutputPath$netcoreapp2.1\Newtonsoft.Json.dll" target="build\MSBuildCore\Newtonsoft.Json.dll" />
+    <file src="$BaseOutputPath$netcoreapp2.1\System.Text.Json.dll" target="build\MSBuildCore\System.Text.Json.dll" />
+    <file src="$BaseOutputPath$netcoreapp2.1\Validation.dll" target="build\MSBuildCore\Validation.dll" />
+    <file src="$BaseOutputPath$netcoreapp2.1\System.Runtime.CompilerServices.Unsafe.dll" target="build\MSBuildCore\System.Runtime.CompilerServices.Unsafe.dll" />
+    <file src="$BaseOutputPath$netcoreapp2.1\PInvoke.Kernel32.dll" target="build\MSBuildCore\PInvoke.Kernel32.dll" />
 
     <file src="build\Nerdbank.GitVersioning.targets" target="build\Nerdbank.GitVersioning.targets" />
     <file src="build\Nerdbank.GitVersioning.Common.targets" target="build\Nerdbank.GitVersioning.Common.targets" />
     <file src="build\Nerdbank.GitVersioning.Inner.targets" target="build\Nerdbank.GitVersioning.Inner.targets" />
     <file src="buildCrossTargeting\Nerdbank.GitVersioning.targets" target="buildCrossTargeting\Nerdbank.GitVersioning.targets" />
-    <file src="tools\Create-VersionFile.ps1" target="tools\Create-VersionFile.ps1" />
-    <file src="tools\Get-CommitId.ps1" target="tools\Get-CommitId.ps1" />
-    <file src="tools\Get-Version.ps1" target="tools\Get-Version.ps1" />
-    <file src="tools\Install.ps1" target="tools\Install.ps1" />
     <file src="readme.txt" target="readme.txt" />
   </files>
 </package>

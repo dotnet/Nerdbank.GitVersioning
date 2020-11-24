@@ -39,7 +39,7 @@ stages:
       matrix:
         linux:
           imageName: 'ubuntu-20.04'
-          testModifier: -f netcoreapp3.1
+          testModifier: -f net5.0
         windows:
           imageName: 'windows-2019'
           testModifier:
@@ -58,10 +58,17 @@ stages:
       displayName: Configure git commit author for testing
 
     - task: UseDotNet@2
-      displayName: Install .NET Core SDK 3.1.100
+      displayName: Install .NET Core SDK 5.0.100
       inputs:
         packageType: sdk
-        version: 3.1.100
+        version: 5.0.100
+
+    - task: UseDotNet@2
+      displayName: Install .NET Core 3.1
+      inputs:
+        packageType: runtime
+        version: 3.1.x
+
     - script: dotnet --info
       displayName: Show dotnet SDK info
 
@@ -107,8 +114,8 @@ stages:
         --filter "TestCategory!=FailsOnAzurePipelines"
         --logger "trx;LogFileName=$(Build.ArtifactStagingDirectory)/TestLogs/TestResults.trx"
         --results-directory $(Build.ArtifactStagingDirectory)/CodeCoverage/
-        --collect:"XPlat Code Coverage" 
-        -- 
+        --collect:"XPlat Code Coverage"
+        --
         RunConfiguration.DisableAppDomain=true
       displayName: Run tests
       workingDirectory: src
@@ -197,6 +204,7 @@ stages:
       condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
 
 - stage: Test
+  displayName: Functional testing
   jobs:
   - job: linux
     strategy:
@@ -229,3 +237,79 @@ stages:
       vmImage: macOS-10.15
     steps:
     - template: azure-pipelines/xplattest-pipeline.yml
+
+- stage: PerfAnalysis
+  displayName: Perf analysis
+  dependsOn: []
+  jobs:
+  - job: PerfTest
+    strategy:
+      matrix:
+        ubuntu:
+          imageName: ubuntu-18.04
+          repoDir: '~/git'
+        windows:
+          imageName: windows-2019
+          repoDir: '${USERPROFILE}/source/repos'
+        macOS:
+          imageName: macOS-10.15
+          repoDir: '~/git'
+    pool:
+      vmImage: $(imageName)
+    steps:
+    - task: UseDotNet@2
+      displayName: Install .NET Core SDK 2.1.811
+      inputs:
+        packageType: sdk
+        version: 2.1.811
+    - task: UseDotNet@2
+      displayName: Install .NET Core SDK 3.1.100
+      inputs:
+        packageType: sdk
+        version: 3.1.100
+    - task: UseDotNet@2
+      displayName: Install .NET Core SDK 5.0.100
+      inputs:
+        packageType: sdk
+        version: 5.0.100
+    - script: dotnet --info
+      displayName: Show dotnet SDK info
+    - bash: |
+        mkdir -p $(repoDir)
+        git clone https://github.com/xunit/xunit $(repoDir)/xunit
+        git clone https://github.com/gimlichael/Cuemon $(repoDir)/Cuemon
+        git clone https://github.com/kerryjiang/SuperSocket $(repoDir)/SuperSocket
+        git clone https://github.com/dotnet/NerdBank.GitVersioning $(repoDir)/NerdBank.GitVersioning
+      displayName: Clone test repositories
+    - script: |
+        dotnet build -c Release
+      workingDirectory: src/
+      displayName: Build in Release mode
+    - script: |
+        dotnet run -c Release -f netcoreapp3.1 -- --filter GetVersionBenchmarks --artifacts $(Build.ArtifactStagingDirectory)/benchmarks/packed/$(imageName)
+      workingDirectory: src/NerdBank.GitVersioning.Benchmarks
+      displayName: Run benchmarks (packed)
+    - bash: |
+        cd $(repoDir)/xunit
+        git unpack-objects < .git/objects/pack/*.pack
+
+        cd $(repoDir)/Cuemon
+        git unpack-objects < .git/objects/pack/*.pack
+
+        cd $(repoDir)/SuperSocket
+        git unpack-objects < .git/objects/pack/*.pack
+
+        cd $(repoDir)/NerdBank.GitVersioning
+        git unpack-objects < .git/objects/pack/*.pack
+      displayName: Unpack Git repositories
+    - script: |
+        dotnet run -c Release -f netcoreapp3.1 -- --filter GetVersionBenchmarks --artifacts $(Build.ArtifactStagingDirectory)/benchmarks/unpacked/$(imageName)
+      workingDirectory: src/NerdBank.GitVersioning.Benchmarks
+      displayName: Run benchmarks (unpacked)
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: $(Build.ArtifactStagingDirectory)/benchmarks
+        ArtifactName: benchmarks
+        ArtifactType: Container
+      displayName: Publish benchmarks artifacts
+      condition: succeededOrFailed()

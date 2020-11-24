@@ -18,6 +18,11 @@ namespace Nerdbank.GitVersioning
         public bool IsExclude { get; }
 
         /// <summary>
+        /// <see langword="true"/> if this <see cref="FilterPath"/> represents an include filter.
+        /// </summary>
+        public bool IsInclude => !this.IsExclude;
+
+        /// <summary>
         /// Path relative to the repository root that this <see cref="FilterPath"/> represents.
         /// Directories are delimited with forward slashes.
         /// </summary>
@@ -168,6 +173,32 @@ namespace Nerdbank.GitVersioning
                        stringComparison);
         }
 
+        /// <summary>
+        /// Determines if <paramref name="repoRelativePath"/> should be included by this <see cref="FilterPath"/>.
+        /// </summary>
+        /// <param name="repoRelativePath">Forward-slash delimited path (repo relative).</param>
+        /// <param name="ignoreCase">
+        /// Whether paths should be compared case insensitively.
+        /// Should be the 'core.ignorecase' config value for the repository.
+        /// </param>
+        /// <returns>
+        /// True if this <see cref="FilterPath"/> is an including filter that matches
+        /// <paramref name="repoRelativePath"/>, otherwise false.
+        /// </returns>
+        public bool Includes(string repoRelativePath, bool ignoreCase)
+        {
+            if (repoRelativePath is null)
+                throw new ArgumentNullException(nameof(repoRelativePath));
+
+            if (!this.IsInclude) return false;
+            if (this.IsRoot) return true;
+
+            var stringComparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            return this.RepoRelativePath.Equals(repoRelativePath, stringComparison) ||
+                   repoRelativePath.StartsWith(this.RepoRelativePath + "/",
+                       stringComparison);
+        }
+
         private static (int dirsToAscend, StringBuilder result) GetRelativePath(string path, string relativeTo)
         {
             var pathParts = path.Split('/');
@@ -223,6 +254,12 @@ namespace Nerdbank.GitVersioning
             }
 
             return pathSpec.ToString();
+        }
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            return this.RepoRelativePath;
         }
     }
 }

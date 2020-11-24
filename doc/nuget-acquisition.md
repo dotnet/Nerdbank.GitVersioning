@@ -14,9 +14,10 @@ If in a project that uses PackageReference for this package reference, you shoul
 After installing this NuGet package, you may need to configure the version generation logic
 in order for it to work properly.
 
-When using packages.config, the configuration is handled automatically via the tools\Install.ps1 script.
-When using project.json or PackageReference, you can run the script tools\Create-VersionFile.ps1 to help
-you create the version.json file and remove the old assembly attributes.
+We recommend installing the `nbgv` tool using `dotnet tool install -g nbgv`.
+Then use `nbgv install` to add the package reference and `version.json` file to your repo.
+But you can simply add the package reference yourself, and create the `version.json` in your repo
+with content conforming to [this doc](versionJson.md).
 
 The scripts will look for the presence of a version.json or version.txt file.
 If one already exists, nothing happens. If the version file does not exist,

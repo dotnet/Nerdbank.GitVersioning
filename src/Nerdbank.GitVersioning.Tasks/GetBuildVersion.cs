@@ -62,6 +62,11 @@
         public int OverrideBuildNumberOffset { get; set; } = int.MaxValue;
 
         /// <summary>
+        /// Gets or sets the git engine to use.
+        /// </summary>
+        public string GitEngine { get; set; }
+
+        /// <summary>
         /// Gets or sets the path to the folder that contains the NB.GV .targets file.
         /// </summary>
         /// <remarks>
@@ -195,7 +200,7 @@
         [Output]
         public ITaskItem[] CloudBuildVersionVars { get; private set; }
 
-        protected override string UnmanagedDllDirectory => GitExtensions.FindLibGit2NativeBinaries(this.TargetsPath);
+        protected override string UnmanagedDllDirectory => LibGit2.LibGit2GitExtensions.FindLibGit2NativeBinaries(this.TargetsPath);
 
         protected override bool ExecuteInner()
         {
@@ -211,9 +216,22 @@
                         "Path must not use ..\\");
                 }
 
+                bool useLibGit2 = false;
+                if (!string.IsNullOrWhiteSpace(this.GitEngine))
+                {
+                    useLibGit2 =
+                        this.GitEngine == "Managed" ? false :
+                        this.GitEngine == "LibGit2" ? true :
+                        throw new ArgumentException("GitEngine property must be set to either \"Managed\" or \"LibGit2\" or left empty.");
+                }
+
                 var cloudBuild = CloudBuild.Active;
                 var overrideBuildNumberOffset = (this.OverrideBuildNumberOffset == int.MaxValue) ? (int?)null : this.OverrideBuildNumberOffset;
-                var oracle = VersionOracle.Create(this.ProjectDirectory, this.GitRepoRoot, cloudBuild, overrideBuildNumberOffset, this.ProjectPathRelativeToGitRepoRoot);
+                string projectDirectory = this.ProjectPathRelativeToGitRepoRoot is object && this.GitRepoRoot is object
+                    ? Path.Combine(this.GitRepoRoot, this.ProjectPathRelativeToGitRepoRoot)
+                    : this.ProjectDirectory;
+                using var context = GitContext.Create(projectDirectory, writable: useLibGit2);
+                var oracle = new VersionOracle(context, cloudBuild, overrideBuildNumberOffset);
                 if (!string.IsNullOrEmpty(this.DefaultPublicRelease))
                 {
                     oracle.PublicRelease = string.Equals(this.DefaultPublicRelease, "true", StringComparison.OrdinalIgnoreCase);

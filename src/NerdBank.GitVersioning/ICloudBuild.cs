@@ -1,4 +1,6 @@
-﻿namespace Nerdbank.GitVersioning
+﻿#nullable enable
+
+namespace Nerdbank.GitVersioning
 {
     using System.Collections.Generic;
     using System.IO;
@@ -21,17 +23,17 @@
         /// <summary>
         /// Gets the branch being built by a cloud build, if applicable.
         /// </summary>
-        string BuildingBranch { get; }
+        string? BuildingBranch { get; }
 
         /// <summary>
         /// Gets the tag being built by a cloud build, if applicable.
         /// </summary>
-        string BuildingTag { get; }
+        string? BuildingTag { get; }
 
         /// <summary>
         /// Gets the git commit ID being built by a cloud build, if applicable.
         /// </summary>
-        string GitCommitId { get; }
+        string? GitCommitId { get; }
 
         /// <summary>
         /// Sets the build number for the cloud build, if supported.
@@ -40,7 +42,7 @@
         /// <param name="stdout">An optional redirection for what should be written to the standard out stream.</param>
         /// <param name="stderr">An optional redirection for what should be written to the standard error stream.</param>
         /// <returns>A dictionary of environment/build variables that the caller should set to update the environment to match the new settings.</returns>
-        IReadOnlyDictionary<string, string> SetCloudBuildNumber(string buildNumber, TextWriter stdout, TextWriter stderr);
+        IReadOnlyDictionary<string, string> SetCloudBuildNumber(string buildNumber, TextWriter? stdout, TextWriter? stderr);
 
         /// <summary>
         /// Sets a cloud build variable, if supported.
@@ -50,6 +52,6 @@
         /// <param name="stdout">An optional redirection for what should be written to the standard out stream.</param>
         /// <param name="stderr">An optional redirection for what should be written to the standard error stream.</param>
         /// <returns>A dictionary of environment/build variables that the caller should set to update the environment to match the new settings.</returns>
-        IReadOnlyDictionary<string, string> SetCloudBuildVariable(string name, string value, TextWriter stdout, TextWriter stderr);
+        IReadOnlyDictionary<string, string> SetCloudBuildVariable(string name, string value, TextWriter? stdout, TextWriter? stderr);
     }
 }

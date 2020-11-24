@@ -1,124 +1,100 @@
-﻿namespace Nerdbank.GitVersioning
+﻿#nullable enable
+
+namespace Nerdbank.GitVersioning
 {
     using System;
     using System.Collections.Generic;
     using System.Globalization;
-    using System.IO;
     using System.Linq;
     using System.Reflection;
-    using System.Runtime.InteropServices;
     using System.Text.RegularExpressions;
-    using Validation;
 
     /// <summary>
     /// Assembles version information in a variety of formats.
     /// </summary>
     public class VersionOracle
     {
+        private const bool UseLibGit2 = false;
+
         /// <summary>
         /// The 0.0 version.
         /// </summary>
-        private static readonly Version Version0 = new Version(0, 0);
+        private protected static readonly Version Version0 = new Version(0, 0);
 
-        /// <summary>
-        /// The 0.0 semver.
-        /// </summary>
-        private static readonly SemanticVersion SemVer0 = SemanticVersion.Parse("0.0");
+        private readonly GitContext context;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="VersionOracle"/> class.
-        /// </summary>
-        public static VersionOracle Create(string projectDirectory, string gitRepoDirectory = null, ICloudBuild cloudBuild = null, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null)
-        {
-            Requires.NotNull(projectDirectory, nameof(projectDirectory));
-            if (string.IsNullOrEmpty(gitRepoDirectory))
-            {
-                gitRepoDirectory = projectDirectory;
-            }
-
-            using (var git = GitExtensions.OpenGitRepo(gitRepoDirectory))
-            {
-                return new VersionOracle(projectDirectory, git, null, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot);
-            }
-        }
+        private readonly ICloudBuild? cloudBuild;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="VersionOracle"/> class.
         /// </summary>
-        public VersionOracle(string projectDirectory, LibGit2Sharp.Repository repo, ICloudBuild cloudBuild, int? overrideBuildNumberOffset = null, string projectPathRelativeToGitRepoRoot = null)
-            : this(projectDirectory, repo, null, cloudBuild, overrideBuildNumberOffset, projectPathRelativeToGitRepoRoot)
+        /// <param name="context">The git context from which to calculate version data.</param>
+        /// <param name="cloudBuild">An optional cloud build provider that may offer additional context. Typically set to <see cref="CloudBuild.Active"/>.</param>
+        /// <param name="overrideVersionHeightOffset">An optional value to override the version height offset.</param>
+        public VersionOracle(GitContext context, ICloudBuild? cloudBuild = null, int? overrideVersionHeightOffset = null)
         {
-        }
+            this.context = context;
+            this.cloudBuild = cloudBuild;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="VersionOracle"/> class.
-        /// </summary>
-        public VersionOracle(string projectDirectory, LibGit2Sharp.Repository repo, LibGit2Sharp.Commit head, ICloudBuild cloudBuild, int? overrideVersionHeightOffset = null, string projectPathRelativeToGitRepoRoot = null)
-        {
-            var relativeRepoProjectDirectory = projectPathRelativeToGitRepoRoot ?? repo?.GetRepoRelativePath(projectDirectory);
-            if (repo is object)
-            {
-                // If we're particularly git focused, normalize/reset projectDirectory to be the path we *actually* want to look at in case we're being redirected.
-                projectDirectory = Path.Combine(repo.Info.WorkingDirectory, relativeRepoProjectDirectory);
-            }
+            this.CommittedVersion = context.VersionFile.GetVersion();
 
-            var commit = head ?? repo?.Head.Tip;
-
-            var committedVersion = VersionFile.GetVersion(commit, relativeRepoProjectDirectory);
-
-            var workingVersion = head is object ? VersionFile.GetVersion(head, relativeRepoProjectDirectory) : VersionFile.GetVersion(projectDirectory);
+            // Consider the working version only if the commit being inspected is HEAD.
+            // Otherwise we're looking at historical data and should not consider the state of the working tree at all.
+            this.WorkingVersion = context.IsHead ? context.VersionFile.GetWorkingCopyVersion() : this.CommittedVersion;
 
             if (overrideVersionHeightOffset.HasValue)
             {
-                if (committedVersion != null)
+                if (this.CommittedVersion is object)
                 {
-                    committedVersion.VersionHeightOffset = overrideVersionHeightOffset.Value;
+                    this.CommittedVersion.VersionHeightOffset = overrideVersionHeightOffset.Value;
                 }
 
-                if (workingVersion != null)
+                if (this.WorkingVersion is object)
                 {
-                    workingVersion.VersionHeightOffset = overrideVersionHeightOffset.Value;
+                    this.WorkingVersion.VersionHeightOffset = overrideVersionHeightOffset.Value;
                 }
             }
 
-            this.VersionOptions = committedVersion ?? workingVersion;
+            this.BuildingRef = cloudBuild?.BuildingTag ?? cloudBuild?.BuildingBranch ?? context.HeadCanonicalName;
+            try
+            {
+                this.VersionHeight = context.CalculateVersionHeight(this.CommittedVersion, this.WorkingVersion);
+            }
+            catch (GitException ex) when (context.IsShallow && ex.ErrorCode == GitException.ErrorCodes.ObjectNotFound)
+            {
+                // Our managed git implementation throws this on shallow clones.
+                throw ThrowShallowClone(ex);
+            }
+            catch (InvalidOperationException ex) when (context.IsShallow && (ex.InnerException is NullReferenceException || ex.InnerException is LibGit2Sharp.NotFoundException))
+            {
+                // Libgit2 throws this on shallow clones.
+                throw ThrowShallowClone(ex);
+            }
 
-            this.GitCommitId = commit?.Id.Sha ?? cloudBuild?.GitCommitId ?? null;
-            this.GitCommitDate = commit?.Author.When;
-            this.VersionHeight = CalculateVersionHeight(relativeRepoProjectDirectory, commit, committedVersion, workingVersion);
-            this.BuildingRef = cloudBuild?.BuildingTag ?? cloudBuild?.BuildingBranch ?? repo?.Head.CanonicalName;
+            static Exception ThrowShallowClone(Exception inner) => throw new GitException("Shallow clone lacks the objects required to calculate version height. Use full clones or clones with a history at least as deep as the last version height resetting change.", inner) { iSShallowClone = true, ErrorCode = GitException.ErrorCodes.ObjectNotFound };
+
+            this.VersionOptions = this.CommittedVersion ?? this.WorkingVersion;
+            this.Version = this.VersionOptions?.Version?.Version ?? Version0;
 
             // Override the typedVersion with the special build number and revision components, when available.
-            if (repo != null)
+            if (context.IsRepository)
             {
-                this.Version = GetIdAsVersion(commit, committedVersion, workingVersion, this.VersionHeight);
+                this.Version = context.GetIdAsVersion(this.CommittedVersion, this.WorkingVersion, this.VersionHeight);
             }
-            else
-            {
-                this.Version = this.VersionOptions?.Version.Version ?? Version0;
-            }
+
+            this.CloudBuildNumberOptions = this.VersionOptions?.CloudBuild?.BuildNumberOrDefault ?? VersionOptions.CloudBuildNumberOptions.DefaultInstance;
 
             // get the commit id abbreviation only if the commit id is set
             if (!string.IsNullOrEmpty(this.GitCommitId))
             {
                 var gitCommitIdShortFixedLength = this.VersionOptions?.GitCommitIdShortFixedLength ?? VersionOptions.DefaultGitCommitIdShortFixedLength;
                 var gitCommitIdShortAutoMinimum = this.VersionOptions?.GitCommitIdShortAutoMinimum ?? 0;
-                // get it from the git repository if there is a repository present and it is enabled
-                if (repo != null && gitCommitIdShortAutoMinimum > 0)
-                {
-                    this.GitCommitIdShort = repo.ObjectDatabase.ShortenObjectId(commit, gitCommitIdShortAutoMinimum);
-                }
-                else
-                {
-                    this.GitCommitIdShort = this.GitCommitId.Substring(0, gitCommitIdShortFixedLength);
-                }
+
+                // Get it from the git repository if there is a repository present and it is enabled.
+                this.GitCommitIdShort = this.GitCommitId is object && gitCommitIdShortAutoMinimum > 0
+                    ? this.context.GetShortUniqueCommitId(gitCommitIdShortAutoMinimum)
+                    : this.GitCommitId!.Substring(0, gitCommitIdShortFixedLength);
             }
-
-            this.VersionHeightOffset = this.VersionOptions?.VersionHeightOffsetOrDefault ?? 0;
-
-            this.PrereleaseVersion = this.ReplaceMacros(this.VersionOptions?.Version?.Prerelease ?? string.Empty);
-
-            this.CloudBuildNumberOptions = this.VersionOptions?.CloudBuild?.BuildNumberOrDefault ?? VersionOptions.CloudBuildNumberOptions.DefaultInstance;
 
             if (!string.IsNullOrEmpty(this.BuildingRef) && this.VersionOptions?.PublicReleaseRefSpec?.Count > 0)
             {
@@ -126,6 +102,16 @@
                     expr => Regex.IsMatch(this.BuildingRef, expr));
             }
         }
+
+        /// <summary>
+        /// Gets the <see cref="VersionOptions"/> that were deserialized from the contextual commit, if any.
+        /// </summary>
+        protected VersionOptions? CommittedVersion { get; }
+
+        /// <summary>
+        /// Gets the <see cref="VersionOptions"/> that were deserialized from the working tree, if any.
+        /// </summary>
+        protected VersionOptions? WorkingVersion { get; }
 
         /// <summary>
         /// Gets the BuildNumber to set the cloud build to (if applicable).
@@ -159,9 +145,9 @@
         {
             get
             {
-                if (!string.IsNullOrEmpty(this.GitCommitId))
+                if (!string.IsNullOrEmpty(this.GitCommitIdShort))
                 {
-                    yield return this.GitCommitIdShort;
+                    yield return this.GitCommitIdShort!;
                 }
 
                 foreach (string identifier in this.BuildMetadata)
@@ -174,12 +160,12 @@
         /// <summary>
         /// Gets a value indicating whether a version.json or version.txt file was found.
         /// </summary>
-        public bool VersionFileFound => this.VersionOptions != null;
+        public bool VersionFileFound => this.VersionOptions is object;
 
         /// <summary>
         /// Gets the version options used to initialize this instance.
         /// </summary>
-        public VersionOptions VersionOptions { get; }
+        public VersionOptions? VersionOptions { get; }
 
         /// <summary>
         /// Gets the version string to use for the <see cref="System.Reflection.AssemblyVersionAttribute"/>.
@@ -206,12 +192,12 @@
         /// <summary>
         /// Gets the prerelease version information, including a leading hyphen.
         /// </summary>
-        public string PrereleaseVersion { get; }
+        public string PrereleaseVersion => this.ReplaceMacros(this.VersionOptions?.Version?.Prerelease ?? string.Empty);
 
         /// <summary>
         /// Gets the prerelease version information, omitting the leading hyphen, if any.
         /// </summary>
-        public string PrereleaseVersionNoLeadingHyphen => this.PrereleaseVersion?.TrimStart('-');
+        public string? PrereleaseVersionNoLeadingHyphen => this.PrereleaseVersion?.TrimStart('-');
 
         /// <summary>
         /// Gets the version information without a Revision component.
@@ -251,41 +237,41 @@
         /// <summary>
         /// Gets the Git revision control commit id for HEAD (the current source code version).
         /// </summary>
-        public string GitCommitId { get; }
+        public string? GitCommitId => this.context.GitCommitId ?? this.cloudBuild?.GitCommitId;
 
         /// <summary>
         /// Gets the first several characters of the Git revision control commit id for HEAD (the current source code version).
         /// </summary>
-        public string GitCommitIdShort { get; }
+        public string? GitCommitIdShort { get; }
 
         /// <summary>
         /// Gets the Git revision control commit date for HEAD (the current source code version).
         /// </summary>
-        public DateTimeOffset? GitCommitDate { get; }
+        public DateTimeOffset? GitCommitDate => this.context.GitCommitDate;
 
         /// <summary>
         /// Gets the number of commits in the longest single path between
         /// the specified commit and the most distant ancestor (inclusive)
         /// that set the version to the value at HEAD.
         /// </summary>
-        public int VersionHeight { get; }
+        public int VersionHeight { get; protected set; }
 
         /// <summary>
         /// The offset to add to the <see cref="VersionHeight"/>
         /// when calculating the integer to use as the <see cref="BuildNumber"/>
         /// or elsewhere that the {height} macro is used.
         /// </summary>
-        public int VersionHeightOffset { get; }
+        public int VersionHeightOffset => this.VersionOptions?.VersionHeightOffsetOrDefault ?? 0;
 
         /// <summary>
         /// Gets the ref (branch or tag) being built.
         /// </summary>
-        public string BuildingRef { get; }
+        public string? BuildingRef { get; protected set; }
 
         /// <summary>
         /// Gets the version for this project, with up to 4 components.
         /// </summary>
-        public Version Version { get; }
+        public Version Version { get; protected set; }
 
         /// <summary>
         /// Gets a value indicating whether to set all cloud build variables prefaced with "NBGV_".
@@ -311,9 +297,9 @@
                     if (property.GetCustomAttribute<IgnoreAttribute>() == null)
                     {
                         var value = property.GetValue(this);
-                        if (value != null)
+                        if (value is object)
                         {
-                            variables.Add($"NBGV_{property.Name}", value.ToString());
+                            variables.Add($"NBGV_{property.Name}", value.ToString() ?? string.Empty);
                         }
                     }
                 }
@@ -396,6 +382,11 @@
         public int SemVer1NumericIdentifierPadding => this.VersionOptions?.SemVer1NumericIdentifierPaddingOrDefault ?? 4;
 
         /// <summary>
+        /// Gets or sets the <see cref="VersionOracle.CloudBuildNumberOptions"/>.
+        /// </summary>
+        protected VersionOptions.CloudBuildNumberOptions CloudBuildNumberOptions { get; set; }
+
+        /// <summary>
         /// Gets the build metadata, compliant to the NuGet-compatible subset of SemVer 1.0.
         /// </summary>
         /// <remarks>
@@ -443,17 +434,12 @@
         /// </remarks>
         private string GitCommitIdShortForNonPublicPrereleaseTag => (string.IsNullOrEmpty(this.PrereleaseVersion) ? "-" : ".") + (this.VersionOptions?.GitCommitIdPrefix ?? "g") + this.GitCommitIdShort;
 
-        private VersionOptions.CloudBuildNumberOptions CloudBuildNumberOptions { get; }
-
         private int VersionHeightWithOffset => this.VersionHeight + this.VersionHeightOffset;
 
         private static string FormatBuildMetadata(IEnumerable<string> identifiers) =>
             (identifiers?.Any() ?? false) ? "+" + string.Join(".", identifiers) : string.Empty;
 
-        private static string FormatBuildMetadataSemVerV1(IEnumerable<string> identifiers) =>
-            (identifiers?.Any() ?? false) ? "-" + string.Join("-", identifiers) : string.Empty;
-
-        private static Version GetAssemblyVersion(Version version, VersionOptions versionOptions)
+        private static Version GetAssemblyVersion(Version version, VersionOptions? versionOptions)
         {
             // If there is no repo, "version" could have uninitialized components (-1).
             version = version.EnsureNonNegativeComponents();
@@ -474,44 +460,7 @@
         /// </summary>
         /// <param name="prereleaseOrBuildMetadata">The prerelease or build metadata.</param>
         /// <returns>The specified string, with macros substituted for actual values.</returns>
-        private string ReplaceMacros(string prereleaseOrBuildMetadata) => prereleaseOrBuildMetadata?.Replace(VersionOptions.VersionHeightPlaceholder, this.VersionHeightWithOffset.ToString(CultureInfo.InvariantCulture));
-
-        private static int CalculateVersionHeight(string relativeRepoProjectDirectory, LibGit2Sharp.Commit headCommit, VersionOptions committedVersion, VersionOptions workingVersion)
-        {
-            var headCommitVersion = committedVersion?.Version ?? SemVer0;
-
-            if (IsVersionFileChangedInWorkingTree(committedVersion, workingVersion))
-            {
-                var workingCopyVersion = workingVersion?.Version?.Version;
-
-                if (workingCopyVersion == null || !workingCopyVersion.Equals(headCommitVersion))
-                {
-                    // The working copy has changed the major.minor version.
-                    // So by definition the version height is 0, since no commit represents it yet.
-                    return 0;
-                }
-            }
-
-            return headCommit?.GetVersionHeight(relativeRepoProjectDirectory) ?? 0;
-        }
-
-        private static Version GetIdAsVersion(LibGit2Sharp.Commit headCommit, VersionOptions committedVersion, VersionOptions workingVersion, int versionHeight)
-        {
-            var version = IsVersionFileChangedInWorkingTree(committedVersion, workingVersion) ? workingVersion : committedVersion;
-
-            return headCommit.GetIdAsVersionHelper(version, versionHeight);
-        }
-
-        private static bool IsVersionFileChangedInWorkingTree(VersionOptions committedVersion, VersionOptions workingVersion)
-        {
-            if (workingVersion != null)
-            {
-                return !EqualityComparer<VersionOptions>.Default.Equals(workingVersion, committedVersion);
-            }
-
-            // A missing working version is a change only if it was previously commited.
-            return committedVersion != null;
-        }
+        private string ReplaceMacros(string prereleaseOrBuildMetadata) => prereleaseOrBuildMetadata.Replace(VersionOptions.VersionHeightPlaceholder, this.VersionHeightWithOffset.ToString(CultureInfo.InvariantCulture));
 
         [AttributeUsage(AttributeTargets.Property)]
         private class IgnoreAttribute : Attribute

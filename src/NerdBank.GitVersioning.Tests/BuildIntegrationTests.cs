@@ -23,7 +23,39 @@ using Xunit;
 using Xunit.Abstractions;
 using Version = System.Version;
 
-public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
+[Trait("Engine", "Managed")]
+[Collection("Build")] // msbuild sets current directory in the process, so we can't have it be concurrent with other build tests.
+public class BuildIntegrationManagedTests : BuildIntegrationTests
+{
+    public BuildIntegrationManagedTests(ITestOutputHelper logger)
+        : base(logger)
+    {
+    }
+
+    protected override GitContext CreateGitContext(string path, string committish = null)
+        => GitContext.Create(path, committish, writable: false);
+
+    protected override void ApplyGlobalProperties(IDictionary<string, string> globalProperties)
+        => globalProperties["NBGV_GitEngine"] = "Managed";
+}
+
+[Trait("Engine", "LibGit2")]
+[Collection("Build")] // msbuild sets current directory in the process, so we can't have it be concurrent with other build tests.
+public class BuildIntegrationLibGit2Tests : BuildIntegrationTests
+{
+    public BuildIntegrationLibGit2Tests(ITestOutputHelper logger)
+        : base(logger)
+    {
+    }
+
+    protected override GitContext CreateGitContext(string path, string committish = null)
+        => GitContext.Create(path, committish, writable: true);
+
+    protected override void ApplyGlobalProperties(IDictionary<string, string> globalProperties)
+        => globalProperties["NBGV_GitEngine"] = "LibGit2";
+}
+
+public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
 {
     private const string GitVersioningTargetsFileName = "NerdBank.GitVersioning.targets";
     private const string UnitTestCloudBuildPrefix = "UnitTest: ";
@@ -32,6 +64,7 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         "APPVEYOR",
         "SYSTEM_",
         "BUILD_",
+        "NBGV_GitEngine",
     };
     private BuildManager buildManager;
     private ProjectCollection projectCollection;
@@ -57,10 +90,6 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
 
     private void Init()
     {
-#if !NET461
-        GitLoaderContext.RuntimePath = "./runtimes";
-#endif
-
         int seed = (int)DateTime.Now.Ticks;
         this.random = new Random(seed);
         this.Logger.WriteLine("Random seed: {0}", seed);
@@ -84,7 +113,9 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         }
     }
 
-    private string CommitIdShort => this.Repo.Head.Tip.Id.Sha.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength);
+    private string CommitIdShort => this.Context.GitCommitId?.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength);
+
+    protected abstract void ApplyGlobalProperties(IDictionary<string, string> globalProperties);
 
     protected override void Dispose(bool disposing)
     {
@@ -190,7 +221,7 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         this.WriteVersionFile("3.4");
         Assumes.True(repo.Index[VersionFile.JsonFileName] == null);
         var buildResult = await this.BuildAsync();
-        Assert.Equal("3.4.0." + GetIdAsVersion(repo, repo.Head.Tip).Revision, buildResult.BuildVersion);
+        Assert.Equal("3.4.0." + this.GetVersion().Revision, buildResult.BuildVersion);
         Assert.Equal("3.4.0+" + repo.Head.Tip.Id.Sha.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength), buildResult.AssemblyInformationalVersion);
     }
 
@@ -203,7 +234,7 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         this.WriteVersionFile(majorMinorVersion, prerelease);
         this.InitializeSourceControl();
         var workingCopyVersion = VersionOptions.FromVersion(new Version("6.0"));
-        VersionFile.SetVersion(this.RepoPath, workingCopyVersion);
+        this.Context.VersionFile.SetVersion(this.RepoPath, workingCopyVersion);
         var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(workingCopyVersion, buildResult);
     }
@@ -215,7 +246,7 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         var repo = new Repository(this.RepoPath); // do not assign Repo property to avoid commits being generated later
         repo.Commit("empty", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         var buildResult = await this.BuildAsync();
-        Assert.Equal("0.0.0." + GetIdAsVersion(repo, repo.Head.Tip).Revision, buildResult.BuildVersion);
+        Assert.Equal("0.0.0." + this.GetVersion().Revision, buildResult.BuildVersion);
         Assert.Equal("0.0.0+" + repo.Head.Tip.Id.Sha.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength), buildResult.AssemblyInformationalVersion);
     }
 
@@ -295,7 +326,7 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(VersionOptions.FromVersion(new Version(majorMinorVersion)), buildResult);
 
-        Version version = this.GetIdAsVersion(this.Repo.Head.Tip);
+        Version version = this.GetVersion();
         Assert.Equal($"{version.Major}.{version.Minor}.{buildResult.GitVersionHeight}", buildResult.NuGetPackageVersion);
     }
 
@@ -422,7 +453,7 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
             Version = new SemanticVersion(new Version(14, 1)),
             VersionHeightOffset = -1,
         };
-        VersionFile.SetVersion(this.RepoPath, versionOptions);
+        this.Context.VersionFile.SetVersion(this.RepoPath, versionOptions);
         var buildResult = await this.BuildAsync();
         this.AssertStandardProperties(versionOptions, buildResult);
     }
@@ -573,6 +604,7 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
 
             versionOptions.CloudBuild.SetVersionVariables = false;
             this.WriteVersionFile(versionOptions);
+            this.SetContextToHead();
             buildResult = await this.BuildAsync();
             this.AssertStandardProperties(versionOptions, buildResult);
 
@@ -734,8 +766,8 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         using (ApplyEnvironmentVariables(CloudBuild.SuppressEnvironment))
         {
             // Check out a branch that conforms.
-            var releaseBranch = this.Repo.CreateBranch("release");
-            Commands.Checkout(this.Repo, releaseBranch);
+            var releaseBranch = this.LibGit2Repository.CreateBranch("release");
+            Commands.Checkout(this.LibGit2Repository, releaseBranch);
             var buildResult = await this.BuildAsync();
             Assert.True(buildResult.PublicRelease);
             this.AssertStandardProperties(versionOptions, buildResult);
@@ -946,6 +978,8 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         Assert.Empty(result.LoggedEvents.OfType<BuildWarningEventArgs>());
     }
 
+    protected override GitContext CreateGitContext(string path, string committish = null) => throw new NotImplementedException();
+
 #if !NETCOREAPP
     /// <summary>
     /// Create a native resource .dll and verify that its version
@@ -1002,9 +1036,9 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
     private void AssertStandardProperties(VersionOptions versionOptions, BuildResults buildResult, string relativeProjectDirectory = null)
     {
         int versionHeight = this.GetVersionHeight(relativeProjectDirectory);
-        Version idAsVersion = this.GetIdAsVersion(relativeProjectDirectory);
+        Version idAsVersion = this.GetVersion(relativeProjectDirectory);
         string commitIdShort = this.CommitIdShort;
-        Version version = this.GetIdAsVersion(relativeProjectDirectory);
+        Version version = this.GetVersion(relativeProjectDirectory);
         Version assemblyVersion = GetExpectedAssemblyVersion(versionOptions, version);
         var additionalBuildMetadata = from item in buildResult.BuildResult.ProjectStateAfterBuild.GetItems("BuildMetadata")
                                       select item.EvaluatedInclude;
@@ -1028,8 +1062,8 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}", buildResult.BuildVersion3Components);
         Assert.Equal(idAsVersion.Build.ToString(), buildResult.BuildVersionNumberComponent);
         Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}", buildResult.BuildVersionSimple);
-        Assert.Equal(this.Repo.Head.Tip.Id.Sha, buildResult.GitCommitId);
-        Assert.Equal(this.Repo.Head.Tip.Author.When.UtcTicks.ToString(CultureInfo.InvariantCulture), buildResult.GitCommitDateTicks);
+        Assert.Equal(this.LibGit2Repository.Head.Tip.Id.Sha, buildResult.GitCommitId);
+        Assert.Equal(this.LibGit2Repository.Head.Tip.Author.When.UtcTicks.ToString(CultureInfo.InvariantCulture), buildResult.GitCommitDateTicks);
         Assert.Equal(commitIdShort, buildResult.GitCommitIdShort);
         Assert.Equal(versionHeight.ToString(), buildResult.GitVersionHeight);
         Assert.Equal($"{version.Major}.{version.Minor}", buildResult.MajorMinorVersion);
@@ -1097,6 +1131,7 @@ public class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
         var eventLogger = new MSBuildLogger { Verbosity = LoggerVerbosity.Minimal };
         var loggers = new ILogger[] { eventLogger };
         this.testProject.Save(); // persist generated project on disk for analysis
+        this.ApplyGlobalProperties(this.globalProperties);
         var buildResult = await this.buildManager.BuildAsync(
             this.Logger,
             this.projectCollection,

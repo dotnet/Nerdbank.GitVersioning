@@ -1,4 +1,4 @@
-﻿namespace NerdBank.GitVersioning.CloudBuildServices
+﻿namespace Nerdbank.GitVersioning.CloudBuildServices
 {
     using System;
     using System.Collections.Generic;

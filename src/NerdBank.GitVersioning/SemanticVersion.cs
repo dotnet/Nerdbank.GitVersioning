@@ -127,6 +127,32 @@
         public string BuildMetadata { get; }
 
         /// <summary>
+        /// Gets the position in a computed version that the version height should appear.
+        /// </summary>
+        internal SemanticVersion.Position? VersionHeightPosition
+        {
+            get
+            {
+                if (this.Prerelease?.Contains(VersionOptions.VersionHeightPlaceholder) ?? false)
+                {
+                    return SemanticVersion.Position.Prerelease;
+                }
+                else if (this.Version.Build == -1)
+                {
+                    return SemanticVersion.Position.Build;
+                }
+                else if (this.Version.Revision == -1)
+                {
+                    return SemanticVersion.Position.Revision;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+        }
+
+        /// <summary>
         /// Gets a value indicating whether this instance is the default "0.0" instance.
         /// </summary>
         internal bool IsDefault => this.Version?.Major == 0 && this.Version.Minor == 0 && this.Version.Build == -1 && this.Version.Revision == -1 && this.Prerelease == null && this.BuildMetadata == null;
@@ -221,6 +247,79 @@
             return this.Version == other.Version
                 && this.Prerelease == other.Prerelease
                 && this.BuildMetadata == other.BuildMetadata;
+        }
+
+        /// <summary>
+        /// Tests whether two <see cref="SemanticVersion" /> instances are compatible enough that version height is not reset
+        /// when progressing from one to the next.
+        /// </summary>
+        /// <param name="first">The first semantic version.</param>
+        /// <param name="second">The second semantic version.</param>
+        /// <param name="versionHeightPosition">The position within the version where height is tracked.</param>
+        /// <returns><c>true</c> if transitioning from one version to the next should reset the version height; <c>false</c> otherwise.</returns>
+        internal static bool WillVersionChangeResetVersionHeight(SemanticVersion first, SemanticVersion second, SemanticVersion.Position versionHeightPosition)
+        {
+            Requires.NotNull(first, nameof(first));
+            Requires.NotNull(second, nameof(second));
+
+            if (first == second)
+            {
+                return false;
+            }
+
+            if (versionHeightPosition == SemanticVersion.Position.Prerelease)
+            {
+                // The entire version spec must match exactly.
+                return !first.Equals(second);
+            }
+
+            for (SemanticVersion.Position position = SemanticVersion.Position.Major; position <= versionHeightPosition; position++)
+            {
+                int expectedValue = ReadVersionPosition(second.Version, position);
+                int actualValue = ReadVersionPosition(first.Version, position);
+                if (expectedValue != actualValue)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        internal static int ReadVersionPosition(Version version, SemanticVersion.Position position)
+        {
+            Requires.NotNull(version, nameof(version));
+
+            switch (position)
+            {
+                case SemanticVersion.Position.Major:
+                    return version.Major;
+                case SemanticVersion.Position.Minor:
+                    return version.Minor;
+                case SemanticVersion.Position.Build:
+                    return version.Build;
+                case SemanticVersion.Position.Revision:
+                    return version.Revision;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(position), position, "Must be one of the 4 integer parts.");
+            }
+        }
+
+        internal int ReadVersionPosition(SemanticVersion.Position position)
+        {
+            switch (position)
+            {
+                case SemanticVersion.Position.Major:
+                    return this.Version.Major;
+                case SemanticVersion.Position.Minor:
+                    return this.Version.Minor;
+                case SemanticVersion.Position.Build:
+                    return this.Version.Build;
+                case SemanticVersion.Position.Revision:
+                    return this.Version.Revision;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(position), position, "Must be one of the 4 integer parts.");
+            }
         }
 
         /// <summary>
