@@ -75,9 +75,9 @@ namespace Nerdbank.GitVersioning.ManagedGit
             {
                 var toRead = (int)(offset - this.cacheStream.Length);
                 byte[] buffer = ArrayPool<byte>.Shared.Rent(toRead);
-                this.stream.Read(buffer, 0, toRead);
+                int read = this.stream.Read(buffer, 0, toRead);
                 this.cacheStream.Seek(0, SeekOrigin.End);
-                this.cacheStream.Write(buffer, 0, toRead);
+                this.cacheStream.Write(buffer, 0, read);
                 ArrayPool<byte>.Shared.Return(buffer);
 
                 this.DisposeStreamIfRead();

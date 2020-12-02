@@ -93,6 +93,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
                 var source = instruction.InstructionType == DeltaInstructionType.Copy ? this.baseStream : this.deltaStream;
 
                 Debug.Assert(instruction.Size > this.offset);
+                Debug.Assert(source.Position + instruction.Size - this.offset <= source.Length);
                 canRead = Math.Min(span.Length - read, instruction.Size - this.offset);
                 didRead = source.Read(span.Slice(read, canRead));
 
