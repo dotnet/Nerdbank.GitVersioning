@@ -42,6 +42,41 @@ steps:
   failOnStderr: true
 
 - script: >
+    # Uses dotnet commands that require at least 3.x
+
+    DNVERSION=$(dotnet --version)
+
+    if [[ $DNVERSION == 2.* ]] ;
+    then
+        echo "Skipping .NET Core $DNVERSION"
+        exit 0
+    else
+        echo ".NET Core $DNVERSION"
+    fi
+    
+    PkgFileName=$(ls deployables/Cake.GitVersioning.*nupkg)
+
+    NBGV_NuGetPackageVersion=$([[ $PkgFileName =~ Cake.GitVersioning\.(.*)\.nupkg ]] && echo "${BASH_REMATCH[1]}")
+
+    echo $NBGV_NuGetPackageVersion
+
+    mkdir caketest &&
+    cd caketest &&
+    git init &&
+    dotnet new tool-manifest &&
+    dotnet tool install Cake.Tool
+
+    echo "#addin nuget:?package=Cake.GitVersioning&version=${NBGV_NuGetPackageVersion}&prerelease=true"
+
+    echo "#addin nuget:?package=Cake.GitVersioning&version=${NBGV_NuGetPackageVersion}&prerelease=true" > build.cake
+
+    echo "Information(GitVersioningGetVersion().Version.ToString());" >> build.cake
+
+    dotnet cake
+  displayName: Consume Cake.GitVersioning
+  failOnStderr: true  
+
+- script: >
     echo DOTNET_ROOT=$DOTNET_ROOT
 
     PkgFileName=$(ls deployables/Nerdbank.GitVersioning.*nupkg)
