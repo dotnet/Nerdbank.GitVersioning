@@ -11,28 +11,28 @@ namespace Nerdbank.GitVersioning.ManagedGit
 
         public static object ReadReference(Stream stream)
         {
-            if (stream.Length == 41)
-            {
-                Span<byte> objectId = stackalloc byte[40];
-                stream.Read(objectId);
+            Span<byte> reference = stackalloc byte[(int)stream.Length];
+            stream.ReadAll(reference);
 
-                return GitObjectId.ParseHex(objectId);
+            return ReadReference(reference);
+        }
+
+        public static object ReadReference(Span<byte> value)
+        {
+            if (value.Length == 41 && !value.StartsWith(RefPrefix))
+            {
+                // Skip the trailing \n
+                return GitObjectId.ParseHex(value.Slice(0, 40));
             }
             else
             {
-                Span<byte> prefix = stackalloc byte[RefPrefix.Length];
-                stream.Read(prefix);
-
-                if (!prefix.SequenceEqual(RefPrefix))
+                if (!value.StartsWith(RefPrefix))
                 {
                     throw new GitException();
                 }
 
                 // Skip the terminating \n character
-                Span<byte> reference = stackalloc byte[(int)stream.Length - RefPrefix.Length - 1];
-                stream.Read(reference);
-
-                return GitRepository.GetString(reference);
+                return GitRepository.GetString(value.Slice(RefPrefix.Length, value.Length - RefPrefix.Length - 1));
             }
         }
     }
