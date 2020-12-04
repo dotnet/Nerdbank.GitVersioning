@@ -59,6 +59,7 @@
                   $(OutputPath)LibGit2Sharp.dll*;
                   $(OutputPath)Nerdbank.GitVersioning.*dll;
                   $(OutputPath)Newtonsoft.Json.dll;
+                  $(OutputPath)PInvoke.*.dll;
                   $(OutputPath)Validation.dll;
                   "
 
