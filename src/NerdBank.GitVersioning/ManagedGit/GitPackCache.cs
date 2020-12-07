@@ -1,5 +1,6 @@
 ﻿#nullable enable
 
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
@@ -12,7 +13,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
     /// data from a <see cref="GitPack"/> can be potentially expensive: the data is
     /// compressed and can be deltified.
     /// </summary>
-    public abstract class GitPackCache
+    public abstract class GitPackCache : IDisposable
     {
         /// <summary>
         /// Attempts to retrieve a Git object from cache.
@@ -51,5 +52,10 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// A <see cref="Stream"/> which represents the cached entry.
         /// </returns>
         public abstract Stream Add(long offset, Stream stream);
+
+        /// <inheritdoc/>
+        public virtual void Dispose()
+        {
+        }
     }
 }

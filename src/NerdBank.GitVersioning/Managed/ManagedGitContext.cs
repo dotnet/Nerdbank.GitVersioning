@@ -119,6 +119,12 @@ namespace Nerdbank.GitVersioning.Managed
             return this.Repository.ShortenObjectId(this.Commit.Value.Sha, minLength);
         }
 
+        /// <inheritdoc/>
+        protected override void Dispose(bool disposing)
+        {
+            this.Repository.Dispose();
+        }
+
         /// <summary>
         /// Encodes a commit from history in a <see cref="Version"/>
         /// so that the original commit can be found later.

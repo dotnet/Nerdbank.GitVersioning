@@ -3,6 +3,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace Nerdbank.GitVersioning.ManagedGit
@@ -54,6 +55,18 @@ namespace Nerdbank.GitVersioning.ManagedGit
         public override void GetCacheStatistics(StringBuilder builder)
         {
             builder.AppendLine($"{this.cache.Count} items in cache");
+        }
+
+        /// <inheritdoc/>
+        public override void Dispose()
+        {
+            while (this.cache.Count > 0)
+            {
+                var key = this.cache.Keys.First();
+                var stream = this.cache[key];
+                stream.Dispose();
+                this.cache.Remove(key);
+            }
         }
     }
 }
