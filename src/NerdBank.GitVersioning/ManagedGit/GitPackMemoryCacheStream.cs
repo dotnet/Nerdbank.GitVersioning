@@ -99,6 +99,17 @@ namespace Nerdbank.GitVersioning.ManagedGit
             throw new NotSupportedException();
         }
 
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                this.stream.Dispose();
+                this.cacheStream.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
+
         private void DisposeStreamIfRead()
         {
             if (this.cacheStream.Length == this.stream.Length)

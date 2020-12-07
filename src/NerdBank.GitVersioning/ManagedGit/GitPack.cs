@@ -259,6 +259,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
 
             this.accessor.Dispose();
             this.packFile.Dispose();
+            this.cache.Dispose();
         }
 
         private long? GetOffset(GitObjectId objectId)
