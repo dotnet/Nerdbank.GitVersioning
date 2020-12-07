@@ -246,7 +246,10 @@ namespace Nerdbank.GitVersioning
             }
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Disposes of native and managed resources associated by this object.
+        /// </summary>
+        /// <param name="disposing"><see langword="true" /> to dispose managed and native resources; <see langword="false" /> to only dispose of native resources.</param>
         protected virtual void Dispose(bool disposing)
         {
         }

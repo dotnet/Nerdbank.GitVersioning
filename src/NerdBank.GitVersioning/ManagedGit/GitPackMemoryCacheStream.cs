@@ -101,8 +101,13 @@ namespace Nerdbank.GitVersioning.ManagedGit
 
         protected override void Dispose(bool disposing)
         {
-            this.stream.Dispose();
-            this.cacheStream.Dispose();
+            if (disposing)
+            {
+                this.stream.Dispose();
+                this.cacheStream.Dispose();
+            }
+
+            base.Dispose(disposing);
         }
 
         private void DisposeStreamIfRead()

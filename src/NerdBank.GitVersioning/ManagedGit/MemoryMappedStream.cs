@@ -144,8 +144,13 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// <inheritdoc/>
         protected override void Dispose(bool disposing)
         {
-            this.accessor.SafeMemoryMappedViewHandle.ReleasePointer();
-            this.disposed = true;
+            if (disposing)
+            {
+                this.accessor.SafeMemoryMappedViewHandle.ReleasePointer();
+                this.disposed = true;
+            }
+
+            base.Dispose(disposing);
         }
     }
 }

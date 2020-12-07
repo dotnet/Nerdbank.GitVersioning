@@ -122,7 +122,12 @@ namespace Nerdbank.GitVersioning.Managed
         /// <inheritdoc/>
         protected override void Dispose(bool disposing)
         {
-            this.Repository.Dispose();
+            if (disposing)
+            {
+                this.Repository.Dispose();
+            }
+
+            base.Dispose(disposing);
         }
 
         /// <summary>

@@ -58,15 +58,20 @@ namespace Nerdbank.GitVersioning.ManagedGit
         }
 
         /// <inheritdoc/>
-        public override void Dispose()
+        protected override void Dispose(bool disposing)
         {
-            while (this.cache.Count > 0)
+            if (disposing)
             {
-                var key = this.cache.Keys.First();
-                var stream = this.cache[key];
-                stream.Dispose();
-                this.cache.Remove(key);
+                while (this.cache.Count > 0)
+                {
+                    var key = this.cache.Keys.First();
+                    var stream = this.cache[key];
+                    stream.Dispose();
+                    this.cache.Remove(key);
+                }
             }
+
+            base.Dispose(disposing);
         }
     }
 }
