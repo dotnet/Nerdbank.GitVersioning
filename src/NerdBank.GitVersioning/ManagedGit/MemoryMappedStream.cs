@@ -13,6 +13,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
         private readonly long length;
         private long position;
         private byte* ptr;
+        private bool disposed;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="MemoryMappedStream"/> class.
@@ -57,6 +58,11 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// <inheritdoc/>
         public override int Read(byte[] buffer, int offset, int count)
         {
+            if (this.disposed)
+            {
+                throw new ObjectDisposedException(nameof(MemoryMappedStream));
+            }
+
             int read = (int)Math.Min(count, this.length - this.position);
 
             new Span<byte>(this.ptr + this.position, read)
@@ -70,6 +76,11 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// <inheritdoc/>
         public override int Read(Span<byte> buffer)
         {
+            if (this.disposed)
+            {
+                throw new ObjectDisposedException(nameof(MemoryMappedStream));
+            }
+
             int read = (int)Math.Min(buffer.Length, this.length - this.position);
             
             new Span<byte>(this.ptr + this.position, read)
@@ -83,6 +94,11 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// <inheritdoc/>
         public override long Seek(long offset, SeekOrigin origin)
         {
+            if (this.disposed)
+            {
+                throw new ObjectDisposedException(nameof(MemoryMappedStream));
+            }
+
             long newPosition = this.position;
 
             switch (origin)
@@ -123,6 +139,13 @@ namespace Nerdbank.GitVersioning.ManagedGit
         public override void Write(byte[] buffer, int offset, int count)
         {
             throw new NotSupportedException();
+        }
+
+        /// <inheritdoc/>
+        protected override void Dispose(bool disposing)
+        {
+            this.accessor.SafeMemoryMappedViewHandle.ReleasePointer();
+            this.disposed = true;
         }
     }
 }
