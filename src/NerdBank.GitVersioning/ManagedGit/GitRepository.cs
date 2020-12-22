@@ -33,9 +33,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// <summary>
         /// Creates a new instance of the <see cref="GitRepository"/> class.
         /// </summary>
-        /// <param name="workingDirectory">
-        /// The current working directory. This can be a subdirectory of the Git repository.
-        /// </param>
+        /// <param name="workingDirectory"><inheritdoc cref="GitRepository(string, string, string, string)" path="/param[@name='workingDirectory']" /></param>
         /// <returns>
         /// A <see cref="GitRepository"/> which represents the git repository, or <see langword="null"/>
         /// if no git repository was found.
@@ -93,18 +91,10 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// <summary>
         /// Creates a new instance of the <see cref="GitRepository"/> class.
         /// </summary>
-        /// <param name="workingDirectory">
-        /// The current working directory. This can be a subdirectory of the Git repository.
-        /// </param>
-        /// <param name="gitDirectory">
-        /// The directory in which git metadata (such as refs,...) is stored.
-        /// </param>
-        /// <param name="commonDirectory">
-        /// The common Git directory, in which Git objects are stored.
-        /// </param>
-        /// <param name="objectDirectory">
-        /// The object directory in which Git objects are stored.
-        /// </param>
+        /// <param name="workingDirectory"><inheritdoc cref="GitRepository(string, string, string, string)" path="/param[@name='workingDirectory']" /></param>
+        /// <param name="gitDirectory"><inheritdoc cref="GitRepository(string, string, string, string)" path="/param[@name='gitDirectory']" /> </param>
+        /// <param name="commonDirectory"><inheritdoc cref="GitRepository(string, string, string, string)" path="/param[@name='commonDirectory']" /></param>
+        /// <param name="objectDirectory"><inheritdoc cref="GitRepository(string, string, string, string)" path="/param[@name='objectDirectory']" /></param>
         public static GitRepository Create(string workingDirectory, string gitDirectory, string commonDirectory, string objectDirectory)
         {
             return new GitRepository(workingDirectory, gitDirectory, commonDirectory, objectDirectory);
@@ -117,10 +107,10 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// The current working directory. This can be a subdirectory of the Git repository.
         /// </param>
         /// <param name="gitDirectory">
-        /// The directory in which git metadata (such as refs,...) is stored.
+        /// The directory in which the git HEAD file is stored. This is the .git directory unless the working directory is a worktree.
         /// </param>
         /// <param name="commonDirectory">
-        /// The common Git directory, in which Git objects are stored.
+        /// The common Git directory, which is parent to the objects, refs, and other directories.
         /// </param>
         /// <param name="objectDirectory">
         /// The object directory in which Git objects are stored.
@@ -191,7 +181,8 @@ namespace Nerdbank.GitVersioning.ManagedGit
         public string WorkingDirectory { get; private set; }
 
         /// <summary>
-        /// Gets the path to the Git directory, in which metadata (e.g. references and configuration) is stored.
+        /// Gets the path to the Git directory, in which at minimum HEAD is stored.
+        /// Use <see cref="CommonDirectory"/> for all other metadata (e.g. references, configuration).
         /// </summary>
         public string GitDirectory { get; private set; }
 
@@ -333,9 +324,9 @@ namespace Nerdbank.GitVersioning.ManagedGit
             else
             {
                 // Look for simple names for branch or tag.
-                possibleLooseFileMatches.Add(Path.Combine(this.GitDirectory, "refs", "heads", objectish));
-                possibleLooseFileMatches.Add(Path.Combine(this.GitDirectory, "refs", "tags", objectish));
-                possibleLooseFileMatches.Add(Path.Combine(this.GitDirectory, "refs", "remotes", objectish));
+                possibleLooseFileMatches.Add(Path.Combine(this.CommonDirectory, "refs", "heads", objectish));
+                possibleLooseFileMatches.Add(Path.Combine(this.CommonDirectory, "refs", "tags", objectish));
+                possibleLooseFileMatches.Add(Path.Combine(this.CommonDirectory, "refs", "remotes", objectish));
             }
 
             if (possibleLooseFileMatches.FirstOrDefault(File.Exists) is string existingPath)
@@ -344,7 +335,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
             }
 
             // Match in packed-refs file.
-            string packedRefPath = Path.Combine(this.GitDirectory, "packed-refs");
+            string packedRefPath = Path.Combine(this.CommonDirectory, "packed-refs");
             if (File.Exists(packedRefPath))
             {
                 using var refReader = File.OpenText(packedRefPath);
@@ -653,7 +644,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
         {
             if (reference is string)
             {
-                if (!FileHelpers.TryOpen(Path.Combine(this.GitDirectory, (string)reference), out FileStream? stream))
+                if (!FileHelpers.TryOpen(Path.Combine(this.CommonDirectory, (string)reference), out FileStream? stream))
                 {
                     return GitObjectId.Empty;
                 }

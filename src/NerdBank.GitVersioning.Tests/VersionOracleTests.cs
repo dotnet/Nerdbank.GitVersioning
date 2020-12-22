@@ -417,8 +417,8 @@ public abstract class VersionOracleTests : RepoTestBase
         this.Logger.WriteLine(ex.ToString());
     }
 
-    [Fact]
-    public void Worktree_Support()
+    [Theory, CombinatorialData]
+    public void Worktree_Support(bool detachedHead)
     {
         var workingCopyVersion = new VersionOptions
         {
@@ -431,10 +431,22 @@ public abstract class VersionOracleTests : RepoTestBase
 
         string workTreePath = this.CreateDirectoryForNewRepo();
         Directory.Delete(workTreePath);
-        this.LibGit2Repository.Worktrees.Add("HEAD~1", "myworktree", workTreePath, isLocked: false);
+        if (detachedHead)
+        {
+            this.LibGit2Repository.Worktrees.Add("HEAD~1", "myworktree", workTreePath, isLocked: false);
+        }
+        else
+        {
+            this.LibGit2Repository.Branches.Add("wtbranch", "HEAD~1");
+            this.LibGit2Repository.Worktrees.Add("wtbranch", "myworktree", workTreePath, isLocked: false);
+        }
+
         var context = this.CreateGitContext(workTreePath);
         var oracleWorkTree = new VersionOracle(context);
         Assert.Equal(oracleOriginal.Version, oracleWorkTree.Version);
+   
+        Assert.True(context.TrySelectCommit("HEAD"));
+        Assert.True(context.TrySelectCommit(this.LibGit2Repository.Head.Tip.Sha));
     }
 
     [Fact]
