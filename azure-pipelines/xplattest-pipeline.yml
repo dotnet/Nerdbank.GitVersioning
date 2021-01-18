@@ -11,6 +11,7 @@ steps:
     downloadPath: $(System.DefaultWorkingDirectory)
 
 - script: |
+    git config --global init.defaultBranch main
     git config --global user.name ci
     git config --global user.email me@ci.com
   displayName: Set up git username and email address
@@ -24,7 +25,7 @@ steps:
     dotnet new classlib -o lib &&
     cd lib &&
     echo '{"version":"42.42"}' > version.json &&
-    git init && 
+    git init &&
     git add version.json &&
     git commit -m "Initial commit" &&
     mkdir lib && cd lib &&
@@ -53,7 +54,7 @@ steps:
     else
         echo ".NET Core $DNVERSION"
     fi
-    
+
     PkgFileName=$(ls deployables/Cake.GitVersioning.*nupkg)
 
     NBGV_NuGetPackageVersion=$([[ $PkgFileName =~ Cake.GitVersioning\.(.*)\.nupkg ]] && echo "${BASH_REMATCH[1]}")
@@ -74,7 +75,7 @@ steps:
 
     dotnet cake
   displayName: Consume Cake.GitVersioning
-  failOnStderr: true  
+  failOnStderr: true
 
 - script: >
     echo DOTNET_ROOT=$DOTNET_ROOT
