@@ -202,6 +202,7 @@ stages:
       workingDirectory: $(Agent.TempDirectory)
       displayName: npm publish to PublicCI feed
       condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
+      continueOnError: true
 
 - stage: Test
   displayName: Functional testing
