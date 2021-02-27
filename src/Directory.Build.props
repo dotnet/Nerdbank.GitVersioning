@@ -18,6 +18,9 @@
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RestoreLockedMode Condition=" '$(Build_BuildId)' != '' ">true</RestoreLockedMode>
   </PropertyGroup>
   <PropertyGroup>
     <!-- LibGit2Sharp Native Binary version - used in both main project and Cake addin -->
