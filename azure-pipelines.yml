@@ -121,6 +121,7 @@ stages:
       workingDirectory: src
 
     - task: PublishCodeCoverageResults@1
+      displayName: Publish code coverage results
       inputs:
         codeCoverageTool: 'cobertura'
         summaryFileLocation: $(Build.ArtifactStagingDirectory)/CodeCoverage/**/coverage.cobertura.xml
