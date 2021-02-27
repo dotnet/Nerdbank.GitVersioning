@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
   <metadata>
-    <id>Nerdbank.GitVersioning</id>
+    <id>Nerdbank.GitVersioning$LKGSuffix$</id>
     <version>$version$</version>
     <title>Nerdbank.GitVersioning</title>
     <authors>Andrew Arnott</authors>
@@ -48,10 +48,10 @@ IMPORTANT: The 3.x release may produce a different version height than prior maj
     <file src="$BaseOutputPath$netcoreapp2.1\System.Runtime.CompilerServices.Unsafe.dll" target="build\MSBuildCore\System.Runtime.CompilerServices.Unsafe.dll" />
     <file src="$BaseOutputPath$netcoreapp2.1\PInvoke.Kernel32.dll" target="build\MSBuildCore\PInvoke.Kernel32.dll" />
 
-    <file src="build\Nerdbank.GitVersioning.targets" target="build\Nerdbank.GitVersioning.targets" />
+    <file src="build\Nerdbank.GitVersioning.targets" target="build\Nerdbank.GitVersioning$LKGSuffix$.targets" />
     <file src="build\Nerdbank.GitVersioning.Common.targets" target="build\Nerdbank.GitVersioning.Common.targets" />
     <file src="build\Nerdbank.GitVersioning.Inner.targets" target="build\Nerdbank.GitVersioning.Inner.targets" />
-    <file src="buildCrossTargeting\Nerdbank.GitVersioning.targets" target="buildCrossTargeting\Nerdbank.GitVersioning.targets" />
+    <file src="buildCrossTargeting\Nerdbank.GitVersioning.targets" target="buildCrossTargeting\Nerdbank.GitVersioning$LKGSuffix$.targets" />
     <file src="readme.txt" target="readme.txt" />
   </files>
 </package>
