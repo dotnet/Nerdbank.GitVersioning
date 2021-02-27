@@ -222,9 +222,9 @@ stages:
           containerImage: focal
         Ubuntu_Disco_3_0:
           containerImage: disco-3.0
-        Arch_Linux:
-          containerImage: archlinux
-          configureContainerCommand: 'sudo pacman -Sy --noconfirm git dotnet-sdk openssl-1.0'
+        # Arch_Linux:
+        #   containerImage: archlinux
+        #   configureContainerCommand: 'sudo pacman -Sy --noconfirm git dotnet-sdk openssl-1.0'
     pool:
       vmImage: ubuntu-20.04
     container: $[ variables['containerImage'] ]
