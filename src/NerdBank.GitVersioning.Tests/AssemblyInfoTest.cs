@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Build.Utilities;
 using Nerdbank.GitVersioning.Tasks;
 using Xunit;
 
@@ -18,6 +19,25 @@ public class AssemblyInfoTest : IClassFixture<MSBuildFixture>
         info.AssemblyCompany = "company";
         info.AssemblyFileVersion = "1.3.1.0";
         info.AssemblyVersion = "1.3.0.0";
+        info.AdditionalThisAssemblyFields =
+            new TaskItem[]
+            {
+                new TaskItem(
+                    "CustomString1",
+                    new Dictionary<string,string>() { { "String", "abc" } } ),
+                new TaskItem(
+                    "CustomString2",
+                    new Dictionary<string,string>() { { "String", "" } } ),
+                new TaskItem(
+                    "CustomString3",
+                    new Dictionary<string,string>() { { "String", "" }, { "EmitIfEmpty", "true" } } ),
+                new TaskItem(
+                    "CustomBool",
+                    new Dictionary<string,string>() { { "Boolean", "true" } } ),
+                new TaskItem(
+                    "CustomTicks",
+                    new Dictionary<string,string>() { { "Ticks", "637509805729817056" } } ),
+            };
         info.CodeLanguage = "f#";
 
         if (thisAssemblyClass.HasValue)
@@ -49,11 +69,15 @@ namespace AssemblyInfo
 [<System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage>]
 #endif
 type internal ThisAssembly() =
-  static member internal AssemblyVersion = ""1.3.0.0""
-  static member internal AssemblyFileVersion = ""1.3.1.0""
   static member internal AssemblyCompany = ""company""
-  static member internal IsPublicRelease = false
+  static member internal AssemblyFileVersion = ""1.3.1.0""
+  static member internal AssemblyVersion = ""1.3.0.0""
+  static member internal CustomBool = true
+  static member internal CustomString1 = ""abc""
+  static member internal CustomString3 = """"
+  static member internal CustomTicks = new System.DateTime(637509805729817056L, System.DateTimeKind.Utc)
   static member internal IsPrerelease = false
+  static member internal IsPublicRelease = false
   static member internal RootNamespace = """"
 do()
 " : "")}";
@@ -72,6 +96,25 @@ do()
         info.AssemblyFileVersion = "1.3.1.0";
         info.AssemblyVersion = "1.3.0.0";
         info.CodeLanguage = "c#";
+        info.AdditionalThisAssemblyFields =
+            new TaskItem[]
+            {
+                new TaskItem(
+                    "CustomString1",
+                    new Dictionary<string,string>() { { "String", "abc" } } ),
+                new TaskItem(
+                    "CustomString2",
+                    new Dictionary<string,string>() { { "String", "" } } ),
+                new TaskItem(
+                    "CustomString3",
+                    new Dictionary<string,string>() { { "String", "" }, { "EmitIfEmpty", "true" } } ),
+                new TaskItem(
+                    "CustomBool",
+                    new Dictionary<string,string>() { { "Boolean", "true" } } ),
+                new TaskItem(
+                    "CustomTicks",
+                    new Dictionary<string,string>() { { "Ticks", "637509805729817056" } } ),
+            };
 
         if (thisAssemblyClass.HasValue)
         {
@@ -100,11 +143,15 @@ do()
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 #endif
 internal static partial class ThisAssembly {{
-    internal const string AssemblyVersion = ""1.3.0.0"";
-    internal const string AssemblyFileVersion = ""1.3.1.0"";
     internal const string AssemblyCompany = ""company"";
-    internal const bool IsPublicRelease = false;
+    internal const string AssemblyFileVersion = ""1.3.1.0"";
+    internal const string AssemblyVersion = ""1.3.0.0"";
+    internal const bool CustomBool = true;
+    internal const string CustomString1 = ""abc"";
+    internal const string CustomString3 = """";
+    internal static readonly System.DateTime CustomTicks = new System.DateTime(637509805729817056L, System.DateTimeKind.Utc);
     internal const bool IsPrerelease = false;
+    internal const bool IsPublicRelease = false;
     internal const string RootNamespace = """";
 }}
 " : "")}";
@@ -154,11 +201,11 @@ Partial Friend NotInheritable Class ThisAssembly
 #Else
 Partial Friend NotInheritable Class ThisAssembly
 #End If
-    Friend Const AssemblyVersion As String = ""1.3.0.0""
-    Friend Const AssemblyFileVersion As String = ""1.3.1.0""
     Friend Const AssemblyCompany As String = ""company""
-    Friend Const IsPublicRelease As Boolean = False
+    Friend Const AssemblyFileVersion As String = ""1.3.1.0""
+    Friend Const AssemblyVersion As String = ""1.3.0.0""
     Friend Const IsPrerelease As Boolean = False
+    Friend Const IsPublicRelease As Boolean = False
     Friend Const RootNamespace As String = """"
 End Class
 " : "")}";
