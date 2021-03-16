@@ -3,6 +3,14 @@ namespace Nerdbank.GitVersioning.Tool
     using System;
     using System.Collections.Generic;
     using System.CommandLine;
+    using System.CommandLine.Binding;
+    using System.CommandLine.Builder;
+    using System.CommandLine.Collections;
+    using System.CommandLine.Help;
+    using System.CommandLine.Invocation;
+    using System.CommandLine.IO;
+    using System.CommandLine.Parsing;
+    using System.CommandLine.Suggestions;
     using System.IO;
     using System.Linq;
     using System.Reflection;
@@ -60,6 +68,7 @@ namespace Nerdbank.GitVersioning.Tool
             InternalError,
         }
 
+        private static readonly string[] SupportedFormats = new[] { "text", "json" };
         private static ExitCodes exitCode;
 
         private static bool AlwaysUseLibGit2 => string.Equals(Environment.GetEnvironmentVariable("NBGV_GitEngine"), "LibGit2", StringComparison.Ordinal);
@@ -77,113 +86,116 @@ namespace Nerdbank.GitVersioning.Tool
             return result;
         }
 
+        private static Command BuildCommandLine()
+        {
+            var install = new Command("install", "Prepares a project to have version stamps applied using Nerdbank.GitVersioning.")
+            {
+                new Option<string>(new[] { "--path", "-p" }, "The path to the directory that should contain the version.json file. The default is the root of the git repo."),
+                new Option<string>(new[] { "--version", "-v" }, $"The initial version to set. The default is {DefaultVersionSpec}."),
+                new Option<string>(new[] { "--source", "-s" }, $"The URI(s) of the NuGet package source(s) used to determine the latest stable version of the {PackageId} package. This setting overrides all of the sources specified in the NuGet.Config files."),
+            };
+
+            install.Handler = CommandHandler.Create((string path, string version, IReadOnlyList<string> source) => (int)OnInstallCommand(path, version, source));
+
+            var getVersion = new Command("get-version", "Gets the version information for a project.")
+            {
+                new Option<string>(new[] { "--project", "-p" }, "The path to the project or project directory. The default is the current directory."),
+                new Option<string[]>("--metadata", () => Array.Empty<string>(), "Adds an identifier to the build metadata part of a semantic version.")
+                {
+                    Argument = new Argument<string[]>
+                    {
+                        Arity = ArgumentArity.OneOrMore,
+                    },
+                },
+                new Option<string>(new[] { "--format", "-f" }, $"The format to write the version information. Allowed values are: {string.Join(", ", SupportedFormats)}. The default is {DefaultOutputFormat}.").FromAmong(SupportedFormats),
+                new Option<string>(new[] { "--variable", "-v" }, "The name of just one version property to print to stdout. When specified, the output is always in raw text. Useful in scripts."),
+                new Argument<string>("commit-ish", $"The commit/ref to get the version information for. The default is {DefaultRef}.")
+                {
+                    Arity = ArgumentArity.ZeroOrOne,
+                },
+            };
+
+            getVersion.Handler = CommandHandler.Create((string project, IReadOnlyList<string> metadata, string format, string variable, string commitIsh) => (int)OnGetVersionCommand(project, metadata, format, variable, commitIsh));
+
+            var setVersion = new Command("set-version", "Updates the version stamp that is applied to a project.")
+            {
+                new Option<string>(new[] { "--project", "-p" }, "The path to the project or project directory. The default is the root directory of the repo that spans the current directory, or an existing version.json file, if applicable."),
+                new Argument<string>("version", "The version to set."),
+            };
+
+            setVersion.Handler = CommandHandler.Create((string project, string version) => (int)OnSetVersionCommand(project, version));
+
+            var tag = new Command("tag", "Creates a git tag to mark a version.")
+            {
+                new Option<string>(new[] { "--project", "-p" }, "The path to the project or project directory. The default is the root directory of the repo that spans the current directory, or an existing version.json file, if applicable."),
+                new Argument<string>("versionOrRef",  $"The a.b.c[.d] version or git ref to be tagged. If not specified, {DefaultRef} is used.")
+                {
+                    Arity = ArgumentArity.ZeroOrOne,
+                },
+            };
+
+            tag.Handler = CommandHandler.Create((string project, string versionOrRef) => (int)OnTagCommand(project, versionOrRef));
+
+            var getCommits = new Command("get-commits", "Gets the commit(s) that match a given version.")
+            {
+                new Option<string>(new[] { "--project", "-p" }, "The path to the project or project directory. The default is the root directory of the repo that spans the current directory, or an existing version.json file, if applicable."),
+                new Option<bool>(new[] { "--quiet", "-q" }, "Use minimal output."),
+                new Argument<string>("version", "The a.b.c[.d] version to find."),
+            };
+
+            getCommits.Handler = CommandHandler.Create((string project, bool quiet, string version) => (int)OnGetCommitsCommand(project, version, quiet));
+
+            var cloud = new Command("cloud", "Communicates with the ambient cloud build to set the build number and/or other cloud build variables.")
+            {
+                new Option<string>(new[] { "--project", "-p" }, "The path to the project or project directory used to calculate the version. The default is the current directory. Ignored if the -v option is specified."),
+                new Option<string[]>("--metadata", () => Array.Empty<string>(), "Adds an identifier to the build metadata part of a semantic version.")
+                {
+                    Argument = new Argument<string[]>
+                    {
+                        Arity = ArgumentArity.OneOrMore,
+                    },
+                },
+                new Option<string>(new[] { "--version", "-v" }, "The string to use for the cloud build number. If not specified, the computed version will be used."),
+                new Option<string>(new[] { "--ci-system", "-s" }, "Force activation for a particular CI system. If not specified, auto-detection will be used. Supported values are: " + string.Join(", ", CloudProviderNames)).FromAmong(CloudProviderNames),
+                new Option<bool>(new[] { "--all-vars", "-a" }, "Defines ALL version variables as cloud build variables, with a \"NBGV_\" prefix."),
+                new Option<bool>(new[] { "--common-vars", "-c" }, "Defines a few common version variables as cloud build variables, with a \"Git\" prefix (e.g. GitBuildVersion, GitBuildVersionSimple, GitAssemblyInformationalVersion)."),
+                new Option<string[]>(new[] { "--define", "-d" }, () => Array.Empty<string>(), "Additional cloud build variables to define. Each should be in the NAME=VALUE syntax."),
+            };
+
+            cloud.Handler = CommandHandler.Create((string project, IReadOnlyList<string> metadata, string version, string ciSystem, bool allVars, bool commonVars, IReadOnlyList<string> define) => (int)OnCloudCommand(project, metadata, version, ciSystem, allVars, commonVars, define));
+
+            var prepareRelease = new Command("prepare-release", "Prepares a release by creating a release branch for the current version and adjusting the version on the current branch.")
+            {
+                new Option<string>(new[] { "--project", "-p" }, "The path to the project or project directory. The default is the current directory."),
+                new Option<string>("--nextVersion", "The version to set for the current branch. If omitted, the next version is determined automatically by incrementing the current version."),
+                new Option<string>("--versionIncrement", "Overrides the 'versionIncrement' setting set in version.json for determining the next version of the current branch."),
+                new Option<string>(new[] { "--format", "-f" }, $"The format to write information about the release. Allowed values are: {string.Join(", ", SupportedFormats)}. The default is {DefaultOutputFormat}.").FromAmong(SupportedFormats),
+                new Argument<string>("tag", "The prerelease tag to apply on the release branch (if any). If not specified, any existing prerelease tag will be removed. The preceding hyphen may be omitted.")
+                {
+                    Arity = ArgumentArity.ZeroOrOne,
+                },
+            };
+
+            prepareRelease.Handler = CommandHandler.Create((string project, string nextVersion, string versionIncrement, string format, string tag) => (int)OnPrepareReleaseCommand(project, tag, nextVersion, versionIncrement, format));
+
+            return new RootCommand
+            {
+                install,
+                getVersion,
+                setVersion,
+                tag,
+                getCommits,
+                cloud,
+                prepareRelease,
+            };
+        }
+
         private static int MainInner(string[] args)
         {
-            var commandText = string.Empty;
-            var projectPath = string.Empty;
-            var versionJsonRoot = string.Empty;
-            var version = string.Empty;
-            IReadOnlyList<string> sources = Array.Empty<string>();
-            IReadOnlyList<string> cloudVariables = Array.Empty<string>();
-            IReadOnlyList<string> buildMetadata = Array.Empty<string>();
-            var format = string.Empty;
-            string singleVariable = null;
-            bool quiet = false;
-            var cisystem = string.Empty;
-            bool cloudBuildCommonVars = false;
-            bool cloudBuildAllVars = false;
-            string releasePreReleaseTag = null;
-            string releaseNextVersion = null;
-            string releaseVersionIncrement = null;
-
-            ArgumentCommand<string> install = null;
-            ArgumentCommand<string> getVersion = null;
-            ArgumentCommand<string> setVersion = null;
-            ArgumentCommand<string> tag = null;
-            ArgumentCommand<string> getCommits = null;
-            ArgumentCommand<string> cloud = null;
-            ArgumentCommand<string> prepareRelease = null;
-
-            ArgumentSyntax.Parse(args, syntax =>
-            {
-                install = syntax.DefineCommand("install", ref commandText, "Prepares a project to have version stamps applied using Nerdbank.GitVersioning.");
-                syntax.DefineOption("p|path", ref versionJsonRoot, "The path to the directory that should contain the version.json file. The default is the root of the git repo.");
-                syntax.DefineOption("v|version", ref version, $"The initial version to set. The default is {DefaultVersionSpec}.");
-                syntax.DefineOptionList("s|source", ref sources, $"The URI(s) of the NuGet package source(s) used to determine the latest stable version of the {PackageId} package. This setting overrides all of the sources specified in the NuGet.Config files.");
-
-                getVersion = syntax.DefineCommand("get-version", ref commandText, "Gets the version information for a project.");
-                syntax.DefineOption("p|project", ref projectPath, "The path to the project or project directory. The default is the current directory.");
-                syntax.DefineOptionList("metadata", ref buildMetadata, requireValue: true, "Adds an identifier to the build metadata part of a semantic version.");
-                syntax.DefineOption("f|format", ref format, $"The format to write the version information. Allowed values are: text, json. The default is {DefaultOutputFormat}.");
-                syntax.DefineOption("v|variable", ref singleVariable, "The name of just one version property to print to stdout. When specified, the output is always in raw text. Useful in scripts.");
-                syntax.DefineParameter("commit-ish", ref version, $"The commit/ref to get the version information for. The default is {DefaultRef}.");
-
-                setVersion = syntax.DefineCommand("set-version", ref commandText, "Updates the version stamp that is applied to a project.");
-                syntax.DefineOption("p|project", ref projectPath, "The path to the project or project directory. The default is the root directory of the repo that spans the current directory, or an existing version.json file, if applicable.");
-                syntax.DefineParameter("version", ref version, "The version to set.");
-
-                tag = syntax.DefineCommand("tag", ref commandText, "Creates a git tag to mark a version.");
-                syntax.DefineOption("p|project", ref projectPath, "The path to the project or project directory. The default is the root directory of the repo that spans the current directory, or an existing version.json file, if applicable.");
-                syntax.DefineParameter("versionOrRef", ref version, $"The a.b.c[.d] version or git ref to be tagged. If not specified, {DefaultRef} is used.");
-
-                getCommits = syntax.DefineCommand("get-commits", ref commandText, "Gets the commit(s) that match a given version.");
-                syntax.DefineOption("p|project", ref projectPath, "The path to the project or project directory. The default is the root directory of the repo that spans the current directory, or an existing version.json file, if applicable.");
-                syntax.DefineOption("q|quiet", ref quiet, "Use minimal output.");
-                syntax.DefineParameter("version", ref version, "The a.b.c[.d] version to find.");
-
-                cloud = syntax.DefineCommand("cloud", ref commandText, "Communicates with the ambient cloud build to set the build number and/or other cloud build variables.");
-                syntax.DefineOption("p|project", ref projectPath, "The path to the project or project directory used to calculate the version. The default is the current directory. Ignored if the -v option is specified.");
-                syntax.DefineOptionList("metadata", ref buildMetadata, requireValue: true, "Adds an identifier to the build metadata part of a semantic version.");
-                syntax.DefineOption("v|version", ref version, "The string to use for the cloud build number. If not specified, the computed version will be used.");
-                syntax.DefineOption("s|ci-system", ref cisystem, "Force activation for a particular CI system. If not specified, auto-detection will be used. Supported values are: " + string.Join(", ", CloudProviderNames));
-                syntax.DefineOption("a|all-vars", ref cloudBuildAllVars, false, "Defines ALL version variables as cloud build variables, with a \"NBGV_\" prefix.");
-                syntax.DefineOption("c|common-vars", ref cloudBuildCommonVars, false, "Defines a few common version variables as cloud build variables, with a \"Git\" prefix (e.g. GitBuildVersion, GitBuildVersionSimple, GitAssemblyInformationalVersion).");
-                syntax.DefineOptionList("d|define", ref cloudVariables, "Additional cloud build variables to define. Each should be in the NAME=VALUE syntax.");
-
-                prepareRelease = syntax.DefineCommand("prepare-release", ref commandText, "Prepares a release by creating a release branch for the current version and adjusting the version on the current branch.");
-                syntax.DefineOption("p|project", ref projectPath, "The path to the project or project directory. The default is the current directory.");
-                syntax.DefineOption("nextVersion", ref releaseNextVersion, "The version to set for the current branch. If omitted, the next version is determined automatically by incrementing the current version.");
-                syntax.DefineOption("versionIncrement", ref releaseVersionIncrement, "Overrides the 'versionIncrement' setting set in version.json for determining the next version of the current branch.");
-                syntax.DefineOption("f|format", ref format, $"The format to write information about the release. Allowed values are: text, json. The default is {DefaultOutputFormat}.");
-                syntax.DefineParameter("tag", ref releasePreReleaseTag, "The prerelease tag to apply on the release branch (if any). If not specified, any existing prerelease tag will be removed. The preceding hyphen may be omitted.");
-
-                if (syntax.ActiveCommand == null)
-                {
-                    Console.WriteLine("nbgv v{0}", ThisAssembly.AssemblyInformationalVersion);
-                    Console.WriteLine("Use -h, --help, or -? for usage help. Use after a command to get more help about a particular command.");
-                }
-            });
-
             try
             {
-                if (install.IsActive)
-                {
-                    exitCode = OnInstallCommand(versionJsonRoot, version, sources);
-                }
-                else if (getVersion.IsActive)
-                {
-                    exitCode = OnGetVersionCommand(projectPath, buildMetadata, format, singleVariable, version);
-                }
-                else if (setVersion.IsActive)
-                {
-                    exitCode = OnSetVersionCommand(projectPath, version);
-                }
-                else if (tag.IsActive)
-                {
-                    exitCode = OnTagCommand(projectPath, version);
-                }
-                else if (getCommits.IsActive)
-                {
-                    exitCode = OnGetCommitsCommand(projectPath, version, quiet);
-                }
-                else if (cloud.IsActive)
-                {
-                    exitCode = OnCloudCommand(projectPath, buildMetadata, version, cisystem, cloudBuildAllVars, cloudBuildCommonVars, cloudVariables);
-                }
-                else if (prepareRelease.IsActive)
-                {
-                    exitCode = OnPrepareReleaseCommand(projectPath, releasePreReleaseTag, releaseNextVersion, releaseVersionIncrement, format);
-                }
+                var commandLine = BuildCommandLine();
+                exitCode = (ExitCodes)commandLine.Invoke(args);
             }
             catch (GitException ex)
             {
@@ -271,6 +283,7 @@ namespace Nerdbank.GitVersioning.Tool
                 // Validate given sources
                 foreach (var source in sources)
                 {
+                    // TODO: Can declare Option<Uri> to validate argument during parsing.
                     if (!Uri.TryCreate(source, UriKind.Absolute, out var _))
                     {
                         Console.Error.WriteLine($"\"{source}\" is not a valid NuGet package source.");
@@ -334,7 +347,10 @@ namespace Nerdbank.GitVersioning.Tool
             }
 
             var oracle = new VersionOracle(context, CloudBuild.Active);
-            oracle.BuildMetadata.AddRange(buildMetadata);
+            if (buildMetadata != null)
+            {
+                oracle.BuildMetadata.AddRange(buildMetadata);
+            }
 
             // Take the PublicRelease environment variable into account, since the build would as well.
             if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("PublicRelease")) && bool.TryParse(Environment.GetEnvironmentVariable("PublicRelease"), out bool publicRelease))
@@ -554,7 +570,11 @@ namespace Nerdbank.GitVersioning.Tool
 
             using var context = GitContext.Create(searchPath, writable: AlwaysUseLibGit2);
             var oracle = new VersionOracle(context, cloudBuild: activeCloudBuild);
-            oracle.BuildMetadata.AddRange(buildMetadata);
+            if (buildMetadata != null)
+            {
+                oracle.BuildMetadata.AddRange(buildMetadata);
+            }
+
             var variables = new Dictionary<string, string>();
             if (cloudBuildAllVars)
             {
