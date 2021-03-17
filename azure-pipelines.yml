@@ -247,9 +247,9 @@ stages:
   - job: linux
     strategy:
       matrix:
-        xenial:
-          containerImage: xenial
-          configureContainerCommand: 'sudo apt update && sudo apt-get install -y git'
+        # xenial:
+        #   containerImage: xenial
+        #   configureContainerCommand: 'sudo apt update && sudo apt-get install -y git'
         Ubuntu_Bionic_2_1:
           containerImage: bionic-2.1
         Ubuntu_Bionic:
