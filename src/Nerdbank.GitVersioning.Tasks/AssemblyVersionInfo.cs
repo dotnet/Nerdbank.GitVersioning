@@ -10,6 +10,7 @@
     using System.Text;
     using Microsoft.Build.Framework;
     using Microsoft.Build.Utilities;
+    using Validation;
 
     public class AssemblyVersionInfo : Task
     {
@@ -112,7 +113,7 @@
         {
             // attempt to use local codegen
             string fileContent = this.BuildCode();
-            if (fileContent != null)
+            if (fileContent is object)
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(this.OutputFile));
                 Utilities.FileOperationWithRetry(() => File.WriteAllText(this.OutputFile, fileContent));
@@ -179,6 +180,13 @@
             {
                 switch (pair.Value.Value)
                 {
+                    case null:
+                        if (pair.Value.EmitIfEmpty)
+                        {
+                            thisAssembly.Members.Add(CreateField(pair.Key, (string)null));
+                        }
+
+                        break;
                     case string stringValue:
                         if (pair.Value.EmitIfEmpty || !string.IsNullOrEmpty(stringValue))
                         {
@@ -190,12 +198,12 @@
                         thisAssembly.Members.Add(CreateField(pair.Key, boolValue));
                         break;
 
-                    case long ticksValue:
-                        thisAssembly.Members.AddRange(CreateField(pair.Key, ticksValue).ToArray());
+                    case DateTime dateValue:
+                        thisAssembly.Members.AddRange(CreateDateTimeField(pair.Key, dateValue).ToArray());
                         break;
 
                     default:
-                        throw new NotImplementedException();
+                        throw new NotSupportedException($"Value type {pair.Value.Value.GetType().Name} as found for the \"{pair.Key}\" property is not supported.");
                 }
             }
 
@@ -240,45 +248,15 @@
             };
         }
 
-        private static IEnumerable<CodeTypeMember> CreateField(string name, long ticks)
+        private static IEnumerable<CodeTypeMember> CreateDateTimeField(string name, DateTime value)
         {
-            if ( string.IsNullOrWhiteSpace(name))
-            {
-                throw new ArgumentNullException(nameof(name));
-            }
+            Requires.NotNullOrEmpty(name, nameof(name));
 
-            // internal static System.DateTime GitCommitDate {{ get; }} = new System.DateTime({ticks}, System.DateTimeKind.Utc);");
-            
-            // For backing field name, try to use name with first char converted to lower case, or otherwise suffix with underscore.
-            string fieldName = null;
-            var char0 = name[0];
-            
-            if ( char.IsUpper( char0) )
-            {
-                fieldName =
-                    name.Length == 1
-                        ? new string(char.ToLowerInvariant(char0), 1)
-                        : new string(char.ToLowerInvariant(char0), 1) + name.Substring(1);
-            }
-            else
-            {
-                fieldName = name + "_";
-            }
-
-            yield return new CodeMemberField(typeof(DateTime), fieldName)
-            {
-                Attributes = MemberAttributes.Private,
-                InitExpression = new CodeObjectCreateExpression(
-                     typeof(DateTime),
-                     new CodePrimitiveExpression(ticks),
-                     new CodePropertyReferenceExpression(
-                         new CodeTypeReferenceExpression(typeof(DateTimeKind)),
-                         nameof(DateTimeKind.Utc)))
-            };
+            // internal static System.DateTime GitCommitDate => new System.DateTime({ticks}, System.DateTimeKind.Utc);");
 
             var property = new CodeMemberProperty()
             {
-                Attributes = MemberAttributes.Assembly,
+                Attributes = MemberAttributes.Assembly | MemberAttributes.Static | MemberAttributes.Final,
                 Type = new CodeTypeReference(typeof(DateTime)),
                 Name = name,
                 HasGet = true,
@@ -287,9 +265,12 @@
 
             property.GetStatements.Add(
                 new CodeMethodReturnStatement(
-                    new CodeFieldReferenceExpression(
-                        null,
-                        fieldName)));
+                    new CodeObjectCreateExpression(
+                     typeof(DateTime),
+                     new CodePrimitiveExpression(value.Ticks),
+                     new CodePropertyReferenceExpression(
+                         new CodeTypeReferenceExpression(typeof(DateTimeKind)),
+                         nameof(DateTimeKind.Utc)))));
 
             yield return property;
         }
@@ -312,7 +293,7 @@
         public override bool Execute()
         {
             string fileContent = this.BuildCode();
-            if (fileContent != null)
+            if (fileContent is object)
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(this.OutputFile));
                 Utilities.FileOperationWithRetry(() => File.WriteAllText(this.OutputFile, fileContent));
@@ -330,7 +311,7 @@
         public string BuildCode()
         {
             this.generator = this.CreateGenerator();
-            if (this.generator != null)
+            if (this.generator is object)
             {
                 this.generator.AddComment(FileHeaderComment);
                 this.generator.AddBlankLine();
@@ -411,89 +392,83 @@
 
             if (long.TryParse(this.GitCommitDateTicks, out long gitCommitDateTicks))
             {
-                fields.Add("GitCommitDate", (gitCommitDateTicks, true));
+                fields.Add("GitCommitDate", (new DateTime(gitCommitDateTicks, DateTimeKind.Utc), true));
             }
 
-            if (this.AdditionalThisAssemblyFields != null && this.AdditionalThisAssemblyFields.Length > 0)
+            if (this.AdditionalThisAssemblyFields is object)
             {
                 foreach (var item in this.AdditionalThisAssemblyFields)
                 {
-                    if (item == null)
-                        continue;
-
                     var name = item.ItemSpec.Trim();
-                    var metaClone = item.CloneCustomMetadata();
-                    var meta = new Dictionary<string, string>(metaClone.Count, StringComparer.OrdinalIgnoreCase);
-                    var iter = metaClone.GetEnumerator();
-
-                    while ( iter.MoveNext() )
+                    var meta = new Dictionary<string, string>(item.MetadataCount, StringComparer.OrdinalIgnoreCase);
+                    foreach (string metadataName in item.MetadataNames)
                     {
-                        meta.Add((string)iter.Key, (string)iter.Value);
+                        meta.Add(metadataName, item.GetMetadata(metadataName));
                     }
 
                     object value = null;
                     bool emitIfEmpty = false;
 
-                    if (meta.TryGetValue("String", out var stringValue))
+                    if (meta.TryGetValue("String", out string stringValue))
                     {
                         value = stringValue;
-                        if (meta.TryGetValue("EmitIfEmpty", out var emitIfEmptyString))
+                        if (meta.TryGetValue("EmitIfEmpty", out string emitIfEmptyString))
                         {
                             if (!bool.TryParse(emitIfEmptyString, out emitIfEmpty))
                             {
-                                this.Log.LogError("The value '{0}' for EmitIfEmpty metadata for item '{1}' in AdditionalThisAssemblyFields is not valid.", emitIfEmptyString, name);
+                                this.Log.LogError($"The value '{emitIfEmptyString}' for EmitIfEmpty metadata for item '{name}' in {nameof(this.AdditionalThisAssemblyFields)} is not valid.");
                                 continue;
                             }
                         }
                     }
 
-                    if (meta.TryGetValue("Boolean", out var boolText))
+                    if (meta.TryGetValue("Boolean", out string boolText))
                     {
-                        if (value != null)
+                        if (value is object)
                         {
-                            this.Log.LogError("The metadata for item '{0}' in AdditionalThisAssemblyFields specifies more than one kind of value.", name);
+                            this.Log.LogError($"The metadata for item '{name}' in {nameof(this.AdditionalThisAssemblyFields)} specifies more than one kind of value.");
                             continue;
                         }
 
-                        if (bool.TryParse(boolText, out var boolValue))
+                        if (bool.TryParse(boolText, out bool boolValue))
                         {
                             value = boolValue;
                         }
                         else
                         {
-                            this.Log.LogError("The Boolean value '{0}' for item '{1}' in AdditionalThisAssemblyFields is not valid.", boolText, name);
+                            this.Log.LogError($"The Boolean value '{boolText}' for item '{name}' in AdditionalThisAssemblyFields is not valid.");
                             continue;
                         }
                     }
 
-                    if (meta.TryGetValue("Ticks", out var ticksText))
+                    if (meta.TryGetValue("Ticks", out string ticksText))
                     {
-                        if (value != null)
+                        if (value is object)
                         {
-                            this.Log.LogError("The metadata for item '{0}' in AdditionalThisAssemblyFields specifies more than one kind of value.", name);
+                            this.Log.LogError($"The metadata for item '{name}' in {nameof(this.AdditionalThisAssemblyFields)} specifies more than one kind of value.");
                             continue;
                         }
 
-                        if (long.TryParse(ticksText, out var ticksValue))
+                        if (long.TryParse(ticksText, out long ticksValue))
                         {
-                            value = ticksValue;
+                            value = new DateTime(ticksValue, DateTimeKind.Utc);
                         }
                         else
                         {
-                            this.Log.LogError("The Ticks value '{0}' for item '{1}' in AdditionalThisAssemblyFields is not valid.", ticksText, name);
+                            this.Log.LogError($"The Ticks value '{ticksText}' for item '{name}' in {nameof(this.AdditionalThisAssemblyFields)} is not valid.");
                             continue;
                         }
                     }
 
-                    if ( value == null )
+                    if (value is null)
                     {
-                        this.Log.LogWarning("Field '{0}' in AdditionalThisAssemblyFields has no value and will be ignored.", name);
+                        this.Log.LogWarning($"Field '{name}' in {nameof(this.AdditionalThisAssemblyFields)} has no value and will be ignored.");
                         continue;
                     }
 
                     if (fields.ContainsKey(name))
                     {
-                        this.Log.LogError("Field name '{0}' in AdditionalThisAssemblyFields has already been defined.", name);
+                        this.Log.LogError($"Field name '{name}' in {nameof(this.AdditionalThisAssemblyFields)} is defined multiple times.");
                         continue;
                     }
 
@@ -532,12 +507,12 @@
                         this.generator.AddThisAssemblyMember(pair.Key, boolValue);
                         break;
 
-                    case long ticksValue:
-                        this.generator.AddThisAssemblyMember(pair.Key, ticksValue);
+                    case DateTime datetimeValue:
+                        this.generator.AddThisAssemblyMember(pair.Key, datetimeValue);
                         break;
 
                     default:
-                        throw new NotImplementedException();
+                        throw new NotSupportedException($"Value type {pair.Value.Value.GetType().Name} as found for the \"{pair.Key}\" property is not supported.");
                 }
             }
 
@@ -580,7 +555,7 @@
 
             internal abstract void AddThisAssemblyMember(string name, bool value);
 
-            internal abstract void AddThisAssemblyMember(string name, long ticks);
+            internal abstract void AddThisAssemblyMember(string name, DateTime value);
 
             internal abstract void EndThisAssemblyClass();
 
@@ -601,7 +576,7 @@
             {
                 var sr = new StringReader(comment);
                 string line;
-                while ((line = sr.ReadLine()) != null)
+                while ((line = sr.ReadLine()) is object)
                 {
                     this.codeBuilder.Append(token);
                     this.codeBuilder.AppendLine(line);
@@ -626,9 +601,9 @@
                 this.codeBuilder.AppendLine($"  static member internal {name} = {(value ? "true" : "false")}");
             }
 
-            internal override void AddThisAssemblyMember(string name, long ticks)
+            internal override void AddThisAssemblyMember(string name, DateTime value)
             {
-                this.codeBuilder.AppendLine($"  static member internal {name} = new System.DateTime({ticks}L, System.DateTimeKind.Utc)");
+                this.codeBuilder.AppendLine($"  static member internal {name} = new System.DateTime({value.Ticks}L, System.DateTimeKind.Utc)");
             }
 
             internal override void EmitNamespaceIfRequired(string ns)
@@ -692,9 +667,9 @@
                 this.codeBuilder.AppendLine($"    internal const bool {name} = {(value ? "true" : "false")};");
             }
 
-            internal override void AddThisAssemblyMember(string name, long ticks)
+            internal override void AddThisAssemblyMember(string name, DateTime value)
             {
-                this.codeBuilder.AppendLine($"    internal static readonly System.DateTime {name} = new System.DateTime({ticks}L, System.DateTimeKind.Utc);");
+                this.codeBuilder.AppendLine($"    internal static readonly System.DateTime {name} = new System.DateTime({value.Ticks}L, System.DateTimeKind.Utc);");
             }
 
             internal override void EndThisAssemblyClass()
@@ -739,9 +714,9 @@
                 this.codeBuilder.AppendLine($"    Friend Const {name} As Boolean = {(value ? "True" : "False")}");
             }
 
-            internal override void AddThisAssemblyMember(string name, long ticks)
+            internal override void AddThisAssemblyMember(string name, DateTime value)
             {
-                this.codeBuilder.AppendLine($"    Friend Shared ReadOnly {name} As System.DateTime = New System.DateTime({ticks}L, System.DateTimeKind.Utc)");
+                this.codeBuilder.AppendLine($"    Friend Shared ReadOnly {name} As System.DateTime = New System.DateTime({value.Ticks}L, System.DateTimeKind.Utc)");
             }
 
             internal override void EndThisAssemblyClass()
@@ -797,14 +772,14 @@
                     publicKeyBytes = GetPublicKeyFromKeyContainer(this.AssemblyKeyContainerName);
                 }
 
-                if (publicKeyBytes != null && publicKeyBytes.Length > 0) // If .NET 2.0 isn't installed, we get byte[0] back.
+                if (publicKeyBytes is object && publicKeyBytes.Length > 0) // If .NET 2.0 isn't installed, we get byte[0] back.
                 {
                     publicKey = ToHex(publicKeyBytes);
                     publicKeyToken = ToHex(CryptoBlobParser.GetStrongNameTokenFromPublicKey(publicKeyBytes));
                 }
                 else
                 {
-                    if (publicKeyBytes != null)
+                    if (publicKeyBytes is object)
                     {
                         this.Log.LogWarning("Unable to emit public key fields in ThisAssembly class because .NET 2.0 isn't installed.");
                     }
