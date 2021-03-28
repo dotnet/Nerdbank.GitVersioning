@@ -86,7 +86,7 @@ namespace Nerdbank.GitVersioning.Tool
             return result;
         }
 
-        private static Command BuildCommandLine()
+        private static Parser BuildCommandLine()
         {
             var install = new Command("install", "Prepares a project to have version stamps applied using Nerdbank.GitVersioning.")
             {
@@ -178,7 +178,7 @@ namespace Nerdbank.GitVersioning.Tool
 
             prepareRelease.Handler = CommandHandler.Create((string project, string nextVersion, string versionIncrement, string format, string tag) => (int)OnPrepareReleaseCommand(project, tag, nextVersion, versionIncrement, format));
 
-            return new RootCommand
+            var root = new RootCommand($"{ThisAssembly.AssemblyName} {ThisAssembly.AssemblyInformationalVersion}")
             {
                 install,
                 getVersion,
@@ -188,14 +188,34 @@ namespace Nerdbank.GitVersioning.Tool
                 cloud,
                 prepareRelease,
             };
+
+            var builder = new CommandLineBuilder(root);
+            builder.UseMiddleware(context =>
+            {
+                // System.CommandLine 0.1 parsed arguments after optional --. Restore that behavior for compatibility.
+                if (context.ParseResult.Errors.Count > 0 && context.ParseResult.UnparsedTokens.Count > 0)
+                {
+                    var arguments = context.ParseResult.CommandResult.Command.Arguments;
+                    if (arguments.Count() == context.ParseResult.UnparsedTokens.Count)
+                    {
+                        context.ParseResult = context.Parser.Parse(
+                            context.ParseResult.Tokens
+                                .Where(token => token.Type != TokenType.EndOfArguments)
+                                .Select(token => token.Value)
+                                .ToArray());
+                    }
+                }
+            }, MiddlewareOrder.Default);
+
+            return builder.Build();
         }
 
         private static int MainInner(string[] args)
         {
             try
             {
-                var commandLine = BuildCommandLine();
-                exitCode = (ExitCodes)commandLine.Invoke(args);
+                var parser = BuildCommandLine();
+                exitCode = (ExitCodes)parser.Invoke(args);
             }
             catch (GitException ex)
             {
