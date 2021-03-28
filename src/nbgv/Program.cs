@@ -85,8 +85,8 @@ namespace Nerdbank.GitVersioning.Tool
         {
             var install = new Command("install", "Prepares a project to have version stamps applied using Nerdbank.GitVersioning.")
             {
-                new Option<string>(new[] { "--path", "-p" }, "The path to the directory that should contain the version.json file. The default is the root of the git repo."),
-                new Option<string>(new[] { "--version", "-v" }, $"The initial version to set. The default is {DefaultVersionSpec}."),
+                new Option<string>(new[] { "--path", "-p" }, "The path to the directory that should contain the version.json file. The default is the root of the git repo.").LegalFilePathsOnly(),
+                new Option<string>(new[] { "--version", "-v" }, () => DefaultVersionSpec, $"The initial version to set."),
                 new Option<string[]>(new[] { "--source", "-s" }, $"The URI(s) of the NuGet package source(s) used to determine the latest stable version of the {PackageId} package. This setting overrides all of the sources specified in the NuGet.Config files.")
                 {
                     Argument = new Argument<string[]>(() => Array.Empty<string>())
@@ -100,7 +100,7 @@ namespace Nerdbank.GitVersioning.Tool
 
             var getVersion = new Command("get-version", "Gets the version information for a project.")
             {
-                new Option<string>(new[] { "--project", "-p" }, "The path to the project or project directory. The default is the current directory."),
+                new Option<string>(new[] { "--project", "-p" }, "The path to the project or project directory. The default is the current directory.").LegalFilePathsOnly(),
                 new Option<string[]>("--metadata", "Adds an identifier to the build metadata part of a semantic version.")
                 {
                     Argument = new Argument<string[]>(() => Array.Empty<string>())
@@ -120,7 +120,7 @@ namespace Nerdbank.GitVersioning.Tool
 
             var setVersion = new Command("set-version", "Updates the version stamp that is applied to a project.")
             {
-                new Option<string>(new[] { "--project", "-p" }, "The path to the project or project directory. The default is the root directory of the repo that spans the current directory, or an existing version.json file, if applicable."),
+                new Option<string>(new[] { "--project", "-p" }, "The path to the project or project directory. The default is the root directory of the repo that spans the current directory, or an existing version.json file, if applicable.").LegalFilePathsOnly(),
                 new Argument<string>("version", "The version to set."),
             };
 
@@ -128,7 +128,7 @@ namespace Nerdbank.GitVersioning.Tool
 
             var tag = new Command("tag", "Creates a git tag to mark a version.")
             {
-                new Option<string>(new[] { "--project", "-p" }, "The path to the project or project directory. The default is the root directory of the repo that spans the current directory, or an existing version.json file, if applicable."),
+                new Option<string>(new[] { "--project", "-p" }, "The path to the project or project directory. The default is the root directory of the repo that spans the current directory, or an existing version.json file, if applicable.").LegalFilePathsOnly(),
                 new Argument<string>("versionOrRef", () => DefaultRef, $"The a.b.c[.d] version or git ref to be tagged.")
                 {
                     Arity = ArgumentArity.ZeroOrOne,
@@ -139,7 +139,7 @@ namespace Nerdbank.GitVersioning.Tool
 
             var getCommits = new Command("get-commits", "Gets the commit(s) that match a given version.")
             {
-                new Option<string>(new[] { "--project", "-p" }, "The path to the project or project directory. The default is the root directory of the repo that spans the current directory, or an existing version.json file, if applicable."),
+                new Option<string>(new[] { "--project", "-p" }, "The path to the project or project directory. The default is the root directory of the repo that spans the current directory, or an existing version.json file, if applicable.").LegalFilePathsOnly(),
                 new Option<bool>(new[] { "--quiet", "-q" }, "Use minimal output."),
                 new Argument<string>("version", "The a.b.c[.d] version to find."),
             };
@@ -148,7 +148,7 @@ namespace Nerdbank.GitVersioning.Tool
 
             var cloud = new Command("cloud", "Communicates with the ambient cloud build to set the build number and/or other cloud build variables.")
             {
-                new Option<string>(new[] { "--project", "-p" }, "The path to the project or project directory used to calculate the version. The default is the current directory. Ignored if the -v option is specified."),
+                new Option<string>(new[] { "--project", "-p" }, "The path to the project or project directory used to calculate the version. The default is the current directory. Ignored if the -v option is specified.").LegalFilePathsOnly(),
                 new Option<string[]>("--metadata", "Adds an identifier to the build metadata part of a semantic version.")
                 {
                     Argument = new Argument<string[]>(() => Array.Empty<string>())
@@ -173,7 +173,7 @@ namespace Nerdbank.GitVersioning.Tool
 
             var prepareRelease = new Command("prepare-release", "Prepares a release by creating a release branch for the current version and adjusting the version on the current branch.")
             {
-                new Option<string>(new[] { "--project", "-p" }, "The path to the project or project directory. The default is the current directory."),
+                new Option<string>(new[] { "--project", "-p" }, "The path to the project or project directory. The default is the current directory.").LegalFilePathsOnly(),
                 new Option<string>("--nextVersion", "The version to set for the current branch. If omitted, the next version is determined automatically by incrementing the current version."),
                 new Option<string>("--versionIncrement", "Overrides the 'versionIncrement' setting set in version.json for determining the next version of the current branch."),
                 new Option<string>(new[] { "--format", "-f" }, $"The format to write information about the release. Allowed values are: {string.Join(", ", SupportedFormats)}. The default is {DefaultOutputFormat}.").FromAmong(SupportedFormats),
@@ -196,12 +196,12 @@ namespace Nerdbank.GitVersioning.Tool
                 prepareRelease,
             };
 
-            var builder = new CommandLineBuilder(root);
-            builder
+            return new CommandLineBuilder(root)
                 .UseDefaults()
                 .UseMiddleware(context =>
                 {
                     // System.CommandLine 0.1 parsed arguments after optional --. Restore that behavior for compatibility.
+                    // TODO: Remove this middleware when https://github.com/dotnet/command-line-api/issues/1238 is resolved.
                     if (context.ParseResult.UnparsedTokens.Count > 0)
                     {
                         var arguments = context.ParseResult.CommandResult.Command.Arguments;
@@ -214,9 +214,8 @@ namespace Nerdbank.GitVersioning.Tool
                                     .ToArray());
                         }
                     }
-                }, (MiddlewareOrder)(-3000)); // MiddlewareOrderInternal.ExceptionHandler so [parse] directive is accurate.
-
-            return builder.Build();
+                }, (MiddlewareOrder)(-3000)) // MiddlewareOrderInternal.ExceptionHandler so [parse] directive is accurate.
+                .Build();
         }
 
         private static int MainInner(string[] args)
@@ -290,7 +289,7 @@ namespace Nerdbank.GitVersioning.Tool
                     var setVersionExitCode = OnSetVersionCommand(path, version);
                     if (setVersionExitCode != (int)ExitCodes.OK)
                     {
-                        return (int)setVersionExitCode;
+                        return setVersionExitCode;
                     }
                 }
             }
