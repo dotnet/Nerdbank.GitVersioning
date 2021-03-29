@@ -59,7 +59,8 @@ namespace Nerdbank.GitVersioning.LibGit2
 
                     if (result is object)
                     {
-                        actualDirectory = searchDirectory;
+                        IBelongToARepository commitAsRepoMember = commit;
+                        actualDirectory = Path.Combine(commitAsRepoMember.Repository.Info.WorkingDirectory, searchDirectory);
                         return result;
                     }
                 }
@@ -125,7 +126,8 @@ namespace Nerdbank.GitVersioning.LibGit2
                     }
                     else if (result is object)
                     {
-                        actualDirectory = searchDirectory;
+                        IBelongToARepository commitAsRepoMember = commit;
+                        actualDirectory = Path.Combine(commitAsRepoMember.Repository.Info.WorkingDirectory, searchDirectory);
                         return result;
                     }
                 }
