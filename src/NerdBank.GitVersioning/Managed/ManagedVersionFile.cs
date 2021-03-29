@@ -85,7 +85,7 @@ namespace Nerdbank.GitVersioning.Managed
                     if (result is object)
                     {
                         finalResult = result;
-                        actualDirectory = searchDirectory;
+                        actualDirectory = Path.Combine(this.Context.WorkingTreePath, searchDirectory);
                     }
                 }
 
@@ -158,7 +158,7 @@ namespace Nerdbank.GitVersioning.Managed
 
                     if (result is object)
                     {
-                        actualDirectory = searchDirectory;
+                        actualDirectory = Path.Combine(this.Context.WorkingTreePath, searchDirectory);
                         finalResult = result;
                     }
                 }

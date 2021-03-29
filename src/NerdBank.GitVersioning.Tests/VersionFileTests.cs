@@ -597,6 +597,15 @@ public abstract class VersionFileTests : RepoTestBase
         }
     }
 
+    [Fact]
+    public void GetVersion_ProducesAbsolutePath()
+    {
+        this.InitializeSourceControl();
+        this.WriteVersionFile();
+        Assert.NotNull(this.Context.VersionFile.GetVersion(out string actualDirectory));
+        Assert.True(Path.IsPathRooted(actualDirectory));
+    }
+
     private void AssertPathHasVersion(string committish, string absolutePath, VersionOptions expected)
     {
         var actual = this.GetVersionOptions(absolutePath, committish);
