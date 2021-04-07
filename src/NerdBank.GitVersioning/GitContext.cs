@@ -214,8 +214,16 @@ namespace Nerdbank.GitVersioning
             return committedVersion is object;
         }
 
-        private protected static bool TryFindGitPaths(string path, [NotNullWhen(true)] out string? gitDirectory, [NotNullWhen(true)] out string? workingTreeDirectory, [NotNullWhen(true)] out string? workingTreeRelativePath)
+        internal static bool TryFindGitPaths(string? path, [NotNullWhen(true)] out string? gitDirectory, [NotNullWhen(true)] out string? workingTreeDirectory, [NotNullWhen(true)] out string? workingTreeRelativePath)
         {
+            if (path is null || path.Length == 0)
+            {
+                gitDirectory = null;
+                workingTreeDirectory = null;
+                workingTreeRelativePath = null;
+                return false;
+            }
+
             path = Path.GetFullPath(path);
             var gitDirs = FindGitDir(path);
             if (gitDirs is null)

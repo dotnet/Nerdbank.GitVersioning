@@ -40,42 +40,13 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// </returns>
         public static GitRepository? Create(string? workingDirectory)
         {
-            // Search for the top-level directory of the current git repository. This is the directory
-            // which contains a directory of file named .git.
-            // Loop until Path.GetDirectoryName returns null; in this case, we've reached the root of
-            // the file system (and we're not in a git repository).
-            while (!string.IsNullOrEmpty(workingDirectory)
-                && !File.Exists(Path.Combine(workingDirectory, GitDirectoryName))
-                && !Directory.Exists(Path.Combine(workingDirectory, GitDirectoryName)))
-            {
-                workingDirectory = Path.GetDirectoryName(workingDirectory);
-            }
-
-            if (string.IsNullOrEmpty(workingDirectory))
+            if (!GitContext.TryFindGitPaths(workingDirectory, out string? gitDirectory, out string? workingTreeDirectory, out string? workingTreeRelativePath))
             {
                 return null;
             }
 
-            var gitDirectory = Path.Combine(workingDirectory, GitDirectoryName);
-
-            if (File.Exists(gitDirectory))
-            {
-                // This is a worktree, and the path to the git directory is stored in the .git file
-                var worktreeConfig = File.ReadAllText(gitDirectory);
-
-                var gitDirStart = worktreeConfig.IndexOf("gitdir: ");
-                var gitDirEnd = worktreeConfig.IndexOf("\n", gitDirStart);
-
-                gitDirectory = worktreeConfig.Substring(gitDirStart + 8, gitDirEnd - gitDirStart - 8);
-            }
-
-            if (!Directory.Exists(gitDirectory))
-            {
-                return null;
-            }
-
-            var commonDirectory = gitDirectory;
-            var commonDirFile = Path.Combine(gitDirectory, "commondir");
+            string commonDirectory = gitDirectory;
+            string commonDirFile = Path.Combine(gitDirectory, "commondir");
 
             if (File.Exists(commonDirFile))
             {
@@ -83,7 +54,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
                 commonDirectory = Path.Combine(gitDirectory, commonDirectoryRelativePath);
             }
 
-            var objectDirectory = Path.Combine(commonDirectory, "objects");
+            string objectDirectory = Path.Combine(commonDirectory, "objects");
 
             return new GitRepository(workingDirectory!, gitDirectory, commonDirectory, objectDirectory);
         }
