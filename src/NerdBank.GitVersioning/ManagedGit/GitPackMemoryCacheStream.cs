@@ -49,9 +49,9 @@ namespace Nerdbank.GitVersioning.ManagedGit
             {
                 var currentPosition = this.cacheStream.Position;
                 var toRead = (int)(buffer.Length - this.cacheStream.Length + this.cacheStream.Position);
-                this.stream.Read(buffer.Slice(0, toRead));
+                int actualRead = this.stream.Read(buffer.Slice(0, toRead));
                 this.cacheStream.Seek(0, SeekOrigin.End);
-                this.cacheStream.Write(buffer.Slice(0, toRead));
+                this.cacheStream.Write(buffer.Slice(0, actualRead));
                 this.cacheStream.Seek(currentPosition, SeekOrigin.Begin);
                 this.DisposeStreamIfRead();
             }
