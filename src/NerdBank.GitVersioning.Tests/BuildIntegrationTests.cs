@@ -55,6 +55,22 @@ public class BuildIntegrationLibGit2Tests : BuildIntegrationTests
         => globalProperties["NBGV_GitEngine"] = "LibGit2";
 }
 
+[Trait("Engine", "Disabled")]
+[Collection("Build")] // msbuild sets current directory in the process, so we can't have it be concurrent with other build tests.
+public class BuildIntegrationDisabledTests : BuildIntegrationTests
+{
+    public BuildIntegrationDisabledTests(ITestOutputHelper logger)
+        : base(logger)
+    {
+    }
+
+    protected override GitContext CreateGitContext(string path, string committish = null)
+        => GitContext.Create(path, committish, disabled: true);
+
+    protected override void ApplyGlobalProperties(IDictionary<string, string> globalProperties)
+        => globalProperties["NBGV_GitEngine"] = "Disabled";
+}
+
 public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
 {
     private const string GitVersioningTargetsFileName = "NerdBank.GitVersioning.targets";
