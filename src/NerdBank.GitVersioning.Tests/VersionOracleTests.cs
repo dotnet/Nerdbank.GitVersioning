@@ -732,6 +732,28 @@ public abstract class VersionOracleTests : RepoTestBase
     }
 
     [Fact]
+    public void GetVersion_PathFilterInTwoDeepSubDirAndVersionBump()
+    {
+        this.InitializeSourceControl();
+
+        const string relativeDirectory = "src\\lib";
+        var versionOptions = new VersionOptions
+        {
+            Version = new SemanticVersion("1.1"),
+            PathFilters = new FilterPath[]
+            {
+                new FilterPath(".", relativeDirectory),
+            },
+        };
+        this.WriteVersionFile(versionOptions, relativeDirectory);
+        Assert.Equal(1, this.GetVersionHeight(relativeDirectory));
+
+        versionOptions.Version = new SemanticVersion("1.2");
+        this.WriteVersionFile(versionOptions, relativeDirectory);
+        Assert.Equal(1, this.GetVersionHeight(relativeDirectory));
+    }
+
+    [Fact]
     public void GetVersionHeight_ProjectDirectoryDifferentToVersionJsonDirectory()
     {
         this.InitializeSourceControl();
