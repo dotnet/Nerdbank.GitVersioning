@@ -14,9 +14,6 @@
           Returns="@(CloudBuildVersionVars)" />
   
   <Target Name="GetBuildVersionCore">
-    <PropertyGroup Condition=" '$(NBGV_Disabled)' == 'true' ">
-      <NBGV_GitEngine>Disabled</NBGV_GitEngine>
-    </PropertyGroup>
     <Nerdbank.GitVersioning.Tasks.GetBuildVersion
       BuildingRef="$(_NBGV_BuildingRef)"
       BuildMetadata="$(BuildMetadata.Replace(',',';'))"

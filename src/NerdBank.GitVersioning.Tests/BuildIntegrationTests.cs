@@ -25,7 +25,7 @@ using Version = System.Version;
 
 [Trait("Engine", "Managed")]
 [Collection("Build")] // msbuild sets current directory in the process, so we can't have it be concurrent with other build tests.
-public class BuildIntegrationManagedTests : BuildIntegrationTests
+public class BuildIntegrationManagedTests : SomeGitBuildIntegrationTests
 {
     public BuildIntegrationManagedTests(ITestOutputHelper logger)
         : base(logger)
@@ -41,7 +41,7 @@ public class BuildIntegrationManagedTests : BuildIntegrationTests
 
 [Trait("Engine", "LibGit2")]
 [Collection("Build")] // msbuild sets current directory in the process, so we can't have it be concurrent with other build tests.
-public class BuildIntegrationLibGit2Tests : BuildIntegrationTests
+public class BuildIntegrationLibGit2Tests : SomeGitBuildIntegrationTests
 {
     public BuildIntegrationLibGit2Tests(ITestOutputHelper logger)
         : base(logger)
@@ -73,8 +73,8 @@ public class BuildIntegrationDisabledTests : BuildIntegrationTests
 
 public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
 {
-    private const string GitVersioningTargetsFileName = "NerdBank.GitVersioning.targets";
-    private const string UnitTestCloudBuildPrefix = "UnitTest: ";
+    protected const string GitVersioningTargetsFileName = "NerdBank.GitVersioning.targets";
+    protected const string UnitTestCloudBuildPrefix = "UnitTest: ";
     private static readonly string[] ToxicEnvironmentVariablePrefixes = new string[]
     {
         "APPVEYOR",
@@ -82,17 +82,17 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         "BUILD_",
         "NBGV_GitEngine",
     };
-    private BuildManager buildManager;
-    private ProjectCollection projectCollection;
-    private string projectDirectory;
-    private ProjectRootElement testProject;
-    private Dictionary<string, string> globalProperties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    protected BuildManager buildManager;
+    protected ProjectCollection projectCollection;
+    protected string projectDirectory;
+    protected ProjectRootElement testProject;
+    protected Dictionary<string, string> globalProperties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
         // Set global properties to neutralize environment variables
         // that might actually be defined by a CI that is building and running these tests.
         { "PublicRelease", string.Empty },
     };
-    private Random random;
+    protected Random random;
 
     public BuildIntegrationTests(ITestOutputHelper logger)
         : base(logger)
@@ -129,26 +129,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         }
     }
 
-    private string CommitIdShort => this.Context.GitCommitId?.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength);
-
-    protected abstract void ApplyGlobalProperties(IDictionary<string, string> globalProperties);
-
-    protected override void Dispose(bool disposing)
-    {
-        Environment.SetEnvironmentVariable("_NBGV_UnitTest", string.Empty);
-        base.Dispose(disposing);
-    }
-
-    [Fact]
-    public async Task GetBuildVersion_Returns_BuildVersion_Property()
-    {
-        this.WriteVersionFile();
-        this.InitializeSourceControl();
-        var buildResult = await this.BuildAsync();
-        Assert.Equal(
-            buildResult.BuildVersion,
-            buildResult.BuildResult.ResultsByTarget[Targets.GetBuildVersion].Items.Single().ItemSpec);
-    }
+    protected string CommitIdShort => this.Context.GitCommitId?.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength);
 
     [Fact]
     public async Task GetBuildVersion_Without_Git()
@@ -157,20 +138,6 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         var buildResult = await this.BuildAsync();
         Assert.Equal("3.4", buildResult.BuildVersion);
         Assert.Equal("3.4.0", buildResult.AssemblyInformationalVersion);
-    }
-
-    [Fact]
-    public async Task GetBuildVersion_WithThreeVersionIntegers()
-    {
-        VersionOptions workingCopyVersion = new VersionOptions
-        {
-            Version = SemanticVersion.Parse("7.8.9-beta.3"),
-            SemVer1NumericIdentifierPadding = 1,
-        };
-        this.WriteVersionFile(workingCopyVersion);
-        this.InitializeSourceControl();
-        var buildResult = await this.BuildAsync();
-        this.AssertStandardProperties(workingCopyVersion, buildResult);
     }
 
     [Fact]
@@ -187,6 +154,200 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         var buildResult = await this.BuildAsync();
         Assert.Equal("3.4", buildResult.BuildVersion);
         Assert.Equal("3.4.0", buildResult.AssemblyInformationalVersion);
+    }
+
+    protected abstract void ApplyGlobalProperties(IDictionary<string, string> globalProperties);
+
+    protected override void Dispose(bool disposing)
+    {
+        Environment.SetEnvironmentVariable("_NBGV_UnitTest", string.Empty);
+        base.Dispose(disposing);
+    }
+
+    protected ProjectRootElement CreateProjectRootElement(string projectDirectory, string projectName)
+    {
+        using (var reader = XmlReader.Create(Assembly.GetExecutingAssembly().GetManifestResourceStream($"{ThisAssembly.RootNamespace}.test.prj")))
+        {
+            var pre = ProjectRootElement.Create(reader, this.projectCollection);
+            pre.FullPath = Path.Combine(projectDirectory, projectName);
+            pre.AddImport(Path.Combine(this.RepoPath, GitVersioningTargetsFileName));
+            return pre;
+        }
+    }
+
+    protected async Task<BuildResults> BuildAsync(string target = Targets.GetBuildVersion, LoggerVerbosity logVerbosity = LoggerVerbosity.Detailed, bool assertSuccessfulBuild = true)
+    {
+        var eventLogger = new MSBuildLogger { Verbosity = LoggerVerbosity.Minimal };
+        var loggers = new ILogger[] { eventLogger };
+        this.testProject.Save(); // persist generated project on disk for analysis
+        this.ApplyGlobalProperties(this.globalProperties);
+        var buildResult = await this.buildManager.BuildAsync(
+            this.Logger,
+            this.projectCollection,
+            this.testProject,
+            target,
+            this.globalProperties,
+            logVerbosity,
+            loggers);
+        var result = new BuildResults(buildResult, eventLogger.LoggedEvents);
+        this.Logger.WriteLine(result.ToString());
+        if (assertSuccessfulBuild)
+        {
+            Assert.Equal(BuildResultCode.Success, buildResult.OverallResult);
+        }
+
+        return result;
+    }
+
+    private void LoadTargetsIntoProjectCollection()
+    {
+        string prefix = $"{ThisAssembly.RootNamespace}.Targets.";
+
+        var streamNames = from name in Assembly.GetExecutingAssembly().GetManifestResourceNames()
+                          where name.StartsWith(prefix, StringComparison.Ordinal)
+                          select name;
+        foreach (string name in streamNames)
+        {
+            using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(name))
+            {
+                var targetsFile = ProjectRootElement.Create(XmlReader.Create(stream), this.projectCollection);
+                targetsFile.FullPath = Path.Combine(this.RepoPath, name.Substring(prefix.Length));
+                targetsFile.Save(); // persist files on disk
+            }
+        }
+    }
+
+    protected class BuildResults
+    {
+        internal BuildResults(BuildResult buildResult, IReadOnlyList<BuildEventArgs> loggedEvents)
+        {
+            Requires.NotNull(buildResult, nameof(buildResult));
+            this.BuildResult = buildResult;
+            this.LoggedEvents = loggedEvents;
+        }
+
+        public BuildResult BuildResult { get; private set; }
+
+        public IReadOnlyList<BuildEventArgs> LoggedEvents { get; private set; }
+
+        public bool PublicRelease => string.Equals("true", this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("PublicRelease"), StringComparison.OrdinalIgnoreCase);
+        public string BuildNumber => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("BuildNumber");
+        public string GitCommitId => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitCommitId");
+        public string BuildVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("BuildVersion");
+        public string BuildVersionSimple => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("BuildVersionSimple");
+        public string PrereleaseVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("PrereleaseVersion");
+        public string MajorMinorVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("MajorMinorVersion");
+        public string BuildVersionNumberComponent => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("BuildVersionNumberComponent");
+        public string GitCommitIdShort => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitCommitIdShort");
+        public string GitCommitDateTicks => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitCommitDateTicks");
+        public string GitVersionHeight => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitVersionHeight");
+        public string SemVerBuildSuffix => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("SemVerBuildSuffix");
+        public string BuildVersion3Components => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("BuildVersion3Components");
+        public string AssemblyInformationalVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyInformationalVersion");
+        public string AssemblyFileVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyFileVersion");
+        public string AssemblyVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyVersion");
+        public string NuGetPackageVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("NuGetPackageVersion");
+        public string ChocolateyPackageVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("ChocolateyPackageVersion");
+        public string CloudBuildNumber => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("CloudBuildNumber");
+        public string AssemblyName => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyName");
+        public string AssemblyTitle => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyTitle");
+        public string AssemblyProduct => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyProduct");
+        public string AssemblyCompany => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyCompany");
+        public string AssemblyCopyright => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyCopyright");
+        public string AssemblyConfiguration => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("Configuration");
+        public string RootNamespace => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("RootNamespace");
+
+        public string GitBuildVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitBuildVersion");
+        public string GitBuildVersionSimple => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitBuildVersionSimple");
+        public string GitAssemblyInformationalVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitAssemblyInformationalVersion");
+
+        // Just a sampling of other properties optionally set in cloud build.
+        public string NBGV_GitCommitIdShort => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("NBGV_GitCommitIdShort");
+        public string NBGV_NuGetPackageVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("NBGV_NuGetPackageVersion");
+
+        public override string ToString()
+        {
+            var sb = new StringBuilder();
+
+            foreach (var property in this.GetType().GetRuntimeProperties().OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase))
+            {
+                if (property.DeclaringType == this.GetType() && property.Name != nameof(this.BuildResult))
+                {
+                    sb.AppendLine($"{property.Name} = {property.GetValue(this)}");
+                }
+            }
+
+            return sb.ToString();
+        }
+    }
+
+    protected class MSBuildLogger : ILogger
+    {
+        public string Parameters { get; set; }
+
+        public LoggerVerbosity Verbosity { get; set; }
+
+        public List<BuildEventArgs> LoggedEvents { get; } = new List<BuildEventArgs>();
+
+        public void Initialize(IEventSource eventSource)
+        {
+            eventSource.AnyEventRaised += this.EventSource_AnyEventRaised;
+        }
+
+        public void Shutdown()
+        {
+        }
+
+        private void EventSource_AnyEventRaised(object sender, BuildEventArgs e)
+        {
+            this.LoggedEvents.Add(e);
+        }
+    }
+
+    protected static class Targets
+    {
+        internal const string Build = "Build";
+        internal const string GetBuildVersion = "GetBuildVersion";
+        internal const string GetNuGetPackageVersion = "GetNuGetPackageVersion";
+        internal const string GenerateAssemblyVersionInfo = "GenerateAssemblyVersionInfo";
+        internal const string GenerateNativeVersionInfo = "GenerateNativeVersionInfo";
+    }
+}
+
+/// <summary>
+/// The base class for tests that require some actual git implementation behind it.
+/// In other words, NOT the disabled engine implementation.
+/// </summary>
+public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
+{
+    protected SomeGitBuildIntegrationTests(ITestOutputHelper logger)
+        : base(logger)
+    {
+    }
+
+    [Fact]
+    public async Task GetBuildVersion_Returns_BuildVersion_Property()
+    {
+        this.WriteVersionFile();
+        this.InitializeSourceControl();
+        var buildResult = await this.BuildAsync();
+        Assert.Equal(
+            buildResult.BuildVersion,
+            buildResult.BuildResult.ResultsByTarget[Targets.GetBuildVersion].Items.Single().ItemSpec);
+    }
+
+    [Fact]
+    public async Task GetBuildVersion_WithThreeVersionIntegers()
+    {
+        VersionOptions workingCopyVersion = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("7.8.9-beta.3"),
+            SemVer1NumericIdentifierPadding = 1,
+        };
+        this.WriteVersionFile(workingCopyVersion);
+        this.InitializeSourceControl();
+        var buildResult = await this.BuildAsync();
+        this.AssertStandardProperties(workingCopyVersion, buildResult);
     }
 
     [Fact]
@@ -1142,62 +1303,9 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
             : versionOptions.Version.Prerelease;
     }
 
-    private async Task<BuildResults> BuildAsync(string target = Targets.GetBuildVersion, LoggerVerbosity logVerbosity = LoggerVerbosity.Detailed, bool assertSuccessfulBuild = true)
-    {
-        var eventLogger = new MSBuildLogger { Verbosity = LoggerVerbosity.Minimal };
-        var loggers = new ILogger[] { eventLogger };
-        this.testProject.Save(); // persist generated project on disk for analysis
-        this.ApplyGlobalProperties(this.globalProperties);
-        var buildResult = await this.buildManager.BuildAsync(
-            this.Logger,
-            this.projectCollection,
-            this.testProject,
-            target,
-            this.globalProperties,
-            logVerbosity,
-            loggers);
-        var result = new BuildResults(buildResult, eventLogger.LoggedEvents);
-        this.Logger.WriteLine(result.ToString());
-        if (assertSuccessfulBuild)
-        {
-            Assert.Equal(BuildResultCode.Success, buildResult.OverallResult);
-        }
-
-        return result;
-    }
-
-    private void LoadTargetsIntoProjectCollection()
-    {
-        string prefix = $"{ThisAssembly.RootNamespace}.Targets.";
-
-        var streamNames = from name in Assembly.GetExecutingAssembly().GetManifestResourceNames()
-                          where name.StartsWith(prefix, StringComparison.Ordinal)
-                          select name;
-        foreach (string name in streamNames)
-        {
-            using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(name))
-            {
-                var targetsFile = ProjectRootElement.Create(XmlReader.Create(stream), this.projectCollection);
-                targetsFile.FullPath = Path.Combine(this.RepoPath, name.Substring(prefix.Length));
-                targetsFile.Save(); // persist files on disk
-            }
-        }
-    }
-
     private ProjectRootElement CreateNativeProjectRootElement(string projectDirectory, string projectName)
     {
         using (var reader = XmlReader.Create(Assembly.GetExecutingAssembly().GetManifestResourceStream($"{ThisAssembly.RootNamespace}.test.vcprj")))
-        {
-            var pre = ProjectRootElement.Create(reader, this.projectCollection);
-            pre.FullPath = Path.Combine(projectDirectory, projectName);
-            pre.AddImport(Path.Combine(this.RepoPath, GitVersioningTargetsFileName));
-            return pre;
-        }
-    }
-
-    private ProjectRootElement CreateProjectRootElement(string projectDirectory, string projectName)
-    {
-        using (var reader = XmlReader.Create(Assembly.GetExecutingAssembly().GetManifestResourceStream($"{ThisAssembly.RootNamespace}.test.prj")))
         {
             var pre = ProjectRootElement.Create(reader, this.projectCollection);
             pre.FullPath = Path.Combine(projectDirectory, projectName);
@@ -1249,101 +1357,5 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
             .SetItem("APPVEYOR", "True");
         public static readonly ImmutableDictionary<string, string> Teamcity = SuppressEnvironment
             .SetItem("BUILD_VCS_NUMBER", "1");
-    }
-
-    private static class Targets
-    {
-        internal const string Build = "Build";
-        internal const string GetBuildVersion = "GetBuildVersion";
-        internal const string GetNuGetPackageVersion = "GetNuGetPackageVersion";
-        internal const string GenerateAssemblyVersionInfo = "GenerateAssemblyVersionInfo";
-        internal const string GenerateNativeVersionInfo = "GenerateNativeVersionInfo";
-    }
-
-    private class BuildResults
-    {
-        internal BuildResults(BuildResult buildResult, IReadOnlyList<BuildEventArgs> loggedEvents)
-        {
-            Requires.NotNull(buildResult, nameof(buildResult));
-            this.BuildResult = buildResult;
-            this.LoggedEvents = loggedEvents;
-        }
-
-        public BuildResult BuildResult { get; private set; }
-
-        public IReadOnlyList<BuildEventArgs> LoggedEvents { get; private set; }
-
-        public bool PublicRelease => string.Equals("true", this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("PublicRelease"), StringComparison.OrdinalIgnoreCase);
-        public string BuildNumber => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("BuildNumber");
-        public string GitCommitId => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitCommitId");
-        public string BuildVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("BuildVersion");
-        public string BuildVersionSimple => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("BuildVersionSimple");
-        public string PrereleaseVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("PrereleaseVersion");
-        public string MajorMinorVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("MajorMinorVersion");
-        public string BuildVersionNumberComponent => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("BuildVersionNumberComponent");
-        public string GitCommitIdShort => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitCommitIdShort");
-        public string GitCommitDateTicks => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitCommitDateTicks");
-        public string GitVersionHeight => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitVersionHeight");
-        public string SemVerBuildSuffix => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("SemVerBuildSuffix");
-        public string BuildVersion3Components => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("BuildVersion3Components");
-        public string AssemblyInformationalVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyInformationalVersion");
-        public string AssemblyFileVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyFileVersion");
-        public string AssemblyVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyVersion");
-        public string NuGetPackageVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("NuGetPackageVersion");
-        public string ChocolateyPackageVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("ChocolateyPackageVersion");
-        public string CloudBuildNumber => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("CloudBuildNumber");
-        public string AssemblyName => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyName");
-        public string AssemblyTitle => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyTitle");
-        public string AssemblyProduct => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyProduct");
-        public string AssemblyCompany => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyCompany");
-        public string AssemblyCopyright => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("AssemblyCopyright");
-        public string AssemblyConfiguration => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("Configuration");
-        public string RootNamespace => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("RootNamespace");
-
-        public string GitBuildVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitBuildVersion");
-        public string GitBuildVersionSimple => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitBuildVersionSimple");
-        public string GitAssemblyInformationalVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitAssemblyInformationalVersion");
-
-        // Just a sampling of other properties optionally set in cloud build.
-        public string NBGV_GitCommitIdShort => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("NBGV_GitCommitIdShort");
-        public string NBGV_NuGetPackageVersion => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("NBGV_NuGetPackageVersion");
-
-        public override string ToString()
-        {
-            var sb = new StringBuilder();
-
-            foreach (var property in this.GetType().GetRuntimeProperties().OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase))
-            {
-                if (property.DeclaringType == this.GetType() && property.Name != nameof(this.BuildResult))
-                {
-                    sb.AppendLine($"{property.Name} = {property.GetValue(this)}");
-                }
-            }
-
-            return sb.ToString();
-        }
-    }
-
-    private class MSBuildLogger : ILogger
-    {
-        public string Parameters { get; set; }
-
-        public LoggerVerbosity Verbosity { get; set; }
-
-        public List<BuildEventArgs> LoggedEvents { get; } = new List<BuildEventArgs>();
-
-        public void Initialize(IEventSource eventSource)
-        {
-            eventSource.AnyEventRaised += this.EventSource_AnyEventRaised;
-        }
-
-        public void Shutdown()
-        {
-        }
-
-        private void EventSource_AnyEventRaised(object sender, BuildEventArgs e)
-        {
-            this.LoggedEvents.Add(e);
-        }
     }
 }
