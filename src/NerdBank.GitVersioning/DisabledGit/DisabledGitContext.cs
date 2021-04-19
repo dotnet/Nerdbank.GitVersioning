@@ -24,7 +24,7 @@ namespace Nerdbank.GitVersioning
 
         public override string? HeadCanonicalName => null;
 
-        private string DebuggerDisplay => $"\"{this.WorkingTreePath}\" (no-git)";
+        private string DebuggerDisplay => $"\"{this.WorkingTreePath}\" (disabled-git)";
 
         public override void ApplyTag(string name) => throw new NotSupportedException();
         public override void Stage(string path) => throw new NotSupportedException();
