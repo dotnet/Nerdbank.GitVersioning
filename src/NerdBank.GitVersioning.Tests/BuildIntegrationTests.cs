@@ -156,6 +156,17 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         Assert.Equal("3.4.0", buildResult.AssemblyInformationalVersion);
     }
 
+    [Fact]
+    public async Task GetBuildVersion_Returns_BuildVersion_Property()
+    {
+        this.WriteVersionFile();
+        this.InitializeSourceControl();
+        var buildResult = await this.BuildAsync();
+        Assert.Equal(
+            buildResult.BuildVersion,
+            buildResult.BuildResult.ResultsByTarget[Targets.GetBuildVersion].Items.Single().ItemSpec);
+    }
+
     protected abstract void ApplyGlobalProperties(IDictionary<string, string> globalProperties);
 
     protected override void Dispose(bool disposing)
@@ -323,17 +334,6 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
     protected SomeGitBuildIntegrationTests(ITestOutputHelper logger)
         : base(logger)
     {
-    }
-
-    [Fact]
-    public async Task GetBuildVersion_Returns_BuildVersion_Property()
-    {
-        this.WriteVersionFile();
-        this.InitializeSourceControl();
-        var buildResult = await this.BuildAsync();
-        Assert.Equal(
-            buildResult.BuildVersion,
-            buildResult.BuildResult.ResultsByTarget[Targets.GetBuildVersion].Items.Single().ItemSpec);
     }
 
     [Fact]
