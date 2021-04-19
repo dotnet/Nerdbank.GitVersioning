@@ -167,6 +167,110 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
             buildResult.BuildResult.ResultsByTarget[Targets.GetBuildVersion].Items.Single().ItemSpec);
     }
 
+    /// <summary>
+    /// Emulate a project with an unsupported language, and verify that
+    /// no errors are emitted because the target is skipped.
+    /// </summary>
+    [Fact]
+    public async Task AssemblyInfo_Suppressed()
+    {
+        var propertyGroup = this.testProject.CreatePropertyGroupElement();
+        this.testProject.AppendChild(propertyGroup);
+        propertyGroup.AddProperty("Language", "NoCodeDOMProviderForThisLanguage");
+        propertyGroup.AddProperty(Targets.GenerateAssemblyVersionInfo, "false");
+
+        this.WriteVersionFile();
+        var result = await this.BuildAsync(Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal);
+        string versionCsFilePath = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"));
+        Assert.False(File.Exists(versionCsFilePath));
+        Assert.Empty(result.LoggedEvents.OfType<BuildErrorEventArgs>());
+        Assert.Empty(result.LoggedEvents.OfType<BuildWarningEventArgs>());
+    }
+
+    /// <summary>
+    /// Emulate a project with an unsupported language, and verify that
+    /// one warning is emitted because the assembly info file couldn't be generated.
+    /// </summary>
+    [Fact]
+    public async Task AssemblyInfo_NotProducedWithoutCodeDomProvider()
+    {
+        var propertyGroup = this.testProject.CreatePropertyGroupElement();
+        this.testProject.AppendChild(propertyGroup);
+        propertyGroup.AddProperty("Language", "NoCodeDOMProviderForThisLanguage");
+
+        this.WriteVersionFile();
+        var result = await this.BuildAsync(Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal, assertSuccessfulBuild: false);
+        Assert.Equal(BuildResultCode.Failure, result.BuildResult.OverallResult);
+        string versionCsFilePath = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"));
+        Assert.False(File.Exists(versionCsFilePath));
+        Assert.Single(result.LoggedEvents.OfType<BuildErrorEventArgs>());
+    }
+
+    /// <summary>
+    /// Emulate a project with an unsupported language, and verify that
+    /// no errors are emitted because the target is skipped.
+    /// </summary>
+    [Fact]
+    public async Task AssemblyInfo_SuppressedImplicitlyByTargetExt()
+    {
+        var propertyGroup = this.testProject.CreatePropertyGroupElement();
+        this.testProject.InsertAfterChild(propertyGroup, this.testProject.Imports.First()); // insert just after the Common.Targets import.
+        propertyGroup.AddProperty("Language", "NoCodeDOMProviderForThisLanguage");
+        propertyGroup.AddProperty("TargetExt", ".notdll");
+
+        this.WriteVersionFile();
+        var result = await this.BuildAsync(Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal);
+        string versionCsFilePath = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"));
+        Assert.False(File.Exists(versionCsFilePath));
+        Assert.Empty(result.LoggedEvents.OfType<BuildErrorEventArgs>());
+        Assert.Empty(result.LoggedEvents.OfType<BuildWarningEventArgs>());
+    }
+
+    // TODO: add key container test.
+    [Theory]
+    [InlineData("keypair.snk", false)]
+    [InlineData("public.snk", true)]
+    [InlineData("protectedPair.pfx", true)]
+    public async Task AssemblyInfo_HasKeyData(string keyFile, bool delaySigned)
+    {
+        TestUtilities.ExtractEmbeddedResource($@"Keys\{keyFile}", Path.Combine(this.projectDirectory, keyFile));
+        this.testProject.AddProperty("SignAssembly", "true");
+        this.testProject.AddProperty("AssemblyOriginatorKeyFile", keyFile);
+        this.testProject.AddProperty("DelaySign", delaySigned.ToString());
+
+        this.WriteVersionFile();
+        var result = await this.BuildAsync(Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal);
+        string versionCsContent = File.ReadAllText(
+            Path.GetFullPath(
+                Path.Combine(
+                    this.projectDirectory,
+                    result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"))));
+        this.Logger.WriteLine(versionCsContent);
+
+        var sourceFile = CSharpSyntaxTree.ParseText(versionCsContent);
+        var syntaxTree = await sourceFile.GetRootAsync();
+        var fields = syntaxTree.DescendantNodes().OfType<VariableDeclaratorSyntax>();
+
+        var publicKeyField = (LiteralExpressionSyntax)fields.SingleOrDefault(f => f.Identifier.ValueText == "PublicKey")?.Initializer.Value;
+        var publicKeyTokenField = (LiteralExpressionSyntax)fields.SingleOrDefault(f => f.Identifier.ValueText == "PublicKeyToken")?.Initializer.Value;
+        if (Path.GetExtension(keyFile) == ".pfx")
+        {
+            // No support for PFX (yet anyway), since they're encrypted.
+            // Note for future: I think by this point, the user has typically already decrypted
+            // the PFX and stored the key pair in a key container. If we knew how to find which one,
+            // we could perhaps divert to that.
+            Assert.Null(publicKeyField);
+            Assert.Null(publicKeyTokenField);
+        }
+        else
+        {
+            Assert.Equal(
+                "002400000480000094000000060200000024000052534131000400000100010067cea773679e0ecc114b7e1d442466a90bf77c755811a0d3962a546ed716525b6508abf9f78df132ffd3fb75fe604b3961e39c52d5dfc0e6c1fb233cb4fb56b1a9e3141513b23bea2cd156cb2ef7744e59ba6b663d1f5b2f9449550352248068e85b61c68681a6103cad91b3bf7a4b50d2fabf97e1d97ac34db65b25b58cd0dc",
+                publicKeyField?.Token.ValueText);
+            Assert.Equal("ca2d1515679318f5", publicKeyTokenField?.Token.ValueText);
+        }
+    }
+
     protected abstract void ApplyGlobalProperties(IDictionary<string, string> globalProperties);
 
     protected override void Dispose(bool disposing)
@@ -1041,51 +1145,6 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
         Assert.Null(thisAssemblyClass.GetField("PublicKeyToken", fieldFlags));
     }
 
-    // TODO: add key container test.
-    [Theory]
-    [InlineData("keypair.snk", false)]
-    [InlineData("public.snk", true)]
-    [InlineData("protectedPair.pfx", true)]
-    public async Task AssemblyInfo_HasKeyData(string keyFile, bool delaySigned)
-    {
-        TestUtilities.ExtractEmbeddedResource($@"Keys\{keyFile}", Path.Combine(this.projectDirectory, keyFile));
-        this.testProject.AddProperty("SignAssembly", "true");
-        this.testProject.AddProperty("AssemblyOriginatorKeyFile", keyFile);
-        this.testProject.AddProperty("DelaySign", delaySigned.ToString());
-
-        this.WriteVersionFile();
-        var result = await this.BuildAsync(Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal);
-        string versionCsContent = File.ReadAllText(
-            Path.GetFullPath(
-                Path.Combine(
-                    this.projectDirectory,
-                    result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"))));
-        this.Logger.WriteLine(versionCsContent);
-
-        var sourceFile = CSharpSyntaxTree.ParseText(versionCsContent);
-        var syntaxTree = await sourceFile.GetRootAsync();
-        var fields = syntaxTree.DescendantNodes().OfType<VariableDeclaratorSyntax>();
-
-        var publicKeyField = (LiteralExpressionSyntax)fields.SingleOrDefault(f => f.Identifier.ValueText == "PublicKey")?.Initializer.Value;
-        var publicKeyTokenField = (LiteralExpressionSyntax)fields.SingleOrDefault(f => f.Identifier.ValueText == "PublicKeyToken")?.Initializer.Value;
-        if (Path.GetExtension(keyFile) == ".pfx")
-        {
-            // No support for PFX (yet anyway), since they're encrypted.
-            // Note for future: I think by this point, the user has typically already decrypted
-            // the PFX and stored the key pair in a key container. If we knew how to find which one,
-            // we could perhaps divert to that.
-            Assert.Null(publicKeyField);
-            Assert.Null(publicKeyTokenField);
-        }
-        else
-        {
-            Assert.Equal(
-                "002400000480000094000000060200000024000052534131000400000100010067cea773679e0ecc114b7e1d442466a90bf77c755811a0d3962a546ed716525b6508abf9f78df132ffd3fb75fe604b3961e39c52d5dfc0e6c1fb233cb4fb56b1a9e3141513b23bea2cd156cb2ef7744e59ba6b663d1f5b2f9449550352248068e85b61c68681a6103cad91b3bf7a4b50d2fabf97e1d97ac34db65b25b58cd0dc",
-                publicKeyField?.Token.ValueText);
-            Assert.Equal("ca2d1515679318f5", publicKeyTokenField?.Token.ValueText);
-        }
-    }
-
     [Fact]
     [Trait("TestCategory", "FailsOnAzurePipelines")]
     public async Task AssemblyInfo_IncrementalBuild()
@@ -1094,65 +1153,6 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
         await this.BuildAsync("Build", logVerbosity: LoggerVerbosity.Minimal);
         this.WriteVersionFile(prerelease: "-rc"); // two characters SHORTER, to test file truncation.
         await this.BuildAsync("Build", logVerbosity: LoggerVerbosity.Minimal);
-    }
-
-    /// <summary>
-    /// Emulate a project with an unsupported language, and verify that
-    /// one warning is emitted because the assembly info file couldn't be generated.
-    /// </summary>
-    [Fact]
-    public async Task AssemblyInfo_NotProducedWithoutCodeDomProvider()
-    {
-        var propertyGroup = this.testProject.CreatePropertyGroupElement();
-        this.testProject.AppendChild(propertyGroup);
-        propertyGroup.AddProperty("Language", "NoCodeDOMProviderForThisLanguage");
-
-        this.WriteVersionFile();
-        var result = await this.BuildAsync(Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal, assertSuccessfulBuild: false);
-        Assert.Equal(BuildResultCode.Failure, result.BuildResult.OverallResult);
-        string versionCsFilePath = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"));
-        Assert.False(File.Exists(versionCsFilePath));
-        Assert.Single(result.LoggedEvents.OfType<BuildErrorEventArgs>());
-    }
-
-    /// <summary>
-    /// Emulate a project with an unsupported language, and verify that
-    /// no errors are emitted because the target is skipped.
-    /// </summary>
-    [Fact]
-    public async Task AssemblyInfo_Suppressed()
-    {
-        var propertyGroup = this.testProject.CreatePropertyGroupElement();
-        this.testProject.AppendChild(propertyGroup);
-        propertyGroup.AddProperty("Language", "NoCodeDOMProviderForThisLanguage");
-        propertyGroup.AddProperty(Targets.GenerateAssemblyVersionInfo, "false");
-
-        this.WriteVersionFile();
-        var result = await this.BuildAsync(Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal);
-        string versionCsFilePath = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"));
-        Assert.False(File.Exists(versionCsFilePath));
-        Assert.Empty(result.LoggedEvents.OfType<BuildErrorEventArgs>());
-        Assert.Empty(result.LoggedEvents.OfType<BuildWarningEventArgs>());
-    }
-
-    /// <summary>
-    /// Emulate a project with an unsupported language, and verify that
-    /// no errors are emitted because the target is skipped.
-    /// </summary>
-    [Fact]
-    public async Task AssemblyInfo_SuppressedImplicitlyByTargetExt()
-    {
-        var propertyGroup = this.testProject.CreatePropertyGroupElement();
-        this.testProject.InsertAfterChild(propertyGroup, this.testProject.Imports.First()); // insert just after the Common.Targets import.
-        propertyGroup.AddProperty("Language", "NoCodeDOMProviderForThisLanguage");
-        propertyGroup.AddProperty("TargetExt", ".notdll");
-
-        this.WriteVersionFile();
-        var result = await this.BuildAsync(Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal);
-        string versionCsFilePath = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"));
-        Assert.False(File.Exists(versionCsFilePath));
-        Assert.Empty(result.LoggedEvents.OfType<BuildErrorEventArgs>());
-        Assert.Empty(result.LoggedEvents.OfType<BuildWarningEventArgs>());
     }
 
     protected override GitContext CreateGitContext(string path, string committish = null) => throw new NotImplementedException();
