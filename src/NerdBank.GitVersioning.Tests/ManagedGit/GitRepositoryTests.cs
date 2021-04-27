@@ -286,6 +286,25 @@ namespace ManagedGit
             }
         }
 
+        [Fact]
+        public void ParseAlternates_SingleValue_Test()
+        {
+            var alternates = GitRepository.ParseAlternates(Encoding.UTF8.GetBytes("/home/git/nbgv/.git/objects\n"));
+            Assert.Collection(
+                alternates,
+                a => Assert.Equal("/home/git/nbgv/.git/objects", a));
+        }
+
+        [Fact]
+        public void ParseAlternates_TwoValues_Test()
+        {
+            var alternates = GitRepository.ParseAlternates(Encoding.UTF8.GetBytes("/home/git/nbgv/.git/objects:../../clone/.git/objects\n"));
+            Assert.Collection(
+                alternates,
+                a => Assert.Equal("/home/git/nbgv/.git/objects", a),
+                a => Assert.Equal("../../clone/.git/objects", a));
+        }
+
         private static void AssertPath(string expected, string actual)
         {
             Assert.Equal(

@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Nerdbank.GitVersioning.ManagedGit
@@ -110,16 +111,14 @@ namespace Nerdbank.GitVersioning.ManagedGit
                 var length = alternateStream!.Read(alternates);
                 alternates = alternates.Slice(0, length);
 
-                int index = 0;
-
-                while ((index = alternates.IndexOf((byte)':')) > 0)
+                foreach(var alternate in ParseAlternates(alternates))
                 {
-                    var alternate = GetString(alternates.Slice(0, index));
-                    alternate = Path.GetFullPath(Path.Combine(this.ObjectDirectory, alternate));
-
-                    this.alternates.Add(GitRepository.Create(workingDirectory, gitDirectory, commonDirectory, alternate));
-
-                    alternates = alternates.Slice(index + 1);
+                    this.alternates.Add(
+                        GitRepository.Create(
+                            workingDirectory,
+                            gitDirectory,
+                            commonDirectory,
+                            objectDirectory: Path.GetFullPath(Path.Combine(this.ObjectDirectory, alternate))));
                 }
             }
 
@@ -713,6 +712,34 @@ namespace Nerdbank.GitVersioning.ManagedGit
             {
                 return Encoding.GetString(pBytes, bytes.Length);
             }
+        }
+
+        /// <summary>
+        /// Parses the contents of the alternates file, and returns a list of (relative) paths to the alternate object directories.
+        /// </summary>
+        /// <param name="alternates">
+        /// The contents of the alternates files.
+        /// </param>
+        /// <returns>
+        /// A list of (relative) paths to the alternate object directories.</returns>
+        public static List<string> ParseAlternates(ReadOnlySpan<byte> alternates)
+        {
+            List<string> values = new List<string>();
+
+            int index = 0;
+
+            // The alternates path is colon (:)-separated. On Windows, there may be full paths, such as
+            // C:/Users/username/source/repos/nbgv/.git, which also contain a colon. Because the colon
+            // can only appear at the second position, we skip the first two characters (e.g. C:) on Windows.
+            int skipCount = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? 2 : 0;
+
+            while (alternates.Length > skipCount && (index = alternates.Slice(skipCount).IndexOfAny((byte)':', (byte)'\n')) > 0)
+            {
+                values.Add(GetString(alternates.Slice(0, skipCount + index)));
+                alternates = alternates.Slice(skipCount + index + 1);
+            }
+
+            return values;
         }
     }
 }
