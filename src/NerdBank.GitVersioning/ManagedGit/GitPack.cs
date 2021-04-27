@@ -54,23 +54,6 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// <summary>
         /// Initializes a new instance of the <see cref="GitPack"/> class.
         /// </summary>
-        /// <param name="repository">
-        /// The repository to which this pack file belongs.
-        /// </param>
-        /// <param name="name">
-        /// The name of the pack file.
-        /// </param>
-        internal GitPack(GitRepository repository, string name)
-            : this(
-                  repository.GetObjectBySha,
-                  indexPath: Path.Combine(repository.ObjectDirectory, "pack", $"{name}.idx"),
-                  packPath: Path.Combine(repository.ObjectDirectory, "pack", $"{name}.pack"))
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="GitPack"/> class.
-        /// </summary>
         /// <param name="getObjectFromRepositoryDelegate">
         /// A delegate which fetches objects from the Git object store.
         /// </param>

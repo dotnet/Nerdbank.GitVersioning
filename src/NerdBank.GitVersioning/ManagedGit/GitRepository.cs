@@ -648,15 +648,24 @@ namespace Nerdbank.GitVersioning.ManagedGit
             }
 
             var indexFiles = Directory.GetFiles(packDirectory, "*.idx");
-            GitPack[] packs = new GitPack[indexFiles.Length];
+            List<GitPack> packs = new List<GitPack>(indexFiles.Length);
 
             for (int i = 0; i < indexFiles.Length; i++)
             {
+
                 var name = Path.GetFileNameWithoutExtension(indexFiles[i]);
-                packs[i] = new GitPack(this, name);
+                var indexPath = Path.Combine(this.ObjectDirectory, "pack", $"{name}.idx");
+                var packPath = Path.Combine(this.ObjectDirectory, "pack", $"{name}.pack");
+
+                // Only proceed if both the packfile and index file exist.
+                if (!File.Exists(packPath))
+                {
+                    packs.Add(new GitPack(this.GetObjectBySha, indexPath, packPath));
+                }
+
             }
 
-            return packs;
+            return packs.ToArray();
         }
 
         private static string TrimEndingDirectorySeparator(string path)
