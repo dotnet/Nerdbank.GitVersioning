@@ -658,7 +658,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
                 var packPath = Path.Combine(this.ObjectDirectory, "pack", $"{name}.pack");
 
                 // Only proceed if both the packfile and index file exist.
-                if (!File.Exists(packPath))
+                if (File.Exists(packPath))
                 {
                     packs.Add(new GitPack(this.GetObjectBySha, indexPath, packPath));
                 }
