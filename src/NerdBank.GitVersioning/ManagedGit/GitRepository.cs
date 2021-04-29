@@ -17,7 +17,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
     {
         private const string HeadFileName = "HEAD";
         private const string GitDirectoryName = ".git";
-        private readonly Lazy<GitPack[]> packs;
+        private readonly Lazy<ReadOnlyMemory<GitPack>> packs;
 
         /// <summary>
         /// UTF-16 encoded string.
@@ -137,7 +137,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
             this.objectPathBuffer[this.ObjectDirectory.Length + 3] = '/';
             this.objectPathBuffer[pathLengthInChars - 1] = '\0'; // Make sure to initialize with zeros
 
-            this.packs = new Lazy<GitPack[]>(this.LoadPacks);
+            this.packs = new Lazy<ReadOnlyMemory<GitPack>>(this.LoadPacks);
         }
 
         // TODO: read from Git settings
@@ -375,7 +375,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
 
                 var hex = ConvertHexStringToByteArray(objectish);
 
-                foreach (var pack in this.packs.Value)
+                foreach (var pack in this.packs.Value.Span)
                 {
                     var objectId = pack.Lookup(hex, endsWithHalfByte);
 
@@ -514,7 +514,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
             }
 #endif
 
-            foreach (var pack in this.packs.Value)
+            foreach (var pack in this.packs.Value.Span)
             {
                 if (pack.TryGetObject(sha, objectType, out value))
                 {
@@ -563,7 +563,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
             builder.AppendLine();
 #endif
 
-            foreach (var pack in this.packs.Value)
+            foreach (var pack in this.packs.Value.Span)
             {
                 pack.GetCacheStatistics(builder);
             }
@@ -582,7 +582,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
         {
             if (this.packs.IsValueCreated)
             {
-                foreach (var pack in this.packs.Value)
+                foreach (var pack in this.packs.Value.Span)
                 {
                     pack.Dispose();
                 }
@@ -638,7 +638,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
             }
         }
 
-        private GitPack[] LoadPacks()
+        private ReadOnlyMemory<GitPack> LoadPacks()
         {
             var packDirectory = Path.Combine(this.ObjectDirectory, "pack/");
 
@@ -648,15 +648,23 @@ namespace Nerdbank.GitVersioning.ManagedGit
             }
 
             var indexFiles = Directory.GetFiles(packDirectory, "*.idx");
-            GitPack[] packs = new GitPack[indexFiles.Length];
+            var packs = new GitPack[indexFiles.Length];
+            int addCount = 0;
 
             for (int i = 0; i < indexFiles.Length; i++)
             {
                 var name = Path.GetFileNameWithoutExtension(indexFiles[i]);
-                packs[i] = new GitPack(this, name);
+                var indexPath = Path.Combine(this.ObjectDirectory, "pack", $"{name}.idx");
+                var packPath = Path.Combine(this.ObjectDirectory, "pack", $"{name}.pack");
+
+                // Only proceed if both the packfile and index file exist.
+                if (File.Exists(packPath))
+                {
+                    packs[addCount++] = new GitPack(this.GetObjectBySha, indexPath, packPath);
+                }
             }
 
-            return packs;
+            return packs.AsMemory(0, addCount);
         }
 
         private static string TrimEndingDirectorySeparator(string path)
