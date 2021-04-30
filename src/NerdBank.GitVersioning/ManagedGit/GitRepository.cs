@@ -111,7 +111,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
                 var length = alternateStream!.Read(alternates);
                 alternates = alternates.Slice(0, length);
 
-                foreach(var alternate in ParseAlternates(alternates))
+                foreach (var alternate in ParseAlternates(alternates))
                 {
                     this.alternates.Add(
                         GitRepository.Create(
@@ -724,16 +724,29 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// A list of (relative) paths to the alternate object directories.
         /// </returns>
         public static List<string> ParseAlternates(ReadOnlySpan<byte> alternates)
+            => ParseAlternates(alternates, RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? 2 : 0);
+
+        /// <summary>
+        /// Parses the contents of the alternates file, and returns a list of (relative) paths to the alternate object directories.
+        /// </summary>
+        /// <param name="alternates">
+        /// The contents of the alternates files.
+        /// </param>
+        /// <param name="skipCount">
+        /// The number of bytes to skip in the span when looking for a delimiter.
+        /// </param>
+        /// <returns>
+        /// A list of (relative) paths to the alternate object directories.
+        /// </returns>
+        public static List<string> ParseAlternates(ReadOnlySpan<byte> alternates, int skipCount)
         {
             List<string> values = new List<string>();
 
-            int index = 0;
+            int index;
 
             // The alternates path is colon (:)-separated. On Windows, there may be full paths, such as
             // C:/Users/username/source/repos/nbgv/.git, which also contain a colon. Because the colon
             // can only appear at the second position, we skip the first two characters (e.g. C:) on Windows.
-            int skipCount = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? 2 : 0;
-
             while (alternates.Length > skipCount && (index = alternates.Slice(skipCount).IndexOfAny((byte)':', (byte)'\n')) > 0)
             {
                 values.Add(GetString(alternates.Slice(0, skipCount + index)));
