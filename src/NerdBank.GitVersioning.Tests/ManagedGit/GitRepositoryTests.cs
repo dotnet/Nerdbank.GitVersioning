@@ -286,6 +286,38 @@ namespace ManagedGit
             }
         }
 
+        [Fact]
+        public void ParseAlternates_SingleValue_Test()
+        {
+            var alternates = GitRepository.ParseAlternates(Encoding.UTF8.GetBytes("/home/git/nbgv/.git/objects\n"));
+            Assert.Collection(
+                alternates,
+                a => Assert.Equal("/home/git/nbgv/.git/objects", a));
+        }
+
+        [Fact]
+        public void ParseAlternates_TwoValues_Test()
+        {
+            var alternates = GitRepository.ParseAlternates(Encoding.UTF8.GetBytes("/home/git/nbgv/.git/objects:../../clone/.git/objects\n"));
+            Assert.Collection(
+                alternates,
+                a => Assert.Equal("/home/git/nbgv/.git/objects", a),
+                a => Assert.Equal("../../clone/.git/objects", a));
+        }
+
+        [Fact]
+        public void ParseAlternates_PathWithColon_Test()
+        {
+            var alternates = GitRepository.ParseAlternates(
+                Encoding.UTF8.GetBytes("C:/Users/nbgv/objects:C:/Users/nbgv2/objects/:../../clone/.git/objects\n"),
+                2);
+            Assert.Collection(
+                alternates,
+                a => Assert.Equal("C:/Users/nbgv/objects", a),
+                a => Assert.Equal("C:/Users/nbgv2/objects/", a),
+                a => Assert.Equal("../../clone/.git/objects", a));
+        }
+
         private static void AssertPath(string expected, string actual)
         {
             Assert.Equal(
