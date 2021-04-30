@@ -721,7 +721,8 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// The contents of the alternates files.
         /// </param>
         /// <returns>
-        /// A list of (relative) paths to the alternate object directories.</returns>
+        /// A list of (relative) paths to the alternate object directories.
+        /// </returns>
         public static List<string> ParseAlternates(ReadOnlySpan<byte> alternates)
         {
             List<string> values = new List<string>();
