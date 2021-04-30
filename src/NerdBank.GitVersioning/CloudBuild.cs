@@ -21,6 +21,7 @@
             new Jenkins(),
             new GitLab(),
             new Travis(),
+            new SpaceAutomation(),
         };
 
         /// <summary>
