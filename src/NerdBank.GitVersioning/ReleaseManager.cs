@@ -278,7 +278,7 @@
 
             var nextDevVersion = this.GetNextDevVersion(versionOptions, nextVersion, versionIncrement);
 
-            // check if the current version on the main branch is different from the next version
+            // check if the current version on the current branch is different from the next version
             // otherwise, both the release branch and the dev branch would have the same version
             if (versionOptions.Version.Version == nextDevVersion.Version)
             {
