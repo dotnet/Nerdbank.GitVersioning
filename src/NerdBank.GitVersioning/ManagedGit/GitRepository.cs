@@ -751,14 +751,18 @@ namespace Nerdbank.GitVersioning.ManagedGit
             List<string> values = new List<string>();
 
             int index;
+            int length;
 
             // The alternates path is colon (:)-separated. On Windows, there may be full paths, such as
             // C:/Users/username/source/repos/nbgv/.git, which also contain a colon. Because the colon
             // can only appear at the second position, we skip the first two characters (e.g. C:) on Windows.
-            while (alternates.Length > skipCount && (index = alternates.Slice(skipCount).IndexOfAny((byte)':', (byte)'\n')) > 0)
+            while (alternates.Length > skipCount)
             {
-                values.Add(GetString(alternates.Slice(0, skipCount + index)));
-                alternates = alternates.Slice(skipCount + index + 1);
+                index = alternates.Slice(skipCount).IndexOfAny((byte)':', (byte)'\n');
+                length = index > 0 ? skipCount + index : alternates.Length;
+
+                values.Add(GetString(alternates.Slice(0, length)));
+                alternates = index > 0 ? alternates.Slice(length + 1) : Span<byte>.Empty;
             }
 
             return values;
