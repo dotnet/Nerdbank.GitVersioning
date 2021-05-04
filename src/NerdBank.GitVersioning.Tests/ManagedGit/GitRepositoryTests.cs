@@ -296,6 +296,15 @@ namespace ManagedGit
         }
 
         [Fact]
+        public void ParseAlternates_SingleValue_NoTrailingNewline_Test()
+        {
+            var alternates = GitRepository.ParseAlternates(Encoding.UTF8.GetBytes("../repo/.git/objects"));
+            Assert.Collection(
+                alternates,
+                a => Assert.Equal("../repo/.git/objects", a));
+        }
+
+        [Fact]
         public void ParseAlternates_TwoValues_Test()
         {
             var alternates = GitRepository.ParseAlternates(Encoding.UTF8.GetBytes("/home/git/nbgv/.git/objects:../../clone/.git/objects\n"));
