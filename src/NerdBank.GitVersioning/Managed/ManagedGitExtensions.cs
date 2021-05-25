@@ -165,15 +165,6 @@ namespace Nerdbank.GitVersioning.Managed
 
                 var ignoreCase = repository.IgnoreCase;
 
-                /*
-                bool ContainsRelevantChanges(IEnumerable<TreeEntryChanges> changes) =>
-                    excludePaths.Count == 0
-                        ? changes.Any()
-                        // If there is a single change that isn't excluded,
-                        // then this commit is relevant.
-                        : changes.Any(change => !excludePaths.Any(exclude => exclude.Excludes(change.Path, ignoreCase)));
-                */
-
                 int height = 1;
 
                 if (pathFilters != null)
@@ -193,26 +184,6 @@ namespace Nerdbank.GitVersioning.Managed
                             break;
                         }
                     }
-
-                    /*
-                    // If there are no include paths, or any of the include
-                    // paths refer to the root of the repository, then do not
-                    // filter the diff at all.
-                    var diffInclude =
-                        includePaths.Count == 0 || pathFilters.Any(filter => filter.IsRoot)
-                            ? null
-                            : includePaths;
-
-                    // If the diff between this commit and any of its parents
-                    // does not touch a path that we care about, don't bump the
-                    // height.
-                    var relevantCommit =
-                        commit.Parents.Any()
-                            ? commit.Parents.Any(parent => ContainsRelevantChanges(commit.GetRepository().Diff
-                                .Compare<TreeChanges>(parent.Tree, commit.Tree, diffInclude, DiffOptions)))
-                            : ContainsRelevantChanges(commit.GetRepository().Diff
-                                .Compare<TreeChanges>(null, commit.Tree, diffInclude, DiffOptions));
-                    */
 
                     if (!relevantCommit)
                     {
@@ -268,7 +239,8 @@ namespace Nerdbank.GitVersioning.Managed
 
                     bool isRelevant =
                         // Either there are no include filters at all (i.e. everything is included), or there's an explicit include filter
-                        (!filters.Any(f => f.IsInclude) || filters.Any(f => f.Includes(fullPath, repository.IgnoreCase)))
+                        (!filters.Any(f => f.IsInclude) || filters.Any(f => f.Includes(fullPath, repository.IgnoreCase))
+                         || (!entry.IsFile && filters.Any(f => f.IncludesChildren(fullPath, repository.IgnoreCase))))
                         // The path is not excluded by any filters
                         && !filters.Any(f => f.Excludes(fullPath, repository.IgnoreCase));
 
