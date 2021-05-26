@@ -2,6 +2,23 @@
 
 Installing the `Nerdbank.GitVersioning` package from NuGet into your MSBuild-based projects is the recommended way to add version information to your MSBuild project outputs including assemblies, native dll's, and packages.
 
+If you want the package to affect all the projects in your repo, and you use `PackageReference` (rather than `packages.config`),
+you can add this to a repo-level `Directory.Build.props` file:
+
+```xml
+<ItemGroup>
+  <PackageReference Include="Nerdbank.GitVersioning"
+                    Version="(latest-version-here)"
+                    PrivateAssets="all"
+                    Condition="!Exists('packages.config')" />
+</ItemGroup>
+```
+
+The condition prevents the `PackageReference` from impacting any `packages.config`-based projects
+such as vcxproj that may be in your repo.
+Such projects will require individual installation of the Nerdbank.GitVersioning nuget package
+using the NuGet Package Manager in Visual Studio.
+
 ## Public releases
 
 By default, each build of a Nuget package will include the git commit ID.
@@ -20,6 +37,64 @@ branch that you publish released NuGet packages from.
 You should only build with this property set from one release branch per
 major.minor version to avoid the risk of producing multiple unique NuGet
 packages with a colliding version spec.
+
+## Custom build authoring
+
+If you are writing your own MSBuild targets or properties and need to consume version information,
+Nerdbank.GitVersioning is there to help.
+The version information created by this package is expressed as MSBuild properties.
+These properties are set by the `GetBuildVersion` target defined in this package.
+This means any dependency you have on these properties must ensure this target has already executed.
+This can be done by defining your own msbuild target like so:
+
+```xml
+<Target Name="MyPropertySetter" DependsOnTargets="GetBuildVersion">
+  <PropertyGroup>
+    <MyOwnProperty>My assembly version is: $(AssemblyVersion)</MyOwnProperty>
+  </PropertyGroup>
+</Target>
+```
+
+In the above example, the `AssemblyVersion` property, which is set by the
+`GetBuildVersion` target defined by Nerdbank.GitVersioning, is used to define
+another property.
+It could also be used to define msbuild items or anything else you want.
+
+### MSBuild properties defined in `GetBuildVersion`
+
+Many MSBuild properties are set by `GetBuildVersion` allowing you to define or redefine
+properties in virtually any format you like.
+The authoritative list is [here](https://github.com/dotnet/Nerdbank.GitVersioning/blob/dae20a6d15f04d8161fd092c36fdf1f57c021ba1/src/Nerdbank.GitVersioning.Tasks/GetBuildVersion.cs#L300-L323) (switch to the default branch to see the current set).
+
+Below is a snapshot of the properties with example values.
+Note that the values and formats can vary depending on your `version.json` settings and version height.
+
+Property | Example value
+--|--
+AssemblyFileVersion | 2.7.74.11627
+AssemblyInformationalVersion | 2.7.74-alpha+6b2d14ba68
+AssemblyVersion | 2.7.0.0
+BuildingRef | refs/heads/fix299
+BuildNumber | 74
+BuildVersion | 2.7.74.11627
+BuildVersion3Components | 2.7.74
+BuildVersionNumberComponent | 74
+BuildVersionSimple | 2.7.74
+ChocolateyPackageVersion | 2.7.74-alpha-g6b2d14ba68
+CloudBuildNumber | (empty except in cloud build)
+FileVersion | 2.7.74.11627
+GitCommitDateTicks | 637547960670000000
+GitCommitId | 6b2d14ba6844d2152c48268a8d2c1933759e7229
+GitCommitIdShort | 6b2d14ba68
+GitVersionHeight | 74
+MajorMinorVersion | 2.7
+NPMPackageVersion | 2.7.74-alpha.g6b2d14ba68
+NuGetPackageVersion | 2.7.74-alpha-g6b2d14ba68
+PackageVersion | 2.7.74-alpha-g6b2d14ba68
+PrereleaseVersion | -alpha
+PublicRelease | False
+SemVerBuildSuffix | +6b2d14ba68
+Version | 2.7.74-alpha-g6b2d14ba68
 
 ## Build performance
 
