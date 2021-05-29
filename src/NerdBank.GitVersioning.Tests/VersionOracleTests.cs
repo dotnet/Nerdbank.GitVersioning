@@ -444,7 +444,7 @@ public abstract class VersionOracleTests : RepoTestBase
         var context = this.CreateGitContext(workTreePath);
         var oracleWorkTree = new VersionOracle(context);
         Assert.Equal(oracleOriginal.Version, oracleWorkTree.Version);
-   
+
         Assert.True(context.TrySelectCommit("HEAD"));
         Assert.True(context.TrySelectCommit(this.LibGit2Repository.Head.Tip.Sha));
     }
@@ -736,7 +736,7 @@ public abstract class VersionOracleTests : RepoTestBase
     {
         this.InitializeSourceControl();
 
-        const string relativeDirectory = "src\\lib";
+        const string relativeDirectory = "src/lib";
         var versionOptions = new VersionOptions
         {
             Version = new SemanticVersion("1.1"),
