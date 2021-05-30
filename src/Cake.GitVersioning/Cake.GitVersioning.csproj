@@ -9,8 +9,8 @@
     <Description>Cake wrapper for Nerdbank.GitVersioning.  Stamps your assemblies with semver 2.0 compliant git commit specific version information and provides NuGet versioning information as well.</Description>
     <Copyright>Copyright (c) .NET Foundation and Contributors</Copyright>
     <PackageTags>git commit versioning version assemblyinfo</PackageTags>
-    <PackageIconUrl>https://cdn.jsdelivr.net/gh/cake-contrib/graphics/png/cake-contrib-medium.png</PackageIconUrl>
-    <PackageIcon>cake-contrib-medium.png</PackageIcon>
+    <PackageIconUrl>https://cdn.jsdelivr.net/gh/cake-contrib/graphics/png/addin/cake-contrib-addin-medium.png</PackageIconUrl>
+    <PackageIcon>cake-contrib-addin-medium.png</PackageIcon>
     <PackageProjectUrl>http://github.com/dotnet/Nerdbank.GitVersioning</PackageProjectUrl>
     <SignAssembly>false</SignAssembly>
 
@@ -36,7 +36,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="cake-contrib-medium.png" Pack="true" PackagePath="" />
+    <None Include="cake-contrib-addin-medium.png" Pack="true" PackagePath="" />
 
     <!-- Include native binaries -->
     <None Include="$(LibGit2SharpNativeBinaries)runtimes\**\*.*" Pack="true" PackagePath="lib\netstandard2.0\lib\" LinkBase="lib" />
