@@ -25,7 +25,7 @@ When a branch becomes stable, the `-prerelease` tag can be removed by adding a c
 To remove the `-prerelease`, the version.json file must be changed to remove it.
 Committing this change communicates to everyone looking at the repo that this software is stable.
 
-The natural evolution of a product includes usually includes entering and exiting a `-prerelease` stage many times, but within a branded release (usually recognized by an intentional version number like "1.2") the progression usually transitions only one direction: from `-prerelease` to stable quality.
+The natural evolution of a product usually includes entering and exiting a `-prerelease` stage many times, but within a branded release (usually recognized by an intentional version number like "1.2") the progression usually transitions only one direction: from `-prerelease` to stable quality.
 For example, an anticipated version 1.2 might first be released to the public as 1.2-beta before releasing as 1.2 (without the `-beta` suffix).
 If the product is undergoing significant changes that warrant downgrading the stability rating to pre-release quality, the version number tends to be incremented at the same time.
 So a 1.2 product's subsequent release might appear as 1.3-beta or 2.0-beta.
