@@ -295,7 +295,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
             if (objectish.StartsWith("refs/", StringComparison.Ordinal))
             {
                 // Match on loose ref files by their canonical name.
-                possibleLooseFileMatches.Add(Path.Combine(this.GitDirectory, objectish));
+                possibleLooseFileMatches.Add(Path.Combine(this.CommonDirectory, objectish));
                 skipObjectIdLookup = true;
             }
             else
