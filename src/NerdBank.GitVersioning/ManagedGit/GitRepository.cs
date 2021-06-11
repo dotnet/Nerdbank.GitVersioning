@@ -686,7 +686,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
             for (int index = 0; index < data.Length; index++)
             {
                 string byteValue = hexString.Substring(index * 2, 2);
-                if (byte.TryParse(byteValue, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out data[index]))
+                if (!byte.TryParse(byteValue, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out data[index]))
                 {
                     data = null;
                     return false;
