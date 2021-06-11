@@ -94,11 +94,14 @@ namespace Nerdbank.GitVersioning.LibGit2
                 {
                     // The working copy has changed the major.minor version.
                     // So by definition the version height is 0, since no commit represents it yet.
+                    System.Diagnostics.Debugger.Launch();
                     return 0;
                 }
             }
 
-            return LibGit2GitExtensions.GetVersionHeight(this);
+            int versionHeight = LibGit2GitExtensions.GetVersionHeight(this);
+            if (versionHeight == 0) System.Diagnostics.Debugger.Launch();
+            return versionHeight;
         }
 
         internal override System.Version GetIdAsVersion(VersionOptions? committedVersion, VersionOptions? workingVersion, int versionHeight)
