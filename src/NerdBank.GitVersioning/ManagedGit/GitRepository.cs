@@ -616,7 +616,9 @@ namespace Nerdbank.GitVersioning.ManagedGit
             {
                 if (!FileHelpers.TryOpen(Path.Combine(this.CommonDirectory, (string)reference), out FileStream? stream))
                 {
-                    return GitObjectId.Empty;
+                    // HEAD can point to a reference that's in the packed references and needs
+                    // a full resolution.
+                    return Lookup((string)reference) ?? GitObjectId.Empty;
                 }
 
                 using (stream)
