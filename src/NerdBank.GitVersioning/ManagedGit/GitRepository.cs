@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using Validation;
 
 namespace Nerdbank.GitVersioning.ManagedGit
 {
@@ -222,9 +223,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// </returns>
         public GitObjectId GetHeadCommitSha()
         {
-            var reference = this.GetHeadAsReferenceOrSha();
-            var objectId = this.ResolveReference(reference);
-            return objectId;
+            return this.Lookup("HEAD") ?? GitObjectId.Empty;
         }
 
         /// <summary>
@@ -280,16 +279,25 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// <returns>The object ID referenced by <paramref name="objectish"/> if found; otherwise <see langword="null"/>.</returns>
         public GitObjectId? Lookup(string objectish)
         {
+            bool skipObjectIdLookup = false;
+
             if (objectish == "HEAD")
             {
-                return this.GetHeadCommitSha();
+                var reference = this.GetHeadAsReferenceOrSha();
+                if (reference is GitObjectId headObjectId)
+                {
+                    return headObjectId;
+                }
+
+                objectish = (string)reference;
             }
 
             var possibleLooseFileMatches = new List<string>();
             if (objectish.StartsWith("refs/", StringComparison.Ordinal))
             {
                 // Match on loose ref files by their canonical name.
-                possibleLooseFileMatches.Add(Path.Combine(this.GitDirectory, objectish));
+                possibleLooseFileMatches.Add(Path.Combine(this.CommonDirectory, objectish));
+                skipObjectIdLookup = true;
             }
             else
             {
@@ -341,6 +349,11 @@ namespace Nerdbank.GitVersioning.ManagedGit
                 }
             }
 
+            if (skipObjectIdLookup)
+            {
+                return null;
+            }
+
             if (objectish.Length == 40)
             {
                 return GitObjectId.Parse(objectish);
@@ -372,25 +385,30 @@ namespace Nerdbank.GitVersioning.ManagedGit
                     objectish += "0";
                 }
 
-                var hex = ConvertHexStringToByteArray(objectish);
-
-                foreach (var pack in this.packs.Value.Span)
+                if (objectish.Length <= 40 && objectish.Length % 2 == 0)
                 {
-                    var objectId = pack.Lookup(hex, endsWithHalfByte);
-
-                    // It's possible for the same object to be present in both the object database and the pack files,
-                    // or in multiple pack files.
-                    if (objectId != null && !possibleObjectIds.Contains(objectId.Value))
+                    Span<byte> decodedHex = stackalloc byte[objectish.Length / 2];
+                    if (TryConvertHexStringToByteArray(objectish, decodedHex))
                     {
-                        if (possibleObjectIds.Count > 0)
+                        foreach (var pack in this.packs.Value.Span)
                         {
-                            // If objectish already resolved to at least one object which is different from the current
-                            // object id, objectish is not well-defined; so stop resolving and return null instead.
-                            return null;
-                        }
-                        else
-                        {
-                            possibleObjectIds.Add(objectId.Value);
+                            var objectId = pack.Lookup(decodedHex, endsWithHalfByte);
+
+                            // It's possible for the same object to be present in both the object database and the pack files,
+                            // or in multiple pack files.
+                            if (objectId != null && !possibleObjectIds.Contains(objectId.Value))
+                            {
+                                if (possibleObjectIds.Count > 0)
+                                {
+                                    // If objectish already resolved to at least one object which is different from the current
+                                    // object id, objectish is not well-defined; so stop resolving and return null instead.
+                                    return null;
+                                }
+                                else
+                                {
+                                    possibleObjectIds.Add(objectId.Value);
+                                }
+                            }
                         }
                     }
                 }
@@ -610,33 +628,6 @@ namespace Nerdbank.GitVersioning.ManagedGit
             return true;
         }
 
-        private GitObjectId ResolveReference(object reference)
-        {
-            if (reference is string)
-            {
-                if (!FileHelpers.TryOpen(Path.Combine(this.CommonDirectory, (string)reference), out FileStream? stream))
-                {
-                    return GitObjectId.Empty;
-                }
-
-                using (stream)
-                {
-                    Span<byte> objectId = stackalloc byte[40];
-                    stream!.Read(objectId);
-
-                    return GitObjectId.ParseHex(objectId);
-                }
-            }
-            else if (reference is GitObjectId)
-            {
-                return (GitObjectId)reference;
-            }
-            else
-            {
-                throw new GitException();
-            }
-        }
-
         private ReadOnlyMemory<GitPack> LoadPacks()
         {
             var packDirectory = Path.Combine(this.ObjectDirectory, "pack/");
@@ -687,22 +678,34 @@ namespace Nerdbank.GitVersioning.ManagedGit
 #endif
         }
 
-        private static byte[] ConvertHexStringToByteArray(string hexString)
+        private static bool TryConvertHexStringToByteArray(string hexString, Span<byte> data)
         {
             // https://stackoverflow.com/questions/321370/how-can-i-convert-a-hex-string-to-a-byte-array
             if (hexString.Length % 2 != 0)
             {
-                throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, "The binary key cannot have an odd number of digits: {0}", hexString));
+                data = null;
+                return false;
             }
 
-            byte[] data = new byte[hexString.Length / 2];
+            Requires.Argument(data.Length == hexString.Length / 2, nameof(data), "Length must be exactly half that of " + nameof(hexString) + ".");
             for (int index = 0; index < data.Length; index++)
             {
+#if NETCOREAPP3_1_OR_GREATER
+                ReadOnlySpan<char> byteValue = hexString.AsSpan(index * 2, 2);
+                if (!byte.TryParse(byteValue, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out data[index]))
+                {
+                    return false;
+                }
+#else
                 string byteValue = hexString.Substring(index * 2, 2);
-                data[index] = byte.Parse(byteValue, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+                if (!byte.TryParse(byteValue, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out data[index]))
+                {
+                    return false;
+                }
+#endif
             }
 
-            return data;
+            return true;
         }
 
         /// <summary>
