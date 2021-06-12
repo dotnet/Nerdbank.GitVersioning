@@ -4,7 +4,7 @@
     <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)..\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
     <OutputPath>$(MSBuildThisFileDirectory)..\bin\$(MSBuildProjectName)\$(Configuration)\</OutputPath>
     <DocumentationRootFolder>$(MSBuildThisFileDirectory)..\wiki\api</DocumentationRootFolder>
-    <LangVersion>8.0</LangVersion>
+    <LangVersion>9.0</LangVersion>
 
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)strongname.snk</AssemblyOriginatorKeyFile>
@@ -27,6 +27,9 @@
     <PackageReference Include="Microsoft.Net.Compilers.Toolset" Version="3.8.0-5.final" PrivateAssets="all" />
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.0" PrivateAssets="All" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)..\3rdPartyNotices.txt" Pack="true" PackagePath="" />
   </ItemGroup>
 
   <Target Name="PrepareReleaseNotes" BeforeTargets="GenerateNuspec" DependsOnTargets="GetBuildVersion">

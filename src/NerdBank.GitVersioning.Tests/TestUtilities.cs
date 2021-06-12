@@ -1,7 +1,4 @@
-﻿#if NET461
-using SevenZipNET;
-#endif
-using Validation;
+﻿using Validation;
 
 using System;
 using System.Collections.Generic;
@@ -67,36 +64,19 @@ internal static class TestUtilities
 
     internal static ExpandedRepo ExtractRepoArchive(string repoArchiveName)
     {
-#if NET461
         string archiveFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
         string expandedFolderPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
 
-        ExtractEmbeddedResource($"repos.{repoArchiveName}.7z", archiveFilePath);
+        ExtractEmbeddedResource($"repos.{repoArchiveName}.zip", archiveFilePath);
         try
         {
-            for (int retryCount = 0; ; retryCount++)
-            {
-                try
-                {
-                    var extractor = new SevenZipExtractor(archiveFilePath);
-                    extractor.ExtractAll(expandedFolderPath);
-                    return new ExpandedRepo(expandedFolderPath);
-                }
-                catch (System.ComponentModel.Win32Exception) when (retryCount < 2)
-                {
-                }
-            }
+            System.IO.Compression.ZipFile.ExtractToDirectory(archiveFilePath, expandedFolderPath);
+            return new ExpandedRepo(expandedFolderPath);
         }
         finally
         {
-            if (File.Exists(archiveFilePath))
-            {
-                File.Delete(archiveFilePath);
-            }
+            File.Delete(archiveFilePath);
         }
-#else
-        throw new PlatformNotSupportedException();
-#endif
     }
 
     internal class ExpandedRepo : IDisposable

@@ -6,7 +6,9 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
+using Validation;
 
 namespace Nerdbank.GitVersioning.ManagedGit
 {
@@ -17,7 +19,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
     {
         private const string HeadFileName = "HEAD";
         private const string GitDirectoryName = ".git";
-        private readonly Lazy<GitPack[]> packs;
+        private readonly Lazy<ReadOnlyMemory<GitPack>> packs;
 
         /// <summary>
         /// UTF-16 encoded string.
@@ -40,42 +42,13 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// </returns>
         public static GitRepository? Create(string? workingDirectory)
         {
-            // Search for the top-level directory of the current git repository. This is the directory
-            // which contains a directory of file named .git.
-            // Loop until Path.GetDirectoryName returns null; in this case, we've reached the root of
-            // the file system (and we're not in a git repository).
-            while (!string.IsNullOrEmpty(workingDirectory)
-                && !File.Exists(Path.Combine(workingDirectory, GitDirectoryName))
-                && !Directory.Exists(Path.Combine(workingDirectory, GitDirectoryName)))
-            {
-                workingDirectory = Path.GetDirectoryName(workingDirectory);
-            }
-
-            if (string.IsNullOrEmpty(workingDirectory))
+            if (!GitContext.TryFindGitPaths(workingDirectory, out string? gitDirectory, out string? workingTreeDirectory, out string? workingTreeRelativePath))
             {
                 return null;
             }
 
-            var gitDirectory = Path.Combine(workingDirectory, GitDirectoryName);
-
-            if (File.Exists(gitDirectory))
-            {
-                // This is a worktree, and the path to the git directory is stored in the .git file
-                var worktreeConfig = File.ReadAllText(gitDirectory);
-
-                var gitDirStart = worktreeConfig.IndexOf("gitdir: ");
-                var gitDirEnd = worktreeConfig.IndexOf("\n", gitDirStart);
-
-                gitDirectory = worktreeConfig.Substring(gitDirStart + 8, gitDirEnd - gitDirStart - 8);
-            }
-
-            if (!Directory.Exists(gitDirectory))
-            {
-                return null;
-            }
-
-            var commonDirectory = gitDirectory;
-            var commonDirFile = Path.Combine(gitDirectory, "commondir");
+            string commonDirectory = gitDirectory;
+            string commonDirFile = Path.Combine(gitDirectory, "commondir");
 
             if (File.Exists(commonDirFile))
             {
@@ -83,7 +56,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
                 commonDirectory = Path.Combine(gitDirectory, commonDirectoryRelativePath);
             }
 
-            var objectDirectory = Path.Combine(commonDirectory, "objects");
+            string objectDirectory = Path.Combine(commonDirectory, "objects");
 
             return new GitRepository(workingDirectory!, gitDirectory, commonDirectory, objectDirectory);
         }
@@ -139,16 +112,14 @@ namespace Nerdbank.GitVersioning.ManagedGit
                 var length = alternateStream!.Read(alternates);
                 alternates = alternates.Slice(0, length);
 
-                int index = 0;
-
-                while ((index = alternates.IndexOf((byte)':')) > 0)
+                foreach (var alternate in ParseAlternates(alternates))
                 {
-                    var alternate = GetString(alternates.Slice(0, index));
-                    alternate = Path.GetFullPath(Path.Combine(this.ObjectDirectory, alternate));
-
-                    this.alternates.Add(GitRepository.Create(workingDirectory, gitDirectory, commonDirectory, alternate));
-
-                    alternates = alternates.Slice(index + 1);
+                    this.alternates.Add(
+                        GitRepository.Create(
+                            workingDirectory,
+                            gitDirectory,
+                            commonDirectory,
+                            objectDirectory: Path.GetFullPath(Path.Combine(this.ObjectDirectory, alternate))));
                 }
             }
 
@@ -166,7 +137,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
             this.objectPathBuffer[this.ObjectDirectory.Length + 3] = '/';
             this.objectPathBuffer[pathLengthInChars - 1] = '\0'; // Make sure to initialize with zeros
 
-            this.packs = new Lazy<GitPack[]>(this.LoadPacks);
+            this.packs = new Lazy<ReadOnlyMemory<GitPack>>(this.LoadPacks);
         }
 
         // TODO: read from Git settings
@@ -252,9 +223,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// </returns>
         public GitObjectId GetHeadCommitSha()
         {
-            var reference = this.GetHeadAsReferenceOrSha();
-            var objectId = this.ResolveReference(reference);
-            return objectId;
+            return this.Lookup("HEAD") ?? GitObjectId.Empty;
         }
 
         /// <summary>
@@ -310,16 +279,25 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// <returns>The object ID referenced by <paramref name="objectish"/> if found; otherwise <see langword="null"/>.</returns>
         public GitObjectId? Lookup(string objectish)
         {
+            bool skipObjectIdLookup = false;
+
             if (objectish == "HEAD")
             {
-                return this.GetHeadCommitSha();
+                var reference = this.GetHeadAsReferenceOrSha();
+                if (reference is GitObjectId headObjectId)
+                {
+                    return headObjectId;
+                }
+
+                objectish = (string)reference;
             }
 
             var possibleLooseFileMatches = new List<string>();
             if (objectish.StartsWith("refs/", StringComparison.Ordinal))
             {
                 // Match on loose ref files by their canonical name.
-                possibleLooseFileMatches.Add(Path.Combine(this.GitDirectory, objectish));
+                possibleLooseFileMatches.Add(Path.Combine(this.CommonDirectory, objectish));
+                skipObjectIdLookup = true;
             }
             else
             {
@@ -371,6 +349,11 @@ namespace Nerdbank.GitVersioning.ManagedGit
                 }
             }
 
+            if (skipObjectIdLookup)
+            {
+                return null;
+            }
+
             if (objectish.Length == 40)
             {
                 return GitObjectId.Parse(objectish);
@@ -402,25 +385,30 @@ namespace Nerdbank.GitVersioning.ManagedGit
                     objectish += "0";
                 }
 
-                var hex = ConvertHexStringToByteArray(objectish);
-
-                foreach (var pack in this.packs.Value)
+                if (objectish.Length <= 40 && objectish.Length % 2 == 0)
                 {
-                    var objectId = pack.Lookup(hex, endsWithHalfByte);
-
-                    // It's possible for the same object to be present in both the object database and the pack files,
-                    // or in multiple pack files.
-                    if (objectId != null && !possibleObjectIds.Contains(objectId.Value))
+                    Span<byte> decodedHex = stackalloc byte[objectish.Length / 2];
+                    if (TryConvertHexStringToByteArray(objectish, decodedHex))
                     {
-                        if (possibleObjectIds.Count > 0)
+                        foreach (var pack in this.packs.Value.Span)
                         {
-                            // If objectish already resolved to at least one object which is different from the current
-                            // object id, objectish is not well-defined; so stop resolving and return null instead.
-                            return null;
-                        }
-                        else
-                        {
-                            possibleObjectIds.Add(objectId.Value);
+                            var objectId = pack.Lookup(decodedHex, endsWithHalfByte);
+
+                            // It's possible for the same object to be present in both the object database and the pack files,
+                            // or in multiple pack files.
+                            if (objectId != null && !possibleObjectIds.Contains(objectId.Value))
+                            {
+                                if (possibleObjectIds.Count > 0)
+                                {
+                                    // If objectish already resolved to at least one object which is different from the current
+                                    // object id, objectish is not well-defined; so stop resolving and return null instead.
+                                    return null;
+                                }
+                                else
+                                {
+                                    possibleObjectIds.Add(objectId.Value);
+                                }
+                            }
                         }
                     }
                 }
@@ -543,7 +531,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
             }
 #endif
 
-            foreach (var pack in this.packs.Value)
+            foreach (var pack in this.packs.Value.Span)
             {
                 if (pack.TryGetObject(sha, objectType, out value))
                 {
@@ -592,7 +580,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
             builder.AppendLine();
 #endif
 
-            foreach (var pack in this.packs.Value)
+            foreach (var pack in this.packs.Value.Span)
             {
                 pack.GetCacheStatistics(builder);
             }
@@ -611,7 +599,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
         {
             if (this.packs.IsValueCreated)
             {
-                foreach (var pack in this.packs.Value)
+                foreach (var pack in this.packs.Value.Span)
                 {
                     pack.Dispose();
                 }
@@ -640,34 +628,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
             return true;
         }
 
-        private GitObjectId ResolveReference(object reference)
-        {
-            if (reference is string)
-            {
-                if (!FileHelpers.TryOpen(Path.Combine(this.CommonDirectory, (string)reference), out FileStream? stream))
-                {
-                    return GitObjectId.Empty;
-                }
-
-                using (stream)
-                {
-                    Span<byte> objectId = stackalloc byte[40];
-                    stream!.Read(objectId);
-
-                    return GitObjectId.ParseHex(objectId);
-                }
-            }
-            else if (reference is GitObjectId)
-            {
-                return (GitObjectId)reference;
-            }
-            else
-            {
-                throw new GitException();
-            }
-        }
-
-        private GitPack[] LoadPacks()
+        private ReadOnlyMemory<GitPack> LoadPacks()
         {
             var packDirectory = Path.Combine(this.ObjectDirectory, "pack/");
 
@@ -677,15 +638,23 @@ namespace Nerdbank.GitVersioning.ManagedGit
             }
 
             var indexFiles = Directory.GetFiles(packDirectory, "*.idx");
-            GitPack[] packs = new GitPack[indexFiles.Length];
+            var packs = new GitPack[indexFiles.Length];
+            int addCount = 0;
 
             for (int i = 0; i < indexFiles.Length; i++)
             {
                 var name = Path.GetFileNameWithoutExtension(indexFiles[i]);
-                packs[i] = new GitPack(this, name);
+                var indexPath = Path.Combine(this.ObjectDirectory, "pack", $"{name}.idx");
+                var packPath = Path.Combine(this.ObjectDirectory, "pack", $"{name}.pack");
+
+                // Only proceed if both the packfile and index file exist.
+                if (File.Exists(packPath))
+                {
+                    packs[addCount++] = new GitPack(this.GetObjectBySha, indexPath, packPath);
+                }
             }
 
-            return packs;
+            return packs.AsMemory(0, addCount);
         }
 
         private static string TrimEndingDirectorySeparator(string path)
@@ -709,22 +678,34 @@ namespace Nerdbank.GitVersioning.ManagedGit
 #endif
         }
 
-        private static byte[] ConvertHexStringToByteArray(string hexString)
+        private static bool TryConvertHexStringToByteArray(string hexString, Span<byte> data)
         {
             // https://stackoverflow.com/questions/321370/how-can-i-convert-a-hex-string-to-a-byte-array
             if (hexString.Length % 2 != 0)
             {
-                throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, "The binary key cannot have an odd number of digits: {0}", hexString));
+                data = null;
+                return false;
             }
 
-            byte[] data = new byte[hexString.Length / 2];
+            Requires.Argument(data.Length == hexString.Length / 2, nameof(data), "Length must be exactly half that of " + nameof(hexString) + ".");
             for (int index = 0; index < data.Length; index++)
             {
+#if NETCOREAPP3_1_OR_GREATER
+                ReadOnlySpan<char> byteValue = hexString.AsSpan(index * 2, 2);
+                if (!byte.TryParse(byteValue, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out data[index]))
+                {
+                    return false;
+                }
+#else
                 string byteValue = hexString.Substring(index * 2, 2);
-                data[index] = byte.Parse(byteValue, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+                if (!byte.TryParse(byteValue, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out data[index]))
+                {
+                    return false;
+                }
+#endif
             }
 
-            return data;
+            return true;
         }
 
         /// <summary>
@@ -742,6 +723,52 @@ namespace Nerdbank.GitVersioning.ManagedGit
             {
                 return Encoding.GetString(pBytes, bytes.Length);
             }
+        }
+
+        /// <summary>
+        /// Parses the contents of the alternates file, and returns a list of (relative) paths to the alternate object directories.
+        /// </summary>
+        /// <param name="alternates">
+        /// The contents of the alternates files.
+        /// </param>
+        /// <returns>
+        /// A list of (relative) paths to the alternate object directories.
+        /// </returns>
+        public static List<string> ParseAlternates(ReadOnlySpan<byte> alternates)
+            => ParseAlternates(alternates, RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? 2 : 0);
+
+        /// <summary>
+        /// Parses the contents of the alternates file, and returns a list of (relative) paths to the alternate object directories.
+        /// </summary>
+        /// <param name="alternates">
+        /// The contents of the alternates files.
+        /// </param>
+        /// <param name="skipCount">
+        /// The number of bytes to skip in the span when looking for a delimiter.
+        /// </param>
+        /// <returns>
+        /// A list of (relative) paths to the alternate object directories.
+        /// </returns>
+        public static List<string> ParseAlternates(ReadOnlySpan<byte> alternates, int skipCount)
+        {
+            List<string> values = new List<string>();
+
+            int index;
+            int length;
+
+            // The alternates path is colon (:)-separated. On Windows, there may be full paths, such as
+            // C:/Users/username/source/repos/nbgv/.git, which also contain a colon. Because the colon
+            // can only appear at the second position, we skip the first two characters (e.g. C:) on Windows.
+            while (alternates.Length > skipCount)
+            {
+                index = alternates.Slice(skipCount).IndexOfAny((byte)':', (byte)'\n');
+                length = index > 0 ? skipCount + index : alternates.Length;
+
+                values.Add(GetString(alternates.Slice(0, length)));
+                alternates = index > 0 ? alternates.Slice(length + 1) : Span<byte>.Empty;
+            }
+
+            return values;
         }
     }
 }

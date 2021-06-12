@@ -199,6 +199,31 @@ namespace Nerdbank.GitVersioning
                        stringComparison);
         }
 
+        /// <summary>
+        /// Determines if children of <paramref name="repoRelativePath"/> may be included
+        /// by this <see cref="FilterPath"/>.
+        /// </summary>
+        /// <param name="repoRelativePath">Forward-slash delimited path (repo relative).</param>
+        /// <param name="ignoreCase">
+        /// Whether paths should be compared case insensitively.
+        /// Should be the 'core.ignorecase' config value for the repository.
+        /// </param>
+        /// <returns>
+        /// <see langword="true"/> if this <see cref="FilterPath"/> is an including filter that may match
+        /// children of <paramref name="repoRelativePath"/>, otherwise <see langword="false"/>.
+        /// </returns>
+        public bool IncludesChildren(string repoRelativePath, bool ignoreCase)
+        {
+            if (repoRelativePath is null)
+                throw new ArgumentNullException(nameof(repoRelativePath));
+
+            if (!this.IsInclude) return false;
+            if (this.IsRoot) return true;
+
+            var stringComparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            return this.RepoRelativePath.StartsWith(repoRelativePath + "/", stringComparison);
+        }
+
         private static (int dirsToAscend, StringBuilder result) GetRelativePath(string path, string relativeTo)
         {
             var pathParts = path.Split('/');

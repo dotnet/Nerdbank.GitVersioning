@@ -49,19 +49,17 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(0, oracle.VersionHeight);
     }
 
-    [Fact(Skip = "Unstable test. See issue #125")]
+    [Fact]
     public void Submodule_RecognizedWithCorrectVersion()
     {
         using (var expandedRepo = TestUtilities.ExtractRepoArchive("submodules"))
         {
-            this.Context = this.CreateGitContext(expandedRepo.RepoPath);
-
-            this.Context.RepoRelativeProjectDirectory = "a";
+            this.Context = this.CreateGitContext(Path.Combine(expandedRepo.RepoPath, "a"));
             var oracleA = new VersionOracle(this.Context);
             Assert.Equal("1.3.1", oracleA.SimpleVersion.ToString());
             Assert.Equal("e238b03e75", oracleA.GitCommitIdShort);
 
-            this.Context.RepoRelativeProjectDirectory = Path.Combine("b", "projB");
+            this.Context = this.CreateGitContext(Path.Combine(expandedRepo.RepoPath, "b", "projB"));
             var oracleB = new VersionOracle(this.Context);
             Assert.Equal("2.5.2", oracleB.SimpleVersion.ToString());
             Assert.Equal("3ea7f010c3", oracleB.GitCommitIdShort);
@@ -444,7 +442,7 @@ public abstract class VersionOracleTests : RepoTestBase
         var context = this.CreateGitContext(workTreePath);
         var oracleWorkTree = new VersionOracle(context);
         Assert.Equal(oracleOriginal.Version, oracleWorkTree.Version);
-   
+
         Assert.True(context.TrySelectCommit("HEAD"));
         Assert.True(context.TrySelectCommit(this.LibGit2Repository.Head.Tip.Sha));
     }
@@ -729,6 +727,28 @@ public abstract class VersionOracleTests : RepoTestBase
         Commands.Stage(this.LibGit2Repository, otherFilePath);
         this.LibGit2Repository.Commit("Add file within project root", this.Signer, this.Signer);
         Assert.Equal(2, this.GetVersionHeight(relativeDirectory));
+    }
+
+    [Fact]
+    public void GetVersion_PathFilterInTwoDeepSubDirAndVersionBump()
+    {
+        this.InitializeSourceControl();
+
+        const string relativeDirectory = "src/lib";
+        var versionOptions = new VersionOptions
+        {
+            Version = new SemanticVersion("1.1"),
+            PathFilters = new FilterPath[]
+            {
+                new FilterPath(".", relativeDirectory),
+            },
+        };
+        this.WriteVersionFile(versionOptions, relativeDirectory);
+        Assert.Equal(1, this.GetVersionHeight(relativeDirectory));
+
+        versionOptions.Version = new SemanticVersion("1.2");
+        this.WriteVersionFile(versionOptions, relativeDirectory);
+        Assert.Equal(1, this.GetVersionHeight(relativeDirectory));
     }
 
     [Fact]
