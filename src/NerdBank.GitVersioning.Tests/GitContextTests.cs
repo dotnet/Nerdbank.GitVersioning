@@ -162,4 +162,15 @@ public abstract class GitContextTests : RepoTestBase
         Assert.Equal("sub", this.Context.RepoRelativeProjectDirectory);
         Assert.Equal(absolutePath, this.Context.AbsoluteProjectDirectory);
     }
+
+    [Fact]
+    public void GetVersion_PackedHead()
+    {
+        using var expandedRepo = TestUtilities.ExtractRepoArchive("PackedHeadRef");
+        this.Context = this.CreateGitContext(Path.Combine(expandedRepo.RepoPath));
+        var oracle = new VersionOracle(this.Context);
+        Assert.Equal("1.0.1", oracle.SimpleVersion.ToString());
+        this.Context.TrySelectCommit("HEAD");
+        Assert.Equal("1.0.1", oracle.SimpleVersion.ToString());
+    }
 }
