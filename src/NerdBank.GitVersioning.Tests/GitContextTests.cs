@@ -173,4 +173,12 @@ public abstract class GitContextTests : RepoTestBase
         this.Context.TrySelectCommit("HEAD");
         Assert.Equal("1.0.1", oracle.SimpleVersion.ToString());
     }
+
+    [Fact]
+    public void HeadCanonicalName_PackedHead()
+    {
+        using var expandedRepo = TestUtilities.ExtractRepoArchive("PackedHeadRef");
+        this.Context = this.CreateGitContext(Path.Combine(expandedRepo.RepoPath));
+        Assert.Equal("refs/heads/main", this.Context.HeadCanonicalName);
+    }
 }

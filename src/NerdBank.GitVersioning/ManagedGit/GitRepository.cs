@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using Validation;
 
 namespace Nerdbank.GitVersioning.ManagedGit
 {
@@ -384,25 +385,29 @@ namespace Nerdbank.GitVersioning.ManagedGit
                     objectish += "0";
                 }
 
-                if (TryConvertHexStringToByteArray(objectish, out var hex))
+                if (objectish.Length <= 40 && objectish.Length % 2 == 0)
                 {
-                    foreach (var pack in this.packs.Value.Span)
+                    Span<byte> decodedHex = stackalloc byte[objectish.Length / 2];
+                    if (TryConvertHexStringToByteArray(objectish, decodedHex))
                     {
-                        var objectId = pack.Lookup(hex, endsWithHalfByte);
-
-                        // It's possible for the same object to be present in both the object database and the pack files,
-                        // or in multiple pack files.
-                        if (objectId != null && !possibleObjectIds.Contains(objectId.Value))
+                        foreach (var pack in this.packs.Value.Span)
                         {
-                            if (possibleObjectIds.Count > 0)
+                            var objectId = pack.Lookup(decodedHex, endsWithHalfByte);
+
+                            // It's possible for the same object to be present in both the object database and the pack files,
+                            // or in multiple pack files.
+                            if (objectId != null && !possibleObjectIds.Contains(objectId.Value))
                             {
-                                // If objectish already resolved to at least one object which is different from the current
-                                // object id, objectish is not well-defined; so stop resolving and return null instead.
-                                return null;
-                            }
-                            else
-                            {
-                                possibleObjectIds.Add(objectId.Value);
+                                if (possibleObjectIds.Count > 0)
+                                {
+                                    // If objectish already resolved to at least one object which is different from the current
+                                    // object id, objectish is not well-defined; so stop resolving and return null instead.
+                                    return null;
+                                }
+                                else
+                                {
+                                    possibleObjectIds.Add(objectId.Value);
+                                }
                             }
                         }
                     }
@@ -673,7 +678,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
 #endif
         }
 
-        private static bool TryConvertHexStringToByteArray(string hexString, out byte[]? data)
+        private static bool TryConvertHexStringToByteArray(string hexString, Span<byte> data)
         {
             // https://stackoverflow.com/questions/321370/how-can-i-convert-a-hex-string-to-a-byte-array
             if (hexString.Length % 2 != 0)
@@ -682,15 +687,22 @@ namespace Nerdbank.GitVersioning.ManagedGit
                 return false;
             }
 
-            data = new byte[hexString.Length / 2];
+            Requires.Argument(data.Length == hexString.Length / 2, nameof(data), "Length must be exactly half that of " + nameof(hexString) + ".");
             for (int index = 0; index < data.Length; index++)
             {
+#if NETCOREAPP3_1_OR_GREATER
+                ReadOnlySpan<char> byteValue = hexString.AsSpan(index * 2, 2);
+                if (!byte.TryParse(byteValue, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out data[index]))
+                {
+                    return false;
+                }
+#else
                 string byteValue = hexString.Substring(index * 2, 2);
                 if (!byte.TryParse(byteValue, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out data[index]))
                 {
-                    data = null;
                     return false;
                 }
+#endif
             }
 
             return true;
