@@ -25,14 +25,13 @@
     <EmbeddedResource Include="ManagedGit\tree*" />
     <EmbeddedResource Include="test.vcprj" />
     <EmbeddedResource Include="test.prj" />
-    <EmbeddedResource Include="repos\submodules.7z" />
+    <EmbeddedResource Include="repos\*" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Nerdbank.GitVersioning.Tasks\Nerdbank.GitVersioning.Tasks.csproj" />
     <ProjectReference Include="..\NerdBank.GitVersioning\NerdBank.GitVersioning.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="7z.NET" Version="1.0.3" />
     <PackageReference Include="Newtonsoft.Json.Schema" Version="3.0.10" />
     <PackageReference Include="System.Collections.Immutable" Version="1.5.0" />
     <PackageReference Include="Microsoft.Build" Version="15.1.548" ExcludeAssets="runtime" />

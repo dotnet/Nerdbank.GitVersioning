@@ -49,19 +49,17 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(0, oracle.VersionHeight);
     }
 
-    [Fact(Skip = "Unstable test. See issue #125")]
+    [Fact]
     public void Submodule_RecognizedWithCorrectVersion()
     {
         using (var expandedRepo = TestUtilities.ExtractRepoArchive("submodules"))
         {
-            this.Context = this.CreateGitContext(expandedRepo.RepoPath);
-
-            this.Context.RepoRelativeProjectDirectory = "a";
+            this.Context = this.CreateGitContext(Path.Combine(expandedRepo.RepoPath, "a"));
             var oracleA = new VersionOracle(this.Context);
             Assert.Equal("1.3.1", oracleA.SimpleVersion.ToString());
             Assert.Equal("e238b03e75", oracleA.GitCommitIdShort);
 
-            this.Context.RepoRelativeProjectDirectory = Path.Combine("b", "projB");
+            this.Context = this.CreateGitContext(Path.Combine(expandedRepo.RepoPath, "b", "projB"));
             var oracleB = new VersionOracle(this.Context);
             Assert.Equal("2.5.2", oracleB.SimpleVersion.ToString());
             Assert.Equal("3ea7f010c3", oracleB.GitCommitIdShort);
