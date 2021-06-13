@@ -5,7 +5,9 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
-using Microsoft.Windows.Sdk;
+using Windows.Win32;
+using Windows.Win32.Storage.FileSystem;
+using Windows.Win32.System.SystemServices;
 
 namespace Nerdbank.GitVersioning.ManagedGit
 {
@@ -23,7 +25,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
         {
             if (IsWindows)
             {
-                var handle = PInvoke.CreateFile(path, FILE_ACCESS_FLAGS.FILE_GENERIC_READ, FILE_SHARE_FLAGS.FILE_SHARE_READ, lpSecurityAttributes: null, FILE_CREATE_FLAGS.OPEN_EXISTING, FILE_FLAGS_AND_ATTRIBUTES.FILE_ATTRIBUTE_NORMAL, null);
+                var handle = PInvoke.CreateFile(path, FILE_ACCESS_FLAGS.FILE_GENERIC_READ, FILE_SHARE_MODE.FILE_SHARE_READ, lpSecurityAttributes: null, FILE_CREATION_DISPOSITION.OPEN_EXISTING, FILE_FLAGS_AND_ATTRIBUTES.FILE_ATTRIBUTE_NORMAL, null);
 
                 if (!handle.IsInvalid)
                 {
@@ -64,7 +66,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
                 HANDLE handle;
                 fixed (char* pPath = &path[0])
                 {
-                    handle = PInvoke.CreateFile(pPath, FILE_ACCESS_FLAGS.FILE_GENERIC_READ, FILE_SHARE_FLAGS.FILE_SHARE_READ, null, FILE_CREATE_FLAGS.OPEN_EXISTING, FILE_FLAGS_AND_ATTRIBUTES.FILE_ATTRIBUTE_NORMAL, default);
+                    handle = PInvoke.CreateFile(pPath, FILE_ACCESS_FLAGS.FILE_GENERIC_READ, FILE_SHARE_MODE.FILE_SHARE_READ, null, FILE_CREATION_DISPOSITION.OPEN_EXISTING, FILE_FLAGS_AND_ATTRIBUTES.FILE_ATTRIBUTE_NORMAL, default);
                 }
 
                 if (!handle.Equals(Constants.INVALID_HANDLE_VALUE))

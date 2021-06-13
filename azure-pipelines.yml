@@ -58,13 +58,13 @@ stages:
       displayName: Configure git commit author for testing
 
     - task: UseDotNet@2
-      displayName: Install .NET Core SDK 5.0.202
+      displayName: Install .NET Core 5.0.202 SDK
       inputs:
         packageType: sdk
         version: 5.0.202
 
     - task: UseDotNet@2
-      displayName: Install .NET Core 3.1
+      displayName: Install .NET Core 3.1 runtime
       inputs:
         packageType: runtime
         version: 3.1.x
@@ -296,17 +296,17 @@ stages:
       vmImage: $(imageName)
     steps:
     - task: UseDotNet@2
-      displayName: Install .NET Core SDK 2.1.811
+      displayName: Install .NET Core 2.1 runtime
       inputs:
-        packageType: sdk
-        version: 2.1.811
+        packageType: runtime
+        version: 2.1.x
     - task: UseDotNet@2
-      displayName: Install .NET Core SDK 3.1.100
+      displayName: Install .NET Core 3.1 runtime
       inputs:
-        packageType: sdk
-        version: 3.1.100
+        packageType: runtime
+        version: 3.1.x
     - task: UseDotNet@2
-      displayName: Install .NET Core SDK 5.0.202
+      displayName: Install .NET Core 5.0.202 SDK
       inputs:
         packageType: sdk
         version: 5.0.202
