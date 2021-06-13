@@ -5,8 +5,9 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
-using static PInvoke.Kernel32;
-using FileShare = PInvoke.Kernel32.FileShare;
+using Windows.Win32;
+using Windows.Win32.Storage.FileSystem;
+using Windows.Win32.System.SystemServices;
 
 namespace Nerdbank.GitVersioning.ManagedGit
 {
@@ -24,7 +25,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
         {
             if (IsWindows)
             {
-                var handle = CreateFile(path, ACCESS_MASK.GenericRight.GENERIC_READ, FileShare.FILE_SHARE_READ, (SECURITY_ATTRIBUTES?)null, CreationDisposition.OPEN_EXISTING, CreateFileFlags.FILE_ATTRIBUTE_NORMAL, SafeObjectHandle.Null);
+                var handle = PInvoke.CreateFile(path, FILE_ACCESS_FLAGS.FILE_GENERIC_READ, FILE_SHARE_MODE.FILE_SHARE_READ, lpSecurityAttributes: null, FILE_CREATION_DISPOSITION.OPEN_EXISTING, FILE_FLAGS_AND_ATTRIBUTES.FILE_ATTRIBUTE_NORMAL, null);
 
                 if (!handle.IsInvalid)
                 {
@@ -62,12 +63,15 @@ namespace Nerdbank.GitVersioning.ManagedGit
         {
             if (IsWindows)
             {
-                var handle = CreateFile(path, ACCESS_MASK.GenericRight.GENERIC_READ, FileShare.FILE_SHARE_READ, null, CreationDisposition.OPEN_EXISTING, CreateFileFlags.FILE_ATTRIBUTE_NORMAL, SafeObjectHandle.Null);
-
-                if (!handle.IsInvalid)
+                HANDLE handle;
+                fixed (char* pPath = &path[0])
                 {
-                    var fileHandle = new SafeFileHandle(handle.DangerousGetHandle(), ownsHandle: true);
-                    handle.SetHandleAsInvalid();
+                    handle = PInvoke.CreateFile(pPath, FILE_ACCESS_FLAGS.FILE_GENERIC_READ, FILE_SHARE_MODE.FILE_SHARE_READ, null, FILE_CREATION_DISPOSITION.OPEN_EXISTING, FILE_FLAGS_AND_ATTRIBUTES.FILE_ATTRIBUTE_NORMAL, default);
+                }
+
+                if (!handle.Equals(Constants.INVALID_HANDLE_VALUE))
+                {
+                    var fileHandle = new SafeFileHandle(handle, ownsHandle: true);
                     stream = new FileStream(fileHandle, System.IO.FileAccess.Read);
                     return true;
                 }
