@@ -35,7 +35,6 @@ IMPORTANT: The 3.x release may produce a different version height than prior maj
     <file src="$LibGit2SharpNativeBinaries$runtimes\osx\native\libgit2-6777db8.dylib" target="build\MSBuildFull\lib\osx\libgit2-6777db8.dylib" />
     <file src="$LibGit2SharpNativeBinaries$runtimes\linux-x64\native\libgit2-6777db8.so" target="build\MSBuildFull\lib\linux-x64\libgit2-6777db8.so" />
 
-    <file src="$LibGit2SharpNativeBinaries$libgit2\LibGit2Sharp.dll.config" target="build\MSBuildCore\LibGit2Sharp.dll.config" />
     <file src="$BaseOutputPath$netcoreapp2.1\LibGit2Sharp.dll" target="build\MSBuildCore\LibGit2Sharp.dll" />
     <file src="$BaseOutputPath$netcoreapp2.1\Microsoft.DotNet.PlatformAbstractions.dll" target="build\MSBuildCore\Microsoft.DotNet.PlatformAbstractions.dll" />
     <file src="$BaseOutputPath$netcoreapp2.1\NerdBank.GitVersioning.dll" target="build\MSBuildCore\NerdBank.GitVersioning.dll" />
