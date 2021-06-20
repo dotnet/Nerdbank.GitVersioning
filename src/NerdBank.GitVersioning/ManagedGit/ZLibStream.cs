@@ -5,7 +5,6 @@ using System;
 using System.Buffers;
 using System.IO;
 using System.IO.Compression;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -59,7 +58,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
 
             if (zlibHeader[0] != 0x78 || (zlibHeader[1] != 0x01 && zlibHeader[1] != 0x9C && zlibHeader[1] != 0x5E && zlibHeader[1] != 0xDA))
             {
-                throw new GitException($"Invalid zlib header {string.Join(" ", zlibHeader.ToArray().Select(b => $"{b:X2}"))}");
+                throw new GitException($"Invalid zlib header {zlibHeader[0]:X2} {zlibHeader[1]:X2}");
             }
         }
 
