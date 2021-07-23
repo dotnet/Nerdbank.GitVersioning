@@ -205,7 +205,17 @@ namespace Nerdbank.GitVersioning.ManagedGit
             }
 
             var packStream = this.GetPackStream();
-            Stream objectStream = GitPackReader.GetObject(this, packStream, offset, objectType, packObjectType);
+            Stream objectStream;
+
+            try
+            {
+                objectStream = GitPackReader.GetObject(this, packStream, offset, objectType, packObjectType);
+            }
+            catch
+            {
+                packStream.Dispose();
+                throw;
+            }
 
             return this.cache.Add(offset, objectStream);
         }
