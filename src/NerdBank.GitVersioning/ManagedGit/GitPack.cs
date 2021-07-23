@@ -31,8 +31,8 @@ namespace Nerdbank.GitVersioning.ManagedGit
         private readonly Func<FileStream> packStream;
         private readonly Lazy<FileStream> indexStream;
         private readonly GitPackCache cache;
-        private MemoryMappedFile packFile;
-        private MemoryMappedViewAccessor accessor;
+        private MemoryMappedFile? packFile = null;
+        private MemoryMappedViewAccessor? accessor = null;
 
         // Maps GitObjectIds to offets in the git pack.
         private readonly Dictionary<GitObjectId, long> offsets = new Dictionary<GitObjectId, long>();
@@ -98,8 +98,11 @@ namespace Nerdbank.GitVersioning.ManagedGit
             this.indexStream = indexStream ?? throw new ArgumentNullException(nameof(indexStream));
             this.cache = cache ?? new GitPackMemoryCache();
 
-            this.packFile = MemoryMappedFile.CreateFromFile(this.packStream(), mapName: null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None, leaveOpen: false);
-            this.accessor = this.packFile.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
+            if (IntPtr.Size > 4)
+            {
+                this.packFile = MemoryMappedFile.CreateFromFile(this.packStream(), mapName: null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None, leaveOpen: false);
+                this.accessor = this.packFile.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
+            }
         }
 
         /// <summary>
@@ -240,8 +243,8 @@ namespace Nerdbank.GitVersioning.ManagedGit
                 this.indexReader.Value.Dispose();
             }
 
-            this.accessor.Dispose();
-            this.packFile.Dispose();
+            this.accessor?.Dispose();
+            this.packFile?.Dispose();
             this.cache.Dispose();
         }
 
@@ -265,7 +268,17 @@ namespace Nerdbank.GitVersioning.ManagedGit
 
         private Stream GetPackStream()
         {
-            return new MemoryMappedStream(this.accessor);
+            // On 64-bit processes, we can use Memory Mapped Streams (the address space
+            // will be large enough to map the entire packfile). On 32-bit processes,
+            // we directly access the underlying stream.
+            if (IntPtr.Size > 4)
+            {
+                return new MemoryMappedStream(this.accessor);
+            }
+            else
+            {
+                return this.packStream();
+            }
         }
 
         private GitPackIndexReader OpenIndex()
