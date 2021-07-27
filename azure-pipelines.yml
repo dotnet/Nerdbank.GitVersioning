@@ -43,6 +43,7 @@ stages:
         windows:
           imageName: 'windows-2019'
           testModifier:
+          dotnet32: "\"C:\\Program Files (x86)\\dotnet\\dotnet.exe\""
     variables:
     - ${{ if eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/') }}:
       - group: dotnetfoundation code signing
@@ -68,6 +69,13 @@ stages:
       inputs:
         packageType: runtime
         version: 3.1.x
+
+    - pwsh: |
+        Invoke-WebRequest -Uri "https://dot.net/v1/dotnet-install.ps1" -OutFile dotnet-install.ps1
+        & .\dotnet-install.ps1 -Architecture x86 -Version 5.0.202 -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose
+        & .\dotnet-install.ps1 -Architecture x86 -Channel 3.1 -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose
+      displayName: Install 32-bit .NET Core SDK 5.0.202, 3.1
+      condition: ne(variables['dotnet32'], '')
 
     - script: dotnet --info
       displayName: Show dotnet SDK info
@@ -121,8 +129,22 @@ stages:
         --collect:"XPlat Code Coverage"
         --
         RunConfiguration.DisableAppDomain=true
-      displayName: Run tests
+      displayName: Run x64 tests
       workingDirectory: src
+
+    - script: >
+        $(dotnet32) test NerdBank.GitVersioning.Tests
+        --no-build $(testModifier)
+        -c $(BuildConfiguration)
+        --filter "TestCategory!=FailsOnAzurePipelines"
+        --logger "trx;LogFileName=$(Build.ArtifactStagingDirectory)/TestLogs/TestResults.trx"
+        --results-directory $(Build.ArtifactStagingDirectory)/CodeCoverage/
+        --collect:"XPlat Code Coverage"
+        --
+        RunConfiguration.DisableAppDomain=true
+      displayName: Run x86 tests
+      workingDirectory: src
+      condition: ne(variables['dotnet32'], '')
 
     - task: PublishCodeCoverageResults@1
       displayName: Publish code coverage results
