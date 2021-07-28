@@ -371,7 +371,7 @@ stages:
       workingDirectory: src/NerdBank.GitVersioning.Benchmarks
       displayName: Run benchmarks (unpacked)
     - script: |
-        tar -zcvf $(Build.ArtifactStagingDirectory)/$(imageName).tar.gz $(Build.ArtifactStagingDirectory)/benchmarks
+        tar -zcvf $(Build.ArtifactStagingDirectory)/$(imageName).tar.gz -C $(Build.ArtifactStagingDirectory)/benchmarks .
       displayName: Archive benchmark results
     - task: PublishBuildArtifacts@1
       inputs:
