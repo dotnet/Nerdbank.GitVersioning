@@ -7,9 +7,7 @@ using BenchmarkDotNet.Jobs;
 namespace Nerdbank.GitVersioning.Benchmarks
 {
     [SimpleJob(RuntimeMoniker.NetCoreApp31, baseline: true)]
-    [SimpleJob(RuntimeMoniker.NetCoreApp21)]
-    [SimpleJob(RuntimeMoniker.NetCoreApp50)]
-    [SimpleJob(RuntimeMoniker.Net461)]
+    [SimpleJob(RuntimeMoniker.Net50)]
     public class GetVersionBenchmarks
     {
         // You must manually clone these repositories:

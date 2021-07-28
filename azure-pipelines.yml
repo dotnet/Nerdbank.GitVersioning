@@ -346,7 +346,11 @@ stages:
       workingDirectory: src/
       displayName: Build in Release mode
     - script: |
-        dotnet run -c Release -f netcoreapp3.1 -- --filter GetVersionBenchmarks --artifacts $(Build.ArtifactStagingDirectory)/benchmarks/packed/$(imageName)
+        dotnet run -c Release -f netcoreapp3.1 -- --list flat
+      workingDirectory: src/NerdBank.GitVersioning.Benchmarks
+      displayName: List available benchmarks
+    - script: |
+        dotnet run -c Release -f netcoreapp3.1 -- --filter "*GetVersionBenchmarks*" --profiler EP --artifacts $(Build.ArtifactStagingDirectory)/benchmarks/packed/$(imageName)
       workingDirectory: src/NerdBank.GitVersioning.Benchmarks
       displayName: Run benchmarks (packed)
     - bash: |
@@ -363,12 +367,15 @@ stages:
         git unpack-objects < .git/objects/pack/*.pack
       displayName: Unpack Git repositories
     - script: |
-        dotnet run -c Release -f netcoreapp3.1 -- --filter GetVersionBenchmarks --artifacts $(Build.ArtifactStagingDirectory)/benchmarks/unpacked/$(imageName)
+        dotnet run -c Release -f netcoreapp3.1 -- --filter "*GetVersionBenchmarks*" --profiler EP --artifacts $(Build.ArtifactStagingDirectory)/benchmarks/unpacked/$(imageName)
       workingDirectory: src/NerdBank.GitVersioning.Benchmarks
       displayName: Run benchmarks (unpacked)
+    - script: |
+        tar -zcvf $(Build.ArtifactStagingDirectory)/$(imageName).tar.gz $(Build.ArtifactStagingDirectory)/benchmarks
+      displayName: Archive benchmark results
     - task: PublishBuildArtifacts@1
       inputs:
-        PathtoPublish: $(Build.ArtifactStagingDirectory)/benchmarks
+        PathtoPublish: $(Build.ArtifactStagingDirectory)/$(imageName).tar.gz
         ArtifactName: benchmarks
         ArtifactType: Container
       displayName: Publish benchmarks artifacts
