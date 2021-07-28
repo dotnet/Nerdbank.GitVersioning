@@ -128,7 +128,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
             {
                 // If the first bit of the offset address is set, the offset is stored as a 64-bit value in the table of 8-byte offset entries,
                 // which follows the table of 4-byte offset entries: "large offsets are encoded as an index into the next table with the msbit set."
-                offset = offset & 0x7FF;
+                offset = offset & 0x7FFFFFFF;
 
                 offsetBuffer = this.Value.Slice(offsetTableStart + 4 * objectCount + 8 * (int)offset, 8);
                 var offset64 = BinaryPrimitives.ReadInt64BigEndian(offsetBuffer);

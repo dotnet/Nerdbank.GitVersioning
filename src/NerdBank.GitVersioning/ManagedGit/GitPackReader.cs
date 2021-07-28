@@ -44,7 +44,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
             if (type == GitPackObjectType.OBJ_OFS_DELTA)
             {
                 var baseObjectRelativeOffset = ReadVariableLengthInteger(stream);
-                var baseObjectOffset = (int)(offset - baseObjectRelativeOffset);
+                var baseObjectOffset = offset - baseObjectRelativeOffset;
 
                 var deltaStream = new ZLibStream(stream, decompressedSize);
                 var baseObjectStream = pack.GetObject(baseObjectOffset, objectType);
@@ -98,9 +98,9 @@ namespace Nerdbank.GitVersioning.ManagedGit
             return (type, length);
         }
 
-        private static int ReadVariableLengthInteger(Stream stream)
+        private static long ReadVariableLengthInteger(Stream stream)
         {
-            int offset = -1;
+            long offset = -1;
             int b;
 
             do
