@@ -44,7 +44,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
             if (type == GitPackObjectType.OBJ_OFS_DELTA)
             {
                 var baseObjectRelativeOffset = ReadVariableLengthInteger(stream);
-                var baseObjectOffset = offset - baseObjectRelativeOffset;
+                long baseObjectOffset = offset - baseObjectRelativeOffset;
 
                 var deltaStream = new ZLibStream(stream, decompressedSize);
                 var baseObjectStream = pack.GetObject(baseObjectOffset, objectType);
