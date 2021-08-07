@@ -11,9 +11,9 @@ using Xunit;
 using Xunit.Abstractions;
 using Version = System.Version;
 
-public partial class GitExtensionsTests : RepoTestBase
+public class LibGit2GitExtensionsTests : RepoTestBase
 {
-    public GitExtensionsTests(ITestOutputHelper Logger)
+    public LibGit2GitExtensionsTests(ITestOutputHelper Logger)
         : base(Logger)
     {
         this.InitializeSourceControl();
