@@ -98,18 +98,6 @@ namespace Nerdbank.GitVersioning.LibGit2
         }
 
         /// <summary>
-        /// Takes the first 4 bytes of a commit ID (i.e. first 8 characters of its hex-encoded SHA)
-        /// and returns them as an integer.
-        /// </summary>
-        /// <param name="commit">The commit to identify with an integer.</param>
-        /// <returns>The integer which identifies a commit.</returns>
-        public static int GetTruncatedCommitIdAsInt32(this Commit commit)
-        {
-            Requires.NotNull(commit, nameof(commit));
-            return BitConverter.ToInt32(commit.Id.RawId, 0);
-        }
-
-        /// <summary>
         /// Takes the first 2 bytes of a commit ID (i.e. first 4 characters of its hex-encoded SHA)
         /// and returns them as an 16-bit unsigned integer.
         /// </summary>
@@ -119,20 +107,6 @@ namespace Nerdbank.GitVersioning.LibGit2
         {
             Requires.NotNull(commit, nameof(commit));
             return BitConverter.ToUInt16(commit.Id.RawId, 0);
-        }
-
-        /// <summary>
-        /// Looks up a commit by an integer that captures the first for bytes of its ID.
-        /// </summary>
-        /// <param name="repo">The repo to search for a matching commit.</param>
-        /// <param name="truncatedId">The value returned from <see cref="GetTruncatedCommitIdAsInt32(Commit)"/>.</param>
-        /// <returns>A matching commit.</returns>
-        public static Commit GetCommitFromTruncatedIdInteger(this Repository repo, int truncatedId)
-        {
-            Requires.NotNull(repo, nameof(repo));
-
-            byte[] rawId = BitConverter.GetBytes(truncatedId);
-            return repo.Lookup<Commit>(EncodeAsHex(rawId));
         }
 
         /// <summary>

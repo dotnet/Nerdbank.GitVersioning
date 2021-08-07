@@ -167,22 +167,6 @@ public class LibGit2GitExtensionsTests : RepoTestBase
     }
 
     [Fact]
-    public void GetTruncatedCommitIdAsInteger_Roundtrip()
-    {
-        var firstCommit = this.LibGit2Repository.Commit("First", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
-        var secondCommit = this.LibGit2Repository.Commit("Second", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
-
-        int id1 = firstCommit.GetTruncatedCommitIdAsInt32();
-        int id2 = secondCommit.GetTruncatedCommitIdAsInt32();
-
-        this.Logger.WriteLine($"Commit {firstCommit.Id.Sha.Substring(0, 8)} as int: {id1}");
-        this.Logger.WriteLine($"Commit {secondCommit.Id.Sha.Substring(0, 8)} as int: {id2}");
-
-        Assert.Equal(firstCommit, this.LibGit2Repository.GetCommitFromTruncatedIdInteger(id1));
-        Assert.Equal(secondCommit, this.LibGit2Repository.GetCommitFromTruncatedIdInteger(id2));
-    }
-
-    [Fact]
     public void GetIdAsVersion_ReadsMajorMinorFromVersionTxt()
     {
         this.WriteVersionFile("4.8");
