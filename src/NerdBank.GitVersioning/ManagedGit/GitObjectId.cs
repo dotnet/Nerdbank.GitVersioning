@@ -167,7 +167,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// <returns>
         /// A <see cref="ushort"/> which represents the first two bytes of this <see cref="GitObjectId"/>.
         /// </returns>
-        public ushort AsUInt16() => BinaryPrimitives.ReadUInt16LittleEndian(this.Value.Slice(0, 2));
+        public ushort AsUInt16() => BinaryPrimitives.ReadUInt16BigEndian(this.Value.Slice(0, 2));
 
         /// <summary>
         /// Returns the SHA1 hash of this object.

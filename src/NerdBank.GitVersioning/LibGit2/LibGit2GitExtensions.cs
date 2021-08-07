@@ -3,8 +3,8 @@
 namespace Nerdbank.GitVersioning.LibGit2
 {
     using System;
+    using System.Buffers.Binary;
     using System.Collections.Generic;
-    using System.Globalization;
     using System.IO;
     using System.Linq;
     using System.Runtime.InteropServices;
@@ -106,7 +106,7 @@ namespace Nerdbank.GitVersioning.LibGit2
         public static ushort GetTruncatedCommitIdAsUInt16(this Commit commit)
         {
             Requires.NotNull(commit, nameof(commit));
-            return BitConverter.ToUInt16(commit.Id.RawId, 0);
+            return BinaryPrimitives.ReadUInt16BigEndian(commit.Id.RawId);
         }
 
         /// <summary>
@@ -301,7 +301,7 @@ namespace Nerdbank.GitVersioning.LibGit2
         /// <returns><c>True</c> if the object's ID starts with <paramref name="leadingBytes"/> after applying the <paramref name="bitMask"/>.</returns>
         private static bool StartsWith(this ObjectId @object, ushort leadingBytes, ushort bitMask = 0xffff)
         {
-            ushort truncatedObjectId = BitConverter.ToUInt16(@object.RawId, 0);
+            ushort truncatedObjectId = BinaryPrimitives.ReadUInt16BigEndian(@object.RawId);
             return (truncatedObjectId & bitMask) == leadingBytes;
         }
 

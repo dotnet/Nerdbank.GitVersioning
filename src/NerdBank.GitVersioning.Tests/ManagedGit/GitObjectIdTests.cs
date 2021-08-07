@@ -93,7 +93,7 @@ namespace ManagedGit
         {
             // The hash code is the int32 representation of the first 4 bytes
             var objectId = GitObjectId.ParseHex(this.shaAsHexAsciiByteArray);
-            Assert.Equal(0x914e, objectId.AsUInt16());
+            Assert.Equal(0x4e91, objectId.AsUInt16());
             Assert.Equal(0, GitObjectId.Empty.GetHashCode());
         }
 
