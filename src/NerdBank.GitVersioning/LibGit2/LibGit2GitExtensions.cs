@@ -3,8 +3,8 @@
 namespace Nerdbank.GitVersioning.LibGit2
 {
     using System;
+    using System.Buffers.Binary;
     using System.Collections.Generic;
-    using System.Globalization;
     using System.IO;
     using System.Linq;
     using System.Runtime.InteropServices;
@@ -98,18 +98,6 @@ namespace Nerdbank.GitVersioning.LibGit2
         }
 
         /// <summary>
-        /// Takes the first 4 bytes of a commit ID (i.e. first 8 characters of its hex-encoded SHA)
-        /// and returns them as an integer.
-        /// </summary>
-        /// <param name="commit">The commit to identify with an integer.</param>
-        /// <returns>The integer which identifies a commit.</returns>
-        public static int GetTruncatedCommitIdAsInt32(this Commit commit)
-        {
-            Requires.NotNull(commit, nameof(commit));
-            return BitConverter.ToInt32(commit.Id.RawId, 0);
-        }
-
-        /// <summary>
         /// Takes the first 2 bytes of a commit ID (i.e. first 4 characters of its hex-encoded SHA)
         /// and returns them as an 16-bit unsigned integer.
         /// </summary>
@@ -118,21 +106,7 @@ namespace Nerdbank.GitVersioning.LibGit2
         public static ushort GetTruncatedCommitIdAsUInt16(this Commit commit)
         {
             Requires.NotNull(commit, nameof(commit));
-            return BitConverter.ToUInt16(commit.Id.RawId, 0);
-        }
-
-        /// <summary>
-        /// Looks up a commit by an integer that captures the first for bytes of its ID.
-        /// </summary>
-        /// <param name="repo">The repo to search for a matching commit.</param>
-        /// <param name="truncatedId">The value returned from <see cref="GetTruncatedCommitIdAsInt32(Commit)"/>.</param>
-        /// <returns>A matching commit.</returns>
-        public static Commit GetCommitFromTruncatedIdInteger(this Repository repo, int truncatedId)
-        {
-            Requires.NotNull(repo, nameof(repo));
-
-            byte[] rawId = BitConverter.GetBytes(truncatedId);
-            return repo.Lookup<Commit>(EncodeAsHex(rawId));
+            return BinaryPrimitives.ReadUInt16BigEndian(commit.Id.RawId);
         }
 
         /// <summary>
@@ -310,7 +284,11 @@ namespace Nerdbank.GitVersioning.LibGit2
                     ushort objectIdLeadingValue = (ushort)expectedCommitIdLeadingValue;
                     ushort objectIdMask = (ushort)(objectIdLeadingValue == MaximumBuildNumberOrRevisionComponent ? 0xfffe : 0xffff);
 
-                    return !commit.Id.StartsWith(objectIdLeadingValue, objectIdMask);
+                    // Accept a big endian match or a little endian match.
+                    // Nerdbank.GitVersioning up to v3.4 would produce versions based on the endianness of the CPU it ran on (typically little endian).
+                    // Starting with v3.5, it deterministically used big endian. In order for `nbgv get-commits` to match on versions computed before and after the change,
+                    // we match on either endian setting.
+                    return !(commit.Id.StartsWith(objectIdLeadingValue, bigEndian: true, objectIdMask) || commit.Id.StartsWith(objectIdLeadingValue, bigEndian: false, objectIdMask));
                 }
             }
 
@@ -324,10 +302,11 @@ namespace Nerdbank.GitVersioning.LibGit2
         /// <param name="object">The object whose ID is to be tested.</param>
         /// <param name="leadingBytes">The leading 16-bits to be tested.</param>
         /// <param name="bitMask">The mask that indicates which bits should be compared.</param>
+        /// <param name="bigEndian"><see langword="true"/> to read the first two bytes as big endian (v3.5+ behavior); <see langword="false"/> to use little endian (v3.4 and earlier behavior).</param>
         /// <returns><c>True</c> if the object's ID starts with <paramref name="leadingBytes"/> after applying the <paramref name="bitMask"/>.</returns>
-        private static bool StartsWith(this ObjectId @object, ushort leadingBytes, ushort bitMask = 0xffff)
+        private static bool StartsWith(this ObjectId @object, ushort leadingBytes, bool bigEndian, ushort bitMask = 0xffff)
         {
-            ushort truncatedObjectId = BitConverter.ToUInt16(@object.RawId, 0);
+            ushort truncatedObjectId = bigEndian ? BinaryPrimitives.ReadUInt16BigEndian(@object.RawId) : BinaryPrimitives.ReadUInt16LittleEndian(@object.RawId);
             return (truncatedObjectId & bitMask) == leadingBytes;
         }
 

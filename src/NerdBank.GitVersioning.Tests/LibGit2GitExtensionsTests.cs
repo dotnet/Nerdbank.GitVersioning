@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -11,9 +12,9 @@ using Xunit;
 using Xunit.Abstractions;
 using Version = System.Version;
 
-public partial class GitExtensionsTests : RepoTestBase
+public class LibGit2GitExtensionsTests : RepoTestBase
 {
-    public GitExtensionsTests(ITestOutputHelper Logger)
+    public LibGit2GitExtensionsTests(ITestOutputHelper Logger)
         : base(Logger)
     {
         this.InitializeSourceControl();
@@ -164,22 +165,6 @@ public partial class GitExtensionsTests : RepoTestBase
         Assert.Equal(expectedHeight2, height2);
 
         Assert.Equal(!versionHeightReset, height2 > height1);
-    }
-
-    [Fact]
-    public void GetTruncatedCommitIdAsInteger_Roundtrip()
-    {
-        var firstCommit = this.LibGit2Repository.Commit("First", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
-        var secondCommit = this.LibGit2Repository.Commit("Second", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
-
-        int id1 = firstCommit.GetTruncatedCommitIdAsInt32();
-        int id2 = secondCommit.GetTruncatedCommitIdAsInt32();
-
-        this.Logger.WriteLine($"Commit {firstCommit.Id.Sha.Substring(0, 8)} as int: {id1}");
-        this.Logger.WriteLine($"Commit {secondCommit.Id.Sha.Substring(0, 8)} as int: {id2}");
-
-        Assert.Equal(firstCommit, this.LibGit2Repository.GetCommitFromTruncatedIdInteger(id1));
-        Assert.Equal(secondCommit, this.LibGit2Repository.GetCommitFromTruncatedIdInteger(id2));
     }
 
     [Fact]
@@ -382,6 +367,19 @@ public partial class GitExtensionsTests : RepoTestBase
                 Assert.Single(matchingCommits);
             }
         }
+    }
+
+    [Fact]
+    public void GetCommitsFromVersion_MatchesOnEitherEndian()
+    {
+        this.InitializeSourceControl();
+        Commit commit = this.WriteVersionFile(new VersionOptions { Version = SemanticVersion.Parse("1.2"), GitCommitIdShortAutoMinimum = 4 });
+
+        Version originalVersion = new VersionOracle(this.Context).Version;
+        Version swappedEndian = new Version(originalVersion.Major, originalVersion.Minor, originalVersion.Build, BinaryPrimitives.ReverseEndianness((ushort)originalVersion.Revision));
+        ushort twoBytesFromCommitId = checked((ushort)originalVersion.Revision);
+        Assert.Contains(commit, LibGit2GitExtensions.GetCommitsFromVersion(this.Context, originalVersion));
+        Assert.Contains(commit, LibGit2GitExtensions.GetCommitsFromVersion(this.Context, swappedEndian));
     }
 
     [Fact]
