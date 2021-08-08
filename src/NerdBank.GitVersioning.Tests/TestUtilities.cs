@@ -79,6 +79,10 @@ internal static class TestUtilities
         }
     }
 
+    internal static string ToHex(ushort number) => number.ToString("X");
+
+    internal static ushort FromHex(string hex) => ushort.Parse(hex, System.Globalization.NumberStyles.HexNumber);
+
     internal class ExpandedRepo : IDisposable
     {
         internal ExpandedRepo(string repoPath)

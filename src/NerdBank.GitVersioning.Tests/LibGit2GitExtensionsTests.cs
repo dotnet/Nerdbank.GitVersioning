@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -366,6 +367,19 @@ public class LibGit2GitExtensionsTests : RepoTestBase
                 Assert.Single(matchingCommits);
             }
         }
+    }
+
+    [Fact]
+    public void GetCommitsFromVersion_MatchesOnEitherEndian()
+    {
+        this.InitializeSourceControl();
+        Commit commit = this.WriteVersionFile(new VersionOptions { Version = SemanticVersion.Parse("1.2"), GitCommitIdShortAutoMinimum = 4 });
+
+        Version originalVersion = new VersionOracle(this.Context).Version;
+        Version swappedEndian = new Version(originalVersion.Major, originalVersion.Minor, originalVersion.Build, BinaryPrimitives.ReverseEndianness((ushort)originalVersion.Revision));
+        ushort twoBytesFromCommitId = checked((ushort)originalVersion.Revision);
+        Assert.Contains(commit, LibGit2GitExtensions.GetCommitsFromVersion(this.Context, originalVersion));
+        Assert.Contains(commit, LibGit2GitExtensions.GetCommitsFromVersion(this.Context, swappedEndian));
     }
 
     [Fact]

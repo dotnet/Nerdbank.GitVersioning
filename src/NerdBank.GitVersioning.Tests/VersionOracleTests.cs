@@ -854,15 +854,12 @@ public abstract class VersionOracleTests : RepoTestBase
         var oracle = new VersionOracle(this.Context);
 
         string leadingFourChars = this.Context.GitCommitId.Substring(0, 4);
-        ushort expectedNumber = FromHex(leadingFourChars);
+        ushort expectedNumber = TestUtilities.FromHex(leadingFourChars);
         ushort actualNumber = checked((ushort)oracle.Version.Revision);
         this.Logger.WriteLine("First two characters from commit ID in hex is {0}", leadingFourChars);
         this.Logger.WriteLine("First two characters, converted to a number is {0}", expectedNumber);
-        this.Logger.WriteLine("Generated 16-bit ushort from commit ID is {0}, whose hex representation is {1}", actualNumber, ToHex(actualNumber));
+        this.Logger.WriteLine("Generated 16-bit ushort from commit ID is {0}, whose hex representation is {1}", actualNumber, TestUtilities.ToHex(actualNumber));
         Assert.Equal(expectedNumber, actualNumber);
-
-        static string ToHex(ushort number) => number.ToString("X");
-        static ushort FromHex(string hex) => ushort.Parse(hex, System.Globalization.NumberStyles.HexNumber);
     }
 
     [Fact(Skip = "Slow test")]
