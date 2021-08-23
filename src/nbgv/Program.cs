@@ -736,6 +736,7 @@ namespace Nerdbank.GitVersioning.Tool
                     case ReleaseManager.ReleasePreparationError.NoVersionFile:
                         return (int)ExitCodes.NoVersionJsonFound;
                     case ReleaseManager.ReleasePreparationError.VersionDecrement:
+                    case ReleaseManager.ReleasePreparationError.NoVersionIncrement:
                         return (int)ExitCodes.InvalidVersionSpec;
                     case ReleaseManager.ReleasePreparationError.BranchAlreadyExists:
                         return (int)ExitCodes.BranchAlreadyExists;

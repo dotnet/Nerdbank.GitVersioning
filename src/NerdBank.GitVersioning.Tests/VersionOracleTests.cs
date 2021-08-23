@@ -845,6 +845,23 @@ public abstract class VersionOracleTests : RepoTestBase
         }
     }
 
+    [Fact]
+    public void GitCommidIdLeading16BitsDecodedWithBigEndian()
+    {
+        this.WriteVersionFile(new VersionOptions { Version = SemanticVersion.Parse("1.2"), GitCommitIdShortAutoMinimum = 4 });
+        this.InitializeSourceControl();
+        this.AddCommits(1);
+        var oracle = new VersionOracle(this.Context);
+
+        string leadingFourChars = this.Context.GitCommitId.Substring(0, 4);
+        ushort expectedNumber = TestUtilities.FromHex(leadingFourChars);
+        ushort actualNumber = checked((ushort)oracle.Version.Revision);
+        this.Logger.WriteLine("First two characters from commit ID in hex is {0}", leadingFourChars);
+        this.Logger.WriteLine("First two characters, converted to a number is {0}", expectedNumber);
+        this.Logger.WriteLine("Generated 16-bit ushort from commit ID is {0}, whose hex representation is {1}", actualNumber, TestUtilities.ToHex(actualNumber));
+        Assert.Equal(expectedNumber, actualNumber);
+    }
+
     [Fact(Skip = "Slow test")]
     public void GetVersionHeight_VeryLongHistory()
     {

@@ -8,8 +8,8 @@
     /// TeamCity CI build support.
     /// </summary>
     /// <remarks>
-    /// The TeamCIty-specific properties referenced here are documented here:
-    /// https://confluence.jetbrains.com/display/TCD8/Predefined+Build+Parameters
+    /// The TeamCity-specific properties referenced here are documented here:
+    /// https://www.jetbrains.com/help/teamcity/predefined-build-parameters.html
     /// </remarks>
     internal class TeamCity : ICloudBuild
     {

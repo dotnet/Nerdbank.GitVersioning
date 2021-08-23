@@ -48,6 +48,11 @@
             VersionDecrement,
 
             /// <summary>
+            /// Branch cannot be set to the specified version because the new version is not higher than the current version
+            /// </summary>
+            NoVersionIncrement,
+
+            /// <summary>
             /// Cannot create a branch because it already exists
             /// </summary>
             BranchAlreadyExists,
@@ -272,6 +277,14 @@
             }
 
             var nextDevVersion = this.GetNextDevVersion(versionOptions, nextVersion, versionIncrement);
+
+            // check if the current version on the current branch is different from the next version
+            // otherwise, both the release branch and the dev branch would have the same version
+            if (versionOptions.Version.Version == nextDevVersion.Version)
+            {
+                this.stderr.WriteLine($"Version on '{originalBranchName}' is already set to next version {nextDevVersion.Version}.");
+                throw new ReleasePreparationException(ReleasePreparationError.NoVersionIncrement);
+            }
 
             // check if the release branch already exists
             if (repository.Branches[releaseBranchName] is not null)

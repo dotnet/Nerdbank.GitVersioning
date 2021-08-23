@@ -392,10 +392,28 @@ public abstract class ReleaseManagerTests : RepoTestBase
         this.WriteVersionFile(versionOptions);
 
         // running PrepareRelease should result in an error
-        // because we're trying to add a prerelease tag to a version without prerelease tag
+        // because we're setting the version on master to a lower version
         this.AssertError(
             () => new ReleaseManager().PrepareRelease(this.RepoPath, releaseUnstableTag, (nextVersion is null ? null : Version.Parse(nextVersion))),
             ReleasePreparationError.VersionDecrement);
+    }
+
+    [Theory]
+    [InlineData("1.2", "1.2")]
+    public void PrepareRelease_MasterWithoutVersionIncrement(string initialVersion, string nextVersion)
+    {
+        // create and configure repository
+        this.InitializeSourceControl();
+
+        // create version.json
+        var versionOptions = new VersionOptions() { Version = SemanticVersion.Parse(initialVersion) };
+        this.WriteVersionFile(versionOptions);
+
+        // running PrepareRelease should result in an error
+        // because we're trying to set master to the version it already has
+        this.AssertError(
+            () => new ReleaseManager().PrepareRelease(this.RepoPath, null, (nextVersion is null ? null : Version.Parse(nextVersion))),
+            ReleasePreparationError.NoVersionIncrement);
     }
 
     [Fact]
