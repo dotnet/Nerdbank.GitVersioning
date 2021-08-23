@@ -13,12 +13,12 @@ namespace Nerdbank.GitVersioning.ManagedGit
 
         public static Stream GetObject(GitPack pack, Stream stream, long offset, string objectType, GitPackObjectType packObjectType)
         {
-            if (pack == null)
+            if (pack is null)
             {
                 throw new ArgumentNullException(nameof(pack));
             }
 
-            if (stream == null)
+            if (stream is null)
             {
                 throw new ArgumentNullException(nameof(stream));
             }

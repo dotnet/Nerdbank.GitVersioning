@@ -320,7 +320,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
 
         // prepare release
         var releaseManager = new ReleaseManager();
-        releaseManager.PrepareRelease(this.RepoPath, releaseUnstableTag, (nextVersion == null ? null : Version.Parse(nextVersion)), parameterVersionIncrement);
+        releaseManager.PrepareRelease(this.RepoPath, releaseUnstableTag, (nextVersion is null ? null : Version.Parse(nextVersion)), parameterVersionIncrement);
 
         // check if a branch was created
         Assert.Contains(this.LibGit2Repository.Branches, branch => branch.FriendlyName == expectedBranchName);
@@ -394,7 +394,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         // running PrepareRelease should result in an error
         // because we're trying to add a prerelease tag to a version without prerelease tag
         this.AssertError(
-            () => new ReleaseManager().PrepareRelease(this.RepoPath, releaseUnstableTag, (nextVersion == null ? null : Version.Parse(nextVersion))),
+            () => new ReleaseManager().PrepareRelease(this.RepoPath, releaseUnstableTag, (nextVersion is null ? null : Version.Parse(nextVersion))),
             ReleasePreparationError.VersionDecrement);
     }
 

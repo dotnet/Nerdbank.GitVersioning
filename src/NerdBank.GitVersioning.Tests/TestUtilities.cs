@@ -54,7 +54,7 @@ internal static class TestUtilities
 
         using (var stream = GetEmbeddedResource(resourcePath))
         {
-            Requires.Argument(stream != null, nameof(resourcePath), "Resource not found.");
+            Requires.Argument(stream is not null, nameof(resourcePath), "Resource not found.");
             using (var extractedFile = File.OpenWrite(extractedFilePath))
             {
                 stream.CopyTo(extractedFile);

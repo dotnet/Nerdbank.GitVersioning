@@ -143,7 +143,7 @@ public abstract partial class RepoTestBase : IDisposable
 
     protected Commit? WriteVersionTxtFile(string version = "1.2", string prerelease = "", string? relativeDirectory = null)
     {
-        if (relativeDirectory == null)
+        if (relativeDirectory is null)
         {
             relativeDirectory = string.Empty;
         }
@@ -163,7 +163,7 @@ public abstract partial class RepoTestBase : IDisposable
     {
         Requires.NotNull(versionData, nameof(versionData));
 
-        if (relativeDirectory == null)
+        if (relativeDirectory is null)
         {
             relativeDirectory = string.Empty;
         }
@@ -197,7 +197,7 @@ public abstract partial class RepoTestBase : IDisposable
             if (Path.GetExtension(relativeFilePath) == ".json")
             {
                 string txtFilePath = relativeFilePath.Substring(0, relativeFilePath.Length - 4) + "txt";
-                if (!File.Exists(Path.Combine(this.RepoPath, txtFilePath)) && this.LibGit2Repository.Index[txtFilePath] != null)
+                if (!File.Exists(Path.Combine(this.RepoPath, txtFilePath)) && this.LibGit2Repository.Index[txtFilePath] is not null)
                 {
                     this.LibGit2Repository.Index.Remove(txtFilePath);
                 }

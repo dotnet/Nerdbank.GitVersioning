@@ -106,7 +106,7 @@ END
         public override bool Execute()
         {
             this.generator = this.CreateGenerator();
-            if (this.generator != null)
+            if (this.generator is not null)
             {
                 this.generator.StartFile();
 
@@ -300,7 +300,7 @@ END
             {
                 var sr = new StringReader(comment);
                 string line;
-                while ((line = sr.ReadLine()) != null)
+                while ((line = sr.ReadLine()) is not null)
                 {
                     this.codeBuilder.Append(token);
                     this.codeBuilder.AppendLine(line);

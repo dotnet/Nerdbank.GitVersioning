@@ -38,7 +38,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// </returns>
         public static GitCommit Read(Stream stream, GitObjectId sha, bool readAuthor = false)
         {
-            if (stream == null)
+            if (stream is null)
             {
                 throw new ArgumentNullException(nameof(stream));
             }

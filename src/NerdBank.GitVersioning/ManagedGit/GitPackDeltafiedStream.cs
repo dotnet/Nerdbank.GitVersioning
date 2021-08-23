@@ -169,7 +169,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
 
         private bool TryGetInstruction(out DeltaInstruction instruction)
         {
-            if (this.current != null && this.offset < this.current.Value.Size)
+            if (this.current is not null && this.offset < this.current.Value.Size)
             {
                 instruction = this.current.Value;
                 return true;
@@ -177,7 +177,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
 
             this.current = DeltaStreamReader.Read(this.deltaStream);
 
-            if (this.current == null)
+            if (this.current is null)
             {
                 instruction = default;
                 return false;

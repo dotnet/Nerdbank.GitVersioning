@@ -140,7 +140,7 @@ public abstract class VersionFileTests : RepoTestBase
         var versionOptions = new VersionOptions
         {
             Version = SemanticVersion.Parse(version),
-            AssemblyVersion = assemblyVersion != null || precision != null ? new VersionOptions.AssemblyVersionOptions(assemblyVersion != null ? new Version(assemblyVersion) : null, precision) : null,
+            AssemblyVersion = assemblyVersion is not null || precision is not null ? new VersionOptions.AssemblyVersionOptions(assemblyVersion is not null ? new Version(assemblyVersion) : null, precision) : null,
             VersionHeightOffset = versionHeightOffset,
             Inherit = inherit,
         };
