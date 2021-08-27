@@ -76,6 +76,8 @@
   <!-- Compile a list of global properties that may vary when a project builds but that would never influence the result of the GetBuildVersion task. -->
   <ItemGroup>
     <NBGV_GlobalPropertiesToRemove Include="TargetFramework" />
+    <NBGV_GlobalPropertiesToRemove Include="Configuration" />
+    <NBGV_GlobalPropertiesToRemove Include="Platform" />
   </ItemGroup>
 
   <ItemGroup>
