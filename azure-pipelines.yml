@@ -14,8 +14,6 @@ resources:
   containers:
   - container: xenial
     image: andrewarnott/linux-buildagent
-  - container: bionic-2.1
-    image: microsoft/dotnet:2.1-sdk-bionic
   - container: bionic
     image: mcr.microsoft.com/dotnet/core/sdk:3.1-bionic
   - container: focal
@@ -272,8 +270,6 @@ stages:
         # xenial:
         #   containerImage: xenial
         #   configureContainerCommand: 'sudo apt update && sudo apt-get install -y git'
-        Ubuntu_Bionic_2_1:
-          containerImage: bionic-2.1
         Ubuntu_Bionic:
           containerImage: bionic
         Ubuntu_Focal:
