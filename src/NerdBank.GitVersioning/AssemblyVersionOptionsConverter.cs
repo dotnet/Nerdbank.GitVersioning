@@ -51,7 +51,7 @@
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             var data = value as VersionOptions.AssemblyVersionOptions;
-            if (data != null)
+            if (data is not null)
             {
                 if (data.PrecisionOrDefault == VersionOptions.DefaultVersionPrecision && !this.includeDefaults)
                 {

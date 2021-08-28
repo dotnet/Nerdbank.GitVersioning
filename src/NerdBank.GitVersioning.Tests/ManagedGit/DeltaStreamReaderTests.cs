@@ -89,7 +89,7 @@ namespace ManagedGit
 
                 DeltaInstruction? current;
 
-                while ((current = DeltaStreamReader.Read(stream)) != null)
+                while ((current = DeltaStreamReader.Read(stream)) is not null)
                 {
                     instructions.Add(current.Value);
                 }
@@ -139,7 +139,7 @@ namespace ManagedGit
 
             DeltaInstruction? current;
 
-            while ((current = DeltaStreamReader.Read(ref memory)) != null)
+            while ((current = DeltaStreamReader.Read(ref memory)) is not null)
             {
                 instructions.Add(current.Value);
             }

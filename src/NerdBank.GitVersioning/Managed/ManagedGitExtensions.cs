@@ -35,13 +35,13 @@ namespace Nerdbank.GitVersioning.Managed
             var tracker = new GitWalkTracker(context);
 
             var versionOptions = tracker.GetVersion(context.Commit.Value);
-            if (versionOptions == null)
+            if (versionOptions is null)
             {
                 return 0;
             }
 
             var baseSemVer =
-                baseVersion != null ? SemanticVersion.Parse(baseVersion.ToString()) :
+                baseVersion is not null ? SemanticVersion.Parse(baseVersion.ToString()) :
                 versionOptions.Version ?? SemVer0;
 
             var versionHeightPosition = versionOptions.VersionHeightPosition;
@@ -69,7 +69,7 @@ namespace Nerdbank.GitVersioning.Managed
 
             var commitVersionData = tracker.GetVersion(commit);
             var semVerFromFile = commitVersionData?.Version;
-            if (commitVersionData == null || semVerFromFile == null)
+            if (commitVersionData is null || semVerFromFile is null)
             {
                 return false;
             }
@@ -167,7 +167,7 @@ namespace Nerdbank.GitVersioning.Managed
 
                 int height = 1;
 
-                if (pathFilters != null)
+                if (pathFilters is not null)
                 {
                     var relevantCommit = true;
 
@@ -250,7 +250,7 @@ namespace Nerdbank.GitVersioning.Managed
                         isRelevant = IsRelevantCommit(
                             repository,
                             repository.GetTree(entry.Sha),
-                            parentEntry == null ? GitTree.Empty : repository.GetTree(parentEntry.Sha),
+                            parentEntry is null ? GitTree.Empty : repository.GetTree(parentEntry.Sha),
                             $"{fullPath}/",
                             filters);
                     }
@@ -262,7 +262,7 @@ namespace Nerdbank.GitVersioning.Managed
                     }
                 }
 
-                if (parentEntry != null)
+                if (parentEntry is not null)
                 {
                     parent.Children.Remove(child.Key);
                 }

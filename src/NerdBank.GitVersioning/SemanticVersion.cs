@@ -155,7 +155,7 @@
         /// <summary>
         /// Gets a value indicating whether this instance is the default "0.0" instance.
         /// </summary>
-        internal bool IsDefault => this.Version?.Major == 0 && this.Version.Minor == 0 && this.Version.Build == -1 && this.Version.Revision == -1 && this.Prerelease == null && this.BuildMetadata == null;
+        internal bool IsDefault => this.Version?.Major == 0 && this.Version.Minor == 0 && this.Version.Build == -1 && this.Version.Revision == -1 && this.Prerelease is null && this.BuildMetadata is null;
 
         /// <summary>
         /// Gets the debugger display for this instance.
@@ -239,7 +239,7 @@
         /// <returns><c>true</c> if the instances have equal values; <c>false</c> otherwise.</returns>
         public bool Equals(SemanticVersion other)
         {
-            if (other == null)
+            if (other is null)
             {
                 return false;
             }

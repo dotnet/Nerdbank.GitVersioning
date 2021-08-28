@@ -32,7 +32,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// </param>
         public GitPackIndexMappedReader(FileStream stream)
         {
-            if (stream == null)
+            if (stream is null)
             {
                 throw new ArgumentNullException(nameof(stream));
             }

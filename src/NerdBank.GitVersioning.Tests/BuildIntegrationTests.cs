@@ -219,7 +219,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         var repo = new Repository(this.RepoPath); // do not assign Repo property to avoid commits being generated later
         repo.Commit("empty", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         this.WriteVersionFile("3.4");
-        Assumes.True(repo.Index[VersionFile.JsonFileName] == null);
+        Assumes.True(repo.Index[VersionFile.JsonFileName] is null);
         var buildResult = await this.BuildAsync();
         Assert.Equal("3.4.0." + this.GetVersion().Revision, buildResult.BuildVersion);
         Assert.Equal("3.4.0+" + repo.Head.Tip.Id.Sha.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength), buildResult.AssemblyInformationalVersion);

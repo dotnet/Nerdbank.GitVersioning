@@ -60,13 +60,13 @@ namespace Nerdbank.GitVersioning.LibGit2
             var tracker = new GitWalkTracker(context);
 
             var versionOptions = tracker.GetVersion(context.Commit);
-            if (versionOptions == null)
+            if (versionOptions is null)
             {
                 return 0;
             }
 
             var baseSemVer =
-                baseVersion != null ? SemanticVersion.Parse(baseVersion.ToString()) :
+                baseVersion is not null ? SemanticVersion.Parse(baseVersion.ToString()) :
                 versionOptions.Version ?? SemVer0;
 
             var versionHeightPosition = versionOptions.VersionHeightPosition;
@@ -174,7 +174,7 @@ namespace Nerdbank.GitVersioning.LibGit2
             var tracker = new GitWalkTracker(context);
             var possibleCommits = from commit in GetCommitsReachableFromRefs(context.Repository)
                                   let commitVersionOptions = tracker.GetVersion(commit)
-                                  where commitVersionOptions != null
+                                  where commitVersionOptions is not null
                                   where !IsCommitIdMismatch(version, commitVersionOptions, commit)
                                   where !IsVersionHeightMismatch(version, commitVersionOptions, commit, tracker)
                                   select commit;
@@ -221,7 +221,7 @@ namespace Nerdbank.GitVersioning.LibGit2
 
             var commitVersionData = tracker.GetVersion(commit);
             var semVerFromFile = commitVersionData?.Version;
-            if (semVerFromFile == null)
+            if (semVerFromFile is null)
             {
                 return false;
             }
@@ -250,7 +250,7 @@ namespace Nerdbank.GitVersioning.LibGit2
 
             var commitVersionData = tracker.GetVersion(commit);
             var semVerFromFile = commitVersionData?.Version;
-            if (semVerFromFile == null)
+            if (semVerFromFile is null)
             {
                 return false;
             }
@@ -422,7 +422,7 @@ namespace Nerdbank.GitVersioning.LibGit2
 
                 int height = 1;
 
-                if (includePaths != null)
+                if (includePaths is not null)
                 {
                     // If there are no include paths, or any of the include
                     // paths refer to the root of the repository, then do not
@@ -527,8 +527,8 @@ namespace Nerdbank.GitVersioning.LibGit2
 
             // Don't use the ?? coalescing operator here because the position property getters themselves can return null, which should NOT be overridden with our default.
             // The default value is only appropriate if versionOptions itself is null.
-            var versionHeightPosition = versionOptions != null ? versionOptions.VersionHeightPosition : SemanticVersion.Position.Build;
-            var commitIdPosition = versionOptions != null ? versionOptions.GitCommitIdPosition : SemanticVersion.Position.Revision;
+            var versionHeightPosition = versionOptions is not null ? versionOptions.VersionHeightPosition : SemanticVersion.Position.Build;
+            var commitIdPosition = versionOptions is not null ? versionOptions.GitCommitIdPosition : SemanticVersion.Position.Revision;
 
             // The compiler (due to WinPE header requirements) only allows 16-bit version components,
             // and forbids 0xffff as a value.

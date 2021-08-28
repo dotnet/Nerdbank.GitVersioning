@@ -94,7 +94,7 @@ namespace Nerdbank.GitVersioning.Managed
             {
                 var workingCopyVersion = workingVersion?.Version?.Version;
 
-                if (workingCopyVersion == null || !workingCopyVersion.Equals(headCommitVersion))
+                if (workingCopyVersion is null || !workingCopyVersion.Equals(headCommitVersion))
                 {
                     // The working copy has changed the major.minor version.
                     // So by definition the version height is 0, since no commit represents it yet.
@@ -153,8 +153,8 @@ namespace Nerdbank.GitVersioning.Managed
 
             // Don't use the ?? coalescing operator here because the position property getters themselves can return null, which should NOT be overridden with our default.
             // The default value is only appropriate if versionOptions itself is null.
-            var versionHeightPosition = versionOptions != null ? versionOptions.VersionHeightPosition : SemanticVersion.Position.Build;
-            var commitIdPosition = versionOptions != null ? versionOptions.GitCommitIdPosition : SemanticVersion.Position.Revision;
+            var versionHeightPosition = versionOptions is not null ? versionOptions.VersionHeightPosition : SemanticVersion.Position.Build;
+            var commitIdPosition = versionOptions is not null ? versionOptions.GitCommitIdPosition : SemanticVersion.Position.Revision;
 
             // The compiler (due to WinPE header requirements) only allows 16-bit version components,
             // and forbids 0xffff as a value.

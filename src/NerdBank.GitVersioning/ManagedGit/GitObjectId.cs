@@ -174,7 +174,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// </summary>
         public override string ToString()
         {
-            if (this.sha == null)
+            if (this.sha is null)
             {
                 this.sha = this.CreateString(0, 20);
             }

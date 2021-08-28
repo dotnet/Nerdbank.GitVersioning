@@ -294,7 +294,7 @@ namespace Nerdbank.GitVersioning
                 var properties = this.GetType().GetTypeInfo().GetProperties(BindingFlags.Public | BindingFlags.DeclaredOnly | BindingFlags.Instance);
                 foreach (var property in properties)
                 {
-                    if (property.GetCustomAttribute<IgnoreAttribute>() == null)
+                    if (property.GetCustomAttribute<IgnoreAttribute>() is null)
                     {
                         var value = property.GetValue(this);
                         if (value is object)

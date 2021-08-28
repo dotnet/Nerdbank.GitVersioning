@@ -282,7 +282,7 @@ namespace Nerdbank.GitVersioning.Tool
             }
 
             var existingOptions = context.VersionFile.GetVersion();
-            if (existingOptions != null)
+            if (existingOptions is not null)
             {
                 if (!string.IsNullOrEmpty(version))
                 {
@@ -375,7 +375,7 @@ namespace Nerdbank.GitVersioning.Tool
             }
 
             var oracle = new VersionOracle(context, CloudBuild.Active);
-            if (metadata != null)
+            if (metadata is not null)
             {
                 oracle.BuildMetadata.AddRange(metadata);
             }
@@ -418,7 +418,7 @@ namespace Nerdbank.GitVersioning.Tool
                 }
 
                 var property = oracle.GetType().GetProperty(variable, CaseInsensitiveFlags);
-                if (property == null)
+                if (property is null)
                 {
                     Console.Error.WriteLine("Variable \"{0}\" not a version property.", variable);
                     return (int)ExitCodes.BadVariable;
@@ -447,7 +447,7 @@ namespace Nerdbank.GitVersioning.Tool
             using var context = GitContext.Create(searchPath, writable: true);
             var existingOptions = context.VersionFile.GetVersion(out string actualDirectory);
             string versionJsonPath;
-            if (existingOptions != null)
+            if (existingOptions is not null)
             {
                 existingOptions.Version = semver;
                 versionJsonPath = context.VersionFile.SetVersion(actualDirectory, existingOptions);
@@ -598,7 +598,7 @@ namespace Nerdbank.GitVersioning.Tool
 
             using var context = GitContext.Create(searchPath, writable: AlwaysUseLibGit2);
             var oracle = new VersionOracle(context, cloudBuild: activeCloudBuild);
-            if (metadata != null)
+            if (metadata is not null)
             {
                 oracle.BuildMetadata.AddRange(metadata);
             }
@@ -620,7 +620,7 @@ namespace Nerdbank.GitVersioning.Tool
                 }
             }
 
-            if (define != null)
+            if (define is not null)
             {
                 foreach (string def in define)
                 {
@@ -641,7 +641,7 @@ namespace Nerdbank.GitVersioning.Tool
                 }
             }
 
-            if (activeCloudBuild != null)
+            if (activeCloudBuild is not null)
             {
                 if (string.IsNullOrEmpty(version))
                 {

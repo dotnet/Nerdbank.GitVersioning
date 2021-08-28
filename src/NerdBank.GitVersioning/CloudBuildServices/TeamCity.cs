@@ -19,7 +19,7 @@
 
         public string GitCommitId => Environment.GetEnvironmentVariable("BUILD_VCS_NUMBER");
 
-        public bool IsApplicable => this.GitCommitId != null;
+        public bool IsApplicable => this.GitCommitId is not null;
 
         public bool IsPullRequest => false;
 

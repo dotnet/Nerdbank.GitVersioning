@@ -570,9 +570,7 @@ namespace Nerdbank.GitVersioning
         {
             get
             {
-                return this.Version != null
-                    && this.AssemblyVersion == null
-                    && (this.CloudBuild?.IsDefault ?? true)
+                return this.Version is not null && this.AssemblyVersion is null && (this.CloudBuild?.IsDefault ?? true)
                     && this.VersionHeightOffset == 0
                     && !this.SemVer1NumericIdentifierPadding.HasValue
                     && !this.Inherit;
@@ -693,7 +691,7 @@ namespace Nerdbank.GitVersioning
                         return true;
                     }
 
-                    if (x == null || y == null)
+                    if (x is null || y is null)
                     {
                         return false;
                     }
@@ -1575,7 +1573,7 @@ namespace Nerdbank.GitVersioning
                 /// <inheritdoc />
                 public int GetHashCode(ReleaseOptions? obj)
                 {
-                    if (obj == null)
+                    if (obj is null)
                         return 0;
 
                     unchecked

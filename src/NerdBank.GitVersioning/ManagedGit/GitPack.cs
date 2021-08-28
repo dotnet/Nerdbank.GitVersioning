@@ -146,7 +146,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
         {
             var offset = this.GetOffset(objectId);
 
-            if (offset == null)
+            if (offset is null)
             {
                 value = null;
                 return false;
@@ -268,7 +268,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
             var indexReader = this.indexReader.Value;
             var offset = indexReader.GetOffset(objectId);
 
-            if (offset != null)
+            if (offset is not null)
             {
                 this.offsets.Add(objectId, offset.Value);
             }

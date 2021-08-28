@@ -20,7 +20,7 @@
         public override bool Execute()
         {
             var cloudBuild = CloudBuild.Active;
-            if (cloudBuild != null)
+            if (cloudBuild is not null)
             {
                 var envVars = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
@@ -42,7 +42,7 @@
                     }
                 }
 
-                if (this.CloudBuildVersionVars != null)
+                if (this.CloudBuildVersionVars is not null)
                 {
                     foreach (var variable in this.CloudBuildVersionVars)
                     {
@@ -82,7 +82,7 @@
             using (var logReader = new StringReader(output))
             {
                 string line;
-                while ((line = logReader.ReadLine()) != null)
+                while ((line = logReader.ReadLine()) is not null)
                 {
                     // The prefix is presumed to nullify the effect in a real cloud build,
                     // yet make it detectable by a unit test.
