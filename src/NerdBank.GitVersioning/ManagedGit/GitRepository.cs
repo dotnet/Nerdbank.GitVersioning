@@ -192,7 +192,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
             {
                 var objectish = sha.Substring(0, length);
 
-                if (this.Lookup(objectish) != null)
+                if (this.Lookup(objectish) is not null)
                 {
                     return objectish;
                 }
@@ -263,7 +263,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
         {
             using (Stream? stream = this.GetObjectBySha(sha, "commit"))
             {
-                if (stream == null)
+                if (stream is null)
                 {
                     throw new GitException($"The commit {sha} was not found in this repository.") { ErrorCode = GitException.ErrorCodes.ObjectNotFound };
                 }
@@ -396,7 +396,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
 
                             // It's possible for the same object to be present in both the object database and the pack files,
                             // or in multiple pack files.
-                            if (objectId != null && !possibleObjectIds.Contains(objectId.Value))
+                            if (objectId is not null && !possibleObjectIds.Contains(objectId.Value))
                             {
                                 if (possibleObjectIds.Count > 0)
                                 {
@@ -435,7 +435,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
         {
             using (Stream? stream = this.GetObjectBySha(sha, "tree"))
             {
-                if (stream == null)
+                if (stream is null)
                 {
                     throw new GitException($"The tree {sha} was not found in this repository.") { ErrorCode = GitException.ErrorCodes.ObjectNotFound };
                 }
@@ -461,7 +461,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
         {
             using (Stream? treeStream = this.GetObjectBySha(treeId, "tree"))
             {
-                if (treeStream == null)
+                if (treeStream is null)
                 {
                     throw new GitException($"The tree {treeId} was not found in this repository.") { ErrorCode = GitException.ErrorCodes.ObjectNotFound };
                 }

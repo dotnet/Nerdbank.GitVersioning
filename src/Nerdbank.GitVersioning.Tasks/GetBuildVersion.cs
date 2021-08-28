@@ -237,7 +237,7 @@
                     oracle.PublicRelease = string.Equals(this.DefaultPublicRelease, "true", StringComparison.OrdinalIgnoreCase);
                 }
 
-                if (this.BuildMetadata != null)
+                if (this.BuildMetadata is not null)
                 {
                     oracle.BuildMetadata.AddRange(this.BuildMetadata.Split(';'));
                 }
@@ -259,7 +259,7 @@
                 this.PrereleaseVersion = oracle.PrereleaseVersion;
                 this.GitCommitId = oracle.GitCommitId;
                 this.GitCommitIdShort = oracle.GitCommitIdShort;
-                this.GitCommitDateTicks = oracle.GitCommitDate != null ? oracle.GitCommitDate.Value.UtcTicks.ToString(CultureInfo.InvariantCulture) : null;
+                this.GitCommitDateTicks = oracle.GitCommitDate is not null ? oracle.GitCommitDate.Value.UtcTicks.ToString(CultureInfo.InvariantCulture) : null;
                 this.GitVersionHeight = oracle.VersionHeight;
                 this.BuildMetadataFragment = oracle.BuildMetadataFragment;
                 this.CloudBuildNumber = oracle.CloudBuildNumberEnabled ? oracle.CloudBuildNumber : null;
@@ -279,7 +279,7 @@
                     var allVariables = oracle.CloudBuildAllVars
                         .Select(item => new TaskItem(item.Key, new Dictionary<string, string> { { "Value", item.Value } }));
 
-                    if (cloudBuildVersionVars != null)
+                    if (cloudBuildVersionVars is not null)
                     {
                         cloudBuildVersionVars = cloudBuildVersionVars
                             .Union(allVariables);
@@ -290,7 +290,7 @@
                     }
                 }
 
-                if (cloudBuildVersionVars != null)
+                if (cloudBuildVersionVars is not null)
                 {
                     this.CloudBuildVersionVars = cloudBuildVersionVars.ToArray();
                 }

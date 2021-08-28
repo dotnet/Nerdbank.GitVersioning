@@ -14,13 +14,13 @@
     internal class GitLab : ICloudBuild
     {
         public string BuildingBranch =>
-            Environment.GetEnvironmentVariable("CI_COMMIT_TAG") == null ? 
+            Environment.GetEnvironmentVariable("CI_COMMIT_TAG") is null ? 
                 $"refs/heads/{Environment.GetEnvironmentVariable("CI_COMMIT_REF_NAME")}" : null;
 
         public string BuildingRef => this.BuildingBranch ?? this.BuildingTag;
 
         public string BuildingTag =>
-            Environment.GetEnvironmentVariable("CI_COMMIT_TAG") != null ?
+            Environment.GetEnvironmentVariable("CI_COMMIT_TAG") is not null ?
                 $"refs/tags/{Environment.GetEnvironmentVariable("CI_COMMIT_TAG")}" : null;
 
         public string GitCommitId => Environment.GetEnvironmentVariable("CI_COMMIT_SHA");

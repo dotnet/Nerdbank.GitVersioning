@@ -63,7 +63,15 @@ namespace ManagedGit
                 // This commit is not deltafied. It is stored as a .gz-compressed stream in the pack file.
                 var zlibStream = Assert.IsType<ZLibStream>(commitStream);
                 var deflateStream = Assert.IsType<DeflateStream>(zlibStream.BaseStream);
-                var pooledStream = Assert.IsType<MemoryMappedStream>(deflateStream.BaseStream);
+
+                if (IntPtr.Size > 4)
+                {
+                    var pooledStream = Assert.IsType<MemoryMappedStream>(deflateStream.BaseStream);
+                }
+                else
+                {
+                    var pooledStream = Assert.IsType<FileStream>(deflateStream.BaseStream);
+                }
 
                 Assert.Equal(222, commitStream.Length);
                 Assert.Equal("/zgldANj+jvgOwlecnOKylZDVQg=", Convert.ToBase64String(sha.ComputeHash(commitStream)));
@@ -85,7 +93,15 @@ namespace ManagedGit
                 var deltaStream = Assert.IsType<GitPackDeltafiedStream>(commitStream);
                 var zlibStream = Assert.IsType<ZLibStream>(deltaStream.BaseStream);
                 var deflateStream = Assert.IsType<DeflateStream>(zlibStream.BaseStream);
-                var pooledStream = Assert.IsType<MemoryMappedStream>(deflateStream.BaseStream);
+
+                if (IntPtr.Size > 4)
+                {
+                    var pooledStream = Assert.IsType<MemoryMappedStream>(deflateStream.BaseStream);
+                }
+                else
+                {
+                    var directAccessStream = Assert.IsType<FileStream>(deflateStream.BaseStream);
+                }
 
                 Assert.Equal(137, commitStream.Length);
                 Assert.Equal("lZu/7nGb0n1UuO9SlPluFnSvj4o=", Convert.ToBase64String(sha.ComputeHash(commitStream)));
@@ -120,14 +136,24 @@ namespace ManagedGit
             using (SHA1 sha = SHA1.Create())
             {
                 Assert.True(gitPack.TryGetObject(GitObjectId.Parse("f5b401f40ad83f13030e946c9ea22cb54cb853cd"), "commit", out Stream commitStream));
+                using (commitStream)
+                {
+                    // This commit is not deltafied. It is stored as a .gz-compressed stream in the pack file.
+                    var zlibStream = Assert.IsType<ZLibStream>(commitStream);
+                    var deflateStream = Assert.IsType<DeflateStream>(zlibStream.BaseStream);
 
-                // This commit is not deltafied. It is stored as a .gz-compressed stream in the pack file.
-                var zlibStream = Assert.IsType<ZLibStream>(commitStream);
-                var deflateStream = Assert.IsType<DeflateStream>(zlibStream.BaseStream);
-                var pooledStream = Assert.IsType<MemoryMappedStream>(deflateStream.BaseStream);
+                    if (IntPtr.Size > 4)
+                    {
+                        var pooledStream = Assert.IsType<MemoryMappedStream>(deflateStream.BaseStream);
+                    }
+                    else
+                    {
+                        var directAccessStream = Assert.IsType<FileStream>(deflateStream.BaseStream);
+                    }
 
-                Assert.Equal(222, commitStream.Length);
-                Assert.Equal("/zgldANj+jvgOwlecnOKylZDVQg=", Convert.ToBase64String(sha.ComputeHash(commitStream)));
+                    Assert.Equal(222, commitStream.Length);
+                    Assert.Equal("/zgldANj+jvgOwlecnOKylZDVQg=", Convert.ToBase64String(sha.ComputeHash(commitStream)));
+                }
             }
         }
 

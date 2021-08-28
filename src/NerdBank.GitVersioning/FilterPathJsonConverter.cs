@@ -22,7 +22,7 @@
                 throw new NotSupportedException();
             }
 
-            if (this.repoRelativeBaseDirectory == null)
+            if (this.repoRelativeBaseDirectory is null)
             {
                 throw new ArgumentNullException(nameof(this.repoRelativeBaseDirectory), $"Base directory must not be null to be able to deserialize filter paths. Ensure that one was passed to {nameof(VersionOptions.GetJsonSettings)}, and that the version.json file is being written to a Git repository.");
             }
@@ -37,7 +37,7 @@
                 throw new NotSupportedException();
             }
 
-            if (this.repoRelativeBaseDirectory == null)
+            if (this.repoRelativeBaseDirectory is null)
             {
                 throw new ArgumentNullException(nameof(this.repoRelativeBaseDirectory), $"Base directory must not be null to be able to serialize filter paths. Ensure that one was passed to {nameof(VersionOptions.GetJsonSettings)}, and that the version.json file is being written to a Git repository.");
             }

@@ -320,7 +320,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
 
         // prepare release
         var releaseManager = new ReleaseManager();
-        releaseManager.PrepareRelease(this.RepoPath, releaseUnstableTag, (nextVersion == null ? null : Version.Parse(nextVersion)), parameterVersionIncrement);
+        releaseManager.PrepareRelease(this.RepoPath, releaseUnstableTag, (nextVersion is null ? null : Version.Parse(nextVersion)), parameterVersionIncrement);
 
         // check if a branch was created
         Assert.Contains(this.LibGit2Repository.Branches, branch => branch.FriendlyName == expectedBranchName);
@@ -394,7 +394,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         // running PrepareRelease should result in an error
         // because we're setting the version on master to a lower version
         this.AssertError(
-            () => new ReleaseManager().PrepareRelease(this.RepoPath, releaseUnstableTag, (nextVersion == null ? null : Version.Parse(nextVersion))),
+            () => new ReleaseManager().PrepareRelease(this.RepoPath, releaseUnstableTag, (nextVersion is null ? null : Version.Parse(nextVersion))),
             ReleasePreparationError.VersionDecrement);
     }
 
@@ -412,7 +412,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         // running PrepareRelease should result in an error
         // because we're trying to set master to the version it already has
         this.AssertError(
-            () => new ReleaseManager().PrepareRelease(this.RepoPath, null, (nextVersion == null ? null : Version.Parse(nextVersion))),
+            () => new ReleaseManager().PrepareRelease(this.RepoPath, null, (nextVersion is null ? null : Version.Parse(nextVersion))),
             ReleasePreparationError.NoVersionIncrement);
     }
 

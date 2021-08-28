@@ -248,7 +248,7 @@
 
             // get the current version
             var versionOptions = context.VersionFile.GetVersion();
-            if (versionOptions == null)
+            if (versionOptions is null)
             {
                 this.stderr.WriteLine($"Failed to load version file for directory '{projectDirectory}'.");
                 throw new ReleasePreparationException(ReleasePreparationError.NoVersionFile);
@@ -287,7 +287,7 @@
             }
 
             // check if the release branch already exists
-            if (repository.Branches[releaseBranchName] != null)
+            if (repository.Branches[releaseBranchName] is not null)
             {
                 this.stderr.WriteLine($"Cannot create branch '{releaseBranchName}' because it already exists.");
                 throw new ReleasePreparationException(ReleasePreparationError.BranchAlreadyExists);
@@ -384,7 +384,7 @@
         private Signature GetSignature(Repository repository)
         {
             var signature = repository.Config.BuildSignature(DateTimeOffset.Now);
-            if (signature == null)
+            if (signature is null)
             {
                 this.stderr.WriteLine("Cannot create commits in this repo because git user name and email are not configured.");
                 throw new ReleasePreparationException(ReleasePreparationError.UserNotConfigured);
@@ -443,7 +443,7 @@
             var currentVersion = versionOptions.Version;
 
             SemanticVersion nextDevVersion;
-            if (nextVersionOverride != null)
+            if (nextVersionOverride is not null)
             {
                 nextDevVersion = new SemanticVersion(nextVersionOverride, currentVersion.Prerelease, currentVersion.BuildMetadata);
             }

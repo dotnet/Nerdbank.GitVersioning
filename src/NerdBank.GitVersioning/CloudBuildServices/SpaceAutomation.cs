@@ -19,7 +19,7 @@ namespace Nerdbank.GitVersioning.CloudBuildServices
 
         public string GitCommitId => Environment.GetEnvironmentVariable("JB_SPACE_GIT_REVISION");
 
-        public bool IsApplicable => this.GitCommitId != null;
+        public bool IsApplicable => this.GitCommitId is not null;
 
         public bool IsPullRequest => false;
 

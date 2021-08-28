@@ -32,7 +32,7 @@
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             var version = value as SemanticVersion;
-            if (version != null)
+            if (version is not null)
             {
                 writer.WriteValue(version.ToString());
                 return;

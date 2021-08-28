@@ -31,11 +31,11 @@
             var outerProperties = this.GetType().GetRuntimeProperties().ToDictionary(i => i.Name);
             var innerProperties = innerTaskType.GetRuntimeProperties().ToDictionary(i => i.Name);
             var propertiesDiscovery = from outerProperty in outerProperties.Values
-                                      where outerProperty.SetMethod != null && outerProperty.GetMethod != null
+                                      where outerProperty.SetMethod is not null && outerProperty.GetMethod is not null
                                       let innerProperty = innerProperties[outerProperty.Name]
                                       select new { outerProperty, innerProperty };
             var propertiesMap = propertiesDiscovery.ToArray();
-            var outputPropertiesMap = propertiesMap.Where(pair => pair.outerProperty.GetCustomAttribute<OutputAttribute>() != null).ToArray();
+            var outputPropertiesMap = propertiesMap.Where(pair => pair.outerProperty.GetCustomAttribute<OutputAttribute>() is not null).ToArray();
 
             foreach (var propertyPair in propertiesMap)
             {
@@ -54,7 +54,7 @@
             return result;
 #else
             // On .NET Framework (on Windows), we find native binaries by adding them to our PATH.
-            if (this.UnmanagedDllDirectory != null)
+            if (this.UnmanagedDllDirectory is not null)
             {
                 string pathEnvVar = Environment.GetEnvironmentVariable("PATH");
                 string[] searchPaths = pathEnvVar.Split(Path.PathSeparator);

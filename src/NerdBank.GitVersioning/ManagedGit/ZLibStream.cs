@@ -56,9 +56,9 @@ namespace Nerdbank.GitVersioning.ManagedGit
             Span<byte> zlibHeader = stackalloc byte[2];
             stream.ReadAll(zlibHeader);
 
-            if (zlibHeader[0] != 0x78 || (zlibHeader[1] != 0x01 && zlibHeader[1] != 0x9C))
+            if (zlibHeader[0] != 0x78 || (zlibHeader[1] != 0x01 && zlibHeader[1] != 0x9C && zlibHeader[1] != 0x5E && zlibHeader[1] != 0xDA))
             {
-                throw new GitException();
+                throw new GitException($"Invalid zlib header {zlibHeader[0]:X2} {zlibHeader[1]:X2}");
             }
         }
 
