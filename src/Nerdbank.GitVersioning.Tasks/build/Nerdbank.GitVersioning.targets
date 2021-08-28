@@ -79,6 +79,8 @@
     <NBGV_GlobalPropertiesToRemove Include="RuntimeIdentifier" />
     <NBGV_GlobalPropertiesToRemove Include="Configuration" />
     <NBGV_GlobalPropertiesToRemove Include="Platform" />
+  
+    <_BuildMetadataSnapped Include="@(BuildMetadata)" />
   </ItemGroup>
 
   <ItemGroup>
@@ -97,6 +99,8 @@
   </ItemGroup>
 
   <Target Name="GetBuildVersion" Returns="$(BuildVersion)">
+    <Error Text="BuildMetadata items changed after a copy was made. Add all BuildMetadata items before importing this file." Condition=" '@(BuildMetadata)' != '@(_BuildMetadataSnapped)' " />
+    
     <!-- Calculate version by invoking another "project" with global properties that will serve as a key 
          into an msbuild cache to ensure we only invoke the GetBuildVersion task as many times as will produce a unique value. -->
     <MSBuild Projects="@(ProjectReference)"
