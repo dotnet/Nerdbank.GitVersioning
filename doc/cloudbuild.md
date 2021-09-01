@@ -148,9 +148,21 @@ We define a GitHub Action that installs the `nbgv` CLI tool, provides version da
 Check out [nerdbank-gitversioning on the GitHub Actions marketplace](https://github.com/marketplace/actions/nerdbank-gitversioning).
 
 ### TeamCity
+
 TeamCity does not expose the build branch by default as an environment variable. This can be exposed by
 adding an environment variable called BUILD_GIT_BRANCH with the value of `%teamcity.build.vcs.branch.<vcsid>%` where `<vcsid>` is
 the root id described on the TeamCity VCS roots page. Details on this variable can be found on the
 [TeamCity docs](https://confluence.jetbrains.com/display/TCD8/Predefined+Build+Parameters).
+
+### Docker build
+
+When building inside a docker container, special considerations may apply:
+
+1. Make sure the container has access to the entire repo, including the `.git` directory.
+2. Certain environment variables from the CI system may need to be exposed to the container.
+   When a CI system checks out a 'detached head', computing the version relies on environment variables to know which 'branch' was checked out, among other things.
+   You can look up the specific environment variables that are necessary for your particular CI service by looking for their names in the `src/NerdBank.GitVersioning/CloudBuildServices` directory of this repo.
+   For example [these lines](https://github.com/dotnet/Nerdbank.GitVersioning/blob/dd4dff99c5c44634d9041dde7a2ee104db821a10/src/NerdBank.GitVersioning/CloudBuildServices/VisualStudioTeamServices.cs#L24-L26) identify the two environment variables that are required for an Azure Pipelines CI system.
+   When using `docker run` yourself in your build script, you can add `--env BUILD_SOURCEBRANCH --env SYSTEM_TEAMPROJECTID` to your command line to pass-through those environment variables to your container.
 
 [Issue37]: https://github.com/dotnet/Nerdbank.GitVersioning/issues/37
