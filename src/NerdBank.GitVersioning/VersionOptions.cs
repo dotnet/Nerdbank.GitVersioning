@@ -426,10 +426,10 @@ namespace Nerdbank.GitVersioning
         }
 
         /// <summary>
-        /// Gets or sets a value indicating whether the version in current directory structure is hierarchical and calculated independently per each sub-directory.
+        /// Gets or sets a value indicating whether the version in the current directory structure is hierarchical and calculated independently per each sub-directory.
         /// </summary>
         /// <remarks>
-        /// When this is <c>true</c>, the path filters are not applied and rather each sub-folder automatically applies itself as an only filter (included).
+        /// When this is <c>true</c>, the path filters are not applied, and rather each sub-folder automatically applies itself as an only filter (included).
         /// </remarks>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
         [System.ComponentModel.DefaultValue(null)]
@@ -441,7 +441,7 @@ namespace Nerdbank.GitVersioning
 
         /// <summary>
         /// Gets or sets a value indicating whether path filters are inherited from parent version configurations.
-        /// This is backward compatibility flag, if you want the behaviour of inheritance on path filters, you must to set the flag to true explicitly.
+        /// This is a backward compatibility flag, if you want the behaviour of inheritance on path filters, you must set the flag to true explicitly.
         /// </summary>
         /// <remarks>
         /// When this is <c>false</c>, the path filters are NOT inherited from parent configurations.
