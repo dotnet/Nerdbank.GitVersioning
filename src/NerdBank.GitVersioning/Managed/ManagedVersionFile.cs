@@ -5,6 +5,7 @@ namespace Nerdbank.GitVersioning.Managed
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Text;
     using Nerdbank.GitVersioning;
     using Nerdbank.GitVersioning.ManagedGit;
@@ -92,17 +93,16 @@ namespace Nerdbank.GitVersioning.Managed
                 var versionJsonBlob = this.Context.Repository.GetTreeEntry(tree, JsonFileNameBytes);
                 if (versionJsonBlob != GitObjectId.Empty)
                 {
-                    string? versionJsonContent = null;
                     if (blobVersionCache is null || !blobVersionCache.TryGetValue(versionJsonBlob, out VersionOptions? result))
                     {
-                        using (var sr = new StreamReader(this.Context.Repository.GetObjectBySha(versionJsonBlob, "blob")!))
-                        {
-                            versionJsonContent = sr.ReadToEnd();
-                        }
 
                         try
                         {
-                            result = TryReadVersionJsonContent(versionJsonContent, searchDirectory);
+                            using (var sr = new StreamReader(this.Context.Repository.GetObjectBySha(versionJsonBlob, "blob")!))
+                            {
+                                var versionJsonContent = sr.ReadToEnd();
+                                result = TryReadVersionJsonContent(versionJsonContent, searchDirectory);
+                            }
                         }
                         catch (FormatException ex)
                         {
@@ -123,25 +123,22 @@ namespace Nerdbank.GitVersioning.Managed
                     {
                         if (parentDirectory is object)
                         {
-                            result = this.GetVersion(commit, parentDirectory, blobVersionCache, out string? resultingDirectory);
-                            if (result is object)
+                            var parentVersion = this.GetVersion(commit, parentDirectory, blobVersionCache, out string? resultingDirectory);
+                            if (parentVersion is object)
                             {
-                                if (versionJsonContent is null)
-                                {
-                                    // We reused a cache VersionOptions, but now we need the actual JSON string.
-                                    using (var sr = new StreamReader(this.Context.Repository.GetObjectBySha(versionJsonBlob, "blob")!))
-                                    {
-                                        versionJsonContent = sr.ReadToEnd();
-                                    }
-                                }
+                                bool isFrozen = result.IsFrozen;
 
-                                if (result.IsFrozen)
+                                if (isFrozen)
                                 {
                                     result = new VersionOptions(result);
                                 }
 
-                                JsonConvert.PopulateObject(versionJsonContent, result, VersionOptions.GetJsonSettings(repoRelativeBaseDirectory: searchDirectory));
-                                finalResult = result;
+                                result.InheritFrom(parentVersion);
+
+                                if (isFrozen)
+                                {
+                                    result.Freeze();
+                                }
                             }
                             else
                             {

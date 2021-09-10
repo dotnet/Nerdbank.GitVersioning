@@ -10,7 +10,7 @@ namespace Nerdbank.GitVersioning
     /// <summary>
     /// A filter (include or exclude) representing a repo relative path.
     /// </summary>
-    public class FilterPath
+    public class FilterPath : IEquatable<FilterPath>
     {
         /// <summary>
         /// True if this <see cref="FilterPath"/> represents an exclude filter.
@@ -286,5 +286,22 @@ namespace Nerdbank.GitVersioning
         {
             return this.RepoRelativePath;
         }
+
+        public bool Equals(FilterPath other)
+        {
+            if (ReferenceEquals(null, other)) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return string.Equals(this.RepoRelativePath, other.RepoRelativePath, StringComparison.OrdinalIgnoreCase);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != this.GetType()) return false;
+            return Equals((FilterPath) obj);
+        }
+
+        public override int GetHashCode() => (this.RepoRelativePath is not null ? StringComparer.OrdinalIgnoreCase.GetHashCode(this.RepoRelativePath) : 0);
     }
 }

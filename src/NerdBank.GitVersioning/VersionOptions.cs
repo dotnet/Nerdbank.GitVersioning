@@ -102,6 +102,18 @@ namespace Nerdbank.GitVersioning
         private bool inherit;
 
         /// <summary>
+        /// Backing field for the <see cref="HierarchicalVersion"/> property.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool? hierarchicalVersion;
+
+        /// <summary>
+        /// Backing field for the <see cref="InheritPathFilters"/> property.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool? inheritPathFilters;
+
+        /// <summary>
         /// Default value for <see cref="VersionPrecision"/>.
         /// </summary>
         public const VersionPrecision DefaultVersionPrecision = VersionPrecision.Minor;
@@ -159,6 +171,8 @@ namespace Nerdbank.GitVersioning
             this.cloudBuild = copyFrom.cloudBuild is object ? new CloudBuildOptions(copyFrom.cloudBuild) : null;
             this.release = copyFrom.release is object ? new ReleaseOptions(copyFrom.release) : null;
             this.pathFilters = copyFrom.pathFilters?.ToList();
+            this.hierarchicalVersion = copyFrom.hierarchicalVersion;
+            this.inheritPathFilters = copyFrom.inheritPathFilters;
         }
 
         /// <summary>
@@ -412,6 +426,35 @@ namespace Nerdbank.GitVersioning
         }
 
         /// <summary>
+        /// Gets or sets a value indicating whether the version in current directory structure is hierarchical and calculated independently per each sub-directory.
+        /// </summary>
+        /// <remarks>
+        /// When this is <c>true</c>, the path filters are not applied and rather each sub-folder automatically applies itself as an only filter (included).
+        /// </remarks>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        [System.ComponentModel.DefaultValue(null)]
+        public bool HierarchicalVersion
+        {
+            get => this.hierarchicalVersion ?? false;
+            set => this.SetIfNotReadOnly(ref this.hierarchicalVersion, value);
+        }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether path filters are inherited from parent version configurations.
+        /// This is backward compatibility flag, if you want the behaviour of inheritance on path filters, you must to set the flag to true explicitly.
+        /// </summary>
+        /// <remarks>
+        /// When this is <c>false</c>, the path filters are NOT inherited from parent configurations.
+        /// </remarks>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        [System.ComponentModel.DefaultValue(null)]
+        public bool InheritPathFilters
+        {
+            get => this.inheritPathFilters ?? false;
+            set => this.SetIfNotReadOnly(ref this.inheritPathFilters, value);
+        }
+
+        /// <summary>
         /// Gets a value indicating whether this instance rejects all attempts to mutate it.
         /// </summary>
         [JsonIgnore]
@@ -560,6 +603,58 @@ namespace Nerdbank.GitVersioning
                 this.release?.Freeze();
                 this.pathFilters = this.pathFilters is object ? new ReadOnlyCollection<FilterPath>(this.pathFilters.ToList()) : null;
             }
+        }
+
+        public void InheritFrom(VersionOptions? parent)
+        {
+            if (parent is null)
+            {
+                return;
+            }
+
+            if (this.isFrozen)
+            {
+                throw new InvalidOperationException("the instance of version options is read-only.");
+            }
+
+            this.version ??= parent.version?.Clone();
+
+            this.gitCommitIdPrefix ??= parent.gitCommitIdPrefix;
+            this.buildNumberOffset ??= parent.buildNumberOffset;
+            this.semVer1NumericIdentifierPadding ??= parent.semVer1NumericIdentifierPadding;
+            this.gitCommitIdShortFixedLength ??= parent.gitCommitIdShortFixedLength;
+            this.gitCommitIdShortAutoMinimum ??= parent.gitCommitIdShortAutoMinimum;
+
+            this.assemblyVersion ??= parent.assemblyVersion is not null ? new AssemblyVersionOptions(parent.assemblyVersion) : null;
+            this.nuGetPackageVersion ??= parent.nuGetPackageVersion is not null ? new NuGetPackageVersionOptions(parent.nuGetPackageVersion) : null;
+            this.cloudBuild ??= parent.cloudBuild is not null ? new CloudBuildOptions(parent.cloudBuild) : null;
+            this.release ??= parent.release is not null ? new ReleaseOptions(parent.release) : null;
+
+            this.inheritPathFilters ??= parent.inheritPathFilters;
+            this.hierarchicalVersion ??= parent.hierarchicalVersion;
+
+            if (this.publicReleaseRefSpec is null)
+            {
+                this.publicReleaseRefSpec = parent.publicReleaseRefSpec?.ToList();
+            }
+            else if (parent.publicReleaseRefSpec is not null)
+            {
+                this.publicReleaseRefSpec = this.publicReleaseRefSpec.Union(parent.publicReleaseRefSpec).ToList();
+            }
+
+            if (this.inheritPathFilters ?? false)
+            {
+                if (this.pathFilters is null)
+                {
+                    this.pathFilters = parent.pathFilters?.ToList();
+                }
+                else if (parent.pathFilters is not null)
+                {
+                    this.pathFilters = parent.pathFilters.Union(this.pathFilters).ToList();
+                }
+            }
+
+            this.inherit = false;
         }
 
         /// <summary>
