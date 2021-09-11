@@ -28,6 +28,7 @@
     <EmbeddedResource Include="repos\*" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Cake.GitVersioning\Cake.GitVersioning.csproj" />
     <ProjectReference Include="..\Nerdbank.GitVersioning.Tasks\Nerdbank.GitVersioning.Tasks.csproj" />
     <ProjectReference Include="..\NerdBank.GitVersioning\NerdBank.GitVersioning.csproj" />
   </ItemGroup>
