@@ -93,6 +93,7 @@
       <!-- Do our very best to prevent Microsoft.Common.CurrentVersion.targets or IDEs from processing this P2P. It's only here for MSBuild's static graph. -->
       <BuildReference>false</BuildReference>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
       <Visible>false</Visible>
       <NBGV_InnerProject>true</NBGV_InnerProject>
     </ProjectReference>
