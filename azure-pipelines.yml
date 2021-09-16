@@ -120,7 +120,7 @@ stages:
         --no-build $(testModifier)
         -c $(BuildConfiguration)
         --filter "TestCategory!=FailsOnAzurePipelines"
-        --logger "trx;LogFileName=$(Build.ArtifactStagingDirectory)/TestLogs/TestResults.trx"
+        --logger "trx;LogFileName=$(Build.ArtifactStagingDirectory)/TestLogs/TestResults.x64.trx"
         --results-directory $(Build.ArtifactStagingDirectory)/CodeCoverage/
         --collect:"XPlat Code Coverage"
         --
@@ -133,7 +133,7 @@ stages:
         --no-build $(testModifier)
         -c $(BuildConfiguration)
         --filter "TestCategory!=FailsOnAzurePipelines"
-        --logger "trx;LogFileName=$(Build.ArtifactStagingDirectory)/TestLogs/TestResults.trx"
+        --logger "trx;LogFileName=$(Build.ArtifactStagingDirectory)/TestLogs/TestResults.x86.trx"
         --results-directory $(Build.ArtifactStagingDirectory)/CodeCoverage/
         --collect:"XPlat Code Coverage"
         --
@@ -141,6 +141,19 @@ stages:
       displayName: Run x86 tests
       workingDirectory: src
       condition: ne(variables['dotnet32'], '')
+
+    - script: >
+        dotnet test Cake.GitVersioning.Tests
+        --no-build $(testModifier)
+        -c $(BuildConfiguration)
+        --filter "TestCategory!=FailsOnAzurePipelines"
+        --logger "trx;LogFileName=$(Build.ArtifactStagingDirectory)/TestLogs/TestResults.cake.trx"
+        --results-directory $(Build.ArtifactStagingDirectory)/CodeCoverage/
+        --collect:"XPlat Code Coverage"
+        --
+        RunConfiguration.DisableAppDomain=true
+      displayName: Run cake tests
+      workingDirectory: src
 
     - task: PublishCodeCoverageResults@1
       displayName: Publish code coverage results

@@ -32,6 +32,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cake.GitVersioning", "Cake.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nerdbank.GitVersioning.Benchmarks", "NerdBank.GitVersioning.Benchmarks\Nerdbank.GitVersioning.Benchmarks.csproj", "{B0B7955D-E51F-4091-BF7F-55D07D381D15}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cake.GitVersioning.Tests", "Cake.GitVersioning.Tests\Cake.GitVersioning.Tests.csproj", "{D68829FE-24D8-4ADD-8525-17F47C6FE257}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -64,6 +66,10 @@ Global
 		{B0B7955D-E51F-4091-BF7F-55D07D381D15}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B0B7955D-E51F-4091-BF7F-55D07D381D15}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B0B7955D-E51F-4091-BF7F-55D07D381D15}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D68829FE-24D8-4ADD-8525-17F47C6FE257}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D68829FE-24D8-4ADD-8525-17F47C6FE257}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D68829FE-24D8-4ADD-8525-17F47C6FE257}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D68829FE-24D8-4ADD-8525-17F47C6FE257}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -12,6 +12,7 @@ namespace Nerdbank.GitVersioning.Tool
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Build.Construction;
+    using Nerdbank.GitVersioning.Commands;
     using Nerdbank.GitVersioning.LibGit2;
     using Newtonsoft.Json;
     using NuGet.Common;
@@ -583,43 +584,7 @@ namespace Nerdbank.GitVersioning.Tool
                 return (int)ExitCodes.NoGitRepo;
             }
 
-            ICloudBuild activeCloudBuild = CloudBuild.Active;
-            if (!string.IsNullOrEmpty(ciSystem))
-            {
-                int matchingIndex = Array.FindIndex(CloudProviderNames, m => string.Equals(m, ciSystem, StringComparison.OrdinalIgnoreCase));
-                if (matchingIndex == -1)
-                {
-                    Console.Error.WriteLine("No cloud provider found by the name: \"{0}\"", ciSystem);
-                    return (int)ExitCodes.NoCloudBuildProviderMatch;
-                }
-
-                activeCloudBuild = CloudBuild.SupportedCloudBuilds[matchingIndex];
-            }
-
-            using var context = GitContext.Create(searchPath, writable: AlwaysUseLibGit2);
-            var oracle = new VersionOracle(context, cloudBuild: activeCloudBuild);
-            if (metadata is not null)
-            {
-                oracle.BuildMetadata.AddRange(metadata);
-            }
-
-            var variables = new Dictionary<string, string>();
-            if (allVars)
-            {
-                foreach (var pair in oracle.CloudBuildAllVars)
-                {
-                    variables.Add(pair.Key, pair.Value);
-                }
-            }
-
-            if (commonVars)
-            {
-                foreach (var pair in oracle.CloudBuildVersionVars)
-                {
-                    variables.Add(pair.Key, pair.Value);
-                }
-            }
-
+            var additionalVariables = new Dictionary<string, string>();
             if (define is not null)
             {
                 foreach (string def in define)
@@ -631,37 +596,41 @@ namespace Nerdbank.GitVersioning.Tool
                         return (int)ExitCodes.BadCloudVariable;
                     }
 
-                    if (variables.ContainsKey(split[0]))
+                    if (additionalVariables.ContainsKey(split[0]))
                     {
                         Console.Error.WriteLine($"Cloud build variable \"{split[0]}\" specified more than once.");
                         return (int)ExitCodes.DuplicateCloudVariable;
                     }
 
-                    variables[split[0]] = split[1];
+                    additionalVariables[split[0]] = split[1];
                 }
             }
 
-            if (activeCloudBuild is not null)
+            try
             {
-                if (string.IsNullOrEmpty(version))
-                {
-                    version = oracle.CloudBuildNumber;
-                }
-
-                activeCloudBuild.SetCloudBuildNumber(version, Console.Out, Console.Error);
-
-                foreach (var pair in variables)
-                {
-                    activeCloudBuild.SetCloudBuildVariable(pair.Key, pair.Value, Console.Out, Console.Error);
-                }
-
-                return (int)ExitCodes.OK;
+                var cloudCommand = new CloudCommand(Console.Out, Console.Error);
+                cloudCommand.SetBuildVariables(searchPath, metadata, version, ciSystem, allVars, commonVars, additionalVariables, AlwaysUseLibGit2);
             }
-            else
+            catch (CloudCommand.CloudCommandException ex)
             {
-                Console.Error.WriteLine("No cloud build detected.");
-                return (int)ExitCodes.NoCloudBuildEnvDetected;
+                Console.Error.WriteLine(ex.Message);
+                // map error codes
+                switch (ex.Error)
+                {
+                    case CloudCommand.CloudCommandError.NoCloudBuildProviderMatch:
+                        return (int)ExitCodes.NoCloudBuildProviderMatch;
+                    case CloudCommand.CloudCommandError.DuplicateCloudVariable:
+                        return (int)ExitCodes.DuplicateCloudVariable;
+                    case CloudCommand.CloudCommandError.NoCloudBuildEnvDetected:
+                        return (int)ExitCodes.NoCloudBuildEnvDetected;
+                    default:
+                        Report.Fail($"{nameof(CloudCommand.CloudCommandError)}: {ex.Error}");
+                        return -1;
+                }
             }
+
+            return (int)ExitCodes.OK;
+
         }
 
         private static int OnPrepareReleaseCommand(string project, string nextVersion, string versionIncrement, string format, string tag)

@@ -295,7 +295,7 @@
 
             // create release branch and update version
             var releaseBranch = repository.CreateBranch(releaseBranchName);
-            Commands.Checkout(repository, releaseBranch);
+            global::LibGit2Sharp.Commands.Checkout(repository, releaseBranch);
             this.UpdateVersion(context, versionOptions.Version, releaseVersion);
 
             if (outputMode == ReleaseManagerOutputMode.Text)
@@ -304,7 +304,7 @@
             }
 
             // update version on main branch
-            Commands.Checkout(repository, originalBranchName);
+            global::LibGit2Sharp.Commands.Checkout(repository, originalBranchName);
             this.UpdateVersion(context, versionOptions.Version, nextDevVersion);
 
             if (outputMode == ReleaseManagerOutputMode.Text)
@@ -371,7 +371,7 @@
                 versionOptions.Version = newVersion;
                 var filePath = context.VersionFile.SetVersion(context.AbsoluteProjectDirectory, versionOptions, includeSchemaProperty: true);
 
-                Commands.Stage(context.Repository, filePath);
+                global::LibGit2Sharp.Commands.Stage(context.Repository, filePath);
 
                 // Author a commit only if we effectively changed something.
                 if (!context.Repository.Head.Tip.Tree.Equals(context.Repository.Index.WriteToTree()))
