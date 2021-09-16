@@ -1,4 +1,4 @@
-﻿namespace Nerdbank.GitVersioning
+﻿namespace Nerdbank.GitVersioning.Commands
 {
     using System;
     using System.Collections.Generic;
@@ -7,7 +7,7 @@
     using Validation;
 
     /// <summary>
-    /// Implementation of the "nbgv cloud" command that updates the build environments variables with version variables
+    /// Implementation of the "nbgv cloud" command that updates the build environments variables with version variables.
     /// </summary>
     public class CloudCommand
     {
@@ -17,23 +17,23 @@
         public enum CloudCommandError
         {
             /// <summary>
-            /// Teh specified CI system was not found
+            /// The specified CI system was not found.
             /// </summary>
             NoCloudBuildProviderMatch,
 
             /// <summary>
-            /// A cloud variable was defined multiple times
+            /// A cloud variable was defined multiple times.
             /// </summary>
             DuplicateCloudVariable,
 
             /// <summary>
-            /// No supported cloud build environment could be detected
+            /// No supported cloud build environment could be detected.
             /// </summary>
-            NoCloudBuildEnvDetected
+            NoCloudBuildEnvDetected,
         }
 
         /// <summary>
-        /// Exception indicating an error while setting build variables
+        /// Exception indicating an error while setting build variables.
         /// </summary>
         public class CloudCommandException : Exception
         {
@@ -43,7 +43,7 @@
             public CloudCommandError Error { get; }
 
             /// <summary>
-            /// Initializes a new instance of <see cref="CloudCommandException"/>
+            /// Initializes a new instance of <see cref="CloudCommandException"/> class.
             /// </summary>
             /// <param name="message">The message that describes the error.</param>
             /// <param name="error">The error that occurred.</param>
@@ -79,7 +79,7 @@
         /// The string to use for the cloud build number. If not specified, the computed version will be used.
         /// </param>
         /// <param name="ciSystem">
-        /// The CI system to activate. If not specified, auto-detection will be used.   
+        /// The CI system to activate. If not specified, auto-detection will be used.
         /// </param>
         /// <param name="allVars">
         /// Controls whether to define all version variables as cloud build variables.

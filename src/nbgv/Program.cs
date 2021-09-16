@@ -12,6 +12,7 @@ namespace Nerdbank.GitVersioning.Tool
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Build.Construction;
+    using Nerdbank.GitVersioning.Commands;
     using Nerdbank.GitVersioning.LibGit2;
     using Newtonsoft.Json;
     using NuGet.Common;

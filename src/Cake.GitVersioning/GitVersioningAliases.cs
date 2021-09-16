@@ -6,6 +6,7 @@
     using Cake.Core;
     using Cake.Core.Annotations;
     using Nerdbank.GitVersioning;
+    using Nerdbank.GitVersioning.Commands;
 
     /// <summary>
     /// Contains functionality for using Nerdbank.GitVersioning.
