@@ -42,5 +42,11 @@
     <Message Importance="low" Text="AssemblyInformationalVersion: $(AssemblyInformationalVersion)" />
     <Message Importance="low" Text="NuGetPackageVersion: $(NuGetPackageVersion)" />
   </Target>
+  
+  <!-- These targets are called by MSBuild static graph because we declare a ProjectReference item to this file. -->
+  <Target Name="GetTargetFrameworks" />
+  <Target Name="GetNativeManifest" />
+  <Target Name="GetCopyToOutputDirectoryItems" />
+  <Target Name="GetTargetFrameworksWithPlatformForSingleTargetFramework" />
 
 </Project>
