@@ -752,6 +752,38 @@ public abstract class VersionOracleTests : RepoTestBase
     }
 
     [Fact]
+    public void GetVersion_PathFilterPlusMerge()
+    {
+        this.InitializeSourceControl(withInitialCommit: false);
+        this.WriteVersionFile(new VersionOptions
+        {
+            Version = new SemanticVersion("1.0"),
+            PathFilters = new FilterPath[] { new FilterPath(".", string.Empty) },
+        });
+
+        string conflictedFilePath = Path.Combine(this.RepoPath, "foo.txt");
+
+        File.WriteAllText(conflictedFilePath, "foo");
+        Commands.Stage(this.LibGit2Repository, conflictedFilePath);
+        this.LibGit2Repository.Commit("Add foo.txt with foo content.", this.Signer, this.Signer);
+        Branch originalBranch = this.LibGit2Repository.Head;
+
+        Branch topicBranch = this.LibGit2Repository.Branches.Add("topic", "HEAD~1");
+        Commands.Checkout(this.LibGit2Repository, topicBranch);
+        File.WriteAllText(conflictedFilePath, "bar");
+        Commands.Stage(this.LibGit2Repository, conflictedFilePath);
+        this.LibGit2Repository.Commit("Add foo.txt with bar content.", this.Signer, this.Signer);
+
+        Commands.Checkout(this.LibGit2Repository, originalBranch);
+        MergeResult result = this.LibGit2Repository.Merge(topicBranch, this.Signer, new MergeOptions { FileConflictStrategy = CheckoutFileConflictStrategy.Ours });
+        Assert.Equal(MergeStatus.Conflicts, result.Status);
+        Commands.Stage(this.LibGit2Repository, conflictedFilePath);
+        this.LibGit2Repository.Commit("Merge two branches", this.Signer, this.Signer);
+
+        Assert.Equal(3, this.GetVersionHeight());
+    }
+
+    [Fact]
     public void GetVersionHeight_ProjectDirectoryDifferentToVersionJsonDirectory()
     {
         this.InitializeSourceControl();

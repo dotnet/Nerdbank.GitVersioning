@@ -216,7 +216,21 @@ namespace Nerdbank.GitVersioning.Tool
                         }
                     }
                 }, (MiddlewareOrder)(-3000)) // MiddlewareOrderInternal.ExceptionHandler so [parse] directive is accurate.
+                .UseExceptionHandler((ex, context) => PrintException(ex, context))
                 .Build();
+        }
+
+        private static void PrintException(Exception ex, InvocationContext context)
+        {
+            try
+            {
+                Console.Error.WriteLine("Unhandled exception: {0}", ex);
+            }
+            catch (Exception ex2)
+            {
+                Console.Error.WriteLine("Unhandled exception: {0}", ex.Message);
+                Console.Error.WriteLine("Unhandled exception while trying to print string version of the above exception: {0}", ex2);
+            }
         }
 
         private static int MainInner(string[] args)
@@ -348,16 +362,16 @@ namespace Nerdbank.GitVersioning.Tool
             return (int)ExitCodes.OK;
         }
 
-        private static int OnGetVersionCommand(string project, IReadOnlyList<string> metadata, string format, string variable, string commitIsh)
+        private static int OnGetVersionCommand(string project, IReadOnlyList<string> metadata, string format, string variable, string commitish)
         {
             if (string.IsNullOrEmpty(format))
             {
                 format = DefaultOutputFormat;
             }
 
-            if (string.IsNullOrEmpty(commitIsh))
+            if (string.IsNullOrEmpty(commitish))
             {
-                commitIsh = DefaultRef;
+                commitish = DefaultRef;
             }
 
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(project);
@@ -369,9 +383,9 @@ namespace Nerdbank.GitVersioning.Tool
                 return (int)ExitCodes.NoGitRepo;
             }
 
-            if (!context.TrySelectCommit(commitIsh))
+            if (!context.TrySelectCommit(commitish))
             {
-                Console.Error.WriteLine("rev-parse produced no commit for {0}", commitIsh);
+                Console.Error.WriteLine("rev-parse produced no commit for {0}", commitish);
                 return (int)ExitCodes.BadGitRef;
             }
 
@@ -729,7 +743,7 @@ namespace Nerdbank.GitVersioning.Tool
             var providers = new List<Lazy<INuGetResourceProvider>>();
             providers.AddRange(Repository.Provider.GetCoreV3());  // Add v3 API support
 
-            var sourceRepositoryProvider = new SourceRepositoryProvider(settings, providers);
+            var sourceRepositoryProvider = new SourceRepositoryProvider(new PackageSourceProvider(settings), providers);
 
             // Select package sources based on NuGet.Config files or given options, as 'nuget.exe restore' command does
             // See also 'DownloadCommandBase.GetPackageSources(ISettings)' at https://github.com/NuGet/NuGet.Client/blob/dev/src/NuGet.Clients/NuGet.CommandLine/Commands/DownloadCommandBase.cs
