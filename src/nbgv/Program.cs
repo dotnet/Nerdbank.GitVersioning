@@ -215,7 +215,21 @@ namespace Nerdbank.GitVersioning.Tool
                         }
                     }
                 }, (MiddlewareOrder)(-3000)) // MiddlewareOrderInternal.ExceptionHandler so [parse] directive is accurate.
+                .UseExceptionHandler((ex, context) => PrintException(ex, context))
                 .Build();
+        }
+
+        private static void PrintException(Exception ex, InvocationContext context)
+        {
+            try
+            {
+                Console.Error.WriteLine("Unhandled exception: {0}", ex);
+            }
+            catch (Exception ex2)
+            {
+                Console.Error.WriteLine("Unhandled exception: {0}", ex.Message);
+                Console.Error.WriteLine("Unhandled exception while trying to print string version of the above exception: {0}", ex2);
+            }
         }
 
         private static int MainInner(string[] args)
