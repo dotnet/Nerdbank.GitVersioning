@@ -773,7 +773,7 @@ namespace Nerdbank.GitVersioning.Tool
             var providers = new List<Lazy<INuGetResourceProvider>>();
             providers.AddRange(Repository.Provider.GetCoreV3());  // Add v3 API support
 
-            var sourceRepositoryProvider = new SourceRepositoryProvider(settings, providers);
+            var sourceRepositoryProvider = new SourceRepositoryProvider(new PackageSourceProvider(settings), providers);
 
             // Select package sources based on NuGet.Config files or given options, as 'nuget.exe restore' command does
             // See also 'DownloadCommandBase.GetPackageSources(ISettings)' at https://github.com/NuGet/NuGet.Client/blob/dev/src/NuGet.Clients/NuGet.CommandLine/Commands/DownloadCommandBase.cs
