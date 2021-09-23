@@ -94,7 +94,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
             return read;
         }
 
-#if !NETSTANDARD
+#if !NETSTANDARD2_0
         /// <inheritdoc/>
         public override int Read(Span<byte> buffer)
         {
@@ -112,7 +112,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
             return read;
         }
 
-#if !NETSTANDARD
+#if !NETSTANDARD2_0
         /// <inheritdoc/>
         public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
         {

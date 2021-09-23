@@ -2,7 +2,6 @@
 
 using System;
 using System.Buffers;
-using System.Diagnostics;
 using System.IO;
 
 namespace Nerdbank.GitVersioning.ManagedGit
@@ -78,7 +77,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
             return value;
         }
 
-#if NETSTANDARD
+#if NETSTANDARD2_0
         /// <summary>
         /// Reads a sequence of bytes from the current stream and advances the position within the stream by
         /// the number of bytes read.
@@ -138,6 +137,17 @@ namespace Nerdbank.GitVersioning.ManagedGit
             {
                 ArrayPool<byte>.Shared.Return(buffer);
             }
+        }
+
+        internal static bool TryAdd<TKey, TValue>(this System.Collections.Generic.IDictionary<TKey, TValue> dictionary, TKey key, TValue value)
+        {
+            if (dictionary.ContainsKey(key))
+            {
+                return false;
+            }
+
+            dictionary.Add(key, value);
+            return true;
         }
 #endif
     }
