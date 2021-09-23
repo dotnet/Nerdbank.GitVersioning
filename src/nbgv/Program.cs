@@ -347,16 +347,16 @@ namespace Nerdbank.GitVersioning.Tool
             return (int)ExitCodes.OK;
         }
 
-        private static int OnGetVersionCommand(string project, IReadOnlyList<string> metadata, string format, string variable, string commitIsh)
+        private static int OnGetVersionCommand(string project, IReadOnlyList<string> metadata, string format, string variable, string commitish)
         {
             if (string.IsNullOrEmpty(format))
             {
                 format = DefaultOutputFormat;
             }
 
-            if (string.IsNullOrEmpty(commitIsh))
+            if (string.IsNullOrEmpty(commitish))
             {
-                commitIsh = DefaultRef;
+                commitish = DefaultRef;
             }
 
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(project);
@@ -368,9 +368,9 @@ namespace Nerdbank.GitVersioning.Tool
                 return (int)ExitCodes.NoGitRepo;
             }
 
-            if (!context.TrySelectCommit(commitIsh))
+            if (!context.TrySelectCommit(commitish))
             {
-                Console.Error.WriteLine("rev-parse produced no commit for {0}", commitIsh);
+                Console.Error.WriteLine("rev-parse produced no commit for {0}", commitish);
                 return (int)ExitCodes.BadGitRef;
             }
 
