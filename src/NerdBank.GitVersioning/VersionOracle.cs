@@ -26,6 +26,11 @@ namespace Nerdbank.GitVersioning
         private readonly ICloudBuild? cloudBuild;
 
         /// <summary>
+        /// The number of version components (up to the 4 integers) to include in <see cref="AssemblyInformationalVersion"/>.
+        /// </summary>
+        private readonly int assemblyInformationalVersionComponentCount;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="VersionOracle"/> class.
         /// </summary>
         /// <param name="context">The git context from which to calculate version data.</param>
@@ -75,6 +80,7 @@ namespace Nerdbank.GitVersioning
 
             this.VersionOptions = this.CommittedVersion ?? this.WorkingVersion;
             this.Version = this.VersionOptions?.Version?.Version ?? Version0;
+            this.assemblyInformationalVersionComponentCount = this.VersionOptions?.VersionHeightPosition == SemanticVersion.Position.Revision ? 4 : 3;
 
             // Override the typedVersion with the special build number and revision components, when available.
             if (context.IsRepository)
@@ -181,7 +187,7 @@ namespace Nerdbank.GitVersioning
         /// Gets the version string to use for the <see cref="System.Reflection.AssemblyInformationalVersionAttribute"/>.
         /// </summary>
         public string AssemblyInformationalVersion =>
-            $"{this.Version.ToStringSafe(3)}{this.PrereleaseVersion}{FormatBuildMetadata(this.BuildMetadataWithCommitId)}";
+            $"{this.Version.ToStringSafe(this.assemblyInformationalVersionComponentCount)}{this.PrereleaseVersion}{FormatBuildMetadata(this.BuildMetadataWithCommitId)}";
 
         /// <summary>
         /// Gets or sets a value indicating whether the project is building

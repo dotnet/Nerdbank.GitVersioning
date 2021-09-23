@@ -76,7 +76,7 @@
         /// <summary>
         /// Identifies the various positions in a semantic version.
         /// </summary>
-        internal enum Position
+        public enum Position
         {
             /// <summary>
             /// The <see cref="Version.Major"/> component.
@@ -129,7 +129,7 @@
         /// <summary>
         /// Gets the position in a computed version that the version height should appear.
         /// </summary>
-        internal SemanticVersion.Position? VersionHeightPosition
+        public SemanticVersion.Position? VersionHeightPosition
         {
             get
             {
