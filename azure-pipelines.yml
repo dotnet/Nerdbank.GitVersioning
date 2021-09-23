@@ -4,6 +4,7 @@ trigger:
     include:
       - master
       - 'v*.*'
+      - 'validate/*'
   paths:
     exclude:
     - doc
