@@ -433,8 +433,8 @@ namespace Nerdbank.GitVersioning.LibGit2
                             : includePaths;
 
                     // If the diff between this commit and any of its parents
-                    // does not touch a path that we care about, don't bump the
-                    // height.
+                    // touches a path that we care about, bump the height.
+                    // A no-parent commit is relevant if it introduces anything in the filtered path.
                     var relevantCommit =
                         commit.Parents.Any()
                             ? commit.Parents.Any(parent => ContainsRelevantChanges(commit.GetRepository().Diff

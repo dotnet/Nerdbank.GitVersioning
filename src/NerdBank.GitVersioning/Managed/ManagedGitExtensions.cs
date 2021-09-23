@@ -169,20 +169,25 @@ namespace Nerdbank.GitVersioning.Managed
 
                 if (pathFilters is not null)
                 {
-                    var relevantCommit = true;
-
-                    foreach (var parentId in commit.Parents)
+                    // If the diff between this commit and any of its parents
+                    // touches a path that we care about, bump the height.
+                    bool relevantCommit = false, anyParents = false;
+                    foreach (GitObjectId parentId in commit.Parents)
                     {
-                        var parent = repository.GetCommit(parentId);
-                        relevantCommit = IsRelevantCommit(repository, commit, parent, pathFilters);
-
-                        // If the diff between this commit and any of its parents
-                        // does not touch a path that we care about, don't bump the
-                        // height.
-                        if (!relevantCommit)
+                        anyParents = true;
+                        GitCommit parent = repository.GetCommit(parentId);
+                        if (IsRelevantCommit(repository, commit, parent, pathFilters))
                         {
+                            // No need to scan further, as a positive match will never turn negative.
+                            relevantCommit = true;
                             break;
                         }
+                    }
+
+                    if (!anyParents)
+                    {
+                        // A no-parent commit is relevant if it introduces anything in the filtered path.
+                        relevantCommit = IsRelevantCommit(repository, commit, parent: default(GitCommit), pathFilters);
                     }
 
                     if (!relevantCommit)
@@ -214,12 +219,12 @@ namespace Nerdbank.GitVersioning.Managed
             return IsRelevantCommit(
                 repository,
                 repository.GetTree(commit.Tree),
-                repository.GetTree(parent.Tree),
+                parent != default ? repository.GetTree(parent.Tree) : null,
                 relativePath: string.Empty,
                 filters);
         }
 
-        private static bool IsRelevantCommit(GitRepository repository, GitTree tree, GitTree parent, string relativePath, IReadOnlyList<FilterPath> filters)
+        private static bool IsRelevantCommit(GitRepository repository, GitTree tree, GitTree? parent, string relativePath, IReadOnlyList<FilterPath> filters)
         {
             // Walk over all child nodes in the current tree. If a child node was found in the parent,
             // remove it, so that after the iteration the parent contains all nodes which have been
@@ -231,8 +236,9 @@ namespace Nerdbank.GitVersioning.Managed
 
                 // If the entry is not present in the parent commit, it was added;
                 // if the Sha does not match, it was modified.
-                if (!parent.Children.TryGetValue(child.Key, out parentEntry)
-                    || parentEntry.Sha != child.Value.Sha)
+                if (parent is null ||
+                    !parent.Children.TryGetValue(child.Key, out parentEntry) ||
+                    parentEntry.Sha != child.Value.Sha)
                 {
                     // Determine whether the change was relevant.
                     var fullPath = $"{relativePath}{entry.Name}";
@@ -264,23 +270,27 @@ namespace Nerdbank.GitVersioning.Managed
 
                 if (parentEntry is not null)
                 {
+                    Assumes.NotNull(parent);
                     parent.Children.Remove(child.Key);
                 }
             }
 
             // Inspect removed entries (i.e. present in parent but not in the current tree)
-            foreach (var child in parent.Children)
+            if (parent is not null)
             {
-                // Determine whether the change was relevant.
-                var fullPath = Path.Combine(relativePath, child.Key);
-
-                bool isRelevant =
-                    filters.Any(f => f.Includes(fullPath, repository.IgnoreCase))
-                    && !filters.Any(f => f.Excludes(fullPath, repository.IgnoreCase));
-
-                if (isRelevant)
+                foreach (var child in parent.Children)
                 {
-                    return true;
+                    // Determine whether the change was relevant.
+                    var fullPath = Path.Combine(relativePath, child.Key);
+
+                    bool isRelevant =
+                        filters.Any(f => f.Includes(fullPath, repository.IgnoreCase))
+                        && !filters.Any(f => f.Excludes(fullPath, repository.IgnoreCase));
+
+                    if (isRelevant)
+                    {
+                        return true;
+                    }
                 }
             }
 
