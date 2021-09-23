@@ -64,7 +64,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
             set => throw new NotImplementedException();
         }
 
-#if NETSTANDARD
+#if NETSTANDARD2_0
         /// <summary>
         /// Reads a sequence of bytes from the current <see cref="GitPackDeltafiedStream"/> and advances the position
         /// within the stream by the number of bytes read.

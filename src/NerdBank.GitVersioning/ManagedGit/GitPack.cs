@@ -39,7 +39,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
 
         // A histogram which tracks the objects which have been retrieved from this GitPack. The key is the offset
         // of the object. Used to get some insights in usage patterns.
-#if DEBUG && !NETSTANDARD
+#if DEBUG
         private readonly Dictionary<long, int> histogram = new Dictionary<long, int>();
 #endif
 
@@ -172,7 +172,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// </returns>
         public Stream GetObject(long offset, string objectType)
         {
-#if DEBUG && !NETSTANDARD
+#if DEBUG
             if (!this.histogram.TryAdd(offset, 1))
             {
                 this.histogram[offset] += 1;
@@ -230,7 +230,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
         {
             builder.AppendLine($"Git Pack:");
 
-#if DEBUG && !NETSTANDARD
+#if DEBUG
             int histogramCount = 25;
             builder.AppendLine($"Top {histogramCount} / {this.histogram.Count} items:");
 

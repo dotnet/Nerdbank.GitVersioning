@@ -37,7 +37,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
             return this.Read(buffer.AsSpan(offset, count));
         }
 
-#if NETSTANDARD
+#if NETSTANDARD2_0
         public int Read(Span<byte> buffer)
 #else
         /// <inheritdoc/>

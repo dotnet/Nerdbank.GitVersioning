@@ -28,7 +28,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
 
         private readonly List<GitRepository> alternates = new List<GitRepository>();
 
-#if DEBUG && !NETSTANDARD
+#if DEBUG
         private Dictionary<GitObjectId, int> histogram = new Dictionary<GitObjectId, int>();
 #endif
 
@@ -524,7 +524,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
         /// </returns>
         public bool TryGetObjectBySha(GitObjectId sha, string objectType, out Stream? value)
         {
-#if DEBUG && !NETSTANDARD
+#if DEBUG
             if (!this.histogram.TryAdd(sha, 1))
             {
                 this.histogram[sha] += 1;
@@ -566,7 +566,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
         {
             StringBuilder builder = new StringBuilder();
 
-#if DEBUG && !NETSTANDARD
+#if DEBUG
             int histogramCount = 25;
 
             builder.AppendLine("Overall repository:");
@@ -659,7 +659,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
 
         private static string TrimEndingDirectorySeparator(string path)
         {
-#if NETSTANDARD
+#if NETSTANDARD2_0
             if (string.IsNullOrEmpty(path) || path.Length == 1)
             {
                 return path;
@@ -690,7 +690,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
             Requires.Argument(data.Length == hexString.Length / 2, nameof(data), "Length must be exactly half that of " + nameof(hexString) + ".");
             for (int index = 0; index < data.Length; index++)
             {
-#if NETCOREAPP3_1_OR_GREATER
+#if !NETSTANDARD2_0
                 ReadOnlySpan<char> byteValue = hexString.AsSpan(index * 2, 2);
                 if (!byte.TryParse(byteValue, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out data[index]))
                 {

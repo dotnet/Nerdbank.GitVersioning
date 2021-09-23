@@ -37,7 +37,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
             throw new NotSupportedException();
         }
 
-#if NETSTANDARD
+#if NETSTANDARD2_0
         public int Read(Span<byte> buffer)
 #else
         /// <inheritdoc/>
