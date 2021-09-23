@@ -1049,12 +1049,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         }
 
         string expectedBuildMetadataWithoutCommitId = additionalBuildMetadata.Any() ? $"+{string.Join(".", additionalBuildMetadata)}" : string.Empty;
-
-        var optionalFourthComponent = versionOptions.VersionHeightPosition switch
-        {
-            SemanticVersion.Position.Revision => $".{idAsVersion.Revision}",
-            _ => ""
-        };
+        string optionalFourthComponent = versionOptions.VersionHeightPosition == SemanticVersion.Position.Revision ? $".{idAsVersion.Revision}" : string.Empty;
 
         Assert.Equal($"{version}", buildResult.AssemblyFileVersion);
         Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{optionalFourthComponent}{versionOptions.Version.Prerelease}{expectedBuildMetadata}", buildResult.AssemblyInformationalVersion);

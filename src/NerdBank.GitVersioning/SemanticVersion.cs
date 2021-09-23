@@ -129,7 +129,7 @@
         /// <summary>
         /// Gets the position in a computed version that the version height should appear.
         /// </summary>
-        internal SemanticVersion.Position? VersionHeightPosition
+        public SemanticVersion.Position? VersionHeightPosition
         {
             get
             {
