@@ -107,6 +107,7 @@ namespace Nerdbank.GitVersioning
                 var gitCommitIdShortFixedLength = this.VersionOptions?.GitCommitIdShortFixedLength ?? VersionOptions.DefaultGitCommitIdShortFixedLength;
                 var gitCommitIdShortAutoMinimum = this.VersionOptions?.GitCommitIdShortAutoMinimum ?? 0;
 
+                // Get it from the git repository if there is a repository present and it is enabled.
                 this.GitCommitIdShort = this.GitCommitId is object && gitCommitIdShortAutoMinimum > 0
                     ? this.context.GetShortUniqueCommitId(gitCommitIdShortAutoMinimum)
                     : this.GitCommitId!.Substring(0, gitCommitIdShortFixedLength);
