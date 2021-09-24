@@ -20,16 +20,18 @@ namespace Nerdbank.GitVersioning.Managed
         /// <summary>
         /// Gets the number of commits in the longest single path between
         /// the specified commit and the most distant ancestor (inclusive)
-        /// that set the version to the value at <paramref name="context"/>.
+        /// that set the version to the value at <paramref name="context"/>,
+        /// and the nearest commit that is part of that path, taking into
+        /// account path filters.
         /// </summary>
         /// <param name="context">The git context for which to calculate the height.</param>
         /// <param name="baseVersion">Optional base version to calculate the height. If not specified, the base version will be calculated by scanning the repository.</param>
-        /// <returns>The height of the commit. Always a positive integer.</returns>
-        internal static int GetVersionHeight(ManagedGitContext context, Version? baseVersion = null)
+        /// <returns>The height of the commit (always a positive integer), and a <see cref="GitContext"/> representing the nearest relevant commit, or <see langword="null"/> if there is no relevant commit.</returns>
+        internal static (int height, GitCommit? nearestRelevantCommit) GetVersionHeight(ManagedGitContext context, Version? baseVersion = null)
         {
             if (context.Commit is null)
             {
-                return 0;
+                return (0, null);
             }
 
             var tracker = new GitWalkTracker(context);
@@ -37,21 +39,21 @@ namespace Nerdbank.GitVersioning.Managed
             var versionOptions = tracker.GetVersion(context.Commit.Value);
             if (versionOptions is null)
             {
-                return 0;
+                return (0, null);
             }
 
             var baseSemVer =
                 baseVersion is not null ? SemanticVersion.Parse(baseVersion.ToString()) :
                 versionOptions.Version ?? SemVer0;
 
+            // TODO: What if versionHeightPosition is not set, but we still want to know the nearest relevant commit id?
             var versionHeightPosition = versionOptions.VersionHeightPosition;
             if (versionHeightPosition.HasValue)
             {
-                int height = GetHeight(context, c => CommitMatchesVersion(c, baseSemVer, versionHeightPosition.Value, tracker));
-                return height;
+                return GetHeight(context, c => CommitMatchesVersion(c, baseSemVer, versionHeightPosition.Value, tracker));                
             }
 
-            return 0;
+            return (0, null);
         }
 
         /// <summary>
@@ -94,11 +96,11 @@ namespace Nerdbank.GitVersioning.Managed
         /// May be null to count the height to the original commit.
         /// </param>
         /// <returns>The height of the commit. Always a positive integer.</returns>
-        public static int GetHeight(ManagedGitContext context, Func<GitCommit, bool>? continueStepping = null)
+        public static (int height, GitCommit? nearestRelevantCommit) GetHeight(ManagedGitContext context, Func<GitCommit, bool>? continueStepping = null)
         {
             Verify.Operation(context.Commit.HasValue, "No commit is selected.");
             var tracker = new GitWalkTracker(context);
-            return GetCommitHeight(context.Repository, context.Commit.Value, tracker, continueStepping);
+            return (GetCommitHeight(context.Repository, context.Commit.Value, tracker, continueStepping), tracker.NearestCommit);
         }
 
         /// <summary>
@@ -316,6 +318,10 @@ namespace Nerdbank.GitVersioning.Managed
             private readonly Dictionary<GitObjectId, int> heights = new Dictionary<GitObjectId, int>();
             private readonly ManagedGitContext context;
 
+            private int nearestCommitHeight = -1;
+
+            internal GitCommit? NearestCommit { get; private set; }
+
             internal GitWalkTracker(ManagedGitContext context)
             {
                 this.context = context;
@@ -323,7 +329,16 @@ namespace Nerdbank.GitVersioning.Managed
 
             internal bool TryGetVersionHeight(GitCommit commit, out int height) => this.heights.TryGetValue(commit.Sha, out height);
 
-            internal void RecordHeight(GitCommit commit, int height) => this.heights.Add(commit.Sha, height);
+            internal void RecordHeight(GitCommit commit, int height)
+            {
+                if ( height > this.nearestCommitHeight)
+                {
+                    this.NearestCommit = commit;
+                    this.nearestCommitHeight = height;
+                }
+
+                this.heights.Add(commit.Sha, height);
+            }
 
             internal VersionOptions? GetVersion(GitCommit commit)
             {

@@ -176,7 +176,7 @@ namespace Nerdbank.GitVersioning
         /// <returns>A string that is at least <paramref name="minLength"/> in length but may be more as required to uniquely identify the git object identified by <see cref="GitCommitId"/>.</returns>
         public abstract string GetShortUniqueCommitId(int minLength);
 
-        internal abstract int CalculateVersionHeight(VersionOptions? committedVersion, VersionOptions? workingVersion);
+        internal abstract (int height, string? nearestRelevantCommit) CalculateVersionHeightAndNearestRelevantCommit(VersionOptions? committedVersion, VersionOptions? workingVersion);
 
         internal abstract Version GetIdAsVersion(VersionOptions? committedVersion, VersionOptions? workingVersion, int versionHeight);
 

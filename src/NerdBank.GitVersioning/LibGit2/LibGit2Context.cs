@@ -82,8 +82,11 @@ namespace Nerdbank.GitVersioning.LibGit2
         /// <inheritdoc/>
         public override string GetShortUniqueCommitId(int minLength) => this.Repository.ObjectDatabase.ShortenObjectId(this.Commit, minLength);
 
-        internal override int CalculateVersionHeight(VersionOptions? committedVersion, VersionOptions? workingVersion)
+        internal override (int height, string? nearestRelevantCommit) CalculateVersionHeightAndNearestRelevantCommit(VersionOptions? committedVersion, VersionOptions? workingVersion)
         {
+            throw new NotImplementedException("nearestRelevantCommit for libgit2");
+
+#if false
             var headCommitVersion = committedVersion?.Version ?? SemVer0;
 
             if (IsVersionFileChangedInWorkingTree(committedVersion, workingVersion))
@@ -99,6 +102,7 @@ namespace Nerdbank.GitVersioning.LibGit2
             }
 
             return LibGit2GitExtensions.GetVersionHeight(this);
+#endif
         }
 
         internal override System.Version GetIdAsVersion(VersionOptions? committedVersion, VersionOptions? workingVersion, int versionHeight)
