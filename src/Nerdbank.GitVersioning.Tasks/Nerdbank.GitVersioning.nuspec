@@ -40,14 +40,13 @@ IMPORTANT: The 3.x release may produce a different version height than prior maj
     <file src="$LibGit2SharpNativeBinaries$runtimes\win-x86\native\git2-6777db8.dll" target="build\MSBuildFull\lib\win32\x86\git2-6777db8.dll" />
 
     <file src="$LibGit2SharpNativeBinaries$libgit2\LibGit2Sharp.dll.config" target="build\MSBuildCore\LibGit2Sharp.dll.config" />
-    <file src="$BaseOutputPath$netcoreapp2.1\LibGit2Sharp.dll" target="build\MSBuildCore\LibGit2Sharp.dll" />
-    <file src="$BaseOutputPath$netcoreapp2.1\Microsoft.DotNet.PlatformAbstractions.dll" target="build\MSBuildCore\Microsoft.DotNet.PlatformAbstractions.dll" />
-    <file src="$BaseOutputPath$netcoreapp2.1\NerdBank.GitVersioning.dll" target="build\MSBuildCore\NerdBank.GitVersioning.dll" />
-    <file src="$BaseOutputPath$netcoreapp2.1\Nerdbank.GitVersioning.Tasks.dll" target="build\MSBuildCore\Nerdbank.GitVersioning.Tasks.dll" />
-    <file src="$BaseOutputPath$netcoreapp2.1\Newtonsoft.Json.dll" target="build\MSBuildCore\Newtonsoft.Json.dll" />
-    <file src="$BaseOutputPath$netcoreapp2.1\System.Text.Json.dll" target="build\MSBuildCore\System.Text.Json.dll" />
-    <file src="$BaseOutputPath$netcoreapp2.1\Validation.dll" target="build\MSBuildCore\Validation.dll" />
-    <file src="$BaseOutputPath$netcoreapp2.1\System.Runtime.CompilerServices.Unsafe.dll" target="build\MSBuildCore\System.Runtime.CompilerServices.Unsafe.dll" />
+    <file src="$BaseOutputPath$netcoreapp3.1\LibGit2Sharp.dll" target="build\MSBuildCore\LibGit2Sharp.dll" />
+    <file src="$BaseOutputPath$netcoreapp3.1\Microsoft.DotNet.PlatformAbstractions.dll" target="build\MSBuildCore\Microsoft.DotNet.PlatformAbstractions.dll" />
+    <file src="$BaseOutputPath$netcoreapp3.1\NerdBank.GitVersioning.dll" target="build\MSBuildCore\NerdBank.GitVersioning.dll" />
+    <file src="$BaseOutputPath$netcoreapp3.1\Nerdbank.GitVersioning.Tasks.dll" target="build\MSBuildCore\Nerdbank.GitVersioning.Tasks.dll" />
+    <file src="$BaseOutputPath$netcoreapp3.1\Newtonsoft.Json.dll" target="build\MSBuildCore\Newtonsoft.Json.dll" />
+    <file src="$BaseOutputPath$netcoreapp3.1\System.Text.Json.dll" target="build\MSBuildCore\System.Text.Json.dll" />
+    <file src="$BaseOutputPath$netcoreapp3.1\Validation.dll" target="build\MSBuildCore\Validation.dll" />
 
     <file src="build\Nerdbank.GitVersioning.targets" target="build\Nerdbank.GitVersioning$LKGSuffix$.targets" />
     <file src="build\Nerdbank.GitVersioning.Common.targets" target="build\Nerdbank.GitVersioning.Common.targets" />
