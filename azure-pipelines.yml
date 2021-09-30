@@ -56,10 +56,10 @@ stages:
       displayName: Configure git commit author for testing
 
     - task: UseDotNet@2
-      displayName: Install .NET Core 5.0.202 SDK
+      displayName: Install .NET Core 5.0.401 SDK
       inputs:
         packageType: sdk
-        version: 5.0.202
+        version: 5.0.401
 
     - task: UseDotNet@2
       displayName: Install .NET Core 3.1 runtime
@@ -69,9 +69,9 @@ stages:
 
     - pwsh: |
         Invoke-WebRequest -Uri "https://dot.net/v1/dotnet-install.ps1" -OutFile dotnet-install.ps1
-        & .\dotnet-install.ps1 -Architecture x86 -Version 5.0.202 -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose
+        & .\dotnet-install.ps1 -Architecture x86 -Version 5.0.401 -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose
         & .\dotnet-install.ps1 -Architecture x86 -Channel 3.1 -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose
-      displayName: Install 32-bit .NET Core SDK 5.0.202, 3.1
+      displayName: Install 32-bit .NET Core SDK 5.0.401, 3.1
       condition: ne(variables['dotnet32'], '')
 
     - script: dotnet --info
@@ -329,10 +329,10 @@ stages:
         packageType: runtime
         version: 3.1.x
     - task: UseDotNet@2
-      displayName: Install .NET Core 5.0.202 SDK
+      displayName: Install .NET Core 5.0.401 SDK
       inputs:
         packageType: sdk
-        version: 5.0.202
+        version: 5.0.401
     - script: dotnet --info
       displayName: Show dotnet SDK info
     - bash: |
