@@ -122,6 +122,8 @@ namespace Nerdbank.GitVersioning
         /// <returns></returns>
         public static GitContext Create(string path, string? committish = null, bool writable = false)
         {
+            Requires.NotNull(path, nameof(path));
+
             if (TryFindGitPaths(path, out string? gitDirectory, out string? workingTreeDirectory, out string? workingTreeRelativePath))
             {
                 GitContext result = writable
