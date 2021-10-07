@@ -414,7 +414,7 @@
             {
                 var changedFiles = status.OfType<StatusEntry>().ToList();
                 var changesFilesFormatted = string.Join(Environment.NewLine, changedFiles.Select(t => $"- {t.FilePath} changed with {nameof(FileStatus)} {t.State}"));
-                this.stderr.WriteLine($"Uncommitted changes {changedFiles.Count} in directory '{projectDirectory}':");
+                this.stderr.WriteLine($"Uncommitted changes ({changedFiles.Count}) in directory '{projectDirectory}':");
                 this.stderr.WriteLine(changesFilesFormatted);
                 throw new ReleasePreparationException(ReleasePreparationError.UncommittedChanges);
             }
