@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using LibGit2Sharp;
     using Nerdbank.GitVersioning.LibGit2;
     using Newtonsoft.Json;
@@ -408,9 +409,13 @@
 
 
             // abort if there are any pending changes
-            if (libgit2context.Repository.RetrieveStatus().IsDirty)
+            var status = libgit2context.Repository.RetrieveStatus();
+            if (status.IsDirty)
             {
-                this.stderr.WriteLine($"Uncommitted changes in directory '{projectDirectory}'.");
+                var changedFiles = status.OfType<StatusEntry>().ToList();
+                var changesFilesFormatted = string.Join(Environment.NewLine, changedFiles.Select(t => $"- {t.FilePath} changed with {nameof(FileStatus)} {t.State}"));
+                this.stderr.WriteLine($"Uncommitted changes ({changedFiles.Count}) in directory '{projectDirectory}':");
+                this.stderr.WriteLine(changesFilesFormatted);
                 throw new ReleasePreparationException(ReleasePreparationError.UncommittedChanges);
             }
 
