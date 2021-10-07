@@ -1,0 +1,15 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <!-- Cache modes include:
+         MSBuildTargetCaching
+            This is the default.
+            Versions will be computed by an MSBuild target which can be shared across an entire build session via MSBuild target output caching.
+         None
+            Every project will compute its own version.
+
+         Note that the choice in caching should have no bearing on the result of the versions computed - only on build perf and which systems it can work with.
+    -->
+    <NBGV_CacheMode Condition=" '$(NBGV_CacheMode)' == '' and '$(QBuild)' == '1' ">None</NBGV_CacheMode>
+    <NBGV_CacheMode Condition=" '$(NBGV_CacheMode)' == '' ">MSBuildTargetCaching</NBGV_CacheMode>
+  </PropertyGroup>
+</Project>

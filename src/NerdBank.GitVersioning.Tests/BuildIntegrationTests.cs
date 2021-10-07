@@ -39,6 +39,25 @@ public class BuildIntegrationManagedTests : BuildIntegrationTests
         => globalProperties["NBGV_GitEngine"] = "Managed";
 }
 
+[Trait("Engine", "Managed")]
+[Collection("Build")] // msbuild sets current directory in the process, so we can't have it be concurrent with other build tests.
+public class BuildIntegrationInProjectManagedTests : BuildIntegrationTests
+{
+    public BuildIntegrationInProjectManagedTests(ITestOutputHelper logger)
+        : base(logger)
+    {
+    }
+
+    protected override GitContext CreateGitContext(string path, string committish = null)
+        => GitContext.Create(path, committish, writable: false);
+
+    protected override void ApplyGlobalProperties(IDictionary<string, string> globalProperties)
+    {
+        globalProperties["NBGV_GitEngine"] = "Managed";
+        globalProperties["NBGV_CacheMode"] = "None";
+    }
+}
+
 [Trait("Engine", "LibGit2")]
 [Collection("Build")] // msbuild sets current directory in the process, so we can't have it be concurrent with other build tests.
 public class BuildIntegrationLibGit2Tests : BuildIntegrationTests
@@ -57,6 +76,7 @@ public class BuildIntegrationLibGit2Tests : BuildIntegrationTests
 
 public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
 {
+    private const string GitVersioningPropsFileName = "NerdBank.GitVersioning.props";
     private const string GitVersioningTargetsFileName = "NerdBank.GitVersioning.targets";
     private const string UnitTestCloudBuildPrefix = "UnitTest: ";
     private static readonly string[] ToxicEnvironmentVariablePrefixes = new string[]
@@ -1175,6 +1195,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         {
             var pre = ProjectRootElement.Create(reader, this.projectCollection);
             pre.FullPath = Path.Combine(projectDirectory, projectName);
+            pre.InsertAfterChild(pre.CreateImportElement(Path.Combine(this.RepoPath, GitVersioningPropsFileName)), null);
             pre.AddImport(Path.Combine(this.RepoPath, GitVersioningTargetsFileName));
             return pre;
         }
@@ -1186,6 +1207,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         {
             var pre = ProjectRootElement.Create(reader, this.projectCollection);
             pre.FullPath = Path.Combine(projectDirectory, projectName);
+            pre.InsertAfterChild(pre.CreateImportElement(Path.Combine(this.RepoPath, GitVersioningPropsFileName)), null);
             pre.AddImport(Path.Combine(this.RepoPath, GitVersioningTargetsFileName));
             return pre;
         }

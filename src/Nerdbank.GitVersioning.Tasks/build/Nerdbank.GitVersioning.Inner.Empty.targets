@@ -1,0 +1,9 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!-- These targets are called by MSBuild static graph because we declare a ProjectReference item to this file. -->
+  <Target Name="GetTargetFrameworks" />
+  <Target Name="GetNativeManifest" />
+  <Target Name="GetCopyToOutputDirectoryItems" />
+  <Target Name="GetTargetFrameworksWithPlatformForSingleTargetFramework" />
+
+</Project>
