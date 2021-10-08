@@ -1,4 +1,7 @@
-﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <Import Project="Nerdbank.GitVersioning.Inner.targets" />
 
   <!-- These targets are called by MSBuild static graph because we declare a ProjectReference item to this file. -->
   <Target Name="GetTargetFrameworks" />

@@ -43,6 +43,4 @@
     <Message Importance="low" Text="NuGetPackageVersion: $(NuGetPackageVersion)" />
   </Target>
 
-  <Import Project="Nerdbank.GitVersioning.Inner.Empty.targets" Condition=" '$(NBGV_CacheMode)' == 'MSBuildTargetCaching' " />
-
 </Project>

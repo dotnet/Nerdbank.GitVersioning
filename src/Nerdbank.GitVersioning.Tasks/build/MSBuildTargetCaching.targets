@@ -6,22 +6,30 @@
     <NBGV_InnerGlobalProperties Condition=" '$(ProjectPathRelativeToGitRepoRoot)' != '' ">$(NBGV_InnerGlobalProperties)ProjectPathRelativeToGitRepoRoot=$(ProjectPathRelativeToGitRepoRoot);</NBGV_InnerGlobalProperties>
     <NBGV_InnerGlobalProperties Condition=" '$(GitVersionBaseDirectory)' != '' ">$(NBGV_InnerGlobalProperties)GitVersionBaseDirectory=$(GitVersionBaseDirectory);</NBGV_InnerGlobalProperties>
     <NBGV_InnerGlobalProperties Condition=" '$(OverrideBuildNumberOffset)' != '' ">$(NBGV_InnerGlobalProperties)OverrideBuildNumberOffset=$(OverrideBuildNumberOffset);</NBGV_InnerGlobalProperties>
-    <NBGV_InnerGlobalProperties Condition=" '$(NBGV_CacheMode)' != '' ">$(NBGV_InnerGlobalProperties)NBGV_CacheMode=$(NBGV_CacheMode);</NBGV_InnerGlobalProperties>
   </PropertyGroup>
 
   <!-- Compile a list of global properties that may vary when a project builds but that would never influence the result of the GetBuildVersion task. -->
   <ItemGroup>
     <NBGV_GlobalPropertiesToRemove Include="TargetFramework" />
     <NBGV_GlobalPropertiesToRemove Include="RuntimeIdentifier" />
-    <NBGV_GlobalPropertiesToRemove Include="Configuration" />
-    <NBGV_GlobalPropertiesToRemove Include="Platform" />
 
     <_BuildMetadataSnapped Include="@(BuildMetadata)" />
   </ItemGroup>
 
+  <!-- We generally prefer to clear config|platform properties because they do not impact the version.
+       But quickbuild doesn't like a p2p that removes these, so set them to defensible constant values in that situation. -->
+  <PropertyGroup Condition=" '$(QBuild)' == '1' ">
+    <NBGV_InnerGlobalProperties>$(NBGV_InnerGlobalProperties)Configuration=Release;</NBGV_InnerGlobalProperties>
+    <NBGV_InnerGlobalProperties>$(NBGV_InnerGlobalProperties)Platform=AnyCPU;</NBGV_InnerGlobalProperties>
+  </PropertyGroup>
+  <ItemGroup Condition=" '$(QBuild)' != '1' ">
+    <NBGV_GlobalPropertiesToRemove Include="Configuration" />
+    <NBGV_GlobalPropertiesToRemove Include="Platform" />
+  </ItemGroup>
+
   <ItemGroup>
     <!-- Declare a P2P so that "msbuild -graph -isolate" doesn't complain when we use the MSBuild task to invoke our inner shared project. -->
-    <ProjectReference Include="$(MSBuildThisFileDirectory)Nerdbank.GitVersioning.Inner.targets">
+    <ProjectReference Include="$(NBGV_CachingProjectReference)">
       <Targets>GetBuildVersion_Properties;GetBuildVersion_CloudBuildVersionVars</Targets>
       <Properties>$(NBGV_InnerGlobalProperties)BuildMetadata=@(BuildMetadata, ',');</Properties>
       <GlobalPropertiesToRemove>@(NBGV_GlobalPropertiesToRemove)</GlobalPropertiesToRemove>
@@ -32,6 +40,7 @@
       <SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
       <Visible>false</Visible>
       <NBGV_InnerProject>true</NBGV_InnerProject>
+      <PrivateAssets>all</PrivateAssets>
     </ProjectReference>
   </ItemGroup>
 
