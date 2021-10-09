@@ -1,11 +1,12 @@
-﻿namespace Nerdbank.GitVersioning.Tasks
+﻿#nullable enable
+
+namespace Nerdbank.GitVersioning.Tasks
 {
     using System;
     using System.Collections.Generic;
     using System.Globalization;
     using System.IO;
     using System.Linq;
-    using System.Reflection;
     using Microsoft.Build.Framework;
     using Microsoft.Build.Utilities;
     using MSBuildExtensionTask;
@@ -13,6 +14,8 @@
 
     public class GetBuildVersion : ContextAwareTask
     {
+        private const string VersionCacheFileName = "nbgv_versioncache.json";
+
         /// <summary>
         /// Initializes a new instance of the <see cref="GetBuildVersion"/> class.
         /// </summary>
@@ -23,19 +26,35 @@
         /// <summary>
         /// Gets or sets identifiers to append as build metadata.
         /// </summary>
-        public string BuildMetadata { get; set; }
+        public string? BuildMetadata { get; set; }
 
         /// <summary>
         /// Gets or sets the value of the PublicRelease property in MSBuild at the
         /// start of this Task.
         /// </summary>
         /// <value>Expected to be "true", "false", or empty.</value>
-        public string DefaultPublicRelease { get; set; }
+        public string? DefaultPublicRelease { get; set; }
+
+        /// <summary>
+        /// Gets or sets the path to the project's intermediate outputs.
+        /// </summary>
+        public string? IntermediateOutputPath { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether cached version info should be preferred over live data.
+        /// </summary>
+        /// <remarks>
+        /// The cached info, if available, is <em>not</em> validated to still be current (e.g. by comparing HEAD)
+        /// not because doing so would be expensive, but because quickbuild specifically caches project outputs
+        /// such that they can be referenced by other projects at another time, in another HEAD.
+        /// The mandate at that point is that the same version is computed that was computed when that project actually built.
+        /// </remarks>
+        public bool PreferCachedInfoOverCurrentData { get; set; }
 
         /// <summary>
         /// Gets or sets the path to the repo root. If null or empty, behavior defaults to using <see cref="ProjectDirectory"/> and searching upwards.
         /// </summary>
-        public string GitRepoRoot { get; set; }
+        public string? GitRepoRoot { get; set; }
 
         /// <summary>
         /// Gets or sets the relative path from the <see cref="GitRepoRoot"/> to the directory under it that contains the project being built.
@@ -49,12 +68,12 @@
         /// This property is useful when the project that MSBuild is building is not found under <see cref="GitRepoRoot"/> such that the
         /// relative path can be calculated automatically.
         /// </remarks>
-        public string ProjectPathRelativeToGitRepoRoot { get; set; }
+        public string? ProjectPathRelativeToGitRepoRoot { get; set; }
 
         /// <summary>
         /// Gets or sets the path to the project directory.
         /// </summary>
-        public string ProjectDirectory { get; set; }
+        public string? ProjectDirectory { get; set; }
 
         /// <summary>
         /// Gets or sets the optional override build number offset.
@@ -64,7 +83,7 @@
         /// <summary>
         /// Gets or sets the git engine to use.
         /// </summary>
-        public string GitEngine { get; set; }
+        public string? GitEngine { get; set; }
 
         /// <summary>
         /// Gets or sets the path to the folder that contains the NB.GV .targets file.
@@ -74,13 +93,13 @@
         /// is not allowed before .NETStandard 2.0.
         /// </remarks>
         [Required]
-        public string TargetsPath { get; set; }
+        public string TargetsPath { get; set; } = null!;
 
         /// <summary>
         /// Gets or sets the list of properties to be set in MSBuild.
         /// </summary>
         [Output]
-        public ITaskItem[] OutputProperties { get; set; }
+        public ITaskItem[]? OutputProperties { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the project is building
@@ -93,37 +112,37 @@
         /// Gets or sets the ref (branch or tag) being built.
         /// </summary>
         [Output]
-        public string BuildingRef { get; set; }
+        public string? BuildingRef { get; set; }
 
         /// <summary>
         /// Gets the version string to use in the compiled assemblies.
         /// </summary>
         [Output]
-        public string Version { get; private set; }
+        public string? Version { get; private set; }
 
         /// <summary>
         /// Gets the version string to use for the <see cref="System.Reflection.AssemblyVersionAttribute"/>.
         /// </summary>
         [Output]
-        public string AssemblyVersion { get; private set; }
+        public string? AssemblyVersion { get; private set; }
 
         /// <summary>
         /// Gets the version string to use for the <see cref="System.Reflection.AssemblyFileVersionAttribute"/>.
         /// </summary>
         [Output]
-        public string AssemblyFileVersion { get; private set; }
+        public string? AssemblyFileVersion { get; private set; }
 
         /// <summary>
         /// Gets the version string to use for the <see cref="System.Reflection.AssemblyInformationalVersionAttribute"/>.
         /// </summary>
         [Output]
-        public string AssemblyInformationalVersion { get; private set; }
+        public string? AssemblyInformationalVersion { get; private set; }
 
         /// <summary>
         /// Gets the version string to use in the official release name (lacks revision number).
         /// </summary>
         [Output]
-        public string SimpleVersion { get; private set; }
+        public string? SimpleVersion { get; private set; }
 
         /// <summary>
         /// Gets or sets the major.minor version string.
@@ -132,7 +151,7 @@
         /// The x.y string (no build number or revision number).
         /// </value>
         [Output]
-        public string MajorMinorVersion { get; set; }
+        public string? MajorMinorVersion { get; set; }
 
         /// <summary>
         /// Gets or sets the prerelease version, or empty if this is a final release.
@@ -141,26 +160,26 @@
         /// The prerelease version.
         /// </value>
         [Output]
-        public string PrereleaseVersion { get; set; }
+        public string? PrereleaseVersion { get; set; }
 
         /// <summary>
         /// Gets the Git revision control commit id for HEAD (the current source code version).
         /// </summary>
         [Output]
-        public string GitCommitId { get; private set; }
+        public string? GitCommitId { get; private set; }
 
         /// <summary>
         /// Gets the first several characters of the Git revision control commit id for HEAD (the current source code version).
         /// </summary>
         [Output]
-        public string GitCommitIdShort { get; private set; }
+        public string? GitCommitIdShort { get; private set; }
 
         /// <summary>
         /// Gets the Git revision control commit date for HEAD (the current source code version), expressed as the number of 100-nanosecond
         /// intervals that have elapsed since January 1, 0001 at 00:00:00.000 in the Gregorian calendar.
         /// </summary>
         [Output]
-        public string GitCommitDateTicks { get; private set; }
+        public string? GitCommitDateTicks { get; private set; }
 
         /// <summary>
         /// Gets the number of commits in the longest single path between
@@ -174,16 +193,16 @@
         /// Gets the +buildMetadata fragment for the semantic version.
         /// </summary>
         [Output]
-        public string BuildMetadataFragment { get; private set; }
+        public string? BuildMetadataFragment { get; private set; }
 
         [Output]
-        public string NuGetPackageVersion { get; private set; }
+        public string? NuGetPackageVersion { get; private set; }
 
         [Output]
-        public string ChocolateyPackageVersion { get; private set; }
+        public string? ChocolateyPackageVersion { get; private set; }
 
         [Output]
-        public string NpmPackageVersion { get; private set; }
+        public string? NpmPackageVersion { get; private set; }
 
         /// <summary>
         /// Gets the build number (git height) for this version.
@@ -195,18 +214,18 @@
         /// Gets the BuildNumber to set the cloud build to (if applicable).
         /// </summary>
         [Output]
-        public string CloudBuildNumber { get; private set; }
+        public string? CloudBuildNumber { get; private set; }
 
         [Output]
-        public ITaskItem[] CloudBuildVersionVars { get; private set; }
+        public ITaskItem[]? CloudBuildVersionVars { get; private set; }
 
-        protected override string UnmanagedDllDirectory => LibGit2.LibGit2GitExtensions.FindLibGit2NativeBinaries(this.TargetsPath);
+        protected override string? UnmanagedDllDirectory => LibGit2.LibGit2GitExtensions.FindLibGit2NativeBinaries(this.TargetsPath);
 
         protected override bool ExecuteInner()
         {
             try
             {
-                if (!string.IsNullOrEmpty(this.ProjectPathRelativeToGitRepoRoot))
+                if (this.ProjectPathRelativeToGitRepoRoot?.Length > 0)
                 {
                     Requires.Argument(!Path.IsPathRooted(this.ProjectPathRelativeToGitRepoRoot), nameof(this.ProjectPathRelativeToGitRepoRoot), "Path must be relative.");
                     Requires.Argument(!(
@@ -227,14 +246,35 @@
 
                 var cloudBuild = CloudBuild.Active;
                 var overrideBuildNumberOffset = (this.OverrideBuildNumberOffset == int.MaxValue) ? (int?)null : this.OverrideBuildNumberOffset;
-                string projectDirectory = this.ProjectPathRelativeToGitRepoRoot is object && this.GitRepoRoot is object
+                string? projectDirectory = this.ProjectPathRelativeToGitRepoRoot is object && this.GitRepoRoot is object
                     ? Path.Combine(this.GitRepoRoot, this.ProjectPathRelativeToGitRepoRoot)
-                    : this.ProjectDirectory;
+                    : (this.ProjectDirectory ?? throw new InvalidOperationException("Unable to determine project directory."));
                 using var context = GitContext.Create(projectDirectory, writable: useLibGit2);
-                var oracle = new VersionOracle(context, cloudBuild, overrideBuildNumberOffset);
+
+                string? versionCachePath = string.IsNullOrEmpty(this.IntermediateOutputPath) ? null : Path.Combine(this.IntermediateOutputPath, VersionCacheFileName);
+                VersionOracle? deserializedOracle = versionCachePath is object && File.Exists(versionCachePath) && this.PreferCachedInfoOverCurrentData
+                    ? VersionOracle.Deserialize(versionCachePath, context.RepoRelativeProjectDirectory) : null;
+
+                VersionOracle oracle;
+                if (deserializedOracle is object)
+                {
+                    this.Log.LogMessage(MessageImportance.Normal, "Using cached version information from: {0}", versionCachePath);
+                    oracle = deserializedOracle;
+                }
+                else
+                {
+                    oracle = new VersionOracle(context, cloudBuild, overrideBuildNumberOffset);
+                }
+
                 if (!string.IsNullOrEmpty(this.DefaultPublicRelease))
                 {
                     oracle.PublicRelease = string.Equals(this.DefaultPublicRelease, "true", StringComparison.OrdinalIgnoreCase);
+                }
+
+                if (versionCachePath is object && this.PreferCachedInfoOverCurrentData && deserializedOracle is null)
+                {
+                    this.Log.LogMessage(MessageImportance.Normal, "Caching version information to: {0}", versionCachePath);
+                    oracle.Serialize(versionCachePath);
                 }
 
                 if (this.BuildMetadata is not null)
@@ -267,7 +307,7 @@
                 this.ChocolateyPackageVersion = oracle.ChocolateyPackageVersion;
                 this.NpmPackageVersion = oracle.NpmPackageVersion;
 
-                IEnumerable<ITaskItem> cloudBuildVersionVars = null;
+                IEnumerable<ITaskItem>? cloudBuildVersionVars = null;
                 if (oracle.CloudBuildVersionVarsEnabled)
                 {
                     cloudBuildVersionVars = oracle.CloudBuildVersionVars
@@ -359,17 +399,17 @@
 
         private struct PropertySet
         {
-            public PropertySet(string value)
+            public PropertySet(string? value)
             {
                 this.Value = value;
                 this.HonorPresetValue = false;
             }
 
-            public string Value { get; set; }
+            public string? Value { get; set; }
 
             public bool HonorPresetValue { get; set; }
 
-            public static implicit operator PropertySet(string value) => new PropertySet(value);
+            public static implicit operator PropertySet(string? value) => new PropertySet(value);
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using LibGit2Sharp;
@@ -929,4 +930,65 @@ public abstract class VersionOracleTests : RepoTestBase
         this.GetVersionHeight();
     }
 
+    [Fact]
+    public void Serialization()
+    {
+        // test with path filters, and two serialization rounds.
+        this.WriteVersionFile(new VersionOptions { Version = SemanticVersion.Parse("1.2"), GitCommitIdShortAutoMinimum = 4 });
+        this.InitializeSourceControl();
+        this.AddCommits(1);
+        var oracle = new VersionOracle(this.Context);
+        this.SerializationRoundTrip(oracle);
+    }
+
+    private VersionOracle SerializationRoundTrip(VersionOracle oracle)
+    {
+        using StringWriter sw = new();
+        oracle.Serialize(sw);
+        string json1 = sw.ToString();
+        this.Logger.WriteLine(json1);
+
+        using StringReader sr = new(json1);
+        VersionOracle deserialized = VersionOracle.Deserialize(sr, this.Context.RepoRelativeProjectDirectory);
+
+        // Serialize again to make sure all information carries.
+        sw.GetStringBuilder().Clear();
+        deserialized.Serialize(sw);
+        string json2 = sw.ToString();
+
+        // Make sure the same data was preserved from the original vs. the deserialized copy.
+        Assert.Equal(json1, json2);
+
+        // Compare all meaningful properties.
+        AssertEqual(oracle.CloudBuildAllVars, deserialized.CloudBuildAllVars);
+
+        return deserialized;
+
+        void AssertEqual(IDictionary<string, string> expected, IDictionary<string, string> actual)
+        {
+            SortedSet<string> expectedKeys = new(expected.Keys);
+            SortedSet<string> actualKeys = new(actual.Keys);
+
+            var missingKeys = expectedKeys.Except(actualKeys);
+            var extraKeys = actualKeys.Except(expectedKeys);
+            if (missingKeys.Any() || extraKeys.Any())
+            {
+                this.Logger.WriteLine("Missing keys: {0}", string.Join(", ", missingKeys));
+                this.Logger.WriteLine("Extra keys: {0}", string.Join(", ", extraKeys));
+            }
+
+            Assert.False(missingKeys.Any() || extraKeys.Any());
+
+            foreach (KeyValuePair<string, string> expectedPair in expected)
+            {
+                string expectedValue = expectedPair.Value;
+                string actualValue = actual[expectedPair.Key];
+                if (expectedValue != actualValue)
+                {
+                    this.Logger.WriteLine($"Value for key {expectedPair.Key} was not as expected.");
+                    Assert.Equal(expectedValue, actualValue);
+                }
+            }
+        }
+    }
 }

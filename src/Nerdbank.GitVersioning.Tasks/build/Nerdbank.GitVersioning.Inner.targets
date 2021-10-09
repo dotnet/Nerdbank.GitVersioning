@@ -19,6 +19,8 @@
       BuildMetadata="$(BuildMetadata.Replace(',',';'))"
       DefaultPublicRelease="$(PublicRelease)"
       ProjectDirectory="$(GitVersionBaseDirectory)"
+      IntermediateOutputPath="$(IntermediateOutputPath)"
+      PreferCachedInfoOverCurrentData="$(NBGV_PreferCachedInfoOverCurrentData)"
       GitRepoRoot="$(GitRepoRoot)"
       ProjectPathRelativeToGitRepoRoot="$(ProjectPathRelativeToGitRepoRoot)"
       OverrideBuildNumberOffset="$(OverrideBuildNumberOffset)"

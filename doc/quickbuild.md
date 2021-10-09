@@ -4,8 +4,6 @@ Nerdbank.GitVersioning supports the Microsoft-internal quickbuild/cloudbuild too
 
 It works out of the box, but each project will recompute the version, which may accumulate to a significant increase in overall build time.
 
-🚧 A future version of Nerdbank.GitVersioning will cache version information as a file so that the following instructions will be effective. 🚧
-
 To calculate the version just once for an entire build, a few manual steps are required.
 
 1. Create this project in your repo. The suggested location is `VersionGeneration/VersionGeneration.msbuildproj`.
