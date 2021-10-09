@@ -1,0 +1,69 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <NBGV_InnerGlobalProperties Condition=" '$(GitRepoRoot)' != '' ">$(NBGV_InnerGlobalProperties)GitRepoRoot=$(GitRepoRoot);</NBGV_InnerGlobalProperties>
+    <NBGV_InnerGlobalProperties Condition=" '$(PublicRelease)' != '' ">$(NBGV_InnerGlobalProperties)PublicRelease=$(PublicRelease);</NBGV_InnerGlobalProperties>
+    <NBGV_InnerGlobalProperties Condition=" '$(_NBGV_BuildingRef)' != '' ">$(NBGV_InnerGlobalProperties)_NBGV_BuildingRef=$(_NBGV_BuildingRef);</NBGV_InnerGlobalProperties>
+    <NBGV_InnerGlobalProperties Condition=" '$(ProjectPathRelativeToGitRepoRoot)' != '' ">$(NBGV_InnerGlobalProperties)ProjectPathRelativeToGitRepoRoot=$(ProjectPathRelativeToGitRepoRoot);</NBGV_InnerGlobalProperties>
+    <NBGV_InnerGlobalProperties Condition=" '$(GitVersionBaseDirectory)' != '' ">$(NBGV_InnerGlobalProperties)GitVersionBaseDirectory=$(GitVersionBaseDirectory);</NBGV_InnerGlobalProperties>
+    <NBGV_InnerGlobalProperties Condition=" '$(OverrideBuildNumberOffset)' != '' ">$(NBGV_InnerGlobalProperties)OverrideBuildNumberOffset=$(OverrideBuildNumberOffset);</NBGV_InnerGlobalProperties>
+  </PropertyGroup>
+
+  <!-- Compile a list of global properties that may vary when a project builds but that would never influence the result of the GetBuildVersion task. -->
+  <ItemGroup>
+    <NBGV_GlobalPropertiesToRemove Include="TargetFramework" />
+    <NBGV_GlobalPropertiesToRemove Include="RuntimeIdentifier" />
+
+    <_BuildMetadataSnapped Include="@(BuildMetadata)" />
+  </ItemGroup>
+
+  <!-- We generally prefer to clear config|platform properties because they do not impact the version.
+       But quickbuild doesn't like a p2p that removes these, so set them to defensible constant values in that situation. -->
+  <PropertyGroup Condition=" '$(QBuild)' == '1' ">
+    <NBGV_InnerGlobalProperties>$(NBGV_InnerGlobalProperties)Configuration=Release;</NBGV_InnerGlobalProperties>
+    <NBGV_InnerGlobalProperties>$(NBGV_InnerGlobalProperties)Platform=AnyCPU;</NBGV_InnerGlobalProperties>
+  </PropertyGroup>
+  <ItemGroup Condition=" '$(QBuild)' != '1' ">
+    <NBGV_GlobalPropertiesToRemove Include="Configuration" />
+    <NBGV_GlobalPropertiesToRemove Include="Platform" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Declare a P2P so that "msbuild -graph -isolate" doesn't complain when we use the MSBuild task to invoke our inner shared project. -->
+    <ProjectReference Include="$(NBGV_CachingProjectReference)">
+      <Targets>GetBuildVersion_Properties;GetBuildVersion_CloudBuildVersionVars</Targets>
+      <Properties>$(NBGV_InnerGlobalProperties)BuildMetadata=@(BuildMetadata, ',');</Properties>
+      <GlobalPropertiesToRemove>@(NBGV_GlobalPropertiesToRemove)</GlobalPropertiesToRemove>
+
+      <!-- Do our very best to prevent Microsoft.Common.CurrentVersion.targets or IDEs from processing this P2P. It's only here for MSBuild's static graph. -->
+      <BuildReference>false</BuildReference>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
+      <Visible>false</Visible>
+      <NBGV_InnerProject>true</NBGV_InnerProject>
+      <PrivateAssets>all</PrivateAssets>
+    </ProjectReference>
+  </ItemGroup>
+
+  <Target Name="InvokeGetBuildVersionTask">
+    <Error Text="BuildMetadata items changed after a copy was made. Add all BuildMetadata items before importing this file." Condition=" '@(BuildMetadata)' != '@(_BuildMetadataSnapped)' " />
+
+    <!-- Calculate version by invoking another "project" with global properties that will serve as a key
+         into an msbuild cache to ensure we only invoke the GetBuildVersion task as many times as will produce a unique value. -->
+    <MSBuild Projects="@(ProjectReference)"
+             Condition=" '%(ProjectReference.NBGV_InnerProject)' == 'true' "
+             Properties="%(ProjectReference.Properties)"
+             RemoveProperties="%(ProjectReference.GlobalPropertiesToRemove)"
+             Targets="GetBuildVersion_Properties">
+      <Output TaskParameter="TargetOutputs" ItemName="NBGV_PropertyItems" />
+    </MSBuild>
+
+    <!-- Also get other items. -->
+    <MSBuild Projects="@(ProjectReference)"
+             Condition=" '%(ProjectReference.NBGV_InnerProject)' == 'true' "
+             Properties="%(ProjectReference.Properties)"
+             RemoveProperties="%(ProjectReference.GlobalPropertiesToRemove)"
+             Targets="GetBuildVersion_CloudBuildVersionVars">
+      <Output TaskParameter="TargetOutputs" ItemName="CloudBuildVersionVars" />
+    </MSBuild>
+  </Target>
+</Project>

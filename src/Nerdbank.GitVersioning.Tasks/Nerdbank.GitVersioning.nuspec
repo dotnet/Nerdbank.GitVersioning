@@ -48,9 +48,13 @@ IMPORTANT: The 3.x release may produce a different version height than prior maj
     <file src="$BaseOutputPath$netcoreapp3.1\System.Text.Json.dll" target="build\MSBuildCore\System.Text.Json.dll" />
     <file src="$BaseOutputPath$netcoreapp3.1\Validation.dll" target="build\MSBuildCore\Validation.dll" />
 
-    <file src="build\Nerdbank.GitVersioning.targets" target="build\Nerdbank.GitVersioning$LKGSuffix$.targets" />
+    <file src="build\InProjectVersionComputation.targets" target="build\InProjectVersionComputation.targets" />
+    <file src="build\MSBuildTargetCaching.targets" target="build\MSBuildTargetCaching.targets" />
     <file src="build\Nerdbank.GitVersioning.Common.targets" target="build\Nerdbank.GitVersioning.Common.targets" />
     <file src="build\Nerdbank.GitVersioning.Inner.targets" target="build\Nerdbank.GitVersioning.Inner.targets" />
+    <file src="build\Nerdbank.GitVersioning.props" target="build\Nerdbank.GitVersioning$LKGSuffix$.props" />
+    <file src="build\Nerdbank.GitVersioning.targets" target="build\Nerdbank.GitVersioning$LKGSuffix$.targets" />
+    <file src="build\PrivateP2PCaching.proj" target="build\PrivateP2PCaching.proj" />
     <file src="buildCrossTargeting\Nerdbank.GitVersioning.targets" target="buildCrossTargeting\Nerdbank.GitVersioning$LKGSuffix$.targets" />
     <file src="readme.txt" target="readme.txt" />
   </files>
