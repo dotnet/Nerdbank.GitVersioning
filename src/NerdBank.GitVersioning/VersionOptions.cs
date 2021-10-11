@@ -934,6 +934,7 @@ namespace Nerdbank.GitVersioning
             /// <summary>
             /// Gets or sets options around how and whether to set the build number preset by the cloud build with one enriched with version information.
             /// </summary>
+            [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
             public CloudBuildNumberOptions? BuildNumber
             {
                 get => this.buildNumber;
