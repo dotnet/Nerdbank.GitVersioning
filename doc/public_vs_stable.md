@@ -53,14 +53,14 @@ That's what Nerdbank.GitVersioning's "public release" flag is for. Let's dive in
 There are traces of linear history in your repo.
 Any commit in git can be formally shown to be either older or newer than any other commit belonging to the same branch, similar to any two versions in SemVer can.
 Within a single branch then, you have linear history.
-If you always ship from `master` for example, then `master` can act as your linear parallel to your semver-world of public releases.
-To capture this, you can tell Nerdbank.GitVersioning that you ship out of master in your version.json file:
+If you always ship from `main` for example, then `main` can act as your linear parallel to your semver-world of public releases.
+To capture this, you can tell Nerdbank.GitVersioning that you ship out of main in your version.json file:
 
 ```json
 {
   "version": "1.2",
   "publicReleaseRefSpec": [
-      "^refs/heads/master$"
+      "^refs/heads/main$"
   ]
 }
 ```
@@ -68,7 +68,7 @@ To capture this, you can tell Nerdbank.GitVersioning that you ship out of master
 But what exactly does this `publicReleaseRefSpec` property do?
 It tells Nerdbank.GitVersioning which branch(es) to assume belong to your publicly visible linear history.
 When building such a branch, it's safe to build packages that have only a version number.
-So building either of a couple of commits along the master branch where 1.2 is the specified version might produce a package versioned as 1.2.5 for the 5th commit and 1.2.9 for the 9th commit.
+So building either of a couple of commits along the main branch where 1.2 is the specified version might produce a package versioned as 1.2.5 for the 5th commit and 1.2.9 for the 9th commit.
 
 When you're *not* building from a "public release" branch, Nerdbank.GitVersioning delivers on several requirements:
 
@@ -79,13 +79,13 @@ When you're *not* building from a "public release" branch, Nerdbank.GitVersionin
 Nerdbank.GitVersioning accomplishes these objectives by appending a special pre-release suffix to _everything_ built in a non-public release branch. This prerelease tag is based on the git commit ID being built.
 For example if you're building a topic branch from version 1.2 with a commit ID starting with c0ffeebeef, the SemVer-compliant version produced for that build would be `1.2-c0ffeebeef`. If the version.json indicated this is `-beta` software, the two prerelease tags would be combined to form `1.2-beta-c0ffeebeef`.
 
-If in addition to shipping out of `master` you also service past releases, you might name those branches with a convention of v*Major*.*Minor* (e.g. v1.2, v1.3) and then add the pattern to your version.json file's `publicReleaseRefSpec` array:
+If in addition to shipping out of `main` you also service past releases, you might name those branches with a convention of v*Major*.*Minor* (e.g. v1.2, v1.3) and then add the pattern to your version.json file's `publicReleaseRefSpec` array:
 
 ```json
 {
   "version": "1.2",
   "publicReleaseRefSpec": [
-      "^refs/heads/master$", // main releases ship from master
+      "^refs/heads/main$", // main releases ship from main
       "^refs/heads/v\\d+\\.\\d+$" // servicing releases ship from vX.Y branches
   ]
 }
@@ -111,17 +111,17 @@ To force public release versioning, you can add the `/p:PublicRelease=true` swit
 To force a *non*-public release build, you can similarly specify `/p:PublicRelease=false`.
 
 This can be useful when testing a topic branch will build successfully after merging into a stable, public release branch by forcing a local build to build as a public release.
-For example suppose `master` builds a stable 1.2 package, and your topic branch builds `1.2-c0ffeebeef` because it's a non-public release.
+For example suppose `main` builds a stable 1.2 package, and your topic branch builds `1.2-c0ffeebeef` because it's a non-public release.
 In your topic branch you've made some package dependency changes that *might* have introduced a dependency on some other unstable package.
 Your package manager didn't complain because your package version was unstable anyway due to the `-c0ffeebeef` suffix.
-But you know once you merge into `master`, it will be a stable package again and your package manager might complain that a stable package shouldn't depend on a prerelease package.
+But you know once you merge into `main`, it will be a stable package again and your package manager might complain that a stable package shouldn't depend on a prerelease package.
 You can force such warnings to show up in your topic branch by building with the `/p:PublicRelease=true` switch.
 
 ### More on why and when git commit hashes are useful
 
-Consider that master builds a 1.2 version, and has a version height of 10. So its package version will be 1.2.10. Now imagine a developer branches off a "fixBug" topic branch from that point and begins changing code. As part of changing and testing that code, a package is built and consumed. Note the developer may not have even committed a change yet, so the version and height is *still* 1.2.10. We *don't* want a package version collision, so the topic branch produces a package version of `1.2.10-gc0ffee`. Now *both* the official master version and the topic branch version can both be restored and populate the nuget cache on a machine without conflicting and causing bizarre inconsistent behaviors that boggle the mind. :)
+Consider that main builds a 1.2 version, and has a version height of 10. So its package version will be 1.2.10. Now imagine a developer branches off a "fixBug" topic branch from that point and begins changing code. As part of changing and testing that code, a package is built and consumed. Note the developer may not have even committed a change yet, so the version and height is *still* 1.2.10. We *don't* want a package version collision, so the topic branch produces a package version of `1.2.10-gc0ffee`. Now *both* the official main version and the topic branch version can both be restored and populate the nuget cache on a machine without conflicting and causing bizarre inconsistent behaviors that boggle the mind. :)
 
-Or, if the topic branch *has* committed and moved onto 1.2.11, that could still collide because `master` may have moved on as well, using that same version. But since the topic branch always adds `-gc0ffee` hash suffixes to the package version, it won't conflict.
-Also: you don't want a topic branch to be seen as newer and better than what's in the master branch unless the user is explicitly opting into unstable behavior, so the `-gc0ffee` suffix is useful because it forces the package to be seen as "unstable". Once it merges with `master`, it will drop its `-gc0ffee` suffix, but will retain any other `-prerelease` tag specified in the version.json file.
+Or, if the topic branch *has* committed and moved onto 1.2.11, that could still collide because `main` may have moved on as well, using that same version. But since the topic branch always adds `-gc0ffee` hash suffixes to the package version, it won't conflict.
+Also: you don't want a topic branch to be seen as newer and better than what's in the main branch unless the user is explicitly opting into unstable behavior, so the `-gc0ffee` suffix is useful because it forces the package to be seen as "unstable". Once it merges with `main`, it will drop its `-gc0ffee` suffix, but will retain any other `-prerelease` tag specified in the version.json file.
 
 [nbgv_prepare-release]: https://github.com/dotnet/Nerdbank.GitVersioning/blob/master/doc/nbgv-cli.md#preparing-a-release
