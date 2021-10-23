@@ -33,7 +33,8 @@
 
         public IReadOnlyDictionary<string, string> SetCloudBuildVariable(string name, string value, TextWriter stdout, TextWriter stderr)
         {
-            (stdout ?? Console.Out).WriteLine($"##vso[task.setvariable variable={name};]{value}");
+            Utilities.FileOperationWithRetry(() =>
+                (stdout ?? Console.Out).WriteLine($"##vso[task.setvariable variable={name};]{value}"));
             return GetDictionaryFor(name, value);
         }
 
