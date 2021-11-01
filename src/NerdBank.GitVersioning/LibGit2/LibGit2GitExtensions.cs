@@ -174,7 +174,7 @@ namespace Nerdbank.GitVersioning.LibGit2
             var tracker = new GitWalkTracker(context);
             var possibleCommits = from commit in GetCommitsReachableFromRefs(context.Repository)
                                   let commitVersionOptions = tracker.GetVersion(commit)
-                                  where commitVersionOptions is not null
+                                  where commitVersionOptions?.Version?.IsMatchingVersion(version) is true
                                   where !IsCommitIdMismatch(version, commitVersionOptions, commit)
                                   where !IsVersionHeightMismatch(version, commitVersionOptions, commit, tracker)
                                   select commit;
