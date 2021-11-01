@@ -433,24 +433,7 @@ namespace Nerdbank.GitVersioning
         /// Gets the position in a computed version that the first 16 bits of a git commit ID should appear, if any.
         /// </summary>
         [JsonIgnore]
-        internal SemanticVersion.Position? GitCommitIdPosition
-        {
-            get
-            {
-                // We can only store the git commit ID info after there was a place to put the version height.
-                // We don't want to store the commit ID (which is effectively a random integer) in the revision slot
-                // if the version height does not appear, or only appears later (in the -prerelease tag) since that
-                // would mess up version ordering.
-                if (this.VersionHeightPosition == SemanticVersion.Position.Build)
-                {
-                    return SemanticVersion.Position.Revision;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-        }
+        internal SemanticVersion.Position? GitCommitIdPosition => this.version?.GitCommitIdPosition;
 
         /// <summary>
         /// Gets the debugger display for this instance.

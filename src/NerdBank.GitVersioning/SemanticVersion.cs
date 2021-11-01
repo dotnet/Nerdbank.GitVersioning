@@ -153,6 +153,28 @@
         }
 
         /// <summary>
+        /// Gets the position in a computed version that the first 16 bits of a git commit ID should appear, if any.
+        /// </summary>
+        internal SemanticVersion.Position? GitCommitIdPosition
+        {
+            get
+            {
+                // We can only store the git commit ID info after there was a place to put the version height.
+                // We don't want to store the commit ID (which is effectively a random integer) in the revision slot
+                // if the version height does not appear, or only appears later (in the -prerelease tag) since that
+                // would mess up version ordering.
+                if (this.VersionHeightPosition == SemanticVersion.Position.Build)
+                {
+                    return SemanticVersion.Position.Revision;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+        }
+
+        /// <summary>
         /// Gets a value indicating whether this instance is the default "0.0" instance.
         /// </summary>
         internal bool IsDefault => this.Version?.Major == 0 && this.Version.Minor == 0 && this.Version.Build == -1 && this.Version.Revision == -1 && this.Prerelease is null && this.BuildMetadata is null;
@@ -286,40 +308,44 @@
             return false;
         }
 
-        internal static int ReadVersionPosition(Version version, SemanticVersion.Position position)
+        internal static int ReadVersionPosition(Version version, Position position)
         {
             Requires.NotNull(version, nameof(version));
 
-            switch (position)
+            return position switch
             {
-                case SemanticVersion.Position.Major:
-                    return version.Major;
-                case SemanticVersion.Position.Minor:
-                    return version.Minor;
-                case SemanticVersion.Position.Build:
-                    return version.Build;
-                case SemanticVersion.Position.Revision:
-                    return version.Revision;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(position), position, "Must be one of the 4 integer parts.");
-            }
+                Position.Major => version.Major,
+                Position.Minor => version.Minor,
+                Position.Build => version.Build,
+                Position.Revision => version.Revision,
+                _ => throw new ArgumentOutOfRangeException(nameof(position), position, "Must be one of the 4 integer parts."),
+            };
         }
 
-        internal int ReadVersionPosition(SemanticVersion.Position position)
+        internal int ReadVersionPosition(Position position) => ReadVersionPosition(this.Version, position);
+
+        /// <summary>
+        /// Checks whether a given version may have been produced by this semantic version.
+        /// </summary>
+        /// <param name="version">The version to test.</param>
+        /// <returns><see langword="true"/> if the <paramref name="version"/> is a match; <see langword="false"/> otherwise.</returns>
+        internal bool IsMatchingVersion(Version version)
         {
-            switch (position)
+            Position lastPositionToConsider = Position.Revision;
+            if (this.VersionHeightPosition <= lastPositionToConsider)
             {
-                case SemanticVersion.Position.Major:
-                    return this.Version.Major;
-                case SemanticVersion.Position.Minor:
-                    return this.Version.Minor;
-                case SemanticVersion.Position.Build:
-                    return this.Version.Build;
-                case SemanticVersion.Position.Revision:
-                    return this.Version.Revision;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(position), position, "Must be one of the 4 integer parts.");
+                lastPositionToConsider = this.VersionHeightPosition.Value - 1;
             }
+
+            for (Position i = Position.Major; i <= lastPositionToConsider; i++)
+            {
+                if (this.ReadVersionPosition(i) != ReadVersionPosition(version, i))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>
