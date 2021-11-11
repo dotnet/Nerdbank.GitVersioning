@@ -28,7 +28,16 @@
 
         public IReadOnlyDictionary<string, string> SetCloudBuildVariable(string name, string value, TextWriter stdout, TextWriter stderr)
         {
-            Utilities.FileOperationWithRetry(() => File.AppendAllText(EnvironmentFile, $"{Environment.NewLine}{name}={value}{Environment.NewLine}"));
+            if (EnvironmentFile is not null)
+            {
+                Utilities.FileOperationWithRetry(() =>
+                    File.AppendAllText(EnvironmentFile, $"{Environment.NewLine}{name}={value}{Environment.NewLine}"));
+            }
+            else
+            {
+                (stdout ?? Console.Out).WriteLine($"{name}={value}");
+            }
+
             return GetDictionaryFor(name, value);
         }
 
