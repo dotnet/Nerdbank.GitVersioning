@@ -12,4 +12,7 @@
 
   <!-- This target is called by Clean or Rebuild on a referencing project. -->
   <Target Name="Clean" />
+
+  <!-- This target is called by Pack on a referencing project. -->
+  <Target Name="Pack" />
 </Project>
