@@ -17,7 +17,7 @@
     <PackageReference Include="Nullable" Version="1.3.0" PrivateAssets="all" />
     <PackageReference Include="Validation" Version="2.5.5-beta" />
     <PackageReference Include="Nerdbank.GitVersioning.LKG" Version="3.4.173-alpha" />
-    <PackageReference Include="System.Text.Json" Version="6.0.0" />
+    <PackageReference Include="System.Text.Json" Version="4.7.2" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\Shared\**\*.cs" LinkBase="Shared" />
