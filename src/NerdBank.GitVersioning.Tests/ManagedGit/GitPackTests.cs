@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using Nerdbank.GitVersioning;
 using Nerdbank.GitVersioning.ManagedGit;
 using Xunit;
+using ZLibStream = Nerdbank.GitVersioning.ManagedGit.ZLibStream;
 
 namespace ManagedGit
 {
