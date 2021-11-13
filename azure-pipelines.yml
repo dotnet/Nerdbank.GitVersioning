@@ -36,7 +36,7 @@ stages:
       matrix:
         linux:
           imageName: 'ubuntu-20.04'
-          testModifier:
+          testModifier: -f net6.0
         windows:
           imageName: 'windows-2019'
           testModifier:
