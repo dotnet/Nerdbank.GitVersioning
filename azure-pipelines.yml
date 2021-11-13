@@ -75,10 +75,10 @@ stages:
 
     - pwsh: |
         Invoke-WebRequest -Uri "https://dot.net/v1/dotnet-install.ps1" -OutFile dotnet-install.ps1
-        & .\dotnet-install.ps1 -Architecture x86 -Version 5.0.401 -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose
-        & .\dotnet-install.ps1 -Architecture x86 -Version 6.0.100 -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose
+        & .\dotnet-install.ps1 -Architecture x86 -Channel 5.0 -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose
         & .\dotnet-install.ps1 -Architecture x86 -Channel 3.1 -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose
-      displayName: Install 32-bit .NET Core SDK 6.0.100, 3.1
+        & .\dotnet-install.ps1 -Architecture x86 -Version 6.0.100 -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose
+      displayName: Install 32-bit .NET Core SDK and runtimes
       condition: ne(variables['dotnet32'], '')
 
     - script: dotnet --info
