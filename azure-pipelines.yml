@@ -138,7 +138,7 @@ stages:
 
     - script: >
         $(dotnet32) test NerdBank.GitVersioning.Tests
-        --no-build $(testModifier)
+        --no-build
         -c $(BuildConfiguration)
         --filter "TestCategory!=FailsOnAzurePipelines"
         --logger "trx;LogFileName=$(Build.ArtifactStagingDirectory)/TestLogs/TestResults.x86.trx"
