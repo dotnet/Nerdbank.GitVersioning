@@ -62,10 +62,10 @@ stages:
         version: 3.1.x
 
     - task: UseDotNet@2
-      displayName: Install .NET Core 5.0.401 SDK
+      displayName: Install .NET Core 5.0 runtime
       inputs:
-        packageType: sdk
-        version: 5.0.401
+        packageType: runtime
+        version: 5.0.x
 
     - task: UseDotNet@2
       displayName: Install .NET Core 6.0.100 SDK
@@ -336,10 +336,10 @@ stages:
         packageType: runtime
         version: 3.1.x
     - task: UseDotNet@2
-      displayName: Install .NET Core 5.0.401 SDK
+      displayName: Install .NET Core 5.0 runtime
       inputs:
-        packageType: sdk
-        version: 5.0.401
+        packageType: runtime
+        version: 5.0.x
     - task: UseDotNet@2
       displayName: Install .NET Core 6.0.100 SDK
       inputs:
