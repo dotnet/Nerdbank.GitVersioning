@@ -13,6 +13,7 @@
   <!-- This target is called by Clean or Rebuild on a referencing project. -->
   <Target Name="Clean" />
 
-  <!-- This target is called by Pack on a referencing project. -->
+  <!-- This target is called by their respective targets on referencing projects. -->
   <Target Name="Pack" />
+  <Target Name="Publish" />
 </Project>
