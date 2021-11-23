@@ -130,6 +130,18 @@ public class LibGit2GitExtensionsTests : RepoTestBase
             LibGit2GitExtensions.GetCommitsFromVersion(this.Context, new Version(1, 2, 3)).OrderBy(c => c.Sha));
     }
 
+    [Fact]
+    public void GetCommitsFromVersion_WithMajorMinorChecks()
+    {
+        Commit v1_0_50 = this.WriteVersionFile(new VersionOptions { Version = SemanticVersion.Parse("1.0.50-preview.{height}") });
+        Commit v1_1_50 = this.WriteVersionFile(new VersionOptions { Version = SemanticVersion.Parse("1.1.50-preview.{height}") });
+
+        Assert.Empty(LibGit2GitExtensions.GetCommitsFromVersion(this.Context, new Version(1, 0)));
+        Assert.Empty(LibGit2GitExtensions.GetCommitsFromVersion(this.Context, new Version(1, 0, 49)));
+        Assert.Equal(v1_0_50, Assert.Single(LibGit2GitExtensions.GetCommitsFromVersion(this.Context, new Version(1, 0, 50))));
+        Assert.Equal(v1_1_50, Assert.Single(LibGit2GitExtensions.GetCommitsFromVersion(this.Context, new Version(1, 1, 50))));
+    }
+
     [Theory]
     [InlineData("2.2", "2.2-alpha.{height}", 1, 1, true)]
     [InlineData("2.2", "2.3", 1, 1, true)]

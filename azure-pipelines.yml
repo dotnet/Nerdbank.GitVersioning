@@ -92,12 +92,11 @@ stages:
         nugetConfigPath: src/nuget.config
         workingDirectory: src
 
-    - task: YarnInstaller@3
-      displayName: 'Use Yarn 1.x'
-    - task: Yarn@3
-      displayName: 'Yarn install'
-      inputs:
-        projectDirectory: 'src/nerdbank-gitversioning.npm'
+    - script: npm i -g yarn@">=1.22 <2.0"
+      displayName: Installing yarn
+
+    - script: yarn --cwd src/nerdbank-gitversioning.npm
+      displayName: Installing NPM packages
 
     - script: dotnet build -c $(BuildConfiguration) --no-restore /t:build,pack /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
       displayName: Build NuGet package and tests
