@@ -164,7 +164,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
                 {
                     0 => this.owner.FirstParent.HasValue,
                     1 => this.owner.SecondParent.HasValue,
-                    _ => this.owner.AdditionalParents?.Count >= this.position - 2,
+                    _ => this.owner.AdditionalParents?.Count > this.position - 2,
                 };
             }
 

@@ -1,0 +1,28 @@
+tree 0f118b0345501ba18c15e149c9ae49ce07352485
+parent e0b4d66ef7915417e04e88d5fa173185bb940029
+parent 10e67ce38fbee44b3f5584d4f9df6de6c5f4cc5c
+parent a7fef320334121af85dce4b9b731f6c9a9127cfd
+author Atsushi Eno <atsushieno@gmail.com> 1278350964 -0000
+committer Atsushi Eno <atsushieno@gmail.com> 1278350964 -0000
+
+2010-07-05  Atsushi Enomoto  <atsushi@ximian.com>
+
+	* ChannelDispatcher.cs :
+	  moved IChannelDispatcherBoundListener from HttpChannelListener.cs.
+
+	* SvcHttpHandler.cs : removed old code and #if blocks.
+
+	* HttpStandaloneReplyChannel.cs
+	  HttpStandaloneRequestContext.cs
+	  HttpStandaloneChannelListener.cs
+	  HttpReplyChannel.cs
+	  HttpRequestContext.cs
+	  HttpChannelListener.cs : renamed former 3 files to latter 3 files.
+
+	* System.ServiceModel.dll.sources :
+	  renamed new HTTP channel listener implementation sources, and
+	  removed old sources.
+
+
+
+svn path=/trunk/mcs/; revision=159913

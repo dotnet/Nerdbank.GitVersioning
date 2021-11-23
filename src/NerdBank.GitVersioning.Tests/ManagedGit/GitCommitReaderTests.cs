@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using Nerdbank.GitVersioning.ManagedGit;
 using Xunit;
 
@@ -29,6 +30,23 @@ namespace ManagedGit
                 Assert.Equal("andrewarnott@gmail.com", author.Email);
 
                 // Committer and commit message are not read
+            }
+        }
+
+        [Fact]
+        public void ReadCommitWithThreeParents()
+        {
+            using (Stream stream = TestUtilities.GetEmbeddedResource(@"ManagedGit\commit-ab39e8acac105fa0db88514f259341c9f0201b22"))
+            {
+                var commit = GitCommitReader.Read(stream, GitObjectId.Parse("ab39e8acac105fa0db88514f259341c9f0201b22"), readAuthor: true);
+
+                Assert.Equal(3, commit.Parents.Count());
+
+                Assert.Collection(
+                    commit.Parents,
+                    c => Assert.Equal("e0b4d66ef7915417e04e88d5fa173185bb940029", c.ToString()),
+                    c => Assert.Equal("10e67ce38fbee44b3f5584d4f9df6de6c5f4cc5c", c.ToString()),
+                    c => Assert.Equal("a7fef320334121af85dce4b9b731f6c9a9127cfd", c.ToString()));
             }
         }
     }
