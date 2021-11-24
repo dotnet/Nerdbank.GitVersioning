@@ -10,7 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="DotNetMDDocs" Version="0.111.0" PrivateAssets="all" Condition=" '$(GenerateMarkdownApiDocs)' == 'true' " />
-    <PackageReference Include="LibGit2Sharp" Version="0.27.0-preview-0102" PrivateAssets="none" />
+    <PackageReference Include="LibGit2Sharp" Version="0.27.0-preview-0158" PrivateAssets="none" />
     <PackageReference Include="Microsoft.DotNet.PlatformAbstractions" Version="2.1.0" />
     <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.1.478-beta" PrivateAssets="all" />
     <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
