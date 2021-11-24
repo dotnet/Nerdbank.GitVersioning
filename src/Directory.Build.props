@@ -21,13 +21,12 @@
   </PropertyGroup>
   <PropertyGroup>
     <!-- LibGit2Sharp Native Binary version - used in both main project and Cake addin -->
-    <LibGit2SharpNativeVersion>2.0.312</LibGit2SharpNativeVersion>
+    <LibGit2SharpNativeVersion>2.0.315-alpha.0.9</LibGit2SharpNativeVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.Net.Compilers.Toolset" Version="3.11.0" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.0" PrivateAssets="All" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
-    <PackageReference Include="CSharpIsNullAnalyzer" Version="0.1.288-beta">
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.2" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
+    <PackageReference Include="CSharpIsNullAnalyzer" Version="0.1.300">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>

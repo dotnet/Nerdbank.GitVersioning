@@ -41,7 +41,8 @@
     <None Include="$(LibGit2SharpNativeBinaries)runtimes\**\*.*" Pack="true" PackagePath="lib\netstandard2.0\lib\" LinkBase="lib" />
 
     <!-- Additional copies to work around DllNotFoundException on Mono (https://github.com/AArnott/Nerdbank.GitVersioning/issues/222) -->
-    <None Include="$(LibGit2SharpNativeBinaries)runtimes\osx\native\*.dylib" Pack="true" PackagePath="lib\netstandard2.0\lib\osx\" LinkBase="lib\osx" />
+    <None Include="$(LibGit2SharpNativeBinaries)runtimes\osx-x64\native\*.dylib" Pack="true" PackagePath="lib\netstandard2.0\lib\osx\x86_64\" LinkBase="lib\osx\x86_64" />
+    <None Include="$(LibGit2SharpNativeBinaries)runtimes\osx-arm64\native\*.dylib" Pack="true" PackagePath="lib\netstandard2.0\lib\osx\arm_64\" LinkBase="lib\arm64\arm_64" />
     <None Include="$(LibGit2SharpNativeBinaries)runtimes\linux-x64\native\*.so" Pack="true" PackagePath="lib\netstandard2.0\lib\linux\x86_64\" LinkBase="lib\linux\x86_64" />
     <None Include="$(LibGit2SharpNativeBinaries)runtimes\win-x64\native\*.dll" Pack="true" PackagePath="lib\netstandard2.0\lib\win32\x64\" LinkBase="lib\win32\x64" />
     <None Include="$(LibGit2SharpNativeBinaries)runtimes\win-x86\native\*.dll" Pack="true" PackagePath="lib\netstandard2.0\lib\win32\x86\" LinkBase="lib\win32\x86" />

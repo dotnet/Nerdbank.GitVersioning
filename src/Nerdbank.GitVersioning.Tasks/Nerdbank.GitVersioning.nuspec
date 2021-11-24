@@ -32,12 +32,13 @@ IMPORTANT: The 3.x release may produce a different version height than prior maj
     <file src="$LibGit2SharpNativeBinaries$runtimes\**" target="build\runtimes\" />
 
     <!-- Additional copies to work around DllNotFoundException on Mono (https://github.com/dotnet/Nerdbank.GitVersioning/issues/222) -->
-    <file src="$LibGit2SharpNativeBinaries$runtimes\osx\native\libgit2-6777db8.dylib" target="build\MSBuildFull\lib\osx\libgit2-6777db8.dylib" />
-    <file src="$LibGit2SharpNativeBinaries$runtimes\linux-x64\native\libgit2-6777db8.so" target="build\MSBuildFull\lib\linux-x64\libgit2-6777db8.so" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\osx-x64\native\libgit2-b7bad55.dylib" target="build\MSBuildFull\lib\osx-x64\libgit2-b7bad55.dylib" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\osx-arm64\native\libgit2-b7bad55.dylib" target="build\MSBuildFull\lib\osx-arm64\libgit2-b7bad55.dylib" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\linux-x64\native\libgit2-b7bad55.so" target="build\MSBuildFull\lib\linux-x64\libgit2-b7bad55.so" />
 
     <!-- Additional copies to work with our own ps1 scripts (https://github.com/dotnet/Nerdbank.GitVersioning/issues/248) -->
-    <file src="$LibGit2SharpNativeBinaries$runtimes\win-x64\native\git2-6777db8.dll" target="build\MSBuildFull\lib\win32\x64\git2-6777db8.dll" />
-    <file src="$LibGit2SharpNativeBinaries$runtimes\win-x86\native\git2-6777db8.dll" target="build\MSBuildFull\lib\win32\x86\git2-6777db8.dll" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\win-x64\native\git2-b7bad55.dll" target="build\MSBuildFull\lib\win32\x64\git2-b7bad55.dll" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\win-x86\native\git2-b7bad55.dll" target="build\MSBuildFull\lib\win32\x86\git2-b7bad55.dll" />
 
     <file src="$LibGit2SharpNativeBinaries$libgit2\LibGit2Sharp.dll.config" target="build\MSBuildCore\LibGit2Sharp.dll.config" />
     <file src="$BaseOutputPath$netcoreapp3.1\LibGit2Sharp.dll" target="build\MSBuildCore\LibGit2Sharp.dll" />
