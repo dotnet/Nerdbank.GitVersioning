@@ -173,7 +173,7 @@ namespace Nerdbank.GitVersioning.LibGit2
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                return Path.Combine(basePath, "lib", "osx");
+                return Path.Combine(basePath, "lib", "osx", RuntimeInformation.OSArchitecture == Architecture.Arm64 ? "arm_64" : "x86_64");
             }
 
             return null;
