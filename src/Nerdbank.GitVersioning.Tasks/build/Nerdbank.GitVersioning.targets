@@ -47,12 +47,12 @@
       </PrepareForBuildDependsOn>
 
       <PrepareResourcesDependsOn>
-        GenerateAssemblyVersionInfo;
+        GenerateAssemblyNBGVVersionInfo;
         $(PrepareResourcesDependsOn)
       </PrepareResourcesDependsOn>
 
       <CoreCompileDependsOn>
-        GenerateAssemblyVersionInfo;
+        GenerateAssemblyNBGVVersionInfo;
         $(CoreCompileDependsOn)
       </CoreCompileDependsOn>
 
@@ -112,7 +112,7 @@
 
   <Target Name="GetNuGetPackageVersion" DependsOnTargets="GetBuildVersion" Returns="$(NuGetPackageVersion)" />
 
-  <Target Name="GenerateAssemblyVersionInfo" DependsOnTargets="GetBuildVersion" Condition=" '$(GenerateAssemblyVersionInfo)' != 'false' ">
+  <Target Name="GenerateAssemblyNBGVVersionInfo" DependsOnTargets="GetBuildVersion" Condition=" '$(GenerateAssemblyVersionInfo)' != 'false' ">
     <PropertyGroup>
       <VersionSourceFile>$([MSBuild]::NormalizePath('$(IntermediateOutputPath)', '$(AssemblyName).Version$(DefaultLanguageSourceExtension)'))</VersionSourceFile>
       <NewVersionSourceFile>$(VersionSourceFile).new</NewVersionSourceFile>
@@ -215,7 +215,7 @@
   <Target Name="AddVersionFile"
           Condition="'@(RazorGenerate->Count())' != '0'"
           BeforeTargets="PrepareForRazorCompile"
-          DependsOnTargets="GenerateAssemblyVersionInfo">
+          DependsOnTargets="GenerateAssemblyNBGVVersionInfo">
     <ItemGroup>
       <RazorCompile Include="$(VersionSourceFile)" />
     </ItemGroup>
