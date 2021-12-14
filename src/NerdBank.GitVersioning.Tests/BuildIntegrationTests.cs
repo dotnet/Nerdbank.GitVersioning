@@ -1264,7 +1264,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         internal const string GetBuildVersion = "GetBuildVersion";
         internal const string GetNuGetPackageVersion = "GetNuGetPackageVersion";
         internal const string GenerateAssemblyNBGVVersionInfo = "GenerateAssemblyNBGVVersionInfo";
-        internal const string GenerateNativeVersionInfo = "GenerateNativeVersionInfo";
+        internal const string GenerateNativeNBGVVersionInfo = "GenerateNativeNBGVVersionInfo";
     }
 
     private static class Properties

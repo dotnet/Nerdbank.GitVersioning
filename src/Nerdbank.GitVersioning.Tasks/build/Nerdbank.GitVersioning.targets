@@ -42,7 +42,7 @@
 
       <!-- Workaround the property stomping that msbuild does (see https://github.com/microsoft/msbuild/pull/4922) with manual imports. -->
       <PrepareForBuildDependsOn>
-        GenerateNativeVersionInfo;
+        GenerateNativeNBGVVersionInfo;
         $(PrepareForBuildDependsOn);
       </PrepareForBuildDependsOn>
 
@@ -156,7 +156,7 @@
     </ItemGroup>
   </Target>
 
-  <Target Name="GenerateNativeVersionInfo" DependsOnTargets="GetBuildVersion" Condition=" '$(Language)'=='C++' and '$(GenerateAssemblyVersionInfo)' != 'false' ">
+  <Target Name="GenerateNativeNBGVVersionInfo" DependsOnTargets="GetBuildVersion" Condition=" '$(Language)'=='C++' and '$(GenerateAssemblyVersionInfo)' != 'false' ">
     <PropertyGroup>
       <VersionSourceFile>$([MSBuild]::NormalizePath('$(IntermediateOutputPath)', '$(AssemblyName).Version.rc'))</VersionSourceFile>
       <NewVersionSourceFile>$(VersionSourceFile).new</NewVersionSourceFile>
