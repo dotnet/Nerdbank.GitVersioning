@@ -42,17 +42,17 @@
 
       <!-- Workaround the property stomping that msbuild does (see https://github.com/microsoft/msbuild/pull/4922) with manual imports. -->
       <PrepareForBuildDependsOn>
-        GenerateNativeVersionInfo;
+        GenerateNativeNBGVVersionInfo;
         $(PrepareForBuildDependsOn);
       </PrepareForBuildDependsOn>
 
       <PrepareResourcesDependsOn>
-        GenerateAssemblyVersionInfo;
+        GenerateAssemblyNBGVVersionInfo;
         $(PrepareResourcesDependsOn)
       </PrepareResourcesDependsOn>
 
       <CoreCompileDependsOn>
-        GenerateAssemblyVersionInfo;
+        GenerateAssemblyNBGVVersionInfo;
         $(CoreCompileDependsOn)
       </CoreCompileDependsOn>
 
@@ -112,7 +112,7 @@
 
   <Target Name="GetNuGetPackageVersion" DependsOnTargets="GetBuildVersion" Returns="$(NuGetPackageVersion)" />
 
-  <Target Name="GenerateAssemblyVersionInfo" DependsOnTargets="GetBuildVersion" Condition=" '$(GenerateAssemblyVersionInfo)' != 'false' ">
+  <Target Name="GenerateAssemblyNBGVVersionInfo" DependsOnTargets="GetBuildVersion" Condition=" '$(GenerateAssemblyVersionInfo)' != 'false' ">
     <PropertyGroup>
       <VersionSourceFile>$([MSBuild]::NormalizePath('$(IntermediateOutputPath)', '$(AssemblyName).Version$(DefaultLanguageSourceExtension)'))</VersionSourceFile>
       <NewVersionSourceFile>$(VersionSourceFile).new</NewVersionSourceFile>
@@ -156,7 +156,7 @@
     </ItemGroup>
   </Target>
 
-  <Target Name="GenerateNativeVersionInfo" DependsOnTargets="GetBuildVersion" Condition=" '$(Language)'=='C++' and '$(GenerateAssemblyVersionInfo)' != 'false' ">
+  <Target Name="GenerateNativeNBGVVersionInfo" DependsOnTargets="GetBuildVersion" Condition=" '$(Language)'=='C++' and '$(GenerateAssemblyVersionInfo)' != 'false' ">
     <PropertyGroup>
       <VersionSourceFile>$([MSBuild]::NormalizePath('$(IntermediateOutputPath)', '$(AssemblyName).Version.rc'))</VersionSourceFile>
       <NewVersionSourceFile>$(VersionSourceFile).new</NewVersionSourceFile>
@@ -215,7 +215,7 @@
   <Target Name="AddVersionFile"
           Condition="'@(RazorGenerate->Count())' != '0'"
           BeforeTargets="PrepareForRazorCompile"
-          DependsOnTargets="GenerateAssemblyVersionInfo">
+          DependsOnTargets="GenerateAssemblyNBGVVersionInfo">
     <ItemGroup>
       <RazorCompile Include="$(VersionSourceFile)" />
     </ItemGroup>

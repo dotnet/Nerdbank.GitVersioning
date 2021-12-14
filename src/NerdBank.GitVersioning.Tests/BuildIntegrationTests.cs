@@ -897,7 +897,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         this.testProject.AddProperty("DelaySign", delaySigned.ToString());
 
         this.WriteVersionFile();
-        var result = await this.BuildAsync(Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal);
+        var result = await this.BuildAsync(Targets.GenerateAssemblyNBGVVersionInfo, logVerbosity: LoggerVerbosity.Minimal);
         string versionCsContent = File.ReadAllText(
             Path.GetFullPath(
                 Path.Combine(
@@ -951,7 +951,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         propertyGroup.AddProperty("Language", "NoCodeDOMProviderForThisLanguage");
 
         this.WriteVersionFile();
-        var result = await this.BuildAsync(Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal, assertSuccessfulBuild: false);
+        var result = await this.BuildAsync(Targets.GenerateAssemblyNBGVVersionInfo, logVerbosity: LoggerVerbosity.Minimal, assertSuccessfulBuild: false);
         Assert.Equal(BuildResultCode.Failure, result.BuildResult.OverallResult);
         string versionCsFilePath = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"));
         Assert.False(File.Exists(versionCsFilePath));
@@ -968,10 +968,10 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         var propertyGroup = this.testProject.CreatePropertyGroupElement();
         this.testProject.AppendChild(propertyGroup);
         propertyGroup.AddProperty("Language", "NoCodeDOMProviderForThisLanguage");
-        propertyGroup.AddProperty(Targets.GenerateAssemblyVersionInfo, "false");
+        propertyGroup.AddProperty(Properties.GenerateAssemblyVersionInfo, "false");
 
         this.WriteVersionFile();
-        var result = await this.BuildAsync(Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal);
+        var result = await this.BuildAsync(Targets.GenerateAssemblyNBGVVersionInfo, logVerbosity: LoggerVerbosity.Minimal);
         string versionCsFilePath = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"));
         Assert.False(File.Exists(versionCsFilePath));
         Assert.Empty(result.LoggedEvents.OfType<BuildErrorEventArgs>());
@@ -991,7 +991,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         propertyGroup.AddProperty("TargetExt", ".notdll");
 
         this.WriteVersionFile();
-        var result = await this.BuildAsync(Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal);
+        var result = await this.BuildAsync(Targets.GenerateAssemblyNBGVVersionInfo, logVerbosity: LoggerVerbosity.Minimal);
         string versionCsFilePath = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"));
         Assert.False(File.Exists(versionCsFilePath));
         Assert.Empty(result.LoggedEvents.OfType<BuildErrorEventArgs>());
@@ -1263,8 +1263,13 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         internal const string Build = "Build";
         internal const string GetBuildVersion = "GetBuildVersion";
         internal const string GetNuGetPackageVersion = "GetNuGetPackageVersion";
+        internal const string GenerateAssemblyNBGVVersionInfo = "GenerateAssemblyNBGVVersionInfo";
+        internal const string GenerateNativeNBGVVersionInfo = "GenerateNativeNBGVVersionInfo";
+    }
+
+    private static class Properties
+    {
         internal const string GenerateAssemblyVersionInfo = "GenerateAssemblyVersionInfo";
-        internal const string GenerateNativeVersionInfo = "GenerateNativeVersionInfo";
     }
 
     private class BuildResults
