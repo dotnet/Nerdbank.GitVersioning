@@ -315,6 +315,8 @@
             {
                 this.generator.AddComment(FileHeaderComment);
                 this.generator.AddBlankLine();
+                this.generator.AddAnalysisSuppressions();
+                this.generator.AddBlankLine();
                 this.generator.EmitNamespaceIfRequired(this.RootNamespace ?? "AssemblyInfo");
                 this.GenerateAssemblyAttributes();
 
@@ -545,6 +547,13 @@
                 this.codeBuilder = new StringBuilder();
             }
 
+            protected virtual IEnumerable<string> WarningCodesToSuppress { get; } = new string[]
+            {
+                "CA2243", // Attribute string literals should parse correctly
+            };
+
+            internal abstract void AddAnalysisSuppressions();
+
             internal abstract void AddComment(string comment);
 
             internal abstract void DeclareAttribute(Type type, string arg);
@@ -586,6 +595,11 @@
 
         private class FSharpCodeGenerator : CodeGenerator
         {
+            internal override void AddAnalysisSuppressions()
+            {
+                this.codeBuilder.AppendLine($"#nowarn {string.Join(" ", this.WarningCodesToSuppress.Select(c => $"\"{c}\""))}");
+            }
+
             internal override void AddComment(string comment)
             {
                 this.AddCodeComment(comment, "//");
@@ -636,6 +650,11 @@
 
         private class CSharpCodeGenerator : CodeGenerator
         {
+            internal override void AddAnalysisSuppressions()
+            {
+                this.codeBuilder.AppendLine($"#pragma warning disable {string.Join(", ", this.WarningCodesToSuppress)}");
+            }
+
             internal override void AddComment(string comment)
             {
                 this.AddCodeComment(comment, "//");
@@ -680,6 +699,11 @@
 
         private class VisualBasicCodeGenerator : CodeGenerator
         {
+            internal override void AddAnalysisSuppressions()
+            {
+                this.codeBuilder.AppendLine($"#Disable Warning {string.Join(", ", this.WarningCodesToSuppress)}");
+            }
+
             internal override void AddComment(string comment)
             {
                 this.AddCodeComment(comment, "'");
