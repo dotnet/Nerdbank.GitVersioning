@@ -283,6 +283,32 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Matches(@"^2.3.1-g[a-f0-9]{7}$", oracle.ChocolateyPackageVersion);
     }
 
+    [Theory]
+    [InlineData("1.2.0.0", null, null)]
+    [InlineData("1.0.0.0", null, VersionOptions.VersionPrecision.Major)]
+    [InlineData("1.2.0.0", null, VersionOptions.VersionPrecision.Minor)]
+    [InlineData("1.2.1.0", null, VersionOptions.VersionPrecision.Build)]
+    [InlineData("2.3.4.0", "2.3.4", null)]
+    [InlineData("2.3.4.0", "2.3.4", VersionOptions.VersionPrecision.Minor)]
+    [InlineData("2.3.4.0", "2.3.4", VersionOptions.VersionPrecision.Build)]
+    [InlineData("2.3.4.0", "2.3.4.0", VersionOptions.VersionPrecision.Revision)]
+    public void CustomAssemblyVersion(string expectedAssemblyVersion, string prescribedAssemblyVersion, VersionOptions.VersionPrecision? precision)
+    {
+        this.InitializeSourceControl(withInitialCommit: false);
+        this.WriteVersionFile(new VersionOptions
+        {
+            Version = new SemanticVersion("1.2"),
+            AssemblyVersion = new VersionOptions.AssemblyVersionOptions
+            {
+                Version = prescribedAssemblyVersion is object ? new Version(prescribedAssemblyVersion) : null,
+                Precision = precision,
+            },
+        });
+
+        VersionOracle oracle = this.GetVersionOracle();
+        Assert.Equal(expectedAssemblyVersion, oracle.AssemblyVersion.ToString());
+    }
+
     [Fact]
     public void DefaultNuGetPackageVersionIsSemVer1PublicRelease()
     {

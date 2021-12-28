@@ -450,14 +450,25 @@ namespace Nerdbank.GitVersioning
             // If there is no repo, "version" could have uninitialized components (-1).
             version = version.EnsureNonNegativeComponents();
 
-            var assemblyVersion = versionOptions?.AssemblyVersionOrDefault.Version ?? new System.Version(version.Major, version.Minor);
-            var precision = versionOptions?.AssemblyVersionOrDefault.PrecisionOrDefault;
+            Version assemblyVersion;
 
-            assemblyVersion = new System.Version(
-                assemblyVersion.Major,
-                precision >= VersionOptions.VersionPrecision.Minor ? assemblyVersion.Minor : 0,
-                precision >= VersionOptions.VersionPrecision.Build ? version.Build : 0,
-                precision >= VersionOptions.VersionPrecision.Revision ? version.Revision : 0);
+            if (versionOptions?.AssemblyVersion?.Version is not null)
+            {
+                // When specified explicitly, use the assembly version as the user defines it.
+                assemblyVersion = versionOptions.AssemblyVersion.Version;
+            }
+            else
+            {
+                // Otherwise consider precision to base the assembly version off of the main computed version.
+                VersionOptions.VersionPrecision precision = versionOptions?.AssemblyVersion?.Precision ?? VersionOptions.DefaultVersionPrecision;
+
+                assemblyVersion = new Version(
+                    version.Major,
+                    precision >= VersionOptions.VersionPrecision.Minor ? version.Minor : 0,
+                    precision >= VersionOptions.VersionPrecision.Build ? version.Build : 0,
+                    precision >= VersionOptions.VersionPrecision.Revision ? version.Revision : 0);
+            }
+
             return assemblyVersion.EnsureNonNegativeComponents(4);
         }
 
