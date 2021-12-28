@@ -741,7 +741,7 @@ namespace Nerdbank.GitVersioning
             }
 
             /// <summary>
-            /// Gets or sets the major.minor components of the assembly version.
+            /// Gets or sets the components of the assembly version (2-4 components).
             /// </summary>
             [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
             public Version? Version

@@ -57,6 +57,8 @@ public class AssemblyInfoTest : IClassFixture<MSBuildFixture>
 // </auto-generated>
 //------------------------------------------------------------------------------
 
+#nowarn ""CA2243""
+
 namespace AssemblyInfo
 [<assembly: System.Reflection.AssemblyVersionAttribute(""1.3.0.0"")>]
 [<assembly: System.Reflection.AssemblyFileVersionAttribute(""1.3.1.0"")>]
@@ -133,6 +135,8 @@ do()
 // </auto-generated>
 //------------------------------------------------------------------------------
 
+#pragma warning disable CA2243
+
 [assembly: System.Reflection.AssemblyVersionAttribute(""1.3.0.0"")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute(""1.3.1.0"")]
 [assembly: System.Reflection.AssemblyInformationalVersionAttribute("""")]
@@ -187,6 +191,8 @@ internal static partial class ThisAssembly {{
 '     the code is regenerated.
 ' </auto-generated>
 '------------------------------------------------------------------------------
+
+#Disable Warning CA2243
 
 <Assembly: System.Reflection.AssemblyVersionAttribute(""1.3.0.0"")>
 <Assembly: System.Reflection.AssemblyFileVersionAttribute(""1.3.1.0"")>
