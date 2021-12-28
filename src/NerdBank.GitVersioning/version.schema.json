@@ -39,13 +39,13 @@
           "default": false
         },
         "assemblyVersion": {
-          "description": "The x.y version to use particularly for the AssemblyVersionAttribute instead of the default. This is useful when maintaining assembly binding compatibility on the desktop .NET Framework is important even though AssemblyFileVersion may change.",
+          "description": "The a.b[.c[.d]] version to use particularly for the AssemblyVersionAttribute instead of the default. This is useful when maintaining assembly binding compatibility on the desktop .NET Framework is important even though AssemblyFileVersion may change.",
           "oneOf": [
-            { "$ref": "#/definitions/majorMinorVersion" },
+            { "$ref": "#/definitions/twoToFourComponentVersion" },
             {
               "type": "object",
               "properties": {
-                "version": { "$ref": "#/definitions/majorMinorVersion" },
+                "version": { "$ref": "#/definitions/twoToFourComponentVersion" },
                 "precision": {
                   "type": "string",
                   "description": "Identifies the last component to be explicitly set in the version.",
@@ -193,10 +193,10 @@
         }
       }
     },
-    "majorMinorVersion": {
+    "twoToFourComponentVersion": {
       "type": "string",
-      "description": "A major.minor version",
-      "pattern": "^\\d+\\.\\d+$"
+      "description": "A major.minor[.build[.revision]] version (2-4 version components).",
+      "pattern": "^\\d+\\.\\d+(?:\\.\\d+(?:\\.\\d+)?)?$"
     }
   }
 }
