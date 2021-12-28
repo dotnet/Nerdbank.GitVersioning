@@ -1009,13 +1009,19 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
     {
         // Function should be very similar to VersionOracle.GetAssemblyVersion()
         var assemblyVersion = (versionOptions?.AssemblyVersion?.Version ?? versionOptions.Version.Version).EnsureNonNegativeComponents();
-        var precision = versionOptions?.AssemblyVersion?.Precision ?? VersionOptions.DefaultVersionPrecision;
 
-        assemblyVersion = new System.Version(
-            assemblyVersion.Major,
-            precision >= VersionOptions.VersionPrecision.Minor ? assemblyVersion.Minor : 0,
-            precision >= VersionOptions.VersionPrecision.Build ? version.Build : 0,
-            precision >= VersionOptions.VersionPrecision.Revision ? version.Revision : 0);
+        if (versionOptions?.AssemblyVersion?.Version is null)
+        {
+            VersionOptions.VersionPrecision precision = versionOptions?.AssemblyVersion?.Precision ?? VersionOptions.DefaultVersionPrecision;
+            assemblyVersion = version;
+
+            assemblyVersion = new Version(
+                assemblyVersion.Major,
+                precision >= VersionOptions.VersionPrecision.Minor ? assemblyVersion.Minor : 0,
+                precision >= VersionOptions.VersionPrecision.Build ? assemblyVersion.Build : 0,
+                precision >= VersionOptions.VersionPrecision.Revision ? assemblyVersion.Revision : 0);
+        }
+
         return assemblyVersion;
     }
 

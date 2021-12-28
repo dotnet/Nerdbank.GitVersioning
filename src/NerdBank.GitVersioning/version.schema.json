@@ -44,8 +44,15 @@
             { "$ref": "#/definitions/twoToFourComponentVersion" },
             {
               "type": "object",
+              "additionalProperties": false,
               "properties": {
-                "version": { "$ref": "#/definitions/twoToFourComponentVersion" },
+                "version": { "$ref": "#/definitions/twoToFourComponentVersion" }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
                 "precision": {
                   "type": "string",
                   "description": "Identifies the last component to be explicitly set in the version.",
