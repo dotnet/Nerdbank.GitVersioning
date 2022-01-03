@@ -299,7 +299,7 @@ namespace Nerdbank.GitVersioning.Tool
             var existingOptions = context.VersionFile.GetVersion();
             if (existingOptions is not null)
             {
-                if (!string.IsNullOrEmpty(version))
+                if (!string.IsNullOrEmpty(version) && version != DefaultVersionSpec)
                 {
                     var setVersionExitCode = OnSetVersionCommand(path, version);
                     if (setVersionExitCode != (int)ExitCodes.OK)
