@@ -299,7 +299,7 @@ namespace Nerdbank.GitVersioning.Tool
             var existingOptions = context.VersionFile.GetVersion();
             if (existingOptions is not null)
             {
-                if (!string.IsNullOrEmpty(version))
+                if (!string.IsNullOrEmpty(version) && version != DefaultVersionSpec)
                 {
                     var setVersionExitCode = OnSetVersionCommand(path, version);
                     if (setVersionExitCode != (int)ExitCodes.OK)
@@ -320,43 +320,53 @@ namespace Nerdbank.GitVersioning.Tool
                 ? ProjectRootElement.Open(directoryBuildPropsPath)
                 : ProjectRootElement.Create(directoryBuildPropsPath);
 
-            const string PackageReferenceItemType = "PackageReference";
-            if (!propsFile.Items.Any(i => i.ItemType == PackageReferenceItemType && i.Include == PackageId))
+            // Validate given sources
+            foreach (var src in source)
             {
-                // Validate given sources
-                foreach (var src in source)
+                // TODO: Can declare Option<Uri> to validate argument during parsing.
+                if (!Uri.TryCreate(src, UriKind.Absolute, out var _))
                 {
-                    // TODO: Can declare Option<Uri> to validate argument during parsing.
-                    if (!Uri.TryCreate(src, UriKind.Absolute, out var _))
-                    {
-                        Console.Error.WriteLine($"\"{src}\" is not a valid NuGet package source.");
-                        return (int)ExitCodes.InvalidNuGetPackageSource;
-                    }
+                    Console.Error.WriteLine($"\"{src}\" is not a valid NuGet package source.");
+                    return (int)ExitCodes.InvalidNuGetPackageSource;
                 }
+            }
 
-                string packageVersion = GetLatestPackageVersionAsync(PackageId, path, source).GetAwaiter().GetResult();
-                if (string.IsNullOrEmpty(packageVersion))
-                {
-                    string verifyPhrase = source.Any()
-                        ? "Please verify the given 'source' option(s)."
-                        : "Please verify the package sources in the NuGet.Config files.";
-                    Console.Error.WriteLine($"Latest stable version of the {PackageId} package could not be determined. " + verifyPhrase);
-                    return (int)ExitCodes.PackageIdNotFound;
-                }
+            string packageVersion = GetLatestPackageVersionAsync(PackageId, path, source).GetAwaiter().GetResult();
+            if (string.IsNullOrEmpty(packageVersion))
+            {
+                string verifyPhrase = source.Any()
+                    ? "Please verify the given 'source' option(s)."
+                    : "Please verify the package sources in the NuGet.Config files.";
+                Console.Error.WriteLine($"Latest stable version of the {PackageId} package could not be determined. " + verifyPhrase);
+                return (int)ExitCodes.PackageIdNotFound;
+            }
 
-                var item = propsFile.AddItem(
+            const string PackageReferenceItemType = "PackageReference";
+            const string PrivateAssetsMetadataName = "PrivateAssets";
+            const string VersionMetadataName = "Version";
+
+            var item = propsFile.Items.FirstOrDefault(i => i.ItemType == PackageReferenceItemType && i.Include == PackageId);
+
+            if (item is null)
+            {
+                item = propsFile.AddItem(
                     PackageReferenceItemType,
                     PackageId,
                     new Dictionary<string, string>
                     {
-                        { "Version", packageVersion },
-                        { "PrivateAssets", "all" },
+                        { PrivateAssetsMetadataName, "all" },
+                        { VersionMetadataName, packageVersion }
                     });
-                item.Condition = "!Exists('packages.config')";
-
-                propsFile.Save(directoryBuildPropsPath);
+            }
+            else
+            {
+                var versionMetadata = item.Metadata.Single(m => m.Name == VersionMetadataName);
+                versionMetadata.Value = packageVersion;
             }
 
+            item.Condition = "!Exists('packages.config')";
+
+            propsFile.Save(directoryBuildPropsPath);
             context.Stage(directoryBuildPropsPath);
 
             return (int)ExitCodes.OK;
