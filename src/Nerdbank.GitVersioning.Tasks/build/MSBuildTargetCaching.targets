@@ -6,6 +6,7 @@
     <NBGV_InnerGlobalProperties Condition=" '$(ProjectPathRelativeToGitRepoRoot)' != '' ">$(NBGV_InnerGlobalProperties)ProjectPathRelativeToGitRepoRoot=$(ProjectPathRelativeToGitRepoRoot);</NBGV_InnerGlobalProperties>
     <NBGV_InnerGlobalProperties Condition=" '$(GitVersionBaseDirectory)' != '' ">$(NBGV_InnerGlobalProperties)GitVersionBaseDirectory=$(GitVersionBaseDirectory);</NBGV_InnerGlobalProperties>
     <NBGV_InnerGlobalProperties Condition=" '$(OverrideBuildNumberOffset)' != '' ">$(NBGV_InnerGlobalProperties)OverrideBuildNumberOffset=$(OverrideBuildNumberOffset);</NBGV_InnerGlobalProperties>
+    <NBGV_InnerGlobalProperties Condition=" '$(NBGV_PrivateP2PAuxTargets)' != '' ">$(NBGV_InnerGlobalProperties)NBGV_PrivateP2PAuxTargets=$(NBGV_PrivateP2PAuxTargets);</NBGV_InnerGlobalProperties>
   </PropertyGroup>
 
   <!-- Compile a list of global properties that may vary when a project builds but that would never influence the result of the GetBuildVersion task. -->
