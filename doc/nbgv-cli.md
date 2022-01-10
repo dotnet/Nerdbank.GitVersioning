@@ -150,9 +150,9 @@ will generate output similar to this:
 }
 ```
 
-The JSON object has to properties:
+The JSON object has two properties:
 
-- `CurrentBranch` provides information about the branch `prepare-release` was started on (typically `master`)
+- `CurrentBranch` provides information about the branch that `prepare-release` was started on (typically `master`)
 - `NewBranch` provides information about the new branch created by the command.
 
 For each branch, the following properties are provided:
