@@ -2,7 +2,7 @@
 
 ## Problem
 
-Some repositories may contain more than project. This is sometimes referred to as a _mono repo_ (as opposed to having a repo for each project - _many repo_). Imagine a repository structured as:
+Some repositories may contain more than one project. This is sometimes referred to as a _mono repo_ (as opposed to having a repo for each project - _many repo_). Imagine a repository structured as:
 
 - /
   - Foo/
