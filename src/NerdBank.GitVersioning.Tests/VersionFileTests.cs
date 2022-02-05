@@ -608,6 +608,38 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.True(Path.IsPathRooted(actualDirectory));
     }
 
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void GetVersion_ReadNuGetPackageVersionSettings_SemVer(int semVer)
+    {
+        var json = $@"{{ ""version"" : ""1.0"", ""nugetPackageVersion"" : {{ ""semVer"" : {semVer}  }} }}";
+        var path = Path.Combine(this.RepoPath, "version.json");
+        File.WriteAllText(path, json);
+
+        var versionOptions = this.Context.VersionFile.GetVersion();
+
+        Assert.NotNull(versionOptions.NuGetPackageVersion);
+        Assert.NotNull(versionOptions.NuGetPackageVersion.SemVer);
+        Assert.Equal(semVer, versionOptions.NuGetPackageVersion.SemVer);
+    }
+
+    [Theory]
+    [CombinatorialData]
+    public void GetVersion_ReadNuGetPackageVersionSettings_Precision(VersionOptions.VersionPrecision precision)
+    {
+        var json = $@"{{ ""version"" : ""1.0"", ""nugetPackageVersion"" : {{ ""precision"" : ""{precision}""  }} }}";
+        var path = Path.Combine(this.RepoPath, "version.json");
+        File.WriteAllText(path, json);
+
+        var versionOptions = this.Context.VersionFile.GetVersion();
+
+        Assert.NotNull(versionOptions.NuGetPackageVersion);
+        Assert.NotNull(versionOptions.NuGetPackageVersion.Precision);
+        Assert.Equal(precision, versionOptions.NuGetPackageVersion.Precision);
+    }
+
     private void AssertPathHasVersion(string committish, string absolutePath, VersionOptions expected)
     {
         var actual = this.GetVersionOptions(absolutePath, committish);
