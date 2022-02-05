@@ -584,7 +584,7 @@ namespace Nerdbank.GitVersioning
             {
                 isFrozen = true,
                 semVer = 1.0f,
-                precision = VersionPrecision.Build
+                precision = DefaultPrecision,
             };
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -595,6 +595,11 @@ namespace Nerdbank.GitVersioning
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
             private VersionPrecision? precision;
+
+            /// <summary>
+            /// Default value for <see cref="Precision"/>.
+            /// </summary>
+            public const VersionPrecision DefaultPrecision = VersionPrecision.Build;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="NuGetPackageVersionOptions" /> class.
