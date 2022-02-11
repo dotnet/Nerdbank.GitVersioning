@@ -16,5 +16,8 @@
          Learn more at :/doc/quickbuild.md.
          -->
     <NBGV_CachingProjectReference Condition=" '$(NBGV_CachingProjectReference)' == '' ">$(MSBuildThisFileDirectory)PrivateP2PCaching.proj</NBGV_CachingProjectReference>
+
+    <NBGV_PreferCachedInfoOverCurrentData Condition=" '$(NBGV_PreferCachedInfoOverCurrentData)' == '' and '$(QBuild)' == '1' ">true</NBGV_PreferCachedInfoOverCurrentData>
+    <NBGV_PreferCachedInfoOverCurrentData Condition=" '$(NBGV_PreferCachedInfoOverCurrentData)' == '' ">false</NBGV_PreferCachedInfoOverCurrentData>
   </PropertyGroup>
 </Project>
