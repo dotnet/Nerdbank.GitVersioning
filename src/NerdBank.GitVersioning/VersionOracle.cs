@@ -129,11 +129,20 @@ namespace Nerdbank.GitVersioning
                 var commitIdOptions = this.CloudBuildNumberOptions.IncludeCommitIdOrDefault;
                 bool includeCommitInfo = commitIdOptions.WhenOrDefault == VersionOptions.CloudBuildNumberCommitWhen.Always ||
                     (commitIdOptions.WhenOrDefault == VersionOptions.CloudBuildNumberCommitWhen.NonPublicReleaseOnly && !this.PublicRelease);
-                bool commitIdInRevision = includeCommitInfo && commitIdOptions.WhereOrDefault == VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent;
                 bool commitIdInBuildMetadata = includeCommitInfo && commitIdOptions.WhereOrDefault == VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata;
-                Version buildNumberVersion = commitIdInRevision ? this.Version : this.SimpleVersion;
+
+                // Include the revision in the build number if, either
+                // - The commit id is configured to be included as a revision or
+                // - 3 version fields are configured in version.json (and thus the version height is encoded as revision) or
+                // - 4 version fields are configured in version.json.
+                bool includeRevision = includeCommitInfo && commitIdOptions.WhereOrDefault == VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent ||
+                                       this.VersionOptions?.Version?.VersionHeightPosition == SemanticVersion.Position.Revision ||
+                                       this.VersionOptions?.Version?.Version.Revision != -1;
+
                 string buildNumberMetadata = FormatBuildMetadata(commitIdInBuildMetadata ? this.BuildMetadataWithCommitId : this.BuildMetadata);
-                return buildNumberVersion + this.PrereleaseVersion + buildNumberMetadata;
+
+                Version buildNumberVersion = includeRevision ? this.Version : this.SimpleVersion;
+                return $"{buildNumberVersion}{this.PrereleaseVersion}{buildNumberMetadata}";
             }
         }
 
