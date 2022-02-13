@@ -381,26 +381,41 @@ public abstract class VersionOracleTests : RepoTestBase
     [InlineData(1, "1.2", VersionOptions.VersionPrecision.Minor, "1.2.0")]
     [InlineData(1, "1.2", VersionOptions.VersionPrecision.Build, "1.2.1")]
     [InlineData(1, "1.2", VersionOptions.VersionPrecision.Revision, "1.2.1.<commit>")]
-    // 2 version fields configured in version.json
-    [InlineData(1, "1.2.3", VersionOptions.VersionPrecision.Major, "1.0.0")]
-    [InlineData(1, "1.2.3", VersionOptions.VersionPrecision.Minor, "1.2.0")]
-    [InlineData(1, "1.2.3", VersionOptions.VersionPrecision.Build, "1.2.3")]
-    [InlineData(1, "1.2.3", VersionOptions.VersionPrecision.Revision, "1.2.3.1")]
-    // 4 version fields configured in version.json
-    [InlineData(1, "1.2.3.4", VersionOptions.VersionPrecision.Major, "1.0.0")]
-    [InlineData(1, "1.2.3.4", VersionOptions.VersionPrecision.Minor, "1.2.0")]
-    [InlineData(1, "1.2.3.4", VersionOptions.VersionPrecision.Build, "1.2.3")]
-    [InlineData(1, "1.2.3.4", VersionOptions.VersionPrecision.Revision, "1.2.3.4")]
+    // 2 version fields and a static prerelease tag configured in version.json
+    [InlineData(1, "1.2-alpha", VersionOptions.VersionPrecision.Major, "1.0.0-alpha")]
+    [InlineData(1, "1.2-alpha", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha")]
+    [InlineData(1, "1.2-alpha", VersionOptions.VersionPrecision.Build, "1.2.1-alpha")]
+    [InlineData(1, "1.2-alpha", VersionOptions.VersionPrecision.Revision, "1.2.1.<commit>-alpha")]
     // 2 version fields with git height in prerelease tag configured in version.json
     [InlineData(1, "1.2-alpha.{height}", VersionOptions.VersionPrecision.Major, "1.0.0-alpha-0001")]
     [InlineData(1, "1.2-alpha.{height}", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha-0001")]
     [InlineData(1, "1.2-alpha.{height}", VersionOptions.VersionPrecision.Build, "1.2.0-alpha-0001")]
     [InlineData(1, "1.2-alpha.{height}", VersionOptions.VersionPrecision.Revision, "1.2.0.0-alpha-0001")]
+    // 3 version fields configured in version.json
+    [InlineData(1, "1.2.3", VersionOptions.VersionPrecision.Major, "1.0.0")]
+    [InlineData(1, "1.2.3", VersionOptions.VersionPrecision.Minor, "1.2.0")]
+    [InlineData(1, "1.2.3", VersionOptions.VersionPrecision.Build, "1.2.3")]
+    [InlineData(1, "1.2.3", VersionOptions.VersionPrecision.Revision, "1.2.3.1")]
+    // 3 version fields and a static prerelease tag configured in version.json
+    [InlineData(1, "1.2.3-alpha", VersionOptions.VersionPrecision.Major, "1.0.0-alpha")]
+    [InlineData(1, "1.2.3-alpha", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha")]
+    [InlineData(1, "1.2.3-alpha", VersionOptions.VersionPrecision.Build, "1.2.3-alpha")]
+    [InlineData(1, "1.2.3-alpha", VersionOptions.VersionPrecision.Revision, "1.2.3.1-alpha")]
     // 3 version fields with git height in prerelease tag configured in version.json
     [InlineData(1, "1.2.3-alpha.{height}", VersionOptions.VersionPrecision.Major, "1.0.0-alpha-0001")]
     [InlineData(1, "1.2.3-alpha.{height}", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha-0001")]
     [InlineData(1, "1.2.3-alpha.{height}", VersionOptions.VersionPrecision.Build, "1.2.3-alpha-0001")]
     [InlineData(1, "1.2.3-alpha.{height}", VersionOptions.VersionPrecision.Revision, "1.2.3.0-alpha-0001")]
+    // 4 version fields configured in version.json
+    [InlineData(1, "1.2.3.4", VersionOptions.VersionPrecision.Major, "1.0.0")]
+    [InlineData(1, "1.2.3.4", VersionOptions.VersionPrecision.Minor, "1.2.0")]
+    [InlineData(1, "1.2.3.4", VersionOptions.VersionPrecision.Build, "1.2.3")]
+    [InlineData(1, "1.2.3.4", VersionOptions.VersionPrecision.Revision, "1.2.3.4")]
+    // 4 version fields and a static prerelease tag configured in version.json
+    [InlineData(1, "1.2.3.4-alpha", VersionOptions.VersionPrecision.Major, "1.0.0-alpha")]
+    [InlineData(1, "1.2.3.4-alpha", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha")]
+    [InlineData(1, "1.2.3.4-alpha", VersionOptions.VersionPrecision.Build, "1.2.3-alpha")]
+    [InlineData(1, "1.2.3.4-alpha", VersionOptions.VersionPrecision.Revision, "1.2.3.4-alpha")]
     // 4 version fields with git height in prerelease tag configured in version.json
     [InlineData(1, "1.2.3.4-alpha.{height}", VersionOptions.VersionPrecision.Major, "1.0.0-alpha-0001")]
     [InlineData(1, "1.2.3.4-alpha.{height}", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha-0001")]
@@ -414,26 +429,41 @@ public abstract class VersionOracleTests : RepoTestBase
     [InlineData(2, "1.2", VersionOptions.VersionPrecision.Minor, "1.2.0")]
     [InlineData(2, "1.2", VersionOptions.VersionPrecision.Build, "1.2.1")]
     [InlineData(2, "1.2", VersionOptions.VersionPrecision.Revision, "1.2.1.<commit>")]
-    // 3 version fields configured in version.json
-    [InlineData(2, "1.2.3", VersionOptions.VersionPrecision.Major, "1.0.0")]
-    [InlineData(2, "1.2.3", VersionOptions.VersionPrecision.Minor, "1.2.0")]
-    [InlineData(2, "1.2.3", VersionOptions.VersionPrecision.Build, "1.2.3")]
-    [InlineData(2, "1.2.3", VersionOptions.VersionPrecision.Revision, "1.2.3.1")]
-    // 4 version fields configured in version.json
-    [InlineData(2, "1.2.3.4", VersionOptions.VersionPrecision.Major, "1.0.0")]
-    [InlineData(2, "1.2.3.4", VersionOptions.VersionPrecision.Minor, "1.2.0")]
-    [InlineData(2, "1.2.3.4", VersionOptions.VersionPrecision.Build, "1.2.3")]
-    [InlineData(2, "1.2.3.4", VersionOptions.VersionPrecision.Revision, "1.2.3.4")]
+    // 2 version fields and a static prerelease tag configured in version.json
+    [InlineData(2, "1.2-alpha", VersionOptions.VersionPrecision.Major, "1.0.0-alpha")]
+    [InlineData(2, "1.2-alpha", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha")]
+    [InlineData(2, "1.2-alpha", VersionOptions.VersionPrecision.Build, "1.2.1-alpha")]
+    [InlineData(2, "1.2-alpha", VersionOptions.VersionPrecision.Revision, "1.2.1.<commit>-alpha")]
     // 2 version fields with git height in prerelease tag configured in version.json
     [InlineData(2, "1.2-alpha.{height}", VersionOptions.VersionPrecision.Major, "1.0.0-alpha.1")]
     [InlineData(2, "1.2-alpha.{height}", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha.1")]
     [InlineData(2, "1.2-alpha.{height}", VersionOptions.VersionPrecision.Build, "1.2.0-alpha.1")]
     [InlineData(2, "1.2-alpha.{height}", VersionOptions.VersionPrecision.Revision, "1.2.0.0-alpha.1")]
+    // 3 version fields configured in version.json
+    [InlineData(2, "1.2.3", VersionOptions.VersionPrecision.Major, "1.0.0")]
+    [InlineData(2, "1.2.3", VersionOptions.VersionPrecision.Minor, "1.2.0")]
+    [InlineData(2, "1.2.3", VersionOptions.VersionPrecision.Build, "1.2.3")]
+    [InlineData(2, "1.2.3", VersionOptions.VersionPrecision.Revision, "1.2.3.1")]
+    // 3 version fields and a static prerelease tag configured in version.json
+    [InlineData(2, "1.2.3-alpha", VersionOptions.VersionPrecision.Major, "1.0.0-alpha")]
+    [InlineData(2, "1.2.3-alpha", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha")]
+    [InlineData(2, "1.2.3-alpha", VersionOptions.VersionPrecision.Build, "1.2.3-alpha")]
+    [InlineData(2, "1.2.3-alpha", VersionOptions.VersionPrecision.Revision, "1.2.3.1-alpha")]
     // 3 version fields with git height in prerelease tag configured in version.json
     [InlineData(2, "1.2.3-alpha.{height}", VersionOptions.VersionPrecision.Major, "1.0.0-alpha.1")]
     [InlineData(2, "1.2.3-alpha.{height}", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha.1")]
     [InlineData(2, "1.2.3-alpha.{height}", VersionOptions.VersionPrecision.Build, "1.2.3-alpha.1")]
     [InlineData(2, "1.2.3-alpha.{height}", VersionOptions.VersionPrecision.Revision, "1.2.3.0-alpha.1")]
+    // 4 version fields configured in version.json
+    [InlineData(2, "1.2.3.4", VersionOptions.VersionPrecision.Major, "1.0.0")]
+    [InlineData(2, "1.2.3.4", VersionOptions.VersionPrecision.Minor, "1.2.0")]
+    [InlineData(2, "1.2.3.4", VersionOptions.VersionPrecision.Build, "1.2.3")]
+    [InlineData(2, "1.2.3.4", VersionOptions.VersionPrecision.Revision, "1.2.3.4")]
+    // 4 version fields and a static prerelease tag configured in version.json
+    [InlineData(2, "1.2.3.4-alpha", VersionOptions.VersionPrecision.Major, "1.0.0-alpha")]
+    [InlineData(2, "1.2.3.4-alpha", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha")]
+    [InlineData(2, "1.2.3.4-alpha", VersionOptions.VersionPrecision.Build, "1.2.3-alpha")]
+    [InlineData(2, "1.2.3.4-alpha", VersionOptions.VersionPrecision.Revision, "1.2.3.4-alpha")]
     // 4 version fields with git height in prerelease tag configured in version.json
     [InlineData(2, "1.2.3.4-alpha.{height}", VersionOptions.VersionPrecision.Major, "1.0.0-alpha.1")]
     [InlineData(2, "1.2.3.4-alpha.{height}", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha.1")]
