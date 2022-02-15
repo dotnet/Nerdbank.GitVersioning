@@ -39,6 +39,7 @@ The content of the version.json file is a JSON serialized object with these prop
   "gitCommitIdShortAutoMinimum": 0, // optional. Set to use the short commit ID abbreviation provided by the git repository.
   "nugetPackageVersion": {
      "semVer": 1 // optional. Set to either 1 or 2 to control how the NuGet package version string is generated. Default is 1.
+     "precision": "build" // optional. Use when you want to use a more or less precise package version than the default major.minor.build.
   },
   "pathFilters": [
     // optional list of paths to consider when calculating version height.

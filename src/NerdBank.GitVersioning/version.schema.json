@@ -108,6 +108,12 @@
               "default": 1,
               "minimum": 1,
               "maximum": 2
+            },
+            "precision": {
+              "type": "string",
+              "description": "Specifies the number of components to include in the NuGet package version.",
+              "enum": [ "major", "minor", "build", "revision" ],
+              "default": "build"
             }
           }
         },

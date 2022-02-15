@@ -353,7 +353,7 @@ namespace Nerdbank.GitVersioning
         /// <summary>
         /// Gets the version to use for NuGet packages.
         /// </summary>
-        public string NuGetPackageVersion => this.VersionOptions?.NuGetPackageVersionOrDefault.SemVerOrDefault == 1 ? this.NuGetSemVer1 : this.SemVer2;
+        public string NuGetPackageVersion => this.VersionOptions?.NuGetPackageVersionOrDefault.SemVerOrDefault == 1 ? this.NuGetSemVer1 : this.NuGetSemVer2;
 
         /// <summary>
         /// Gets the version to use for Chocolatey packages.
@@ -414,8 +414,39 @@ namespace Nerdbank.GitVersioning
         /// Gets a SemVer 1.0 compliant string that represents this version, including the -gCOMMITID suffix
         /// when <see cref="PublicRelease"/> is <c>false</c>.
         /// </summary>
-        private string NuGetSemVer1 =>
-            $"{this.Version.ToStringSafe(3)}{this.PrereleaseVersionSemVer1}{this.NuGetSemVer1BuildMetadata}";
+        private string NuGetSemVer1
+        {
+            get
+            {
+                var precision = this.VersionOptions?.NuGetPackageVersionOrDefault.PrecisionOrDefault ?? VersionOptions.NuGetPackageVersionOptions.DefaultPrecision;
+                var version = this.Version.EnsureNonNegativeComponents();
+                version = ApplyVersionPrecision(version, precision);
+
+                // If precision is set to include the 4th version component, return all 4 version fields, otherwise return 3 fields.
+                var fieldCount = precision >= VersionOptions.VersionPrecision.Revision ? 4 : 3;
+
+                return $"{version.ToStringSafe(fieldCount)}{this.PrereleaseVersionSemVer1}{this.NuGetSemVer1BuildMetadata}";
+            }
+        }
+
+        /// <summary>
+        /// Gets a SemVer 2.0 compliant string that represents this version, including the -gCOMMITID suffix
+        /// when <see cref="PublicRelease"/> is <c>false</c>.
+        /// </summary>
+        private string NuGetSemVer2
+        {
+            get
+            {
+                var precision = this.VersionOptions?.NuGetPackageVersionOrDefault.PrecisionOrDefault ?? VersionOptions.NuGetPackageVersionOptions.DefaultPrecision;
+                var version = this.Version.EnsureNonNegativeComponents();
+                version = ApplyVersionPrecision(version, precision);
+
+                // If precision is set to include the 4th version component, return all 4 version fields, otherwise return 3 fields.
+                var fieldCount = precision >= VersionOptions.VersionPrecision.Revision ? 4 : 3;
+
+                return $"{version.ToStringSafe(fieldCount)}{this.PrereleaseVersion}{this.SemVer2BuildMetadata}";
+            }
+        }
 
         /// <summary>
         /// Gets the build metadata that is appropriate for SemVer2 use.
@@ -461,15 +492,19 @@ namespace Nerdbank.GitVersioning
             {
                 // Otherwise consider precision to base the assembly version off of the main computed version.
                 VersionOptions.VersionPrecision precision = versionOptions?.AssemblyVersion?.Precision ?? VersionOptions.DefaultVersionPrecision;
-
-                assemblyVersion = new Version(
-                    version.Major,
-                    precision >= VersionOptions.VersionPrecision.Minor ? version.Minor : 0,
-                    precision >= VersionOptions.VersionPrecision.Build ? version.Build : 0,
-                    precision >= VersionOptions.VersionPrecision.Revision ? version.Revision : 0);
+                assemblyVersion = ApplyVersionPrecision(version, precision);
             }
 
             return assemblyVersion.EnsureNonNegativeComponents(4);
+        }
+
+        private static Version ApplyVersionPrecision(Version version, VersionOptions.VersionPrecision precision)
+        {
+            return new Version(
+                version.Major,
+                precision >= VersionOptions.VersionPrecision.Minor ? version.Minor : 0,
+                precision >= VersionOptions.VersionPrecision.Build ? version.Build : 0,
+                precision >= VersionOptions.VersionPrecision.Revision ? version.Revision : 0);
         }
 
         /// <summary>

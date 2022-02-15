@@ -584,6 +584,7 @@ namespace Nerdbank.GitVersioning
             {
                 isFrozen = true,
                 semVer = 1.0f,
+                precision = DefaultPrecision,
             };
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -591,6 +592,14 @@ namespace Nerdbank.GitVersioning
 
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
             private float? semVer;
+
+            [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+            private VersionPrecision? precision;
+
+            /// <summary>
+            /// Default value for <see cref="Precision"/>.
+            /// </summary>
+            public const VersionPrecision DefaultPrecision = VersionPrecision.Build;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="NuGetPackageVersionOptions" /> class.
@@ -622,6 +631,22 @@ namespace Nerdbank.GitVersioning
             /// </summary>
             [JsonIgnore]
             public float? SemVerOrDefault => this.SemVer ?? DefaultInstance.SemVer;
+
+            /// <summary>
+            /// Gets or sets number of version components to include when generating the package version.
+            /// </summary>
+            [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+            public VersionPrecision? Precision
+            {
+                get => this.precision;
+                set => this.SetIfNotReadOnly(ref this.precision, value);
+            }
+
+            /// <summary>
+            /// Gets the number of version components to include when generating the package version.
+            /// </summary>
+            [JsonIgnore]
+            public VersionPrecision PrecisionOrDefault => this.Precision ?? DefaultInstance.Precision!.Value;
 
             /// <summary>
             /// Gets a value indicating whether this instance rejects all attempts to mutate it.
@@ -679,13 +704,22 @@ namespace Nerdbank.GitVersioning
                         return false;
                     }
 
-                    return x.SemVerOrDefault == y.SemVerOrDefault;
+                    return x.SemVerOrDefault == y.SemVerOrDefault &&
+                           x.PrecisionOrDefault == y.PrecisionOrDefault;
                 }
 
                 /// <inheritdoc />
                 public int GetHashCode(NuGetPackageVersionOptions? obj)
                 {
-                    return obj?.SemVerOrDefault.GetHashCode() ?? 0;
+                    if (obj is null)
+                        return 0;
+
+                    unchecked
+                    {
+                        var hash = obj.SemVerOrDefault.GetHashCode() * 397;
+                        hash ^= obj.PrecisionOrDefault.GetHashCode();
+                        return hash;
+                    }
                 }
             }
         }

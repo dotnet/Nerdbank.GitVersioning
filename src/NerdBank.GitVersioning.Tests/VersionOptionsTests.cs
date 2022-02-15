@@ -178,6 +178,7 @@ public class VersionOptionsTests
         Assert.Throws<InvalidOperationException>(() => options.CloudBuildOrDefault.BuildNumberOrDefault.IncludeCommitIdOrDefault.Where = VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata);
         Assert.Throws<InvalidOperationException>(() => options.CloudBuildOrDefault.SetVersionVariables = true);
         Assert.Throws<InvalidOperationException>(() => options.NuGetPackageVersionOrDefault.SemVer = 2);
+        Assert.Throws<InvalidOperationException>(() => options.NuGetPackageVersionOrDefault.Precision = VersionOptions.VersionPrecision.Revision);
         Assert.Throws<InvalidOperationException>(() => options.ReleaseOrDefault.BranchName = "BranchName");
         Assert.Throws<InvalidOperationException>(() => options.ReleaseOrDefault.VersionIncrement = VersionOptions.ReleaseVersionIncrement.Major);
         Assert.Throws<InvalidOperationException>(() => options.ReleaseOrDefault.FirstUnstableTag = "-tag");
@@ -225,5 +226,31 @@ public class VersionOptionsTests
         Assert.NotEqual(ro1, ro5);
         Assert.NotEqual(ro3, ro5);
         Assert.NotEqual(ro5, ro6);
+    }
+
+    [Fact]
+    public void NuGetPackageVersionOptions_Equality()
+    {
+        var npvo1a = new VersionOptions.NuGetPackageVersionOptions { };
+        var npvo1b = new VersionOptions.NuGetPackageVersionOptions { };
+        Assert.Equal(npvo1a, npvo1b);
+
+        var npvo2a = new VersionOptions.NuGetPackageVersionOptions
+        {
+            SemVer = 2
+        };
+        Assert.NotEqual(npvo2a, npvo1a);
+
+        var npvo3a = new VersionOptions.NuGetPackageVersionOptions
+        {
+            Precision = VersionOptions.VersionPrecision.Revision
+        };
+        Assert.NotEqual(npvo3a, npvo1a);
+
+        var npvo4a = new VersionOptions.NuGetPackageVersionOptions
+        {
+            Precision = VersionOptions.VersionPrecision.Build
+        };
+        Assert.Equal(npvo4a, npvo1a); // Equal because we haven't changed defaults.
     }
 }
