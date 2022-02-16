@@ -17,22 +17,13 @@
     <_BuildMetadataSnapped Include="@(BuildMetadata)" />
   </ItemGroup>
 
-  <!-- We generally prefer to clear config|platform properties because they do not impact the version.
-       But quickbuild doesn't like a p2p that removes these, so set them to defensible constant values in that situation. -->
-  <PropertyGroup Condition=" '$(QBuild)' == '1' ">
-    <NBGV_InnerGlobalProperties>$(NBGV_InnerGlobalProperties)Configuration=Release;</NBGV_InnerGlobalProperties>
-    <NBGV_InnerGlobalProperties>$(NBGV_InnerGlobalProperties)Platform=AnyCPU;</NBGV_InnerGlobalProperties>
-  </PropertyGroup>
-  <ItemGroup Condition=" '$(QBuild)' != '1' ">
-    <NBGV_GlobalPropertiesToRemove Include="Configuration" />
-    <NBGV_GlobalPropertiesToRemove Include="Platform" />
-  </ItemGroup>
-
   <ItemGroup>
     <!-- Declare a P2P so that "msbuild -graph -isolate" doesn't complain when we use the MSBuild task to invoke our inner shared project. -->
     <ProjectReference Include="$(NBGV_CachingProjectReference)">
       <Targets>GetBuildVersion_Properties;GetBuildVersion_CloudBuildVersionVars</Targets>
       <Properties>$(NBGV_InnerGlobalProperties)BuildMetadata=@(BuildMetadata, ',');</Properties>
+      <SetConfiguration>Configuration=Release</SetConfiguration>
+      <SetPlatform>Platform=AnyCPU</SetPlatform>
       <GlobalPropertiesToRemove>@(NBGV_GlobalPropertiesToRemove)</GlobalPropertiesToRemove>
 
       <!-- Do our very best to prevent Microsoft.Common.CurrentVersion.targets or IDEs from processing this P2P. It's only here for MSBuild's static graph. -->
