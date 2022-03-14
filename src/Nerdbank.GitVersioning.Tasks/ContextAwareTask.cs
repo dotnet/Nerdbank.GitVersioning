@@ -56,7 +56,7 @@
             // On .NET Framework (on Windows), we find native binaries by adding them to our PATH.
             if (this.UnmanagedDllDirectory is not null)
             {
-                string pathEnvVar = Environment.GetEnvironmentVariable("PATH");
+                string pathEnvVar = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
                 string[] searchPaths = pathEnvVar.Split(Path.PathSeparator);
                 if (!searchPaths.Contains(this.UnmanagedDllDirectory, StringComparer.OrdinalIgnoreCase))
                 {
