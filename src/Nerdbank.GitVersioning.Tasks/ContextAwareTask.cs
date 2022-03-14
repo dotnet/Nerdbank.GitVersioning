@@ -1,6 +1,7 @@
 ﻿namespace MSBuildExtensionTask
 {
     using System;
+    using System.Diagnostics;
     using System.IO;
     using System.Linq;
     using System.Reflection;
@@ -21,6 +22,8 @@
 
         public override bool Execute()
         {
+            try
+            {
 #if NETCOREAPP
             string taskAssemblyPath = new Uri(this.GetType().GetTypeInfo().Assembly.CodeBase).LocalPath;
 
@@ -53,20 +56,31 @@
 
             return result;
 #else
-            // On .NET Framework (on Windows), we find native binaries by adding them to our PATH.
-            if (this.UnmanagedDllDirectory is not null)
-            {
-                string pathEnvVar = Environment.GetEnvironmentVariable("PATH");
-                string[] searchPaths = pathEnvVar.Split(Path.PathSeparator);
-                if (!searchPaths.Contains(this.UnmanagedDllDirectory, StringComparer.OrdinalIgnoreCase))
+                // On .NET Framework (on Windows), we find native binaries by adding them to our PATH.
+                if (this.UnmanagedDllDirectory is not null)
                 {
-                    pathEnvVar += Path.PathSeparator + this.UnmanagedDllDirectory;
-                    Environment.SetEnvironmentVariable("PATH", pathEnvVar);
+                    string pathEnvVar = Environment.GetEnvironmentVariable("PATH");
+                    string[] searchPaths = pathEnvVar.Split(Path.PathSeparator);
+                    if (!searchPaths.Contains(this.UnmanagedDllDirectory, StringComparer.OrdinalIgnoreCase))
+                    {
+                        pathEnvVar += Path.PathSeparator + this.UnmanagedDllDirectory;
+                        Environment.SetEnvironmentVariable("PATH", pathEnvVar);
+                    }
                 }
-            }
 
-            return this.ExecuteInner();
+                return this.ExecuteInner();
 #endif
+            }
+            catch (NullReferenceException ex) when (this.LaunchDebugger(ex))
+            {
+                throw;
+            }
+        }
+
+        private bool LaunchDebugger(Exception ex)
+        {
+            Debugger.Launch();
+            return true;
         }
 
         protected abstract bool ExecuteInner();
