@@ -19,6 +19,7 @@ namespace Nerdbank.GitVersioning
                 try
                 {
                     operation();
+                    break;
                 }
                 catch (IOException ex) when (ex.HResult == ProcessCannotAccessFileHR && retriesLeft > 0)
                 {
