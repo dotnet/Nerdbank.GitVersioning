@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using LibGit2Sharp;
 using Nerdbank.GitVersioning;
+using Nerdbank.GitVersioning.ManagedGit;
 using Xunit;
 using Xunit.Abstractions;
 using Version = System.Version;
@@ -1071,4 +1072,58 @@ public abstract class VersionOracleTests : RepoTestBase
         this.GetVersionHeight();
     }
 
+    [Theory]
+    // 2 version fields configured in version.json
+    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata, "1.2", "1.2.1+<commit:string>")]
+    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent, "1.2", "1.2.1.<commit:int>")]
+    // 2 version fields and a static prerelease tag configured in version.json
+    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata, "1.2-alpha", "1.2.1-alpha+<commit:string>")]
+    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent, "1.2-alpha", "1.2.1.<commit:int>-alpha")]
+    // 2 version fields with git height in prerelease tag configured in version.json
+    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata, "1.2-alpha.{height}", "1.2-alpha.1+<commit:string>")]
+    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent, "1.2-alpha.{height}", "1.2-alpha.1")]
+    // 3 version fields configured in version.json
+    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata, "1.2.3", "1.2.3.1+<commit:string>")]
+    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent, "1.2.3", "1.2.3.1")]
+    // 3 version fields and a static prerelease tag configured in version.json
+    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata, "1.2.3-alpha", "1.2.3.1-alpha+<commit:string>")]
+    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent, "1.2.3-alpha", "1.2.3.1-alpha")]
+    // 3 version fields with git height in prerelease tag configured in version.json
+    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata, "1.2.3-alpha.{height}", "1.2.3-alpha.1+<commit:string>")]
+    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent, "1.2.3-alpha.{height}", "1.2.3-alpha.1")]
+    // 4 version fields configured in version.json
+    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata, "1.2.3.4", "1.2.3.4+<commit:string>")]
+    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent, "1.2.3.4", "1.2.3.4")]
+    // 4 version fields and a static prerelease tag configured in version.json
+    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata, "1.2.3.4-alpha", "1.2.3.4-alpha+<commit:string>")]
+    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent, "1.2.3.4-alpha", "1.2.3.4-alpha")]
+    // 4 version fields with git height in prerelease tag configured in version.json
+    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata, "1.2.3.4-alpha.{height}", "1.2.3.4-alpha.1+<commit:string>")]  
+    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent, "1.2.3.4-alpha.{height}", "1.2.3.4-alpha.1")]  
+    public void CloudBuildNumber_4thPosition(VersionOptions.CloudBuildNumberCommitWhere where, string version, string expectedCloudBuildNumber)
+    {
+        VersionOptions workingCopyVersion = new VersionOptions
+        {
+            Version = SemanticVersion.Parse(version),
+            CloudBuild = new VersionOptions.CloudBuildOptions
+            {
+                BuildNumber = new VersionOptions.CloudBuildNumberOptions
+                {
+                    IncludeCommitId = new VersionOptions.CloudBuildNumberCommitIdOptions
+                    {
+                        When = VersionOptions.CloudBuildNumberCommitWhen.Always,
+                        Where = where
+                    }
+                }
+            }
+        };
+        this.WriteVersionFile(workingCopyVersion);
+        this.InitializeSourceControl();
+        var oracle = new VersionOracle(this.Context);
+        oracle.PublicRelease = true;
+        expectedCloudBuildNumber = expectedCloudBuildNumber.Replace("<commit:int>", GitObjectId.Parse(oracle.GitCommitId).AsUInt16().ToString());
+        expectedCloudBuildNumber = expectedCloudBuildNumber.Replace("<commit:string>", oracle.GitCommitIdShort);
+        
+        Assert.Equal(expectedCloudBuildNumber, oracle.CloudBuildNumber);
+    }
 }
