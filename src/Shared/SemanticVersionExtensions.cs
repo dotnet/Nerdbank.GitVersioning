@@ -24,7 +24,7 @@
         internal static SemanticVersion Increment(this SemanticVersion currentVersion, VersionOptions.ReleaseVersionIncrement increment)
         {
             Requires.NotNull(currentVersion, nameof(currentVersion));
-            Requires.That(increment != VersionOptions.ReleaseVersionIncrement.Build || currentVersion.Version.Build >= 0, nameof(increment), 
+            Requires.Argument(increment != VersionOptions.ReleaseVersionIncrement.Build || currentVersion.Version.Build >= 0, nameof(increment), 
                           "Cannot apply version increment '{0}' to version '{1}'", increment, currentVersion);
 
             var major = currentVersion.Version.Major;
