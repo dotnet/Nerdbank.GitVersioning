@@ -1,0 +1,59 @@
+parameters:
+- name: windowsPool
+  type: object
+  default:
+    vmImage: windows-2022
+- name: includeMacOS
+
+jobs:
+- job: Windows
+  pool: ${{ parameters.windowsPool }}
+  variables:
+    testModifier:
+    dotnet32: "\"C:\\Program Files (x86)\\dotnet\\dotnet.exe\""
+    - ${{ if eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/') }}:
+      - group: dotnetfoundation code signing
+  steps:
+  - checkout: self
+    clean: true
+    submodules: true # keep the warnings quiet about the wiki not being enlisted
+  - template: install-dependencies.yml
+  - pwsh: |
+      Invoke-WebRequest -Uri "https://dot.net/v1/dotnet-install.ps1" -OutFile dotnet-install.ps1
+      & .\dotnet-install.ps1 -Architecture x86 -Channel 3.1 -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose -Runtime dotnet
+      & .\dotnet-install.ps1 -Architecture x86 -Version 6.0.202 -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose
+    displayName: Install 32-bit .NET SDK and runtimes
+
+  - powershell: '& (./azure-pipelines/Get-nbgv.ps1) cloud -c'
+    displayName: Set build number
+
+  - template: dotnet.yml
+
+- job: Linux
+  pool:
+    vmImage: Ubuntu 20.04
+  variables:
+    testModifier: -f net6.0
+  steps:
+  - checkout: self
+    clean: true
+    submodules: true # keep the warnings quiet about the wiki not being enlisted
+  - template: install-dependencies.yml
+  - template: dotnet.yml
+
+- job: WrapUp
+  dependsOn:
+  - Windows
+  - Linux
+  pool: ${{ parameters.windowsPool }} # Use Windows agent because PublishSymbols task requires it (https://github.com/microsoft/azure-pipelines-tasks/issues/13821).
+  condition: succeededOrFailed()
+  steps:
+  - checkout: self
+    clean: true
+  - template: install-dependencies.yml
+    parameters:
+      initArgs: -NoRestore
+  - template: publish-codecoverage.yml
+    parameters:
+      includeMacOS: ${{ parameters.includeMacOS }}
+  - template: publish-deployables.yml

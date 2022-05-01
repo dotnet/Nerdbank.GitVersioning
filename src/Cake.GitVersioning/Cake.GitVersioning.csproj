@@ -6,7 +6,6 @@
     <Authors>Chris Crutchfield, Andrew Arnott</Authors>
     <Company>andarno</Company>
     <Description>Cake wrapper for Nerdbank.GitVersioning.  Stamps your assemblies with semver 2.0 compliant git commit specific version information and provides NuGet versioning information as well.</Description>
-    <Copyright>Copyright (c) .NET Foundation and Contributors</Copyright>
     <PackageTags>git commit versioning version assemblyinfo cake-addin</PackageTags>
     <PackageIconUrl>https://cdn.jsdelivr.net/gh/cake-contrib/graphics/png/addin/cake-contrib-addin-medium.png</PackageIconUrl>
     <PackageIcon>cake-contrib-addin-medium.png</PackageIcon>

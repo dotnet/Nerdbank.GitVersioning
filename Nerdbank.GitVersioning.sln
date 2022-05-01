@@ -18,21 +18,21 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		..\version.json = ..\version.json
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NerdBank.GitVersioning.Tests", "NerdBank.GitVersioning.Tests\NerdBank.GitVersioning.Tests.csproj", "{C54F9EC8-FDA7-4D22-BCB2-7D97523BD91E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NerdBank.GitVersioning.Tests", "test\NerdBank.GitVersioning.Tests\NerdBank.GitVersioning.Tests.csproj", "{C54F9EC8-FDA7-4D22-BCB2-7D97523BD91E}"
 EndProject
-Project("{9092AA53-FB77-4645-B42D-1CCCA6BD08BD}") = "nb-gv", "nerdbank-gitversioning.npm\nb-gv.njsproj", "{F79DD916-27B3-4CD0-97FF-5021B3CF9934}"
+Project("{9092AA53-FB77-4645-B42D-1CCCA6BD08BD}") = "nb-gv", "src\nerdbank-gitversioning.npm\nb-gv.njsproj", "{F79DD916-27B3-4CD0-97FF-5021B3CF9934}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NerdBank.GitVersioning", "NerdBank.GitVersioning\NerdBank.GitVersioning.csproj", "{C7FA7B7A-0469-4B1C-8657-E274C4CD8ABB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NerdBank.GitVersioning", "src\NerdBank.GitVersioning\NerdBank.GitVersioning.csproj", "{C7FA7B7A-0469-4B1C-8657-E274C4CD8ABB}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nerdbank.GitVersioning.Tasks", "Nerdbank.GitVersioning.Tasks\Nerdbank.GitVersioning.Tasks.csproj", "{B2454569-6EDC-4FD4-9936-D2B2F2E10409}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nerdbank.GitVersioning.Tasks", "src\Nerdbank.GitVersioning.Tasks\Nerdbank.GitVersioning.Tasks.csproj", "{B2454569-6EDC-4FD4-9936-D2B2F2E10409}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "nbgv", "nbgv\nbgv.csproj", "{EF4DAF23-6CE9-48C5-84C5-80AC80D3D07D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "nbgv", "src\nbgv\nbgv.csproj", "{EF4DAF23-6CE9-48C5-84C5-80AC80D3D07D}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cake.GitVersioning", "Cake.GitVersioning\Cake.GitVersioning.csproj", "{1F267A97-DFE3-4166-83B1-9D236B7A09BD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cake.GitVersioning", "src\Cake.GitVersioning\Cake.GitVersioning.csproj", "{1F267A97-DFE3-4166-83B1-9D236B7A09BD}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nerdbank.GitVersioning.Benchmarks", "NerdBank.GitVersioning.Benchmarks\Nerdbank.GitVersioning.Benchmarks.csproj", "{B0B7955D-E51F-4091-BF7F-55D07D381D15}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nerdbank.GitVersioning.Benchmarks", "test\NerdBank.GitVersioning.Benchmarks\Nerdbank.GitVersioning.Benchmarks.csproj", "{B0B7955D-E51F-4091-BF7F-55D07D381D15}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cake.GitVersioning.Tests", "Cake.GitVersioning.Tests\Cake.GitVersioning.Tests.csproj", "{D68829FE-24D8-4ADD-8525-17F47C6FE257}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cake.GitVersioning.Tests", "test\Cake.GitVersioning.Tests\Cake.GitVersioning.Tests.csproj", "{D68829FE-24D8-4ADD-8525-17F47C6FE257}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

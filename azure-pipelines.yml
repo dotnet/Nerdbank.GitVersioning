@@ -2,13 +2,15 @@ trigger:
   batch: true
   branches:
     include:
-      - master
-      - 'v*.*'
-      - 'validate/*'
+    - main
+    - 'v*.*'
+    - 'validate/*'
   paths:
     exclude:
-    - doc
+    - doc/
     - '*.md'
+    - .vscode/
+    - .github/
     - azure-pipelines/release.yml
 
 resources:
@@ -26,250 +28,14 @@ variables:
   TreatWarningsAsErrors: true
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
   BuildConfiguration: Release
-  BuildPlatform: Any CPU
+  codecov_token: 92266a45-648d-454e-8fec-beffae2e6553
+  ci_feed: https://pkgs.dev.azure.com/andrewarnott/OSS/_packaging/PublicCI/nuget/v3/index.json
+  NUGET_PACKAGES: $(Agent.TempDirectory)/.nuget/packages
 
 stages:
 - stage: Build
   jobs:
-  - job: Build
-    strategy:
-      matrix:
-        linux:
-          imageName: 'ubuntu-20.04'
-          testModifier: -f net6.0
-        windows:
-          imageName: 'windows-2019'
-          testModifier:
-          dotnet32: "\"C:\\Program Files (x86)\\dotnet\\dotnet.exe\""
-    variables:
-    - ${{ if eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/') }}:
-      - group: dotnetfoundation code signing
-    pool:
-      vmImage: $(imageName)
-    steps:
-    - checkout: self
-      clean: true
-      submodules: true # keep the warnings quiet about the wiki not being enlisted
-    - script: |
-        git config --global user.name ci
-        git config --global user.email me@ci.com
-      displayName: Configure git commit author for testing
-    - task: UseDotNet@2
-      displayName: Install .NET Core 3.1 runtime
-      inputs:
-        packageType: runtime
-        version: 3.1.x
-
-    - task: UseDotNet@2
-      displayName: Install .NET 6.0 SDK
-      inputs:
-        packageType: sdk
-        version: 6.0.202
-
-    - pwsh: |
-        Invoke-WebRequest -Uri "https://dot.net/v1/dotnet-install.ps1" -OutFile dotnet-install.ps1
-        & .\dotnet-install.ps1 -Architecture x86 -Channel 3.1 -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose -Runtime dotnet
-        & .\dotnet-install.ps1 -Architecture x86 -Version 6.0.202 -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose
-      displayName: Install 32-bit .NET SDK and runtimes
-      condition: ne(variables['dotnet32'], '')
-
-    - script: dotnet --info
-      displayName: Show dotnet SDK info
-
-    - pwsh: |
-        dotnet tool install --tool-path . nbgv
-        ./nbgv cloud -a
-      displayName: Set build number
-
-    - task: DotNetCoreCLI@2
-      displayName: Restore NuGet packages
-      inputs:
-        command: restore
-        verbosityRestore: normal # detailed, normal, minimal
-        projects: src/**/*.sln
-        feedsToUse: config
-        nugetConfigPath: src/nuget.config
-        workingDirectory: src
-
-    - script: npm i -g yarn@">=1.22 <2.0"
-      displayName: Installing yarn
-
-    - script: yarn --cwd src/nerdbank-gitversioning.npm
-      displayName: Installing NPM packages
-
-    - script: dotnet build -c $(BuildConfiguration) --no-restore /t:build,pack /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
-      displayName: Build NuGet package and tests
-      workingDirectory: src
-
-    - script: dotnet pack -c $(BuildConfiguration) --no-build -p:PackLKG=true /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild_lkg.binlog"
-      displayName: Build LKG package
-      workingDirectory: src/Nerdbank.GitVersioning.Tasks
-
-    - script: dotnet publish -c $(BuildConfiguration) -o ../nerdbank-gitversioning.npm/out/nbgv.cli/tools/netcoreapp3.1/any /bl:"$(Build.ArtifactStagingDirectory)/build_logs/nbgv_publish.binlog"
-      displayName: Publish nbgv tool
-      workingDirectory: src/nbgv
-
-    - task: gulp@0
-      displayName: Build nerdbank-gitversioning NPM package
-      inputs:
-        gulpfile: src/nerdbank-gitversioning.npm/gulpfile.js
-
-    - script: >
-        dotnet test NerdBank.GitVersioning.Tests
-        --no-build $(testModifier)
-        -c $(BuildConfiguration)
-        --filter "TestCategory!=FailsOnAzurePipelines"
-        --logger "trx;LogFileName=$(Build.ArtifactStagingDirectory)/TestLogs/TestResults.x64.trx"
-        --results-directory $(Build.ArtifactStagingDirectory)/CodeCoverage/
-        --collect:"XPlat Code Coverage"
-        --
-        RunConfiguration.DisableAppDomain=true
-      displayName: Run x64 tests
-      workingDirectory: src
-
-    - script: >
-        $(dotnet32) test NerdBank.GitVersioning.Tests
-        --no-build $(testModifier)
-        -c $(BuildConfiguration)
-        --filter "TestCategory!=FailsOnAzurePipelines"
-        --logger "trx;LogFileName=$(Build.ArtifactStagingDirectory)/TestLogs/TestResults.x86.trx"
-        --results-directory $(Build.ArtifactStagingDirectory)/CodeCoverage/
-        --collect:"XPlat Code Coverage"
-        --
-        RunConfiguration.DisableAppDomain=true
-      displayName: Run x86 tests
-      workingDirectory: src
-      condition: ne(variables['dotnet32'], '')
-
-    - script: >
-        dotnet test Cake.GitVersioning.Tests
-        --no-build $(testModifier)
-        -c $(BuildConfiguration)
-        --filter "TestCategory!=FailsOnAzurePipelines"
-        --logger "trx;LogFileName=$(Build.ArtifactStagingDirectory)/TestLogs/TestResults.cake.trx"
-        --results-directory $(Build.ArtifactStagingDirectory)/CodeCoverage/
-        --collect:"XPlat Code Coverage"
-        --
-        RunConfiguration.DisableAppDomain=true
-      displayName: Run cake tests
-      workingDirectory: src
-
-    - task: PublishCodeCoverageResults@1
-      displayName: Publish code coverage results
-      inputs:
-        codeCoverageTool: 'cobertura'
-        summaryFileLocation: $(Build.ArtifactStagingDirectory)/CodeCoverage/**/coverage.cobertura.xml
-
-    - task: PublishTestResults@2
-      displayName: Publish test results
-      inputs:
-        testResultsFormat: VSTest
-        testResultsFiles: '*.trx'
-        searchFolder: $(Build.ArtifactStagingDirectory)/TestLogs
-        buildPlatform: $(BuildPlatform)
-        buildConfiguration: $(BuildConfiguration)
-        publishRunAttachments: false
-      condition: always()
-
-    - task: CopyFiles@1
-      inputs:
-        sourceFolder: $(System.DefaultWorkingDirectory)/bin
-        Contents: |
-          **\*.nupkg
-          !**\*.LKG*
-          js\*.tgz
-        TargetFolder: $(Build.ArtifactStagingDirectory)/deployables
-        flattenFolders: true
-      displayName: Collecting deployable artifacts
-
-    - task: CopyFiles@1
-      inputs:
-        sourceFolder: $(System.DefaultWorkingDirectory)/bin
-        Contents: |
-          **\*.LKG*.nupkg
-        TargetFolder: $(Build.ArtifactStagingDirectory)/deployables-lkg
-        flattenFolders: true
-      displayName: Collecting LKG artifacts
-
-    - pwsh: >
-        dotnet tool install --tool-path obj SignClient
-
-        obj/SignClient sign
-        --baseDirectory '$(Build.ArtifactStagingDirectory)/deployables'
-        --input '**/*'
-        --config '$(System.DefaultWorkingDirectory)/azure-pipelines/SignClient.json'
-        --filelist '$(System.DefaultWorkingDirectory)/azure-pipelines/signfiles.txt'
-        --user '$(codesign_username)'
-        --secret '$(codesign_secret)'
-        --name 'Nerdbank.GitVersioning'
-        --descriptionUrl 'https://github.com/dotnet/Nerdbank.GitVersioning'
-      displayName: Code sign
-      condition: and(succeeded(), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), eq(variables['Agent.OS'], 'Windows_NT'), ne(variables['Build.Reason'], 'PullRequest'))
-
-    - pwsh: >
-        obj/SignClient sign
-        --baseDirectory '$(Build.ArtifactStagingDirectory)/deployables-lkg'
-        --input '**/*'
-        --config '$(System.DefaultWorkingDirectory)/azure-pipelines/SignClient.json'
-        --filelist '$(System.DefaultWorkingDirectory)/azure-pipelines/signfiles.txt'
-        --user '$(codesign_username)'
-        --secret '$(codesign_secret)'
-        --name 'Nerdbank.GitVersioning'
-        --descriptionUrl 'https://github.com/dotnet/Nerdbank.GitVersioning'
-      displayName: Code sign LKG
-      condition: and(succeeded(), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), eq(variables['Agent.OS'], 'Windows_NT'), ne(variables['Build.Reason'], 'PullRequest'))
-
-    - task: PublishBuildArtifacts@1
-      inputs:
-        PathtoPublish: $(Build.ArtifactStagingDirectory)/deployables
-        ArtifactName: deployables
-        ArtifactType: Container
-      displayName: Publish deployables artifacts
-      # Only deploy when from a single build in the build matrix
-      condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))
-
-    - task: PublishBuildArtifacts@1
-      inputs:
-        PathtoPublish: $(Build.ArtifactStagingDirectory)/deployables-lkg
-        ArtifactName: deployables-lkg
-        ArtifactType: Container
-      displayName: Publish deployables-lkg artifact
-      # Only deploy when from a single build in the build matrix
-      condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))
-
-    - task: PublishBuildArtifacts@1
-      inputs:
-        PathtoPublish: $(Build.ArtifactStagingDirectory)/build_logs
-        ArtifactName: build_logs
-        ArtifactType: Container
-      displayName: Publish build_logs artifacts
-      condition: succeededOrFailed()
-    - task: NuGetCommand@2
-      displayName: Pushing package to PublicCI feed
-      inputs:
-        command: push
-        packagesToPush: $(Build.ArtifactStagingDirectory)/deployables/*.*nupkg
-        nuGetFeedType: internal
-        publishVstsFeed: OSS/PublicCI
-        allowPackageConflicts: true
-      condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
-
-    - pwsh: Set-Content -Path "$(Agent.TempDirectory)/.npmrc" -Value "registry=https://pkgs.dev.azure.com/andrewarnott/OSS/_packaging/PublicCI/npm/registry/`nalways-auth=true"
-      displayName: Prepare to push to PublicCI
-      condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
-    - task: npmAuthenticate@0
-      displayName: Authenticate to PublicCI
-      inputs:
-        workingFile: $(Agent.TempDirectory)/.npmrc
-      condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
-    - pwsh: |
-        $tgz = (Get-ChildItem "$(Build.ArtifactStagingDirectory)/deployables/*.tgz")[0].FullName
-        Write-Host "Will publish $tgz"
-        npm publish $tgz
-      workingDirectory: $(Agent.TempDirectory)
-      displayName: npm publish to PublicCI feed
-      condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
-      continueOnError: true
+  - template: azure-pipelines/build.yml
 
 - stage: Test
   displayName: Functional testing
@@ -327,10 +93,10 @@ stages:
         packageType: runtime
         version: 3.1.x
     - task: UseDotNet@2
-      displayName: Install .NET 6.0.100 SDK
+      displayName: Install .NET 6.0.200 SDK
       inputs:
         packageType: sdk
-        version: 6.0.100
+        version: 6.0.200
     - script: dotnet --info
       displayName: Show dotnet SDK info
     - bash: |

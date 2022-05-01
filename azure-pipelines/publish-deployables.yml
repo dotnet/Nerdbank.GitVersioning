@@ -1,0 +1,17 @@
+steps:
+- download: current
+  displayName: Download deployables
+  artifact: deployables-Windows
+
+- powershell: dotnet nuget push "$(Resolve-Path '$(Pipeline.Workspace)\deployables-Windows\')*.nupkg" -s $(ci_feed) -k azdo --skip-duplicate
+  displayName: Push packages to CI feed
+  condition: and(succeeded(), ne(variables['ci_feed'], ''), ne(variables['Build.Reason'], 'PullRequest'))
+
+- pwsh: |
+    $tgz = (Get-ChildItem "$(Pipeline.Workspace)/deployables-Windows/*.tgz")[0].FullName
+    Write-Host "Will publish $tgz"
+    npm publish $tgz
+  workingDirectory: $(Agent.TempDirectory)
+  displayName: npm publish to PublicCI feed
+  continueOnError: true
+  condition: and(succeeded(), ne(variables['ci_feed'], ''), ne(variables['Build.Reason'], 'PullRequest'))

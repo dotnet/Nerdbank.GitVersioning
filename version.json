@@ -1,12 +1,15 @@
 {
-  "$schema": "https://raw.githubusercontent.com/dotnet/Nerdbank.GitVersioning/master/src/NerdBank.GitVersioning/version.schema.json",
+  "$schema": "https://raw.githubusercontent.com/dotnet/Nerdbank.GitVersioning/main/src/NerdBank.GitVersioning/version.schema.json",
   "version": "3.5-alpha",
   "assemblyVersion": {
     "precision": "revision"
   },
   "publicReleaseRefSpec": [
-    "^refs/heads/master$",
+    "^refs/heads/main$",
     "^refs/heads/develop$",
     "^refs/heads/v\\d+\\.\\d+$"
-  ]
+  ],
+  "cloudBuild": {
+    "setVersionVariables": false
+  }
 }
