@@ -1,0 +1,13 @@
+# Please see the documentation for all configuration options:
+# https://help.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+
+version: 2
+updates:
+- package-ecosystem: nuget
+  directory: /
+  schedule:
+    interval: monthly
+- package-ecosystem: npm
+  directory: /src/nerdbank-gitversioning.npm
+  schedule:
+    interval: monthly
