@@ -116,6 +116,9 @@ namespace Nerdbank.GitVersioning.ManagedGit
 
                 bytes[i >> 1] = (byte)(c1 + c2);
             }
+            
+            // Clear any cached sha. This can happen when debugging, and is very confusing.
+            objectId.sha = null;
 
             return objectId;
         }

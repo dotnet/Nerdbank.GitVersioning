@@ -61,9 +61,10 @@ namespace Nerdbank.GitVersioning
             }
 
             this.BuildingRef = cloudBuild?.BuildingTag ?? cloudBuild?.BuildingBranch ?? context.HeadCanonicalName;
+            string? nearestRelevantCommit = null;
             try
             {
-                this.VersionHeight = context.CalculateVersionHeight(this.CommittedVersion, this.WorkingVersion);
+                (this.VersionHeight, nearestRelevantCommit) = context.CalculateVersionHeightAndNearestRelevantCommit(this.CommittedVersion, this.WorkingVersion);
             }
             catch (GitException ex) when (context.IsShallow && ex.ErrorCode == GitException.ErrorCodes.ObjectNotFound)
             {
@@ -78,6 +79,7 @@ namespace Nerdbank.GitVersioning
 
             static Exception ThrowShallowClone(Exception inner) => throw new GitException("Shallow clone lacks the objects required to calculate version height. Use full clones or clones with a history at least as deep as the last version height resetting change.", inner) { iSShallowClone = true, ErrorCode = GitException.ErrorCodes.ObjectNotFound };
 
+
             this.VersionOptions = this.CommittedVersion ?? this.WorkingVersion;
             this.Version = this.VersionOptions?.Version?.Version ?? Version0;
             this.assemblyInformationalVersionComponentCount = this.VersionOptions?.VersionHeightPosition == SemanticVersion.Position.Revision ? 4 : 3;
@@ -89,6 +91,15 @@ namespace Nerdbank.GitVersioning
             }
 
             this.CloudBuildNumberOptions = this.VersionOptions?.CloudBuild?.BuildNumberOrDefault ?? VersionOptions.CloudBuildNumberOptions.DefaultInstance;
+
+            if (!string.IsNullOrEmpty(nearestRelevantCommit) && context.GitCommitId != nearestRelevantCommit)
+            {
+                if (!context.TrySelectCommit(nearestRelevantCommit!))
+                {
+                    // This would be very unexpected, given that the context itself provided the commit id we're selecting.
+                    throw new GitException("Failed to select the nearest relevant commit.");
+                }
+            }
 
             // get the commit id abbreviation only if the commit id is set
             if (!string.IsNullOrEmpty(this.GitCommitId))

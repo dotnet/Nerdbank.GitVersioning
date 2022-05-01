@@ -86,7 +86,7 @@ namespace Nerdbank.GitVersioning.Managed
             };
         }
 
-        internal override int CalculateVersionHeight(VersionOptions? committedVersion, VersionOptions? workingVersion)
+        internal override (int height, string? nearestRelevantCommit) CalculateVersionHeightAndNearestRelevantCommit(VersionOptions? committedVersion, VersionOptions? workingVersion)
         {
             var headCommitVersion = committedVersion?.Version ?? SemVer0;
 
@@ -98,11 +98,12 @@ namespace Nerdbank.GitVersioning.Managed
                 {
                     // The working copy has changed the major.minor version.
                     // So by definition the version height is 0, since no commit represents it yet.
-                    return 0;
+                    return (0, null);
                 }
             }
 
-            return GitExtensions.GetVersionHeight(this);
+            var (height, nearestRelevantCommit) = GitExtensions.GetVersionHeight(this);
+            return (height, nearestRelevantCommit?.Sha.ToString());
         }
 
         internal override Version GetIdAsVersion(VersionOptions? committedVersion, VersionOptions? workingVersion, int versionHeight)
