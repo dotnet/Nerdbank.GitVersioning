@@ -8,7 +8,7 @@ export function existsAsync(path: string) {
 
 export function mkdirAsync(path: string) {
     return new Promise<any>((resolve, reject) => fs.mkdir(path, err => {
-        if (err) { reject(err); } else { resolve() }
+        if (err) { reject(err); } else { resolve(null) }
     }));
 }
 
