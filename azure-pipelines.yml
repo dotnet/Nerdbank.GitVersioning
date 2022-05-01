@@ -36,7 +36,7 @@ stages:
       matrix:
         linux:
           imageName: 'ubuntu-20.04'
-          testModifier: -f net5.0
+          testModifier: -f net6.0
         windows:
           imageName: 'windows-2019'
           testModifier:
@@ -61,23 +61,15 @@ stages:
         version: 3.1.x
 
     - task: UseDotNet@2
-      displayName: Install .NET 5.0 SDK
-      inputs:
-        packageType: sdk # necessary for msbuild tests to run on .NET 5 runtime
-        version: 5.0.x
-
-    - task: UseDotNet@2
       displayName: Install .NET 6.0 SDK
       inputs:
         packageType: sdk
-        version: 6.0.100
-
+        version: 6.0.202
 
     - pwsh: |
         Invoke-WebRequest -Uri "https://dot.net/v1/dotnet-install.ps1" -OutFile dotnet-install.ps1
         & .\dotnet-install.ps1 -Architecture x86 -Channel 3.1 -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose -Runtime dotnet
-        & .\dotnet-install.ps1 -Architecture x86 -Channel 5.0 -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose
-        & .\dotnet-install.ps1 -Architecture x86 -Version 6.0.100 -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose
+        & .\dotnet-install.ps1 -Architecture x86 -Version 6.0.202 -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose
       displayName: Install 32-bit .NET SDK and runtimes
       condition: ne(variables['dotnet32'], '')
 
@@ -334,11 +326,6 @@ stages:
       inputs:
         packageType: runtime
         version: 3.1.x
-    - task: UseDotNet@2
-      displayName: Install .NET 5.0 runtime
-      inputs:
-        packageType: runtime
-        version: 5.0.x
     - task: UseDotNet@2
       displayName: Install .NET 6.0.100 SDK
       inputs:
