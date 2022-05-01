@@ -103,6 +103,13 @@ public abstract partial class RepoTestBase : IDisposable
     {
         Repository.Init(repoPath);
         var repo = new Repository(repoPath);
+
+        // Our tests assume the default branch is master, so retain that regardless of global git configuration on the the machine running the tests.
+        if (repo.Head.FriendlyName != "master")
+        {
+            File.WriteAllText(Path.Combine(repoPath, ".git", "HEAD"), "ref: refs/heads/master\n");
+        }
+
         repo.Config.Set("user.name", this.Signer.Name, ConfigurationLevel.Local);
         repo.Config.Set("user.email", this.Signer.Email, ConfigurationLevel.Local);
         foreach (var file in repo.RetrieveStatus().Untracked)
