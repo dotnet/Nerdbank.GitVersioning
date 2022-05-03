@@ -1,4 +1,7 @@
-﻿#nullable enable
+﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+#nullable enable
 
 using System;
 using System.Collections.Generic;
@@ -11,9 +14,9 @@ public partial class RepoTestBase
     /// <summary>
     /// Gets the number of commits in the longest single path between
     /// the specified commit and the most distant ancestor (inclusive)
-    /// that set the version to the value at <paramref name="commit"/>.
+    /// that set the version to the value at <paramref name="committish"/>.
     /// </summary>
-    /// <param name="commit">The commit, branch or tag to measure the height of. Leave as null to check HEAD.</param>
+    /// <param name="committish">The commit, branch or tag to measure the height of. Leave as null to check HEAD.</param>
     /// <param name="repoRelativeProjectDirectory">The repo-relative project directory for which to calculate the version.</param>
     /// <returns>The height of the commit. Always a positive integer.</returns>
     protected int GetVersionHeight(string? committish, string? repoRelativeProjectDirectory = null) => this.GetVersionOracle(repoRelativeProjectDirectory, committish).VersionHeight;

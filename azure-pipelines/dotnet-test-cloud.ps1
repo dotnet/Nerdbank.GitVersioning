@@ -9,13 +9,17 @@
     The name of the agent. This is used in preparing test run titles.
 .PARAMETER PublishResults
     A switch to publish results to Azure Pipelines.
+.PARAMETER x86
+    A switch to run the tests in an x86 process.
 .PARAMETER dotnet32
-    The path to the 32-bit dotnet.exe to use to run tests. If not specified, the default (typically 64-bit) dotnet process will be used.
+    The path to a 32-bit dotnet executable to use.
 #>
+[CmdletBinding()]
 Param(
     [string]$Configuration='Debug',
     [string]$Agent='Local',
     [switch]$PublishResults,
+    [switch]$x86,
     [string]$dotnet32
 )
 
@@ -23,9 +27,21 @@ $RepoRoot = (Resolve-Path "$PSScriptRoot/..").Path
 $ArtifactStagingFolder = & "$PSScriptRoot/Get-ArtifactsStagingDirectory.ps1"
 
 $dotnet = 'dotnet'
-if ($dotnet32) {
-  $dotnet = $dotnet32
-  $x86RunTitle = ", x86"
+if ($x86) {
+  $x86RunTitleSuffix = ", x86"
+  if ($dotnet32) {
+    $dotnet = $dotnet32
+  } else {
+    $dotnet32Possibilities = "$PSScriptRoot\../obj/tools/x86/.dotnet/dotnet.exe", "$env:AGENT_TOOLSDIRECTORY/x86/dotnet/dotnet.exe", "${env:ProgramFiles(x86)}\dotnet\dotnet.exe"
+    $dotnet32Matches = $dotnet32Possibilities |? { Test-Path $_ }
+    if ($dotnet32Matches) {
+      $dotnet = Resolve-Path @($dotnet32Matches)[0]
+      Write-Host "Running tests using `"$dotnet`"" -ForegroundColor DarkGray
+    } else {
+      Write-Error "Unable to find 32-bit dotnet.exe"
+      return 1
+    }
+  }
 }
 
 & $dotnet test $RepoRoot `
@@ -38,8 +54,6 @@ if ($dotnet32) {
     -bl:"$ArtifactStagingFolder/build_logs/test.binlog" `
     --diag "$ArtifactStagingFolder/test_logs/diag.log;TraceLevel=info" `
     --logger trx `
-    -- `
-    RunConfiguration.DisableAppDomain=true
 
 $unknownCounter = 0
 Get-ChildItem -Recurse -Path $RepoRoot\test\*.trx |% {
@@ -52,15 +66,15 @@ Get-ChildItem -Recurse -Path $RepoRoot\test\*.trx |% {
       $storage = $x.TestRun.TestDefinitions.GetElementsByTagName('UnitTest')[0].storage -replace '\\','/'
       if ($storage -match '/(?<tfm>net[^/]+)/(?:(?<rid>[^/]+)/)?(?<lib>[^/]+)\.dll$') {
         if ($matches.rid) {
-          $runTitle = "$($matches.lib) ($($matches.tfm), $($matches.rid), $Agent$x86RunTitle)"
+          $runTitle = "$($matches.lib) ($($matches.tfm), $($matches.rid), $Agent)"
         } else {
-          $runTitle = "$($matches.lib) ($($matches.tfm), $Agent$x86RunTitle)"
+          $runTitle = "$($matches.lib) ($($matches.tfm)$x86RunTitleSuffix, $Agent)"
         }
       }
     }
     if (!$runTitle) {
       $unknownCounter += 1;
-      $runTitle = "unknown$unknownCounter ($Agent$x86RunTitle)";
+      $runTitle = "unknown$unknownCounter ($Agent$x86RunTitleSuffix)";
     }
 
     Write-Host "##vso[results.publish type=VSTest;runTitle=$runTitle;publishRunAttachments=true;resultFiles=$_;failTaskOnFailedTests=true;testRunSystem=VSTS - PTR;]"

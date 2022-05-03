@@ -1,108 +1,108 @@
-﻿#nullable enable
+﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System;
+#nullable enable
+
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
 using Windows.Win32;
 using Windows.Win32.Storage.FileSystem;
 using Windows.Win32.System.SystemServices;
 
-namespace Nerdbank.GitVersioning.ManagedGit
+namespace Nerdbank.GitVersioning.ManagedGit;
+
+internal static class FileHelpers
 {
-    internal static class FileHelpers
+    private static readonly bool IsWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+
+    /// <summary>
+    /// Opens the file with a given path, if it exists.
+    /// </summary>
+    /// <param name="path">The path to the file.</param>
+    /// <param name="stream">The stream to open to, if the file exists.</param>
+    /// <returns><see langword="true" /> if the file exists; otherwise <see langword="false" />.</returns>
+    internal static bool TryOpen(string path, out FileStream? stream)
     {
-        private static readonly bool IsWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-
-        /// <summary>
-        /// Opens the file with a given path, if it exists.
-        /// </summary>
-        /// <param name="path">The path to the file.</param>
-        /// <param name="stream">The stream to open to, if the file exists.</param>
-        /// <returns><see langword="true" /> if the file exists; otherwise <see langword="false" />.</returns>
-        internal static bool TryOpen(string path, out FileStream? stream)
+        if (IsWindows)
         {
-            if (IsWindows)
-            {
-                var handle = PInvoke.CreateFile(path, FILE_ACCESS_FLAGS.FILE_GENERIC_READ, FILE_SHARE_MODE.FILE_SHARE_READ, lpSecurityAttributes: null, FILE_CREATION_DISPOSITION.OPEN_EXISTING, FILE_FLAGS_AND_ATTRIBUTES.FILE_ATTRIBUTE_NORMAL, null);
+            SafeFileHandle? handle = PInvoke.CreateFile(path, FILE_ACCESS_FLAGS.FILE_GENERIC_READ, FILE_SHARE_MODE.FILE_SHARE_READ, lpSecurityAttributes: null, FILE_CREATION_DISPOSITION.OPEN_EXISTING, FILE_FLAGS_AND_ATTRIBUTES.FILE_ATTRIBUTE_NORMAL, null);
 
-                if (!handle.IsInvalid)
-                {
-                    var fileHandle = new SafeFileHandle(handle.DangerousGetHandle(), ownsHandle: true);
-                    handle.SetHandleAsInvalid();
-                    stream = new FileStream(fileHandle, System.IO.FileAccess.Read);
-                    return true;
-                }
-                else
-                {
-                    stream = null;
-                    return false;
-                }
+            if (!handle.IsInvalid)
+            {
+                var fileHandle = new SafeFileHandle(handle.DangerousGetHandle(), ownsHandle: true);
+                handle.SetHandleAsInvalid();
+                stream = new FileStream(fileHandle, System.IO.FileAccess.Read);
+                return true;
             }
             else
             {
-                if (!File.Exists(path))
-                {
-                    stream = null;
-                    return false;
-                }
-
-                stream = File.OpenRead(path);
-                return true;
+                stream = null;
+                return false;
             }
         }
-
-        /// <summary>
-        /// Opens the file with a given path, if it exists.
-        /// </summary>
-        /// <param name="path">The path to the file, as a null-terminated UTF-16 character array.</param>
-        /// <param name="stream">The stream to open to, if the file exists.</param>
-        /// <returns><see langword="true" /> if the file exists; otherwise <see langword="false" />.</returns>
-        internal static unsafe bool TryOpen(ReadOnlySpan<char> path, [NotNullWhen(true)] out FileStream? stream)
+        else
         {
-            if (IsWindows)
+            if (!File.Exists(path))
             {
-                HANDLE handle;
-                fixed (char* pPath = &path[0])
-                {
-                    handle = PInvoke.CreateFile(pPath, FILE_ACCESS_FLAGS.FILE_GENERIC_READ, FILE_SHARE_MODE.FILE_SHARE_READ, null, FILE_CREATION_DISPOSITION.OPEN_EXISTING, FILE_FLAGS_AND_ATTRIBUTES.FILE_ATTRIBUTE_NORMAL, default);
-                }
+                stream = null;
+                return false;
+            }
 
-                if (!handle.Equals(Constants.INVALID_HANDLE_VALUE))
-                {
-                    var fileHandle = new SafeFileHandle(handle, ownsHandle: true);
-                    stream = new FileStream(fileHandle, System.IO.FileAccess.Read);
-                    return true;
-                }
-                else
-                {
-                    stream = null;
-                    return false;
-                }
+            stream = File.OpenRead(path);
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// Opens the file with a given path, if it exists.
+    /// </summary>
+    /// <param name="path">The path to the file, as a null-terminated UTF-16 character array.</param>
+    /// <param name="stream">The stream to open to, if the file exists.</param>
+    /// <returns><see langword="true" /> if the file exists; otherwise <see langword="false" />.</returns>
+    internal static unsafe bool TryOpen(ReadOnlySpan<char> path, [NotNullWhen(true)] out FileStream? stream)
+    {
+        if (IsWindows)
+        {
+            HANDLE handle;
+            fixed (char* pPath = &path[0])
+            {
+                handle = PInvoke.CreateFile(pPath, FILE_ACCESS_FLAGS.FILE_GENERIC_READ, FILE_SHARE_MODE.FILE_SHARE_READ, null, FILE_CREATION_DISPOSITION.OPEN_EXISTING, FILE_FLAGS_AND_ATTRIBUTES.FILE_ATTRIBUTE_NORMAL, default);
+            }
+
+            if (!handle.Equals(Constants.INVALID_HANDLE_VALUE))
+            {
+                var fileHandle = new SafeFileHandle(handle, ownsHandle: true);
+                stream = new FileStream(fileHandle, System.IO.FileAccess.Read);
+                return true;
             }
             else
             {
-                // Make sure to trim the trailing \0
-                string fullPath = GetUtf16String(path.Slice(0, path.Length - 1));
-
-                if (!File.Exists(fullPath))
-                {
-                    stream = null;
-                    return false;
-                }
-
-                stream = File.OpenRead(fullPath);
-                return true;
+                stream = null;
+                return false;
             }
         }
-
-        private static unsafe string GetUtf16String(ReadOnlySpan<char> chars)
+        else
         {
-            fixed (char* pChars = chars)
+            // Make sure to trim the trailing \0
+            string fullPath = GetUtf16String(path.Slice(0, path.Length - 1));
+
+            if (!File.Exists(fullPath))
             {
-                return new string(pChars, 0, chars.Length);
+                stream = null;
+                return false;
             }
+
+            stream = File.OpenRead(fullPath);
+            return true;
+        }
+    }
+
+    private static unsafe string GetUtf16String(ReadOnlySpan<char> chars)
+    {
+        fixed (char* pChars = chars)
+        {
+            return new string(pChars, 0, chars.Length);
         }
     }
 }

@@ -1,28 +1,31 @@
+// Copyright (c) .NET Foundation and Contributors. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System;
+using System.Collections.Generic;
+using System.CommandLine;
+using System.CommandLine.Builder;
+using System.CommandLine.Invocation;
+using System.CommandLine.Parsing;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Build.Construction;
+using Nerdbank.GitVersioning.Commands;
+using Nerdbank.GitVersioning.LibGit2;
+using Newtonsoft.Json;
+using NuGet.Common;
+using NuGet.Configuration;
+using NuGet.PackageManagement;
+using NuGet.Protocol;
+using NuGet.Protocol.Core.Types;
+using NuGet.Resolver;
+using Validation;
+
 namespace Nerdbank.GitVersioning.Tool
 {
-    using System;
-    using System.Collections.Generic;
-    using System.CommandLine;
-    using System.CommandLine.Builder;
-    using System.CommandLine.Invocation;
-    using System.CommandLine.Parsing;
-    using System.IO;
-    using System.Linq;
-    using System.Reflection;
-    using System.Threading;
-    using System.Threading.Tasks;
-    using Microsoft.Build.Construction;
-    using Nerdbank.GitVersioning.Commands;
-    using Nerdbank.GitVersioning.LibGit2;
-    using Newtonsoft.Json;
-    using NuGet.Common;
-    using NuGet.Configuration;
-    using NuGet.PackageManagement;
-    using NuGet.Protocol;
-    using NuGet.Protocol.Core.Types;
-    using NuGet.Resolver;
-    using Validation;
-
     internal class Program
     {
         private const string DefaultVersionSpec = "1.0-beta";
@@ -34,6 +37,9 @@ namespace Nerdbank.GitVersioning.Tool
         private const string PackageId = "Nerdbank.GitVersioning";
 
         private const BindingFlags CaseInsensitiveFlags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.IgnoreCase;
+
+        private static readonly string[] SupportedFormats = new[] { "text", "json" };
+        private static ExitCodes exitCode;
 
         private enum ExitCodes
         {
@@ -64,10 +70,9 @@ namespace Nerdbank.GitVersioning.Tool
             InternalError,
         }
 
-        private static readonly string[] SupportedFormats = new[] { "text", "json" };
-        private static ExitCodes exitCode;
-
         private static bool AlwaysUseLibGit2 => string.Equals(Environment.GetEnvironmentVariable("NBGV_GitEngine"), "LibGit2", StringComparison.Ordinal);
+
+        private static string[] CloudProviderNames => CloudBuild.SupportedCloudBuilds.Select(cb => cb.GetType().Name).ToArray();
 
         public static int Main(string[] args)
         {
@@ -77,7 +82,7 @@ namespace Nerdbank.GitVersioning.Tool
             Type innerProgramType = inContextAssembly.GetType(typeof(Program).FullName);
             object innerProgram = Activator.CreateInstance(innerProgramType);
 
-            var mainInnerMethod = innerProgramType.GetMethod(nameof(MainInner), BindingFlags.Static | BindingFlags.NonPublic);
+            MethodInfo mainInnerMethod = innerProgramType.GetMethod(nameof(MainInner), BindingFlags.Static | BindingFlags.NonPublic);
             int result = (int)mainInnerMethod.Invoke(null, new object[] { args });
             return result;
         }
@@ -199,23 +204,25 @@ namespace Nerdbank.GitVersioning.Tool
 
             return new CommandLineBuilder(root)
                 .UseDefaults()
-                .UseMiddleware(context =>
-                {
-                    // System.CommandLine 0.1 parsed arguments after optional --. Restore that behavior for compatibility.
-                    // TODO: Remove this middleware when https://github.com/dotnet/command-line-api/issues/1238 is resolved.
-                    if (context.ParseResult.UnparsedTokens.Count > 0)
+                .UseMiddleware(
+                    context =>
                     {
-                        var arguments = context.ParseResult.CommandResult.Command.Arguments;
-                        if (arguments.Count() == context.ParseResult.UnparsedTokens.Count)
+                        // System.CommandLine 0.1 parsed arguments after optional --. Restore that behavior for compatibility.
+                        // TODO: Remove this middleware when https://github.com/dotnet/command-line-api/issues/1238 is resolved.
+                        if (context.ParseResult.UnparsedTokens.Count > 0)
                         {
-                            context.ParseResult = context.Parser.Parse(
-                                context.ParseResult.Tokens
-                                    .Where(token => token.Type != TokenType.EndOfArguments)
-                                    .Select(token => token.Value)
-                                    .ToArray());
+                            IEnumerable<IArgument> arguments = context.ParseResult.CommandResult.Command.Arguments;
+                            if (arguments.Count() == context.ParseResult.UnparsedTokens.Count)
+                            {
+                                context.ParseResult = context.Parser.Parse(
+                                    context.ParseResult.Tokens
+                                        .Where(token => token.Type != TokenType.EndOfArguments)
+                                        .Select(token => token.Value)
+                                        .ToArray());
+                            }
                         }
-                    }
-                }, (MiddlewareOrder)(-3000)) // MiddlewareOrderInternal.ExceptionHandler so [parse] directive is accurate.
+                    },
+                    (MiddlewareOrder)(-3000)) // MiddlewareOrderInternal.ExceptionHandler so [parse] directive is accurate.
                 .UseExceptionHandler((ex, context) => PrintException(ex, context))
                 .Build();
         }
@@ -237,7 +244,7 @@ namespace Nerdbank.GitVersioning.Tool
         {
             try
             {
-                var parser = BuildCommandLine();
+                Parser parser = BuildCommandLine();
                 exitCode = (ExitCodes)parser.Invoke(args);
             }
             catch (GitException ex)
@@ -245,7 +252,7 @@ namespace Nerdbank.GitVersioning.Tool
                 Console.Error.WriteLine($"ERROR: {ex.Message}");
                 exitCode = ex.ErrorCode switch
                 {
-                    GitException.ErrorCodes.ObjectNotFound when ex.iSShallowClone => ExitCodes.ShallowClone,
+                    GitException.ErrorCodes.ObjectNotFound when ex.IsShallowClone => ExitCodes.ShallowClone,
                     _ => ExitCodes.InternalError,
                 };
             }
@@ -255,7 +262,7 @@ namespace Nerdbank.GitVersioning.Tool
 
         private static int OnInstallCommand(string path, string version, IReadOnlyList<string> source)
         {
-            if (!SemanticVersion.TryParse(string.IsNullOrEmpty(version) ? DefaultVersionSpec : version, out var semver))
+            if (!SemanticVersion.TryParse(string.IsNullOrEmpty(version) ? DefaultVersionSpec : version, out SemanticVersion semver))
             {
                 Console.Error.WriteLine($"\"{version}\" is not a semver-compliant version spec.");
                 return (int)ExitCodes.InvalidVersionSpec;
@@ -296,12 +303,12 @@ namespace Nerdbank.GitVersioning.Tool
                 path = context.WorkingTreePath;
             }
 
-            var existingOptions = context.VersionFile.GetVersion();
+            VersionOptions existingOptions = context.VersionFile.GetVersion();
             if (existingOptions is not null)
             {
                 if (!string.IsNullOrEmpty(version) && version != DefaultVersionSpec)
                 {
-                    var setVersionExitCode = OnSetVersionCommand(path, version);
+                    int setVersionExitCode = OnSetVersionCommand(path, version);
                     if (setVersionExitCode != (int)ExitCodes.OK)
                     {
                         return setVersionExitCode;
@@ -321,10 +328,10 @@ namespace Nerdbank.GitVersioning.Tool
                 : ProjectRootElement.Create(directoryBuildPropsPath);
 
             // Validate given sources
-            foreach (var src in source)
+            foreach (string src in source)
             {
                 // TODO: Can declare Option<Uri> to validate argument during parsing.
-                if (!Uri.TryCreate(src, UriKind.Absolute, out var _))
+                if (!Uri.TryCreate(src, UriKind.Absolute, out Uri _))
                 {
                     Console.Error.WriteLine($"\"{src}\" is not a valid NuGet package source.");
                     return (int)ExitCodes.InvalidNuGetPackageSource;
@@ -345,7 +352,7 @@ namespace Nerdbank.GitVersioning.Tool
             const string PrivateAssetsMetadataName = "PrivateAssets";
             const string VersionMetadataName = "Version";
 
-            var item = propsFile.Items.FirstOrDefault(i => i.ItemType == PackageReferenceItemType && i.Include == PackageId);
+            ProjectItemElement item = propsFile.Items.FirstOrDefault(i => i.ItemType == PackageReferenceItemType && i.Include == PackageId);
 
             if (item is null)
             {
@@ -355,12 +362,12 @@ namespace Nerdbank.GitVersioning.Tool
                     new Dictionary<string, string>
                     {
                         { PrivateAssetsMetadataName, "all" },
-                        { VersionMetadataName, packageVersion }
+                        { VersionMetadataName, packageVersion },
                     });
             }
             else
             {
-                var versionMetadata = item.Metadata.Single(m => m.Name == VersionMetadataName);
+                ProjectMetadataElement versionMetadata = item.Metadata.Single(m => m.Name == VersionMetadataName);
                 versionMetadata.Value = packageVersion;
             }
 
@@ -442,7 +449,7 @@ namespace Nerdbank.GitVersioning.Tool
                     return (int)ExitCodes.UnsupportedFormat;
                 }
 
-                var property = oracle.GetType().GetProperty(variable, CaseInsensitiveFlags);
+                PropertyInfo property = oracle.GetType().GetProperty(variable, CaseInsensitiveFlags);
                 if (property is null)
                 {
                     Console.Error.WriteLine("Variable \"{0}\" not a version property.", variable);
@@ -457,7 +464,7 @@ namespace Nerdbank.GitVersioning.Tool
 
         private static int OnSetVersionCommand(string project, string version)
         {
-            if (!SemanticVersion.TryParse(string.IsNullOrEmpty(version) ? DefaultVersionSpec : version, out var semver))
+            if (!SemanticVersion.TryParse(string.IsNullOrEmpty(version) ? DefaultVersionSpec : version, out SemanticVersion semver))
             {
                 Console.Error.WriteLine($"\"{version}\" is not a semver-compliant version spec.");
                 return (int)ExitCodes.InvalidVersionSpec;
@@ -470,7 +477,7 @@ namespace Nerdbank.GitVersioning.Tool
 
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(project);
             using var context = GitContext.Create(searchPath, writable: true);
-            var existingOptions = context.VersionFile.GetVersion(out string actualDirectory);
+            VersionOptions existingOptions = context.VersionFile.GetVersion(out string actualDirectory);
             string versionJsonPath;
             if (existingOptions is not null)
             {
@@ -516,7 +523,7 @@ namespace Nerdbank.GitVersioning.Tool
                 return (int)ExitCodes.NoGitRepo;
             }
 
-            var repository = context.Repository;
+            LibGit2Sharp.Repository repository = context.Repository;
             if (!context.TrySelectCommit(versionOrRef))
             {
                 if (!Version.TryParse(versionOrRef, out Version parsedVersion))
@@ -593,7 +600,7 @@ namespace Nerdbank.GitVersioning.Tool
                 return (int)ExitCodes.NoGitRepo;
             }
 
-            var candidateCommits = LibGit2GitExtensions.GetCommitsFromVersion(context, parsedVersion);
+            IEnumerable<LibGit2Sharp.Commit> candidateCommits = LibGit2GitExtensions.GetCommitsFromVersion(context, parsedVersion);
             PrintCommits(quiet, context, candidateCommits);
 
             return (int)ExitCodes.OK;
@@ -638,6 +645,7 @@ namespace Nerdbank.GitVersioning.Tool
             catch (CloudCommand.CloudCommandException ex)
             {
                 Console.Error.WriteLine(ex.Message);
+
                 // map error codes
                 switch (ex.Error)
                 {
@@ -654,7 +662,6 @@ namespace Nerdbank.GitVersioning.Tool
             }
 
             return (int)ExitCodes.OK;
-
         }
 
         private static int OnPrepareReleaseCommand(string project, string nextVersion, string versionIncrement, string format, string tag)
@@ -678,11 +685,12 @@ namespace Nerdbank.GitVersioning.Tool
             VersionOptions.ReleaseVersionIncrement? versionIncrementParsed = default;
             if (!string.IsNullOrEmpty(versionIncrement))
             {
-                if (!Enum.TryParse<VersionOptions.ReleaseVersionIncrement>(versionIncrement, true, out var parsed))
+                if (!Enum.TryParse<VersionOptions.ReleaseVersionIncrement>(versionIncrement, true, out VersionOptions.ReleaseVersionIncrement parsed))
                 {
                     Console.Error.WriteLine($"\"{versionIncrement}\" is not a valid version increment");
                     return (int)ExitCodes.InvalidVersionIncrement;
                 }
+
                 versionIncrementParsed = parsed;
             }
 
@@ -702,6 +710,7 @@ namespace Nerdbank.GitVersioning.Tool
             {
                 format = DefaultOutputFormat;
             }
+
             if (!Enum.TryParse(format, true, out ReleaseManager.ReleaseManagerOutputMode outputMode))
             {
                 Console.Error.WriteLine($"Unsupported format: {format}");
@@ -748,7 +757,7 @@ namespace Nerdbank.GitVersioning.Tool
 
         private static async Task<string> GetLatestPackageVersionAsync(string packageId, string root, IReadOnlyList<string> sources, CancellationToken cancellationToken = default)
         {
-            var settings = Settings.LoadDefaultSettings(root);
+            ISettings settings = Settings.LoadDefaultSettings(root);
 
             var providers = new List<Lazy<INuGetResourceProvider>>();
             providers.AddRange(Repository.Provider.GetCoreV3());  // Add v3 API support
@@ -757,12 +766,12 @@ namespace Nerdbank.GitVersioning.Tool
 
             // Select package sources based on NuGet.Config files or given options, as 'nuget.exe restore' command does
             // See also 'DownloadCommandBase.GetPackageSources(ISettings)' at https://github.com/NuGet/NuGet.Client/blob/dev/src/NuGet.Clients/NuGet.CommandLine/Commands/DownloadCommandBase.cs
-            var availableSources = sourceRepositoryProvider.PackageSourceProvider.LoadPackageSources().Where(s => s.IsEnabled);
+            IEnumerable<PackageSource> availableSources = sourceRepositoryProvider.PackageSourceProvider.LoadPackageSources().Where(s => s.IsEnabled);
             var packageSources = new List<PackageSource>();
 
-            foreach (var source in sources)
+            foreach (string source in sources)
             {
-                var resolvedSource = availableSources.FirstOrDefault(s => s.Source.Equals(source, StringComparison.OrdinalIgnoreCase) || s.Name.Equals(source, StringComparison.OrdinalIgnoreCase));
+                PackageSource resolvedSource = availableSources.FirstOrDefault(s => s.Source.Equals(source, StringComparison.OrdinalIgnoreCase) || s.Name.Equals(source, StringComparison.OrdinalIgnoreCase));
                 packageSources.Add(resolvedSource ?? new PackageSource(source));
             }
 
@@ -771,7 +780,7 @@ namespace Nerdbank.GitVersioning.Tool
                 packageSources.AddRange(availableSources);
             }
 
-            var sourceRepositories = packageSources.Select(sourceRepositoryProvider.CreateRepository).ToArray();
+            SourceRepository[] sourceRepositories = packageSources.Select(sourceRepositoryProvider.CreateRepository).ToArray();
             var resolutionContext = new ResolutionContext(
                 DependencyBehavior.Highest,
                 includePrelease: false,
@@ -781,7 +790,7 @@ namespace Nerdbank.GitVersioning.Tool
             // The target framework doesn't matter, since our package doesn't depend on this for its target projects.
             var framework = new NuGet.Frameworks.NuGetFramework("net45");
 
-            var pkg = await NuGetPackageManager.GetLatestVersionAsync(
+            ResolvedPackage pkg = await NuGetPackageManager.GetLatestVersionAsync(
                 packageId,
                 framework,
                 resolutionContext,
@@ -815,7 +824,7 @@ namespace Nerdbank.GitVersioning.Tool
         private static void PrintCommits(bool quiet, GitContext context, IEnumerable<LibGit2Sharp.Commit> candidateCommits, bool includeOptions = false)
         {
             int index = 1;
-            foreach (var commit in candidateCommits)
+            foreach (LibGit2Sharp.Commit commit in candidateCommits)
             {
                 if (includeOptions)
                 {
@@ -834,7 +843,5 @@ namespace Nerdbank.GitVersioning.Tool
                 }
             }
         }
-
-        private static string[] CloudProviderNames => CloudBuild.SupportedCloudBuilds.Select(cb => cb.GetType().Name).ToArray();
     }
 }

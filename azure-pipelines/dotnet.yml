@@ -16,17 +16,16 @@ steps:
   displayName: Publish nbgv tool
   workingDirectory: src/nbgv
 
-- task: gulp@0
+- script: yarn build
   displayName: Build nerdbank-gitversioning NPM package
-  inputs:
-    gulpfile: src/nerdbank-gitversioning.npm/gulpfile.js
+  workingDirectory: src/nerdbank-gitversioning.npm
 
 - powershell: azure-pipelines/dotnet-test-cloud.ps1 -Configuration $(BuildConfiguration) -Agent $(Agent.JobName) -PublishResults
-  displayName: dotnet test x64
+  displayName: dotnet test
 
-- powershell: azure-pipelines/dotnet-test-cloud.ps1 -Configuration $(BuildConfiguration) -Agent $(Agent.JobName) -PublishResults -dotnet32 '$(dotnet32)'
+- powershell: azure-pipelines/dotnet-test-cloud.ps1 -Configuration $(BuildConfiguration) -Agent $(Agent.JobName) -PublishResults -X86
   displayName: dotnet test x86
-  condition: ne(variables['dotnet32'], '')
+  condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))
 
 - pwsh: >
     dotnet tool install --tool-path obj SignClient

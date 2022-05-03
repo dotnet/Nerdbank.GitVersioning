@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -11,6 +14,9 @@ using Xunit;
 using Xunit.Abstractions;
 using Version = System.Version;
 
+#pragma warning disable SA1402 // File may only contain a single type
+#pragma warning disable SA1649 // File name should match first type name
+
 [Trait("Engine", "Managed")]
 public class VersionFileManagedTests : VersionFileTests
 {
@@ -19,6 +25,7 @@ public class VersionFileManagedTests : VersionFileTests
     {
     }
 
+    /// <inheritdoc/>
     protected override GitContext CreateGitContext(string path, string committish = null)
         => GitContext.Create(path, committish, writable: false);
 }
@@ -31,6 +38,7 @@ public class VersionFileLibGit2Tests : VersionFileTests
     {
     }
 
+    /// <inheritdoc/>
     protected override GitContext CreateGitContext(string path, string committish = null)
         => GitContext.Create(path, committish, writable: true);
 }
@@ -58,8 +66,8 @@ public abstract class VersionFileTests : RepoTestBase
 
         // Verify that we can find the version.txt file in the most recent commit,
         // But not in the initial commit.
-        using var tipContext = this.CreateGitContext(this.RepoPath, this.LibGit2Repository.Head.Commits.First().Sha);
-        using var initialContext = this.CreateGitContext(this.RepoPath, this.LibGit2Repository.Head.Commits.Last().Sha);
+        using GitContext tipContext = this.CreateGitContext(this.RepoPath, this.LibGit2Repository.Head.Commits.First().Sha);
+        using GitContext initialContext = this.CreateGitContext(this.RepoPath, this.LibGit2Repository.Head.Commits.Last().Sha);
         Assert.True(tipContext.VersionFile.IsVersionDefined());
         Assert.False(initialContext.VersionFile.IsVersionDefined());
     }
@@ -80,9 +88,9 @@ public abstract class VersionFileTests : RepoTestBase
         Directory.CreateDirectory(subDirABC);
         this.Context.VersionFile.SetVersion(subDirAB, new Version(1, 1));
 
-        using var subDirABCContext = this.CreateGitContext(subDirABC);
-        using var subDirABContext = this.CreateGitContext(subDirAB);
-        using var subDirAContext = this.CreateGitContext(subDirA);
+        using GitContext subDirABCContext = this.CreateGitContext(subDirABC);
+        using GitContext subDirABContext = this.CreateGitContext(subDirAB);
+        using GitContext subDirAContext = this.CreateGitContext(subDirA);
         Assert.True(subDirABCContext.VersionFile.IsVersionDefined());
         Assert.True(subDirABContext.VersionFile.IsVersionDefined());
         Assert.True(subDirAContext.VersionFile.IsVersionDefined());
@@ -102,7 +110,7 @@ public abstract class VersionFileTests : RepoTestBase
     {
         File.WriteAllText(Path.Combine(this.RepoPath, VersionFile.JsonFileName), json);
 
-        var options = this.Context.VersionFile.GetVersion();
+        VersionOptions options = this.Context.VersionFile.GetVersion();
         Assert.NotNull(options);
         Assert.Equal(version, options.Version?.ToString());
         Assert.Equal(assemblyVersion, options.AssemblyVersion?.Version?.ToString());
@@ -162,8 +170,8 @@ public abstract class VersionFileTests : RepoTestBase
             Version = SemanticVersion.Parse("1.2"),
             PathFilters = new[]
             {
-                new FilterPath("./foo", ""),
-            }
+                new FilterPath("./foo", string.Empty),
+            },
         };
 
         this.Context.VersionFile.SetVersion(this.RepoPath, versionOptions);
@@ -181,15 +189,15 @@ public abstract class VersionFileTests : RepoTestBase
             {
                 new FilterPath("./foo", "bar"),
                 new FilterPath("/absolute", "bar"),
-            }
+            },
         };
         var expected = versionOptions.PathFilters.Select(x => x.RepoRelativePath).ToList();
 
-        var projectDirectory = Path.Combine(this.RepoPath, "quux");
+        string projectDirectory = Path.Combine(this.RepoPath, "quux");
         this.Context.VersionFile.SetVersion(projectDirectory, versionOptions);
 
-        using var projectContext = this.CreateGitContext(projectDirectory);
-        var actualVersionOptions = projectContext.VersionFile.GetVersion();
+        using GitContext projectContext = this.CreateGitContext(projectDirectory);
+        VersionOptions actualVersionOptions = projectContext.VersionFile.GetVersion();
         var actual = actualVersionOptions.PathFilters.Select(x => x.RepoRelativePath).ToList();
         Assert.Equal(expected, actual);
     }
@@ -204,24 +212,24 @@ public abstract class VersionFileTests : RepoTestBase
             Version = SemanticVersion.Parse("1.2"),
             PathFilters = new[]
             {
-                new FilterPath("./root-file.txt", ""),
-                new FilterPath("/absolute", ""),
-            }
+                new FilterPath("./root-file.txt", string.Empty),
+                new FilterPath("/absolute", string.Empty),
+            },
         };
         this.Context.VersionFile.SetVersion(this.RepoPath, rootVersionOptions);
 
         var versionOptions = new VersionOptions
         {
             Version = SemanticVersion.Parse("1.2"),
-            Inherit = true
+            Inherit = true,
         };
-        var projectDirectory = Path.Combine(this.RepoPath, "quux");
+        string projectDirectory = Path.Combine(this.RepoPath, "quux");
         this.Context.VersionFile.SetVersion(projectDirectory, versionOptions);
 
         var expected = rootVersionOptions.PathFilters.Select(x => x.RepoRelativePath).ToList();
 
-        using var projectContext = this.CreateGitContext(projectDirectory);
-        var actualVersionOptions = projectContext.VersionFile.GetVersion();
+        using GitContext projectContext = this.CreateGitContext(projectDirectory);
+        VersionOptions actualVersionOptions = projectContext.VersionFile.GetVersion();
         var actual = actualVersionOptions.PathFilters.Select(x => x.RepoRelativePath).ToList();
         Assert.Equal(expected, actual);
     }
@@ -236,9 +244,9 @@ public abstract class VersionFileTests : RepoTestBase
             Version = SemanticVersion.Parse("1.2"),
             PathFilters = new[]
             {
-                new FilterPath("./root-file.txt", ""),
-                new FilterPath("/absolute", ""),
-            }
+                new FilterPath("./root-file.txt", string.Empty),
+                new FilterPath("/absolute", string.Empty),
+            },
         };
         this.Context.VersionFile.SetVersion(this.RepoPath, rootVersionOptions);
 
@@ -250,15 +258,15 @@ public abstract class VersionFileTests : RepoTestBase
             {
                 new FilterPath("./project-file.txt", "quux"),
                 new FilterPath("/absolute", "quux"),
-            }
+            },
         };
-        var projectDirectory = Path.Combine(this.RepoPath, "quux");
+        string projectDirectory = Path.Combine(this.RepoPath, "quux");
         this.Context.VersionFile.SetVersion(projectDirectory, versionOptions);
 
         var expected = versionOptions.PathFilters.Select(x => x.RepoRelativePath).ToList();
 
-        using var projectContext = this.CreateGitContext(projectDirectory);
-        var actualVersionOptions = projectContext.VersionFile.GetVersion();
+        using GitContext projectContext = this.CreateGitContext(projectDirectory);
+        VersionOptions actualVersionOptions = projectContext.VersionFile.GetVersion();
         var actual = actualVersionOptions.PathFilters.Select(x => x.RepoRelativePath).ToList();
         Assert.Equal(expected, actual);
     }
@@ -283,12 +291,12 @@ public abstract class VersionFileTests : RepoTestBase
     [InlineData(@"{""release"":{""branchName"":""someName"",""versionIncrement"":""major"",""firstUnstableTag"":""pre""}}", @"{""release"":{""branchName"":""someName"",""versionIncrement"":""major"",""firstUnstableTag"":""pre""}}")]
     public void JsonMinification(string full, string minimal)
     {
-        var settings = VersionOptions.GetJsonSettings();
+        JsonSerializerSettings settings = VersionOptions.GetJsonSettings();
         settings.Formatting = Formatting.None;
 
         // Assert that the two representations are equivalent.
-        var fullVersion = JsonConvert.DeserializeObject<VersionOptions>(full, settings);
-        var minimalVersion = JsonConvert.DeserializeObject<VersionOptions>(minimal, settings);
+        VersionOptions fullVersion = JsonConvert.DeserializeObject<VersionOptions>(full, settings);
+        VersionOptions minimalVersion = JsonConvert.DeserializeObject<VersionOptions>(minimal, settings);
         Assert.Equal(fullVersion, minimalVersion);
 
         string fullVersionSerialized = JsonConvert.SerializeObject(fullVersion, settings);
@@ -368,7 +376,7 @@ public abstract class VersionFileTests : RepoTestBase
         Directory.CreateDirectory(subDirABC);
         this.Context.VersionFile.SetVersion(subDirAB, new Version(1, 1));
         this.InitializeSourceControl();
-        var commit = this.LibGit2Repository.Head.Commits.First().Sha;
+        string commit = this.LibGit2Repository.Head.Commits.First().Sha;
 
         this.AssertPathHasVersion(commit, subDirABC, subdirVersionSpec);
         this.AssertPathHasVersion(commit, subDirAB, subdirVersionSpec);
@@ -399,7 +407,7 @@ public abstract class VersionFileTests : RepoTestBase
         Directory.CreateDirectory(subDirABC);
         this.Context.VersionFile.SetVersion(subDirAB, subdirVersionSpec);
         this.InitializeSourceControl();
-        var commit = this.LibGit2Repository.Head.Commits.First().Sha;
+        string commit = this.LibGit2Repository.Head.Commits.First().Sha;
 
         this.AssertPathHasVersion(commit, subDirABC, subdirVersionSpec);
         this.AssertPathHasVersion(commit, subDirAB, subdirVersionSpec);
@@ -407,15 +415,14 @@ public abstract class VersionFileTests : RepoTestBase
         this.AssertPathHasVersion(commit, this.RepoPath, rootVersionSpec);
     }
 
-
     [Fact]
     public void GetVersion_ReadReleaseSettings_VersionIncrement()
     {
-        var json = @"{ ""version"" : ""1.2"", ""release"" : { ""versionIncrement"" : ""major""  } }";
-        var path = Path.Combine(this.RepoPath, "version.json");
+        string json = @"{ ""version"" : ""1.2"", ""release"" : { ""versionIncrement"" : ""major""  } }";
+        string path = Path.Combine(this.RepoPath, "version.json");
         File.WriteAllText(path, json);
 
-        var versionOptions = this.Context.VersionFile.GetVersion();
+        VersionOptions versionOptions = this.Context.VersionFile.GetVersion();
 
         Assert.NotNull(versionOptions.Release);
         Assert.NotNull(versionOptions.Release.VersionIncrement);
@@ -425,11 +432,11 @@ public abstract class VersionFileTests : RepoTestBase
     [Fact]
     public void GetVersion_ReadReleaseSettings_FirstUnstableTag()
     {
-        var json = @"{ ""version"" : ""1.2"", ""release"" : { ""firstUnstableTag"" : ""preview""  } }";
-        var path = Path.Combine(this.RepoPath, "version.json");
+        string json = @"{ ""version"" : ""1.2"", ""release"" : { ""firstUnstableTag"" : ""preview""  } }";
+        string path = Path.Combine(this.RepoPath, "version.json");
         File.WriteAllText(path, json);
 
-        var versionOptions = this.Context.VersionFile.GetVersion();
+        VersionOptions versionOptions = this.Context.VersionFile.GetVersion();
 
         Assert.NotNull(versionOptions.Release);
         Assert.NotNull(versionOptions.Release.FirstUnstableTag);
@@ -439,11 +446,11 @@ public abstract class VersionFileTests : RepoTestBase
     [Fact]
     public void GetVersion_ReadReleaseSettings_BranchName()
     {
-        var json = @"{ ""version"" : ""1.2"", ""release"" : { ""branchName"" : ""someValue{version}""  } }";
-        var path = Path.Combine(this.RepoPath, "version.json");
+        string json = @"{ ""version"" : ""1.2"", ""release"" : { ""branchName"" : ""someValue{version}""  } }";
+        string path = Path.Combine(this.RepoPath, "version.json");
         File.WriteAllText(path, json);
 
-        var versionOptions = this.Context.VersionFile.GetVersion();
+        VersionOptions versionOptions = this.Context.VersionFile.GetVersion();
 
         Assert.NotNull(versionOptions.Release);
         Assert.NotNull(versionOptions.Release.BranchName);
@@ -455,12 +462,12 @@ public abstract class VersionFileTests : RepoTestBase
     {
         this.InitializeSourceControl();
 
-        var json = @"{ ""version"" : ""1.2"", ""pathFilters"" : [ "":/root.txt"", ""./hello"" ] }";
-        var path = Path.Combine(this.RepoPath, "version.json");
+        string json = @"{ ""version"" : ""1.2"", ""pathFilters"" : [ "":/root.txt"", ""./hello"" ] }";
+        string path = Path.Combine(this.RepoPath, "version.json");
         File.WriteAllText(path, json);
 
-        var repoRelativeBaseDirectory = ".";
-        var versionOptions = this.Context.VersionFile.GetVersion();
+        string repoRelativeBaseDirectory = ".";
+        VersionOptions versionOptions = this.Context.VersionFile.GetVersion();
 
         Assert.NotNull(versionOptions.PathFilters);
         Assert.Equal(new[] { "/root.txt", "./hello" }, versionOptions.PathFilters.Select(fp => fp.ToPathSpec(repoRelativeBaseDirectory)));
@@ -469,8 +476,8 @@ public abstract class VersionFileTests : RepoTestBase
     [Fact]
     public void GetVersion_WithPathFiltersOutsideOfGitRepo()
     {
-        var json = @"{ ""version"" : ""1.2"", ""pathFilters"" : [ ""."" ] }";
-        var path = Path.Combine(this.RepoPath, "version.json");
+        string json = @"{ ""version"" : ""1.2"", ""pathFilters"" : [ ""."" ] }";
+        string path = Path.Combine(this.RepoPath, "version.json");
         File.WriteAllText(path, json);
 
         this.Context.VersionFile.GetVersion();
@@ -553,20 +560,20 @@ public abstract class VersionFileTests : RepoTestBase
 
         VersionOptions GetOption(string path)
         {
-            using var context = this.CreateGitContext(Path.Combine(this.RepoPath, path));
+            using GitContext context = this.CreateGitContext(Path.Combine(this.RepoPath, path));
             return context.VersionFile.GetVersion();
         }
-        
-        var level1Options = GetOption(string.Empty);
+
+        VersionOptions level1Options = GetOption(string.Empty);
         Assert.False(level1Options.Inherit);
 
-        var level2Options = GetOption("foo");
+        VersionOptions level2Options = GetOption("foo");
         Assert.Equal(level1.Version.Version.Major, level2Options.Version.Version.Major);
         Assert.Equal(level1.Version.Version.Minor, level2Options.Version.Version.Minor);
         Assert.Equal(level2.AssemblyVersion.Precision, level2Options.AssemblyVersion.Precision);
         Assert.True(level2Options.Inherit);
 
-        var level3Options = GetOption("foo/bar");
+        VersionOptions level3Options = GetOption("foo/bar");
         Assert.Equal(level1.Version.Version.Major, level3Options.Version.Version.Major);
         Assert.Equal(level1.Version.Version.Minor, level3Options.Version.Version.Minor);
         Assert.Equal(level2.AssemblyVersion.Precision, level3Options.AssemblyVersion.Precision);
@@ -574,12 +581,12 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.Equal(level3.VersionHeightOffset, level3Options.VersionHeightOffset);
         Assert.True(level3Options.Inherit);
 
-        var level2NoInheritOptions = GetOption("noInherit");
+        VersionOptions level2NoInheritOptions = GetOption("noInherit");
         Assert.Equal(level2NoInherit.Version, level2NoInheritOptions.Version);
         Assert.Equal(VersionOptions.DefaultVersionPrecision, level2NoInheritOptions.AssemblyVersionOrDefault.PrecisionOrDefault);
         Assert.False(level2NoInheritOptions.Inherit);
 
-        var level2InheritButResetVersionOptions = GetOption("inheritWithVersion");
+        VersionOptions level2InheritButResetVersionOptions = GetOption("inheritWithVersion");
         Assert.Equal(level2InheritButResetVersion.Version, level2InheritButResetVersionOptions.Version);
         Assert.True(level2InheritButResetVersionOptions.Inherit);
 
@@ -608,17 +615,16 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.True(Path.IsPathRooted(actualDirectory));
     }
 
-
     [Theory]
     [InlineData(1)]
     [InlineData(2)]
     public void GetVersion_ReadNuGetPackageVersionSettings_SemVer(int semVer)
     {
-        var json = $@"{{ ""version"" : ""1.0"", ""nugetPackageVersion"" : {{ ""semVer"" : {semVer}  }} }}";
-        var path = Path.Combine(this.RepoPath, "version.json");
+        string json = $@"{{ ""version"" : ""1.0"", ""nugetPackageVersion"" : {{ ""semVer"" : {semVer}  }} }}";
+        string path = Path.Combine(this.RepoPath, "version.json");
         File.WriteAllText(path, json);
 
-        var versionOptions = this.Context.VersionFile.GetVersion();
+        VersionOptions versionOptions = this.Context.VersionFile.GetVersion();
 
         Assert.NotNull(versionOptions.NuGetPackageVersion);
         Assert.NotNull(versionOptions.NuGetPackageVersion.SemVer);
@@ -629,11 +635,11 @@ public abstract class VersionFileTests : RepoTestBase
     [CombinatorialData]
     public void GetVersion_ReadNuGetPackageVersionSettings_Precision(VersionOptions.VersionPrecision precision)
     {
-        var json = $@"{{ ""version"" : ""1.0"", ""nugetPackageVersion"" : {{ ""precision"" : ""{precision}""  }} }}";
-        var path = Path.Combine(this.RepoPath, "version.json");
+        string json = $@"{{ ""version"" : ""1.0"", ""nugetPackageVersion"" : {{ ""precision"" : ""{precision}""  }} }}";
+        string path = Path.Combine(this.RepoPath, "version.json");
         File.WriteAllText(path, json);
 
-        var versionOptions = this.Context.VersionFile.GetVersion();
+        VersionOptions versionOptions = this.Context.VersionFile.GetVersion();
 
         Assert.NotNull(versionOptions.NuGetPackageVersion);
         Assert.NotNull(versionOptions.NuGetPackageVersion.Precision);
@@ -642,7 +648,7 @@ public abstract class VersionFileTests : RepoTestBase
 
     private void AssertPathHasVersion(string committish, string absolutePath, VersionOptions expected)
     {
-        var actual = this.GetVersionOptions(absolutePath, committish);
+        VersionOptions actual = this.GetVersionOptions(absolutePath, committish);
         Assert.Equal(expected, this.GetVersionOptions(absolutePath, committish));
     }
 }

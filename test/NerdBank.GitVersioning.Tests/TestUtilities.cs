@@ -1,4 +1,5 @@
-﻿using Validation;
+﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
 using System.Collections.Generic;
@@ -8,6 +9,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Validation;
 
 /// <summary>
 /// Test utility methods.
@@ -52,10 +54,10 @@ internal static class TestUtilities
         Requires.NotNullOrEmpty(resourcePath, nameof(resourcePath));
         Requires.NotNullOrEmpty(extractedFilePath, nameof(extractedFilePath));
 
-        using (var stream = GetEmbeddedResource(resourcePath))
+        using (Stream stream = GetEmbeddedResource(resourcePath))
         {
             Requires.Argument(stream is not null, nameof(resourcePath), "Resource not found.");
-            using (var extractedFile = File.OpenWrite(extractedFilePath))
+            using (FileStream extractedFile = File.OpenWrite(extractedFilePath))
             {
                 stream.CopyTo(extractedFile);
             }
@@ -93,6 +95,7 @@ internal static class TestUtilities
 
         public string RepoPath { get; private set; }
 
+        /// <inheritdoc/>
         public void Dispose()
         {
             if (Directory.Exists(this.RepoPath))

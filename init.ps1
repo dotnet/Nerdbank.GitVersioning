@@ -55,7 +55,7 @@ if (!$NoPrerequisites) {
         & "$PSScriptRoot\tools\Install-NuGetCredProvider.ps1" -AccessToken $AccessToken -Force:$UpgradePrerequisites
     }
 
-    & "$PSScriptRoot\tools\Install-DotNetSdk.ps1" -InstallLocality $InstallLocality
+    & "$PSScriptRoot\tools\Install-DotNetSdk.ps1" -InstallLocality $InstallLocality -IncludeX86
     if ($LASTEXITCODE -eq 3010) {
         Exit 3010
     }
@@ -84,14 +84,11 @@ try {
     }
 
     if (!$NoRestore -and $PSCmdlet.ShouldProcess("NPM packages", "Restore")) {
+        Write-Host "Installing yarn" -ForegroundColor Yellow
+        npm i -g yarn@">=1.22 <2.0"
         Write-Host "Restoring NPM packages..." -ForegroundColor Yellow
-        Push-Location "$PSScriptRoot\src\nerdbank-gitversioning.npm"
-        try {
-            if ($PSCmdlet.ShouldProcess("$PSScriptRoot\src\nerdbank-gitversioning.npm", "yarn install")) {
-                yarn install --loglevel error
-            }
-        } finally {
-            Pop-Location
+        if ($PSCmdlet.ShouldProcess("$PSScriptRoot\src\nerdbank-gitversioning.npm", "yarn install")) {
+            yarn --cwd src/nerdbank-gitversioning.npm --loglevel error
         }
     }
 

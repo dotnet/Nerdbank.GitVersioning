@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -14,15 +17,13 @@ using Version = System.Version;
 
 public class LibGit2GitExtensionsTests : RepoTestBase
 {
-    public LibGit2GitExtensionsTests(ITestOutputHelper Logger)
-        : base(Logger)
+    public LibGit2GitExtensionsTests(ITestOutputHelper logger)
+        : base(logger)
     {
         this.InitializeSourceControl();
     }
 
     protected new LibGit2Context Context => (LibGit2Context)base.Context;
-
-    protected override GitContext CreateGitContext(string path, string committish = null) => GitContext.Create(path, committish, writable: true);
 
     [Fact]
     public void GetHeight_EmptyRepo()
@@ -37,9 +38,9 @@ public class LibGit2GitExtensionsTests : RepoTestBase
     [Fact]
     public void GetHeight_SinglePath()
     {
-        var first = this.LibGit2Repository.Commit("First", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
-        var second = this.LibGit2Repository.Commit("Second", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
-        var third = this.LibGit2Repository.Commit("Third", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
+        Commit first = this.LibGit2Repository.Commit("First", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
+        Commit second = this.LibGit2Repository.Commit("Second", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
+        Commit third = this.LibGit2Repository.Commit("Third", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         this.SetContextToHead();
         Assert.Equal(3, LibGit2GitExtensions.GetHeight(this.Context));
         Assert.Equal(3, LibGit2GitExtensions.GetHeight(this.Context, c => true));
@@ -51,9 +52,9 @@ public class LibGit2GitExtensionsTests : RepoTestBase
     [Fact]
     public void GetHeight_Merge()
     {
-        var firstCommit = this.LibGit2Repository.Commit("First", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
-        var anotherBranch = this.LibGit2Repository.CreateBranch("another");
-        var secondCommit = this.LibGit2Repository.Commit("Second", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
+        Commit firstCommit = this.LibGit2Repository.Commit("First", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
+        Branch anotherBranch = this.LibGit2Repository.CreateBranch("another");
+        Commit secondCommit = this.LibGit2Repository.Commit("Second", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         Commands.Checkout(this.LibGit2Repository, anotherBranch);
         Commit[] branchCommits = new Commit[5];
         for (int i = 1; i <= branchCommits.Length; i++)
@@ -88,18 +89,18 @@ public class LibGit2GitExtensionsTests : RepoTestBase
         {
             new FilterPath("./", relativeDirectory),
             new FilterPath(":^/some-sub-dir/ignore.txt", relativeDirectory),
-            new FilterPath(":^excluded-dir", relativeDirectory)
+            new FilterPath(":^excluded-dir", relativeDirectory),
         };
         commitsAt121.Add(this.WriteVersionFile(versionData, relativeDirectory));
 
         // Commit touching excluded path does not affect version height
-        var ignoredFilePath = Path.Combine(this.RepoPath, relativeDirectory, "ignore.txt");
+        string ignoredFilePath = Path.Combine(this.RepoPath, relativeDirectory, "ignore.txt");
         File.WriteAllText(ignoredFilePath, "hello");
         Commands.Stage(this.LibGit2Repository, ignoredFilePath);
         commitsAt121.Add(this.LibGit2Repository.Commit("Add excluded file", this.Signer, this.Signer));
 
         // Commit touching both excluded and included path does affect height
-        var includedFilePath = Path.Combine(this.RepoPath, relativeDirectory, "another-file.txt");
+        string includedFilePath = Path.Combine(this.RepoPath, relativeDirectory, "another-file.txt");
         File.WriteAllText(includedFilePath, "hello");
         File.WriteAllText(ignoredFilePath, "changed");
         Commands.Stage(this.LibGit2Repository, includedFilePath);
@@ -107,7 +108,7 @@ public class LibGit2GitExtensionsTests : RepoTestBase
         commitsAt122.Add(this.LibGit2Repository.Commit("Change both excluded and included file", this.Signer, this.Signer));
 
         // Commit touching excluded directory does not affect version height
-        var fileInExcludedDirPath = Path.Combine(this.RepoPath, relativeDirectory, "excluded-dir", "ignore.txt");
+        string fileInExcludedDirPath = Path.Combine(this.RepoPath, relativeDirectory, "excluded-dir", "ignore.txt");
         Directory.CreateDirectory(Path.GetDirectoryName(fileInExcludedDirPath));
         File.WriteAllText(fileInExcludedDirPath, "hello");
         Commands.Stage(this.LibGit2Repository, fileInExcludedDirPath);
@@ -183,7 +184,7 @@ public class LibGit2GitExtensionsTests : RepoTestBase
     public void GetIdAsVersion_ReadsMajorMinorFromVersionTxt()
     {
         this.WriteVersionFile("4.8");
-        var firstCommit = this.LibGit2Repository.Commits.First();
+        Commit firstCommit = this.LibGit2Repository.Commits.First();
 
         Version v1 = this.GetVersion(committish: firstCommit.Sha);
         Assert.Equal(4, v1.Major);
@@ -194,7 +195,7 @@ public class LibGit2GitExtensionsTests : RepoTestBase
     public void GetIdAsVersion_ReadsMajorMinorFromVersionTxtInSubdirectory()
     {
         this.WriteVersionFile("4.8", relativeDirectory: "foo/bar");
-        var firstCommit = this.LibGit2Repository.Commits.First();
+        Commit firstCommit = this.LibGit2Repository.Commits.First();
 
         Version v1 = this.GetVersion("foo/bar", firstCommit.Sha);
         Assert.Equal(4, v1.Major);
@@ -205,7 +206,7 @@ public class LibGit2GitExtensionsTests : RepoTestBase
     public void GetIdAsVersion_MissingVersionTxt()
     {
         this.AddCommits();
-        var firstCommit = this.LibGit2Repository.Commits.First();
+        Commit firstCommit = this.LibGit2Repository.Commits.First();
 
         Version v1 = this.GetVersion(committish: firstCommit.Sha);
         Assert.Equal(0, v1.Major);
@@ -247,7 +248,7 @@ public class LibGit2GitExtensionsTests : RepoTestBase
     public void GetIdAsVersion_VersionFileChangedOnDisk()
     {
         this.WriteVersionFile();
-        var versionChangeCommit = this.LibGit2Repository.Commits.First();
+        Commit versionChangeCommit = this.LibGit2Repository.Commits.First();
         this.AddCommits();
 
         // Verify that we're seeing the original version.
@@ -363,7 +364,7 @@ public class LibGit2GitExtensionsTests : RepoTestBase
             this.Logger.WriteLine($"Commit {commits[i + 1].Id.Sha.Substring(0, 8)} as version: {versions[i + 1]}");
 
             // Find the commits we just wrote while they are still at the tip of the branch.
-            var matchingCommits = LibGit2GitExtensions.GetCommitsFromVersion(this.Context, versions[i]);
+            IEnumerable<Commit> matchingCommits = LibGit2GitExtensions.GetCommitsFromVersion(this.Context, versions[i]);
             Assert.Contains(commits[i], matchingCommits);
             matchingCommits = LibGit2GitExtensions.GetCommitsFromVersion(this.Context, versions[i + 1]);
             Assert.Contains(commits[i + 1], matchingCommits);
@@ -431,7 +432,7 @@ public class LibGit2GitExtensionsTests : RepoTestBase
     public void GetIdAsVersion_FitsInsideCompilerConstraints()
     {
         this.WriteVersionFile("2.5");
-        var firstCommit = this.LibGit2Repository.Commits.First();
+        Commit firstCommit = this.LibGit2Repository.Commits.First();
 
         Version version = this.GetVersion(committish: firstCommit.Sha);
         this.Logger.WriteLine(version.ToString());
@@ -445,11 +446,11 @@ public class LibGit2GitExtensionsTests : RepoTestBase
     [Fact]
     public void GetIdAsVersion_MigrationFromVersionTxtToJson()
     {
-        var txtCommit = this.WriteVersionTxtFile("4.8");
+        Commit txtCommit = this.WriteVersionTxtFile("4.8");
 
         // Delete the version.txt file so the system writes the version.json file.
         File.Delete(Path.Combine(this.RepoPath, "version.txt"));
-        var jsonCommit = this.WriteVersionFile("4.8");
+        Commit jsonCommit = this.WriteVersionFile("4.8");
         Assert.True(File.Exists(Path.Combine(this.RepoPath, "version.json")));
 
         Version v1 = this.GetVersion(committish: txtCommit.Sha);
@@ -466,19 +467,22 @@ public class LibGit2GitExtensionsTests : RepoTestBase
     [SkippableFact(Skip = "It fails already.")] // Skippable, only run test on specific machine
     public void TestBiggerRepo()
     {
-        var testBiggerRepoPath = @"D:\git\NerdBank.GitVersioning";
+        string testBiggerRepoPath = @"D:\git\NerdBank.GitVersioning";
         Skip.If(!Directory.Exists(testBiggerRepoPath));
 
         using var largeRepo = new Repository(testBiggerRepoPath);
-        foreach (var commit in largeRepo.Head.Commits)
+        foreach (Commit commit in largeRepo.Head.Commits)
         {
-            var version = this.GetVersion("src", commit.Sha);
+            Version version = this.GetVersion("src", commit.Sha);
             this.Logger.WriteLine($"commit {commit.Id} got version {version}");
             using var context = LibGit2Context.Create("src", commit.Sha);
-            var backAgain = LibGit2GitExtensions.GetCommitFromVersion(context, version);
+            Commit backAgain = LibGit2GitExtensions.GetCommitFromVersion(context, version);
             Assert.Equal(commit, backAgain);
         }
     }
+
+    /// <inheritdoc/>
+    protected override GitContext CreateGitContext(string path, string committish = null) => GitContext.Create(path, committish, writable: true);
 
     private Commit[] CommitsWithVersion(string majorMinorVersion)
     {

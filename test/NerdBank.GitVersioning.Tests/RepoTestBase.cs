@@ -1,4 +1,7 @@
-﻿#nullable enable
+﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+#nullable enable
 
 using System;
 using System.Collections.Generic;
@@ -33,6 +36,7 @@ public abstract partial class RepoTestBase : IDisposable
 
     protected Repository? LibGit2Repository { get; private set; }
 
+    /// <inheritdoc/>
     public void Dispose()
     {
         this.Dispose(true);
@@ -47,13 +51,13 @@ public abstract partial class RepoTestBase : IDisposable
     {
         Debug.Assert(path?.Length != 40, "commit passed as path");
 
-        using var context = this.CreateGitContext(path is null ? this.RepoPath : Path.Combine(this.RepoPath, path), committish);
+        using GitContext? context = this.CreateGitContext(path is null ? this.RepoPath : Path.Combine(this.RepoPath, path), committish);
         return context.VersionFile.GetVersion();
     }
 
     protected VersionOracle GetVersionOracle(string? path = null, string? committish = null)
     {
-        using var context = this.CreateGitContext(path is null ? this.RepoPath : Path.Combine(this.RepoPath, path), committish);
+        using GitContext? context = this.CreateGitContext(path is null ? this.RepoPath : Path.Combine(this.RepoPath, path), committish);
         return new VersionOracle(context);
     }
 
@@ -65,7 +69,8 @@ public abstract partial class RepoTestBase : IDisposable
         do
         {
             repoPath = Path.Combine(Path.GetTempPath(), this.GetType().Name + "_" + Path.GetRandomFileName());
-        } while (Directory.Exists(repoPath));
+        }
+        while (Directory.Exists(repoPath));
         Directory.CreateDirectory(repoPath);
 
         this.repoDirectories.Add(repoPath);
@@ -105,7 +110,7 @@ public abstract partial class RepoTestBase : IDisposable
         var repo = new Repository(repoPath);
         repo.Config.Set("user.name", this.Signer.Name, ConfigurationLevel.Local);
         repo.Config.Set("user.email", this.Signer.Email, ConfigurationLevel.Local);
-        foreach (var file in repo.RetrieveStatus().Untracked)
+        foreach (StatusEntry? file in repo.RetrieveStatus().Untracked)
         {
             if (!Path.GetFileName(file.FilePath).StartsWith("_git2_", StringComparison.Ordinal))
             {
@@ -169,7 +174,7 @@ public abstract partial class RepoTestBase : IDisposable
         }
 
         bool localContextCreated = this.Context is null;
-        var context = this.Context ?? GitContext.Create(this.RepoPath, writable: true);
+        GitContext? context = this.Context ?? GitContext.Create(this.RepoPath, writable: true);
         try
         {
             string versionFilePath = context.VersionFile.SetVersion(Path.Combine(this.RepoPath, relativeDirectory), versionData);
@@ -192,7 +197,7 @@ public abstract partial class RepoTestBase : IDisposable
         if (this.LibGit2Repository is object)
         {
             Assumes.True(versionFilePath.StartsWith(this.RepoPath, StringComparison.OrdinalIgnoreCase));
-            var relativeFilePath = versionFilePath.Substring(this.RepoPath.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            string? relativeFilePath = versionFilePath.Substring(this.RepoPath.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             Commands.Stage(this.LibGit2Repository, relativeFilePath);
             if (Path.GetExtension(relativeFilePath) == ".json")
             {

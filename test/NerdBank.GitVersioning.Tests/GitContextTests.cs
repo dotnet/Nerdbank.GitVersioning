@@ -1,8 +1,14 @@
-﻿using System;
+﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System;
 using System.IO;
 using Nerdbank.GitVersioning;
 using Xunit;
 using Xunit.Abstractions;
+
+#pragma warning disable SA1402 // File may only contain a single type
+#pragma warning disable SA1649 // File name should match first type name
 
 [Trait("Engine", "Managed")]
 public class GitContextManagedTests : GitContextTests
@@ -12,6 +18,7 @@ public class GitContextManagedTests : GitContextTests
     {
     }
 
+    /// <inheritdoc/>
     protected override GitContext CreateGitContext(string path, string committish = null)
         => GitContext.Create(path, committish, writable: false);
 }
@@ -24,13 +31,15 @@ public class GitContextLibGit2Tests : GitContextTests
     {
     }
 
+    /// <inheritdoc/>
     protected override GitContext CreateGitContext(string path, string committish = null)
         => GitContext.Create(path, committish, writable: true);
 }
 
 public abstract class GitContextTests : RepoTestBase
 {
-    protected GitContextTests(ITestOutputHelper logger) : base(logger)
+    protected GitContextTests(ITestOutputHelper logger)
+        : base(logger)
     {
         this.InitializeSourceControl();
         this.AddCommits();
@@ -166,7 +175,7 @@ public abstract class GitContextTests : RepoTestBase
     [Fact]
     public void GetVersion_PackedHead()
     {
-        using var expandedRepo = TestUtilities.ExtractRepoArchive("PackedHeadRef");
+        using TestUtilities.ExpandedRepo expandedRepo = TestUtilities.ExtractRepoArchive("PackedHeadRef");
         this.Context = this.CreateGitContext(Path.Combine(expandedRepo.RepoPath));
         var oracle = new VersionOracle(this.Context);
         Assert.Equal("1.0.1", oracle.SimpleVersion.ToString());
@@ -177,7 +186,7 @@ public abstract class GitContextTests : RepoTestBase
     [Fact]
     public void HeadCanonicalName_PackedHead()
     {
-        using var expandedRepo = TestUtilities.ExtractRepoArchive("PackedHeadRef");
+        using TestUtilities.ExpandedRepo expandedRepo = TestUtilities.ExtractRepoArchive("PackedHeadRef");
         this.Context = this.CreateGitContext(Path.Combine(expandedRepo.RepoPath));
         Assert.Equal("refs/heads/main", this.Context.HeadCanonicalName);
     }

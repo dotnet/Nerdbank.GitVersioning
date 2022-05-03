@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,7 +14,7 @@ public class VersionExtensionsTests
     [Fact]
     public void EnsureNonNegativeComponents_NoValues()
     {
-        var version = new Version().EnsureNonNegativeComponents();
+        Version version = new Version().EnsureNonNegativeComponents();
         Assert.Equal(0, version.Major);
         Assert.Equal(0, version.Minor);
         Assert.Equal(0, version.Build);
@@ -21,7 +24,7 @@ public class VersionExtensionsTests
     [Fact]
     public void EnsureNonNegativeComponents_2Values()
     {
-        var version = new Version(1, 2).EnsureNonNegativeComponents();
+        Version version = new Version(1, 2).EnsureNonNegativeComponents();
         Assert.Equal(1, version.Major);
         Assert.Equal(2, version.Minor);
         Assert.Equal(0, version.Build);
@@ -31,7 +34,7 @@ public class VersionExtensionsTests
     [Fact]
     public void EnsureNonNegativeComponents_3Values()
     {
-        var version = new Version(1, 2, 3).EnsureNonNegativeComponents();
+        Version version = new Version(1, 2, 3).EnsureNonNegativeComponents();
         Assert.Equal(1, version.Major);
         Assert.Equal(2, version.Minor);
         Assert.Equal(3, version.Build);
@@ -42,7 +45,7 @@ public class VersionExtensionsTests
     public void EnsureNonNegativeComponents_4Values()
     {
         var original = new Version(1, 2, 3, 4);
-        var version = original.EnsureNonNegativeComponents();
+        Version version = original.EnsureNonNegativeComponents();
         Assert.Same(original, version);
     }
 

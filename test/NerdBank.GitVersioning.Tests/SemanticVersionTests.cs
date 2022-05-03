@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -50,7 +53,6 @@ public class SemanticVersionTests
         Assert.Equal(2, result.Version.Minor);
         Assert.Equal("-pre.5.8-foo", result.Prerelease);
         Assert.Equal("+build-metadata.id1.2", result.BuildMetadata);
-
     }
 
     [Fact]
@@ -156,6 +158,5 @@ public class SemanticVersionTests
         Assert.Equal("1.2+buildInfo", vb.ToString());
         var vpb = new SemanticVersion(new Version(1, 2), "-pre", "+buildInfo");
         Assert.Equal("1.2-pre+buildInfo", vpb.ToString());
-
     }
 }

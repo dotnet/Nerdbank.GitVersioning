@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System;
 using System.IO;
 using System.Linq;
 using LibGit2Sharp;
@@ -14,6 +17,9 @@ using ReleasePreparationException = Nerdbank.GitVersioning.ReleaseManager.Releas
 using ReleaseVersionIncrement = Nerdbank.GitVersioning.VersionOptions.ReleaseVersionIncrement;
 using Version = System.Version;
 
+#pragma warning disable SA1402 // File may only contain a single type
+#pragma warning disable SA1649 // File name should match first type name
+
 [Trait("Engine", "Managed")]
 public class ReleaseManagerManagedTests : ReleaseManagerTests
 {
@@ -22,6 +28,7 @@ public class ReleaseManagerManagedTests : ReleaseManagerTests
     {
     }
 
+    /// <inheritdoc/>
     protected override GitContext CreateGitContext(string path, string committish = null)
         => GitContext.Create(path, committish, writable: false);
 }
@@ -34,6 +41,7 @@ public class ReleaseManagerLibGit2Tests : ReleaseManagerTests
     {
     }
 
+    /// <inheritdoc/>
     protected override GitContext CreateGitContext(string path, string committish = null)
         => GitContext.Create(path, committish, writable: true);
 }
@@ -59,7 +67,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         this.InitializeSourceControl();
 
         // create a file
-        File.WriteAllText(Path.Combine(this.RepoPath, "file1.txt"), "");
+        File.WriteAllText(Path.Combine(this.RepoPath, "file1.txt"), string.Empty);
 
         // running PrepareRelease should result in an error
         // because there is a new file not under version control
@@ -72,8 +80,8 @@ public abstract class ReleaseManagerTests : RepoTestBase
         this.InitializeSourceControl();
 
         // create a file and stage it
-        var filePath = Path.Combine(this.RepoPath, "file1.txt");
-        File.WriteAllText(filePath, "");
+        string filePath = Path.Combine(this.RepoPath, "file1.txt");
+        File.WriteAllText(filePath, string.Empty);
         Commands.Stage(this.LibGit2Repository, filePath);
 
         // running PrepareRelease should result in an error
@@ -103,7 +111,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
             Release = new ReleaseOptions()
             {
                 BranchName = "nameWithoutPlaceholder",
-            }
+            },
         };
         this.WriteVersionFile(versionOptions);
 
@@ -124,7 +132,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
             Release = new ReleaseOptions()
             {
                 BranchName = "release/v{version}",
-            }
+            },
         };
 
         this.WriteVersionFile(versionOptions);
@@ -159,8 +167,8 @@ public abstract class ReleaseManagerTests : RepoTestBase
             Version = SemanticVersion.Parse(initialVersion),
             Release = new ReleaseOptions()
             {
-                BranchName = releaseOptionsBranchName
-            }
+                BranchName = releaseOptionsBranchName,
+            },
         };
 
         var expectedVersionOptions = new VersionOptions()
@@ -168,18 +176,18 @@ public abstract class ReleaseManagerTests : RepoTestBase
             Version = SemanticVersion.Parse(resultingVersion),
             Release = new ReleaseOptions()
             {
-                BranchName = releaseOptionsBranchName
-            }
+                BranchName = releaseOptionsBranchName,
+            },
         };
 
         // create version.json
         this.WriteVersionFile(initialVersionOptions);
 
         // switch to release branch
-        var branchName = releaseBranchName;
+        string branchName = releaseBranchName;
         Commands.Checkout(this.LibGit2Repository, this.LibGit2Repository.CreateBranch(branchName));
 
-        var tipBeforePrepareRelease = this.LibGit2Repository.Head.Tip;
+        Commit tipBeforePrepareRelease = this.LibGit2Repository.Head.Tip;
 
         // run PrepareRelease
         var releaseManager = new ReleaseManager();
@@ -187,7 +195,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
 
         // Check if a commit was created
         {
-            var updateVersionCommit = this.LibGit2Repository.Head.Tip;
+            Commit updateVersionCommit = this.LibGit2Repository.Head.Tip;
             Assert.NotEqual(tipBeforePrepareRelease.Id, updateVersionCommit.Id);
             Assert.Single(updateVersionCommit.Parents);
             Assert.Equal(updateVersionCommit.Parents.Single().Id, tipBeforePrepareRelease.Id);
@@ -195,7 +203,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
 
         // check version on release branch
         {
-            var actualVersionOptions = this.GetVersionOptions(committish: this.LibGit2Repository.Branches[branchName].Tip.Sha);
+            VersionOptions actualVersionOptions = this.GetVersionOptions(committish: this.LibGit2Repository.Branches[branchName].Tip.Sha);
             Assert.Equal(expectedVersionOptions, actualVersionOptions);
         }
     }
@@ -220,7 +228,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         this.AssertError(() => new ReleaseManager().PrepareRelease(this.RepoPath, releaseUnstableTag), ReleasePreparationError.VersionDecrement);
     }
 
-
+#pragma warning disable SA1114 // Parameter list should follow declaration
     [Theory]
     // base test cases
     [InlineData("1.2-beta", null, null, null, null, null, null, "v1.2", "1.2", "1.3-alpha")]
@@ -259,7 +267,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
     [InlineData("1.2-beta", null, null, null, null, "4.5", null, "v1.2", "1.2", "4.5-alpha")]
     [InlineData("1.2-beta.{height}", null, null, null, null, "4.5", null, "v1.2", "1.2", "4.5-alpha.{height}")]
     [InlineData("1.2-beta.{height}", null, null, "pre", null, "4.5.6", null, "v1.2", "1.2", "4.5.6-pre.{height}")]
-    // explicitly set version increment overriding the setting from ReleaseOptions 
+    // explicitly set version increment overriding the setting from ReleaseOptions
     [InlineData("1.2-beta", null, ReleaseVersionIncrement.Minor, null, null, null, ReleaseVersionIncrement.Major, "v1.2", "1.2", "2.0-alpha")]
     [InlineData("1.2.3-beta", null, ReleaseVersionIncrement.Minor, null, null, null, ReleaseVersionIncrement.Build, "v1.2.3", "1.2.3", "1.2.4-alpha")]
     public void PrepareRelease_Master(
@@ -277,6 +285,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         string resultingReleaseVersion,
         string resultingMainVersion)
     {
+#pragma warning restore SA1114 // Parameter list should follow declaration
         // create and configure repository
         this.InitializeSourceControl();
 
@@ -288,8 +297,8 @@ public abstract class ReleaseManagerTests : RepoTestBase
             {
                 VersionIncrement = releaseOptionsVersionIncrement,
                 BranchName = releaseOptionsBranchName,
-                FirstUnstableTag = releaseOptionsFirstUnstableTag
-            }
+                FirstUnstableTag = releaseOptionsFirstUnstableTag,
+            },
         };
         this.WriteVersionFile(initialVersionOptions);
 
@@ -300,8 +309,8 @@ public abstract class ReleaseManagerTests : RepoTestBase
             {
                 VersionIncrement = releaseOptionsVersionIncrement,
                 BranchName = releaseOptionsBranchName,
-                FirstUnstableTag = releaseOptionsFirstUnstableTag
-            }
+                FirstUnstableTag = releaseOptionsFirstUnstableTag,
+            },
         };
 
         var expectedVersionOptionsCurrentBrach = new VersionOptions()
@@ -311,16 +320,16 @@ public abstract class ReleaseManagerTests : RepoTestBase
             {
                 VersionIncrement = releaseOptionsVersionIncrement,
                 BranchName = releaseOptionsBranchName,
-                FirstUnstableTag = releaseOptionsFirstUnstableTag
-            }
+                FirstUnstableTag = releaseOptionsFirstUnstableTag,
+            },
         };
 
-        var initialBranchName = this.LibGit2Repository.Head.FriendlyName;
-        var tipBeforePrepareRelease = this.LibGit2Repository.Head.Tip;
+        string initialBranchName = this.LibGit2Repository.Head.FriendlyName;
+        Commit tipBeforePrepareRelease = this.LibGit2Repository.Head.Tip;
 
         // prepare release
         var releaseManager = new ReleaseManager();
-        releaseManager.PrepareRelease(this.RepoPath, releaseUnstableTag, (nextVersion is null ? null : Version.Parse(nextVersion)), parameterVersionIncrement);
+        releaseManager.PrepareRelease(this.RepoPath, releaseUnstableTag, nextVersion is null ? null : Version.Parse(nextVersion), parameterVersionIncrement);
 
         // check if a branch was created
         Assert.Contains(this.LibGit2Repository.Branches, branch => branch.FriendlyName == expectedBranchName);
@@ -330,7 +339,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
 
         // check if release branch contains a new commit
         // parent of new commit must be the commit before preparing the release
-        var releaseBranch = this.LibGit2Repository.Branches[expectedBranchName];
+        Branch releaseBranch = this.LibGit2Repository.Branches[expectedBranchName];
         {
             // If the original branch had no -prerelease tag, the release branch has no commit to author.
             if (string.IsNullOrEmpty(initialVersionOptions.Version.Prerelease))
@@ -347,7 +356,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         if (string.IsNullOrEmpty(initialVersionOptions.Version.Prerelease))
         {
             // Verify that one commit was authored.
-            var incrementCommit = this.LibGit2Repository.Head.Tip;
+            Commit incrementCommit = this.LibGit2Repository.Head.Tip;
             Assert.Single(incrementCommit.Parents);
             Assert.Equal(tipBeforePrepareRelease.Id, incrementCommit.Parents.Single().Id);
         }
@@ -356,24 +365,24 @@ public abstract class ReleaseManagerTests : RepoTestBase
             // check if current branch contains new commits
             // - one commit that updates the version (parent must be the commit before preparing the release)
             // - one commit merging the release branch back to master and resolving the conflict
-            var mergeCommit = this.LibGit2Repository.Head.Tip;
+            Commit mergeCommit = this.LibGit2Repository.Head.Tip;
             Assert.Equal(2, mergeCommit.Parents.Count());
             Assert.Equal(releaseBranch.Tip.Id, mergeCommit.Parents.Skip(1).First().Id);
 
-            var updateVersionCommit = mergeCommit.Parents.First();
+            Commit updateVersionCommit = mergeCommit.Parents.First();
             Assert.Single(updateVersionCommit.Parents);
             Assert.Equal(tipBeforePrepareRelease.Id, updateVersionCommit.Parents.First().Id);
         }
 
         // check version on release branch
         {
-            var releaseBranchVersion = this.GetVersionOptions(committish: releaseBranch.Tip.Sha);
+            VersionOptions releaseBranchVersion = this.GetVersionOptions(committish: releaseBranch.Tip.Sha);
             Assert.Equal(expectedVersionOptionsReleaseBranch, releaseBranchVersion);
         }
 
         // check version on master branch
         {
-            var currentBranchVersion = this.GetVersionOptions(committish: this.LibGit2Repository.Head.Tip.Sha);
+            VersionOptions currentBranchVersion = this.GetVersionOptions(committish: this.LibGit2Repository.Head.Tip.Sha);
             Assert.Equal(expectedVersionOptionsCurrentBrach, currentBranchVersion);
         }
     }
@@ -394,7 +403,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         // running PrepareRelease should result in an error
         // because we're setting the version on master to a lower version
         this.AssertError(
-            () => new ReleaseManager().PrepareRelease(this.RepoPath, releaseUnstableTag, (nextVersion is null ? null : Version.Parse(nextVersion))),
+            () => new ReleaseManager().PrepareRelease(this.RepoPath, releaseUnstableTag, nextVersion is null ? null : Version.Parse(nextVersion)),
             ReleasePreparationError.VersionDecrement);
     }
 
@@ -412,7 +421,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         // running PrepareRelease should result in an error
         // because we're trying to set master to the version it already has
         this.AssertError(
-            () => new ReleaseManager().PrepareRelease(this.RepoPath, null, (nextVersion is null ? null : Version.Parse(nextVersion))),
+            () => new ReleaseManager().PrepareRelease(this.RepoPath, null, nextVersion is null ? null : Version.Parse(nextVersion)),
             ReleasePreparationError.NoVersionIncrement);
     }
 
@@ -422,7 +431,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         this.InitializeSourceControl();
         this.WriteVersionFile("1.0", "-alpha");
         Commands.Checkout(this.LibGit2Repository, this.LibGit2Repository.Head.Commits.First());
-        var ex = Assert.Throws<ReleasePreparationException>(() => new ReleaseManager().PrepareRelease(this.RepoPath));
+        ReleasePreparationException ex = Assert.Throws<ReleasePreparationException>(() => new ReleaseManager().PrepareRelease(this.RepoPath));
         Assert.Equal(ReleasePreparationError.DetachedHead, ex.Error);
     }
 
@@ -436,7 +445,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         var versionOptions = new VersionOptions()
         {
             Version = SemanticVersion.Parse("1.2"),
-            Release = new ReleaseOptions() { VersionIncrement = ReleaseVersionIncrement.Build }
+            Release = new ReleaseOptions() { VersionIncrement = ReleaseVersionIncrement.Build },
         };
         this.WriteVersionFile(versionOptions);
 
@@ -476,19 +485,18 @@ public abstract class ReleaseManagerTests : RepoTestBase
             Release = new ReleaseOptions()
             {
                 BranchName = "v{version}",
-                VersionIncrement = ReleaseVersionIncrement.Minor
-            }
+                VersionIncrement = ReleaseVersionIncrement.Minor,
+            },
         };
         this.WriteVersionFile(versionOptions);
 
-        var currentBranchName = this.LibGit2Repository.Head.FriendlyName;
-        var releaseBranchName = "v1.0";
+        string currentBranchName = this.LibGit2Repository.Head.FriendlyName;
+        string releaseBranchName = "v1.0";
 
         // run release preparation
         var stdout = new StringWriter();
         var releaseManager = new ReleaseManager(stdout);
         releaseManager.PrepareRelease(this.RepoPath, outputMode: ReleaseManager.ReleaseManagerOutputMode.Json);
-
 
         // Expected output:
         // {
@@ -503,13 +511,12 @@ public abstract class ReleaseManagerTests : RepoTestBase
         //         "Version" : "<VERSION-ON-CREATED-BRANCH>",
         //     }
         // }
-
         var jsonOutput = JObject.Parse(stdout.ToString());
 
         // check "CurrentBranch" output
         {
-            var expectedCommitId = this.LibGit2Repository.Branches[currentBranchName].Tip.Sha;
-            var expectedVersion = this.GetVersionOptions(committish: this.LibGit2Repository.Branches[currentBranchName].Tip.Sha).Version.ToString();
+            string expectedCommitId = this.LibGit2Repository.Branches[currentBranchName].Tip.Sha;
+            string expectedVersion = this.GetVersionOptions(committish: this.LibGit2Repository.Branches[currentBranchName].Tip.Sha).Version.ToString();
 
             var currentBranchOutput = jsonOutput.Property("CurrentBranch")?.Value as JObject;
             Assert.NotNull(currentBranchOutput);
@@ -517,13 +524,12 @@ public abstract class ReleaseManagerTests : RepoTestBase
             Assert.Equal(currentBranchName, currentBranchOutput.GetValue("Name")?.ToString());
             Assert.Equal(expectedCommitId, currentBranchOutput.GetValue("Commit")?.ToString());
             Assert.Equal(expectedVersion, currentBranchOutput.GetValue("Version")?.ToString());
-
         }
 
         // Check "NewBranch" output
         {
-            var expectedCommitId = this.LibGit2Repository.Branches[releaseBranchName].Tip.Sha;
-            var expectedVersion = this.GetVersionOptions(committish: this.LibGit2Repository.Branches[releaseBranchName].Tip.Sha).Version.ToString();
+            string expectedCommitId = this.LibGit2Repository.Branches[releaseBranchName].Tip.Sha;
+            string expectedVersion = this.GetVersionOptions(committish: this.LibGit2Repository.Branches[releaseBranchName].Tip.Sha).Version.ToString();
 
             var newBranchOutput = jsonOutput.Property("NewBranch")?.Value as JObject;
             Assert.NotNull(newBranchOutput);
@@ -547,11 +553,11 @@ public abstract class ReleaseManagerTests : RepoTestBase
             Release = new ReleaseOptions()
             {
                 BranchName = "v{version}",
-                VersionIncrement = ReleaseVersionIncrement.Minor
-            }
+                VersionIncrement = ReleaseVersionIncrement.Minor,
+            },
         };
         this.WriteVersionFile(versionOptions);
-        var branchName = "v1.0";
+        string branchName = "v1.0";
 
         // switch to release branch
         Commands.Checkout(this.LibGit2Repository, this.LibGit2Repository.CreateBranch(branchName));
@@ -560,7 +566,6 @@ public abstract class ReleaseManagerTests : RepoTestBase
         var stdout = new StringWriter();
         var releaseManager = new ReleaseManager(stdout);
         releaseManager.PrepareRelease(this.RepoPath, outputMode: ReleaseManager.ReleaseManagerOutputMode.Json);
-
 
         // Expected output:
         // {
@@ -571,13 +576,12 @@ public abstract class ReleaseManagerTests : RepoTestBase
         //     },
         //     "NewBranch" : null
         // }
-
         var jsonOutput = JObject.Parse(stdout.ToString());
 
         // check "CurrentBranch"  output
         {
-            var expectedCommitId = this.LibGit2Repository.Branches[branchName].Tip.Sha;
-            var expectedVersion = this.GetVersionOptions(committish: this.LibGit2Repository.Branches[branchName].Tip.Sha).Version.ToString();
+            string expectedCommitId = this.LibGit2Repository.Branches[branchName].Tip.Sha;
+            string expectedVersion = this.GetVersionOptions(committish: this.LibGit2Repository.Branches[branchName].Tip.Sha).Version.ToString();
 
             var currentBranchOutput = jsonOutput.Property("CurrentBranch")?.Value as JObject;
             Assert.NotNull(currentBranchOutput);
@@ -585,8 +589,8 @@ public abstract class ReleaseManagerTests : RepoTestBase
             Assert.Equal(branchName, currentBranchOutput.GetValue("Name")?.ToString());
             Assert.Equal(expectedCommitId, currentBranchOutput.GetValue("Commit")?.ToString());
             Assert.Equal(expectedVersion, currentBranchOutput.GetValue("Version")?.ToString());
-
         }
+
         // Check "NewBranch" output
         {
             // no new branch was created, so "NewBranch" should be null
@@ -621,19 +625,20 @@ public abstract class ReleaseManagerTests : RepoTestBase
         // create version.json
         this.WriteVersionFile(initialVersionOptions);
 
-        var tipBeforePrepareRelease = this.LibGit2Repository.Head.Tip;
+        Commit tipBeforePrepareRelease = this.LibGit2Repository.Head.Tip;
 
         var releaseManager = new ReleaseManager();
         releaseManager.PrepareRelease(this.RepoPath);
 
         this.SetContextToHead();
-        var newVersion = this.Context.VersionFile.GetVersion();
+        VersionOptions newVersion = this.Context.VersionFile.GetVersion();
         Assert.Equal(expectedMainVersionOptions, newVersion);
 
         VersionOptions releaseVersion = this.GetVersionOptions(committish: this.LibGit2Repository.Branches["v1.0"].Tip.Sha);
         Assert.Equal(expectedReleaseVersionOptions, releaseVersion);
     }
 
+    /// <inheritdoc/>
     protected override void InitializeSourceControl(bool withInitialCommit = true)
     {
         base.InitializeSourceControl(withInitialCommit);
@@ -642,7 +647,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
 
     private void AssertError(Action testCode, ReleasePreparationError expectedError)
     {
-        var ex = Assert.Throws<ReleasePreparationException>(testCode);
+        ReleasePreparationException ex = Assert.Throws<ReleasePreparationException>(testCode);
         Assert.Equal(expectedError, ex.Error);
     }
 }

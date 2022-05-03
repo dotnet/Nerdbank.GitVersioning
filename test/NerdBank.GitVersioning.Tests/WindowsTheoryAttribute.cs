@@ -1,9 +1,13 @@
-﻿using System;
+﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System;
 using System.Runtime.InteropServices;
 using Xunit;
 
 public class WindowsTheoryAttribute : TheoryAttribute
 {
+    /// <inheritdoc/>
     public override string Skip
     {
         get
@@ -15,6 +19,7 @@ public class WindowsTheoryAttribute : TheoryAttribute
 
             return null;
         }
+
         set
         {
             throw new NotSupportedException();

@@ -48,25 +48,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\NerdBank.GitVersioning\NerdBank.GitVersioning.csproj" />
+    <ProjectReference Include="..\NerdBank.GitVersioning\Nerdbank.GitVersioning.csproj" />
   </ItemGroup>
 
   <Target Name="PackBuildOutputs" DependsOnTargets="SatelliteDllsProjectOutputGroup;DebugSymbolsProjectOutputGroup">
     <ItemGroup>
-      <TfmSpecificPackageFile
-        Include="
-                  $(OutputPath)LibGit2Sharp.dll*;
-                  $(OutputPath)Nerdbank.GitVersioning.*dll;
-                  $(OutputPath)Newtonsoft.Json.dll;
-                  $(OutputPath)PInvoke.*.dll;
-                  $(OutputPath)Validation.dll;
-                  "
-
-        Exclude="
-                  $(OutputPath)Microsoft.*.dll
-                  $(OutputPath)System.*.dll
-                  "
-        >
+      <TfmSpecificPackageFile Include="&#xD;&#xA;                  $(OutputPath)LibGit2Sharp.dll*;&#xD;&#xA;                  $(OutputPath)Nerdbank.GitVersioning.*dll;&#xD;&#xA;                  $(OutputPath)Newtonsoft.Json.dll;&#xD;&#xA;                  $(OutputPath)PInvoke.*.dll;&#xD;&#xA;                  $(OutputPath)Validation.dll;&#xD;&#xA;                  " Exclude="&#xD;&#xA;                  $(OutputPath)Microsoft.*.dll&#xD;&#xA;                  $(OutputPath)System.*.dll&#xD;&#xA;                  ">
         <PackagePath>lib\$(TargetFramework)</PackagePath>
       </TfmSpecificPackageFile>
     </ItemGroup>

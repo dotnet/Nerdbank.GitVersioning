@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
 using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
@@ -14,12 +12,12 @@ using Xunit.Abstractions;
 
 internal static class MSBuildExtensions
 {
-    private static readonly object loadLock = new object();
+    private static readonly object LoadLock = new object();
     private static bool loaded;
 
     internal static void LoadMSBuild()
     {
-        lock (loadLock)
+        lock (LoadLock)
         {
             if (!loaded)
             {
@@ -48,7 +46,7 @@ internal static class MSBuildExtensions
 
         buildManager.BeginBuild(parameters);
 
-        var result = await buildManager.BuildAsync(brd);
+        BuildResult result = await buildManager.BuildAsync(brd);
 
         buildManager.EndBuild();
 
@@ -61,7 +59,7 @@ internal static class MSBuildExtensions
         Requires.NotNull(buildRequestData, nameof(buildRequestData));
 
         var tcs = new TaskCompletionSource<BuildResult>();
-        var submission = buildManager.PendBuildRequest(buildRequestData);
+        BuildSubmission submission = buildManager.PendBuildRequest(buildRequestData);
         submission.ExecuteAsync(s => tcs.SetResult(s.BuildResult), null);
         return tcs.Task;
     }

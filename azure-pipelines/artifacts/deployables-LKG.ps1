@@ -9,5 +9,5 @@ $PackagesRoot = "$RepoRoot/bin/Packages/$BuildConfiguration"
 if (!(Test-Path $PackagesRoot))  { return }
 
 @{
-    "$PackagesRoot" = (Get-ChildItem $PackagesRoot -Recurse)
+    "$PackagesRoot" = (Get-ChildItem $PackagesRoot *.LKG.*.nupkg)
 }

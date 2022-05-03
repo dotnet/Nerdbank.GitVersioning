@@ -1,4 +1,7 @@
-﻿using System.IO;
+﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System.IO;
 using System.Reflection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -8,7 +11,7 @@ using Xunit.Abstractions;
 
 public class VersionSchemaTests
 {
-    private readonly ITestOutputHelper Logger;
+    private readonly ITestOutputHelper logger;
 
     private readonly JSchema schema;
 
@@ -16,7 +19,7 @@ public class VersionSchemaTests
 
     public VersionSchemaTests(ITestOutputHelper logger)
     {
-        this.Logger = logger;
+        this.logger = logger;
         using (var schemaStream = new StreamReader(Assembly.GetExecutingAssembly().GetManifestResourceStream($"{ThisAssembly.RootNamespace}.version.schema.json")))
         {
             this.schema = JSchema.Load(new JsonTextReader(schemaStream));
@@ -97,14 +100,14 @@ public class VersionSchemaTests
     public void ReleaseProperty_ValidJson(string json)
     {
         this.json = JObject.Parse(json);
-        Assert.True(this.json.IsValid(this.schema));      
+        Assert.True(this.json.IsValid(this.schema));
     }
 
     [Theory]
     [InlineData(@"{ ""version"": ""2.3"", ""release"":  { ""versionIncrement"" : ""revision"" } }")]
     [InlineData(@"{ ""version"": ""2.3"", ""release"":  { ""branchName"" : ""formatWithoutPlaceholder"" } }")]
     [InlineData(@"{ ""version"": ""2.3"", ""release"":  { ""branchName"" : ""formatWithoutPlaceholder{0}"" } }")]
-    [InlineData(@"{ ""version"": ""2.3"", ""release"":  { ""unknownProperty"" : ""value"" } }")]    
+    [InlineData(@"{ ""version"": ""2.3"", ""release"":  { ""unknownProperty"" : ""value"" } }")]
     public void ReleaseProperty_InvalidJson(string json)
     {
         this.json = JObject.Parse(json);

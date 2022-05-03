@@ -7,7 +7,7 @@
     <PackageOutputPath>$(RepoRootPath)bin\Packages\$(Configuration)\</PackageOutputPath>
     <DocumentationRootFolder>$(MSBuildThisFileDirectory)..\wiki\api</DocumentationRootFolder>
     <LangVersion>10.0</LangVersion>
-    <Nullable>enable</Nullable>
+    <!--<Nullable>enable</Nullable>-->
     <ImplicitUsings>enable</ImplicitUsings>
     <AnalysisLevel>latest</AnalysisLevel>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
@@ -47,7 +47,7 @@
     <PackageReference Include="StyleCop.Analyzers.Unstable" Version="1.2.0.406" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="$(MSBuildThisFileDirectory)..\3rdPartyNotices.txt" Pack="true" PackagePath="" />
+    <None Include="$(MSBuildThisFileDirectory)3rdPartyNotices.txt" Pack="true" PackagePath="" />
   </ItemGroup>
 
   <ItemGroup>

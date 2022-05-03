@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System;
 using System.Runtime.InteropServices;
 using Nerdbank.GitVersioning;
 using Xunit;
@@ -107,10 +110,10 @@ public class FilterPathTests
     [Fact]
     public void InvalidPathspecsThrow()
     {
-        Assert.Throws<ArgumentNullException>(() => new FilterPath(null, ""));
-        Assert.Throws<ArgumentException>(() => new FilterPath("", ""));
-        Assert.Throws<FormatException>(() => new FilterPath(":?", ""));
-        Assert.Throws<FormatException>(() => new FilterPath("../foo.txt", ""));
+        Assert.Throws<ArgumentNullException>(() => new FilterPath(null, string.Empty));
+        Assert.Throws<ArgumentException>(() => new FilterPath(string.Empty, string.Empty));
+        Assert.Throws<FormatException>(() => new FilterPath(":?", string.Empty));
+        Assert.Throws<FormatException>(() => new FilterPath("../foo.txt", string.Empty));
         Assert.Throws<FormatException>(() => new FilterPath(".././a/../../foo.txt", "foo"));
     }
 

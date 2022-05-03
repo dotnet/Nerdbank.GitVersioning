@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using Nerdbank.GitVersioning;
@@ -8,7 +11,7 @@ using Xunit.Sdk;
 using static Nerdbank.GitVersioning.VersionOptions;
 
 /// <summary>
-/// Tests for <see cref=""/>
+/// Tests for <see cref="SemanticVersionExtensions"/>.
 /// </summary>
 public class SemanticVersionExtensionsTests
 {
@@ -38,7 +41,7 @@ public class SemanticVersionExtensionsTests
         var currentVersion = SemanticVersion.Parse(currentVersionString);
         var expectedVersion = SemanticVersion.Parse(expectedVersionString);
 
-        var actualVersion = currentVersion.Increment(increment);
+        SemanticVersion actualVersion = currentVersion.Increment(increment);
 
         Assert.Equal(expectedVersion, actualVersion);
     }
@@ -67,7 +70,7 @@ public class SemanticVersionExtensionsTests
     // multiple prerelease tags
     [InlineData("1.2-alpha.preview", "beta", "1.2-beta.preview")]
     [InlineData("1.2-alpha.preview", "-beta", "1.2-beta.preview")]
-    [InlineData("1.2-alpha.preview+metadata", "beta", "1.2-beta.preview+metadata")]    
+    [InlineData("1.2-alpha.preview+metadata", "beta", "1.2-beta.preview+metadata")]
     [InlineData("1.2.3-alpha.preview", "beta", "1.2.3-beta.preview")]
     [InlineData("1.2-alpha.{height}", "beta", "1.2-beta.{height}")]
     // remove tag
@@ -77,9 +80,8 @@ public class SemanticVersionExtensionsTests
         var currentVersion = SemanticVersion.Parse(currentVersionString);
         var expectedVersion = SemanticVersion.Parse(expectedVersionString);
 
-        var actualVersion = currentVersion.SetFirstPrereleaseTag(newTag);
+        SemanticVersion actualVersion = currentVersion.SetFirstPrereleaseTag(newTag);
 
         Assert.Equal(expectedVersion, actualVersion);
     }
 }
-

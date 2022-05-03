@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -184,7 +187,6 @@ public class VersionOptionsTests
         Assert.Throws<InvalidOperationException>(() => options.ReleaseOrDefault.FirstUnstableTag = "-tag");
     }
 
-
     [Fact]
     public void ReleaseOptions_Equality()
     {
@@ -193,12 +195,12 @@ public class VersionOptionsTests
         var ro3 = new VersionOptions.ReleaseOptions()
         {
             BranchName = "branchName",
-            VersionIncrement = VersionOptions.ReleaseVersionIncrement.Major
+            VersionIncrement = VersionOptions.ReleaseVersionIncrement.Major,
         };
         var ro4 = new VersionOptions.ReleaseOptions()
         {
             BranchName = "branchName",
-            VersionIncrement = VersionOptions.ReleaseVersionIncrement.Major
+            VersionIncrement = VersionOptions.ReleaseVersionIncrement.Major,
         };
         var ro5 = new VersionOptions.ReleaseOptions()
         {
@@ -209,13 +211,13 @@ public class VersionOptionsTests
         {
             BranchName = "branchName",
             VersionIncrement = VersionOptions.ReleaseVersionIncrement.Minor,
-            FirstUnstableTag = "tag"
+            FirstUnstableTag = "tag",
         };
         var ro7 = new VersionOptions.ReleaseOptions()
         {
             BranchName = "branchName",
             VersionIncrement = VersionOptions.ReleaseVersionIncrement.Minor,
-            FirstUnstableTag = "tag"
+            FirstUnstableTag = "tag",
         };
 
         Assert.Equal(ro1, ro2);
@@ -237,19 +239,19 @@ public class VersionOptionsTests
 
         var npvo2a = new VersionOptions.NuGetPackageVersionOptions
         {
-            SemVer = 2
+            SemVer = 2,
         };
         Assert.NotEqual(npvo2a, npvo1a);
 
         var npvo3a = new VersionOptions.NuGetPackageVersionOptions
         {
-            Precision = VersionOptions.VersionPrecision.Revision
+            Precision = VersionOptions.VersionPrecision.Revision,
         };
         Assert.NotEqual(npvo3a, npvo1a);
 
         var npvo4a = new VersionOptions.NuGetPackageVersionOptions
         {
-            Precision = VersionOptions.VersionPrecision.Build
+            Precision = VersionOptions.VersionPrecision.Build,
         };
         Assert.Equal(npvo4a, npvo1a); // Equal because we haven't changed defaults.
     }

@@ -10,7 +10,6 @@ jobs:
   pool: ${{ parameters.windowsPool }}
   variables:
     testModifier:
-    dotnet32: "\"C:\\Program Files (x86)\\dotnet\\dotnet.exe\""
     - ${{ if eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/') }}:
       - group: dotnetfoundation code signing
   steps:

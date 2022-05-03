@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System;
 using System.IO;
 using System.IO.Compression;
 using System.Security.Cryptography;
@@ -18,11 +21,11 @@ namespace ManagedGit
             using (ZLibStream stream = new ZLibStream(rawStream, -1))
             using (var sha = SHA1.Create())
             {
-                var deflateStream = Assert.IsType<DeflateStream>(stream.BaseStream);
+                DeflateStream deflateStream = Assert.IsType<DeflateStream>(stream.BaseStream);
                 Assert.Same(rawStream, deflateStream.BaseStream);
                 Assert.Equal(0, stream.Position);
 
-                var hash = sha.ComputeHash(stream);
+                byte[] hash = sha.ComputeHash(stream);
                 Assert.Equal("NZb/5ZiYEDomdVR9RZfnQuHyOJw=", Convert.ToBase64String(hash));
 
                 Assert.Equal(148, stream.Position);
@@ -37,7 +40,7 @@ namespace ManagedGit
             {
                 // Seek past the commit 137 header, and make sure we can read the 'tree' word
                 Assert.Equal(11, stream.Seek(11, SeekOrigin.Begin));
-                var tree = new byte[4];
+                byte[] tree = new byte[4];
                 stream.Read(tree);
                 Assert.Equal("tree", Encoding.UTF8.GetString(tree));
 
