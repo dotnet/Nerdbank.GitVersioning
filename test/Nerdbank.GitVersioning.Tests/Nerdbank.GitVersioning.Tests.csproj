@@ -18,7 +18,7 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Keys\*.snk" />
     <EmbeddedResource Include="Keys\*.pfx" />
-    <EmbeddedResource Include="..\..\src\NerdBank.GitVersioning\version.schema.json" Link="version.schema.json" />
+    <EmbeddedResource Include="..\..\src\Nerdbank.GitVersioning\version.schema.json" Link="version.schema.json" />
     <EmbeddedResource Include="ManagedGit\*.gz" />
     <EmbeddedResource Include="ManagedGit\commit*" />
     <EmbeddedResource Include="ManagedGit\pack*" />
@@ -29,7 +29,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Nerdbank.GitVersioning.Tasks\Nerdbank.GitVersioning.Tasks.csproj" />
-    <ProjectReference Include="..\..\src\NerdBank.GitVersioning\Nerdbank.GitVersioning.csproj" />
+    <ProjectReference Include="..\..\src\Nerdbank.GitVersioning\Nerdbank.GitVersioning.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="coverlet.msbuild" Version="3.1.2" />

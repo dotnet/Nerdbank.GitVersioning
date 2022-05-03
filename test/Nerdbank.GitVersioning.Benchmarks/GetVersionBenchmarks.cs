@@ -22,7 +22,7 @@ namespace Nerdbank.GitVersioning.Benchmarks
             "xunit",
             "Cuemon",
             "SuperSocket",
-            "NerdBank.GitVersioning")]
+            "Nerdbank.GitVersioning")]
         public string ProjectDirectory;
 
         public Version Version { get; set; }

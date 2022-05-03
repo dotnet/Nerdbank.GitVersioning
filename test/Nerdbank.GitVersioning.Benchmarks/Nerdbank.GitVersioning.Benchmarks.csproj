@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\NerdBank.GitVersioning\Nerdbank.GitVersioning.csproj" />
+    <ProjectReference Include="..\..\src\Nerdbank.GitVersioning\Nerdbank.GitVersioning.csproj" />
   </ItemGroup>
 
 </Project>

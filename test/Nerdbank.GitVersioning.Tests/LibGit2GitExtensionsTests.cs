@@ -467,7 +467,7 @@ public class LibGit2GitExtensionsTests : RepoTestBase
     [SkippableFact(Skip = "It fails already.")] // Skippable, only run test on specific machine
     public void TestBiggerRepo()
     {
-        string testBiggerRepoPath = @"D:\git\NerdBank.GitVersioning";
+        string testBiggerRepoPath = @"D:\git\Nerdbank.GitVersioning";
         Skip.If(!Directory.Exists(testBiggerRepoPath));
 
         using var largeRepo = new Repository(testBiggerRepoPath);

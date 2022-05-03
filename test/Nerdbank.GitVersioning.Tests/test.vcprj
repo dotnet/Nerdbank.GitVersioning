@@ -31,7 +31,7 @@
     <RootNamespace>test</RootNamespace>
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <ResourceOnlyDll>true</ResourceOnlyDll>
-    <AssemblyCompany>NerdBank</AssemblyCompany>
+    <AssemblyCompany>Nerdbank</AssemblyCompany>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

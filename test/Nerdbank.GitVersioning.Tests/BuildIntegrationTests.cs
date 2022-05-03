@@ -83,8 +83,8 @@ public class BuildIntegrationLibGit2Tests : BuildIntegrationTests
 
 public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
 {
-    private const string GitVersioningPropsFileName = "NerdBank.GitVersioning.props";
-    private const string GitVersioningTargetsFileName = "NerdBank.GitVersioning.targets";
+    private const string GitVersioningPropsFileName = "Nerdbank.GitVersioning.props";
+    private const string GitVersioningTargetsFileName = "Nerdbank.GitVersioning.targets";
     private const string UnitTestCloudBuildPrefix = "UnitTest: ";
     private static readonly string[] ToxicEnvironmentVariablePrefixes = new string[]
     {
@@ -994,7 +994,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         Assert.Equal("1.2", fileInfo.FileVersion);
         Assert.Equal("1.2.0", fileInfo.ProductVersion);
         Assert.Equal("test", fileInfo.InternalName);
-        Assert.Equal("NerdBank", fileInfo.CompanyName);
+        Assert.Equal("Nerdbank", fileInfo.CompanyName);
         Assert.Equal($"Copyright (c) {DateTime.Now.Year}. All rights reserved.", fileInfo.LegalCopyright);
     }
 #endif
