@@ -20,6 +20,8 @@
   <!-- These targets are called when the consuming project is a VSIX project. -->
   <Target Name="BuiltProjectOutputGroup" />
   <Target Name="SatelliteDllsProjectOutputGroup" />
+  <Target Name="BuiltProjectOutputGroupDependencies" />
+  <Target Name="DebugSymbolsProjectOutputGroup" />
 
   <Import Project="$(NBGV_PrivateP2PAuxTargets)" Condition=" '$(NBGV_PrivateP2PAuxTargets)' != '' " />
 </Project>
