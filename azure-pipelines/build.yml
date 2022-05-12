@@ -3,7 +3,6 @@ parameters:
   type: object
   default:
     vmImage: windows-2022
-- name: includeMacOS
 
 jobs:
 - job: Windows
@@ -54,6 +53,4 @@ jobs:
     parameters:
       initArgs: -NoRestore
   - template: publish-codecoverage.yml
-    parameters:
-      includeMacOS: ${{ parameters.includeMacOS }}
   - template: publish-deployables.yml
