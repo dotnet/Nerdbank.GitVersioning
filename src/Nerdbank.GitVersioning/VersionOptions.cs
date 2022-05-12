@@ -243,7 +243,7 @@ public class VersionOptions : IEquatable<VersionOptions>
     /// Gets the $schema field that should be serialized when writing.
     /// </summary>
     [JsonProperty(PropertyName = "$schema")]
-    public string Schema => "https://raw.githubusercontent.com/dotnet/Nerdbank.GitVersioning/master/src/Nerdbank.GitVersioning/version.schema.json";
+    public string Schema => "https://raw.githubusercontent.com/dotnet/Nerdbank.GitVersioning/main/src/Nerdbank.GitVersioning/version.schema.json";
 
     /// <summary>
     /// Gets or sets the default version to use.
