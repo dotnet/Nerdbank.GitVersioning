@@ -6,7 +6,6 @@
     <Authors>Chris Crutchfield, Andrew Arnott</Authors>
     <Company>andarno</Company>
     <Description>Cake wrapper for Nerdbank.GitVersioning.  Stamps your assemblies with semver 2.0 compliant git commit specific version information and provides NuGet versioning information as well.</Description>
-    <Copyright>Copyright (c) .NET Foundation and Contributors</Copyright>
     <PackageTags>git commit versioning version assemblyinfo cake-addin</PackageTags>
     <PackageIconUrl>https://cdn.jsdelivr.net/gh/cake-contrib/graphics/png/addin/cake-contrib-addin-medium.png</PackageIconUrl>
     <PackageIcon>cake-contrib-addin-medium.png</PackageIcon>
@@ -49,25 +48,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\NerdBank.GitVersioning\NerdBank.GitVersioning.csproj" />
+    <ProjectReference Include="..\Nerdbank.GitVersioning\Nerdbank.GitVersioning.csproj" />
   </ItemGroup>
 
   <Target Name="PackBuildOutputs" DependsOnTargets="SatelliteDllsProjectOutputGroup;DebugSymbolsProjectOutputGroup">
     <ItemGroup>
-      <TfmSpecificPackageFile
-        Include="
-                  $(OutputPath)LibGit2Sharp.dll*;
-                  $(OutputPath)Nerdbank.GitVersioning.*dll;
-                  $(OutputPath)Newtonsoft.Json.dll;
-                  $(OutputPath)PInvoke.*.dll;
-                  $(OutputPath)Validation.dll;
-                  "
-
-        Exclude="
-                  $(OutputPath)Microsoft.*.dll
-                  $(OutputPath)System.*.dll
-                  "
-        >
+      <TfmSpecificPackageFile Include="&#xD;&#xA;                  $(OutputPath)LibGit2Sharp.dll*;&#xD;&#xA;                  $(OutputPath)Nerdbank.GitVersioning.*dll;&#xD;&#xA;                  $(OutputPath)Newtonsoft.Json.dll;&#xD;&#xA;                  $(OutputPath)PInvoke.*.dll;&#xD;&#xA;                  $(OutputPath)Validation.dll;&#xD;&#xA;                  " Exclude="&#xD;&#xA;                  $(OutputPath)Microsoft.*.dll&#xD;&#xA;                  $(OutputPath)System.*.dll&#xD;&#xA;                  ">
         <PackagePath>lib\$(TargetFramework)</PackagePath>
       </TfmSpecificPackageFile>
     </ItemGroup>

@@ -20,6 +20,14 @@
   <!-- These targets are called when the consuming project is a VSIX project. -->
   <Target Name="BuiltProjectOutputGroup" />
   <Target Name="SatelliteDllsProjectOutputGroup" />
+  <Target Name="BuiltProjectOutputGroupDependencies" />
+  <Target Name="DebugSymbolsProjectOutputGroup" />
+  
+  <!-- WinUI3 seems to want this target -->
+  <Target Name="GetTargetPathWithTargetPlatformMoniker" />
+  
+  <!-- dotnet watch needs this target -->
+  <Target Name="_CollectWatchItems" />
 
   <Import Project="$(NBGV_PrivateP2PAuxTargets)" Condition=" '$(NBGV_PrivateP2PAuxTargets)' != '' " />
 </Project>
