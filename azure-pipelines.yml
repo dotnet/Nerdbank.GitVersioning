@@ -76,10 +76,10 @@ stages:
     strategy:
       matrix:
         ubuntu:
-          imageName: ubuntu-18.04
+          imageName: ubuntu-20.04
           repoDir: '~/git'
         windows:
-          imageName: windows-2019
+          imageName: windows-2022
           repoDir: '${USERPROFILE}/source/repos'
         macOS:
           imageName: macOS-10.15
@@ -108,11 +108,10 @@ stages:
       displayName: Clone test repositories
     - script: |
         dotnet build -c Release
-      workingDirectory: src/
       displayName: Build in Release mode
     - script: |
         dotnet run -c Release -f netcoreapp3.1 -- --filter GetVersionBenchmarks --artifacts $(Build.ArtifactStagingDirectory)/benchmarks/packed/$(imageName)
-      workingDirectory: src/Nerdbank.GitVersioning.Benchmarks
+      workingDirectory: test/Nerdbank.GitVersioning.Benchmarks
       displayName: Run benchmarks (packed)
     - bash: |
         cd $(repoDir)/xunit
@@ -129,7 +128,7 @@ stages:
       displayName: Unpack Git repositories
     - script: |
         dotnet run -c Release -f netcoreapp3.1 -- --filter GetVersionBenchmarks --artifacts $(Build.ArtifactStagingDirectory)/benchmarks/unpacked/$(imageName)
-      workingDirectory: src/Nerdbank.GitVersioning.Benchmarks
+      workingDirectory: test/Nerdbank.GitVersioning.Benchmarks
       displayName: Run benchmarks (unpacked)
     - task: PublishBuildArtifacts@1
       inputs:
