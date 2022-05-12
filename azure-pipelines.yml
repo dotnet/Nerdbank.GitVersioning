@@ -30,6 +30,7 @@ variables:
   BuildConfiguration: Release
   codecov_token: 92266a45-648d-454e-8fec-beffae2e6553
   ci_feed: https://pkgs.dev.azure.com/andrewarnott/OSS/_packaging/PublicCI/nuget/v3/index.json
+  ci_npm_feed: https://pkgs.dev.azure.com/andrewarnott/OSS/_packaging/PublicCI/npm/registry/
   NUGET_PACKAGES: $(Agent.TempDirectory)/.nuget/packages/
 
 stages:
