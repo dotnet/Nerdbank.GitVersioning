@@ -469,7 +469,7 @@ public class ReleaseManager
         }
 
         /// <summary>
-        /// Gets the name of the branch, e.g. <c>master</c>.
+        /// Gets the name of the branch, e.g. <c>main</c>.
         /// </summary>
         public string Name { get; }
 

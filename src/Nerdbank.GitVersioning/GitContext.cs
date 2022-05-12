@@ -96,7 +96,7 @@ public abstract class GitContext : IDisposable
     public abstract DateTimeOffset? GitCommitDate { get; }
 
     /// <summary>
-    /// Gets the canonical name for HEAD's position (e.g. <c>refs/heads/master</c>).
+    /// Gets the canonical name for HEAD's position (e.g. <c>refs/heads/main</c>).
     /// </summary>
     public abstract string? HeadCanonicalName { get; }
 
