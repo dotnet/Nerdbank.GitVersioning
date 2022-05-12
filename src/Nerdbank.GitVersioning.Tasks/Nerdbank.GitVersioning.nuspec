@@ -20,7 +20,7 @@ IMPORTANT: The 3.x release may produce a different version height than prior maj
     <file src="$BaseOutputPath$net461\LibGit2Sharp.dll" target="build\MSBuildFull\LibGit2Sharp.dll" />
     <file src="$BaseOutputPath$net461\LibGit2Sharp.dll.config" target="build\MSBuildFull\LibGit2Sharp.dll.config" />
     <file src="$BaseOutputPath$net461\Microsoft.DotNet.PlatformAbstractions.dll" target="build\MSBuildFull\Microsoft.DotNet.PlatformAbstractions.dll" />
-    <file src="$BaseOutputPath$net461\NerdBank.GitVersioning.dll" target="build\MSBuildFull\NerdBank.GitVersioning.dll" />
+    <file src="$BaseOutputPath$net461\Nerdbank.GitVersioning.dll" target="build\MSBuildFull\Nerdbank.GitVersioning.dll" />
     <file src="$BaseOutputPath$net461\Nerdbank.GitVersioning.Tasks.dll" target="build\MSBuildFull\Nerdbank.GitVersioning.Tasks.dll" />
     <file src="$BaseOutputPath$net461\Newtonsoft.Json.dll" target="build\MSBuildFull\Newtonsoft.Json.dll" />
     <file src="$BaseOutputPath$net461\System.Buffers.dll" target="build\MSBuildFull\System.Buffers.dll" />
@@ -43,7 +43,7 @@ IMPORTANT: The 3.x release may produce a different version height than prior maj
     <file src="$LibGit2SharpNativeBinaries$libgit2\LibGit2Sharp.dll.config" target="build\MSBuildCore\LibGit2Sharp.dll.config" />
     <file src="$BaseOutputPath$netcoreapp3.1\LibGit2Sharp.dll" target="build\MSBuildCore\LibGit2Sharp.dll" />
     <file src="$BaseOutputPath$netcoreapp3.1\Microsoft.DotNet.PlatformAbstractions.dll" target="build\MSBuildCore\Microsoft.DotNet.PlatformAbstractions.dll" />
-    <file src="$BaseOutputPath$netcoreapp3.1\NerdBank.GitVersioning.dll" target="build\MSBuildCore\NerdBank.GitVersioning.dll" />
+    <file src="$BaseOutputPath$netcoreapp3.1\Nerdbank.GitVersioning.dll" target="build\MSBuildCore\Nerdbank.GitVersioning.dll" />
     <file src="$BaseOutputPath$netcoreapp3.1\Nerdbank.GitVersioning.Tasks.dll" target="build\MSBuildCore\Nerdbank.GitVersioning.Tasks.dll" />
     <file src="$BaseOutputPath$netcoreapp3.1\Newtonsoft.Json.dll" target="build\MSBuildCore\Newtonsoft.Json.dll" />
     <file src="$BaseOutputPath$netcoreapp3.1\System.Text.Json.dll" target="build\MSBuildCore\System.Text.Json.dll" />
