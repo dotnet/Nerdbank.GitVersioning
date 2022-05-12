@@ -63,8 +63,14 @@ stages:
     - template: azure-pipelines/xplattest-pipeline.yml
 
   - job: macOS
+    strategy:
+      matrix:
+        macOS_Catalina:
+          vmImage: macOS-10.15
+        macOS_Monterey:
+          vmImage: macOS-12
     pool:
-      vmImage: macOS-10.15
+      vmImage: $[ variables['vmImage'] ]
     steps:
     - template: azure-pipelines/xplattest-pipeline.yml
 
