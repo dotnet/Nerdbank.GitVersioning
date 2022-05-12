@@ -12,7 +12,7 @@
     <Compile Include="..\..\src\Shared\**\*.cs" LinkBase="Shared" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="..\Nerdbank.GitVersioning.Tasks\build\*.targets;..\Nerdbank.GitVersioning.Tasks\build\*.props;..\Nerdbank.GitVersioning.Tasks\build\*.proj">
+    <EmbeddedResource Include="..\..\src\Nerdbank.GitVersioning.Tasks\build\*.targets;..\..\src\Nerdbank.GitVersioning.Tasks\build\*.props;..\..\src\Nerdbank.GitVersioning.Tasks\build\*.proj">
       <Visible>false</Visible>
       <Link>Targets\%(FileName)%(Extension)</Link>
     </EmbeddedResource>
