@@ -9,7 +9,8 @@ jobs:
 - job: Windows
   pool: ${{ parameters.windowsPool }}
   variables:
-    testModifier:
+    - name: testModifier
+      value:
     - ${{ if eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/') }}:
       - group: dotnetfoundation code signing
   steps:
