@@ -10,9 +10,9 @@ using Microsoft.Build.Utilities;
 using Nerdbank.GitVersioning.Tasks;
 using Xunit;
 
-public class AssemblyInfoTest : IClassFixture<MSBuildFixture>
+public class AssemblyInfoTest : IClassFixture<MSBuildFixture> // The MSBuildFixture throws PlatformNotSupportedException when run on mono.
 {
-    [Theory]
+    [SkippableTheory(typeof(PlatformNotSupportedException))]
     [InlineData(false)]
     [InlineData(true)]
     [InlineData(null)]
@@ -90,7 +90,7 @@ do()
         Assert.Equal(expected, built);
     }
 
-    [Theory]
+    [SkippableTheory(typeof(PlatformNotSupportedException))]
     [InlineData(false)]
     [InlineData(true)]
     [InlineData(null)]
@@ -166,7 +166,7 @@ internal static partial class ThisAssembly {{
         Assert.Equal(expected, built);
     }
 
-    [Theory]
+    [SkippableTheory(typeof(PlatformNotSupportedException))]
     [InlineData(false)]
     [InlineData(true)]
     [InlineData(null)]
