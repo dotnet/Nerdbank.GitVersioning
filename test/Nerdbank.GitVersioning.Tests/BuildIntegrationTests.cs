@@ -626,7 +626,9 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
             }
 
             // Assert that env variables were also set in context of the build.
-            Assert.Contains(buildResult.LoggedEvents, e => string.Equals(e.Message, $"n1=v1", StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(
+                buildResult.LoggedEvents,
+                e => string.Equals(e.Message, $"n1=v1", StringComparison.OrdinalIgnoreCase) || string.Equals(e.Message, $"n1='v1'", StringComparison.OrdinalIgnoreCase));
 
             versionOptions.CloudBuild.SetVersionVariables = false;
             this.WriteVersionFile(versionOptions);
