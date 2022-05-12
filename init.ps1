@@ -33,8 +33,8 @@
 #>
 [CmdletBinding(SupportsShouldProcess = $true)]
 Param (
-    [ValidateSet('repo', 'user', 'machine')]
-    [string]$InstallLocality = 'user',
+    [ValidateSet('repo', 'machine')]
+    [string]$InstallLocality = 'repo',
     [Parameter()]
     [switch]$NoPrerequisites,
     [Parameter()]
@@ -88,7 +88,7 @@ try {
         npm i -g yarn@">=1.22 <2.0"
         Write-Host "Restoring NPM packages..." -ForegroundColor Yellow
         if ($PSCmdlet.ShouldProcess("$PSScriptRoot\src\nerdbank-gitversioning.npm", "yarn install")) {
-            yarn --cwd src/nerdbank-gitversioning.npm --loglevel error
+            yarn install --cwd src/nerdbank-gitversioning.npm --loglevel error
         }
     }
 
