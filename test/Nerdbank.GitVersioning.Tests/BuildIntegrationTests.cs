@@ -568,7 +568,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
     }
 
     [Theory]
-    [Trait("TestCategory", "FailsOnAzurePipelines")]
+    [Trait("TestCategory", "FailsInCloudTest")]
     [MemberData(nameof(CloudBuildVariablesData))]
     public async Task CloudBuildVariables_SetInCI(IReadOnlyDictionary<string, string> properties, string expectedMessage, bool setAllVariables)
     {
@@ -906,7 +906,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
     }
 
     [Fact]
-    [Trait("TestCategory", "FailsOnAzurePipelines")]
+    [Trait("TestCategory", "FailsInCloudTest")]
     public async Task AssemblyInfo_IncrementalBuild()
     {
         this.WriteVersionFile(prerelease: "-beta");
