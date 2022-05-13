@@ -22,7 +22,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nerdbank.GitVersioning.Test
 EndProject
 Project("{9092AA53-FB77-4645-B42D-1CCCA6BD08BD}") = "nb-gv", "src\nerdbank-gitversioning.npm\nb-gv.njsproj", "{F79DD916-27B3-4CD0-97FF-5021B3CF9934}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nerdbank.GitVersioning", "src\Nerdbank.GitVersioning\Nerdbank.GitVersioning.csproj", "{C7FA7B7A-0469-4B1C-8657-E274C4CD8ABB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nerdbank.GitVersioning", "src\NerdBank.GitVersioning\Nerdbank.GitVersioning.csproj", "{C7FA7B7A-0469-4B1C-8657-E274C4CD8ABB}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nerdbank.GitVersioning.Tasks", "src\Nerdbank.GitVersioning.Tasks\Nerdbank.GitVersioning.Tasks.csproj", "{B2454569-6EDC-4FD4-9936-D2B2F2E10409}"
 EndProject

@@ -12,7 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Cake.GitVersioning\Cake.GitVersioning.csproj" />
-    <ProjectReference Include="..\..\src\Nerdbank.GitVersioning\Nerdbank.GitVersioning.csproj" />
+    <ProjectReference Include="..\..\src\NerdBank.GitVersioning\Nerdbank.GitVersioning.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="coverlet.msbuild" Version="3.1.2" />
