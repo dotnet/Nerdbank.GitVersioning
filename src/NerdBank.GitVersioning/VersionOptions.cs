@@ -10,6 +10,7 @@ namespace Nerdbank.GitVersioning
     using System.Reflection;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Converters;
+    using Newtonsoft.Json.Serialization;
     using Validation;
     using EditorBrowsableAttribute = System.ComponentModel.EditorBrowsableAttribute;
     using EditorBrowsableState = System.ComponentModel.EditorBrowsableState;
@@ -493,7 +494,7 @@ namespace Nerdbank.GitVersioning
                     new VersionConverter(),
                     new SemanticVersionJsonConverter(),
                     new AssemblyVersionOptionsConverter(includeDefaults),
-                    new StringEnumConverter() { CamelCaseText = true },
+                    new StringEnumConverter() { NamingStrategy = new CamelCaseNamingStrategy() },
                     new FilterPathJsonConverter(repoRelativeBaseDirectory),
                 },
                 ContractResolver = new VersionOptionsContractResolver
