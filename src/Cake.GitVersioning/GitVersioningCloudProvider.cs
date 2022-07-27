@@ -54,7 +54,7 @@ namespace Cake.GitVersioning
         SpaceAutomation,
 
         /// <summary>
-        /// Use the Bitbucket cloud build provider
+        /// Use the Bitbucket cloud build provider.
         /// </summary>
         BitbucketCloud,
     }
