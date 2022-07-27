@@ -52,5 +52,10 @@ namespace Cake.GitVersioning
         /// Use the Jetbrains Space cloud build provider.
         /// </summary>
         SpaceAutomation,
+
+        /// <summary>
+        /// Use the Bitbucket cloud build provider
+        /// </summary>
+        BitbucketCloud,
     }
 }

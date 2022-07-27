@@ -24,6 +24,7 @@ public static class CloudBuild
         new GitLab(),
         new Travis(),
         new SpaceAutomation(),
+        new BitbucketCloud(),
     };
 
     /// <summary>
