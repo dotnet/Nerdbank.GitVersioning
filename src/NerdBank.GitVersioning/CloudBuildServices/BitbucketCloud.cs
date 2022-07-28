@@ -12,7 +12,9 @@ namespace Nerdbank.GitVersioning.CloudBuildServices;
 public class BitbucketCloud : ICloudBuild
 {
     /// <inheritdoc />
-    public bool IsApplicable => !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("BITBUCKET_REPO_SLUG"));
+    public bool IsApplicable => !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("BITBUCKET_PIPELINE_UUID")) &&
+                                !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("BITBUCKET_STEP_UUID")) &&
+                                !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("BITBUCKET_STEP_TRIGGERER_UUID"));
 
     /// <inheritdoc />
     public bool IsPullRequest => !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("BITBUCKET_PR_ID"));
