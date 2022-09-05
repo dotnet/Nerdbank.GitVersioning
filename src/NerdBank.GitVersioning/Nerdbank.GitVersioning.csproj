@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;netcoreapp3.1</TargetFrameworks>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <DebugType>Full</DebugType>
+    <IsPackable>false</IsPackable>
+    <PackageId>Nerdbank.GitVersioning.Core</PackageId>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>Nerdbank.GitVersioning</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="DotNetMDDocs" Version="0.112.39" PrivateAssets="all" Condition=" '$(GenerateMarkdownApiDocs)' == 'true' " />
+    <PackageReference Include="LibGit2Sharp" Version="0.27.0-preview-0182" PrivateAssets="none" />
+    <PackageReference Include="Microsoft.DotNet.PlatformAbstractions" Version="3.1.6" />
+    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.1.478-beta" PrivateAssets="all" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="Validation" Version="2.5.51" />
+    <PackageReference Include="Nerdbank.GitVersioning.LKG" Version="3.4.173-alpha" />
+    <PackageReference Include="System.Text.Json" Version="4.7.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Shared\**\*.cs" LinkBase="Shared" />
+  </ItemGroup>
+</Project>

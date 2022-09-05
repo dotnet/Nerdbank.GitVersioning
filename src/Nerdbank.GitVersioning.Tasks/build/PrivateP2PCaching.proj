@@ -28,6 +28,9 @@
   
   <!-- dotnet watch needs this target -->
   <Target Name="_CollectWatchItems" />
+  
+  <!-- VS Test wants to see this target -->
+  <Target Name="VSTest" />
 
   <Import Project="$(NBGV_PrivateP2PAuxTargets)" Condition=" '$(NBGV_PrivateP2PAuxTargets)' != '' " />
 </Project>

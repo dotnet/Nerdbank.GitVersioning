@@ -1,4 +1,7 @@
-﻿namespace Cake.GitVersioning
+﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+namespace Cake.GitVersioning
 {
     /// <summary>
     /// Defines the supported cloud build providers for the <see cref="GitVersioningAliases.GitVersioningCloud" /> alias.
@@ -49,5 +52,10 @@
         /// Use the Jetbrains Space cloud build provider.
         /// </summary>
         SpaceAutomation,
+
+        /// <summary>
+        /// Use the Bitbucket cloud build provider.
+        /// </summary>
+        BitbucketCloud,
     }
 }

@@ -1,74 +1,73 @@
-﻿namespace Nerdbank.GitVersioning
+﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System.Reflection;
+using Newtonsoft.Json;
+
+namespace Nerdbank.GitVersioning;
+
+internal class AssemblyVersionOptionsConverter : JsonConverter
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Reflection;
-    using System.Text;
-    using System.Threading.Tasks;
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Linq;
+    private readonly bool includeDefaults;
 
-    internal class AssemblyVersionOptionsConverter : JsonConverter
+    internal AssemblyVersionOptionsConverter(bool includeDefaults)
     {
-        private readonly bool includeDefaults;
+        this.includeDefaults = includeDefaults;
+    }
 
-        internal AssemblyVersionOptionsConverter(bool includeDefaults)
-        {
-            this.includeDefaults = includeDefaults;
-        }
+    /// <inheritdoc/>
+    public override bool CanConvert(Type objectType)
+    {
+        return typeof(VersionOptions.AssemblyVersionOptions).GetTypeInfo().IsAssignableFrom(objectType.GetTypeInfo());
+    }
 
-        public override bool CanConvert(Type objectType)
+    /// <inheritdoc/>
+    public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+    {
+        if (objectType.Equals(typeof(VersionOptions.AssemblyVersionOptions)))
         {
-            return typeof(VersionOptions.AssemblyVersionOptions).GetTypeInfo().IsAssignableFrom(objectType.GetTypeInfo());
-        }
-
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
-        {
-            if (objectType.Equals(typeof(VersionOptions.AssemblyVersionOptions)))
+            if (reader.Value is string)
             {
-                if (reader.Value is string)
+                Version value;
+                if (Version.TryParse((string)reader.Value, out value))
                 {
-                    Version value;
-                    if (Version.TryParse((string)reader.Value, out value))
-                    {
-                        return new VersionOptions.AssemblyVersionOptions(value);
-                    }
-                }
-                else if (reader.TokenType == JsonToken.StartObject)
-                {
-                    // Temporarily remove ourselves from the serializer so we don't recurse infinitely.
-                    serializer.Converters.Remove(this);
-                    var result = serializer.Deserialize<VersionOptions.AssemblyVersionOptions>(reader);
-                    serializer.Converters.Add(this);
-                    return result;
+                    return new VersionOptions.AssemblyVersionOptions(value);
                 }
             }
-
-            throw new NotSupportedException();
-        }
-
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
-        {
-            var data = value as VersionOptions.AssemblyVersionOptions;
-            if (data is not null)
+            else if (reader.TokenType == JsonToken.StartObject)
             {
-                if (data.PrecisionOrDefault == VersionOptions.DefaultVersionPrecision && !this.includeDefaults)
-                {
-                    serializer.Serialize(writer, data.Version);
-                    return;
-                }
-                else
-                {
-                    // Temporarily remove ourselves from the serializer so we don't recurse infinitely.
-                    serializer.Converters.Remove(this);
-                    serializer.Serialize(writer, data);
-                    serializer.Converters.Add(this);
-                    return;
-                }
+                // Temporarily remove ourselves from the serializer so we don't recurse infinitely.
+                serializer.Converters.Remove(this);
+                VersionOptions.AssemblyVersionOptions result = serializer.Deserialize<VersionOptions.AssemblyVersionOptions>(reader);
+                serializer.Converters.Add(this);
+                return result;
             }
-
-            throw new NotSupportedException();
         }
+
+        throw new NotSupportedException();
+    }
+
+    /// <inheritdoc/>
+    public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+    {
+        var data = value as VersionOptions.AssemblyVersionOptions;
+        if (data is not null)
+        {
+            if (data.PrecisionOrDefault == VersionOptions.DefaultVersionPrecision && !this.includeDefaults)
+            {
+                serializer.Serialize(writer, data.Version);
+                return;
+            }
+            else
+            {
+                // Temporarily remove ourselves from the serializer so we don't recurse infinitely.
+                serializer.Converters.Remove(this);
+                serializer.Serialize(writer, data);
+                serializer.Converters.Add(this);
+                return;
+            }
+        }
+
+        throw new NotSupportedException();
     }
 }
