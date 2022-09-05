@@ -1,3 +1,6 @@
+parameters:
+  RunTests:
+
 steps:
 
 - script: |
@@ -6,7 +9,7 @@ steps:
   displayName: Configure git commit author for testing
 
 - script: dotnet build -t:build,pack --no-restore -c $(BuildConfiguration) /bl:"$(Build.ArtifactStagingDirectory)/build_logs/build.binlog"
-  displayName: dotnet build
+  displayName: 🛠 dotnet build
 
 - script: dotnet pack -c $(BuildConfiguration) --no-build -p:PackLKG=true /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild_lkg.binlog"
   displayName: Build LKG package
@@ -21,10 +24,11 @@ steps:
   workingDirectory: src/nerdbank-gitversioning.npm
 
 - powershell: azure-pipelines/dotnet-test-cloud.ps1 -Configuration $(BuildConfiguration) -Agent $(Agent.JobName) -PublishResults
-  displayName: dotnet test
+  displayName: 🧪 dotnet test
+  condition: and(succeeded(), ${{ parameters.RunTests }})
 
 - powershell: azure-pipelines/dotnet-test-cloud.ps1 -Configuration $(BuildConfiguration) -Agent $(Agent.JobName) -PublishResults -X86
-  displayName: dotnet test x86
+  displayName: 🧪 dotnet test x86
   condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))
 
 - powershell: azure-pipelines/artifacts/_pipelines.ps1 -ArtifactNameSuffix "-$(Agent.JobName)" -StageOnly
@@ -44,7 +48,7 @@ steps:
     --secret '$(codesign_secret)'
     --name 'Nerdbank.GitVersioning'
     --descriptionUrl 'https://github.com/dotnet/Nerdbank.GitVersioning'
-  displayName: Code sign
+  displayName: 🔏 Code sign
   condition: and(succeeded(), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), eq(variables['Agent.OS'], 'Windows_NT'), ne(variables['Build.Reason'], 'PullRequest'))
 
 - pwsh: >
@@ -57,21 +61,24 @@ steps:
     --secret '$(codesign_secret)'
     --name 'Nerdbank.GitVersioning'
     --descriptionUrl 'https://github.com/dotnet/Nerdbank.GitVersioning'
-  displayName: Code sign LKG
+  displayName: 🔏 Code sign LKG
   condition: and(succeeded(), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), eq(variables['Agent.OS'], 'Windows_NT'), ne(variables['Build.Reason'], 'PullRequest'))
 
 - powershell: azure-pipelines/variables/_pipelines.ps1
   failOnStderr: true
-  displayName: Update pipeline variables based on build outputs
+  displayName: ⚙ Update pipeline variables based on build outputs
   condition: succeededOrFailed()
 
-- powershell: azure-pipelines/artifacts/_pipelines.ps1 -ArtifactNameSuffix "-$(Agent.JobName)"
+- powershell: azure-pipelines/artifacts/_pipelines.ps1 -ArtifactNameSuffix "-$(Agent.JobName)" -Verbose
   failOnStderr: true
-  displayName: Publish artifacts
+  displayName: 📢 Publish artifacts
   condition: succeededOrFailed()
 
-- bash: bash <(curl -s https://codecov.io/bash)
-  displayName: Publish code coverage results to codecov.io
-  condition: ne(variables['codecov_token'], '')
-  timeoutInMinutes: 3
-  continueOnError: true
+- ${{ if and(ne(variables['codecov_token'], ''), parameters.RunTests) }}:
+  - powershell: |
+      $ArtifactStagingFolder = & "azure-pipelines/Get-ArtifactsStagingDirectory.ps1"
+      $CoverageResultsFolder = Join-Path $ArtifactStagingFolder "coverageResults-$(Agent.JobName)"
+      azure-pipelines/publish-CodeCov.ps1 -CodeCovToken "$(codecov_token)" -PathToCodeCoverage "$CoverageResultsFolder" -Name "$(Agent.JobName) Coverage Results" -Flags "$(Agent.JobName)Host,$(BuildConfiguration)"
+    displayName: 📢 Publish code coverage results to codecov.io
+    timeoutInMinutes: 3
+    continueOnError: true

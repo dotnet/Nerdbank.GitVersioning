@@ -3,6 +3,9 @@ parameters:
   type: object
   default:
     vmImage: windows-2022
+- name: RunTests
+  type: boolean
+  default: true
 
 jobs:
 - job: Windows
@@ -21,24 +24,26 @@ jobs:
       Invoke-WebRequest -Uri "https://dot.net/v1/dotnet-install.ps1" -OutFile dotnet-install.ps1
       & .\dotnet-install.ps1 -Architecture x86 -Channel 3.1 -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose -Runtime dotnet
       & .\dotnet-install.ps1 -Architecture x86 -Version 6.0.301 -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose
-    displayName: Install 32-bit .NET SDK and runtimes
+    displayName: ⚙ Install 32-bit .NET SDK and runtimes
 
   - powershell: '& (./azure-pipelines/Get-nbgv.ps1) cloud -c'
-    displayName: Set build number
+    displayName: ⚙ Set build number
 
   - template: dotnet.yml
+    parameters:
+      RunTests: ${{ parameters.RunTests }}
 
 - job: Linux
   pool:
     vmImage: Ubuntu 20.04
-  variables:
-    testModifier: -f net6.0
   steps:
   - checkout: self
     clean: true
     submodules: true # keep the warnings quiet about the wiki not being enlisted
   - template: install-dependencies.yml
   - template: dotnet.yml
+    parameters:
+      RunTests: ${{ parameters.RunTests }}
 
 - job: WrapUp
   dependsOn:
@@ -52,5 +57,6 @@ jobs:
   - template: install-dependencies.yml
     parameters:
       initArgs: -NoRestore
-  - template: publish-codecoverage.yml
+  - ${{ if parameters.RunTests }}:
+    - template: publish-codecoverage.yml
   - template: publish-deployables.yml
