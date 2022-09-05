@@ -5,7 +5,7 @@ var ts = require('gulp-typescript');
 var sourcemaps = require('gulp-sourcemaps');
 var merge = require('merge2');
 // var tslint = require('gulp-tslint');
-var del = require('del');
+var del = import('del');
 var path = require('path');
 
 const outDir = 'out';

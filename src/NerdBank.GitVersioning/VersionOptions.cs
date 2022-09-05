@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Reflection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Serialization;
 using Validation;
 using EditorBrowsableAttribute = System.ComponentModel.EditorBrowsableAttribute;
 using EditorBrowsableState = System.ComponentModel.EditorBrowsableState;
@@ -594,7 +595,7 @@ public class VersionOptions : IEquatable<VersionOptions>
                 new VersionConverter(),
                 new SemanticVersionJsonConverter(),
                 new AssemblyVersionOptionsConverter(includeDefaults),
-                new StringEnumConverter() { CamelCaseText = true },
+                new StringEnumConverter() { NamingStrategy = new CamelCaseNamingStrategy() },
                 new FilterPathJsonConverter(repoRelativeBaseDirectory),
             },
             ContractResolver = new VersionOptionsContractResolver
