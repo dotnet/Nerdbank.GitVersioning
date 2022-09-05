@@ -25,7 +25,7 @@
   ],
   "devDependencies": {
     "@types/camel-case": "^1.2.1",
-    "@types/node": "^17.0.30",
+    "@types/node": "^18.7.14",
     "del": "^6.0.0",
     "gulp": "^4.0.2",
     "gulp-cli": "^2.3.0",
