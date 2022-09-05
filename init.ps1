@@ -33,8 +33,8 @@
 #>
 [CmdletBinding(SupportsShouldProcess = $true)]
 Param (
-    [ValidateSet('repo', 'machine')]
-    [string]$InstallLocality = 'repo',
+    [ValidateSet('repo', 'user', 'machine')]
+    [string]$InstallLocality = 'user',
     [Parameter()]
     [switch]$NoPrerequisites,
     [Parameter()]

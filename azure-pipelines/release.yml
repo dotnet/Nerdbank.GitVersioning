@@ -25,18 +25,18 @@ jobs:
       } else {
         Write-Host "##vso[task.setvariable variable=IsPrerelease]false"
       }
-    displayName: Set up pipeline
+    displayName: ⚙ Set up pipeline
   - task: UseDotNet@2
-    displayName: Install .NET SDK
+    displayName: ⚙ Install .NET SDK
     inputs:
       packageType: sdk
       version: 6.x
   - download: CI
     artifact: deployables-Windows
-    displayName: Download deployables-Windows artifact
+    displayName: 🔻 Download deployables-Windows artifact
     patterns: 'deployables-Windows/*'
   - task: GitHubRelease@1
-    displayName: GitHub release (create)
+    displayName: 📢 GitHub release (create)
     inputs:
       gitHubConnection: github.com_AArnott_OAuth
       repositoryName: $(Build.Repository.Name)
@@ -51,12 +51,12 @@ jobs:
       changeLogType: issueBased
       changeLogLabels: |
         [
-          { "label" : "breaking changes", "displayName" : "Breaking changes", "state" : "closed" },
+          { "label" : "breaking change", "displayName" : "Breaking changes", "state" : "closed" },
           { "label" : "bug", "displayName" : "Fixes", "state" : "closed" },
           { "label" : "enhancement", "displayName": "Enhancements", "state" : "closed" }
         ]
   - script: dotnet nuget push $(Pipeline.Workspace)/CI/deployables-Windows/*.nupkg -s https://api.nuget.org/v3/index.json --api-key $(NuGetOrgApiKey) --skip-duplicate
-    displayName: Push packages to nuget.org
+    displayName: 📦 Push packages to nuget.org
     condition: and(succeeded(), ne(variables['NuGetOrgApiKey'], ''))
   - powershell: |
       $tgz = (Get-ChildItem "$(Pipeline.Workspace)/CI/deployables-Windows/*.tgz")[0].FullName
@@ -64,9 +64,9 @@ jobs:
       npm init -y
       npm install $tgz
     workingDirectory: $(Agent.TempDirectory)
-    displayName: Prepare to publish NPM package
+    displayName: ⚙️ Prepare to publish NPM package
   - task: Npm@1
-    displayName: npm publish
+    displayName: 📦 npm publish
     inputs:
       command: publish
       workingDir: $(Agent.TempDirectory)/node_modules/nerdbank-gitversioning

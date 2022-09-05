@@ -13,6 +13,12 @@ trigger:
     - .github/
     - azure-pipelines/release.yml
 
+parameters:
+- name: RunTests
+  displayName: Run tests
+  type: boolean
+  default: true
+
 resources:
   containers:
   - container: xenial
@@ -37,9 +43,12 @@ stages:
 - stage: Build
   jobs:
   - template: azure-pipelines/build.yml
+    parameters:
+      RunTests: ${{ parameters.RunTests }}
 
 - stage: Test
   displayName: Functional testing
+  condition: and(succeeded(), ${{ parameters.RunTests }})
   jobs:
   - job: linux
     strategy:
