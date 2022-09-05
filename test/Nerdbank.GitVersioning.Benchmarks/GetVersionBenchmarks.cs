@@ -10,8 +10,7 @@ using BenchmarkDotNet.Jobs;
 namespace Nerdbank.GitVersioning.Benchmarks
 {
     [SimpleJob(RuntimeMoniker.NetCoreApp31, baseline: true)]
-    [SimpleJob(RuntimeMoniker.NetCoreApp21)]
-    [SimpleJob(RuntimeMoniker.Net50)]
+    [SimpleJob(RuntimeMoniker.Net60)]
     [SimpleJob(RuntimeMoniker.Net461)]
     public class GetVersionBenchmarks
     {
