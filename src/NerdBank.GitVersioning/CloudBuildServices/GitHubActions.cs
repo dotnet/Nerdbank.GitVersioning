@@ -18,9 +18,18 @@ internal class GitHubActions : ICloudBuild
     public string BuildingTag => (BuildingRef?.StartsWith("refs/tags/") ?? false) ? BuildingRef : null;
 
     /// <inheritdoc/>
-    public string GitCommitId => Environment.GetEnvironmentVariable("GITHUB_SHA");
+    public string GitCommitId => IgnoreGitHubRef ? null : Environment.GetEnvironmentVariable("GITHUB_SHA");
 
-    private static string BuildingRef => Environment.GetEnvironmentVariable("GITHUB_REF");
+    private static string BuildingRef => IgnoreGitHubRef ? null : Environment.GetEnvironmentVariable("GITHUB_REF");
+
+    /// <summary>
+    /// Gets a value indicating whether to ignore GitHub Actions environment variables that indicate where HEAD is.
+    /// </summary>
+    /// <remarks>
+    /// This is useful in a GitHub workflow where HEAD was moved by some prior Action, such that the environment variables are stale.
+    /// GitHub Actions does not allow these env vars to be changed mid-workflow, so in such cases NB.GV should just use HEAD.
+    /// </remarks>
+    private static bool IgnoreGitHubRef => string.Equals(Environment.GetEnvironmentVariable("IGNORE_GITHUB_REF"), "true", StringComparison.OrdinalIgnoreCase);
 
     private static string EnvironmentFile => Environment.GetEnvironmentVariable("GITHUB_ENV");
 
