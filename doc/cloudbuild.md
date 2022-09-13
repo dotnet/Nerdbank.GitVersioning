@@ -22,6 +22,22 @@ But `actions/checkout@v2` checks out a shallow clone by default, so you'll have 
     fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
 ```
 
+### Azure Pipelines
+
+[Azure Pipelines behavior has changed][AzpDepthChange] for *new* pipelines created after around Jan 2022
+such that build agents now default to creating shallow clones.
+You can defeat this, thereby forcing a full history clone by adding this to the top of your `steps` list:
+
+```yml
+steps:
+- checkout: self
+  fetchDepth: 0
+```
+
+In particular, setting `fetchDepth: 0` will cause Azure Pipelines to *not* do shallow clones.
+
+See this [example change](https://github.com/AArnott/Library.Template/commit/5d14d2cecbb3fd3caa6a421da1525d8480baef8b).
+
 ## Optional features
 
 By specifying certain `cloudBuild` options in your `version.json` file,
@@ -177,3 +193,4 @@ When building inside a docker container, special considerations may apply:
    When using `docker run` yourself in your build script, you can add `--env BUILD_SOURCEBRANCH --env SYSTEM_TEAMPROJECTID` to your command line to pass-through those environment variables to your container.
 
 [Issue37]: https://github.com/dotnet/Nerdbank.GitVersioning/issues/37
+[AzpDepthChange]: https://github.com/MicrosoftDocs/azure-devops-yaml-schema/issues/32
