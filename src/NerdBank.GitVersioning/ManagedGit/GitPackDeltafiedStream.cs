@@ -135,11 +135,7 @@ namespace Nerdbank.GitVersioning.ManagedGit
             if (origin == SeekOrigin.Begin && offset > this.position)
             {
                 // We can optimise this by skipping over instructions rather than executing them
-                int length = (int)(offset - this.position);
-
-                byte[] buffer = ArrayPool<byte>.Shared.Rent(length);
-                this.Read(buffer, 0, length);
-                ArrayPool<byte>.Shared.Return(buffer);
+                this.ReadExactly(checked((int)(offset - this.position)));
                 return this.position;
             }
             else
