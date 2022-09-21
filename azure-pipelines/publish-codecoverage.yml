@@ -7,11 +7,11 @@ steps:
   artifact: coverageResults-Linux
   displayName: 🔻 Download Linux code coverage results
   continueOnError: true
-- powershell: azure-pipelines/Merge-CodeCoverage.ps1 -Path '$(Pipeline.Workspace)' -OutputDir coveragereport -Format Cobertura -Verbose
+- powershell: azure-pipelines/Merge-CodeCoverage.ps1 -Path '$(Pipeline.Workspace)' -OutputFile coveragereport/merged.cobertura.xml -Format Cobertura -Verbose
   displayName: ⚙ Merge coverage
 - task: PublishCodeCoverageResults@1
   displayName: 📢 Publish code coverage results to Azure DevOps
   inputs:
     codeCoverageTool: cobertura
-    summaryFileLocation: coveragereport/Cobertura.xml
+    summaryFileLocation: coveragereport/merged.cobertura.xml
     failIfCoverageEmpty: true
