@@ -53,7 +53,7 @@ namespace Nerdbank.GitVersioning.Tasks
         /// </summary>
         /// <param name="sourcePath">The source path.</param>
         /// <param name="destPath">The dest path.</param>
-        /// <returns><c>true</c> if the files are the same; <c>false</c> if the files are different.</returns>
+        /// <returns><see langword="true"/> if the files are the same; <see langword="false"/> if the files are different.</returns>
         internal static bool FastFileEqualityCheck(string sourcePath, string destPath)
         {
             FileInfo sourceInfo = new FileInfo(sourcePath);

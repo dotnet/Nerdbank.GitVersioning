@@ -369,14 +369,14 @@ public class VersionOracle
 
     /// <summary>
     /// Gets a SemVer 1.0 compliant string that represents this version, including the -COMMITID suffix
-    /// when <see cref="PublicRelease"/> is <c>false</c>.
+    /// when <see cref="PublicRelease"/> is <see langword="false"/>.
     /// </summary>
     public string SemVer1 =>
         $"{this.Version.ToStringSafe(3)}{this.PrereleaseVersionSemVer1}{this.SemVer1BuildMetadata}";
 
     /// <summary>
     /// Gets a SemVer 2.0 compliant string that represents this version, including a +COMMITID suffix
-    /// when <see cref="PublicRelease"/> is <c>false</c>.
+    /// when <see cref="PublicRelease"/> is <see langword="false"/>.
     /// </summary>
     public string SemVer2 =>
         $"{this.Version.ToStringSafe(3)}{this.PrereleaseVersion}{this.SemVer2BuildMetadata}";
@@ -421,7 +421,7 @@ public class VersionOracle
 
     /// <summary>
     /// Gets a SemVer 1.0 compliant string that represents this version, including the -gCOMMITID suffix
-    /// when <see cref="PublicRelease"/> is <c>false</c>.
+    /// when <see cref="PublicRelease"/> is <see langword="false"/>.
     /// </summary>
     private string NuGetSemVer1
     {
@@ -440,7 +440,7 @@ public class VersionOracle
 
     /// <summary>
     /// Gets a SemVer 2.0 compliant string that represents this version, including the -gCOMMITID suffix
-    /// when <see cref="PublicRelease"/> is <c>false</c>.
+    /// when <see cref="PublicRelease"/> is <see langword="false"/>.
     /// </summary>
     private string NuGetSemVer2
     {

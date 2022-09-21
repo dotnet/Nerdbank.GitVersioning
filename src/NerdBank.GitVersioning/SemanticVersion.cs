@@ -191,7 +191,7 @@ public class SemanticVersion : IEquatable<SemanticVersion>
     /// </summary>
     /// <param name="semanticVersion">The value which must wholly constitute a semantic version to succeed.</param>
     /// <param name="version">Receives the semantic version, if found.</param>
-    /// <returns><c>true</c> if a semantic version is found; <c>false</c> otherwise.</returns>
+    /// <returns><see langword="true"/> if a semantic version is found; <see langword="false"/> otherwise.</returns>
     public static bool TryParse(string semanticVersion, out SemanticVersion version)
     {
         Requires.NotNullOrEmpty(semanticVersion, nameof(semanticVersion));
@@ -232,7 +232,7 @@ public class SemanticVersion : IEquatable<SemanticVersion>
     /// Checks equality against another object.
     /// </summary>
     /// <param name="obj">The other instance.</param>
-    /// <returns><c>true</c> if the instances have equal values; <c>false</c> otherwise.</returns>
+    /// <returns><see langword="true"/> if the instances have equal values; <see langword="false"/> otherwise.</returns>
     public override bool Equals(object obj)
     {
         return this.Equals(obj as SemanticVersion);
@@ -260,7 +260,7 @@ public class SemanticVersion : IEquatable<SemanticVersion>
     /// Checks equality against another instance of this class.
     /// </summary>
     /// <param name="other">The other instance.</param>
-    /// <returns><c>true</c> if the instances have equal values; <c>false</c> otherwise.</returns>
+    /// <returns><see langword="true"/> if the instances have equal values; <see langword="false"/> otherwise.</returns>
     public bool Equals(SemanticVersion other)
     {
         if (other is null)
@@ -280,7 +280,7 @@ public class SemanticVersion : IEquatable<SemanticVersion>
     /// <param name="first">The first semantic version.</param>
     /// <param name="second">The second semantic version.</param>
     /// <param name="versionHeightPosition">The position within the version where height is tracked.</param>
-    /// <returns><c>true</c> if transitioning from one version to the next should reset the version height; <c>false</c> otherwise.</returns>
+    /// <returns><see langword="true"/> if transitioning from one version to the next should reset the version height; <see langword="false"/> otherwise.</returns>
     internal static bool WillVersionChangeResetVersionHeight(SemanticVersion first, SemanticVersion second, SemanticVersion.Position versionHeightPosition)
     {
         Requires.NotNull(first, nameof(first));
@@ -355,7 +355,7 @@ public class SemanticVersion : IEquatable<SemanticVersion>
     /// belongs to the set of versions represented by this semantic version spec.
     /// </summary>
     /// <param name="version">A version, with major and minor components, and possibly build and/or revision components.</param>
-    /// <returns><c>true</c> if <paramref name="version"/> may have been produced by this semantic version; <c>false</c> otherwise.</returns>
+    /// <returns><see langword="true"/> if <paramref name="version"/> may have been produced by this semantic version; <see langword="false"/> otherwise.</returns>
     internal bool Contains(Version version)
     {
         return

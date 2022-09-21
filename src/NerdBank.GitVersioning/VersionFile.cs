@@ -40,7 +40,7 @@ public abstract class VersionFile
     /// <summary>
     /// Checks whether a version file is defined.
     /// </summary>
-    /// <returns><c>true</c> if the version file is found; otherwise <c>false</c>.</returns>
+    /// <returns><see langword="true"/> if the version file is found; otherwise <see langword="false"/>.</returns>
     public bool IsVersionDefined() => this.GetVersion() is object;
 
     /// <inheritdoc cref="GetWorkingCopyVersion(out string?)"/>
@@ -50,7 +50,7 @@ public abstract class VersionFile
     /// Reads the version file from the working tree and returns the <see cref="VersionOptions"/> deserialized from it.
     /// </summary>
     /// <param name="actualDirectory">Set to the actual directory that the version file was found in, which may be <see cref="GitContext.WorkingTreePath"/> or one of its ancestors.</param>
-    /// <returns>The version information read from the file, or <c>null</c> if the file wasn't found.</returns>
+    /// <returns>The version information read from the file, or <see langword="null"/> if the file wasn't found.</returns>
     public VersionOptions? GetWorkingCopyVersion(out string? actualDirectory) => this.GetWorkingCopyVersion(this.Context.AbsoluteProjectDirectory, out actualDirectory);
 
     /// <inheritdoc cref="SetVersion(string, VersionOptions, bool)"/>
@@ -144,7 +144,7 @@ public abstract class VersionFile
     /// Reads the version.txt file and returns the <see cref="Version"/> and prerelease tag from it.
     /// </summary>
     /// <param name="versionTextContent">The content of the version.txt file to read.</param>
-    /// <returns>The version information read from the file; or <c>null</c> if a deserialization error occurs.</returns>
+    /// <returns>The version information read from the file; or <see langword="null"/> if a deserialization error occurs.</returns>
     protected static VersionOptions TryReadVersionFile(TextReader versionTextContent)
     {
         string? versionLine = versionTextContent.ReadLine();

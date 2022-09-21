@@ -47,7 +47,7 @@ public static class LibGit2GitExtensions
     /// </summary>
     /// <param name="context">The git context to read from.</param>
     /// <param name="continueStepping">
-    /// A function that returns <c>false</c> when we reach a commit that
+    /// A function that returns <see langword="false"/> when we reach a commit that
     /// should not be included in the height calculation.
     /// May be null to count the height to the original commit.
     /// </param>
@@ -76,7 +76,7 @@ public static class LibGit2GitExtensions
     /// </summary>
     /// <param name="context">The git context to read from.</param>
     /// <param name="version">The version previously obtained from <see cref="VersionOracle.Version"/>.</param>
-    /// <returns>The matching commit, or <c>null</c> if no match is found.</returns>
+    /// <returns>The matching commit, or <see langword="null"/> if no match is found.</returns>
     /// <exception cref="InvalidOperationException">
     /// Thrown in the very rare situation that more than one matching commit is found.
     /// </exception>
@@ -245,7 +245,7 @@ public static class LibGit2GitExtensions
     /// <param name="expectedVersion">The version to test for in the commit.</param>
     /// <param name="comparisonPrecision">The last component of the version to include in the comparison.</param>
     /// <param name="tracker">The caching tracker for storing or fetching version information per commit.</param>
-    /// <returns><c>true</c> if the <paramref name="commit"/> matches the major and minor components of <paramref name="expectedVersion"/>.</returns>
+    /// <returns><see langword="true"/> if the <paramref name="commit"/> matches the major and minor components of <paramref name="expectedVersion"/>.</returns>
     private static bool CommitMatchesVersion(this Commit commit, SemanticVersion expectedVersion, SemanticVersion.Position comparisonPrecision, GitWalkTracker tracker)
     {
         Requires.NotNull(commit, nameof(commit));
@@ -274,7 +274,7 @@ public static class LibGit2GitExtensions
     /// <param name="expectedVersion">The version to test for in the commit.</param>
     /// <param name="comparisonPrecision">The last component of the version to include in the comparison.</param>
     /// <param name="tracker">The caching tracker for storing or fetching version information per commit.</param>
-    /// <returns><c>true</c> if the <paramref name="commit"/> matches the major and minor components of <paramref name="expectedVersion"/>.</returns>
+    /// <returns><see langword="true"/> if the <paramref name="commit"/> matches the major and minor components of <paramref name="expectedVersion"/>.</returns>
     private static bool CommitMatchesVersion(this Commit commit, Version expectedVersion, SemanticVersion.Position comparisonPrecision, GitWalkTracker tracker)
     {
         Requires.NotNull(commit, nameof(commit));
@@ -393,7 +393,7 @@ public static class LibGit2GitExtensions
     /// <param name="startingCommit">The commit to measure the height of.</param>
     /// <param name="tracker">The caching tracker for storing or fetching version information per commit.</param>
     /// <param name="continueStepping">
-    /// A function that returns <c>false</c> when we reach a commit that
+    /// A function that returns <see langword="false"/> when we reach a commit that
     /// should not be included in the height calculation.
     /// May be null to count the height to the original commit.
     /// </param>
