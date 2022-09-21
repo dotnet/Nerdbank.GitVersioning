@@ -21,7 +21,7 @@ internal static class GitExtensions
     /// </summary>
     /// <param name="context">The git context.</param>
     /// <param name="continueStepping">
-    /// A function that returns <c>false</c> when we reach a commit that
+    /// A function that returns <see langword="false"/> when we reach a commit that
     /// should not be included in the height calculation.
     /// May be null to count the height to the original commit.
     /// </param>
@@ -89,7 +89,7 @@ internal static class GitExtensions
     /// <param name="startingCommit">The commit to measure the height of.</param>
     /// <param name="tracker">The caching tracker for storing or fetching version information per commit.</param>
     /// <param name="continueStepping">
-    /// A function that returns <c>false</c> when we reach a commit that
+    /// A function that returns <see langword="false"/> when we reach a commit that
     /// should not be included in the height calculation.
     /// May be null to count the height to the original commit.
     /// </param>
@@ -286,7 +286,7 @@ internal static class GitExtensions
     /// <param name="expectedVersion">The version to test for in the commit.</param>
     /// <param name="comparisonPrecision">The last component of the version to include in the comparison.</param>
     /// <param name="tracker">The caching tracker for storing or fetching version information per commit.</param>
-    /// <returns><c>true</c> if the <paramref name="commit"/> matches the major and minor components of <paramref name="expectedVersion"/>.</returns>
+    /// <returns><see langword="true"/> if the <paramref name="commit"/> matches the major and minor components of <paramref name="expectedVersion"/>.</returns>
     private static bool CommitMatchesVersion(GitCommit commit, SemanticVersion expectedVersion, SemanticVersion.Position comparisonPrecision, GitWalkTracker tracker)
     {
         Requires.NotNull(expectedVersion, nameof(expectedVersion));

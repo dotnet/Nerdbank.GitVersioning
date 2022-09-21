@@ -260,7 +260,7 @@ public class VersionOptions : IEquatable<VersionOptions>
     /// Gets or sets the version to use particularly for the <see cref="AssemblyVersionAttribute"/>
     /// instead of the default <see cref="Version"/>.
     /// </summary>
-    /// <value>An instance of <see cref="System.Version"/> or <c>null</c> to simply use the default <see cref="Version"/>.</value>
+    /// <value>An instance of <see cref="System.Version"/> or <see langword="null"/> to simply use the default <see cref="Version"/>.</value>
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
     public AssemblyVersionOptions? AssemblyVersion
     {
@@ -271,7 +271,7 @@ public class VersionOptions : IEquatable<VersionOptions>
     /// <summary>
     /// Gets or sets the prefix for git commit id in version.
     /// Because of semver rules the prefix must lead with a [A-z_] character (not a number) and it cannot be the empty string.
-    /// If <c>null</c> 'g' will be used.
+    /// If <see langword="null"/> 'g' will be used.
     /// </summary>
     /// <value>A prefix for git commit id.</value>
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
@@ -299,7 +299,7 @@ public class VersionOptions : IEquatable<VersionOptions>
     /// Gets the version to use particularly for the <see cref="AssemblyVersionAttribute"/>
     /// instead of the default <see cref="Version"/>.
     /// </summary>
-    /// <value>An instance of <see cref="System.Version"/> or <c>null</c> to simply use the default <see cref="Version"/>.</value>
+    /// <value>An instance of <see cref="System.Version"/> or <see langword="null"/> to simply use the default <see cref="Version"/>.</value>
     [JsonIgnore]
     public AssemblyVersionOptions AssemblyVersionOrDefault => this.AssemblyVersion ?? AssemblyVersionOptions.DefaultInstance;
 
@@ -488,7 +488,7 @@ public class VersionOptions : IEquatable<VersionOptions>
     /// Gets or sets a value indicating whether this options object should inherit from an ancestor any settings that are not explicitly set in this one.
     /// </summary>
     /// <remarks>
-    /// When this is <c>true</c>, this object may not completely describe the options to be applied.
+    /// When this is <see langword="true"/>, this object may not completely describe the options to be applied.
     /// </remarks>
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
     public bool Inherit
@@ -583,7 +583,7 @@ public class VersionOptions : IEquatable<VersionOptions>
     /// filters should be relative to.
     /// This should be the directory where the version.json file resides.
     /// An empty string represents the root of the repository.
-    /// Passing <c>null</c> will mean path filters cannot be serialized.
+    /// Passing <see langword="null"/> will mean path filters cannot be serialized.
     /// </param>
     /// <returns>The serializer settings to use.</returns>
     public static JsonSerializerSettings GetJsonSettings(bool includeDefaults = false, bool includeSchemaProperty = false, string? repoRelativeBaseDirectory = null)
@@ -611,7 +611,7 @@ public class VersionOptions : IEquatable<VersionOptions>
     /// Checks equality against another object.
     /// </summary>
     /// <param name="obj">The other instance.</param>
-    /// <returns><c>true</c> if the instances have equal values; <c>false</c> otherwise.</returns>
+    /// <returns><see langword="true"/> if the instances have equal values; <see langword="false"/> otherwise.</returns>
     public override bool Equals(object? obj)
     {
         return this.Equals(obj as VersionOptions);
@@ -627,7 +627,7 @@ public class VersionOptions : IEquatable<VersionOptions>
     /// Checks equality against another instance of this class.
     /// </summary>
     /// <param name="other">The other instance.</param>
-    /// <returns><c>true</c> if the instances have equal values; <c>false</c> otherwise.</returns>
+    /// <returns><see langword="true"/> if the instances have equal values; <see langword="false"/> otherwise.</returns>
     public bool Equals(VersionOptions? other) => EqualWithDefaultsComparer.Singleton.Equals(this, other);
 
     /// <summary>

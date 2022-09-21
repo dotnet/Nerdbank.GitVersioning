@@ -17,6 +17,7 @@ jobs:
       - group: dotnetfoundation code signing
   steps:
   - checkout: self
+    fetchDepth: 0 # avoid shallow clone so nbgv can do its work.
     clean: true
     submodules: true # keep the warnings quiet about the wiki not being enlisted
   - template: install-dependencies.yml
@@ -38,6 +39,7 @@ jobs:
     vmImage: Ubuntu 20.04
   steps:
   - checkout: self
+    fetchDepth: 0 # avoid shallow clone so nbgv can do its work.
     clean: true
     submodules: true # keep the warnings quiet about the wiki not being enlisted
   - template: install-dependencies.yml
@@ -53,6 +55,7 @@ jobs:
   condition: succeededOrFailed()
   steps:
   - checkout: self
+    fetchDepth: 0 # avoid shallow clone so nbgv can do its work.
     clean: true
   - template: install-dependencies.yml
     parameters:

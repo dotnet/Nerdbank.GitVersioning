@@ -101,16 +101,16 @@ public class LibGit2Context : GitContext
     /// <param name="useDefaultConfigSearchPaths">
     /// Specifies whether to use default settings for looking up global and system settings.
     /// <para>
-    /// By default (<paramref name="useDefaultConfigSearchPaths"/> == <c>false</c>), the repository will be configured to only
+    /// By default (<paramref name="useDefaultConfigSearchPaths"/> == <see langword="false"/>), the repository will be configured to only
     /// use the repository-level configuration ignoring system or user-level configuration (set using <c>git config --global</c>.
     /// Thus only settings explicitly set for the repo will be available.
     /// </para>
     /// <para>
     /// For example using <c>Repository.Configuration.Get{string}("user.name")</c> to get the user's name will
-    /// return the value set in the repository config or <c>null</c> if the user name has not been explicitly set for the repository.
+    /// return the value set in the repository config or <see langword="null"/> if the user name has not been explicitly set for the repository.
     /// </para>
     /// <para>
-    /// When the caller specifies to use the default configuration search paths (<paramref name="useDefaultConfigSearchPaths"/> == <c>true</c>)
+    /// When the caller specifies to use the default configuration search paths (<paramref name="useDefaultConfigSearchPaths"/> == <see langword="true"/>)
     /// both repository level and global configuration will be available to the repo as well.
     /// </para>
     /// <para>
@@ -119,7 +119,7 @@ public class LibGit2Context : GitContext
     /// matching the behavior of the <c>git</c> command.
     /// </para>
     /// </param>
-    /// <returns>The <see cref="Repository"/> found for the specified path, or <c>null</c> if no git repo is found.</returns>
+    /// <returns>The <see cref="Repository"/> found for the specified path, or <see langword="null"/> if no git repo is found.</returns>
     internal static Repository OpenGitRepo(string path, bool useDefaultConfigSearchPaths = false)
     {
         if (useDefaultConfigSearchPaths)

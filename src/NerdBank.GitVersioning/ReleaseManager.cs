@@ -111,12 +111,12 @@ public class ReleaseManager
     /// The path to the directory which may (or its ancestors may) define the version file.
     /// </param>
     /// <param name="releaseUnstableTag">
-    /// The prerelease tag to add to the version on the release branch. Pass <c>null</c> to omit/remove the prerelease tag.
+    /// The prerelease tag to add to the version on the release branch. Pass <see langword="null"/> to omit/remove the prerelease tag.
     /// The leading hyphen may be specified or omitted.
     /// </param>
     /// <param name="nextVersion">
-    /// The next version to save to the version file on the current branch. Pass <c>null</c> to automatically determine the next
-    /// version based on the current version and the <c>versionIncrement</c> setting in <c>version.json</c>.
+    /// The next version to save to the version file on the current branch. Pass <see langword="null"/> to automatically determine the next
+    /// version based on the current version and the <paramref name="versionIncrement"/> setting in <c>version.json</c>.
     /// Parameter will be ignored if the current branch is a release branch.
     /// </param>
     /// <param name="versionIncrement">
@@ -440,7 +440,7 @@ public class ReleaseManager
         /// Gets information on the new branch created by <see cref="ReleaseManager"/>.
         /// </summary>
         /// <value>
-        /// Information on the newly created branch as instance of <see cref="ReleaseBranchInfo"/> or <c>null</c>, if no new branch was created.
+        /// Information on the newly created branch as instance of <see cref="ReleaseBranchInfo"/> or <see langword="null"/>, if no new branch was created.
         /// </value>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Include)]
         public ReleaseBranchInfo NewBranch { get; }
