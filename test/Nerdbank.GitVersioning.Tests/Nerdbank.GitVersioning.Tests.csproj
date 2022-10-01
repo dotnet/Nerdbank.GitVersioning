@@ -37,7 +37,7 @@
     <PackageReference Include="Microsoft.Build.Utilities.Core" Version="15.1.548" ExcludeAssets="runtime" />
     <PackageReference Include="Microsoft.Build" Version="15.1.548" ExcludeAssets="runtime" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.3.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.3.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.3.2" />
     <PackageReference Include="Moq" Version="4.18.1" />
     <PackageReference Include="Nerdbank.GitVersioning.LKG" Version="3.4.173-alpha" />
     <PackageReference Include="Newtonsoft.Json.Schema" Version="3.0.14" />
