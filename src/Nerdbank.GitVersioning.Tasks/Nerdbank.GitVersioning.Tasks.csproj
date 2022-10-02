@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net461;netcoreapp3.1</TargetFrameworks>
+    <TargetFrameworks>net462;netcoreapp3.1</TargetFrameworks>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
     <NuSpecFile>Nerdbank.GitVersioning.nuspec</NuSpecFile>
@@ -27,7 +27,7 @@
   <Target Name="PackBuildOutputs" DependsOnTargets="SatelliteDllsProjectOutputGroup;DebugSymbolsProjectOutputGroup">
     <PropertyGroup>
       <BuildSubDir Condition=" '$(TargetFramework)' == 'netcoreapp3.1' ">MSBuildCore\</BuildSubDir>
-      <BuildSubDir Condition=" '$(TargetFramework)' == 'net461' ">MSBuildFull\</BuildSubDir>
+      <BuildSubDir Condition=" '$(TargetFramework)' == 'net462' ">MSBuildFull\</BuildSubDir>
     </PropertyGroup>
     <Error Text="Unrecognized TargetFramework" Condition=" '$(BuildSubDir)' == '' " />
     <ItemGroup>
@@ -71,7 +71,7 @@
   <ItemGroup>
     <ProjectReference Include="..\NerdBank.GitVersioning\Nerdbank.GitVersioning.csproj" />
   </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' == 'net461' ">
+  <ItemGroup Condition="'$(TargetFramework)' == 'net462' ">
     <PackageReference Include="Microsoft.Build.Tasks.Core" Version="15.9.20" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'netcoreapp3.1'">
