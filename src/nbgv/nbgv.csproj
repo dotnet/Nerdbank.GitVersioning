@@ -14,7 +14,7 @@
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
     <PackageReference Include="Nerdbank.GitVersioning.LKG" Version="3.4.173-alpha" PrivateAssets="all" />
     <PackageReference Include="System.Diagnostics.Tools" Version="4.3.0" />
-    <PackageReference Include="Microsoft.Build" Version="16.9.0" />
+    <PackageReference Include="Microsoft.Build" Version="17.3.1" />
   </ItemGroup>
 
   <ItemGroup>
