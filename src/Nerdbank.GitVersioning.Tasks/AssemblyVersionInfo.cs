@@ -37,7 +37,7 @@ namespace Nerdbank.GitVersioning.Tasks
 ------------------------------------------------------------------------------
 ";
 
-#if NET461
+#if NET462
         private static readonly CodeGeneratorOptions CodeGeneratorOptions = new CodeGeneratorOptions
         {
             BlankLinesBetweenMembers = false,
@@ -133,7 +133,7 @@ namespace Nerdbank.GitVersioning.Tasks
             return null;
         }
 
-#if NET461
+#if NET462
         /// <inheritdoc/>
         public override bool Execute()
         {
@@ -183,7 +183,7 @@ namespace Nerdbank.GitVersioning.Tasks
         }
 #endif
 
-#if !NET461
+#if !NET462
         /// <inheritdoc/>
         public override bool Execute()
         {
@@ -230,7 +230,7 @@ namespace Nerdbank.GitVersioning.Tasks
             }
         }
 
-#if NET461
+#if NET462
         private static CodeMemberField CreateField<T>(string name, T value)
         {
             return new CodeMemberField(typeof(T), name)
