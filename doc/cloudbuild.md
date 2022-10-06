@@ -24,7 +24,7 @@ But `actions/checkout@v2` checks out a shallow clone by default, so you'll have 
 
 ### Azure Pipelines
 
-[Azure Pipelines behavior has changed][AzpDepthChange] for *new* pipelines created after around Jan 2022
+[Azure Pipelines behavior has changed][AzpDepthChange] for *new* pipelines
 such that build agents now default to creating shallow clones.
 You can defeat this, thereby forcing a full history clone by adding this to the top of your `steps` list:
 
@@ -37,6 +37,8 @@ steps:
 In particular, setting `fetchDepth: 0` will cause Azure Pipelines to *not* do shallow clones.
 
 See this [example change](https://github.com/AArnott/Library.Template/commit/5d14d2cecbb3fd3caa6a421da1525d8480baef8b).
+
+[Read more about this and how to configure shallow cloning when not using YAML files in Microsoft documentation](https://learn.microsoft.com/azure/devops/pipelines/repos/azure-repos-git?view=azure-devops&tabs=yaml#shallow-fetch).
 
 ## Optional features
 
