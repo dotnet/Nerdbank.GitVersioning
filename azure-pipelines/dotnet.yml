@@ -33,7 +33,7 @@ steps:
 
 - powershell: azure-pipelines/artifacts/_pipelines.ps1 -ArtifactNameSuffix "-$(Agent.JobName)" -StageOnly
   failOnStderr: true
-  displayName: Stage artifacts
+  displayName: 🗃️ Stage artifacts
   condition: succeededOrFailed()
 
 - pwsh: >
