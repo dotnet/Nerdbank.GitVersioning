@@ -365,7 +365,7 @@ public class VersionOracle
     /// <summary>
     /// Gets the version to use for NPM packages.
     /// </summary>
-    public string NpmPackageVersion => this.SemVer2;
+    public string NpmPackageVersion => $"{this.Version.ToStringSafe(3)}{this.PrereleaseVersion}";
 
     /// <summary>
     /// Gets a SemVer 1.0 compliant string that represents this version, including the -COMMITID suffix
