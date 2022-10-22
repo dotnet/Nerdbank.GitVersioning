@@ -18,8 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Declare a P2P so that "msbuild -graph -isolate" doesn't complain when we use the MSBuild task to invoke our inner shared project. -->
-    <ProjectReference Include="$(NBGV_CachingProjectReference)">
+    <NBGV_CachingProjectReference Include="$(NBGV_CachingProjectReference)">
       <Targets>GetBuildVersion_Properties;GetBuildVersion_CloudBuildVersionVars</Targets>
       <Properties>$(NBGV_InnerGlobalProperties)BuildMetadata=@(BuildMetadata, ',');</Properties>
       <SetConfiguration>Configuration=Release</SetConfiguration>
@@ -31,8 +30,14 @@
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
       <Visible>false</Visible>
-      <NBGV_InnerProject>true</NBGV_InnerProject>
       <PrivateAssets>all</PrivateAssets>
+    </NBGV_CachingProjectReference>
+
+    <!-- Declare a P2P so that "msbuild -graph -isolate" doesn't complain when we use the MSBuild task to invoke our inner shared project.
+         This causes a lot of problems (https://github.com/dotnet/Nerdbank.GitVersioning/issues?q=label%3Amsbuild-p2p+) with projects
+         that expect to understand all their own ProjectReferences though, so only define it when the user is running a graph build. -->
+    <ProjectReference Include="@(NBGV_CachingProjectReference)" Condition="'$(IsGraphBuild)'=='true'">
+      <NBGV_InnerProject>true</NBGV_InnerProject>
     </ProjectReference>
   </ItemGroup>
 
@@ -41,19 +46,17 @@
 
     <!-- Calculate version by invoking another "project" with global properties that will serve as a key
          into an msbuild cache to ensure we only invoke the GetBuildVersion task as many times as will produce a unique value. -->
-    <MSBuild Projects="@(ProjectReference)"
-             Condition=" '%(ProjectReference.NBGV_InnerProject)' == 'true' "
-             Properties="%(ProjectReference.Properties)"
-             RemoveProperties="%(ProjectReference.GlobalPropertiesToRemove)"
+    <MSBuild Projects="@(NBGV_CachingProjectReference)"
+             Properties="%(NBGV_CachingProjectReference.Properties)"
+             RemoveProperties="%(NBGV_CachingProjectReference.GlobalPropertiesToRemove)"
              Targets="GetBuildVersion_Properties">
       <Output TaskParameter="TargetOutputs" ItemName="NBGV_PropertyItems" />
     </MSBuild>
 
     <!-- Also get other items. -->
-    <MSBuild Projects="@(ProjectReference)"
-             Condition=" '%(ProjectReference.NBGV_InnerProject)' == 'true' "
-             Properties="%(ProjectReference.Properties)"
-             RemoveProperties="%(ProjectReference.GlobalPropertiesToRemove)"
+    <MSBuild Projects="@(NBGV_CachingProjectReference)"
+             Properties="%(NBGV_CachingProjectReference.Properties)"
+             RemoveProperties="%(NBGV_CachingProjectReference.GlobalPropertiesToRemove)"
              Targets="GetBuildVersion_CloudBuildVersionVars">
       <Output TaskParameter="TargetOutputs" ItemName="CloudBuildVersionVars" />
     </MSBuild>
