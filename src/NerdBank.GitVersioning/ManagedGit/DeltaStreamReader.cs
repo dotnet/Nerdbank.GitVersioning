@@ -84,6 +84,12 @@ public static class DeltaStreamReader
             {
                 value.Size |= (byte)stream.ReadByte() << 16;
             }
+
+            // Size zero is automatically converted to 0x10000.
+            if (value.Size == 0)
+            {
+                value.Size = 0x10000;
+            }
         }
 
         return value;
