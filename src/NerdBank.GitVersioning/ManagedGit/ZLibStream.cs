@@ -149,11 +149,7 @@ public class ZLibStream : Stream
         if (origin == SeekOrigin.Begin && offset > this.position)
         {
             // We may be able to optimize this by skipping over the compressed data
-            int length = (int)(offset - this.position);
-
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(length);
-            this.Read(buffer, 0, length);
-            ArrayPool<byte>.Shared.Return(buffer);
+            this.ReadExactly(checked((int)(offset - this.position)));
             return this.position;
         }
         else

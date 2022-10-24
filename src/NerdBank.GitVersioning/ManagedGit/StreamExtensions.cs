@@ -151,4 +151,31 @@ public static class StreamExtensions
         return true;
     }
 #endif
+
+    /// <summary>
+    /// Reads the specified number of bytes from a stream, or until the end of the stream.
+    /// </summary>
+    /// <param name="readFrom">The stream to read from.</param>
+    /// <param name="length">The number of bytes to be read.</param>
+    /// <param name="copyTo">The stream to copy the read bytes to, if required.</param>
+    /// <returns>The number of bytes actually read. This will be less than <paramref name="length"/> only if the end of <paramref name="readFrom"/> is reached.</returns>
+    internal static int ReadExactly(this Stream readFrom, int length, Stream? copyTo = null)
+    {
+        int bytesRemaining = length;
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(Math.Min(50 * 1024, bytesRemaining));
+        while (bytesRemaining > 0)
+        {
+            int read = readFrom.Read(buffer, 0, Math.Min(buffer.Length, bytesRemaining));
+            if (read == 0)
+            {
+                break;
+            }
+
+            copyTo?.Write(buffer, 0, read);
+            bytesRemaining -= read;
+        }
+
+        ArrayPool<byte>.Shared.Return(buffer);
+        return length - bytesRemaining;
+    }
 }

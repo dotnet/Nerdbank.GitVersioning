@@ -109,38 +109,27 @@ namespace Nerdbank.GitVersioning.Tasks
                 return true;
             }
 
-            // If both are present, we need to do a content comparison.
-            using (FileStream fileStream1 = File.OpenRead(file1))
+            if (new FileInfo(file1).Length != new FileInfo(file2).Length)
             {
-                using (FileStream fileStream2 = File.OpenRead(file2))
+                return false;
+            }
+
+            // If both are present, we need to do a content comparison.
+            // Keep our comparison simple by loading both in memory.
+            byte[] file1Content = File.ReadAllBytes(file1);
+            byte[] file2Content = File.ReadAllBytes(file2);
+
+            // One more sanity check.
+            if (file1Content.Length != file2Content.Length)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < file1Content.Length; i++)
+            {
+                if (file1Content[i] != file2Content[i])
                 {
-                    if (fileStream1.Length != fileStream2.Length)
-                    {
-                        return false;
-                    }
-
-                    byte[] buffer1 = new byte[4096];
-                    byte[] buffer2 = new byte[buffer1.Length];
-                    int bytesRead;
-                    do
-                    {
-                        bytesRead = fileStream1.Read(buffer1, 0, buffer1.Length);
-                        if (fileStream2.Read(buffer2, 0, buffer2.Length) != bytesRead)
-                        {
-                            // We should never get here since we compared file lengths, but
-                            // this is a sanity check.
-                            return false;
-                        }
-
-                        for (int i = 0; i < bytesRead; i++)
-                        {
-                            if (buffer1[i] != buffer2[i])
-                            {
-                                return false;
-                            }
-                        }
-                    }
-                    while (bytesRead == buffer1.Length);
+                    return false;
                 }
             }
 

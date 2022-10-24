@@ -82,13 +82,9 @@ internal class GitPackMemoryCacheStream : Stream
 
         if (offset > this.cacheStream.Length)
         {
-            int toRead = (int)(offset - this.cacheStream.Length);
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(toRead);
-            int read = this.stream.Read(buffer, 0, toRead);
             this.cacheStream.Seek(0, SeekOrigin.End);
-            this.cacheStream.Write(buffer, 0, read);
-            ArrayPool<byte>.Shared.Return(buffer);
-
+            int toRead = (int)(offset - this.cacheStream.Length);
+            this.stream.ReadExactly(toRead, this.cacheStream);
             this.DisposeStreamIfRead();
             return this.cacheStream.Position;
         }
