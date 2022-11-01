@@ -16,7 +16,7 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="Validation" Version="2.5.51" />
     <PackageReference Include="Nerdbank.GitVersioning.LKG" Version="3.4.173-alpha" />
-    <PackageReference Include="System.Text.Json" Version="4.7.2" />
+    <PackageReference Include="System.Text.Json" Version="6.0.6" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\Shared\**\*.cs" LinkBase="Shared" />
