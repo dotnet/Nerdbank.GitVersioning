@@ -33,7 +33,7 @@
     <ProjectReference Include="..\..\src\NerdBank.GitVersioning\Nerdbank.GitVersioning.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="coverlet.msbuild" Version="3.1.2" />
+    <PackageReference Include="coverlet.msbuild" Version="3.2.0" />
     <PackageReference Include="Microsoft.Build.Locator" Version="1.4.1" />
     <PackageReference Include="Microsoft.Build.Utilities.Core" Version="$(MSBuildPackageVersion)" ExcludeAssets="runtime" />
     <PackageReference Include="Microsoft.Build" Version="$(MSBuildPackageVersion)" ExcludeAssets="runtime" />
