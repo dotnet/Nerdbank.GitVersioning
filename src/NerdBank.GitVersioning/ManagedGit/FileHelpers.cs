@@ -5,6 +5,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using Microsoft.Win32.SafeHandles;
 using Windows.Win32;
 using Windows.Win32.Storage.FileSystem;
@@ -24,7 +25,11 @@ internal static class FileHelpers
     /// <returns><see langword="true" /> if the file exists; otherwise <see langword="false" />.</returns>
     internal static bool TryOpen(string path, out FileStream? stream)
     {
-        if (IsWindows)
+#if NET5_0_OR_GREATER
+        if (OperatingSystem.IsWindowsVersionAtLeast(5, 1, 2600))
+#else
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+#endif
         {
             SafeFileHandle? handle = PInvoke.CreateFile(path, FILE_ACCESS_FLAGS.FILE_GENERIC_READ, FILE_SHARE_MODE.FILE_SHARE_READ, lpSecurityAttributes: null, FILE_CREATION_DISPOSITION.OPEN_EXISTING, FILE_FLAGS_AND_ATTRIBUTES.FILE_ATTRIBUTE_NORMAL, null);
 
@@ -62,7 +67,11 @@ internal static class FileHelpers
     /// <returns><see langword="true" /> if the file exists; otherwise <see langword="false" />.</returns>
     internal static unsafe bool TryOpen(ReadOnlySpan<char> path, [NotNullWhen(true)] out FileStream? stream)
     {
-        if (IsWindows)
+#if NET5_0_OR_GREATER
+        if (OperatingSystem.IsWindowsVersionAtLeast(5, 1, 2600))
+#else
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+#endif
         {
             HANDLE handle;
             fixed (char* pPath = &path[0])

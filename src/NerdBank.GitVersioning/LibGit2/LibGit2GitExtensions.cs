@@ -80,7 +80,7 @@ public static class LibGit2GitExtensions
     /// <exception cref="InvalidOperationException">
     /// Thrown in the very rare situation that more than one matching commit is found.
     /// </exception>
-    public static Commit GetCommitFromVersion(LibGit2Context context, Version version)
+    public static Commit? GetCommitFromVersion(LibGit2Context context, Version version)
     {
         // Note we'll accept no match, or one match. But we throw if there is more than one match.
         return GetCommitsFromVersion(context, version).SingleOrDefault();
@@ -455,7 +455,7 @@ public static class LibGit2GitExtensions
                     ? changes.Any()
                     //// If there is a single change that isn't excluded,
                     //// then this commit is relevant.
-                    : changes.Any(change => !excludePaths.Any(exclude => exclude.Excludes(change.Path, ignoreCase)));
+                    : changes.Any(change => !excludePaths!.Any(exclude => exclude.Excludes(change.Path, ignoreCase)));
 
             int height = 1;
 
@@ -465,7 +465,7 @@ public static class LibGit2GitExtensions
                 // paths refer to the root of the repository, then do not
                 // filter the diff at all.
                 List<string>? diffInclude =
-                    includePaths.Count == 0 || pathFilters.Any(filter => filter.IsRoot)
+                    includePaths.Count == 0 || pathFilters!.Any(filter => filter.IsRoot)
                         ? null
                         : includePaths;
 

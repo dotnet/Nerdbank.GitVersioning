@@ -16,7 +16,7 @@ namespace MSBuildExtensionTask
 {
     public abstract class ContextAwareTask : Microsoft.Build.Utilities.Task
     {
-        protected virtual string ManagedDllDirectory => Path.GetDirectoryName(new Uri(this.GetType().GetTypeInfo().Assembly.CodeBase).LocalPath);
+        protected virtual string ManagedDllDirectory => Path.GetDirectoryName(this.GetType().GetTypeInfo().Assembly.Location);
 
         protected virtual string UnmanagedDllDirectory => null;
 
@@ -24,7 +24,7 @@ namespace MSBuildExtensionTask
         public override bool Execute()
         {
 #if NETCOREAPP
-            string taskAssemblyPath = new Uri(this.GetType().GetTypeInfo().Assembly.CodeBase).LocalPath;
+            string taskAssemblyPath = this.GetType().GetTypeInfo().Assembly.Location;
 
             Assembly inContextAssembly = GitLoaderContext.Instance.LoadFromAssemblyPath(taskAssemblyPath);
             Type innerTaskType = inContextAssembly.GetType(this.GetType().FullName);
