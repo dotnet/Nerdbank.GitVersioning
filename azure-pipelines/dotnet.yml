@@ -15,7 +15,7 @@ steps:
   displayName: Build LKG package
   workingDirectory: src/Nerdbank.GitVersioning.Tasks
 
-- script: dotnet publish -c $(BuildConfiguration) -o ../nerdbank-gitversioning.npm/out/nbgv.cli/tools/netcoreapp3.1/any /bl:"$(Build.ArtifactStagingDirectory)/build_logs/nbgv_publish.binlog"
+- script: dotnet publish -c $(BuildConfiguration) -o ../nerdbank-gitversioning.npm/out/nbgv.cli/tools/net6.0/any /bl:"$(Build.ArtifactStagingDirectory)/build_logs/nbgv_publish.binlog"
   displayName: Publish nbgv tool
   workingDirectory: src/nbgv
 
