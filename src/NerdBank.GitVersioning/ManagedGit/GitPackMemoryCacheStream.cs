@@ -1,117 +1,128 @@
-﻿#nullable enable
+﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System;
+#nullable enable
+
 using System.Buffers;
-using System.IO;
 
-namespace Nerdbank.GitVersioning.ManagedGit
+namespace Nerdbank.GitVersioning.ManagedGit;
+
+internal class GitPackMemoryCacheStream : Stream
 {
-    internal class GitPackMemoryCacheStream : Stream
+    private readonly Stream stream;
+    private readonly MemoryStream cacheStream = new MemoryStream();
+    private readonly long length;
+
+    public GitPackMemoryCacheStream(Stream stream)
     {
-        private Stream stream;
-        private readonly MemoryStream cacheStream = new MemoryStream();
-        private long length;
+        this.stream = stream ?? throw new ArgumentNullException(nameof(stream));
+        this.length = this.stream.Length;
+    }
 
-        public GitPackMemoryCacheStream(Stream stream)
-        {
-            this.stream = stream ?? throw new ArgumentNullException(nameof(stream));
-            this.length = this.stream.Length;
-        }
+    /// <inheritdoc/>
+    public override bool CanRead => true;
 
-        public override bool CanRead => true;
+    /// <inheritdoc/>
+    public override bool CanSeek => true;
 
-        public override bool CanSeek => true;
+    /// <inheritdoc/>
+    public override bool CanWrite => false;
 
-        public override bool CanWrite => false;
+    /// <inheritdoc/>
+    public override long Length => this.length;
 
-        public override long Length => this.length;
+    /// <inheritdoc/>
+    public override long Position
+    {
+        get => this.cacheStream.Position;
+        set => throw new NotSupportedException();
+    }
 
-        public override long Position
-        {
-            get => this.cacheStream.Position;
-            set => throw new NotSupportedException();
-        }
-
-        public override void Flush()
-        {
-            throw new NotSupportedException();
-        }
+    /// <inheritdoc/>
+    public override void Flush()
+    {
+        throw new NotSupportedException();
+    }
 
 #if NETSTANDARD2_0
-        public int Read(Span<byte> buffer)
+    public int Read(Span<byte> buffer)
 #else
-        /// <inheritdoc/>
-        public override int Read(Span<byte> buffer)
+    /// <inheritdoc/>
+    public override int Read(Span<byte> buffer)
 #endif
+    {
+        if (this.cacheStream.Length < this.length
+            && this.cacheStream.Position + buffer.Length > this.cacheStream.Length)
         {
-            if (this.cacheStream.Length < this.length
-                && this.cacheStream.Position + buffer.Length > this.cacheStream.Length)
-            {
-                var currentPosition = this.cacheStream.Position;
-                var toRead = (int)(buffer.Length - this.cacheStream.Length + this.cacheStream.Position);
-                int actualRead = this.stream.Read(buffer.Slice(0, toRead));
-                this.cacheStream.Seek(0, SeekOrigin.End);
-                this.cacheStream.Write(buffer.Slice(0, actualRead));
-                this.cacheStream.Seek(currentPosition, SeekOrigin.Begin);
-                this.DisposeStreamIfRead();
-            }
-
-            return this.cacheStream.Read(buffer);
+            long currentPosition = this.cacheStream.Position;
+            int toRead = (int)(buffer.Length - this.cacheStream.Length + this.cacheStream.Position);
+            int actualRead = this.stream.Read(buffer.Slice(0, toRead));
+            this.cacheStream.Seek(0, SeekOrigin.End);
+            this.cacheStream.Write(buffer.Slice(0, actualRead));
+            this.cacheStream.Seek(currentPosition, SeekOrigin.Begin);
+            this.DisposeStreamIfRead();
         }
 
-        public override int Read(byte[] buffer, int offset, int count)
-        {
-            return this.Read(buffer.AsSpan(offset, count));
-        }
+        return this.cacheStream.Read(buffer);
+    }
 
-        public override long Seek(long offset, SeekOrigin origin)
-        {
-            if (origin != SeekOrigin.Begin)
-            {
-                throw new NotSupportedException();
-            }
+    /// <inheritdoc/>
+    public override int Read(byte[] buffer, int offset, int count)
+    {
+        return this.Read(buffer.AsSpan(offset, count));
+    }
 
-            if (offset > this.cacheStream.Length)
-            {
-                this.cacheStream.Seek(0, SeekOrigin.End);
-                int toRead = (int)(offset - this.cacheStream.Length);
-                this.stream.ReadExactly(toRead, this.cacheStream);
-                this.DisposeStreamIfRead();
-                return this.cacheStream.Position;
-            }
-            else
-            {
-                return this.cacheStream.Seek(offset, origin);
-            }
-        }
-
-        public override void SetLength(long value)
+    /// <inheritdoc/>
+    public override long Seek(long offset, SeekOrigin origin)
+    {
+        if (origin != SeekOrigin.Begin)
         {
             throw new NotSupportedException();
         }
 
-        public override void Write(byte[] buffer, int offset, int count)
+        if (offset > this.cacheStream.Length)
         {
-            throw new NotSupportedException();
+            this.cacheStream.Seek(0, SeekOrigin.End);
+            int toRead = (int)(offset - this.cacheStream.Length);
+            this.stream.ReadExactly(toRead, this.cacheStream);
+            this.DisposeStreamIfRead();
+            return this.cacheStream.Position;
+        }
+        else
+        {
+            return this.cacheStream.Seek(offset, origin);
+        }
+    }
+
+    /// <inheritdoc/>
+    public override void SetLength(long value)
+    {
+        throw new NotSupportedException();
+    }
+
+    /// <inheritdoc/>
+    public override void Write(byte[] buffer, int offset, int count)
+    {
+        throw new NotSupportedException();
+    }
+
+    /// <inheritdoc/>
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            this.stream.Dispose();
+            this.cacheStream.Dispose();
         }
 
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                this.stream.Dispose();
-                this.cacheStream.Dispose();
-            }
+        base.Dispose(disposing);
+    }
 
-            base.Dispose(disposing);
-        }
-
-        private void DisposeStreamIfRead()
+    private void DisposeStreamIfRead()
+    {
+        if (this.cacheStream.Length == this.stream.Length)
         {
-            if (this.cacheStream.Length == this.stream.Length)
-            {
-                this.stream.Dispose();
-            }
+            this.stream.Dispose();
         }
     }
 }

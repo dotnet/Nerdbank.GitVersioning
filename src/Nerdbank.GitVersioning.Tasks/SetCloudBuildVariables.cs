@@ -1,14 +1,17 @@
-﻿namespace Nerdbank.GitVersioning.Tasks
-{
-    using System;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Linq;
-    using System.Text;
-    using Microsoft.Build.Framework;
-    using Microsoft.Build.Utilities;
+﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-    public class SetCloudBuildVariables : Task
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Utilities;
+
+namespace Nerdbank.GitVersioning.Tasks
+{
+    public class SetCloudBuildVariables : Microsoft.Build.Utilities.Task
     {
         public ITaskItem[] CloudBuildVersionVars { get; set; }
 
@@ -17,9 +20,10 @@
 
         public string CloudBuildNumber { get; set; }
 
+        /// <inheritdoc/>
         public override bool Execute()
         {
-            var cloudBuild = CloudBuild.Active;
+            ICloudBuild cloudBuild = CloudBuild.Active;
             if (cloudBuild is not null)
             {
                 var envVars = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -35,8 +39,8 @@
 
                 if (!string.IsNullOrWhiteSpace(this.CloudBuildNumber))
                 {
-                    var newVars = cloudBuild.SetCloudBuildNumber(this.CloudBuildNumber, stdout, stderr);
-                    foreach (var item in newVars)
+                    IReadOnlyDictionary<string, string> newVars = cloudBuild.SetCloudBuildNumber(this.CloudBuildNumber, stdout, stderr);
+                    foreach (KeyValuePair<string, string> item in newVars)
                     {
                         envVars[item.Key] = item.Value;
                     }
@@ -44,10 +48,10 @@
 
                 if (this.CloudBuildVersionVars is not null)
                 {
-                    foreach (var variable in this.CloudBuildVersionVars)
+                    foreach (ITaskItem variable in this.CloudBuildVersionVars)
                     {
-                        var newVars = cloudBuild.SetCloudBuildVariable(variable.ItemSpec, variable.GetMetadata("Value"), stdout, stderr);
-                        foreach (var item in newVars)
+                        IReadOnlyDictionary<string, string> newVars = cloudBuild.SetCloudBuildVariable(variable.ItemSpec, variable.GetMetadata("Value"), stdout, stderr);
+                        foreach (KeyValuePair<string, string> item in newVars)
                         {
                             envVars[item.Key] = item.Value;
                         }
@@ -58,7 +62,7 @@
                                                let metadata = new Dictionary<string, string> { { "Value", envVar.Value } }
                                                select new TaskItem(envVar.Key, metadata)).ToArray();
 
-                foreach (var item in envVars)
+                foreach (KeyValuePair<string, string> item in envVars)
                 {
                     Environment.SetEnvironmentVariable(item.Key, item.Value);
                 }

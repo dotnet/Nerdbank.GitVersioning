@@ -1,64 +1,72 @@
-﻿namespace Nerdbank.GitVersioning.CloudBuildServices
+﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System.Text;
+
+namespace Nerdbank.GitVersioning.CloudBuildServices;
+
+/// <summary>
+/// Cloud build handling for Jenkins.
+/// </summary>
+/// <remarks>
+/// The Jenkins-specific properties referenced here are <see href="https://wiki.jenkins-ci.org/display/JENKINS/Git+Plugin#GitPlugin-Environmentvariables">documented here</see>.
+/// </remarks>
+internal class Jenkins : ICloudBuild
 {
-    using System;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Text;
+    private static readonly Encoding UTF8NoBOM = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
-    /// <remarks>
-    /// The Jenkins-specific properties referenced here are documented here:
-    /// https://wiki.jenkins-ci.org/display/JENKINS/Git+Plugin#GitPlugin-Environmentvariables
-    /// </remarks>
-    internal class Jenkins : ICloudBuild
+    /// <inheritdoc/>
+    public string BuildingTag => null;
+
+    /// <inheritdoc/>
+    public bool IsPullRequest => false;
+
+    /// <inheritdoc/>
+    public string BuildingBranch => CloudBuild.ShouldStartWith(Branch, "refs/heads/");
+
+    /// <inheritdoc/>
+    public string GitCommitId => Environment.GetEnvironmentVariable("GIT_COMMIT");
+
+    /// <inheritdoc/>
+    public bool IsApplicable => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("JENKINS_URL"));
+
+    private static string Branch =>
+        Environment.GetEnvironmentVariable("GIT_LOCAL_BRANCH")
+            ?? Environment.GetEnvironmentVariable("GIT_BRANCH");
+
+    /// <inheritdoc/>
+    public IReadOnlyDictionary<string, string> SetCloudBuildNumber(string buildNumber, TextWriter stdout, TextWriter stderr)
     {
-        private static readonly Encoding UTF8NoBOM = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+        WriteVersionFile(buildNumber);
 
-        public string BuildingTag => null;
+        stdout.WriteLine($"## GIT_VERSION: {buildNumber}");
 
-        public bool IsPullRequest => false;
-
-        public string BuildingBranch => CloudBuild.ShouldStartWith(Branch, "refs/heads/");
-
-        public string GitCommitId => Environment.GetEnvironmentVariable("GIT_COMMIT");
-
-        public bool IsApplicable => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("JENKINS_URL"));
-
-        private static string Branch =>
-            Environment.GetEnvironmentVariable("GIT_LOCAL_BRANCH")
-                ?? Environment.GetEnvironmentVariable("GIT_BRANCH");
-
-        public IReadOnlyDictionary<string, string> SetCloudBuildNumber(string buildNumber, TextWriter stdout, TextWriter stderr)
+        return new Dictionary<string, string>
         {
-            WriteVersionFile(buildNumber);
+            { "GIT_VERSION", buildNumber },
+        };
+    }
 
-            stdout.WriteLine($"## GIT_VERSION: {buildNumber}");
+    /// <inheritdoc/>
+    public IReadOnlyDictionary<string, string> SetCloudBuildVariable(string name, string value, TextWriter stdout, TextWriter stderr)
+    {
+        return new Dictionary<string, string>
+        {
+            { name, value },
+        };
+    }
 
-            return new Dictionary<string, string>
-            {
-                { "GIT_VERSION", buildNumber }
-            };
+    private static void WriteVersionFile(string buildNumber)
+    {
+        string workspacePath = Environment.GetEnvironmentVariable("WORKSPACE");
+
+        if (string.IsNullOrEmpty(workspacePath))
+        {
+            return;
         }
 
-        public IReadOnlyDictionary<string, string> SetCloudBuildVariable(string name, string value, TextWriter stdout, TextWriter stderr)
-        {
-            return new Dictionary<string, string>
-            {
-                { name, value }
-            };
-        }
+        string versionFilePath = Path.Combine(workspacePath, "jenkins_build_number.txt");
 
-        private static void WriteVersionFile(string buildNumber)
-        {
-            var workspacePath = Environment.GetEnvironmentVariable("WORKSPACE");
-
-            if (string.IsNullOrEmpty(workspacePath))
-            {
-                return;
-            }
-
-            var versionFilePath = Path.Combine(workspacePath, "jenkins_build_number.txt");
-
-            Utilities.FileOperationWithRetry(() => File.WriteAllText(versionFilePath, buildNumber, UTF8NoBOM));
-        }
+        Utilities.FileOperationWithRetry(() => File.WriteAllText(versionFilePath, buildNumber, UTF8NoBOM));
     }
 }

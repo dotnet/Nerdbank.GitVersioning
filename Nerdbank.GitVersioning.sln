@@ -1,0 +1,105 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31411.2
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{4BD1A7CD-6F52-4F5A-825B-50E4D8C3ECFF}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+		.gitignore = .gitignore
+		3rdPartyNotices.txt = 3rdPartyNotices.txt
+		azure-pipelines.yml = azure-pipelines.yml
+		build.ps1 = build.ps1
+		Directory.Build.props = Directory.Build.props
+		Directory.Build.targets = Directory.Build.targets
+		global.json = global.json
+		init.ps1 = init.ps1
+		nuget.config = nuget.config
+		README.md = README.md
+		version.json = version.json
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nerdbank.GitVersioning.Tests", "test\Nerdbank.GitVersioning.Tests\Nerdbank.GitVersioning.Tests.csproj", "{C54F9EC8-FDA7-4D22-BCB2-7D97523BD91E}"
+EndProject
+Project("{9092AA53-FB77-4645-B42D-1CCCA6BD08BD}") = "nb-gv", "src\nerdbank-gitversioning.npm\nb-gv.njsproj", "{F79DD916-27B3-4CD0-97FF-5021B3CF9934}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nerdbank.GitVersioning", "src\NerdBank.GitVersioning\Nerdbank.GitVersioning.csproj", "{C7FA7B7A-0469-4B1C-8657-E274C4CD8ABB}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nerdbank.GitVersioning.Tasks", "src\Nerdbank.GitVersioning.Tasks\Nerdbank.GitVersioning.Tasks.csproj", "{B2454569-6EDC-4FD4-9936-D2B2F2E10409}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "nbgv", "src\nbgv\nbgv.csproj", "{EF4DAF23-6CE9-48C5-84C5-80AC80D3D07D}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cake.GitVersioning", "src\Cake.GitVersioning\Cake.GitVersioning.csproj", "{1F267A97-DFE3-4166-83B1-9D236B7A09BD}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nerdbank.GitVersioning.Benchmarks", "test\Nerdbank.GitVersioning.Benchmarks\Nerdbank.GitVersioning.Benchmarks.csproj", "{B0B7955D-E51F-4091-BF7F-55D07D381D15}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cake.GitVersioning.Tests", "test\Cake.GitVersioning.Tests\Cake.GitVersioning.Tests.csproj", "{D68829FE-24D8-4ADD-8525-17F47C6FE257}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{0A4BEA3B-268B-464F-9C0F-6DC2EFA884F8}"
+	ProjectSection(SolutionItems) = preProject
+		src\.editorconfig = src\.editorconfig
+		src\Directory.Build.props = src\Directory.Build.props
+		src\Directory.Build.targets = src\Directory.Build.targets
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{A603FD3B-1A40-4605-B044-5DDAFDEDCD90}"
+	ProjectSection(SolutionItems) = preProject
+		test\.editorconfig = test\.editorconfig
+		test\Directory.Build.props = test\Directory.Build.props
+		test\Directory.Build.targets = test\Directory.Build.targets
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C54F9EC8-FDA7-4D22-BCB2-7D97523BD91E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C54F9EC8-FDA7-4D22-BCB2-7D97523BD91E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C54F9EC8-FDA7-4D22-BCB2-7D97523BD91E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C54F9EC8-FDA7-4D22-BCB2-7D97523BD91E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F79DD916-27B3-4CD0-97FF-5021B3CF9934}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F79DD916-27B3-4CD0-97FF-5021B3CF9934}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C7FA7B7A-0469-4B1C-8657-E274C4CD8ABB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C7FA7B7A-0469-4B1C-8657-E274C4CD8ABB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C7FA7B7A-0469-4B1C-8657-E274C4CD8ABB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C7FA7B7A-0469-4B1C-8657-E274C4CD8ABB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B2454569-6EDC-4FD4-9936-D2B2F2E10409}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B2454569-6EDC-4FD4-9936-D2B2F2E10409}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B2454569-6EDC-4FD4-9936-D2B2F2E10409}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B2454569-6EDC-4FD4-9936-D2B2F2E10409}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EF4DAF23-6CE9-48C5-84C5-80AC80D3D07D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EF4DAF23-6CE9-48C5-84C5-80AC80D3D07D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EF4DAF23-6CE9-48C5-84C5-80AC80D3D07D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EF4DAF23-6CE9-48C5-84C5-80AC80D3D07D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1F267A97-DFE3-4166-83B1-9D236B7A09BD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1F267A97-DFE3-4166-83B1-9D236B7A09BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1F267A97-DFE3-4166-83B1-9D236B7A09BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1F267A97-DFE3-4166-83B1-9D236B7A09BD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B0B7955D-E51F-4091-BF7F-55D07D381D15}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B0B7955D-E51F-4091-BF7F-55D07D381D15}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B0B7955D-E51F-4091-BF7F-55D07D381D15}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B0B7955D-E51F-4091-BF7F-55D07D381D15}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D68829FE-24D8-4ADD-8525-17F47C6FE257}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D68829FE-24D8-4ADD-8525-17F47C6FE257}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D68829FE-24D8-4ADD-8525-17F47C6FE257}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D68829FE-24D8-4ADD-8525-17F47C6FE257}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{C54F9EC8-FDA7-4D22-BCB2-7D97523BD91E} = {A603FD3B-1A40-4605-B044-5DDAFDEDCD90}
+		{F79DD916-27B3-4CD0-97FF-5021B3CF9934} = {0A4BEA3B-268B-464F-9C0F-6DC2EFA884F8}
+		{C7FA7B7A-0469-4B1C-8657-E274C4CD8ABB} = {0A4BEA3B-268B-464F-9C0F-6DC2EFA884F8}
+		{B2454569-6EDC-4FD4-9936-D2B2F2E10409} = {0A4BEA3B-268B-464F-9C0F-6DC2EFA884F8}
+		{EF4DAF23-6CE9-48C5-84C5-80AC80D3D07D} = {0A4BEA3B-268B-464F-9C0F-6DC2EFA884F8}
+		{1F267A97-DFE3-4166-83B1-9D236B7A09BD} = {0A4BEA3B-268B-464F-9C0F-6DC2EFA884F8}
+		{B0B7955D-E51F-4091-BF7F-55D07D381D15} = {A603FD3B-1A40-4605-B044-5DDAFDEDCD90}
+		{D68829FE-24D8-4ADD-8525-17F47C6FE257} = {A603FD3B-1A40-4605-B044-5DDAFDEDCD90}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {4CF7AA29-5BBD-4294-9C92-DA689CF57200}
+	EndGlobalSection
+EndGlobal

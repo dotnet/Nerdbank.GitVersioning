@@ -1,24 +1,26 @@
-﻿namespace MSBuildExtensionTask
-{
-    using System;
-    using System.IO;
-    using System.Linq;
-    using System.Reflection;
-#if NETCOREAPP
-    using System.Runtime.Loader;
-#endif
-    using Microsoft.Build.Framework;
-    using Microsoft.Build.Utilities;
-#if NETCOREAPP
-    using Nerdbank.GitVersioning;
-#endif
+﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-    public abstract class ContextAwareTask : Task
+using System;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+#if NETCOREAPP
+using System.Runtime.Loader;
+using Nerdbank.GitVersioning;
+#endif
+using Microsoft.Build.Framework;
+using Microsoft.Build.Utilities;
+
+namespace MSBuildExtensionTask
+{
+    public abstract class ContextAwareTask : Microsoft.Build.Utilities.Task
     {
         protected virtual string ManagedDllDirectory => Path.GetDirectoryName(new Uri(this.GetType().GetTypeInfo().Assembly.CodeBase).LocalPath);
 
         protected virtual string UnmanagedDllDirectory => null;
 
+        /// <inheritdoc/>
         public override bool Execute()
         {
 #if NETCOREAPP
@@ -43,7 +45,7 @@
                 propertyPair.innerProperty.SetValue(innerTask, outerPropertyValue);
             }
 
-            var executeInnerMethod = innerTaskType.GetMethod(nameof(ExecuteInner), BindingFlags.Instance | BindingFlags.NonPublic);
+            MethodInfo executeInnerMethod = innerTaskType.GetMethod(nameof(this.ExecuteInner), BindingFlags.Instance | BindingFlags.NonPublic);
             bool result = (bool)executeInnerMethod.Invoke(innerTask, new object[0]);
 
             foreach (var propertyPair in outputPropertiesMap)

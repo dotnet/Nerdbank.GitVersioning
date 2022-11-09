@@ -1,0 +1,65 @@
+parameters:
+- name: windowsPool
+  type: object
+  default:
+    vmImage: windows-2022
+- name: RunTests
+  type: boolean
+  default: true
+
+jobs:
+- job: Windows
+  pool: ${{ parameters.windowsPool }}
+  variables:
+    - name: testModifier
+      value:
+    - ${{ if eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/') }}:
+      - group: dotnetfoundation code signing
+  steps:
+  - checkout: self
+    fetchDepth: 0 # avoid shallow clone so nbgv can do its work.
+    clean: true
+    submodules: true # keep the warnings quiet about the wiki not being enlisted
+  - template: install-dependencies.yml
+  - pwsh: |
+      Invoke-WebRequest -Uri "https://dot.net/v1/dotnet-install.ps1" -OutFile dotnet-install.ps1
+      & .\dotnet-install.ps1 -Architecture x86 -Channel 3.1 -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose -Runtime dotnet
+      & .\dotnet-install.ps1 -Architecture x86 -Version 6.0.301 -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose
+    displayName: ⚙ Install 32-bit .NET SDK and runtimes
+
+  - powershell: '& (./azure-pipelines/Get-nbgv.ps1) cloud -c'
+    displayName: ⚙ Set build number
+
+  - template: dotnet.yml
+    parameters:
+      RunTests: ${{ parameters.RunTests }}
+
+- job: Linux
+  pool:
+    vmImage: Ubuntu 20.04
+  steps:
+  - checkout: self
+    fetchDepth: 0 # avoid shallow clone so nbgv can do its work.
+    clean: true
+    submodules: true # keep the warnings quiet about the wiki not being enlisted
+  - template: install-dependencies.yml
+  - template: dotnet.yml
+    parameters:
+      RunTests: ${{ parameters.RunTests }}
+
+- job: WrapUp
+  dependsOn:
+  - Windows
+  - Linux
+  pool: ${{ parameters.windowsPool }} # Use Windows agent because PublishSymbols task requires it (https://github.com/microsoft/azure-pipelines-tasks/issues/13821).
+  condition: succeededOrFailed()
+  steps:
+  - checkout: self
+    fetchDepth: 0 # avoid shallow clone so nbgv can do its work.
+    clean: true
+  - template: install-dependencies.yml
+    parameters:
+      initArgs: -NoRestore
+  - ${{ if parameters.RunTests }}:
+    - template: publish-codecoverage.yml
+  - template: publish-deployables.yml

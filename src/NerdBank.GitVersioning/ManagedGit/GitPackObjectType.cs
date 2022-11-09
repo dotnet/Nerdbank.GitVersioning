@@ -1,15 +1,44 @@
-﻿#nullable enable
+﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-namespace Nerdbank.GitVersioning.ManagedGit
+#nullable enable
+
+namespace Nerdbank.GitVersioning.ManagedGit;
+
+internal enum GitPackObjectType
 {
-    internal enum GitPackObjectType
-    {
-        Invalid = 0,
-        OBJ_COMMIT = 1,
-        OBJ_TREE = 2,
-        OBJ_BLOB = 3,
-        OBJ_TAG = 4,
-        OBJ_OFS_DELTA = 6,
-        OBJ_REF_DELTA = 7,
-    }
+    /// <summary>
+    /// Invalid.
+    /// </summary>
+    Invalid = 0,
+
+    /// <summary>
+    /// A commit.
+    /// </summary>
+    OBJ_COMMIT = 1,
+
+    /// <summary>
+    /// A tree.
+    /// </summary>
+    OBJ_TREE = 2,
+
+    /// <summary>
+    /// A blob.
+    /// </summary>
+    OBJ_BLOB = 3,
+
+    /// <summary>
+    /// A tag.
+    /// </summary>
+    OBJ_TAG = 4,
+
+    /// <summary>
+    /// An OFS_DELTA.
+    /// </summary>
+    OBJ_OFS_DELTA = 6,
+
+    /// <summary>
+    /// A REF_DELTA.
+    /// </summary>
+    OBJ_REF_DELTA = 7,
 }

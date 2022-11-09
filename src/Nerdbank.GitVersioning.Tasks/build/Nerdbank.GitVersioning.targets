@@ -116,7 +116,6 @@
     <PropertyGroup>
       <VersionSourceFile>$([MSBuild]::NormalizePath('$(IntermediateOutputPath)', '$(AssemblyName).Version$(DefaultLanguageSourceExtension)'))</VersionSourceFile>
       <NewVersionSourceFile>$(VersionSourceFile).new</NewVersionSourceFile>
-      <UltimateResourceFallbackLocation Condition=" '$(DevDivProjectSubType)' != 'portable' ">UltimateResourceFallbackLocation.MainAssembly</UltimateResourceFallbackLocation>
     </PropertyGroup>
     <MakeDir Directories="$(IntermediatePath)"/>
     <Nerdbank.GitVersioning.Tasks.AssemblyVersionInfo
@@ -219,6 +218,56 @@
     <ItemGroup>
       <RazorCompile Include="$(VersionSourceFile)" />
     </ItemGroup>
+  </Target>
+  
+  <!-- Support for Maui projects -->
+
+  <Target Name="NBGV_SetVersionForMauiAndroid"
+          Condition="'$(TargetPlatformIdentifier)' == 'android'"
+          BeforeTargets="_GetAndroidPackageName"
+          DependsOnTargets="GetBuildVersion">
+    <!-- Android requirement: ApplicationVersion must be a positive integer (used as an internal version number)
+          To accommodate this, we do our best to fit the first three version components into a single integer that increases with each release.
+          We'll bit-shift the major version to the most significant byte of a 4-byte integer.
+          We'll bit-shift the minor version to the next most significant byte.
+          We'll use the least 2 significant bytes for the build number.
+          The major version must not exceed 124 to guarantee that the overall integer never exceeds 2100000000 even with the other numbers added.
+          Other components are also limited since they must fit within the 8 or 16 bits allowed for them.
+          Learn more from https://developer.android.com/studio/publish/versioning. -->
+    <Error Condition="$([System.Version]::Parse('$(BuildVersion)').Major) &gt; 124" Text="Major version must not exceed 124 per Android versioning rules." />
+    <Error Condition="$([System.Version]::Parse('$(BuildVersion)').Minor) &gt; 255" Text="Minor version must not exceed 256 per Android versioning rules." />
+    <Error Condition="$(BuildNumber) &gt; 65535" Text="Build number must not exceed 65535 per Android versioning rules." />
+    <PropertyGroup>
+      <_NBGV_Major_Shifted>$([MSBuild]::Multiply($([System.Version]::Parse('$(BuildVersion)').Major), 16777216))</_NBGV_Major_Shifted>
+      <_NBGV_Minor_Shifted>$([MSBuild]::Multiply($([System.Version]::Parse('$(BuildVersion)').Minor), 65536))</_NBGV_Minor_Shifted>
+
+      <ApplicationVersion>$([MSBuild]::Add($([MSBuild]::Add($(_NBGV_Major_Shifted), $(_NBGV_Minor_Shifted))), $(BuildNumber)))</ApplicationVersion>
+      <ApplicationDisplayVersion>$(Version)</ApplicationDisplayVersion>
+    </PropertyGroup>
+  </Target>
+
+  <Target Name="NBGV_SetVersionForMauiIOS"
+          Condition="'$(TargetPlatformIdentifier)' == 'ios' or '$(TargetPlatformIdentifier)' == 'maccatalyst'"
+          BeforeTargets="_CompileAppManifest"
+          DependsOnTargets="GetBuildVersion">
+    <PropertyGroup>
+      <!-- iOS requirement: ApplicationVersion must be a three part version number -->
+      <ApplicationVersion>$(BuildVersionSimple)</ApplicationVersion>
+      <!-- iOS requirement: ApplicationDisplayVersion must be a three part version number -->
+      <ApplicationDisplayVersion>$(BuildVersionSimple)</ApplicationDisplayVersion>
+    </PropertyGroup>
+  </Target>
+
+  <Target Name="NBGV_SetVersionForMauiWindows"
+          Condition="'$(TargetPlatformIdentifier)' == 'windows'"
+          BeforeTargets="MauiGeneratePackageAppxManifest"
+          DependsOnTargets="GetBuildVersion">
+    <PropertyGroup>
+      <!-- Windows requirement: ApplicationVersion must be blank when ApplicationDisplayVersion is a four part version number -->
+      <ApplicationVersion></ApplicationVersion>
+      <!-- Windows requirement: ApplicationDisplayVersion must be a four part version number -->
+      <ApplicationDisplayVersion>$(BuildVersion)</ApplicationDisplayVersion>
+    </PropertyGroup>
   </Target>
 
   <!-- Workaround till https://github.com/NuGet/NuGet.Client/issues/1064 is merged and used. -->

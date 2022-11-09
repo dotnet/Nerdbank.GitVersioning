@@ -7,7 +7,7 @@ steps:
 - task: DownloadBuildArtifacts@0
   displayName: Download Build Artifacts
   inputs:
-    artifactName: deployables
+    artifactName: deployables-Windows
     downloadPath: $(System.DefaultWorkingDirectory)
 
 - script: |
@@ -17,11 +17,11 @@ steps:
   displayName: Set up git username and email address
 
 - script: >
-    PkgFileName=$(ls deployables/Nerdbank.GitVersioning.*nupkg)
+    PkgFileName=$(ls deployables-Windows/Nerdbank.GitVersioning.*nupkg)
 
     NBGV_NuGetPackageVersion=$([[ $PkgFileName =~ Nerdbank.GitVersioning\.(.*)\.nupkg ]] && echo "${BASH_REMATCH[1]}")
 
-    echo "<configuration><packageSources><add key='local' value='deployables' /></packageSources></configuration>" > nuget.config &&
+    echo "<configuration><packageSources><add key='local' value='deployables-Windows' /></packageSources></configuration>" > nuget.config &&
     dotnet new classlib -o lib &&
     cd lib &&
     echo '{"version":"42.42"}' > version.json &&
@@ -55,7 +55,7 @@ steps:
         echo ".NET Core $DNVERSION"
     fi
 
-    PkgFileName=$(ls deployables/Cake.GitVersioning.*nupkg)
+    PkgFileName=$(ls deployables-Windows/Cake.GitVersioning.*nupkg)
 
     NBGV_NuGetPackageVersion=$([[ $PkgFileName =~ Cake.GitVersioning\.(.*)\.nupkg ]] && echo "${BASH_REMATCH[1]}")
 
@@ -80,11 +80,11 @@ steps:
 - script: >
     echo DOTNET_ROOT=$DOTNET_ROOT
 
-    PkgFileName=$(ls deployables/Nerdbank.GitVersioning.*nupkg)
+    PkgFileName=$(ls deployables-Windows/Nerdbank.GitVersioning.*nupkg)
 
     NBGV_NuGetPackageVersion=$([[ $PkgFileName =~ Nerdbank.GitVersioning\.(.*)\.nupkg ]] && echo "${BASH_REMATCH[1]}")
 
-    dotnet tool install nbgv --tool-path . --version $NBGV_NuGetPackageVersion --add-source deployables &&
+    dotnet tool install nbgv --tool-path . --version $NBGV_NuGetPackageVersion --add-source deployables-Windows &&
     ./nbgv get-version -f json -p lib &&
     ./nbgv get-version -f json -p lib | grep 42.42.1
   displayName: Use nbgv dotnet CLI tool

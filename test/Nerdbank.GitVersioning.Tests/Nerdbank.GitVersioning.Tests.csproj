@@ -1,0 +1,52 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net6.0;net462</TargetFrameworks>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+    <DebugType>full</DebugType>
+    <SignAssembly>false</SignAssembly>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <MSBuildPackageVersion>15.9.20</MSBuildPackageVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\src\Shared\**\*.cs" LinkBase="Shared" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\src\Nerdbank.GitVersioning.Tasks\build\*.targets;..\..\src\Nerdbank.GitVersioning.Tasks\build\*.props;..\..\src\Nerdbank.GitVersioning.Tasks\build\*.proj">
+      <Visible>false</Visible>
+      <Link>Targets\%(FileName)%(Extension)</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Keys\*.snk" />
+    <EmbeddedResource Include="Keys\*.pfx" />
+    <EmbeddedResource Include="..\..\src\NerdBank.GitVersioning\version.schema.json" Link="version.schema.json" />
+    <EmbeddedResource Include="ManagedGit\*.gz" />
+    <EmbeddedResource Include="ManagedGit\commit*" />
+    <EmbeddedResource Include="ManagedGit\pack*" />
+    <EmbeddedResource Include="ManagedGit\tree*" />
+    <EmbeddedResource Include="test.vcprj" />
+    <EmbeddedResource Include="test.prj" />
+    <EmbeddedResource Include="repos\*" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Nerdbank.GitVersioning.Tasks\Nerdbank.GitVersioning.Tasks.csproj" />
+    <ProjectReference Include="..\..\src\NerdBank.GitVersioning\Nerdbank.GitVersioning.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="coverlet.msbuild" Version="3.1.2" />
+    <PackageReference Include="Microsoft.Build.Locator" Version="1.4.1" />
+    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="$(MSBuildPackageVersion)" ExcludeAssets="runtime" />
+    <PackageReference Include="Microsoft.Build" Version="$(MSBuildPackageVersion)" ExcludeAssets="runtime" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.3.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.3.2" />
+    <PackageReference Include="Moq" Version="4.18.2" />
+    <PackageReference Include="Nerdbank.GitVersioning.LKG" Version="3.4.173-alpha" />
+    <PackageReference Include="Newtonsoft.Json.Schema" Version="3.0.14" />
+    <PackageReference Include="System.Memory" Version="4.5.5" />
+    <PackageReference Include="System.Threading.Tasks.Dataflow" Version="6.0.0" />
+    <PackageReference Include="Xunit.Combinatorial" Version="1.5.25" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5" />
+    <PackageReference Include="Xunit.SkippableFact" Version="1.4.13" />
+    <PackageReference Include="xunit" Version="2.4.2" />
+  </ItemGroup>
+</Project>

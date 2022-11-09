@@ -1,0 +1,84 @@
+parameters:
+  RunTests:
+
+steps:
+
+- script: |
+    git config --global user.name ci
+    git config --global user.email me@ci.com
+  displayName: Configure git commit author for testing
+
+- script: dotnet build -t:build,pack --no-restore -c $(BuildConfiguration) /bl:"$(Build.ArtifactStagingDirectory)/build_logs/build.binlog"
+  displayName: 🛠 dotnet build
+
+- script: dotnet pack -c $(BuildConfiguration) --no-build -p:PackLKG=true /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild_lkg.binlog"
+  displayName: Build LKG package
+  workingDirectory: src/Nerdbank.GitVersioning.Tasks
+
+- script: dotnet publish -c $(BuildConfiguration) -o ../nerdbank-gitversioning.npm/out/nbgv.cli/tools/netcoreapp3.1/any /bl:"$(Build.ArtifactStagingDirectory)/build_logs/nbgv_publish.binlog"
+  displayName: Publish nbgv tool
+  workingDirectory: src/nbgv
+
+- script: yarn build
+  displayName: Build nerdbank-gitversioning NPM package
+  workingDirectory: src/nerdbank-gitversioning.npm
+
+- powershell: azure-pipelines/dotnet-test-cloud.ps1 -Configuration $(BuildConfiguration) -Agent $(Agent.JobName) -PublishResults
+  displayName: 🧪 dotnet test
+  condition: and(succeeded(), ${{ parameters.RunTests }})
+
+- powershell: azure-pipelines/dotnet-test-cloud.ps1 -Configuration $(BuildConfiguration) -Agent $(Agent.JobName) -PublishResults -X86
+  displayName: 🧪 dotnet test x86
+  condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))
+
+- powershell: azure-pipelines/artifacts/_pipelines.ps1 -ArtifactNameSuffix "-$(Agent.JobName)" -StageOnly
+  failOnStderr: true
+  displayName: 🗃️ Stage artifacts
+  condition: succeededOrFailed()
+
+- pwsh: >
+    dotnet tool install --tool-path obj SignClient
+
+    obj/SignClient sign
+    --baseDirectory '$(Build.ArtifactStagingDirectory)/deployables-Windows'
+    --input '**/*'
+    --config '$(System.DefaultWorkingDirectory)/azure-pipelines/SignClient.json'
+    --filelist '$(System.DefaultWorkingDirectory)/azure-pipelines/signfiles.txt'
+    --user '$(codesign_username)'
+    --secret '$(codesign_secret)'
+    --name 'Nerdbank.GitVersioning'
+    --descriptionUrl 'https://github.com/dotnet/Nerdbank.GitVersioning'
+  displayName: 🔏 Code sign
+  condition: and(succeeded(), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), eq(variables['Agent.OS'], 'Windows_NT'), ne(variables['Build.Reason'], 'PullRequest'))
+
+- pwsh: >
+    obj/SignClient sign
+    --baseDirectory '$(Build.ArtifactStagingDirectory)/deployables-LKG-Windows'
+    --input '**/*'
+    --config '$(System.DefaultWorkingDirectory)/azure-pipelines/SignClient.json'
+    --filelist '$(System.DefaultWorkingDirectory)/azure-pipelines/signfiles.txt'
+    --user '$(codesign_username)'
+    --secret '$(codesign_secret)'
+    --name 'Nerdbank.GitVersioning'
+    --descriptionUrl 'https://github.com/dotnet/Nerdbank.GitVersioning'
+  displayName: 🔏 Code sign LKG
+  condition: and(succeeded(), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), eq(variables['Agent.OS'], 'Windows_NT'), ne(variables['Build.Reason'], 'PullRequest'))
+
+- powershell: azure-pipelines/variables/_pipelines.ps1
+  failOnStderr: true
+  displayName: ⚙ Update pipeline variables based on build outputs
+  condition: succeededOrFailed()
+
+- powershell: azure-pipelines/artifacts/_pipelines.ps1 -ArtifactNameSuffix "-$(Agent.JobName)" -Verbose
+  failOnStderr: true
+  displayName: 📢 Publish artifacts
+  condition: succeededOrFailed()
+
+- ${{ if and(ne(variables['codecov_token'], ''), parameters.RunTests) }}:
+  - powershell: |
+      $ArtifactStagingFolder = & "azure-pipelines/Get-ArtifactsStagingDirectory.ps1"
+      $CoverageResultsFolder = Join-Path $ArtifactStagingFolder "coverageResults-$(Agent.JobName)"
+      azure-pipelines/publish-CodeCov.ps1 -CodeCovToken "$(codecov_token)" -PathToCodeCoverage "$CoverageResultsFolder" -Name "$(Agent.JobName) Coverage Results" -Flags "$(Agent.JobName)Host,$(BuildConfiguration)"
+    displayName: 📢 Publish code coverage results to codecov.io
+    timeoutInMinutes: 3
+    continueOnError: true
