@@ -46,7 +46,6 @@ IMPORTANT: The 3.x release may produce a different version height than prior maj
     <file src="$BaseOutputPath$net6.0\Nerdbank.GitVersioning.dll" target="build\MSBuildCore\Nerdbank.GitVersioning.dll" />
     <file src="$BaseOutputPath$net6.0\Nerdbank.GitVersioning.Tasks.dll" target="build\MSBuildCore\Nerdbank.GitVersioning.Tasks.dll" />
     <file src="$BaseOutputPath$net6.0\Newtonsoft.Json.dll" target="build\MSBuildCore\Newtonsoft.Json.dll" />
-    <file src="$BaseOutputPath$net6.0\System.Text.Json.dll" target="build\MSBuildCore\System.Text.Json.dll" />
     <file src="$BaseOutputPath$net6.0\Validation.dll" target="build\MSBuildCore\Validation.dll" />
 
     <file src="build\InProjectVersionComputation.targets" target="build\InProjectVersionComputation.targets" />

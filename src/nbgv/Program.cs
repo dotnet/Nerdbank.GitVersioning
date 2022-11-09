@@ -76,7 +76,7 @@ namespace Nerdbank.GitVersioning.Tool
 
         public static int Main(string[] args)
         {
-            string thisAssemblyPath = new Uri(typeof(Program).GetTypeInfo().Assembly.CodeBase).LocalPath;
+            string thisAssemblyPath = typeof(Program).GetTypeInfo().Assembly.Location;
 
             Assembly inContextAssembly = GitLoaderContext.Instance.LoadFromAssemblyPath(thisAssemblyPath);
             Type innerProgramType = inContextAssembly.GetType(typeof(Program).FullName);
