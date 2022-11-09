@@ -219,11 +219,11 @@
       <RazorCompile Include="$(VersionSourceFile)" />
     </ItemGroup>
   </Target>
-  
+
   <!-- Support for Maui projects -->
 
   <Target Name="NBGV_SetVersionForMauiAndroid"
-          Condition="'$(TargetPlatformIdentifier)' == 'android'"
+          Condition="'$(NBGV_SetMauiVersionProperties)'!='false' and '$(TargetPlatformIdentifier)' == 'android'"
           BeforeTargets="_GetAndroidPackageName"
           DependsOnTargets="GetBuildVersion">
     <!-- Android requirement: ApplicationVersion must be a positive integer (used as an internal version number)
@@ -247,7 +247,7 @@
   </Target>
 
   <Target Name="NBGV_SetVersionForMauiIOS"
-          Condition="'$(TargetPlatformIdentifier)' == 'ios' or '$(TargetPlatformIdentifier)' == 'maccatalyst'"
+          Condition="'$(NBGV_SetMauiVersionProperties)'!='false' and ('$(TargetPlatformIdentifier)' == 'ios' or '$(TargetPlatformIdentifier)' == 'maccatalyst')"
           BeforeTargets="_CompileAppManifest"
           DependsOnTargets="GetBuildVersion">
     <PropertyGroup>
@@ -259,7 +259,7 @@
   </Target>
 
   <Target Name="NBGV_SetVersionForMauiWindows"
-          Condition="'$(TargetPlatformIdentifier)' == 'windows'"
+          Condition="'$(NBGV_SetMauiVersionProperties)'!='false' and '$(TargetPlatformIdentifier)' == 'windows'"
           BeforeTargets="MauiGeneratePackageAppxManifest"
           DependsOnTargets="GetBuildVersion">
     <PropertyGroup>
