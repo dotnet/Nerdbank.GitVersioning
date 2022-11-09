@@ -65,7 +65,7 @@ steps:
     cd caketest &&
     git init &&
     dotnet new tool-manifest &&
-    dotnet tool install Cake.Tool
+    dotnet tool install Cake.Tool --version 2.3.0
 
     echo "#addin nuget:?package=Cake.GitVersioning&version=${NBGV_NuGetPackageVersion}&prerelease=true"
 
