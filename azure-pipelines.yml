@@ -22,7 +22,7 @@ parameters:
 resources:
   containers:
   - container: focal
-    image: mcr.microsoft.com/dotnet/sdk:7.0-focal
+    image: mcr.microsoft.com/dotnet/sdk:6.0-focal
   - container: jammy60
     image: mcr.microsoft.com/dotnet/sdk:6.0-jammy
   - container: jammy70
