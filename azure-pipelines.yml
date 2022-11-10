@@ -27,12 +27,8 @@ resources:
     image: mcr.microsoft.com/dotnet/sdk:6.0-jammy
   - container: jammy70
     image: mcr.microsoft.com/dotnet/sdk:7.0-jammy
-  - container: alpine
-    image: mcr.microsoft.com/dotnet/sdk:7.0-alpine
   - container: debian
     image: mcr.microsoft.com/dotnet/sdk:latest
-  - container: archlinux
-    image: andrewarnott/archlinux
 
 variables:
   TreatWarningsAsErrors: true
@@ -63,13 +59,8 @@ stages:
           containerImage: jammy60
         Ubuntu_Jammy_70:
           containerImage: jammy70
-        Alpine:
-          containerImage: alpine
         Debian:
           containerImage: debian
-        # Arch_Linux:
-        #   containerImage: archlinux
-        #   configureContainerCommand: 'sudo pacman -Sy --noconfirm git dotnet-sdk openssl-1.0'
     pool:
       vmImage: ubuntu-22.04
     container: $[ variables['containerImage'] ]
