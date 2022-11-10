@@ -88,7 +88,7 @@ public abstract class VersionFile
             {
                 File.WriteAllLines(
                     versionTxtPath,
-                    new[] { version.Version?.Version.ToString(), version.Version?.Prerelease });
+                    new[] { version.Version?.Version.ToString() ?? string.Empty, version.Version?.Prerelease ?? string.Empty });
                 return versionTxtPath;
             }
             else

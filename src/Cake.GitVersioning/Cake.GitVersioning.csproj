@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Authors>Chris Crutchfield, Andrew Arnott</Authors>
     <Company>andarno</Company>
@@ -37,14 +37,14 @@
     <None Include="cake-contrib-addin-medium.png" Pack="true" PackagePath="" />
 
     <!-- Include native binaries -->
-    <None Include="$(LibGit2SharpNativeBinaries)runtimes\**\*.*" Pack="true" PackagePath="lib\netcoreapp3.1\lib\" LinkBase="lib" />
+    <None Include="$(LibGit2SharpNativeBinaries)runtimes\**\*.*" Pack="true" PackagePath="lib\net6.0\lib\" LinkBase="lib" />
 
     <!-- Additional copies to work around DllNotFoundException on Mono (https://github.com/AArnott/Nerdbank.GitVersioning/issues/222) -->
-    <None Include="$(LibGit2SharpNativeBinaries)runtimes\osx-x64\native\*.dylib" Pack="true" PackagePath="lib\netcoreapp3.1\lib\osx\x86_64\" LinkBase="lib\osx\x86_64" />
-    <None Include="$(LibGit2SharpNativeBinaries)runtimes\osx-arm64\native\*.dylib" Pack="true" PackagePath="lib\netcoreapp3.1\lib\osx\arm_64\" LinkBase="lib\arm64\arm_64" />
-    <None Include="$(LibGit2SharpNativeBinaries)runtimes\linux-x64\native\*.so" Pack="true" PackagePath="lib\netcoreapp3.1\lib\linux\x86_64\" LinkBase="lib\linux\x86_64" />
-    <None Include="$(LibGit2SharpNativeBinaries)runtimes\win-x64\native\*.dll" Pack="true" PackagePath="lib\netcoreapp3.1\lib\win32\x64\" LinkBase="lib\win32\x64" />
-    <None Include="$(LibGit2SharpNativeBinaries)runtimes\win-x86\native\*.dll" Pack="true" PackagePath="lib\netcoreapp3.1\lib\win32\x86\" LinkBase="lib\win32\x86" />
+    <None Include="$(LibGit2SharpNativeBinaries)runtimes\osx-x64\native\*.dylib" Pack="true" PackagePath="lib\net6.0\lib\osx\x86_64\" LinkBase="lib\osx\x86_64" />
+    <None Include="$(LibGit2SharpNativeBinaries)runtimes\osx-arm64\native\*.dylib" Pack="true" PackagePath="lib\net6.0\lib\osx\arm_64\" LinkBase="lib\arm64\arm_64" />
+    <None Include="$(LibGit2SharpNativeBinaries)runtimes\linux-x64\native\*.so" Pack="true" PackagePath="lib\net6.0\lib\linux\x86_64\" LinkBase="lib\linux\x86_64" />
+    <None Include="$(LibGit2SharpNativeBinaries)runtimes\win-x64\native\*.dll" Pack="true" PackagePath="lib\net6.0\lib\win32\x64\" LinkBase="lib\win32\x64" />
+    <None Include="$(LibGit2SharpNativeBinaries)runtimes\win-x86\native\*.dll" Pack="true" PackagePath="lib\net6.0\lib\win32\x86\" LinkBase="lib\win32\x86" />
   </ItemGroup>
 
   <ItemGroup>

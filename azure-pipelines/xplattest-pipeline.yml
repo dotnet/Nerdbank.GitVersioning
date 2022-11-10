@@ -43,18 +43,6 @@ steps:
   failOnStderr: true
 
 - script: >
-    # Uses dotnet commands that require at least 3.x
-
-    DNVERSION=$(dotnet --version)
-
-    if [[ $DNVERSION == 2.* ]] ;
-    then
-        echo "Skipping .NET Core $DNVERSION"
-        exit 0
-    else
-        echo ".NET Core $DNVERSION"
-    fi
-
     PkgFileName=$(ls deployables-Windows/Cake.GitVersioning.*nupkg)
 
     NBGV_NuGetPackageVersion=$([[ $PkgFileName =~ Cake.GitVersioning\.(.*)\.nupkg ]] && echo "${BASH_REMATCH[1]}")
