@@ -183,6 +183,11 @@ public class GitRepository : IDisposable
     /// </returns>
     public static unsafe string GetString(ReadOnlySpan<byte> bytes)
     {
+        if (bytes.Length == 0)
+        {
+            return string.Empty;
+        }
+
         fixed (byte* pBytes = bytes)
         {
             return Encoding.GetString(pBytes, bytes.Length);
