@@ -644,35 +644,52 @@ public class GitRepository : IDisposable
     /// <returns>A list of canonical names of tags.</returns>
     public List<string> LookupTags(GitObjectId objectId)
     {
-        var tags = new List<string>();
+        // Both tag files and packed-refs might either contain lightweight or annotated tags.
+        // Thus we first collect candidates from both sources and then check which of them matches.
+        // If we have an annotated tag match we assume the tag name from the GitPack, otherwise
+        // we use the LightweightTagName infered from where we found the tag.
+        var candidates = new List<(GitObjectId PointsAt, string LightweightTagName)>();
+
+        // tag files
         var tagDir = Path.Combine(this.CommonDirectory, "refs", "tags");
         foreach (var tagFile in Directory.EnumerateFiles(tagDir, "*", SearchOption.AllDirectories))
         {
             var tagObjId = GitObjectId.Parse(File.ReadAllText(tagFile).TrimEnd());
+
+            // \ is not legal in git tag names
+            var tagName = tagFile.Substring(tagDir.Length + 1).Replace('\\', '/');
+            var lightweightTagName = $"refs/tags/{tagName}";
+
+            candidates.Add((tagObjId, lightweightTagName));
+        }
+
+        // packed-refs file
+        foreach (var line in this.EnumeratePackedRefsEntries())
+        {
+            var tagObjId = GitObjectId.Parse(line.Substring(0, 40));
+            var refName = line.Substring(41);
+
+            // If we remove this check we do find local and remote branch heads too.
+            if (refName.StartsWith("refs/tags/", StringComparison.Ordinal))
+            {
+                candidates.Add((tagObjId, refName));
+            }
+        }
+
+        var tags = new List<string>();
+        foreach ((GitObjectId tagObjId, string tagNameCandidate) in candidates)
+        {
             if (objectId.Equals(tagObjId))
             {
-                // \ is not legal in git tag names
-                var tagName = tagFile.Substring(tagDir.Length + 1).Replace('\\', '/');
-                tags.Add($"refs/tags/{tagName}");
+                tags.Add(tagNameCandidate);
             }
             else if (this.TryGetObjectBySha(tagObjId, "tag", out Stream? tagContent))
             {
                 GitAnnotatedTag tag = GitAnnotatedTagReader.Read(tagContent, tagObjId);
-                if (tag.Type == "commit" && objectId.Equals(tag.Object))
+                if ("commit".Equals(tag.Type, StringComparison.Ordinal) && objectId.Equals(tag.Object))
                 {
                     tags.Add($"refs/tags/{tag.Tag}");
                 }
-            }
-        }
-
-        // Match in packed-refs file.
-        foreach (var line in this.EnumeratePackedRefsEntries())
-        {
-            var tagObjId = GitObjectId.Parse(line.Substring(0, 40));
-            string refName = line.Substring(41);
-            if (objectId.Equals(tagObjId))
-            {
-                tags.Add(refName);
             }
         }
 
