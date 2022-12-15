@@ -1,4 +1,4 @@
-﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
+// Copyright (c) .NET Foundation and Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #nullable enable
@@ -377,38 +377,27 @@ public class GitRepository : IDisposable
         }
 
         // Match in packed-refs file.
-        string packedRefPath = Path.Combine(this.CommonDirectory, "packed-refs");
-        if (File.Exists(packedRefPath))
+        foreach (var line in this.EnumeratePackedRefsEntries())
         {
-            using StreamReader? refReader = File.OpenText(packedRefPath);
-            string? line;
-            while ((line = refReader.ReadLine()) is object)
+            string refName = line.Substring(41);
+            if (string.Equals(refName, objectish, StringComparison.Ordinal))
             {
-                if (line.StartsWith("#", StringComparison.Ordinal))
-                {
-                    continue;
-                }
-
-                string refName = line.Substring(41);
-                if (string.Equals(refName, objectish, StringComparison.Ordinal))
+                return GitObjectId.Parse(line.Substring(0, 40));
+            }
+            else if (!objectish.StartsWith("refs/", StringComparison.Ordinal))
+            {
+                // Not a canonical ref, so try heads and tags
+                if (string.Equals(refName, "refs/heads/" + objectish, StringComparison.Ordinal))
                 {
                     return GitObjectId.Parse(line.Substring(0, 40));
                 }
-                else if (!objectish.StartsWith("refs/", StringComparison.Ordinal))
+                else if (string.Equals(refName, "refs/tags/" + objectish, StringComparison.Ordinal))
                 {
-                    // Not a canonical ref, so try heads and tags
-                    if (string.Equals(refName, "refs/heads/" + objectish, StringComparison.Ordinal))
-                    {
-                        return GitObjectId.Parse(line.Substring(0, 40));
-                    }
-                    else if (string.Equals(refName, "refs/tags/" + objectish, StringComparison.Ordinal))
-                    {
-                        return GitObjectId.Parse(line.Substring(0, 40));
-                    }
-                    else if (string.Equals(refName, "refs/remotes/" + objectish, StringComparison.Ordinal))
-                    {
-                        return GitObjectId.Parse(line.Substring(0, 40));
-                    }
+                    return GitObjectId.Parse(line.Substring(0, 40));
+                }
+                else if (string.Equals(refName, "refs/remotes/" + objectish, StringComparison.Ordinal))
+                {
+                    return GitObjectId.Parse(line.Substring(0, 40));
                 }
             }
         }
@@ -648,6 +637,39 @@ public class GitRepository : IDisposable
         return builder.ToString();
     }
 
+    /// <summary>
+    /// Returns a list of canonical names of tags that point to the given Git object id.
+    /// </summary>
+    /// <param name="objectId">The git object id to get the corresponding tags for.</param>
+    /// <returns>A list of canonical names of tags.</returns>
+    public List<string> LookupTags(GitObjectId objectId)
+    {
+        var tags = new List<string>();
+        var tagDir = Path.Combine(this.CommonDirectory, "refs", "tags");
+        foreach (var tagFile in Directory.EnumerateFiles(tagDir, "*", SearchOption.AllDirectories))
+        {
+            var tagObjId = GitObjectId.Parse(File.ReadAllText(tagFile).TrimEnd());
+            if (objectId.Equals(tagObjId))
+            {
+                // \ is not legal in git tag names
+                var tagName = tagFile.Substring(tagDir.Length + 1).Replace('\\', '/');
+                tags.Add($"refs/tags/{tagName}");
+            }
+        }
+
+        // Match in packed-refs file.
+        foreach (var line in this.EnumeratePackedRefsEntries())
+        {
+            var tagObjId = GitObjectId.Parse(line.Substring(0, 40));
+            string refName = line.Substring(41);
+            if (objectId.Equals(tagObjId))
+            {
+                tags.Add(refName);
+            }
+        }
+        return tags;
+    }
+
     /// <inheritdoc/>
     public override string ToString()
     {
@@ -766,5 +788,28 @@ public class GitRepository : IDisposable
         }
 
         return packs.AsMemory(0, addCount);
+    }
+
+    /// <summary>
+    /// Skips comment lines.
+    /// </summary>
+    private IEnumerable<string> EnumeratePackedRefsEntries()
+    {
+        // Match in packed-refs file.
+        string packedRefPath = Path.Combine(this.CommonDirectory, "packed-refs");
+        if (File.Exists(packedRefPath))
+        {
+            using StreamReader? refReader = File.OpenText(packedRefPath);
+            string? line;
+            while ((line = refReader.ReadLine()) is object)
+            {
+                if (line.StartsWith("#", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                yield return line;
+            }
+        }
     }
 }

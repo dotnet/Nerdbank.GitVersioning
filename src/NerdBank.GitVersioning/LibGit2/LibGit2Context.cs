@@ -51,6 +51,13 @@ public class LibGit2Context : GitContext
     /// <inheritdoc />
     public override string HeadCanonicalName => this.Repository.Head.CanonicalName;
 
+    /// <inheritdoc />
+    public override IReadOnlyCollection<string> HeadTags =>
+        this.Repository.Tags
+            .Where(tag => tag.Target.Sha.Equals(this.Commit?.Sha))
+            .Select(tag => tag.CanonicalName)
+            .ToList();
+
     private string DebuggerDisplay => $"\"{this.WorkingTreePath}\" (libgit2)";
 
     /// <summary>Initializes a new instance of the <see cref="LibGit2Context"/> class.</summary>

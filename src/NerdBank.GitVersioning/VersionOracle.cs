@@ -61,6 +61,8 @@ public class VersionOracle
         }
 
         this.BuildingRef = cloudBuild?.BuildingTag ?? cloudBuild?.BuildingBranch ?? context.HeadCanonicalName;
+        this.BuildingTags = context.HeadTags;
+
         try
         {
             this.VersionHeight = context.CalculateVersionHeight(this.CommittedVersion, this.WorkingVersion);
@@ -102,10 +104,16 @@ public class VersionOracle
                 : this.GitCommitId!.Substring(0, gitCommitIdShortFixedLength);
         }
 
-        if (!string.IsNullOrEmpty(this.BuildingRef) && this.VersionOptions?.PublicReleaseRefSpec?.Count > 0)
+        if (this.VersionOptions?.PublicReleaseRefSpec?.Count > 0)
         {
+            IEnumerable<string> candidates = this.BuildingTags;
+            if (!string.IsNullOrEmpty(this.BuildingRef))
+            {
+                candidates = candidates.Append(this.BuildingRef!);
+            }
+
             this.PublicRelease = this.VersionOptions.PublicReleaseRefSpec.Any(
-                expr => Regex.IsMatch(this.BuildingRef, expr));
+                expr => candidates.Any(cand => Regex.IsMatch(cand, expr)));
         }
     }
 
@@ -269,9 +277,15 @@ public class VersionOracle
     public int VersionHeightOffset => this.VersionOptions?.VersionHeightOffsetOrDefault ?? 0;
 
     /// <summary>
-    /// Gets or sets the ref (branch or tag) being built.
+    /// Gets or sets the ref (branch or tag) being built. Just contains a tag if it is known
+    /// that explicitly this tag is build, e.g. in a cloud build context.
     /// </summary>
     public string? BuildingRef { get; protected set; }
+
+    /// <summary>
+    /// Gets or sets a collection of the tags that reference HEAD.
+    /// </summary>
+    public IReadOnlyCollection<string> BuildingTags { get; protected set; }
 
     /// <summary>
     /// Gets or sets the version for this project, with up to 4 components.

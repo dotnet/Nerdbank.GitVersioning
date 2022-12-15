@@ -53,6 +53,9 @@ public class ManagedGitContext : GitContext
     /// <inheritdoc />
     public override string HeadCanonicalName => this.Repository.GetHeadAsReferenceOrSha().ToString() ?? throw new InvalidOperationException("Unable to determine the HEAD position.");
 
+    /// <inheritdoc />
+    public override IReadOnlyCollection<string> HeadTags => this.Repository.LookupTags(this.Repository.Lookup("HEAD") ?? throw new InvalidOperationException("Unable to determine the HEAD position."));
+
     private string DebuggerDisplay => $"\"{this.WorkingTreePath}\" (managed)";
 
     /// <summary>Initializes a new instance of the <see cref="ManagedGitContext"/> class.</summary>

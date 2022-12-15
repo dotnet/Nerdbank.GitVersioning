@@ -101,6 +101,11 @@ public abstract class GitContext : IDisposable
     public abstract string? HeadCanonicalName { get; }
 
     /// <summary>
+    /// Gets a collection of the tags that reference HEAD.
+    /// </summary>
+    public abstract IReadOnlyCollection<string> HeadTags { get; }
+
+    /// <summary>
     /// Gets the path to the .git folder.
     /// </summary>
     protected string? DotGitPath { get; }
