@@ -153,8 +153,19 @@ public class GitPack : IDisposable
         }
         else
         {
-            value = this.GetObject(offset.Value, objectType);
-            return true;
+            // This try-catch should probably be replaced by a non-throwing GetObject implementation.
+            // This is in turn dependend on a proper GitPackReader.TryGetObject implementation.
+            try
+            {
+                value = this.GetObject(offset.Value, objectType);
+                return true;
+            }
+            catch (GitException gexc)
+            when (gexc.ErrorCode == GitException.ErrorCodes.ObjectNotFound)
+            {
+                value = null;
+                return false;
+            }
         }
     }
 
