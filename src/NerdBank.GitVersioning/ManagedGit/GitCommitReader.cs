@@ -123,8 +123,8 @@ public static class GitCommitReader
     private static GitObjectId ReadTree(ReadOnlySpan<byte> line)
     {
         // Format: tree d8329fc1cc938780ffdd9f94e0d364e0ea74f579\n
-        // 47 bytes:
-        //  tree: 5 bytes
+        // 46 bytes:
+        //  tree: 4 bytes
         //  space: 1 byte
         //  hash: 40 bytes
         //  \n: 1 byte
