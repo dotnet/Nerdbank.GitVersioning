@@ -47,6 +47,11 @@ public class VersionOptions : IEquatable<VersionOptions>
     private const int DefaultSemVer1NumericIdentifierPadding = 4;
 
     /// <summary>
+    /// The default value for the <see cref="TagName"/> property.
+    /// </summary>
+    private const string DefaultTagName = "v{version}";
+
+    /// <summary>
     /// A value indicating whether mutations of this instance are not allowed.
     /// </summary>
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -110,6 +115,12 @@ public class VersionOptions : IEquatable<VersionOptions>
     private CloudBuildOptions? cloudBuild;
 
     /// <summary>
+    /// Backing field for the <see cref="TagName"/> property.
+    /// </summary>
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private string? tagName;
+
+    /// <summary>
     /// Backing field for the <see cref="Release"/> property.
     /// </summary>
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -153,6 +164,7 @@ public class VersionOptions : IEquatable<VersionOptions>
         this.publicReleaseRefSpec = copyFrom.publicReleaseRefSpec?.ToList();
         this.cloudBuild = copyFrom.cloudBuild is object ? new CloudBuildOptions(copyFrom.cloudBuild) : null;
         this.release = copyFrom.release is object ? new ReleaseOptions(copyFrom.release) : null;
+        this.tagName = copyFrom.tagName;
         this.pathFilters = copyFrom.pathFilters?.ToList();
     }
 
@@ -471,6 +483,22 @@ public class VersionOptions : IEquatable<VersionOptions>
     /// </summary>
     [JsonIgnore]
     public ReleaseOptions ReleaseOrDefault => this.Release ?? ReleaseOptions.DefaultInstance;
+
+    /// <summary>
+    /// Gets or sets the tag name template for tagging.
+    /// </summary>
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+    public string? TagName
+    {
+        get => this.tagName;
+        set => this.SetIfNotReadOnly(ref this.tagName, value);
+    }
+
+    /// <summary>
+    /// Gets the tag name template for tagging.
+    /// </summary>
+    [JsonIgnore]
+    public string? TagNameOrDefault => this.TagName ?? DefaultTagName;
 
     /// <summary>
     /// Gets or sets a list of paths to use to filter commits when calculating version height.

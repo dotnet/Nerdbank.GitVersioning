@@ -176,7 +176,7 @@
           "type": "object",
           "properties": {
             "branchName": {
-              "description": "Defines the format of release branch names. Format must include a placeholder '{version}' for the version",
+              "description": "Defines the format of release branch names. Format must include a placeholder '{version}' for the version.",
               "type": "string",
               "pattern": ".*\\{version\\}.*",
               "default": "v{version}"
@@ -188,12 +188,18 @@
               "default": "minor"
             },
             "firstUnstableTag": {
-              "description": "Specifies the first/default prerelease tag for new versions",
+              "description": "Specifies the first/default prerelease tag for new versions.",
               "type": "string",
               "default": "alpha"
             }
           },
           "additionalProperties": false
+        },
+        "tagName": {
+          "description": "Defines the format of tag names. Format must include a placeholder '{version}' for the version.",
+          "type": "string",
+          "pattern": ".*\\{version\\}.*",
+          "default": "v{version}"
         },
         "pathFilters": {
           "type": "array",
