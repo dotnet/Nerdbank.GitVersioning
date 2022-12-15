@@ -8,7 +8,7 @@ using System.Collections;
 namespace Nerdbank.GitVersioning.ManagedGit;
 
 /// <summary>
-/// Represents a Git commit, as stored in the Git object database.
+/// Represents a Git annotated tag, as stored in the Git object database.
 /// </summary>
 public struct GitAnnotatedTag : IEquatable<GitAnnotatedTag>
 {
