@@ -675,6 +675,7 @@ public class GitRepository : IDisposable
                 tags.Add(refName);
             }
         }
+
         return tags;
     }
 

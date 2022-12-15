@@ -106,7 +106,7 @@ public class VersionOracle
 
         if (this.VersionOptions?.PublicReleaseRefSpec?.Count > 0)
         {
-            IEnumerable<string> candidates = this.BuildingTags;
+            IEnumerable<string> candidates = this.BuildingTags ?? Enumerable.Empty<string>();
             if (!string.IsNullOrEmpty(this.BuildingRef))
             {
                 candidates = candidates.Append(this.BuildingRef!);
@@ -285,7 +285,7 @@ public class VersionOracle
     /// <summary>
     /// Gets or sets a collection of the tags that reference HEAD.
     /// </summary>
-    public IReadOnlyCollection<string> BuildingTags { get; protected set; }
+    public IReadOnlyCollection<string>? BuildingTags { get; protected set; }
 
     /// <summary>
     /// Gets or sets the version for this project, with up to 4 components.
