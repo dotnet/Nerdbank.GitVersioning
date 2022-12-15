@@ -1,4 +1,4 @@
-﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
+// Copyright (c) .NET Foundation and Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #nullable enable
@@ -197,6 +197,10 @@ public class GitPack : IDisposable
 
             case "blob":
                 packObjectType = GitPackObjectType.OBJ_BLOB;
+                break;
+
+            case "tag":
+                packObjectType = GitPackObjectType.OBJ_TAG;
                 break;
 
             default:

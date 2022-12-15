@@ -655,6 +655,14 @@ public class GitRepository : IDisposable
                 var tagName = tagFile.Substring(tagDir.Length + 1).Replace('\\', '/');
                 tags.Add($"refs/tags/{tagName}");
             }
+            else if (this.TryGetObjectBySha(tagObjId, "tag", out Stream? tagContent))
+            {
+                GitAnnotatedTag tag = GitAnnotatedTagReader.Read(tagContent, tagObjId);
+                if (tag.Type == "commit" && objectId.Equals(tag.Object))
+                {
+                    tags.Add($"refs/tags/{tag.Tag}");
+                }
+            }
         }
 
         // Match in packed-refs file.
