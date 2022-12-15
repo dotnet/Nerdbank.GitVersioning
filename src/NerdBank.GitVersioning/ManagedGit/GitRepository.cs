@@ -804,13 +804,12 @@ public class GitRepository : IDisposable
     /// </summary>
     private IEnumerable<string> EnumeratePackedRefsEntries()
     {
-        // Match in packed-refs file.
         string packedRefPath = Path.Combine(this.CommonDirectory, "packed-refs");
         if (File.Exists(packedRefPath))
         {
-            using StreamReader? refReader = File.OpenText(packedRefPath);
+            using StreamReader refReader = File.OpenText(packedRefPath);
             string? line;
-            while ((line = refReader.ReadLine()) is object)
+            while ((line = refReader.ReadLine()) is not null)
             {
                 if (line.StartsWith("#", StringComparison.Ordinal))
                 {

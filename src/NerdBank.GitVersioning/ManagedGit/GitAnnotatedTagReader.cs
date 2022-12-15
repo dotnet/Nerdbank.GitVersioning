@@ -59,7 +59,7 @@ public static class GitAnnotatedTagReader
     /// A <see cref="ReadOnlySpan{T}"/> which contains the <see cref="GitAnnotatedTag"/> in its text representation.
     /// </param>
     /// <param name="sha">
-    /// The <see cref="GitObjectId"/> of the commit.
+    /// The <see cref="GitObjectId"/> of the annotated tag.
     /// </param>
     /// <returns>
     /// The <see cref="GitAnnotatedTag"/>.
