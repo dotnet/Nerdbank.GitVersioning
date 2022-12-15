@@ -571,7 +571,7 @@ public class GitRepository : IDisposable
     /// <see langword="true"/> if the object could be found; otherwise,
     /// <see langword="false"/>.
     /// </returns>
-    public bool TryGetObjectBySha(GitObjectId sha, string objectType, out Stream? value)
+    public bool TryGetObjectBySha(GitObjectId sha, string objectType, [NotNullWhen(true)] out Stream? value)
     {
 #if DEBUG
         if (!this.histogram.TryAdd(sha, 1))

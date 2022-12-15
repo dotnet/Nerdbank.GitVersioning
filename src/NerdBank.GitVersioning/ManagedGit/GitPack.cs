@@ -1,8 +1,9 @@
-// Copyright (c) .NET Foundation and Contributors. All rights reserved.
+﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #nullable enable
 
+using System.Diagnostics.CodeAnalysis;
 using System.IO.MemoryMappedFiles;
 using System.Text;
 
@@ -141,7 +142,7 @@ public class GitPack : IDisposable
     /// <returns>
     /// <see langword="true"/> if the object was found; otherwise, <see langword="false"/>.
     /// </returns>
-    public bool TryGetObject(GitObjectId objectId, string objectType, out Stream? value)
+    public bool TryGetObject(GitObjectId objectId, string objectType, [NotNullWhen(true)] out Stream? value)
     {
         long? offset = this.GetOffset(objectId);
 
