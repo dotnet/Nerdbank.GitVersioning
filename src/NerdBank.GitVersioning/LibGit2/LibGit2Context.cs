@@ -52,11 +52,13 @@ public class LibGit2Context : GitContext
     public override string HeadCanonicalName => this.Repository.Head.CanonicalName;
 
     /// <inheritdoc />
-    public override IReadOnlyCollection<string> HeadTags =>
-        this.Repository.Tags
-            .Where(tag => tag.Target.Sha.Equals(this.Commit?.Sha))
+    public override IReadOnlyCollection<string>? HeadTags =>
+        this.Commit is not null
+        ? this.Repository.Tags
+            .Where(tag => tag.Target.Sha.Equals(this.Commit.Sha))
             .Select(tag => tag.CanonicalName)
-            .ToList();
+            .ToList()
+        : null;
 
     private string DebuggerDisplay => $"\"{this.WorkingTreePath}\" (libgit2)";
 
