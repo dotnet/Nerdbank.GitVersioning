@@ -164,6 +164,44 @@ For each branch, the following properties are provided:
 **Note:** When the current branch is already the release branch for the current version, no new branch will be created.
 In that case, the `NewBranch` property will be `null`.
 
+## Creating a version tag
+
+The `tag` command automates the task of tagging a commit with a version.
+
+To create a version tag, run:
+
+```ps1
+nbgv tag
+```
+
+This will:
+
+1. Read version.json to ascertain the version under development, and the naming convention of tag names.
+1. Create a new tag for that version.
+
+You can optionally include a version or commit id to create a new tag for an older version/commit, e.g.:
+
+```ps1
+nbgv tag 1.0.0
+```
+
+### Customizing the behaviour of `tag`
+
+The behaviour of the `tag` command can be customized in `version.json`:
+
+```json
+{
+  "version": "1.0",
+  "release": {
+    "tagName" : "v{version}"
+  }
+}
+```
+
+| Property | Default value | Description                                                                                                                                         |
+|----------|---------------|-------------------------------------------------------------------------------------------------|
+| tagName  | `v{version}`  | Defines the format of tag names. Format must include a placeholder '{version}' for the version. |
+
 ## Learn more
 
 There are several more sub-commands and switches to each to help you build and maintain your projects, find a commit that built a particular version later on, create tags, etc.

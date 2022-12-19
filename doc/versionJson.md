@@ -59,6 +59,7 @@ The content of the version.json file is a JSON serialized object with these prop
     }
   },
   "release" : {
+    "tagName" : "v{version}",
     "branchName" : "v{version}",
     "versionIncrement" : "minor",
     "firstUnstableTag" : "alpha"
