@@ -554,7 +554,7 @@ namespace Nerdbank.GitVersioning.Tool
                 return Task.FromResult((int)ExitCodes.NoVersionJsonFound);
             }
 
-            string tagNameFormat = versionOptions.TagNameOrDefault;
+            string tagNameFormat = versionOptions.ReleaseOrDefault.TagNameOrDefault;
 
             // ensure there is a '{version}' placeholder in the tag name
             if (string.IsNullOrEmpty(tagNameFormat) || !tagNameFormat.Contains("{version}"))
