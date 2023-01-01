@@ -7,7 +7,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <IsPackable>false</IsPackable>
-    <BenchmarkDotNetVersion>0.13.2</BenchmarkDotNetVersion>
+    <BenchmarkDotNetVersion>0.13.3</BenchmarkDotNetVersion>
   </PropertyGroup>
 
   <ItemGroup>
