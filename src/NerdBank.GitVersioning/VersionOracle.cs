@@ -285,6 +285,7 @@ public class VersionOracle
     /// <summary>
     /// Gets or sets a collection of the tags that reference HEAD.
     /// </summary>
+    [Ignore]
     public IReadOnlyCollection<string>? BuildingTags { get; protected set; }
 
     /// <summary>
