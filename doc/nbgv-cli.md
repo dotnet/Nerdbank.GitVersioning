@@ -22,8 +22,9 @@ It will also add/modify your `Directory.Build.props` file in the root of your re
 If scripting for running in a CI build where global impact from installing a tool is undesirable, you can localize the tool installation:
 
 ```ps1
-dotnet tool install --tool-path . nbgv
+dotnet tool install --tool-path my/path nbgv
 ```
+> Ensure your custom path is outside of your git repository, as the `nbgv` tool doesn't support uncommited changes
 
 At this point you can launch the tool using `./nbgv` in your build script.
 
@@ -41,7 +42,7 @@ The `prepare-release` command automates the task of branching off the main devel
 The `prepare-release` command supports this working model by taking care of
 creating the release branch and updating `version.json` on both branches.
 
-To prepare a release, run:
+To prepare a release, first ensure there is no uncommited changes in your repository then run:
 
 ```ps1
 nbgv prepare-release
