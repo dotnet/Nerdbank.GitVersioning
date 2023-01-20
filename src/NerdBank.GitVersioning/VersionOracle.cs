@@ -311,11 +311,9 @@ public class VersionOracle
                     continue;
                 }
 
-                const string isoDateTimeFormat = "yyyy'-'MM'-'dd'T'HH':'mm':'ss.FFFFFFFK";
-
                 string value = propertyValue switch
                 {
-                    DateTimeOffset dateTimeOffset => dateTimeOffset.ToString(isoDateTimeFormat, CultureInfo.InvariantCulture),
+                    DateTimeOffset dateTimeOffset => dateTimeOffset.ToString("o", CultureInfo.InvariantCulture),
                     _ => Convert.ToString(propertyValue, CultureInfo.InvariantCulture) ?? string.Empty,
                 };
 
