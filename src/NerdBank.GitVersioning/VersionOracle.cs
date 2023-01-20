@@ -170,6 +170,7 @@ public class VersionOracle
     /// <summary>
     /// Gets the version options used to initialize this instance.
     /// </summary>
+    [Ignore]
     public VersionOptions? VersionOptions { get; }
 
     /// <summary>
@@ -296,17 +297,27 @@ public class VersionOracle
         {
             var variables = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-            PropertyInfo[]? properties = this.GetType().GetTypeInfo().GetProperties(BindingFlags.Public | BindingFlags.DeclaredOnly | BindingFlags.Instance);
-            foreach (PropertyInfo? property in properties)
+            PropertyInfo[] properties = this.GetType().GetTypeInfo().GetProperties(BindingFlags.Public | BindingFlags.DeclaredOnly | BindingFlags.Instance);
+            foreach (PropertyInfo property in properties)
             {
-                if (property.GetCustomAttribute<IgnoreAttribute>() is null)
+                if (property.GetCustomAttribute<IgnoreAttribute>() is not null)
                 {
-                    object? value = property.GetValue(this);
-                    if (value is object)
-                    {
-                        variables.Add($"NBGV_{property.Name}", value.ToString() ?? string.Empty);
-                    }
+                    continue;
                 }
+
+                object? propertyValue = property.GetValue(this);
+                if (propertyValue is null)
+                {
+                    continue;
+                }
+
+                string value = propertyValue switch
+                {
+                    DateTimeOffset dateTimeOffset => dateTimeOffset.ToString("o", CultureInfo.InvariantCulture),
+                    _ => Convert.ToString(propertyValue, CultureInfo.InvariantCulture) ?? string.Empty,
+                };
+
+                variables.Add($"NBGV_{property.Name}", value);
             }
 
             return variables;
