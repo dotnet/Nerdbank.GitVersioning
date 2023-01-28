@@ -68,6 +68,7 @@ namespace Nerdbank.GitVersioning.Tool
             PackageIdNotFound,
             ShallowClone,
             InternalError,
+            InvalidTagNameSetting,
         }
 
         private static bool AlwaysUseLibGit2 => string.Equals(Environment.GetEnvironmentVariable("NBGV_GitEngine"), "LibGit2", StringComparison.Ordinal);
@@ -545,6 +546,24 @@ namespace Nerdbank.GitVersioning.Tool
                 return Task.FromResult((int)ExitCodes.NoGitRepo);
             }
 
+            // get tag name format
+            VersionOptions versionOptions = context.VersionFile.GetVersion();
+            if (versionOptions is null)
+            {
+                Console.Error.WriteLine($"Failed to load version file for directory '{searchPath}'.");
+                return Task.FromResult((int)ExitCodes.NoVersionJsonFound);
+            }
+
+            string tagNameFormat = versionOptions.ReleaseOrDefault.TagNameOrDefault;
+
+            // ensure there is a '{version}' placeholder in the tag name
+            if (string.IsNullOrEmpty(tagNameFormat) || !tagNameFormat.Contains("{version}"))
+            {
+                Console.Error.WriteLine($"Invalid 'tagName' setting '{tagNameFormat}'. Missing version placeholder '{{version}}'.");
+                return Task.FromResult((int)ExitCodes.InvalidTagNameSetting);
+            }
+
+            // get commit to tag
             LibGit2Sharp.Repository repository = context.Repository;
             if (!context.TrySelectCommit(versionOrRef))
             {
@@ -585,8 +604,12 @@ namespace Nerdbank.GitVersioning.Tool
                 return Task.FromResult((int)ExitCodes.NoVersionJsonFound);
             }
 
-            oracle.PublicRelease = true; // assume a public release so we don't get a redundant -gCOMMITID in the tag name
-            string tagName = $"v{oracle.SemVer2}";
+            // assume a public release so we don't get a redundant -gCOMMITID in the tag name
+            oracle.PublicRelease = true;
+
+            // replace the "{version}" placeholder with the actual version
+            string tagName = tagNameFormat.Replace("{version}", oracle.SemVer2);
+
             try
             {
                 context.ApplyTag(tagName);

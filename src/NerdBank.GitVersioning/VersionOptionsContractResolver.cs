@@ -126,6 +126,11 @@ internal class VersionOptionsContractResolver : CamelCasePropertyNamesContractRe
                 property.ShouldSerialize = instance => !((VersionOptions)instance).ReleaseOrDefault.IsDefault;
             }
 
+            if (property.DeclaringType == typeof(VersionOptions.ReleaseOptions) && member.Name == nameof(VersionOptions.ReleaseOptions.TagName))
+            {
+                property.ShouldSerialize = instance => ((VersionOptions.ReleaseOptions)instance).TagNameOrDefault != VersionOptions.ReleaseOptions.DefaultInstance.TagName;
+            }
+
             if (property.DeclaringType == typeof(VersionOptions.ReleaseOptions) && member.Name == nameof(VersionOptions.ReleaseOptions.BranchName))
             {
                 property.ShouldSerialize = instance => ((VersionOptions.ReleaseOptions)instance).BranchNameOrDefault != VersionOptions.ReleaseOptions.DefaultInstance.BranchName;
