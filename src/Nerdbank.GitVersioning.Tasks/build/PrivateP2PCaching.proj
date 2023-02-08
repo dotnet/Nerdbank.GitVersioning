@@ -9,6 +9,7 @@
   <Target Name="GetCopyToOutputDirectoryItems" />
   <Target Name="GetCopyToPublishDirectoryItems" />
   <Target Name="GetTargetFrameworksWithPlatformForSingleTargetFramework" />
+  <Target Name="_GetCopyToOutputDirectoryItemsFromThisProject" />
 
   <!-- This target is called by Clean or Rebuild on a referencing project. -->
   <Target Name="Clean" />
