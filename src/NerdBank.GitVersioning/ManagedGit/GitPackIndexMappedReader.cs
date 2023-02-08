@@ -1,6 +1,8 @@
 ﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+#nullable enable
+
 using System.Buffers.Binary;
 using System.Diagnostics;
 using System.IO.MemoryMappedFiles;
@@ -14,16 +16,19 @@ namespace Nerdbank.GitVersioning.ManagedGit;
 public unsafe class GitPackIndexMappedReader : GitPackIndexReader
 {
     private readonly MemoryMappedFile file;
-    private readonly MemoryMappedViewAccessor accessor;
 
     // The fanout table consists of
     // 256 4-byte network byte order integers.
     // The N-th entry of this table records the number of objects in the corresponding pack,
     // the first byte of whose object name is less than or equal to N.
     private readonly int[] fanoutTable = new int[257];
+    private readonly ulong fileLength;
 
-    private readonly byte* ptr;
     private bool initialized;
+    private MemoryMappedViewAccessor? accessor;
+    private ulong accessorOffset;
+    private ulong accessorSize;
+    private byte* accessorPtr;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GitPackIndexMappedReader"/> class.
@@ -38,17 +43,8 @@ public unsafe class GitPackIndexMappedReader : GitPackIndexReader
             throw new ArgumentNullException(nameof(stream));
         }
 
+        this.fileLength = (ulong)stream.Length;
         this.file = MemoryMappedFile.CreateFromFile(stream, mapName: null, capacity: 0, MemoryMappedFileAccess.Read, HandleInheritability.None, leaveOpen: false);
-        this.accessor = this.file.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
-        this.accessor.SafeMemoryMappedViewHandle.AcquirePointer(ref this.ptr);
-    }
-
-    private ReadOnlySpan<byte> Value
-    {
-        get
-        {
-            return new ReadOnlySpan<byte>(this.ptr, (int)this.accessor.Capacity);
-        }
     }
 
     /// <inheritdoc/>
@@ -69,7 +65,7 @@ public unsafe class GitPackIndexMappedReader : GitPackIndexReader
         int order = 0;
 
         int tableSize = 20 * (packEnd - packStart + 1);
-        ReadOnlySpan<byte> table = this.Value.Slice(4 + 4 + (256 * 4) + (20 * packStart), tableSize);
+        ReadOnlySpan<byte> table = this.GetSpan((ulong)(4 + 4 + (256 * 4) + (20 * packStart)), tableSize);
 
         int originalPackStart = packStart;
 
@@ -117,7 +113,7 @@ public unsafe class GitPackIndexMappedReader : GitPackIndexReader
         // Get the offset value. It's located at:
         // 4 (header) + 4 (version) + 256 * 4 (fanout table) + 20 * objectCount (SHA1 object name table) + 4 * objectCount (CRC32) + 4 * i (offset values)
         int offsetTableStart = 4 + 4 + (256 * 4) + (20 * objectCount) + (4 * objectCount);
-        ReadOnlySpan<byte> offsetBuffer = this.Value.Slice(offsetTableStart + (4 * (i + originalPackStart)), 4);
+        ReadOnlySpan<byte> offsetBuffer = this.GetSpan((ulong)(offsetTableStart + (4 * (i + originalPackStart))), 4);
         uint offset = BinaryPrimitives.ReadUInt32BigEndian(offsetBuffer);
 
         if (offsetBuffer[0] < 128)
@@ -130,7 +126,7 @@ public unsafe class GitPackIndexMappedReader : GitPackIndexReader
             // which follows the table of 4-byte offset entries: "large offsets are encoded as an index into the next table with the msbit set."
             offset = offset & 0x7FFFFFFF;
 
-            offsetBuffer = this.Value.Slice(offsetTableStart + (4 * objectCount) + (8 * (int)offset), 8);
+            offsetBuffer = this.GetSpan((ulong)(offsetTableStart + (4 * objectCount) + (8 * (int)offset)), 8);
             long offset64 = BinaryPrimitives.ReadInt64BigEndian(offsetBuffer);
             return (offset64, GitObjectId.Parse(table.Slice(20 * i, 20)));
         }
@@ -139,22 +135,78 @@ public unsafe class GitPackIndexMappedReader : GitPackIndexReader
     /// <inheritdoc/>
     public override void Dispose()
     {
-        this.accessor.Dispose();
+        if (this.accessorPtr is not null && this.accessor is not null)
+        {
+            this.accessor.SafeMemoryMappedViewHandle.ReleasePointer();
+            this.accessorPtr = null;
+        }
+
+        this.accessor?.Dispose();
+        this.accessor = null;
         this.file.Dispose();
+    }
+
+    private unsafe ReadOnlySpan<byte> GetSpan(ulong offset, int length)
+    {
+        checked
+        {
+            // If the request is for a window that we have not currently mapped, throw away what we have.
+            if (this.accessor is not null && (this.accessorOffset > offset || this.accessorOffset + this.accessorSize < offset + (ulong)length))
+            {
+                if (this.accessorPtr is not null)
+                {
+                    this.accessor.SafeMemoryMappedViewHandle.ReleasePointer();
+                    this.accessorPtr = null;
+                }
+
+                this.accessor.Dispose();
+                this.accessor = null;
+            }
+
+            if (this.accessor is null)
+            {
+                const int minimumLength = 10 * 1024 * 1024;
+                uint windowSize = (uint)Math.Min((ulong)Math.Max(minimumLength, length), this.fileLength);
+
+                // Push window 'to the left' if our preferred minimum size doesn't fit when we start at the offset requested.
+                ulong actualOffset = offset + windowSize > this.fileLength ? this.fileLength - windowSize : offset;
+
+                this.accessor = this.file.CreateViewAccessor((long)actualOffset, windowSize, MemoryMappedFileAccess.Read);
+
+                // Record the *actual* offset into the file that the pointer to native memory points at.
+                // This may be earlier in the file than we requested, and if so, go ahead and take advantage of that.
+                this.accessorOffset = actualOffset - (ulong)this.accessor.PointerOffset;
+
+                // Also record the *actual* length of the mapped memory, again so we can take full advantage before reallocating the view.
+                this.accessorSize = this.accessor.SafeMemoryMappedViewHandle.ByteLength;
+            }
+
+            Debug.Assert(offset >= (ulong)this.accessor.PointerOffset);
+            byte* ptr = this.accessorPtr;
+            if (ptr is null)
+            {
+                this.accessor.SafeMemoryMappedViewHandle.AcquirePointer(ref this.accessorPtr);
+                ptr = this.accessorPtr;
+            }
+
+            ptr += offset - this.accessorOffset;
+            return new ReadOnlySpan<byte>(ptr, length);
+        }
     }
 
     private void Initialize()
     {
         if (!this.initialized)
         {
-            ReadOnlySpan<byte> value = this.Value;
+            const int fanoutTableLength = 256;
+            ReadOnlySpan<byte> value = this.GetSpan(0, 4 + (4 * fanoutTableLength) + 4);
 
             ReadOnlySpan<byte> header = value.Slice(0, 4);
             int version = BinaryPrimitives.ReadInt32BigEndian(value.Slice(4, 4));
             Debug.Assert(header.SequenceEqual(Header));
             Debug.Assert(version == 2);
 
-            for (int i = 1; i <= 256; i++)
+            for (int i = 1; i <= fanoutTableLength; i++)
             {
                 this.fanoutTable[i] = BinaryPrimitives.ReadInt32BigEndian(value.Slice(4 + (4 * i), 4));
             }
