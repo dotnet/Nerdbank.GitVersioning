@@ -11,11 +11,10 @@
     <PackageVersion Include="BenchmarkDotNet.Diagnostics.Windows" Version="$(BenchmarkDotNetVersion)" />
     <PackageVersion Include="BenchmarkDotNet" Version="$(BenchmarkDotNetVersion)" />
     <PackageVersion Include="Cake.Core" Version="2.3.0" />
-    <PackageVersion Include="coverlet.msbuild" Version="3.1.2" />
     <PackageVersion Include="DotNetMDDocs" Version="0.112.39" />
     <PackageVersion Include="LibGit2Sharp" Version="0.27.0-preview-0182" />
     <PackageVersion Include="Microsoft.Build.Framework" Version="$(MSBuildPackageVersion)" />
-    <PackageVersion Include="Microsoft.Build.Locator" Version="1.4.1" />
+    <PackageVersion Include="Microsoft.Build.Locator" Version="1.5.5" />
     <PackageVersion Include="Microsoft.Build.Tasks.Core" Version="$(MSBuildPackageVersion)" />
     <PackageVersion Include="Microsoft.Build.Utilities.Core" Version="$(MSBuildPackageVersion)" />
     <PackageVersion Include="Microsoft.Build" Version="$(MSBuildPackageVersion)" />
