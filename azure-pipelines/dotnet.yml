@@ -6,21 +6,21 @@ steps:
 - script: |
     git config --global user.name ci
     git config --global user.email me@ci.com
-  displayName: Configure git commit author for testing
+  displayName: ⚙️ Configure git commit author for testing
 
 - script: dotnet build -t:build,pack --no-restore -c $(BuildConfiguration) /bl:"$(Build.ArtifactStagingDirectory)/build_logs/build.binlog"
   displayName: 🛠 dotnet build
 
 - script: dotnet pack -c $(BuildConfiguration) --no-build -p:PackLKG=true /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild_lkg.binlog"
-  displayName: Build LKG package
+  displayName: 🛠️ Build LKG package
   workingDirectory: src/Nerdbank.GitVersioning.Tasks
 
 - script: dotnet publish -c $(BuildConfiguration) -o ../nerdbank-gitversioning.npm/out/nbgv.cli/tools/net6.0/any /bl:"$(Build.ArtifactStagingDirectory)/build_logs/nbgv_publish.binlog"
-  displayName: Publish nbgv tool
+  displayName: 📢 Publish nbgv tool
   workingDirectory: src/nbgv
 
 - script: yarn build
-  displayName: Build nerdbank-gitversioning NPM package
+  displayName: 🛠️ Build nerdbank-gitversioning NPM package
   workingDirectory: src/nerdbank-gitversioning.npm
 
 - powershell: azure-pipelines/dotnet-test-cloud.ps1 -Configuration $(BuildConfiguration) -Agent $(Agent.JobName) -PublishResults
