@@ -26,9 +26,6 @@ jobs:
       & .\dotnet-install.ps1 -Architecture x86 -Version 7.0.101 -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose
     displayName: ⚙ Install 32-bit .NET SDK and runtimes
 
-  - powershell: '& (./azure-pipelines/Get-nbgv.ps1) cloud -c'
-    displayName: ⚙ Set build number
-
   - template: dotnet.yml
     parameters:
       RunTests: ${{ parameters.RunTests }}
@@ -42,6 +39,8 @@ jobs:
     clean: true
     submodules: true # keep the warnings quiet about the wiki not being enlisted
   - template: install-dependencies.yml
+  - powershell: '& (./azure-pipelines/Get-nbgv.ps1) cloud -c'
+    displayName: ⚙ Set build number
   - template: dotnet.yml
     parameters:
       RunTests: ${{ parameters.RunTests }}
