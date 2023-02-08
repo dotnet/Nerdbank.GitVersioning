@@ -123,7 +123,7 @@ stages:
         dotnet build -c Release
       displayName: Build in Release mode
     - script: |
-        dotnet run -c Release -f net6.0 -- --filter *GetVersionBenchmarks* --artifacts $(Build.ArtifactStagingDirectory)/benchmarks/packed/$(imageName)
+        dotnet run -c Release -f net7.0 -- --filter *GetVersionBenchmarks* --artifacts $(Build.ArtifactStagingDirectory)/benchmarks/packed/$(imageName)
       workingDirectory: test/Nerdbank.GitVersioning.Benchmarks
       displayName: Run benchmarks (packed)
     - bash: |
@@ -140,7 +140,7 @@ stages:
         git unpack-objects < .git/objects/pack/*.pack
       displayName: Unpack Git repositories
     - script: |
-        dotnet run -c Release -f net6.0 -- --filter '*GetVersionBenchmarks*' --artifacts $(Build.ArtifactStagingDirectory)/benchmarks/unpacked/$(imageName)
+        dotnet run -c Release -f net7.0 -- --filter '*GetVersionBenchmarks*' --artifacts $(Build.ArtifactStagingDirectory)/benchmarks/unpacked/$(imageName)
       workingDirectory: test/Nerdbank.GitVersioning.Benchmarks
       displayName: Run benchmarks (unpacked)
     - task: PublishBuildArtifacts@1
