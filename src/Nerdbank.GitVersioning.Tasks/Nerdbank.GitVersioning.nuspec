@@ -55,6 +55,7 @@ IMPORTANT: The 3.x release may produce a different version height than prior maj
     <file src="build\Nerdbank.GitVersioning.props" target="build\Nerdbank.GitVersioning$LKGSuffix$.props" />
     <file src="build\Nerdbank.GitVersioning.targets" target="build\Nerdbank.GitVersioning$LKGSuffix$.targets" />
     <file src="build\PrivateP2PCaching.proj" target="build\PrivateP2PCaching.proj" />
+    <file src="buildCrossTargeting\Nerdbank.GitVersioning.props" target="buildCrossTargeting\Nerdbank.GitVersioning$LKGSuffix$.props" />
     <file src="buildCrossTargeting\Nerdbank.GitVersioning.targets" target="buildCrossTargeting\Nerdbank.GitVersioning$LKGSuffix$.targets" />
     <file src="readme.txt" target="readme.txt" />
   </files>
