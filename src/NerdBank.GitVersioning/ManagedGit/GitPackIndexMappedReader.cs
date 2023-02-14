@@ -16,19 +16,16 @@ namespace Nerdbank.GitVersioning.ManagedGit;
 public unsafe class GitPackIndexMappedReader : GitPackIndexReader
 {
     private readonly MemoryMappedFile file;
+    private readonly MemoryMappedViewAccessor accessor;
 
     // The fanout table consists of
     // 256 4-byte network byte order integers.
     // The N-th entry of this table records the number of objects in the corresponding pack,
     // the first byte of whose object name is less than or equal to N.
     private readonly int[] fanoutTable = new int[257];
-    private readonly ulong fileLength;
+    private byte* ptr;
 
     private bool initialized;
-    private MemoryMappedViewAccessor? accessor;
-    private ulong accessorOffset;
-    private ulong accessorSize;
-    private byte* accessorPtr;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GitPackIndexMappedReader"/> class.
@@ -43,8 +40,9 @@ public unsafe class GitPackIndexMappedReader : GitPackIndexReader
             throw new ArgumentNullException(nameof(stream));
         }
 
-        this.fileLength = (ulong)stream.Length;
         this.file = MemoryMappedFile.CreateFromFile(stream, mapName: null, capacity: 0, MemoryMappedFileAccess.Read, HandleInheritability.None, leaveOpen: false);
+        this.accessor = this.file.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
+        this.accessor.SafeMemoryMappedViewHandle.AcquirePointer(ref this.ptr);
     }
 
     /// <inheritdoc/>
@@ -135,64 +133,17 @@ public unsafe class GitPackIndexMappedReader : GitPackIndexReader
     /// <inheritdoc/>
     public override void Dispose()
     {
-        if (this.accessorPtr is not null && this.accessor is not null)
+        if (this.ptr is not null)
         {
             this.accessor.SafeMemoryMappedViewHandle.ReleasePointer();
-            this.accessorPtr = null;
+            this.ptr = null;
         }
 
-        this.accessor?.Dispose();
-        this.accessor = null;
+        this.accessor.Dispose();
         this.file.Dispose();
     }
 
-    private unsafe ReadOnlySpan<byte> GetSpan(ulong offset, int length)
-    {
-        checked
-        {
-            // If the request is for a window that we have not currently mapped, throw away what we have.
-            if (this.accessor is not null && (this.accessorOffset > offset || this.accessorOffset + this.accessorSize < offset + (ulong)length))
-            {
-                if (this.accessorPtr is not null)
-                {
-                    this.accessor.SafeMemoryMappedViewHandle.ReleasePointer();
-                    this.accessorPtr = null;
-                }
-
-                this.accessor.Dispose();
-                this.accessor = null;
-            }
-
-            if (this.accessor is null)
-            {
-                const int minimumLength = 10 * 1024 * 1024;
-                uint windowSize = (uint)Math.Min((ulong)Math.Max(minimumLength, length), this.fileLength);
-
-                // Push window 'to the left' if our preferred minimum size doesn't fit when we start at the offset requested.
-                ulong actualOffset = offset + windowSize > this.fileLength ? this.fileLength - windowSize : offset;
-
-                this.accessor = this.file.CreateViewAccessor((long)actualOffset, windowSize, MemoryMappedFileAccess.Read);
-
-                // Record the *actual* offset into the file that the pointer to native memory points at.
-                // This may be earlier in the file than we requested, and if so, go ahead and take advantage of that.
-                this.accessorOffset = actualOffset - (ulong)this.accessor.PointerOffset;
-
-                // Also record the *actual* length of the mapped memory, again so we can take full advantage before reallocating the view.
-                this.accessorSize = this.accessor.SafeMemoryMappedViewHandle.ByteLength;
-            }
-
-            Debug.Assert(offset >= (ulong)this.accessor.PointerOffset);
-            byte* ptr = this.accessorPtr;
-            if (ptr is null)
-            {
-                this.accessor.SafeMemoryMappedViewHandle.AcquirePointer(ref this.accessorPtr);
-                ptr = this.accessorPtr;
-            }
-
-            ptr += offset - this.accessorOffset;
-            return new ReadOnlySpan<byte>(ptr, length);
-        }
-    }
+    private ReadOnlySpan<byte> GetSpan(ulong offset, int length) => new ReadOnlySpan<byte>(this.ptr + offset, length);
 
     private void Initialize()
     {
