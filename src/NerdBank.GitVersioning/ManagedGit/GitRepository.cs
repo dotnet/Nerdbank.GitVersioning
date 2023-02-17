@@ -843,33 +843,33 @@ public class GitRepository : IDisposable
     /// </summary>
     private IEnumerable<(string Record, string? PeelLine)> EnumeratePackedRefsWithPeelLines()
     {
-        string? lastLine = null;
+        string? recordLine = null;
         foreach (var line in this.EnumeratePackedRefsRaw())
         {
             if (line[0] == '^')
             {
-                if (lastLine is null)
+                if (recordLine is null)
                 {
                     throw new GitException("packed-refs format is broken. Found a peel line without a preceeding record it belongs to.");
                 }
 
-                yield return (lastLine, line);
-                lastLine = null;
+                yield return (recordLine, line);
+                recordLine = null;
             }
             else
             {
-                if (lastLine is not null)
+                if (recordLine is not null)
                 {
-                    yield return (lastLine, null);
+                    yield return (recordLine, null);
                 }
 
-                lastLine = line;
+                recordLine = line;
             }
         }
 
-        if (lastLine is not null)
+        if (recordLine is not null)
         {
-            yield return (lastLine, null);
+            yield return (recordLine, null);
         }
     }
 }
