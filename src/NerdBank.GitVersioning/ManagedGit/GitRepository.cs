@@ -377,27 +377,29 @@ public class GitRepository : IDisposable
         }
 
         // Match in packed-refs file.
-        foreach (var line in this.EnumeratePackedRefsEntries())
+        foreach ((string line, string? _) in this.EnumeratePackedRefsWithPeelLines())
         {
-            string refName = line.Substring(41);
+            var refName = line.Substring(41);
+            GitObjectId GetObjId() => GitObjectId.Parse(line.AsSpan().Slice(0, 40));
+
             if (string.Equals(refName, objectish, StringComparison.Ordinal))
             {
-                return GitObjectId.Parse(line.Substring(0, 40));
+                return GetObjId();
             }
             else if (!objectish.StartsWith("refs/", StringComparison.Ordinal))
             {
                 // Not a canonical ref, so try heads and tags
                 if (string.Equals(refName, "refs/heads/" + objectish, StringComparison.Ordinal))
                 {
-                    return GitObjectId.Parse(line.Substring(0, 40));
+                    return GetObjId();
                 }
                 else if (string.Equals(refName, "refs/tags/" + objectish, StringComparison.Ordinal))
                 {
-                    return GitObjectId.Parse(line.Substring(0, 40));
+                    return GetObjId();
                 }
                 else if (string.Equals(refName, "refs/remotes/" + objectish, StringComparison.Ordinal))
                 {
-                    return GitObjectId.Parse(line.Substring(0, 40));
+                    return GetObjId();
                 }
             }
         }
@@ -644,52 +646,49 @@ public class GitRepository : IDisposable
     /// <returns>A list of canonical names of tags.</returns>
     public List<string> LookupTags(GitObjectId objectId)
     {
-        // Both tag files and packed-refs might either contain lightweight or annotated tags.
-        // Thus we first collect candidates from both sources and then check which of them matches.
-        // If we have an annotated tag match we assume the tag name from the GitPack, otherwise
-        // we use the LightweightTagName infered from where we found the tag.
-        var candidates = new List<(GitObjectId PointsAt, string LightweightTagName)>();
+        var tags = new List<string>();
 
+        void HandleCandidate(GitObjectId pointsAt, string tagName)
+        {
+            if (objectId.Equals(pointsAt))
+            {
+                tags.Add(tagName);
+            }
+            else if (this.TryGetObjectBySha(pointsAt, "tag", out Stream? tagContent))
+            {
+                GitAnnotatedTag tag = GitAnnotatedTagReader.Read(tagContent, pointsAt);
+                if ("commit".Equals(tag.Type, StringComparison.Ordinal) && objectId.Equals(tag.Object))
+                {
+                    tags.Add($"refs/tags/{tag.Tag}");
+                }
+            }
+        }
+
+        // Both tag files and packed-refs might either contain lightweight or annotated tags.
         // tag files
         var tagDir = Path.Combine(this.CommonDirectory, "refs", "tags");
         foreach (var tagFile in Directory.EnumerateFiles(tagDir, "*", SearchOption.AllDirectories))
         {
-            var tagObjId = GitObjectId.Parse(File.ReadAllText(tagFile).TrimEnd());
+            var tagObjId = GitObjectId.ParseHex(File.ReadAllBytes(tagFile).AsSpan().Slice(0, 40));
 
             // \ is not legal in git tag names
             var tagName = tagFile.Substring(tagDir.Length + 1).Replace('\\', '/');
-            var lightweightTagName = $"refs/tags/{tagName}";
+            var canonical = $"refs/tags/{tagName}";
 
-            candidates.Add((tagObjId, lightweightTagName));
+            HandleCandidate(tagObjId, canonical);
         }
 
         // packed-refs file
-        foreach (var line in this.EnumeratePackedRefsEntries())
+        foreach ((string line, string? peelLine) in this.EnumeratePackedRefsWithPeelLines())
         {
-            var tagObjId = GitObjectId.Parse(line.Substring(0, 40));
             var refName = line.Substring(41);
 
             // If we remove this check we do find local and remote branch heads too.
             if (refName.StartsWith("refs/tags/", StringComparison.Ordinal))
             {
-                candidates.Add((tagObjId, refName));
-            }
-        }
-
-        var tags = new List<string>();
-        foreach ((GitObjectId tagObjId, string tagNameCandidate) in candidates)
-        {
-            if (objectId.Equals(tagObjId))
-            {
-                tags.Add(tagNameCandidate);
-            }
-            else if (this.TryGetObjectBySha(tagObjId, "tag", out Stream? tagContent))
-            {
-                GitAnnotatedTag tag = GitAnnotatedTagReader.Read(tagContent, tagObjId);
-                if ("commit".Equals(tag.Type, StringComparison.Ordinal) && objectId.Equals(tag.Object))
-                {
-                    tags.Add($"refs/tags/{tag.Tag}");
-                }
+                ReadOnlySpan<char> tagSpan = peelLine is null ? line.AsSpan().Slice(0, 40) : peelLine.AsSpan().Slice(1, 40);
+                var tagObjId = GitObjectId.Parse(tagSpan);
+                HandleCandidate(tagObjId, refName);
             }
         }
 
@@ -817,9 +816,9 @@ public class GitRepository : IDisposable
     }
 
     /// <summary>
-    /// Skips comment lines.
+    /// Enumerate the lines in the packed-refs file. Skips comment lines.
     /// </summary>
-    private IEnumerable<string> EnumeratePackedRefsEntries()
+    private IEnumerable<string> EnumeratePackedRefsRaw()
     {
         string packedRefPath = Path.Combine(this.CommonDirectory, "packed-refs");
         if (File.Exists(packedRefPath))
@@ -835,6 +834,36 @@ public class GitRepository : IDisposable
 
                 yield return line;
             }
+        }
+    }
+
+    /// <summary>
+    /// Enumerate the lines in the packed-refs file. If a line has a corresponding peel
+    /// line, they are returned together.
+    /// </summary>
+    private IEnumerable<(string Record, string? PeelLine)> EnumeratePackedRefsWithPeelLines()
+    {
+        string? lastLine = null;
+        foreach (var line in this.EnumeratePackedRefsRaw())
+        {
+            if (line[0] == '^')
+            {
+                if (lastLine is null)
+                {
+                    throw new GitException("packed-refs format is broken. Found a peel line without a preceeding record it belongs to.");
+                }
+
+                yield return (lastLine, line);
+            }
+            else
+            {
+                if (lastLine is not null)
+                {
+                    yield return (lastLine, null);
+                }
+            }
+
+            lastLine = line;
         }
     }
 }
