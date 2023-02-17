@@ -15,6 +15,11 @@ namespace Nerdbank.GitVersioning.Managed;
 [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
 public class ManagedGitContext : GitContext
 {
+    /// <summary>
+    /// Caching field behind <see cref="HeadTags" /> property.
+    /// </summary>
+    private IReadOnlyCollection<string>? headTags;
+
     internal ManagedGitContext(string workingDirectory, string dotGitPath, string? committish = null)
         : base(workingDirectory, dotGitPath)
     {
@@ -56,11 +61,7 @@ public class ManagedGitContext : GitContext
     /// <inheritdoc />
     public override IReadOnlyCollection<string>? HeadTags
     {
-        get
-        {
-            GitObjectId? head = this.Repository.Lookup("HEAD");
-            return head.HasValue ? this.Repository.LookupTags(head.Value) : null;
-        }
+        get => this.headTags ??= this.Repository.Lookup("HEAD") is GitObjectId head ? this.Repository.LookupTags(head) : null;
     }
 
     private string DebuggerDisplay => $"\"{this.WorkingTreePath}\" (managed)";
