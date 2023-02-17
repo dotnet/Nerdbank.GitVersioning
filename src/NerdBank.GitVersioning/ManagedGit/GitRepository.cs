@@ -648,13 +648,13 @@ public class GitRepository : IDisposable
     {
         var tags = new List<string>();
 
-        void HandleCandidate(GitObjectId pointsAt, string tagName)
+        void HandleCandidate(GitObjectId pointsAt, string tagName, bool isPeeled)
         {
             if (objectId.Equals(pointsAt))
             {
                 tags.Add(tagName);
             }
-            else if (this.TryGetObjectBySha(pointsAt, "tag", out Stream? tagContent))
+            else if (!isPeeled && this.TryGetObjectBySha(pointsAt, "tag", out Stream? tagContent))
             {
                 GitAnnotatedTag tag = GitAnnotatedTagReader.Read(tagContent, pointsAt);
                 if ("commit".Equals(tag.Type, StringComparison.Ordinal) && objectId.Equals(tag.Object))
@@ -675,7 +675,7 @@ public class GitRepository : IDisposable
             var tagName = tagFile.Substring(tagDir.Length + 1).Replace('\\', '/');
             var canonical = $"refs/tags/{tagName}";
 
-            HandleCandidate(tagObjId, canonical);
+            HandleCandidate(tagObjId, canonical, false);
         }
 
         // packed-refs file
@@ -688,7 +688,7 @@ public class GitRepository : IDisposable
             {
                 ReadOnlySpan<char> tagSpan = peelLine is null ? line.AsSpan().Slice(0, 40) : peelLine.AsSpan().Slice(1, 40);
                 var tagObjId = GitObjectId.Parse(tagSpan);
-                HandleCandidate(tagObjId, refName);
+                HandleCandidate(tagObjId, refName, peelLine is not null);
             }
         }
 
