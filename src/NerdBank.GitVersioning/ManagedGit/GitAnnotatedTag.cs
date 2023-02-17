@@ -32,38 +32,18 @@ public struct GitAnnotatedTag : IEquatable<GitAnnotatedTag>
     /// </summary>
     public string Type { get; set; }
 
-    public static bool operator ==(GitAnnotatedTag left, GitAnnotatedTag right)
-    {
-        return Equals(left, right);
-    }
+    public static bool operator ==(GitAnnotatedTag left, GitAnnotatedTag right) => left.Equals(right);
 
-    public static bool operator !=(GitAnnotatedTag left, GitAnnotatedTag right)
-    {
-        return !Equals(left, right);
-    }
+    public static bool operator !=(GitAnnotatedTag left, GitAnnotatedTag right) => !(left == right);
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj)
-    {
-        if (obj is GitAnnotatedTag tag)
-        {
-            return this.Equals(tag);
-        }
-
-        return false;
-    }
+    public override bool Equals(object? obj) => obj is GitAnnotatedTag tag ? this.Equals(tag) : false;
 
     /// <inheritdoc/>
-    public bool Equals(GitAnnotatedTag other)
-    {
-        return this.Sha.Equals(other.Sha);
-    }
+    public bool Equals(GitAnnotatedTag other) => this.Sha.Equals(other.Sha);
 
     /// <inheritdoc/>
-    public override int GetHashCode()
-    {
-        return this.Sha.GetHashCode();
-    }
+    public override int GetHashCode() => this.Sha.GetHashCode();
 
     /// <inheritdoc/>
     public override string ToString()

@@ -7,6 +7,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Xml.Linq;
 using LibGit2Sharp;
+using Validation;
 
 namespace Nerdbank.GitVersioning.ManagedGit;
 
@@ -35,9 +36,9 @@ public static class GitAnnotatedTagReader
     /// </returns>
     public static GitAnnotatedTag Read(Stream stream, GitObjectId sha)
     {
-        _ = stream ?? throw new ArgumentNullException(nameof(stream));
+        Requires.NotNull(stream, nameof(stream));
 
-        byte[] buffer = ArrayPool<byte>.Shared.Rent((int)stream.Length);
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(checked((int)stream.Length));
 
         try
         {
@@ -69,16 +70,14 @@ public static class GitAnnotatedTagReader
         ReadOnlySpan<byte> buffer = tag;
 
         GitObjectId obj = ReadObject(buffer.Slice(0, ObjectLineLength));
-
         buffer = buffer.Slice(ObjectLineLength);
 
         (string type, int typeLen) = ReadType(buffer);
-
         buffer = buffer.Slice(typeLen);
 
-        (string tagName, int _) = ReadTag(buffer);
+        (string tagName, _) = ReadTag(buffer);
 
-        return new GitAnnotatedTag()
+        return new GitAnnotatedTag
         {
             Sha = sha,
             Object = obj,
