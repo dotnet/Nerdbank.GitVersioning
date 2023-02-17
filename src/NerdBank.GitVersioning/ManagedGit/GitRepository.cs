@@ -854,6 +854,7 @@ public class GitRepository : IDisposable
                 }
 
                 yield return (lastLine, line);
+                lastLine = null;
             }
             else
             {
@@ -861,9 +862,14 @@ public class GitRepository : IDisposable
                 {
                     yield return (lastLine, null);
                 }
-            }
 
-            lastLine = line;
+                lastLine = line;
+            }
+        }
+
+        if (lastLine is not null)
+        {
+            yield return (lastLine, null);
         }
     }
 }
