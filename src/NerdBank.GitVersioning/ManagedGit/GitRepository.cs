@@ -815,6 +815,16 @@ public class GitRepository : IDisposable
         return packs.AsMemory(0, addCount);
     }
 
+    private IEnumerable<string> EnumerateLines(string filePath)
+    {
+        using StreamReader sr = File.OpenText(filePath);
+        string? line;
+        while ((line = sr.ReadLine()) is not null)
+        {
+            yield return line;
+        }
+    }
+
     /// <summary>
     /// Enumerate the lines in the packed-refs file. Skips comment lines.
     /// </summary>
@@ -827,39 +837,45 @@ public class GitRepository : IDisposable
             return Enumerable.Empty<string>();
         }
 
-        using StreamReader refReader = File.OpenText(packedRefPath);
-        string? line = refReader.ReadLine();
-        if (line is null)
+        // We use the rather simple EnumerateLines iterator here because this way
+        // the disposable StreamReader can survive when this method already returned and
+        // Enumerate() runs.
+        IEnumerator<string> lines = this.EnumerateLines(packedRefPath).GetEnumerator();
+        if (!lines.MoveNext())
         {
             return Enumerable.Empty<string>();
         }
 
         // see https://github.com/git/git/blob/d9d677b2d8cc5f70499db04e633ba7a400f64cbf/refs/packed-backend.c#L618
         const string fileHeaderPrefix = "# pack-refs with:";
-        if (line.StartsWith(fileHeaderPrefix))
+        string firstLine = lines.Current;
+        if (firstLine.StartsWith(fileHeaderPrefix))
         {
             // could contain "peeled" or "fully-peeled" or (typically) both.
             // The meaning of any of these is equivalent for our use case.
 #if NETSTANDARD2_0
-            tagsPeeled = line.IndexOf("peeled", StringComparison.Ordinal) >= 0;
+            tagsPeeled = firstLine.IndexOf("peeled", StringComparison.Ordinal) >= 0;
 #else
-            tagsPeeled = line.Contains("peeled", StringComparison.Ordinal);
+            tagsPeeled = firstLine.Contains("peeled", StringComparison.Ordinal);
 #endif
-            line = refReader.ReadLine();
         }
 
         IEnumerable<string> Enumerate()
         {
-            while (line is not null)
+            do
             {
+                // We process the first line here again and continue because it starts with #.
+                // We could add a MoveNext() above if the header prefix was found, but we'd need
+                // to handle the case that it returned false then.
+                var line = lines.Current;
                 if (line.StartsWith("#", StringComparison.Ordinal))
                 {
                     continue;
                 }
 
                 yield return line;
-                line = refReader.ReadLine();
             }
+            while (lines.MoveNext());
         }
 
         return Enumerate();
