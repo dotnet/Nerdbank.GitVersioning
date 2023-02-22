@@ -377,7 +377,7 @@ public class GitRepository : IDisposable
         }
 
         // Match in packed-refs file.
-        foreach ((string line, string? _) in this.EnumeratePackedRefsWithPeelLines())
+        foreach ((string line, string? _) in this.EnumeratePackedRefsWithPeelLines(out var _))
         {
             var refName = line.Substring(41);
             GitObjectId GetObjId() => GitObjectId.Parse(line.AsSpan().Slice(0, 40));
@@ -679,7 +679,7 @@ public class GitRepository : IDisposable
         }
 
         // packed-refs file
-        foreach ((string line, string? peelLine) in this.EnumeratePackedRefsWithPeelLines())
+        foreach ((string line, string? peelLine) in this.EnumeratePackedRefsWithPeelLines(out var tagsPeeled))
         {
             var refName = line.Substring(41);
 
@@ -688,7 +688,7 @@ public class GitRepository : IDisposable
             {
                 ReadOnlySpan<char> tagSpan = peelLine is null ? line.AsSpan().Slice(0, 40) : peelLine.AsSpan().Slice(1, 40);
                 var tagObjId = GitObjectId.Parse(tagSpan);
-                HandleCandidate(tagObjId, refName, peelLine is not null);
+                HandleCandidate(tagObjId, refName, tagsPeeled);
             }
         }
 
@@ -818,14 +818,39 @@ public class GitRepository : IDisposable
     /// <summary>
     /// Enumerate the lines in the packed-refs file. Skips comment lines.
     /// </summary>
-    private IEnumerable<string> EnumeratePackedRefsRaw()
+    private IEnumerable<string> EnumeratePackedRefsRaw(out bool tagsPeeled)
     {
+        tagsPeeled = false;
         string packedRefPath = Path.Combine(this.CommonDirectory, "packed-refs");
-        if (File.Exists(packedRefPath))
+        if (!File.Exists(packedRefPath))
         {
-            using StreamReader refReader = File.OpenText(packedRefPath);
-            string? line;
-            while ((line = refReader.ReadLine()) is not null)
+            return Enumerable.Empty<string>();
+        }
+
+        using StreamReader refReader = File.OpenText(packedRefPath);
+        string? line = refReader.ReadLine();
+        if (line is null)
+        {
+            return Enumerable.Empty<string>();
+        }
+
+        // see https://github.com/git/git/blob/d9d677b2d8cc5f70499db04e633ba7a400f64cbf/refs/packed-backend.c#L618
+        const string fileHeaderPrefix = "# pack-refs with:";
+        if (line.StartsWith(fileHeaderPrefix))
+        {
+            // could contain "peeled" or "fully-peeled" or (typically) both.
+            // The meaning of any of these is equivalent for our use case.
+#if NETSTANDARD2_0
+            tagsPeeled = line.IndexOf("peeled", StringComparison.Ordinal) >= 0;
+#else
+            tagsPeeled = line.Contains("peeled", StringComparison.Ordinal);
+#endif
+            line = refReader.ReadLine();
+        }
+
+        IEnumerable<string> Enumerate()
+        {
+            while (line is not null)
             {
                 if (line.StartsWith("#", StringComparison.Ordinal))
                 {
@@ -833,43 +858,52 @@ public class GitRepository : IDisposable
                 }
 
                 yield return line;
+                line = refReader.ReadLine();
             }
         }
+
+        return Enumerate();
     }
 
     /// <summary>
     /// Enumerate the lines in the packed-refs file. If a line has a corresponding peel
     /// line, they are returned together.
     /// </summary>
-    private IEnumerable<(string Record, string? PeelLine)> EnumeratePackedRefsWithPeelLines()
+    private IEnumerable<(string Record, string? PeelLine)> EnumeratePackedRefsWithPeelLines(out bool tagsPeeled)
     {
-        string? recordLine = null;
-        foreach (var line in this.EnumeratePackedRefsRaw())
+        IEnumerable<string> rawEnum = this.EnumeratePackedRefsRaw(out tagsPeeled);
+        return Enumerate();
+
+        IEnumerable<(string Record, string? PeelLine)> Enumerate()
         {
-            if (line[0] == '^')
+            string? recordLine = null;
+            foreach (var line in rawEnum)
             {
-                if (recordLine is null)
+                if (line[0] == '^')
                 {
-                    throw new GitException("packed-refs format is broken. Found a peel line without a preceeding record it belongs to.");
-                }
+                    if (recordLine is null)
+                    {
+                        throw new GitException("packed-refs format is broken. Found a peel line without a preceeding record it belongs to.");
+                    }
 
-                yield return (recordLine, line);
-                recordLine = null;
+                    yield return (recordLine, line);
+                    recordLine = null;
+                }
+                else
+                {
+                    if (recordLine is not null)
+                    {
+                        yield return (recordLine, null);
+                    }
+
+                    recordLine = line;
+                }
             }
-            else
+
+            if (recordLine is not null)
             {
-                if (recordLine is not null)
-                {
-                    yield return (recordLine, null);
-                }
-
-                recordLine = line;
+                yield return (recordLine, null);
             }
-        }
-
-        if (recordLine is not null)
-        {
-            yield return (recordLine, null);
         }
     }
 }
