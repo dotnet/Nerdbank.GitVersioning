@@ -101,6 +101,8 @@ stages:
     pool:
       vmImage: $(imageName)
     steps:
+    - checkout: self
+      fetchDepth: 0 # avoid shallow clone so nbgv can do its work.
     - task: UseDotNet@2
       displayName: Install .NET 6.0.403 SDK
       inputs:
