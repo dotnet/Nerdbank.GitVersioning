@@ -3,6 +3,11 @@ parameters:
 
 steps:
 
+- task: NodeTool@0
+  inputs:
+    versionSpec: 16.x
+  displayName: ⚙️ Install Node.js
+
 - task: NuGetAuthenticate@1
   displayName: 🔏 Authenticate NuGet feeds
   inputs:
