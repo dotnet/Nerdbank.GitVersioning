@@ -72,6 +72,10 @@ stages:
         packageType: sdk
         version: 6.0.100
 
+    - task: NodeTool@0
+      inputs:
+        versionSpec: 16.x
+      displayName: ⚙️ Install Node.js
 
     - pwsh: |
         Invoke-WebRequest -Uri "https://dot.net/v1/dotnet-install.ps1" -OutFile dotnet-install.ps1
