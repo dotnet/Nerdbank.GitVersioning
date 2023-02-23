@@ -1,6 +1,8 @@
 ﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+#nullable enable
+
 using System.Buffers.Binary;
 using System.Diagnostics;
 using System.IO.MemoryMappedFiles;
@@ -21,8 +23,8 @@ public unsafe class GitPackIndexMappedReader : GitPackIndexReader
     // The N-th entry of this table records the number of objects in the corresponding pack,
     // the first byte of whose object name is less than or equal to N.
     private readonly int[] fanoutTable = new int[257];
+    private byte* ptr;
 
-    private readonly byte* ptr;
     private bool initialized;
 
     /// <summary>
@@ -43,14 +45,6 @@ public unsafe class GitPackIndexMappedReader : GitPackIndexReader
         this.accessor.SafeMemoryMappedViewHandle.AcquirePointer(ref this.ptr);
     }
 
-    private ReadOnlySpan<byte> Value
-    {
-        get
-        {
-            return new ReadOnlySpan<byte>(this.ptr, (int)this.accessor.Capacity);
-        }
-    }
-
     /// <inheritdoc/>
     public override (long? Offset, GitObjectId? ObjectId) GetOffset(Span<byte> objectName, bool endsWithHalfByte = false)
     {
@@ -69,7 +63,7 @@ public unsafe class GitPackIndexMappedReader : GitPackIndexReader
         int order = 0;
 
         int tableSize = 20 * (packEnd - packStart + 1);
-        ReadOnlySpan<byte> table = this.Value.Slice(4 + 4 + (256 * 4) + (20 * packStart), tableSize);
+        ReadOnlySpan<byte> table = this.GetSpan((ulong)(4 + 4 + (256 * 4) + (20 * packStart)), tableSize);
 
         int originalPackStart = packStart;
 
@@ -117,7 +111,7 @@ public unsafe class GitPackIndexMappedReader : GitPackIndexReader
         // Get the offset value. It's located at:
         // 4 (header) + 4 (version) + 256 * 4 (fanout table) + 20 * objectCount (SHA1 object name table) + 4 * objectCount (CRC32) + 4 * i (offset values)
         int offsetTableStart = 4 + 4 + (256 * 4) + (20 * objectCount) + (4 * objectCount);
-        ReadOnlySpan<byte> offsetBuffer = this.Value.Slice(offsetTableStart + (4 * (i + originalPackStart)), 4);
+        ReadOnlySpan<byte> offsetBuffer = this.GetSpan((ulong)(offsetTableStart + (4 * (i + originalPackStart))), 4);
         uint offset = BinaryPrimitives.ReadUInt32BigEndian(offsetBuffer);
 
         if (offsetBuffer[0] < 128)
@@ -130,7 +124,7 @@ public unsafe class GitPackIndexMappedReader : GitPackIndexReader
             // which follows the table of 4-byte offset entries: "large offsets are encoded as an index into the next table with the msbit set."
             offset = offset & 0x7FFFFFFF;
 
-            offsetBuffer = this.Value.Slice(offsetTableStart + (4 * objectCount) + (8 * (int)offset), 8);
+            offsetBuffer = this.GetSpan((ulong)(offsetTableStart + (4 * objectCount) + (8 * (int)offset)), 8);
             long offset64 = BinaryPrimitives.ReadInt64BigEndian(offsetBuffer);
             return (offset64, GitObjectId.Parse(table.Slice(20 * i, 20)));
         }
@@ -139,22 +133,31 @@ public unsafe class GitPackIndexMappedReader : GitPackIndexReader
     /// <inheritdoc/>
     public override void Dispose()
     {
+        if (this.ptr is not null)
+        {
+            this.accessor.SafeMemoryMappedViewHandle.ReleasePointer();
+            this.ptr = null;
+        }
+
         this.accessor.Dispose();
         this.file.Dispose();
     }
+
+    private ReadOnlySpan<byte> GetSpan(ulong offset, int length) => new ReadOnlySpan<byte>(this.ptr + offset, length);
 
     private void Initialize()
     {
         if (!this.initialized)
         {
-            ReadOnlySpan<byte> value = this.Value;
+            const int fanoutTableLength = 256;
+            ReadOnlySpan<byte> value = this.GetSpan(0, 4 + (4 * fanoutTableLength) + 4);
 
             ReadOnlySpan<byte> header = value.Slice(0, 4);
             int version = BinaryPrimitives.ReadInt32BigEndian(value.Slice(4, 4));
             Debug.Assert(header.SequenceEqual(Header));
             Debug.Assert(version == 2);
 
-            for (int i = 1; i <= 256; i++)
+            for (int i = 1; i <= fanoutTableLength; i++)
             {
                 this.fanoutTable[i] = BinaryPrimitives.ReadInt32BigEndian(value.Slice(4 + (4 * i), 4));
             }
