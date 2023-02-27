@@ -112,7 +112,7 @@
 
   <Target Name="GetNuGetPackageVersion" DependsOnTargets="GetBuildVersion" Returns="$(NuGetPackageVersion)" />
 
-  <Target Name="GenerateAssemblyNBGVVersionInfo" DependsOnTargets="GetBuildVersion" Condition=" '$(GenerateAssemblyVersionInfo)' != 'false' ">
+  <Target Name="GenerateAssemblyNBGVVersionInfo" DependsOnTargets="GetBuildVersion" Condition=" '$(Language)' != '' and '$(GenerateAssemblyVersionInfo)' != 'false' ">
     <PropertyGroup>
       <VersionSourceFile>$([MSBuild]::NormalizePath('$(IntermediateOutputPath)', '$(AssemblyName).Version$(DefaultLanguageSourceExtension)'))</VersionSourceFile>
       <NewVersionSourceFile>$(VersionSourceFile).new</NewVersionSourceFile>
