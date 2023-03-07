@@ -61,7 +61,6 @@ public class VersionOracle
         }
 
         this.BuildingRef = cloudBuild?.BuildingTag ?? cloudBuild?.BuildingBranch ?? context.HeadCanonicalName;
-        this.BuildingTags = context.HeadTags;
 
         try
         {
@@ -106,14 +105,17 @@ public class VersionOracle
 
         if (this.VersionOptions?.PublicReleaseRefSpec?.Count > 0)
         {
-            IEnumerable<string> candidates = this.BuildingTags ?? Enumerable.Empty<string>();
-            if (!string.IsNullOrEmpty(this.BuildingRef))
+            if (this.BuildingRef is not null)
             {
-                candidates = candidates.Append(this.BuildingRef!);
+                this.PublicRelease = this.VersionOptions.PublicReleaseRefSpec.Any(
+                    expr => Regex.IsMatch(this.BuildingRef, expr));
             }
 
-            this.PublicRelease = this.VersionOptions.PublicReleaseRefSpec.Any(
-                expr => candidates.Any(cand => Regex.IsMatch(cand, expr)));
+            if (!this.PublicRelease && this.VersionOptions.PublicReleaseRefSpec.Any(expr => expr.StartsWith("^refs/tags/", StringComparison.Ordinal)) && this.Tags is not null)
+            {
+                this.PublicRelease = this.VersionOptions.PublicReleaseRefSpec.Any(
+                    expr => this.Tags.Any(cand => Regex.IsMatch(cand, expr)));
+            }
         }
     }
 
@@ -277,16 +279,18 @@ public class VersionOracle
     public int VersionHeightOffset => this.VersionOptions?.VersionHeightOffsetOrDefault ?? 0;
 
     /// <summary>
-    /// Gets or sets the ref (branch or tag) being built. Just contains a tag if it is known
-    /// that explicitly this tag is build, e.g. in a cloud build context.
+    /// Gets or sets the ref (branch or tag) being built.
     /// </summary>
+    /// <remarks>
+    /// Just contains a tag if it is known that explicitly this tag is built, e.g. in a cloud build context.
+    /// </remarks>
     public string? BuildingRef { get; protected set; }
 
     /// <summary>
-    /// Gets or sets a collection of the tags that reference HEAD.
+    /// Gets a collection of the tags that reference HEAD.
     /// </summary>
     [Ignore]
-    public IReadOnlyCollection<string>? BuildingTags { get; protected set; }
+    public IReadOnlyCollection<string>? Tags => this.context.HeadTags;
 
     /// <summary>
     /// Gets or sets the version for this project, with up to 4 components.
