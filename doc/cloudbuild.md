@@ -45,7 +45,7 @@ See this [example change](https://github.com/AArnott/Library.Template/commit/5d1
 By specifying certain `cloudBuild` options in your `version.json` file,
 you can activate features for some cloud build systems, as follows:
 
-### Automatically match cloud build numbers to to your git version
+### Automatically match cloud build numbers to your git version
 
 Cloud builds tend to associate some calendar date or monotonically increasing
 build number to each build. These build numbers are not very informative, if at all.

@@ -128,7 +128,7 @@ By default, the `prepare-release` command writes information about created and u
 Alternatively the information can be written to the output as `json`.
 The output format to use can be set using the `--format` command line parameter.
 
-For example, running the follwoing command on `master`
+For example, running the following command on `master`
 
 ```
 nbgv prepare-release --format json
