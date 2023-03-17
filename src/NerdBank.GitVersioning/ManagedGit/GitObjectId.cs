@@ -126,7 +126,10 @@ public unsafe struct GitObjectId : IEquatable<GitObjectId>
     /// </returns>
     public static GitObjectId ParseHex(ReadOnlySpan<byte> value)
     {
-        Debug.Assert(value.Length == 40);
+        if (value.Length != 40)
+        {
+            throw new ArgumentException($"Length should be exactly 40, but was {value.Length}.", nameof(value));
+        }
 
         var objectId = default(GitObjectId);
         Span<byte> bytes = objectId.Value;
