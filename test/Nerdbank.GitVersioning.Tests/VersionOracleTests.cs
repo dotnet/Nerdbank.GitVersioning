@@ -1034,6 +1034,28 @@ public abstract class VersionOracleTests : RepoTestBase
     }
 
     [Fact]
+    public void Tags()
+    {
+        this.WriteVersionFile(new VersionOptions { Version = SemanticVersion.Parse("1.2"), GitCommitIdShortAutoMinimum = 4 });
+        this.InitializeSourceControl();
+        this.AddCommits(1);
+        VersionOracle oracle = new(this.Context);
+
+        // Assert that we don't see any tags.
+        Assert.Empty(oracle.Tags);
+
+        // Create a tag.
+        this.LibGit2Repository.ApplyTag("mytag");
+
+        // Refresh our context before asking again.
+        this.Context = this.CreateGitContext(this.RepoPath);
+        VersionOracle oracle2 = new(this.Context);
+
+        // Assert that we see the tag.
+        Assert.Equal("refs/tags/mytag", Assert.Single(oracle2.Tags));
+    }
+
+    [Fact]
     public void GitCommitIdShort()
     {
         this.WriteVersionFile(new VersionOptions { Version = SemanticVersion.Parse("1.2"), GitCommitIdShortAutoMinimum = 4 });
