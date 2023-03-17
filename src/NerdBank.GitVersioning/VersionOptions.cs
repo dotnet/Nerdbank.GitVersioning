@@ -1442,7 +1442,7 @@ public class VersionOptions : IEquatable<VersionOptions>
     }
 
     /// <summary>
-    /// Encapsulates settings for the "prepare-release" command.
+    /// Encapsulates settings for the "prepare-release" and "tag" commands.
     /// </summary>
     public class ReleaseOptions : IEquatable<ReleaseOptions>
     {
@@ -1452,6 +1452,7 @@ public class VersionOptions : IEquatable<VersionOptions>
         internal static readonly ReleaseOptions DefaultInstance = new ReleaseOptions()
         {
             isFrozen = true,
+            tagName = "v{version}",
             branchName = "v{version}",
             versionIncrement = ReleaseVersionIncrement.Minor,
             firstUnstableTag = "alpha",
@@ -1459,6 +1460,9 @@ public class VersionOptions : IEquatable<VersionOptions>
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private bool isFrozen;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private string? tagName;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private string? branchName;
@@ -1482,10 +1486,27 @@ public class VersionOptions : IEquatable<VersionOptions>
         /// <param name="copyFrom">The existing instance to copy from.</param>
         public ReleaseOptions(ReleaseOptions copyFrom)
         {
+            this.tagName = copyFrom.tagName;
             this.branchName = copyFrom.branchName;
             this.versionIncrement = copyFrom.versionIncrement;
             this.firstUnstableTag = copyFrom.firstUnstableTag;
         }
+
+        /// <summary>
+        /// Gets or sets the tag name template for tagging.
+        /// </summary>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public string? TagName
+        {
+            get => this.tagName;
+            set => this.SetIfNotReadOnly(ref this.tagName, value);
+        }
+
+        /// <summary>
+        /// Gets the tag name template for tagging.
+        /// </summary>
+        [JsonIgnore]
+        public string TagNameOrDefault => this.TagName ?? DefaultInstance.TagName!;
 
         /// <summary>
         /// Gets or sets the branch name template for release branches.
@@ -1498,7 +1519,7 @@ public class VersionOptions : IEquatable<VersionOptions>
         }
 
         /// <summary>
-        /// Gets the set branch name template for release branches.
+        /// Gets the branch name template for release branches.
         /// </summary>
         [JsonIgnore]
         public string BranchNameOrDefault => this.BranchName ?? DefaultInstance.BranchName!;
@@ -1593,7 +1614,8 @@ public class VersionOptions : IEquatable<VersionOptions>
                     return false;
                 }
 
-                return StringComparer.Ordinal.Equals(x.BranchNameOrDefault, y.BranchNameOrDefault) &&
+                return StringComparer.Ordinal.Equals(x.TagNameOrDefault, y.TagNameOrDefault) &&
+                       StringComparer.Ordinal.Equals(x.BranchNameOrDefault, y.BranchNameOrDefault) &&
                        x.VersionIncrementOrDefault == y.VersionIncrementOrDefault &&
                        StringComparer.Ordinal.Equals(x.FirstUnstableTagOrDefault, y.FirstUnstableTagOrDefault);
             }
@@ -1608,7 +1630,8 @@ public class VersionOptions : IEquatable<VersionOptions>
 
                 unchecked
                 {
-                    int hash = StringComparer.Ordinal.GetHashCode(obj.BranchNameOrDefault) * 397;
+                    int hash = StringComparer.Ordinal.GetHashCode(obj.TagNameOrDefault) * 397;
+                    hash ^= StringComparer.Ordinal.GetHashCode(obj.BranchNameOrDefault);
                     hash ^= (int)obj.VersionIncrementOrDefault;
                     hash ^= StringComparer.Ordinal.GetHashCode(obj.FirstUnstableTagOrDefault);
                     return hash;

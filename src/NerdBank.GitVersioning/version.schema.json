@@ -119,7 +119,7 @@
         },
         "publicReleaseRefSpec": {
           "type": "array",
-          "description": "An array of regular expressions that may match a ref (branch or tag) that should be built with PublicRelease=true as the default value. The ref matched against is in its canonical form (e.g. refs/heads/master)",
+          "description": "An array of regular expressions that may match a ref (branch or tag) that should be built with PublicRelease=true as the default value. The ref matched against is in its canonical form (e.g. refs/heads/master).",
           "items": {
             "type": "string",
             "format": "regex"
@@ -128,12 +128,12 @@
         },
         "cloudBuild": {
           "type": "object",
-          "description": "Options that are applicable specifically to cloud builds (e.g. VSTS, AppVeyor, TeamCity)",
+          "description": "Options that are applicable specifically to cloud builds (e.g. VSTS, AppVeyor, TeamCity).",
           "properties": {
             "setAllVariables": {
               "type": "boolean",
               "default": false,
-              "description": "Elevates all build properties to cloud build variables prefaced with \"NBGV_\""
+              "description": "Elevates all build properties to cloud build variables prefaced with \"NBGV_\"."
             },
             "setVersionVariables": {
               "type": "boolean",
@@ -172,13 +172,19 @@
           }
         },
         "release": {
-          "description": "Settings for the prepare-release command",
+          "description": "Settings for the prepare-release and tag commands.",
           "type": "object",
           "properties": {
-            "branchName": {
-              "description": "Defines the format of release branch names. Format must include a placeholder '{version}' for the version",
+            "tagName": {
+              "description": "Defines the format of tag names. Format must include a placeholder '{version}' for the version.",
               "type": "string",
-              "pattern": ".*\\{version\\}.*",
+              "pattern": "\\{version\\}",
+              "default": "v{version}"
+            },
+            "branchName": {
+              "description": "Defines the format of release branch names. Format must include a placeholder '{version}' for the version.",
+              "type": "string",
+              "pattern": "\\{version\\}",
               "default": "v{version}"
             },
             "versionIncrement": {
@@ -188,7 +194,7 @@
               "default": "minor"
             },
             "firstUnstableTag": {
-              "description": "Specifies the first/default prerelease tag for new versions",
+              "description": "Specifies the first/default prerelease tag for new versions.",
               "type": "string",
               "default": "alpha"
             }

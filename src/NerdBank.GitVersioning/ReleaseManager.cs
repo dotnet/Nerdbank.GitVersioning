@@ -324,9 +324,12 @@ public class ReleaseManager
         RepositoryStatus status = libgit2context.Repository.RetrieveStatus();
         if (status.IsDirty)
         {
-            var changedFiles = status.OfType<StatusEntry>().ToList();
+            // This filter copies the internal logic used by LibGit2 behind RepositoryStatus.IsDirty to tell if
+            // a repo is dirty or not
+            // Could be simplified if https://github.com/libgit2/libgit2sharp/pull/2004 is ever merged
+            var changedFiles = status.Where(file => file.State != FileStatus.Ignored && file.State != FileStatus.Unaltered).ToList();
             string changesFilesFormatted = string.Join(Environment.NewLine, changedFiles.Select(t => $"- {t.FilePath} changed with {nameof(FileStatus)} {t.State}"));
-            this.stderr.WriteLine($"Uncommitted changes ({changedFiles.Count}) in directory '{projectDirectory}':");
+            this.stderr.WriteLine($"No uncommitted changes are allowed, but {changedFiles.Count} are present in directory '{projectDirectory}':");
             this.stderr.WriteLine(changesFilesFormatted);
             throw new ReleasePreparationException(ReleasePreparationError.UncommittedChanges);
         }

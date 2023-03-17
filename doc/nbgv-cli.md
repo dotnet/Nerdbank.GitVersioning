@@ -22,8 +22,9 @@ It will also add/modify your `Directory.Build.props` file in the root of your re
 If scripting for running in a CI build where global impact from installing a tool is undesirable, you can localize the tool installation:
 
 ```ps1
-dotnet tool install --tool-path . nbgv
+dotnet tool install --tool-path my/path nbgv
 ```
+> Ensure your custom path is outside of your git repository, as the `nbgv` tool doesn't support uncommited changes
 
 At this point you can launch the tool using `./nbgv` in your build script.
 
@@ -41,7 +42,7 @@ The `prepare-release` command automates the task of branching off the main devel
 The `prepare-release` command supports this working model by taking care of
 creating the release branch and updating `version.json` on both branches.
 
-To prepare a release, run:
+To prepare a release, first ensure there is no uncommited changes in your repository then run:
 
 ```ps1
 nbgv prepare-release
@@ -127,7 +128,7 @@ By default, the `prepare-release` command writes information about created and u
 Alternatively the information can be written to the output as `json`.
 The output format to use can be set using the `--format` command line parameter.
 
-For example, running the follwoing command on `master`
+For example, running the following command on `master`
 
 ```
 nbgv prepare-release --format json
@@ -163,6 +164,44 @@ For each branch, the following properties are provided:
 
 **Note:** When the current branch is already the release branch for the current version, no new branch will be created.
 In that case, the `NewBranch` property will be `null`.
+
+## Creating a version tag
+
+The `tag` command automates the task of tagging a commit with a version.
+
+To create a version tag, run:
+
+```ps1
+nbgv tag
+```
+
+This will:
+
+1. Read version.json to ascertain the version under development, and the naming convention of tag names.
+1. Create a new tag for that version.
+
+You can optionally include a version or commit id to create a new tag for an older version/commit, e.g.:
+
+```ps1
+nbgv tag 1.0.0
+```
+
+### Customizing the behaviour of `tag`
+
+The behaviour of the `tag` command can be customized in `version.json`:
+
+```json
+{
+  "version": "1.0",
+  "release": {
+    "tagName" : "v{version}"
+  }
+}
+```
+
+| Property | Default value | Description                                                                                                                                         |
+|----------|---------------|-------------------------------------------------------------------------------------------------|
+| tagName  | `v{version}`  | Defines the format of tag names. Format must include a placeholder '{version}' for the version. |
 
 ## Learn more
 

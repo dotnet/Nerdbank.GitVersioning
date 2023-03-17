@@ -39,7 +39,11 @@ internal class VisualStudioTeamServices : ICloudBuild
     public IReadOnlyDictionary<string, string> SetCloudBuildVariable(string name, string value, TextWriter stdout, TextWriter stderr)
     {
         Utilities.FileOperationWithRetry(() =>
-            (stdout ?? Console.Out).WriteLine($"##vso[task.setvariable variable={name};]{value}"));
+        {
+            TextWriter output = stdout ?? Console.Out;
+            output.WriteLine($"##vso[task.setvariable variable={name};]{value}");
+            output.WriteLine($"##vso[task.setvariable variable={name};isOutput=true;]{value}");
+        });
         return GetDictionaryFor(name, value);
     }
 
