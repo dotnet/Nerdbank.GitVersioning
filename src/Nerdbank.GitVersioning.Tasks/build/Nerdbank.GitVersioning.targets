@@ -126,6 +126,7 @@
                   AssemblyInformationalVersion="$(AssemblyInformationalVersion)"
                   AssemblyName="$(AssemblyName)"
                   RootNamespace="$(RootNamespace)"
+                  ThisAssemblyNamespace="$(NBGV_ThisAssemblyNamespace)"
                   AssemblyOriginatorKeyFile="$(AssemblyOriginatorKeyFile)"
                   AssemblyTitle="$(AssemblyTitle)"
                   AssemblyProduct="$(AssemblyProduct)"
