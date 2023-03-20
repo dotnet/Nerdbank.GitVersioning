@@ -23,8 +23,10 @@ steps:
   displayName: Build nerdbank-gitversioning NPM package
   workingDirectory: src/nerdbank-gitversioning.npm
 
-- publish: $(System.DefaultWorkingDirectory)
-  artifact: drop
+- pwsh: |
+    md $(Build.ArtifactStagingDirectory)\drop
+    7z a $(Build.ArtifactStagingDirectory)\drop\nbgv.7z * -r
+    Write-Host "##vso[artifact.upload containerfolder=drop;artifactname=drop;]$(Build.ArtifactStagingDirectory)\drop"
   condition: and(failed(), eq(variables['Agent.OS'], 'Windows_NT'))
 
 - powershell: azure-pipelines/dotnet-test-cloud.ps1 -Configuration $(BuildConfiguration) -Agent $(Agent.JobName) -PublishResults
