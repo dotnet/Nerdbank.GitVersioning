@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>net6.0;net462</TargetFrameworks>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -39,7 +39,7 @@
     <PackageReference Include="Microsoft.Build" Version="$(MSBuildPackageVersion)" ExcludeAssets="runtime" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.3.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.3.2" />
-    <PackageReference Include="Moq" Version="4.18.2" />
+    <PackageReference Include="Moq" Version="4.18.4" />
     <PackageReference Include="Nerdbank.GitVersioning.LKG" Version="3.4.173-alpha" />
     <PackageReference Include="Newtonsoft.Json.Schema" Version="3.0.14" />
     <PackageReference Include="System.Memory" Version="4.5.5" />
