@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using LibGit2Sharp;
 using Validation;
+using Windows.Win32;
 using Version = System.Version;
 
 #nullable enable
@@ -40,6 +41,10 @@ public static class LibGit2GitExtensions
         Similarity = SimilarityOptions.None,
         ContextLines = 0,
     };
+
+#if !NETCOREAPP
+    private static FreeLibrarySafeHandle? nativeLibrary;
+#endif
 
     /// <summary>
     /// Gets the number of commits in the longest single path between
@@ -111,24 +116,51 @@ public static class LibGit2GitExtensions
     /// <summary>
     /// Finds the directory that contains the appropriate native libgit2 module.
     /// </summary>
-    /// <param name="basePath">The path to the directory that contains the lib folder.</param>
+    /// <param name="basePath">The path to the directory that contains the runtimes folder.</param>
     /// <returns>Receives the directory that native binaries are expected.</returns>
     public static string? FindLibGit2NativeBinaries(string basePath)
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        string arch = RuntimeInformation.ProcessArchitecture.ToString().ToLowerInvariant();
+
+        // TODO: learn how to detect when to use "linux-musl".
+        string? os =
+            RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "win" :
+            RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? "linux" :
+            RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "osx" :
+            null;
+
+        if (os is null)
         {
-            return Path.Combine(basePath, "lib", "win32", IntPtr.Size == 4 ? "x86" : "x64");
-        }
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-        {
-            return Path.Combine(basePath, "lib", "linux", IntPtr.Size == 4 ? "x86" : "x86_64");
-        }
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-        {
-            return Path.Combine(basePath, "lib", "osx", RuntimeInformation.OSArchitecture == Architecture.Arm64 ? "arm_64" : "x86_64");
+            return null;
         }
 
-        return null;
+        string candidatePath = Path.Combine(basePath, "runtimes", $"{os}-{arch}", "native");
+        return Directory.Exists(candidatePath) ? candidatePath : null;
+    }
+
+    /// <summary>
+    /// Loads the git2 native library from the expected path so that it's available later when needed.
+    /// </summary>
+    /// <param name="basePath"><inheritdoc cref="FindLibGit2NativeBinaries(string)" path="/param" /></param>
+    /// <remarks>
+    /// This method should only be called on .NET Framework, and only loads the module when on Windows.
+    /// </remarks>
+    public static void LoadNativeBinary(string basePath)
+    {
+#if NETCOREAPP
+        throw new PlatformNotSupportedException();
+#else
+        if (nativeLibrary is null && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            if (FindLibGit2NativeBinaries(basePath) is string directoryPath)
+            {
+                if (Directory.EnumerateFiles(directoryPath).FirstOrDefault() is string filePath)
+                {
+                    nativeLibrary = PInvoke.LoadLibrary(filePath);
+                }
+            }
+        }
+#endif
     }
 
     /// <summary>
