@@ -8,8 +8,8 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using Microsoft.Win32.SafeHandles;
 using Windows.Win32;
+using Windows.Win32.Foundation;
 using Windows.Win32.Storage.FileSystem;
-using Windows.Win32.System.SystemServices;
 
 namespace Nerdbank.GitVersioning.ManagedGit;
 
@@ -31,7 +31,7 @@ internal static class FileHelpers
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 #endif
         {
-            SafeFileHandle? handle = PInvoke.CreateFile(path, FILE_ACCESS_FLAGS.FILE_GENERIC_READ, FILE_SHARE_MODE.FILE_SHARE_READ, lpSecurityAttributes: null, FILE_CREATION_DISPOSITION.OPEN_EXISTING, FILE_FLAGS_AND_ATTRIBUTES.FILE_ATTRIBUTE_NORMAL, null);
+            SafeFileHandle? handle = PInvoke.CreateFile(path, (uint)FILE_ACCESS_RIGHTS.FILE_GENERIC_READ, FILE_SHARE_MODE.FILE_SHARE_READ, lpSecurityAttributes: null, FILE_CREATION_DISPOSITION.OPEN_EXISTING, FILE_FLAGS_AND_ATTRIBUTES.FILE_ATTRIBUTE_NORMAL, null);
 
             if (!handle.IsInvalid)
             {
@@ -76,10 +76,10 @@ internal static class FileHelpers
             HANDLE handle;
             fixed (char* pPath = &path[0])
             {
-                handle = PInvoke.CreateFile(pPath, FILE_ACCESS_FLAGS.FILE_GENERIC_READ, FILE_SHARE_MODE.FILE_SHARE_READ, null, FILE_CREATION_DISPOSITION.OPEN_EXISTING, FILE_FLAGS_AND_ATTRIBUTES.FILE_ATTRIBUTE_NORMAL, default);
+                handle = PInvoke.CreateFile(pPath, (uint)FILE_ACCESS_RIGHTS.FILE_GENERIC_READ, FILE_SHARE_MODE.FILE_SHARE_READ, null, FILE_CREATION_DISPOSITION.OPEN_EXISTING, FILE_FLAGS_AND_ATTRIBUTES.FILE_ATTRIBUTE_NORMAL, default);
             }
 
-            if (!handle.Equals(Constants.INVALID_HANDLE_VALUE))
+            if (!handle.Equals(HANDLE.INVALID_HANDLE_VALUE))
             {
                 var fileHandle = new SafeFileHandle(handle, ownsHandle: true);
                 stream = new FileStream(fileHandle, System.IO.FileAccess.Read);
