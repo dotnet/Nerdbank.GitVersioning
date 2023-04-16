@@ -40,6 +40,9 @@
       <GenerateAssemblyVersionInfo Condition=" '$(GenerateAssemblyVersionInfo)' == '' and '$(TargetExt)' != '.dll' and '$(TargetExt)' != '.exe' ">false</GenerateAssemblyVersionInfo>
       <GenerateAssemblyVersionInfo Condition=" '$(GenerateAssemblyVersionInfo)' == '' and '$(NBGV_CacheMode)' == 'VersionGenerationTarget' ">false</GenerateAssemblyVersionInfo>
 
+      <!-- Suppress assembly version info generation for WiX Toolset project. -->
+      <GenerateAssemblyVersionInfo Condition=" '$(GenerateAssemblyVersionInfo)' == '' and '$(Language)' == 'wix' ">false</GenerateAssemblyVersionInfo>
+
       <!-- Workaround the property stomping that msbuild does (see https://github.com/microsoft/msbuild/pull/4922) with manual imports. -->
       <PrepareForBuildDependsOn>
         GenerateNativeNBGVVersionInfo;
@@ -112,7 +115,7 @@
 
   <Target Name="GetNuGetPackageVersion" DependsOnTargets="GetBuildVersion" Returns="$(NuGetPackageVersion)" />
 
-  <Target Name="GenerateAssemblyNBGVVersionInfo" DependsOnTargets="GetBuildVersion" Condition=" '$(GenerateAssemblyVersionInfo)' != 'false' ">
+  <Target Name="GenerateAssemblyNBGVVersionInfo" DependsOnTargets="GetBuildVersion" Condition=" '$(Language)' != '' and '$(GenerateAssemblyVersionInfo)' != 'false' ">
     <PropertyGroup>
       <VersionSourceFile>$([MSBuild]::NormalizePath('$(IntermediateOutputPath)', '$(AssemblyName).Version$(DefaultLanguageSourceExtension)'))</VersionSourceFile>
       <NewVersionSourceFile>$(VersionSourceFile).new</NewVersionSourceFile>
@@ -126,6 +129,7 @@
                   AssemblyInformationalVersion="$(AssemblyInformationalVersion)"
                   AssemblyName="$(AssemblyName)"
                   RootNamespace="$(RootNamespace)"
+                  ThisAssemblyNamespace="$(NBGV_ThisAssemblyNamespace)"
                   AssemblyOriginatorKeyFile="$(AssemblyOriginatorKeyFile)"
                   AssemblyTitle="$(AssemblyTitle)"
                   AssemblyProduct="$(AssemblyProduct)"
