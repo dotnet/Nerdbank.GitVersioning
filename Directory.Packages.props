@@ -19,9 +19,8 @@
     <PackageVersion Include="Microsoft.Build.Utilities.Core" Version="$(MSBuildPackageVersion)" />
     <PackageVersion Include="Microsoft.Build" Version="$(MSBuildPackageVersion)" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.3.1" />
-    <PackageVersion Include="Microsoft.CodeCoverage" Version="17.5.0-release-20230131-04" />
     <PackageVersion Include="Microsoft.DotNet.PlatformAbstractions" Version="3.1.6" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.4.1" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.5.0" />
     <PackageVersion Include="Microsoft.Windows.CsWin32" Version="0.2.206-beta" />
     <PackageVersion Include="Moq" Version="4.18.4" />
     <PackageVersion Include="Nerdbank.GitVersioning.LKG" Version="3.4.173-alpha" />
