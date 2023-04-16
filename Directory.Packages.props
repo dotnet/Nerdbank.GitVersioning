@@ -3,7 +3,7 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
-    <BenchmarkDotNetVersion>0.13.2</BenchmarkDotNetVersion>
+    <BenchmarkDotNetVersion>0.13.5</BenchmarkDotNetVersion>
     <MSBuildPackageVersion>16.9.0</MSBuildPackageVersion>
     <MSBuildPackageVersion Condition="'$(IsTestProject)'=='true'">15.9.20</MSBuildPackageVersion>
   </PropertyGroup>
