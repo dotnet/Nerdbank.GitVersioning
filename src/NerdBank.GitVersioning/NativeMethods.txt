@@ -1,2 +1,4 @@
 ﻿CreateFile
+FILE_ACCESS_RIGHTS
 INVALID_HANDLE_VALUE
+LoadLibrary

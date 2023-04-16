@@ -79,7 +79,8 @@ namespace Nerdbank.GitVersioning.Tool
         {
             string thisAssemblyPath = typeof(Program).GetTypeInfo().Assembly.Location;
 
-            Assembly inContextAssembly = GitLoaderContext.Instance.LoadFromAssemblyPath(thisAssemblyPath);
+            GitLoaderContext loaderContext = new(Path.GetDirectoryName(thisAssemblyPath));
+            Assembly inContextAssembly = loaderContext.LoadFromAssemblyPath(thisAssemblyPath);
             Type innerProgramType = inContextAssembly.GetType(typeof(Program).FullName);
             object innerProgram = Activator.CreateInstance(innerProgramType);
 
