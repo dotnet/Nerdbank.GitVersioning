@@ -31,7 +31,7 @@ resources:
     image: mcr.microsoft.com/dotnet/sdk:latest
 
 variables:
-  TreatWarningsAsErrors: true
+  MSBuildTreatWarningsAsErrors: true
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
   BuildConfiguration: Release
   codecov_token: 92266a45-648d-454e-8fec-beffae2e6553
@@ -103,11 +103,13 @@ stages:
     steps:
     - checkout: self
       fetchDepth: 0 # avoid shallow clone so nbgv can do its work.
+      clean: true
+      submodules: true # keep the warnings quiet about the wiki not being enlisted
     - task: UseDotNet@2
-      displayName: Install .NET 6.0.403 SDK
+      displayName: Install .NET 7.0.203 SDK
       inputs:
         packageType: sdk
-        version: 6.0.403
+        version: 7.0.203
     - script: dotnet --info
       displayName: Show dotnet SDK info
     - bash: |
@@ -121,7 +123,7 @@ stages:
         dotnet build -c Release
       displayName: Build in Release mode
     - script: |
-        dotnet run -c Release -f net6.0 -- --filter *GetVersionBenchmarks* --artifacts $(Build.ArtifactStagingDirectory)/benchmarks/packed/$(imageName)
+        dotnet run -c Release -f net7.0 -- --filter *GetVersionBenchmarks* --artifacts $(Build.ArtifactStagingDirectory)/benchmarks/packed/$(imageName)
       workingDirectory: test/Nerdbank.GitVersioning.Benchmarks
       displayName: Run benchmarks (packed)
     - bash: |
@@ -138,7 +140,7 @@ stages:
         git unpack-objects < .git/objects/pack/*.pack
       displayName: Unpack Git repositories
     - script: |
-        dotnet run -c Release -f net6.0 -- --filter '*GetVersionBenchmarks*' --artifacts $(Build.ArtifactStagingDirectory)/benchmarks/unpacked/$(imageName)
+        dotnet run -c Release -f net7.0 -- --filter '*GetVersionBenchmarks*' --artifacts $(Build.ArtifactStagingDirectory)/benchmarks/unpacked/$(imageName)
       workingDirectory: test/Nerdbank.GitVersioning.Benchmarks
       displayName: Run benchmarks (unpacked)
     - task: PublishBuildArtifacts@1
