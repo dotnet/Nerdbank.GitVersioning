@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
-  <Import Project="Nerdbank.GitVersioning.Common.targets"/>
+  <Import Project="Nerdbank.GitVersioning.Common.targets" Condition=" '$(_NBGV_Common_Targets_Imported)' != 'true' "/>
 
   <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="Nerdbank.GitVersioning.Tasks.GetBuildVersion"/>
   
@@ -18,7 +18,7 @@
       BuildingRef="$(_NBGV_BuildingRef)"
       BuildMetadata="$(BuildMetadata.Replace(',',';'))"
       DefaultPublicRelease="$(PublicRelease)"
-      ProjectDirectory="$(ProjectDirectory)"
+      ProjectDirectory="$(GitVersionBaseDirectory)"
       GitRepoRoot="$(GitRepoRoot)"
       ProjectPathRelativeToGitRepoRoot="$(ProjectPathRelativeToGitRepoRoot)"
       OverrideBuildNumberOffset="$(OverrideBuildNumberOffset)"

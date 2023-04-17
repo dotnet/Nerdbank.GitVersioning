@@ -17,40 +17,41 @@ IMPORTANT: The 3.x release may produce a different version height than prior maj
     <repository type="git" url="https://github.com/dotnet/Nerdbank.GitVersioning.git" commit="$commit$" />
   </metadata>
   <files>
-    <file src="$BaseOutputPath$net461\LibGit2Sharp.dll" target="build\MSBuildFull\LibGit2Sharp.dll" />
-    <file src="$BaseOutputPath$net461\LibGit2Sharp.dll.config" target="build\MSBuildFull\LibGit2Sharp.dll.config" />
-    <file src="$BaseOutputPath$net461\Microsoft.DotNet.PlatformAbstractions.dll" target="build\MSBuildFull\Microsoft.DotNet.PlatformAbstractions.dll" />
-    <file src="$BaseOutputPath$net461\NerdBank.GitVersioning.dll" target="build\MSBuildFull\NerdBank.GitVersioning.dll" />
-    <file src="$BaseOutputPath$net461\Nerdbank.GitVersioning.Tasks.dll" target="build\MSBuildFull\Nerdbank.GitVersioning.Tasks.dll" />
-    <file src="$BaseOutputPath$net461\Newtonsoft.Json.dll" target="build\MSBuildFull\Newtonsoft.Json.dll" />
-    <file src="$BaseOutputPath$net461\System.Text.Json.dll" target="build\MSBuildFull\System.Text.Json.dll" />
-    <file src="$BaseOutputPath$net461\Validation.dll" target="build\MSBuildFull\Validation.dll" />
-    <file src="$BaseOutputPath$net461\System.Runtime.CompilerServices.Unsafe.dll" target="build\MSBuildFull\System.Runtime.CompilerServices.Unsafe.dll" />
-    <file src="$BaseOutputPath$net461\PInvoke.Kernel32.dll" target="build\MSBuildFull\PInvoke.Kernel32.dll" />
+    <file src="$BaseOutputPath$net462\LibGit2Sharp.dll" target="build\MSBuildFull\LibGit2Sharp.dll" />
+    <file src="$BaseOutputPath$net462\LibGit2Sharp.dll.config" target="build\MSBuildFull\LibGit2Sharp.dll.config" />
+    <file src="$BaseOutputPath$net462\Microsoft.DotNet.PlatformAbstractions.dll" target="build\MSBuildFull\Microsoft.DotNet.PlatformAbstractions.dll" />
+    <file src="$BaseOutputPath$net462\Nerdbank.GitVersioning.dll" target="build\MSBuildFull\Nerdbank.GitVersioning.dll" />
+    <file src="$BaseOutputPath$net462\Nerdbank.GitVersioning.Tasks.dll" target="build\MSBuildFull\Nerdbank.GitVersioning.Tasks.dll" />
+    <file src="$BaseOutputPath$net462\Newtonsoft.Json.dll" target="build\MSBuildFull\Newtonsoft.Json.dll" />
+    <file src="$BaseOutputPath$net462\System.Buffers.dll" target="build\MSBuildFull\System.Buffers.dll" />
+    <file src="$BaseOutputPath$net462\System.Memory.dll" target="build\MSBuildFull\System.Memory.dll" />
+    <file src="$BaseOutputPath$net462\System.Numerics.Vectors.dll" target="build\MSBuildFull\System.Numerics.Vectors.dll" />
+    <file src="$BaseOutputPath$net462\System.Runtime.CompilerServices.Unsafe.dll" target="build\MSBuildFull\System.Runtime.CompilerServices.Unsafe.dll" />
+    <file src="$BaseOutputPath$net462\System.Text.Json.dll" target="build\MSBuildFull\System.Text.Json.dll" />
+    <file src="$BaseOutputPath$net462\Validation.dll" target="build\MSBuildFull\Validation.dll" />
     <file src="$LibGit2SharpNativeBinaries$runtimes\**" target="build\runtimes\" />
 
     <!-- Additional copies to work around DllNotFoundException on Mono (https://github.com/dotnet/Nerdbank.GitVersioning/issues/222) -->
-    <file src="$LibGit2SharpNativeBinaries$runtimes\osx\native\libgit2-6777db8.dylib" target="build\MSBuildFull\lib\osx\libgit2-6777db8.dylib" />
-    <file src="$LibGit2SharpNativeBinaries$runtimes\linux-x64\native\libgit2-6777db8.so" target="build\MSBuildFull\lib\linux-x64\libgit2-6777db8.so" />
-
-    <!-- Additional copies to work with our own ps1 scripts (https://github.com/dotnet/Nerdbank.GitVersioning/issues/248) -->
-    <file src="$LibGit2SharpNativeBinaries$runtimes\win-x64\native\git2-6777db8.dll" target="build\MSBuildFull\lib\win32\x64\git2-6777db8.dll" />
-    <file src="$LibGit2SharpNativeBinaries$runtimes\win-x86\native\git2-6777db8.dll" target="build\MSBuildFull\lib\win32\x86\git2-6777db8.dll" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\osx-x64\native\libgit2-b7bad55.dylib" target="build\MSBuildFull\lib\osx-x64\libgit2-b7bad55.dylib" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\osx-arm64\native\libgit2-b7bad55.dylib" target="build\MSBuildFull\lib\osx-arm64\libgit2-b7bad55.dylib" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\linux-x64\native\libgit2-b7bad55.so" target="build\MSBuildFull\lib\linux-x64\libgit2-b7bad55.so" />
 
     <file src="$LibGit2SharpNativeBinaries$libgit2\LibGit2Sharp.dll.config" target="build\MSBuildCore\LibGit2Sharp.dll.config" />
-    <file src="$BaseOutputPath$netcoreapp2.1\LibGit2Sharp.dll" target="build\MSBuildCore\LibGit2Sharp.dll" />
-    <file src="$BaseOutputPath$netcoreapp2.1\Microsoft.DotNet.PlatformAbstractions.dll" target="build\MSBuildCore\Microsoft.DotNet.PlatformAbstractions.dll" />
-    <file src="$BaseOutputPath$netcoreapp2.1\NerdBank.GitVersioning.dll" target="build\MSBuildCore\NerdBank.GitVersioning.dll" />
-    <file src="$BaseOutputPath$netcoreapp2.1\Nerdbank.GitVersioning.Tasks.dll" target="build\MSBuildCore\Nerdbank.GitVersioning.Tasks.dll" />
-    <file src="$BaseOutputPath$netcoreapp2.1\Newtonsoft.Json.dll" target="build\MSBuildCore\Newtonsoft.Json.dll" />
-    <file src="$BaseOutputPath$netcoreapp2.1\System.Text.Json.dll" target="build\MSBuildCore\System.Text.Json.dll" />
-    <file src="$BaseOutputPath$netcoreapp2.1\Validation.dll" target="build\MSBuildCore\Validation.dll" />
-    <file src="$BaseOutputPath$netcoreapp2.1\System.Runtime.CompilerServices.Unsafe.dll" target="build\MSBuildCore\System.Runtime.CompilerServices.Unsafe.dll" />
-    <file src="$BaseOutputPath$netcoreapp2.1\PInvoke.Kernel32.dll" target="build\MSBuildCore\PInvoke.Kernel32.dll" />
+    <file src="$BaseOutputPath$net6.0\LibGit2Sharp.dll" target="build\MSBuildCore\LibGit2Sharp.dll" />
+    <file src="$BaseOutputPath$net6.0\Microsoft.DotNet.PlatformAbstractions.dll" target="build\MSBuildCore\Microsoft.DotNet.PlatformAbstractions.dll" />
+    <file src="$BaseOutputPath$net6.0\Nerdbank.GitVersioning.dll" target="build\MSBuildCore\Nerdbank.GitVersioning.dll" />
+    <file src="$BaseOutputPath$net6.0\Nerdbank.GitVersioning.Tasks.dll" target="build\MSBuildCore\Nerdbank.GitVersioning.Tasks.dll" />
+    <file src="$BaseOutputPath$net6.0\Newtonsoft.Json.dll" target="build\MSBuildCore\Newtonsoft.Json.dll" />
+    <file src="$BaseOutputPath$net6.0\Validation.dll" target="build\MSBuildCore\Validation.dll" />
 
-    <file src="build\Nerdbank.GitVersioning.targets" target="build\Nerdbank.GitVersioning$LKGSuffix$.targets" />
+    <file src="build\InProjectVersionComputation.targets" target="build\InProjectVersionComputation.targets" />
+    <file src="build\MSBuildTargetCaching.targets" target="build\MSBuildTargetCaching.targets" />
     <file src="build\Nerdbank.GitVersioning.Common.targets" target="build\Nerdbank.GitVersioning.Common.targets" />
     <file src="build\Nerdbank.GitVersioning.Inner.targets" target="build\Nerdbank.GitVersioning.Inner.targets" />
+    <file src="build\Nerdbank.GitVersioning.props" target="build\Nerdbank.GitVersioning$LKGSuffix$.props" />
+    <file src="build\Nerdbank.GitVersioning.targets" target="build\Nerdbank.GitVersioning$LKGSuffix$.targets" />
+    <file src="build\PrivateP2PCaching.proj" target="build\PrivateP2PCaching.proj" />
+    <file src="buildCrossTargeting\Nerdbank.GitVersioning.props" target="buildCrossTargeting\Nerdbank.GitVersioning$LKGSuffix$.props" />
     <file src="buildCrossTargeting\Nerdbank.GitVersioning.targets" target="buildCrossTargeting\Nerdbank.GitVersioning$LKGSuffix$.targets" />
     <file src="readme.txt" target="readme.txt" />
   </files>

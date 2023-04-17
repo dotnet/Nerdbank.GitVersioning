@@ -22,12 +22,30 @@ But `actions/checkout@v2` checks out a shallow clone by default, so you'll have 
     fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
 ```
 
+### Azure Pipelines
+
+[Azure Pipelines behavior has changed][AzpDepthChange] for *new* pipelines
+such that build agents now default to creating shallow clones.
+You can defeat this, thereby forcing a full history clone by adding this to the top of your `steps` list:
+
+```yml
+steps:
+- checkout: self
+  fetchDepth: 0
+```
+
+In particular, setting `fetchDepth: 0` will cause Azure Pipelines to *not* do shallow clones.
+
+See this [example change](https://github.com/AArnott/Library.Template/commit/5d14d2cecbb3fd3caa6a421da1525d8480baef8b).
+
+[Read more about this and how to configure shallow cloning when not using YAML files in Microsoft documentation](https://learn.microsoft.com/azure/devops/pipelines/repos/azure-repos-git?view=azure-devops&tabs=yaml#shallow-fetch).
+
 ## Optional features
 
 By specifying certain `cloudBuild` options in your `version.json` file,
 you can activate features for some cloud build systems, as follows:
 
-### Automatically match cloud build numbers to to your git version
+### Automatically match cloud build numbers to your git version
 
 Cloud builds tend to associate some calendar date or monotonically increasing
 build number to each build. These build numbers are not very informative, if at all.
@@ -76,14 +94,14 @@ This means you can use these variables in subsequent steps in your cloud build
 such as publishing artifacts, so that your richer version information can be
 expressed in the publish location or artifact name.
 
-Enable this feature by setting the `cloudBuild.setVersionVariables` field
-in your `version.json` file to `true`, as shown below:
+This feature is enabled by default via the `cloudBuild.setVersionVariables` field
+in your `version.json` file, which defaults as shown below:
 
 ```json
 {
   "version": "1.0",
   "cloudBuild": {
-    "setVersionVariables": true
+    "setVersionVariables": true // the default value
   }
 }
 ```
@@ -106,7 +124,18 @@ Setting both of these fields to `true` means that a few variables will be define
 
 While each individual MSBuild project has its own version computed, the versions across projects are usually the same so long as you have one `version.json` file at the root of your repo. If you choose to enable setting of cloud build variables in that root version.json file, each project that builds will take a turn setting those cloud build variables. This is perhaps more work than is necessary, and when some projects compute versions differently it can lead to inconsistently defined cloud build variables, based on non-deterministic build ordering of your projects.
 
-You can reduce log message noise and control for non-deterministic cloud build variables by *not* setting any of the `cloudBuild` options in your root version.json file. Two options are described below to set the cloud build number and variables just once in your build.
+You can reduce log message noise and control for non-deterministic cloud build variables by disabling all the settings under the `cloudBuild` options in your root version.json file (including disabling default behavior):
+
+```js
+{
+  "version": "1.0",
+  "cloudBuild": {
+    "setVersionVariables": false // override the default value of true
+  }
+}
+```
+
+Two options are described below to set the cloud build number and variables just once in your build.
 
 #### Set the cloud build number as a build step
 
@@ -117,7 +146,7 @@ dotnet tool install --tool-path . nbgv
 .\nbgv cloud
 ```
 
-The above will set just the cloud build number, but switches to the `nbgv cloud` command will cause other build variables to also be set.
+The above will set just the cloud build number, but switches you can add to the `nbgv cloud` command will cause other build variables to also be set.
 
 See a working sample in [a VSTS YAML file](https://github.com/Humanizr/Humanizer/blob/11bd9fd99c151f2e84eb9d4fa082a6c077504c9f/azure-pipelines.yml#L21-L29).
 
@@ -148,9 +177,22 @@ We define a GitHub Action that installs the `nbgv` CLI tool, provides version da
 Check out [nerdbank-gitversioning on the GitHub Actions marketplace](https://github.com/marketplace/actions/nerdbank-gitversioning).
 
 ### TeamCity
+
 TeamCity does not expose the build branch by default as an environment variable. This can be exposed by
 adding an environment variable called BUILD_GIT_BRANCH with the value of `%teamcity.build.vcs.branch.<vcsid>%` where `<vcsid>` is
 the root id described on the TeamCity VCS roots page. Details on this variable can be found on the
 [TeamCity docs](https://confluence.jetbrains.com/display/TCD8/Predefined+Build+Parameters).
 
+### Docker build
+
+When building inside a docker container, special considerations may apply:
+
+1. Make sure the container has access to the entire repo, including the `.git` directory.
+2. Certain environment variables from the CI system may need to be exposed to the container.
+   When a CI system checks out a 'detached head', computing the version relies on environment variables to know which 'branch' was checked out, among other things.
+   You can look up the specific environment variables that are necessary for your particular CI service by looking for their names in the `src/NerdBank.GitVersioning/CloudBuildServices` directory of this repo.
+   For example [these lines](https://github.com/dotnet/Nerdbank.GitVersioning/blob/dd4dff99c5c44634d9041dde7a2ee104db821a10/src/NerdBank.GitVersioning/CloudBuildServices/VisualStudioTeamServices.cs#L24-L26) identify the two environment variables that are required for an Azure Pipelines CI system.
+   When using `docker run` yourself in your build script, you can add `--env BUILD_SOURCEBRANCH --env SYSTEM_TEAMPROJECTID` to your command line to pass-through those environment variables to your container.
+
 [Issue37]: https://github.com/dotnet/Nerdbank.GitVersioning/issues/37
+[AzpDepthChange]: https://github.com/MicrosoftDocs/azure-devops-yaml-schema/issues/32

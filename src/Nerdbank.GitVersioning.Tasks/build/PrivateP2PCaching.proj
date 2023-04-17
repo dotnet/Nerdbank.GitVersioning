@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <Import Project="Nerdbank.GitVersioning.Inner.targets" />
+
+  <!-- These targets are called by MSBuild static graph because we declare a ProjectReference item to this file. -->
+  <Target Name="GetTargetFrameworks" />
+  <Target Name="GetNativeManifest" />
+  <Target Name="GetCopyToOutputDirectoryItems" />
+  <Target Name="GetCopyToPublishDirectoryItems" />
+  <Target Name="GetTargetFrameworksWithPlatformForSingleTargetFramework" />
+  <Target Name="_GetCopyToOutputDirectoryItemsFromThisProject" />
+
+  <!-- This target is called by Clean or Rebuild on a referencing project. -->
+  <Target Name="Clean" />
+
+  <!-- These targets are called by their respective targets on referencing projects. -->
+  <Target Name="Pack" />
+  <Target Name="Publish" />
+
+  <!-- These targets are called when the consuming project is a VSIX project. -->
+  <Target Name="BuiltProjectOutputGroup" />
+  <Target Name="SatelliteDllsProjectOutputGroup" />
+  <Target Name="BuiltProjectOutputGroupDependencies" />
+  <Target Name="DebugSymbolsProjectOutputGroup" />
+
+  <!-- WinUI3 seems to want this target -->
+  <Target Name="GetTargetPathWithTargetPlatformMoniker" />
+
+  <!-- dotnet watch needs this target -->
+  <Target Name="_CollectWatchItems" />
+
+  <!-- VS Test wants to see this target -->
+  <Target Name="VSTest" />
+
+  <!-- SqlServer projects want this target-->
+  <Target Name="GetTargetPath" />
+
+  <Import Project="$(NBGV_PrivateP2PAuxTargets)" Condition=" '$(NBGV_PrivateP2PAuxTargets)' != '' " />
+</Project>

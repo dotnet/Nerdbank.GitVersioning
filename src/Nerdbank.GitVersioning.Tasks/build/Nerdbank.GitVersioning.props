@@ -1,0 +1,20 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <!-- Cache modes include:
+         MSBuildTargetCaching
+            This is the default.
+            Versions will be computed by an MSBuild target which can be shared across an entire build session via MSBuild target output caching.
+         None
+            Every project will compute its own version.
+
+         Note that the choice in caching should have no bearing on the result of the versions computed - only on build perf and which systems it can work with.
+    -->
+    <NBGV_CacheMode Condition=" '$(NBGV_CacheMode)' == '' and '$(QBuild)' == '1' ">None</NBGV_CacheMode>
+    <NBGV_CacheMode Condition=" '$(NBGV_CacheMode)' == '' ">MSBuildTargetCaching</NBGV_CacheMode>
+
+    <!-- This property may be overridden in environments where all P2P references must be a project actually defined within the git repo directory.
+         Learn more at :/doc/quickbuild.md.
+         -->
+    <NBGV_CachingProjectReference Condition=" '$(NBGV_CachingProjectReference)' == '' ">$(MSBuildThisFileDirectory)PrivateP2PCaching.proj</NBGV_CachingProjectReference>
+  </PropertyGroup>
+</Project>

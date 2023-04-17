@@ -1,6 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
+    <_NBGV_Common_Targets_Imported>true</_NBGV_Common_Targets_Imported>
     <_NBGV_PlatformSuffix Condition=" '$(_NBGV_PlatformSuffix)' == '' and '$(MSBuildRuntimeType)' == 'Core' ">MSBuildCore/</_NBGV_PlatformSuffix>
     <_NBGV_PlatformSuffix Condition=" '$(_NBGV_PlatformSuffix)' == '' ">MSBuildFull/</_NBGV_PlatformSuffix>
     <NerdbankGitVersioningTasksPath Condition=" '$(NerdbankGitVersioningTasksPath)' == '' ">$(MSBuildThisFileDirectory)$(_NBGV_PlatformSuffix)</NerdbankGitVersioningTasksPath>

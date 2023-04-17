@@ -1,4 +1,4 @@
-﻿{
+{
   "$schema": "http://json-schema.org/draft-04/schema",
   "title": "Nerdbank.GitVersioning version.json schema",
   "type": "object",
@@ -39,13 +39,20 @@
           "default": false
         },
         "assemblyVersion": {
-          "description": "The x.y version to use particularly for the AssemblyVersionAttribute instead of the default. This is useful when maintaining assembly binding compatibility on the desktop .NET Framework is important even though AssemblyFileVersion may change.",
+          "description": "The a.b[.c[.d]] version to use particularly for the AssemblyVersionAttribute instead of the default. This is useful when maintaining assembly binding compatibility on the desktop .NET Framework is important even though AssemblyFileVersion may change.",
           "oneOf": [
-            { "$ref": "#/definitions/majorMinorVersion" },
+            { "$ref": "#/definitions/twoToFourComponentVersion" },
             {
               "type": "object",
+              "additionalProperties": false,
               "properties": {
-                "version": { "$ref": "#/definitions/majorMinorVersion" },
+                "version": { "$ref": "#/definitions/twoToFourComponentVersion" }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
                 "precision": {
                   "type": "string",
                   "description": "Identifies the last component to be explicitly set in the version.",
@@ -101,12 +108,18 @@
               "default": 1,
               "minimum": 1,
               "maximum": 2
+            },
+            "precision": {
+              "type": "string",
+              "description": "Specifies the number of components to include in the NuGet package version.",
+              "enum": [ "major", "minor", "build", "revision" ],
+              "default": "build"
             }
           }
         },
         "publicReleaseRefSpec": {
           "type": "array",
-          "description": "An array of regular expressions that may match a ref (branch or tag) that should be built with PublicRelease=true as the default value. The ref matched against is in its canonical form (e.g. refs/heads/master)",
+          "description": "An array of regular expressions that may match a ref (branch or tag) that should be built with PublicRelease=true as the default value. The ref matched against is in its canonical form (e.g. refs/heads/master).",
           "items": {
             "type": "string",
             "format": "regex"
@@ -115,12 +128,12 @@
         },
         "cloudBuild": {
           "type": "object",
-          "description": "Options that are applicable specifically to cloud builds (e.g. VSTS, AppVeyor, TeamCity)",
+          "description": "Options that are applicable specifically to cloud builds (e.g. VSTS, AppVeyor, TeamCity).",
           "properties": {
             "setAllVariables": {
               "type": "boolean",
               "default": false,
-              "description": "Elevates all build properties to cloud build variables prefaced with \"NBGV_\""
+              "description": "Elevates all build properties to cloud build variables prefaced with \"NBGV_\"."
             },
             "setVersionVariables": {
               "type": "boolean",
@@ -159,13 +172,19 @@
           }
         },
         "release": {
-          "description": "Settings for the prepare-release command",
+          "description": "Settings for the prepare-release and tag commands.",
           "type": "object",
           "properties": {
-            "branchName": {
-              "description": "Defines the format of release branch names. Format must include a placeholder '{version}' for the version",
+            "tagName": {
+              "description": "Defines the format of tag names. Format must include a placeholder '{version}' for the version.",
               "type": "string",
-              "pattern": ".*\\{version\\}.*",
+              "pattern": "\\{version\\}",
+              "default": "v{version}"
+            },
+            "branchName": {
+              "description": "Defines the format of release branch names. Format must include a placeholder '{version}' for the version.",
+              "type": "string",
+              "pattern": "\\{version\\}",
               "default": "v{version}"
             },
             "versionIncrement": {
@@ -175,7 +194,7 @@
               "default": "minor"
             },
             "firstUnstableTag": {
-              "description": "Specifies the first/default prerelease tag for new versions",
+              "description": "Specifies the first/default prerelease tag for new versions.",
               "type": "string",
               "default": "alpha"
             }
@@ -193,10 +212,10 @@
         }
       }
     },
-    "majorMinorVersion": {
+    "twoToFourComponentVersion": {
       "type": "string",
-      "description": "A major.minor version",
-      "pattern": "^\\d+\\.\\d+$"
+      "description": "A major.minor[.build[.revision]] version (2-4 version components).",
+      "pattern": "^\\d+\\.\\d+(?:\\.\\d+(?:\\.\\d+)?)?$"
     }
   }
 }

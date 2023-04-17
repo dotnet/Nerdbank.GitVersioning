@@ -1,16 +1,19 @@
-﻿namespace Nerdbank.GitVersioning.Tasks
-{
-    using System;
-    using System.Collections.Generic;
-    using System.Globalization;
-    using System.IO;
-    using System.Linq;
-    using System.Reflection;
-    using Microsoft.Build.Framework;
-    using Microsoft.Build.Utilities;
-    using MSBuildExtensionTask;
-    using Validation;
+﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Utilities;
+using MSBuildExtensionTask;
+using Validation;
+
+namespace Nerdbank.GitVersioning.Tasks
+{
     public class GetBuildVersion : ContextAwareTask
     {
         /// <summary>
@@ -83,7 +86,7 @@
         public ITaskItem[] OutputProperties { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether the project is building
+        /// Gets a value indicating whether the project is building
         /// in PublicRelease mode.
         /// </summary>
         [Output]
@@ -200,8 +203,10 @@
         [Output]
         public ITaskItem[] CloudBuildVersionVars { get; private set; }
 
+        /// <inheritdoc/>
         protected override string UnmanagedDllDirectory => LibGit2.LibGit2GitExtensions.FindLibGit2NativeBinaries(this.TargetsPath);
 
+        /// <inheritdoc/>
         protected override bool ExecuteInner()
         {
             try
@@ -209,45 +214,36 @@
                 if (!string.IsNullOrEmpty(this.ProjectPathRelativeToGitRepoRoot))
                 {
                     Requires.Argument(!Path.IsPathRooted(this.ProjectPathRelativeToGitRepoRoot), nameof(this.ProjectPathRelativeToGitRepoRoot), "Path must be relative.");
-                    Requires.Argument(!(
-                        this.ProjectPathRelativeToGitRepoRoot.Contains(".." + Path.DirectorySeparatorChar) ||
-                        this.ProjectPathRelativeToGitRepoRoot.Contains(".." + Path.AltDirectorySeparatorChar)),
-                        nameof(this.ProjectPathRelativeToGitRepoRoot),
-                        "Path must not use ..\\");
+                    bool containsDotDotSlash = this.ProjectPathRelativeToGitRepoRoot.Contains(".." + Path.DirectorySeparatorChar) ||
+                        this.ProjectPathRelativeToGitRepoRoot.Contains(".." + Path.AltDirectorySeparatorChar);
+                    Requires.Argument(!containsDotDotSlash, nameof(this.ProjectPathRelativeToGitRepoRoot), "Path must not use ..\\");
                 }
 
-                bool useLibGit2 = false;
-                bool disabled = false;
+                GitContext.Engine engine = GitContext.Engine.ReadOnly;
                 if (!string.IsNullOrWhiteSpace(this.GitEngine))
                 {
-                    switch (this.GitEngine)
+                    engine = this.GitEngine switch
                     {
-                        case "Managed":
-                            break;
-                        case "LibGit2":
-                            useLibGit2 = true;
-                            break;
-                        case "Disabled":
-                            disabled = true;
-                            break;
-                        default:
-                            throw new ArgumentException("GitEngine property must be set to either \"Disabled\", \"Managed\" or \"LibGit2\" or left empty.");
-                    }
+                        "Managed" => GitContext.Engine.ReadOnly,
+                        "LibGit2" => GitContext.Engine.ReadWrite,
+                        "Disabled" => GitContext.Engine.Disabled,
+                        _ => throw new ArgumentException("GitEngine property must be set to either \"Disabled\", \"Managed\" or \"LibGit2\" or left empty."),
+                    };
                 }
 
-                var cloudBuild = CloudBuild.Active;
-                var overrideBuildNumberOffset = (this.OverrideBuildNumberOffset == int.MaxValue) ? (int?)null : this.OverrideBuildNumberOffset;
+                ICloudBuild cloudBuild = CloudBuild.Active;
+                int? overrideBuildNumberOffset = (this.OverrideBuildNumberOffset == int.MaxValue) ? (int?)null : this.OverrideBuildNumberOffset;
                 string projectDirectory = this.ProjectPathRelativeToGitRepoRoot is object && this.GitRepoRoot is object
                     ? Path.Combine(this.GitRepoRoot, this.ProjectPathRelativeToGitRepoRoot)
                     : this.ProjectDirectory;
-                using var context = GitContext.Create(projectDirectory, writable: useLibGit2, disabled: disabled);
+                using var context = GitContext.Create(projectDirectory, engine: engine);
                 var oracle = new VersionOracle(context, cloudBuild, overrideBuildNumberOffset);
                 if (!string.IsNullOrEmpty(this.DefaultPublicRelease))
                 {
                     oracle.PublicRelease = string.Equals(this.DefaultPublicRelease, "true", StringComparison.OrdinalIgnoreCase);
                 }
 
-                if (this.BuildMetadata != null)
+                if (this.BuildMetadata is not null)
                 {
                     oracle.BuildMetadata.AddRange(this.BuildMetadata.Split(';'));
                 }
@@ -269,7 +265,7 @@
                 this.PrereleaseVersion = oracle.PrereleaseVersion;
                 this.GitCommitId = oracle.GitCommitId;
                 this.GitCommitIdShort = oracle.GitCommitIdShort;
-                this.GitCommitDateTicks = oracle.GitCommitDate != null ? oracle.GitCommitDate.Value.UtcTicks.ToString(CultureInfo.InvariantCulture) : null;
+                this.GitCommitDateTicks = oracle.GitCommitDate is not null ? oracle.GitCommitDate.Value.UtcTicks.ToString(CultureInfo.InvariantCulture) : null;
                 this.GitVersionHeight = oracle.VersionHeight;
                 this.BuildMetadataFragment = oracle.BuildMetadataFragment;
                 this.CloudBuildNumber = oracle.CloudBuildNumberEnabled ? oracle.CloudBuildNumber : null;
@@ -286,10 +282,10 @@
 
                 if (oracle.CloudBuildAllVarsEnabled)
                 {
-                    var allVariables = oracle.CloudBuildAllVars
+                    IEnumerable<TaskItem> allVariables = oracle.CloudBuildAllVars
                         .Select(item => new TaskItem(item.Key, new Dictionary<string, string> { { "Value", item.Value } }));
 
-                    if (cloudBuildVersionVars != null)
+                    if (cloudBuildVersionVars is not null)
                     {
                         cloudBuildVersionVars = cloudBuildVersionVars
                             .Union(allVariables);
@@ -300,7 +296,7 @@
                     }
                 }
 
-                if (cloudBuildVersionVars != null)
+                if (cloudBuildVersionVars is not null)
                 {
                     this.CloudBuildVersionVars = cloudBuildVersionVars.ToArray();
                 }

@@ -1,0 +1,16 @@
+[*.cs]
+
+# CS1591: Missing XML comment for publicly visible type or member
+dotnet_diagnostic.CS1591.severity = suggestion
+
+# SA1600: Elements should be documented
+dotnet_diagnostic.SA1600.severity = suggestion
+
+# SA1405: Debug.Assert should provide message text
+dotnet_diagnostic.SA1405.severity = suggestion
+
+# SA1601: Partial elements should be documented
+dotnet_diagnostic.SA1601.severity = suggestion
+
+# SA1605: Partial element documentation should have summary
+dotnet_diagnostic.SA1605.severity = suggestion

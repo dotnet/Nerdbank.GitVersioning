@@ -1,0 +1,25 @@
+steps:
+- download: current
+  displayName: 🔻 Download deployables
+  artifact: deployables-Windows
+
+- powershell: dotnet nuget push "$(Resolve-Path '$(Pipeline.Workspace)\deployables-Windows\')*.nupkg" -s $(ci_feed) -k azdo --skip-duplicate
+  displayName: 📦 Push packages to CI feed
+  condition: and(succeeded(), ne(variables['ci_feed'], ''), ne(variables['Build.Reason'], 'PullRequest'))
+
+- pwsh: Set-Content -Path "$(Agent.TempDirectory)/.npmrc" -Value "registry=$(ci_npm_feed)`nalways-auth=true"
+  displayName: ⚙️ Prepare to push to PublicCI
+  condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
+- task: npmAuthenticate@0
+  displayName: 🔐 Authenticate to PublicCI
+  inputs:
+    workingFile: $(Agent.TempDirectory)/.npmrc
+  condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), ne(variables['Build.Reason'], 'PullRequest'))
+- pwsh: |
+    $tgz = (Get-ChildItem "$(Pipeline.Workspace)/deployables-Windows/*.tgz")[0].FullName
+    Write-Host "Will publish $tgz"
+    npm publish $tgz
+  workingDirectory: $(Agent.TempDirectory)
+  displayName: 📦 npm publish to PublicCI feed
+  continueOnError: true
+  condition: and(succeeded(), ne(variables['ci_npm_feed'], ''), ne(variables['Build.Reason'], 'PullRequest'))

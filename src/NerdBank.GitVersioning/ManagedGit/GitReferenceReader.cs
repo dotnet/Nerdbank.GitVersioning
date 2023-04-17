@@ -1,39 +1,38 @@
-﻿#nullable enable
+﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System;
-using System.IO;
+#nullable enable
 
-namespace Nerdbank.GitVersioning.ManagedGit
+namespace Nerdbank.GitVersioning.ManagedGit;
+
+internal class GitReferenceReader
 {
-    internal class GitReferenceReader
+    private static readonly byte[] RefPrefix = GitRepository.Encoding.GetBytes("ref: ");
+
+    public static object ReadReference(Stream stream)
     {
-        private readonly static byte[] RefPrefix = GitRepository.Encoding.GetBytes("ref: ");
+        Span<byte> reference = stackalloc byte[(int)stream.Length];
+        stream.ReadAll(reference);
 
-        public static object ReadReference(Stream stream)
+        return ReadReference(reference);
+    }
+
+    public static object ReadReference(Span<byte> value)
+    {
+        if (value.Length == 41 && !value.StartsWith(RefPrefix))
         {
-            Span<byte> reference = stackalloc byte[(int)stream.Length];
-            stream.ReadAll(reference);
-
-            return ReadReference(reference);
+            // Skip the trailing \n
+            return GitObjectId.ParseHex(value.Slice(0, 40));
         }
-
-        public static object ReadReference(Span<byte> value)
+        else
         {
-            if (value.Length == 41 && !value.StartsWith(RefPrefix))
+            if (!value.StartsWith(RefPrefix))
             {
-                // Skip the trailing \n
-                return GitObjectId.ParseHex(value.Slice(0, 40));
+                throw new GitException();
             }
-            else
-            {
-                if (!value.StartsWith(RefPrefix))
-                {
-                    throw new GitException();
-                }
 
-                // Skip the terminating \n character
-                return GitRepository.GetString(value.Slice(RefPrefix.Length, value.Length - RefPrefix.Length - 1));
-            }
+            // Skip the terminating \n character
+            return GitRepository.GetString(value.Slice(RefPrefix.Length, value.Length - RefPrefix.Length - 1));
         }
     }
 }

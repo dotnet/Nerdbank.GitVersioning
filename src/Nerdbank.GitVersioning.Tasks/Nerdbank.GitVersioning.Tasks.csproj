@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net461;netcoreapp2.1</TargetFrameworks>
+    <TargetFrameworks>net462;net6.0</TargetFrameworks>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
     <NuSpecFile>Nerdbank.GitVersioning.nuspec</NuSpecFile>
@@ -15,40 +15,6 @@
     <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PackBuildOutputs</TargetsForTfmSpecificContentInPackage>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
-
-  <Target Name="SetNuSpecProperties" BeforeTargets="GenerateNuspec" DependsOnTargets="GetBuildVersion">
-    <PropertyGroup>
-      <LibGit2SharpNativeBinaries>$(NuGetPackageRoot)libgit2sharp.nativebinaries\$(LibGit2SharpNativeVersion)\</LibGit2SharpNativeBinaries>
-      <NuspecProperties>$(NuspecProperties);Version=$(Version);commit=$(GitCommitId);BaseOutputPath=$(OutputPath);LibGit2SharpNativeBinaries=$(LibGit2SharpNativeBinaries)</NuspecProperties>
-      <NuspecProperties Condition=" '$(PackLKG)' == 'true' ">$(NuspecProperties);LKGSuffix=.LKG</NuspecProperties>
-    </PropertyGroup>
-  </Target>
-
-  <Target Name="PackBuildOutputs" DependsOnTargets="SatelliteDllsProjectOutputGroup;DebugSymbolsProjectOutputGroup">
-    <PropertyGroup>
-      <BuildSubDir Condition=" '$(TargetFramework)' == 'netcoreapp2.1' ">MSBuildCore\</BuildSubDir>
-      <BuildSubDir Condition=" '$(TargetFramework)' == 'net461' ">MSBuildFull\</BuildSubDir>
-    </PropertyGroup>
-    <Error Text="Unrecognized TargetFramework" Condition=" '$(BuildSubDir)' == '' " />
-    <ItemGroup>
-      <TfmSpecificPackageFile Include="
-                        $(OutputPath)LibGit2Sharp.dll*;
-                        $(OutputPath)MSBuildExtensionTask.dll;
-                        $(OutputPath)Microsoft.DotNet.PlatformAbstractions.dll;
-                        $(OutputPath)Nerdbank.GitVersioning.*dll;
-                        $(OutputPath)Newtonsoft.Json.dll;
-                        $(OutputPath)System.Text.Json.dll;
-                        $(OutputPath)System.Runtime.CompilerServices.Unsafe.dll;
-                        $(OutputPath)Validation.dll;
-               ">
-        <PackagePath>build\$(BuildSubDir)</PackagePath>
-      </TfmSpecificPackageFile>
-      <!-- Package up the libgit2 native binaries -->
-      <TfmSpecificPackageFile Include="@(ContentWithTargetPath)" Condition=" '%(ContentWithTargetPath.CopyToOutputDirectory)' == 'PreserveNewest' ">
-        <PackagePath>build\$(BuildSubDir)%(ContentWithTargetPath.TargetPath)</PackagePath>
-      </TfmSpecificPackageFile>
-    </ItemGroup>
-  </Target>
 
   <ItemGroup>
     <None Include="build\**">
@@ -75,19 +41,21 @@
   </ItemDefinitionGroup>
 
   <ItemGroup>
-    <PackageReference Include="Nerdbank.GitVersioning.LKG" Version="3.4.173-alpha" />
+    <PackageReference Include="Nerdbank.GitVersioning.LKG" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\NerdBank.GitVersioning\NerdBank.GitVersioning.csproj" />
+    <ProjectReference Include="..\NerdBank.GitVersioning\Nerdbank.GitVersioning.csproj" />
   </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' == 'net461' ">
-    <PackageReference Include="Microsoft.Build.Tasks.Core" Version="15.9.20" />
+  <ItemGroup Condition="'$(TargetFramework)' == 'net462' ">
+    <PackageReference Include="Microsoft.Build.Tasks.Core" />
   </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' == 'netcoreapp2.1'">
-    <PackageReference Include="Microsoft.Build.Tasks.Core" Version="15.9.20" />
-    <PackageReference Include="System.Runtime.Loader" Version="4.3.0" />
+  <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
+    <PackageReference Include="Microsoft.Build.Tasks.Core" />
+    <PackageReference Include="System.Runtime.Loader" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\Shared\**\*.cs" LinkBase="Shared" />
   </ItemGroup>
+
+  <Import Project="$(MSBuildProjectName).targets"/>
 </Project>

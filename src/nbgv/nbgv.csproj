@@ -4,18 +4,17 @@
     <ToolCommandName>nbgv</ToolCommandName>
     <PackAsTool>True</PackAsTool>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <RootNamespace>Nerdbank.GitVersioning.Tool</RootNamespace>
     <Description>A .NET Core Tool that can install, read and set version information based on git history, using Nerdbank.GitVersioning.</Description>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NuGet.PackageManagement" Version="4.9.3" NoWarn="NU1701" />
-    <PackageReference Include="NuGet.Resolver" Version="4.9.3" />
-    <PackageReference Include="System.CommandLine" Version="2.0.0-beta1.20574.7" />
-    <PackageReference Include="Nerdbank.GitVersioning.LKG" Version="3.4.173-alpha" PrivateAssets="all" />
-    <PackageReference Include="System.Diagnostics.Tools" Version="4.3.0" />
-    <PackageReference Include="Microsoft.Build" Version="15.9.20" />
+    <PackageReference Include="NuGet.PackageManagement" />
+    <PackageReference Include="System.CommandLine" />
+    <PackageReference Include="Nerdbank.GitVersioning.LKG" PrivateAssets="all" />
+    <PackageReference Include="System.Diagnostics.Tools" />
+    <PackageReference Include="Microsoft.Build" />
   </ItemGroup>
 
   <ItemGroup>
@@ -23,6 +22,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\NerdBank.GitVersioning\NerdBank.GitVersioning.csproj" />
+    <ProjectReference Include="..\NerdBank.GitVersioning\Nerdbank.GitVersioning.csproj" />
   </ItemGroup>
 </Project>

@@ -1,3 +1,9 @@
 {
-    "dotnet-test-explorer.testProjectPath": "src/NerdBank.GitVersioning.Tests/NerdBank.GitVersioning.Tests.csproj"
+  "dotnet-test-explorer.testProjectPath": "src/Nerdbank.GitVersioning.Tests/Nerdbank.GitVersioning.Tests.csproj",
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+  "omnisharp.enableEditorConfigSupport": true,
+  "omnisharp.enableImportCompletion": true,
+  "omnisharp.enableRoslynAnalyzers": true
 }

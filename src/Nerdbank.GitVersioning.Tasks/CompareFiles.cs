@@ -1,43 +1,80 @@
-﻿namespace Nerdbank.GitVersioning.Tasks
-{
-    using System;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Linq;
-    using System.Text;
-    using Microsoft.Build.Framework;
-    using Microsoft.Build.Utilities;
+﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-    public class CompareFiles : Task
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Utilities;
+
+namespace Nerdbank.GitVersioning.Tasks
+{
+    public class CompareFiles : Microsoft.Build.Utilities.Task
     {
         /// <summary>
-        /// One set of items to compare.
+        /// Gets or sets one set of items to compare.
         /// </summary>
         [Required]
         public ITaskItem[] OriginalItems { get; set; }
 
         /// <summary>
-        /// The other set of items to compare.
+        /// Gets or sets the other set of items to compare.
         /// </summary>
         [Required]
         public ITaskItem[] NewItems { get; set; }
 
         /// <summary>
-        /// Gets whether the items lists contain items that are identical going down the list.
+        /// Gets a value indicating whether the items lists contain items that are identical going down the list.
         /// </summary>
         [Output]
         public bool AreSame { get; private set; }
 
         /// <summary>
-        /// Same as <see cref="AreSame"/>, but opposite.
+        /// Gets a value indicating whether the item lists contain items that are <em>not</em> identical, going down the list.
         /// </summary>
         [Output]
-        public bool AreChanged { get { return !this.AreSame; } }
+        public bool AreChanged
+        {
+            get { return !this.AreSame; }
+        }
 
+        /// <inheritdoc/>
         public override bool Execute()
         {
             this.AreSame = this.AreFilesIdentical();
             return true;
+        }
+
+        /// <summary>
+        /// Tests whether a file is up to date with respect to another,
+        /// based on existence, last write time and file size.
+        /// </summary>
+        /// <param name="sourcePath">The source path.</param>
+        /// <param name="destPath">The dest path.</param>
+        /// <returns><see langword="true"/> if the files are the same; <see langword="false"/> if the files are different.</returns>
+        internal static bool FastFileEqualityCheck(string sourcePath, string destPath)
+        {
+            FileInfo sourceInfo = new FileInfo(sourcePath);
+            FileInfo destInfo = new FileInfo(destPath);
+
+            if (sourceInfo.Exists ^ destInfo.Exists)
+            {
+                // Either the source file or the destination file is missing.
+                return false;
+            }
+
+            if (!sourceInfo.Exists)
+            {
+                // Neither file exists.
+                return true;
+            }
+
+            // We'll say the files are the same if their modification date and length are the same.
+            return
+                sourceInfo.LastWriteTimeUtc == destInfo.LastWriteTimeUtc &&
+                sourceInfo.Length == destInfo.Length;
         }
 
         private bool AreFilesIdentical()
@@ -61,69 +98,42 @@
         private bool IsContentOfFilesTheSame(string file1, string file2)
         {
             // If exactly one file is missing, that's different.
-            if (File.Exists(file1) ^ File.Exists(file2)) return false;
-            // If both are missing, that's the same.
-            if (!File.Exists(file1)) return true;
-            // If both are present, we need to do a content comparison.
-            using (FileStream fileStream1 = File.OpenRead(file1))
+            if (File.Exists(file1) ^ File.Exists(file2))
             {
-                using (FileStream fileStream2 = File.OpenRead(file2))
+                return false;
+            }
+
+            // If both are missing, that's the same.
+            if (!File.Exists(file1))
+            {
+                return true;
+            }
+
+            if (new FileInfo(file1).Length != new FileInfo(file2).Length)
+            {
+                return false;
+            }
+
+            // If both are present, we need to do a content comparison.
+            // Keep our comparison simple by loading both in memory.
+            byte[] file1Content = File.ReadAllBytes(file1);
+            byte[] file2Content = File.ReadAllBytes(file2);
+
+            // One more sanity check.
+            if (file1Content.Length != file2Content.Length)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < file1Content.Length; i++)
+            {
+                if (file1Content[i] != file2Content[i])
                 {
-                    if (fileStream1.Length != fileStream2.Length) return false;
-                    byte[] buffer1 = new byte[4096];
-                    byte[] buffer2 = new byte[buffer1.Length];
-                    int bytesRead;
-                    do
-                    {
-                        bytesRead = fileStream1.Read(buffer1, 0, buffer1.Length);
-                        if (fileStream2.Read(buffer2, 0, buffer2.Length) != bytesRead)
-                        {
-                            // We should never get here since we compared file lengths, but
-                            // this is a sanity check.
-                            return false;
-                        }
-                        for (int i = 0; i < bytesRead; i++)
-                        {
-                            if (buffer1[i] != buffer2[i])
-                            {
-                                return false;
-                            }
-                        }
-                    } while (bytesRead == buffer1.Length);
+                    return false;
                 }
             }
 
             return true;
-        }
-
-        /// <summary>
-        /// Tests whether a file is up to date with respect to another,
-        /// based on existence, last write time and file size.
-        /// </summary>
-        /// <param name="sourcePath">The source path.</param>
-        /// <param name="destPath">The dest path.</param>
-        /// <returns><c>true</c> if the files are the same; <c>false</c> if the files are different</returns>
-        internal static bool FastFileEqualityCheck(string sourcePath, string destPath)
-        {
-            FileInfo sourceInfo = new FileInfo(sourcePath);
-            FileInfo destInfo = new FileInfo(destPath);
-
-            if (sourceInfo.Exists ^ destInfo.Exists)
-            {
-                // Either the source file or the destination file is missing.
-                return false;
-            }
-
-            if (!sourceInfo.Exists)
-            {
-                // Neither file exists.
-                return true;
-            }
-
-            // We'll say the files are the same if their modification date and length are the same.
-            return
-                sourceInfo.LastWriteTimeUtc == destInfo.LastWriteTimeUtc &&
-                sourceInfo.Length == destInfo.Length;
         }
     }
 }

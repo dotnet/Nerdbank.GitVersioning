@@ -10,7 +10,7 @@ Here is the content of a sample version.json file you may start with:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/dotnet/Nerdbank.GitVersioning/master/src/NerdBank.GitVersioning/version.schema.json",
+  "$schema": "https://raw.githubusercontent.com/dotnet/Nerdbank.GitVersioning/main/src/NerdBank.GitVersioning/version.schema.json",
   "version": "1.0-beta"
 }
 ```
@@ -39,6 +39,7 @@ The content of the version.json file is a JSON serialized object with these prop
   "gitCommitIdShortAutoMinimum": 0, // optional. Set to use the short commit ID abbreviation provided by the git repository.
   "nugetPackageVersion": {
      "semVer": 1 // optional. Set to either 1 or 2 to control how the NuGet package version string is generated. Default is 1.
+     "precision": "build" // optional. Use when you want to use a more or less precise package version than the default major.minor.build.
   },
   "pathFilters": [
     // optional list of paths to consider when calculating version height.
@@ -58,6 +59,7 @@ The content of the version.json file is a JSON serialized object with these prop
     }
   },
   "release" : {
+    "tagName" : "v{version}",
     "branchName" : "v{version}",
     "versionIncrement" : "minor",
     "firstUnstableTag" : "alpha"

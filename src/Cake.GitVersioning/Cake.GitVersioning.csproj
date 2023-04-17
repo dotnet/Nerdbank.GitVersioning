@@ -1,16 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <TargetFramework>net6.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Authors>Chris Crutchfield, Andrew Arnott</Authors>
     <Company>andarno</Company>
     <Description>Cake wrapper for Nerdbank.GitVersioning.  Stamps your assemblies with semver 2.0 compliant git commit specific version information and provides NuGet versioning information as well.</Description>
-    <Copyright>Copyright (c) .NET Foundation and Contributors</Copyright>
-    <PackageTags>git commit versioning version assemblyinfo</PackageTags>
-    <PackageIconUrl>https://cdn.jsdelivr.net/gh/cake-contrib/graphics/png/cake-contrib-medium.png</PackageIconUrl>
-    <PackageIcon>cake-contrib-medium.png</PackageIcon>
+    <PackageTags>git commit versioning version assemblyinfo cake-addin</PackageTags>
+    <PackageIconUrl>https://cdn.jsdelivr.net/gh/cake-contrib/graphics/png/addin/cake-contrib-addin-medium.png</PackageIconUrl>
+    <PackageIcon>cake-contrib-addin-medium.png</PackageIcon>
     <PackageProjectUrl>http://github.com/dotnet/Nerdbank.GitVersioning</PackageProjectUrl>
     <SignAssembly>false</SignAssembly>
 
@@ -30,44 +28,32 @@
   </ItemDefinitionGroup>
 
   <ItemGroup>
-    <PackageReference Include="Cake.Core" Version="1.1.0" PrivateAssets="all" />
-    <PackageReference Include="DotNetMDDocs" Version="0.111.0" Condition=" '$(GenerateMarkdownApiDocs)' == 'true' " />
-    <PackageReference Include="Nerdbank.GitVersioning.LKG" Version="3.4.173-alpha" />
+    <PackageReference Include="Cake.Core" PrivateAssets="all" />
+    <PackageReference Include="DotNetMDDocs" Condition=" '$(GenerateMarkdownApiDocs)' == 'true' " />
+    <PackageReference Include="Nerdbank.GitVersioning.LKG" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="cake-contrib-medium.png" Pack="true" PackagePath="" />
+    <None Include="cake-contrib-addin-medium.png" Pack="true" PackagePath="" />
 
     <!-- Include native binaries -->
-    <None Include="$(LibGit2SharpNativeBinaries)runtimes\**\*.*" Pack="true" PackagePath="lib\netstandard2.0\lib\" LinkBase="lib" />
+    <None Include="$(LibGit2SharpNativeBinaries)runtimes\**\*.*" Pack="true" PackagePath="lib\net6.0\lib\" LinkBase="lib" />
 
     <!-- Additional copies to work around DllNotFoundException on Mono (https://github.com/AArnott/Nerdbank.GitVersioning/issues/222) -->
-    <None Include="$(LibGit2SharpNativeBinaries)runtimes\osx\native\*.dylib" Pack="true" PackagePath="lib\netstandard2.0\lib\osx\" LinkBase="lib\osx" />
-    <None Include="$(LibGit2SharpNativeBinaries)runtimes\linux-x64\native\*.so" Pack="true" PackagePath="lib\netstandard2.0\lib\linux\x86_64\" LinkBase="lib\linux\x86_64" />
-    <None Include="$(LibGit2SharpNativeBinaries)runtimes\win-x64\native\*.dll" Pack="true" PackagePath="lib\netstandard2.0\lib\win32\x64\" LinkBase="lib\win32\x64" />
-    <None Include="$(LibGit2SharpNativeBinaries)runtimes\win-x86\native\*.dll" Pack="true" PackagePath="lib\netstandard2.0\lib\win32\x86\" LinkBase="lib\win32\x86" />
+    <None Include="$(LibGit2SharpNativeBinaries)runtimes\osx-x64\native\*.dylib" Pack="true" PackagePath="lib\net6.0\lib\osx\x86_64\" LinkBase="lib\osx\x86_64" />
+    <None Include="$(LibGit2SharpNativeBinaries)runtimes\osx-arm64\native\*.dylib" Pack="true" PackagePath="lib\net6.0\lib\osx\arm_64\" LinkBase="lib\arm64\arm_64" />
+    <None Include="$(LibGit2SharpNativeBinaries)runtimes\linux-x64\native\*.so" Pack="true" PackagePath="lib\net6.0\lib\linux\x86_64\" LinkBase="lib\linux\x86_64" />
+    <None Include="$(LibGit2SharpNativeBinaries)runtimes\win-x64\native\*.dll" Pack="true" PackagePath="lib\net6.0\lib\win32\x64\" LinkBase="lib\win32\x64" />
+    <None Include="$(LibGit2SharpNativeBinaries)runtimes\win-x86\native\*.dll" Pack="true" PackagePath="lib\net6.0\lib\win32\x86\" LinkBase="lib\win32\x86" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\NerdBank.GitVersioning\NerdBank.GitVersioning.csproj" />
+    <ProjectReference Include="..\NerdBank.GitVersioning\Nerdbank.GitVersioning.csproj" />
   </ItemGroup>
 
   <Target Name="PackBuildOutputs" DependsOnTargets="SatelliteDllsProjectOutputGroup;DebugSymbolsProjectOutputGroup">
     <ItemGroup>
-      <TfmSpecificPackageFile
-        Include="
-                  $(OutputPath)LibGit2Sharp.dll*;
-                  $(OutputPath)Nerdbank.GitVersioning.*dll;
-                  $(OutputPath)Newtonsoft.Json.dll;
-                  $(OutputPath)PInvoke.*.dll;
-                  $(OutputPath)Validation.dll;
-                  "
-
-        Exclude="
-                  $(OutputPath)Microsoft.*.dll
-                  $(OutputPath)System.*.dll
-                  "
-        >
+      <TfmSpecificPackageFile Include="&#xD;&#xA;                  $(OutputPath)LibGit2Sharp.dll*;&#xD;&#xA;                  $(OutputPath)Nerdbank.GitVersioning.*dll;&#xD;&#xA;                  $(OutputPath)Newtonsoft.Json.dll;&#xD;&#xA;                  $(OutputPath)PInvoke.*.dll;&#xD;&#xA;                  $(OutputPath)Validation.dll;&#xD;&#xA;                  " Exclude="&#xD;&#xA;                  $(OutputPath)Microsoft.*.dll&#xD;&#xA;                  $(OutputPath)System.*.dll&#xD;&#xA;                  ">
         <PackagePath>lib\$(TargetFramework)</PackagePath>
       </TfmSpecificPackageFile>
     </ItemGroup>
