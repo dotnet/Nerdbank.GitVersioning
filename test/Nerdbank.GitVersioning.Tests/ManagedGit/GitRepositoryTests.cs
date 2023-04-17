@@ -329,7 +329,7 @@ public class GitRepositoryTests : RepoTestBase
 
     /// <inheritdoc/>
     protected override Nerdbank.GitVersioning.GitContext CreateGitContext(string path, string committish = null)
-        => Nerdbank.GitVersioning.GitContext.Create(path, committish, writable: false);
+        => Nerdbank.GitVersioning.GitContext.Create(path, committish, engine: GitContext.Engine.ReadOnly);
 
     private static void AssertPath(string expected, string actual)
     {

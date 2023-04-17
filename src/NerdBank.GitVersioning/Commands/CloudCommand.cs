@@ -94,7 +94,7 @@ public class CloudCommand
             activeCloudBuild = CloudBuild.SupportedCloudBuilds[matchingIndex];
         }
 
-        using var context = GitContext.Create(projectDirectory, writable: alwaysUseLibGit2);
+        using var context = GitContext.Create(projectDirectory, engine: alwaysUseLibGit2 ? GitContext.Engine.ReadWrite : GitContext.Engine.ReadOnly);
         var oracle = new VersionOracle(context, cloudBuild: activeCloudBuild);
         if (metadata is not null)
         {

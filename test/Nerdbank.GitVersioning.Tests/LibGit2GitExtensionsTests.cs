@@ -482,7 +482,7 @@ public class LibGit2GitExtensionsTests : RepoTestBase
     }
 
     /// <inheritdoc/>
-    protected override GitContext CreateGitContext(string path, string committish = null) => GitContext.Create(path, committish, writable: true);
+    protected override GitContext CreateGitContext(string path, string committish = null) => GitContext.Create(path, committish, engine: GitContext.Engine.ReadWrite);
 
     private Commit[] CommitsWithVersion(string majorMinorVersion)
     {

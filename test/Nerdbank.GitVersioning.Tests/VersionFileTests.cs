@@ -27,7 +27,7 @@ public class VersionFileManagedTests : VersionFileTests
 
     /// <inheritdoc/>
     protected override GitContext CreateGitContext(string path, string committish = null)
-        => GitContext.Create(path, committish, writable: false);
+        => GitContext.Create(path, committish, engine: GitContext.Engine.ReadOnly);
 }
 
 [Trait("Engine", "LibGit2")]
@@ -40,7 +40,7 @@ public class VersionFileLibGit2Tests : VersionFileTests
 
     /// <inheritdoc/>
     protected override GitContext CreateGitContext(string path, string committish = null)
-        => GitContext.Create(path, committish, writable: true);
+        => GitContext.Create(path, committish, engine: GitContext.Engine.ReadWrite);
 }
 
 public abstract class VersionFileTests : RepoTestBase
