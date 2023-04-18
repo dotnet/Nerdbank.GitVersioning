@@ -1,6 +1,8 @@
 ﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
+using System.Globalization;
 using System.Reflection;
 using System.Text;
 using System.Xml;
@@ -15,11 +17,20 @@ using Nerdbank.GitVersioning;
 using Validation;
 using Xunit;
 using Xunit.Abstractions;
+using Version = System.Version;
 
 public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
 {
-    protected const string GitVersioningTargetsFileName = "NerdBank.GitVersioning.targets";
+    protected const string GitVersioningPropsFileName = "Nerdbank.GitVersioning.props";
+    protected const string GitVersioningTargetsFileName = "Nerdbank.GitVersioning.targets";
     protected const string UnitTestCloudBuildPrefix = "UnitTest: ";
+    protected static readonly string[] ToxicEnvironmentVariablePrefixes = new string[]
+    {
+        "APPVEYOR",
+        "SYSTEM_",
+        "BUILD_",
+        "NBGV_GitEngine",
+    };
 
     protected BuildManager buildManager;
     protected ProjectCollection projectCollection;
@@ -34,14 +45,6 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
 
     protected Random random;
 
-    private static readonly string[] ToxicEnvironmentVariablePrefixes = new string[]
-    {
-        "APPVEYOR",
-        "SYSTEM_",
-        "BUILD_",
-        "NBGV_GitEngine",
-    };
-
     public BuildIntegrationTests(ITestOutputHelper logger)
         : base(logger)
     {
@@ -52,7 +55,72 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         this.Init();
     }
 
+    public static object[][] BuildNumberData
+    {
+        get
+        {
+            return new object[][]
+            {
+                new object[] { BuildNumberVersionOptionsBasis, CloudBuild.VSTS, "##vso[build.updatebuildnumber]{CLOUDBUILDNUMBER}" },
+            };
+        }
+    }
+
+    public static object[][] CloudBuildVariablesData
+    {
+        get
+        {
+            return new object[][]
+            {
+                new object[] { CloudBuild.VSTS, "##vso[task.setvariable variable={NAME};]{VALUE}", false },
+                new object[] { CloudBuild.VSTS, "##vso[task.setvariable variable={NAME};]{VALUE}", true },
+            };
+        }
+    }
+
+    protected static VersionOptions BuildNumberVersionOptionsBasis
+    {
+        get
+        {
+            return new VersionOptions
+            {
+                Version = SemanticVersion.Parse("1.0"),
+                CloudBuild = new VersionOptions.CloudBuildOptions
+                {
+                    BuildNumber = new VersionOptions.CloudBuildNumberOptions
+                    {
+                        Enabled = true,
+                        IncludeCommitId = new VersionOptions.CloudBuildNumberCommitIdOptions(),
+                    },
+                },
+            };
+        }
+    }
+
     protected string CommitIdShort => this.Context.GitCommitId?.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength);
+
+    public static IEnumerable<object[]> CloudBuildOfBranch(string branchName)
+    {
+        return new object[][]
+        {
+            new object[] { CloudBuild.AppVeyor.SetItem("APPVEYOR_REPO_BRANCH", branchName) },
+            new object[] { CloudBuild.VSTS.SetItem("BUILD_SOURCEBRANCH", $"refs/heads/{branchName}") },
+            new object[] { CloudBuild.VSTS.SetItem("BUILD_SOURCEBRANCH", $"refs/tags/{branchName}") },
+            new object[] { CloudBuild.Teamcity.SetItem("BUILD_GIT_BRANCH", $"refs/heads/{branchName}") },
+            new object[] { CloudBuild.Teamcity.SetItem("BUILD_GIT_BRANCH", $"refs/tags/{branchName}") },
+        };
+    }
+
+    [Fact]
+    public async Task GetBuildVersion_Returns_BuildVersion_Property()
+    {
+        this.WriteVersionFile();
+        this.InitializeSourceControl();
+        BuildResults buildResult = await this.BuildAsync();
+        Assert.Equal(
+            buildResult.BuildVersion,
+            buildResult.BuildResult.ResultsByTarget[Targets.GetBuildVersion].Items.Single().ItemSpec);
+    }
 
     [Fact]
     public async Task GetBuildVersion_Without_Git()
@@ -79,76 +147,6 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         Assert.Equal("3.4.0", buildResult.AssemblyInformationalVersion);
     }
 
-    [Fact]
-    public async Task GetBuildVersion_Returns_BuildVersion_Property()
-    {
-        this.WriteVersionFile();
-        this.InitializeSourceControl();
-        BuildResults buildResult = await this.BuildAsync();
-        Assert.Equal(
-            buildResult.BuildVersion,
-            buildResult.BuildResult.ResultsByTarget[Targets.GetBuildVersion].Items.Single().ItemSpec);
-    }
-
-    /// <summary>
-    /// Emulate a project with an unsupported language, and verify that
-    /// no errors are emitted because the target is skipped.
-    /// </summary>
-    [Fact]
-    public async Task AssemblyInfo_Suppressed()
-    {
-        ProjectPropertyGroupElement propertyGroup = this.testProject.CreatePropertyGroupElement();
-        this.testProject.AppendChild(propertyGroup);
-        propertyGroup.AddProperty("Language", "NoCodeDOMProviderForThisLanguage");
-        propertyGroup.AddProperty(Targets.GenerateAssemblyVersionInfo, "false");
-
-        this.WriteVersionFile();
-        BuildResults result = await this.BuildAsync(Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal);
-        string versionCsFilePath = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"));
-        Assert.False(File.Exists(versionCsFilePath));
-        Assert.Empty(result.LoggedEvents.OfType<BuildErrorEventArgs>());
-        Assert.Empty(result.LoggedEvents.OfType<BuildWarningEventArgs>());
-    }
-
-    /// <summary>
-    /// Emulate a project with an unsupported language, and verify that
-    /// one warning is emitted because the assembly info file couldn't be generated.
-    /// </summary>
-    [Fact]
-    public async Task AssemblyInfo_NotProducedWithoutCodeDomProvider()
-    {
-        ProjectPropertyGroupElement propertyGroup = this.testProject.CreatePropertyGroupElement();
-        this.testProject.AppendChild(propertyGroup);
-        propertyGroup.AddProperty("Language", "NoCodeDOMProviderForThisLanguage");
-
-        this.WriteVersionFile();
-        BuildResults result = await this.BuildAsync(Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal, assertSuccessfulBuild: false);
-        Assert.Equal(BuildResultCode.Failure, result.BuildResult.OverallResult);
-        string versionCsFilePath = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"));
-        Assert.False(File.Exists(versionCsFilePath));
-        Assert.Single(result.LoggedEvents.OfType<BuildErrorEventArgs>());
-    }
-
-    /// <summary>
-    /// Emulate a project with an unsupported language, and verify that
-    /// no errors are emitted because the target is skipped.
-    /// </summary>
-    [Fact]
-    public async Task AssemblyInfo_SuppressedImplicitlyByTargetExt()
-    {
-        ProjectPropertyGroupElement propertyGroup = this.testProject.CreatePropertyGroupElement();
-        this.testProject.InsertAfterChild(propertyGroup, this.testProject.Imports.First()); // insert just after the Common.Targets import.
-        propertyGroup.AddProperty("Language", "NoCodeDOMProviderForThisLanguage");
-        propertyGroup.AddProperty("TargetExt", ".notdll");
-
-        this.WriteVersionFile();
-        BuildResults result = await this.BuildAsync(Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal);
-        string versionCsFilePath = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"));
-        Assert.False(File.Exists(versionCsFilePath));
-        Assert.Empty(result.LoggedEvents.OfType<BuildErrorEventArgs>());
-        Assert.Empty(result.LoggedEvents.OfType<BuildWarningEventArgs>());
-    }
-
     // TODO: add key container test.
     [Theory]
     [InlineData("keypair.snk", false)]
@@ -162,7 +160,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         this.testProject.AddProperty("DelaySign", delaySigned.ToString());
 
         this.WriteVersionFile();
-        BuildResults result = await this.BuildAsync(Targets.GenerateAssemblyVersionInfo, logVerbosity: LoggerVerbosity.Minimal);
+        BuildResults result = await this.BuildAsync(Targets.GenerateAssemblyNBGVVersionInfo, logVerbosity: LoggerVerbosity.Minimal);
         string versionCsContent = File.ReadAllText(
             Path.GetFullPath(
                 Path.Combine(
@@ -194,22 +192,190 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         }
     }
 
-    protected abstract void ApplyGlobalProperties(IDictionary<string, string> globalProperties);
-
-    protected override void Dispose(bool disposing)
+    /// <summary>
+    /// Emulate a project with an unsupported language, and verify that
+    /// one warning is emitted because the assembly info file couldn't be generated.
+    /// </summary>
+    [Fact]
+    public async Task AssemblyInfo_NotProducedWithoutCodeDomProvider()
     {
-        Environment.SetEnvironmentVariable("_NBGV_UnitTest", string.Empty);
-        base.Dispose(disposing);
+        ProjectPropertyGroupElement propertyGroup = this.testProject.CreatePropertyGroupElement();
+        this.testProject.AppendChild(propertyGroup);
+        propertyGroup.AddProperty("Language", "NoCodeDOMProviderForThisLanguage");
+
+        this.WriteVersionFile();
+        BuildResults result = await this.BuildAsync(Targets.GenerateAssemblyNBGVVersionInfo, logVerbosity: LoggerVerbosity.Minimal, assertSuccessfulBuild: false);
+        Assert.Equal(BuildResultCode.Failure, result.BuildResult.OverallResult);
+        string versionCsFilePath = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"));
+        Assert.False(File.Exists(versionCsFilePath));
+        Assert.Single(result.LoggedEvents.OfType<BuildErrorEventArgs>());
     }
 
-    protected ProjectRootElement CreateProjectRootElement(string projectDirectory, string projectName)
+    /// <summary>
+    /// Emulate a project with an unsupported language, and verify that
+    /// no errors are emitted because the target is skipped.
+    /// </summary>
+    [Fact]
+    public async Task AssemblyInfo_Suppressed()
     {
-        using (var reader = XmlReader.Create(Assembly.GetExecutingAssembly().GetManifestResourceStream($"{ThisAssembly.RootNamespace}.test.prj")))
+        ProjectPropertyGroupElement propertyGroup = this.testProject.CreatePropertyGroupElement();
+        this.testProject.AppendChild(propertyGroup);
+        propertyGroup.AddProperty("Language", "NoCodeDOMProviderForThisLanguage");
+        propertyGroup.AddProperty(Properties.GenerateAssemblyVersionInfo, "false");
+
+        this.WriteVersionFile();
+        BuildResults result = await this.BuildAsync(Targets.GenerateAssemblyNBGVVersionInfo, logVerbosity: LoggerVerbosity.Minimal);
+        string versionCsFilePath = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"));
+        Assert.False(File.Exists(versionCsFilePath));
+        Assert.Empty(result.LoggedEvents.OfType<BuildErrorEventArgs>());
+        Assert.Empty(result.LoggedEvents.OfType<BuildWarningEventArgs>());
+    }
+
+    /// <summary>
+    /// Emulate a project with an unsupported language, and verify that
+    /// no errors are emitted because the target is skipped.
+    /// </summary>
+    [Fact]
+    public async Task AssemblyInfo_SuppressedImplicitlyByTargetExt()
+    {
+        ProjectPropertyGroupElement propertyGroup = this.testProject.CreatePropertyGroupElement();
+        this.testProject.InsertAfterChild(propertyGroup, this.testProject.Imports.First()); // insert just after the Common.Targets import.
+        propertyGroup.AddProperty("Language", "NoCodeDOMProviderForThisLanguage");
+        propertyGroup.AddProperty("TargetExt", ".notdll");
+
+        this.WriteVersionFile();
+        BuildResults result = await this.BuildAsync(Targets.GenerateAssemblyNBGVVersionInfo, logVerbosity: LoggerVerbosity.Minimal);
+        string versionCsFilePath = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"));
+        Assert.False(File.Exists(versionCsFilePath));
+        Assert.Empty(result.LoggedEvents.OfType<BuildErrorEventArgs>());
+        Assert.Empty(result.LoggedEvents.OfType<BuildWarningEventArgs>());
+    }
+
+    protected static Version GetExpectedAssemblyVersion(VersionOptions versionOptions, Version version)
+    {
+        // Function should be very similar to VersionOracle.GetAssemblyVersion()
+        Version assemblyVersion = (versionOptions?.AssemblyVersion?.Version ?? versionOptions.Version.Version).EnsureNonNegativeComponents();
+
+        if (versionOptions?.AssemblyVersion?.Version is null)
         {
-            var pre = ProjectRootElement.Create(reader, this.projectCollection);
-            pre.FullPath = Path.Combine(projectDirectory, projectName);
-            pre.AddImport(Path.Combine(this.RepoPath, GitVersioningTargetsFileName));
-            return pre;
+            VersionOptions.VersionPrecision precision = versionOptions?.AssemblyVersion?.Precision ?? VersionOptions.DefaultVersionPrecision;
+            assemblyVersion = version;
+
+            assemblyVersion = new Version(
+                assemblyVersion.Major,
+                precision >= VersionOptions.VersionPrecision.Minor ? assemblyVersion.Minor : 0,
+                precision >= VersionOptions.VersionPrecision.Build ? assemblyVersion.Build : 0,
+                precision >= VersionOptions.VersionPrecision.Revision ? assemblyVersion.Revision : 0);
+        }
+
+        return assemblyVersion;
+    }
+
+    protected static RestoreEnvironmentVariables ApplyEnvironmentVariables(IReadOnlyDictionary<string, string> variables)
+    {
+        Requires.NotNull(variables, nameof(variables));
+
+        var oldValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (KeyValuePair<string, string> variable in variables)
+        {
+            oldValues[variable.Key] = Environment.GetEnvironmentVariable(variable.Key);
+            Environment.SetEnvironmentVariable(variable.Key, variable.Value);
+        }
+
+        return new RestoreEnvironmentVariables(oldValues);
+    }
+
+    protected static string GetSemVerAppropriatePrereleaseTag(VersionOptions versionOptions)
+    {
+        return versionOptions.NuGetPackageVersionOrDefault.SemVer == 1
+            ? versionOptions.Version.Prerelease?.Replace('.', '-')
+            : versionOptions.Version.Prerelease;
+    }
+
+    protected void AssertStandardProperties(VersionOptions versionOptions, BuildResults buildResult, string relativeProjectDirectory = null)
+    {
+        int versionHeight = this.GetVersionHeight(relativeProjectDirectory);
+        Version idAsVersion = this.GetVersion(relativeProjectDirectory);
+        string commitIdShort = this.CommitIdShort;
+        Version version = this.GetVersion(relativeProjectDirectory);
+        Version assemblyVersion = GetExpectedAssemblyVersion(versionOptions, version);
+        IEnumerable<string> additionalBuildMetadata = from item in buildResult.BuildResult.ProjectStateAfterBuild.GetItems("BuildMetadata")
+                                      select item.EvaluatedInclude;
+        string expectedBuildMetadata = $"+{commitIdShort}";
+        if (additionalBuildMetadata.Any())
+        {
+            expectedBuildMetadata += "." + string.Join(".", additionalBuildMetadata);
+        }
+
+        string expectedBuildMetadataWithoutCommitId = additionalBuildMetadata.Any() ? $"+{string.Join(".", additionalBuildMetadata)}" : string.Empty;
+        string optionalFourthComponent = versionOptions.VersionHeightPosition == SemanticVersion.Position.Revision ? $".{idAsVersion.Revision}" : string.Empty;
+
+        Assert.Equal($"{version}", buildResult.AssemblyFileVersion);
+        Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{optionalFourthComponent}{versionOptions.Version.Prerelease}{expectedBuildMetadata}", buildResult.AssemblyInformationalVersion);
+
+        // The assembly version property should always have four integer components to it,
+        // per bug https://github.com/dotnet/Nerdbank.GitVersioning/issues/26
+        Assert.Equal($"{assemblyVersion.Major}.{assemblyVersion.Minor}.{assemblyVersion.Build}.{assemblyVersion.Revision}", buildResult.AssemblyVersion);
+
+        Assert.Equal(idAsVersion.Build.ToString(), buildResult.BuildNumber);
+        Assert.Equal($"{version}", buildResult.BuildVersion);
+        Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}", buildResult.BuildVersion3Components);
+        Assert.Equal(idAsVersion.Build.ToString(), buildResult.BuildVersionNumberComponent);
+        Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}", buildResult.BuildVersionSimple);
+        Assert.Equal(this.LibGit2Repository.Head.Tip.Id.Sha, buildResult.GitCommitId);
+        Assert.Equal(this.LibGit2Repository.Head.Tip.Author.When.UtcTicks.ToString(CultureInfo.InvariantCulture), buildResult.GitCommitDateTicks);
+        Assert.Equal(commitIdShort, buildResult.GitCommitIdShort);
+        Assert.Equal(versionHeight.ToString(), buildResult.GitVersionHeight);
+        Assert.Equal($"{version.Major}.{version.Minor}", buildResult.MajorMinorVersion);
+        Assert.Equal(versionOptions.Version.Prerelease, buildResult.PrereleaseVersion);
+        Assert.Equal(expectedBuildMetadata, buildResult.SemVerBuildSuffix);
+
+        string GetPkgVersionSuffix(bool useSemVer2)
+        {
+            string pkgVersionSuffix = buildResult.PublicRelease ? string.Empty : $"-g{commitIdShort}";
+            if (useSemVer2)
+            {
+                pkgVersionSuffix += expectedBuildMetadataWithoutCommitId;
+            }
+
+            return pkgVersionSuffix;
+        }
+
+        // NuGet is now SemVer 2.0 and will pass additional build metadata if provided
+        string nugetPkgVersionSuffix = GetPkgVersionSuffix(useSemVer2: versionOptions?.NuGetPackageVersionOrDefault.SemVer == 2);
+        Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{GetSemVerAppropriatePrereleaseTag(versionOptions)}{nugetPkgVersionSuffix}", buildResult.NuGetPackageVersion);
+
+        // Chocolatey only supports SemVer 1.0
+        string chocolateyPkgVersionSuffix = GetPkgVersionSuffix(useSemVer2: false);
+        Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{GetSemVerAppropriatePrereleaseTag(versionOptions)}{chocolateyPkgVersionSuffix}", buildResult.ChocolateyPackageVersion);
+
+        VersionOptions.CloudBuildNumberOptions buildNumberOptions = versionOptions.CloudBuildOrDefault.BuildNumberOrDefault;
+        if (buildNumberOptions.EnabledOrDefault)
+        {
+            VersionOptions.CloudBuildNumberCommitIdOptions commitIdOptions = buildNumberOptions.IncludeCommitIdOrDefault;
+            var buildNumberSemVer = SemanticVersion.Parse(buildResult.CloudBuildNumber);
+            bool hasCommitData = commitIdOptions.WhenOrDefault == VersionOptions.CloudBuildNumberCommitWhen.Always
+                || (commitIdOptions.WhenOrDefault == VersionOptions.CloudBuildNumberCommitWhen.NonPublicReleaseOnly && !buildResult.PublicRelease);
+            Version expectedVersion = hasCommitData && commitIdOptions.WhereOrDefault == VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent
+                ? idAsVersion
+                : new Version(version.Major, version.Minor, version.Build);
+            Assert.Equal(expectedVersion, buildNumberSemVer.Version);
+            Assert.Equal(buildResult.PrereleaseVersion, buildNumberSemVer.Prerelease);
+            string expectedBuildNumberMetadata = hasCommitData && commitIdOptions.WhereOrDefault == VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata
+                ? $"+{commitIdShort}"
+                : string.Empty;
+            if (additionalBuildMetadata.Any())
+            {
+                expectedBuildNumberMetadata = expectedBuildNumberMetadata.Length == 0
+                    ? "+" + string.Join(".", additionalBuildMetadata)
+                    : expectedBuildNumberMetadata + "." + string.Join(".", additionalBuildMetadata);
+            }
+
+            Assert.Equal(expectedBuildNumberMetadata, buildNumberSemVer.BuildMetadata);
+        }
+        else
+        {
+            Assert.Equal(string.Empty, buildResult.CloudBuildNumber);
         }
     }
 
@@ -237,6 +403,65 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         return result;
     }
 
+    protected ProjectRootElement CreateNativeProjectRootElement(string projectDirectory, string projectName)
+    {
+        using (var reader = XmlReader.Create(Assembly.GetExecutingAssembly().GetManifestResourceStream($"{ThisAssembly.RootNamespace}.test.vcprj")))
+        {
+            var pre = ProjectRootElement.Create(reader, this.projectCollection);
+            pre.FullPath = Path.Combine(projectDirectory, projectName);
+            pre.InsertAfterChild(pre.CreateImportElement(Path.Combine(this.RepoPath, GitVersioningPropsFileName)), null);
+            pre.AddImport(Path.Combine(this.RepoPath, GitVersioningTargetsFileName));
+            return pre;
+        }
+    }
+
+    protected ProjectRootElement CreateProjectRootElement(string projectDirectory, string projectName)
+    {
+        using (var reader = XmlReader.Create(Assembly.GetExecutingAssembly().GetManifestResourceStream($"{ThisAssembly.RootNamespace}.test.prj")))
+        {
+            var pre = ProjectRootElement.Create(reader, this.projectCollection);
+            pre.FullPath = Path.Combine(projectDirectory, projectName);
+            pre.InsertAfterChild(pre.CreateImportElement(Path.Combine(this.RepoPath, GitVersioningPropsFileName)), null);
+            pre.AddImport(Path.Combine(this.RepoPath, GitVersioningTargetsFileName));
+            return pre;
+        }
+    }
+
+    protected void MakeItAVBProject()
+    {
+        ProjectImportElement csharpImport = this.testProject.Imports.Single(i => i.Project.Contains("CSharp"));
+        csharpImport.Project = "$(MSBuildToolsPath)/Microsoft.VisualBasic.targets";
+        ProjectPropertyElement isVbProperty = this.testProject.Properties.Single(p => p.Name == "IsVB");
+        isVbProperty.Value = "true";
+    }
+
+    protected abstract void ApplyGlobalProperties(IDictionary<string, string> globalProperties);
+
+    /// <inheritdoc/>
+    protected override void Dispose(bool disposing)
+    {
+        Environment.SetEnvironmentVariable("_NBGV_UnitTest", string.Empty);
+        base.Dispose(disposing);
+    }
+
+    private void LoadTargetsIntoProjectCollection()
+    {
+        string prefix = $"{ThisAssembly.RootNamespace}.Targets.";
+
+        IEnumerable<string> streamNames = from name in Assembly.GetExecutingAssembly().GetManifestResourceNames()
+                          where name.StartsWith(prefix, StringComparison.Ordinal)
+                          select name;
+        foreach (string name in streamNames)
+        {
+            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(name))
+            {
+                var targetsFile = ProjectRootElement.Create(XmlReader.Create(stream), this.projectCollection);
+                targetsFile.FullPath = Path.Combine(this.RepoPath, name.Substring(prefix.Length));
+                targetsFile.Save(); // persist files on disk
+            }
+        }
+    }
+
     private void Init()
     {
         int seed = (int)DateTime.Now.Ticks;
@@ -262,22 +487,47 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         }
     }
 
-    private void LoadTargetsIntoProjectCollection()
+    protected struct RestoreEnvironmentVariables : IDisposable
     {
-        string prefix = $"{ThisAssembly.RootNamespace}.Targets.";
+        private readonly IReadOnlyDictionary<string, string> applyVariables;
 
-        IEnumerable<string> streamNames = from name in Assembly.GetExecutingAssembly().GetManifestResourceNames()
-                          where name.StartsWith(prefix, StringComparison.Ordinal)
-                          select name;
-        foreach (string name in streamNames)
+        internal RestoreEnvironmentVariables(IReadOnlyDictionary<string, string> applyVariables)
         {
-            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(name))
-            {
-                var targetsFile = ProjectRootElement.Create(XmlReader.Create(stream), this.projectCollection);
-                targetsFile.FullPath = Path.Combine(this.RepoPath, name.Substring(prefix.Length));
-                targetsFile.Save(); // persist files on disk
-            }
+            this.applyVariables = applyVariables;
         }
+
+        public void Dispose()
+        {
+            ApplyEnvironmentVariables(this.applyVariables);
+        }
+    }
+
+    protected static class CloudBuild
+    {
+        public static readonly ImmutableDictionary<string, string> SuppressEnvironment = ImmutableDictionary<string, string>.Empty
+
+            // AppVeyor
+            .Add("APPVEYOR", string.Empty)
+            .Add("APPVEYOR_REPO_TAG", string.Empty)
+            .Add("APPVEYOR_REPO_TAG_NAME", string.Empty)
+            .Add("APPVEYOR_PULL_REQUEST_NUMBER", string.Empty)
+
+            // VSTS
+            .Add("SYSTEM_TEAMPROJECTID", string.Empty)
+            .Add("BUILD_SOURCEBRANCH", string.Empty)
+
+            // Teamcity
+            .Add("BUILD_VCS_NUMBER", string.Empty)
+            .Add("BUILD_GIT_BRANCH", string.Empty);
+
+        public static readonly ImmutableDictionary<string, string> VSTS = SuppressEnvironment
+            .SetItem("SYSTEM_TEAMPROJECTID", "1");
+
+        public static readonly ImmutableDictionary<string, string> AppVeyor = SuppressEnvironment
+            .SetItem("APPVEYOR", "True");
+
+        public static readonly ImmutableDictionary<string, string> Teamcity = SuppressEnvironment
+            .SetItem("BUILD_VCS_NUMBER", "1");
     }
 
     protected static class Targets
@@ -285,8 +535,13 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         internal const string Build = "Build";
         internal const string GetBuildVersion = "GetBuildVersion";
         internal const string GetNuGetPackageVersion = "GetNuGetPackageVersion";
-        internal const string GenerateAssemblyVersionInfo = "GenerateAssemblyNBGVVersionInfo";
-        internal const string GenerateNativeVersionInfo = "GenerateNativeVersionInfo";
+        internal const string GenerateAssemblyNBGVVersionInfo = "GenerateAssemblyNBGVVersionInfo";
+        internal const string GenerateNativeNBGVVersionInfo = "GenerateNativeNBGVVersionInfo";
+    }
+
+    protected static class Properties
+    {
+        internal const string GenerateAssemblyVersionInfo = "GenerateAssemblyVersionInfo";
     }
 
     protected class BuildResults
@@ -381,7 +636,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         }
     }
 
-    protected class MSBuildLogger : ILogger
+    private class MSBuildLogger : ILogger
     {
         public string Parameters { get; set; }
 

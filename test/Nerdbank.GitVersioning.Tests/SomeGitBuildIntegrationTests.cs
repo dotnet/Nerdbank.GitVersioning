@@ -27,60 +27,6 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
     {
     }
 
-    public static object[][] CloudBuildVariablesData
-    {
-        get
-        {
-            return new object[][]
-            {
-                new object[] { CloudBuild.VSTS, "##vso[task.setvariable variable={NAME};]{VALUE}", false },
-                new object[] { CloudBuild.VSTS, "##vso[task.setvariable variable={NAME};]{VALUE}", true },
-            };
-        }
-    }
-
-    public static object[][] BuildNumberData
-    {
-        get
-        {
-            return new object[][]
-            {
-                new object[] { BuildNumberVersionOptionsBasis, CloudBuild.VSTS, "##vso[build.updatebuildnumber]{CLOUDBUILDNUMBER}" },
-            };
-        }
-    }
-
-    private static VersionOptions BuildNumberVersionOptionsBasis
-    {
-        get
-        {
-            return new VersionOptions
-            {
-                Version = SemanticVersion.Parse("1.0"),
-                CloudBuild = new VersionOptions.CloudBuildOptions
-                {
-                    BuildNumber = new VersionOptions.CloudBuildNumberOptions
-                    {
-                        Enabled = true,
-                        IncludeCommitId = new VersionOptions.CloudBuildNumberCommitIdOptions(),
-                    },
-                },
-            };
-        }
-    }
-
-    public static IEnumerable<object[]> CloudBuildOfBranch(string branchName)
-    {
-        return new object[][]
-        {
-            new object[] { CloudBuild.AppVeyor.SetItem("APPVEYOR_REPO_BRANCH", branchName) },
-            new object[] { CloudBuild.VSTS.SetItem("BUILD_SOURCEBRANCH", $"refs/heads/{branchName}") },
-            new object[] { CloudBuild.VSTS.SetItem("BUILD_SOURCEBRANCH", $"refs/tags/{branchName}") },
-            new object[] { CloudBuild.Teamcity.SetItem("BUILD_GIT_BRANCH", $"refs/heads/{branchName}") },
-            new object[] { CloudBuild.Teamcity.SetItem("BUILD_GIT_BRANCH", $"refs/tags/{branchName}") },
-        };
-    }
-
     [Fact]
     public async Task GetBuildVersion_WithThreeVersionIntegers()
     {
@@ -440,7 +386,7 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
     }
 
     [Theory]
-    [Trait("TestCategory", "FailsOnAzurePipelines")]
+    [Trait("TestCategory", "FailsInCloudTest")]
     [MemberData(nameof(CloudBuildVariablesData))]
     public async Task CloudBuildVariables_SetInCI(IReadOnlyDictionary<string, string> properties, string expectedMessage, bool setAllVariables)
     {
@@ -498,7 +444,9 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
             }
 
             // Assert that env variables were also set in context of the build.
-            Assert.Contains(buildResult.LoggedEvents, e => string.Equals(e.Message, $"n1=v1", StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(
+                buildResult.LoggedEvents,
+                e => string.Equals(e.Message, $"n1=v1", StringComparison.OrdinalIgnoreCase) || string.Equals(e.Message, $"n1='v1'", StringComparison.OrdinalIgnoreCase));
 
             versionOptions.CloudBuild.SetVersionVariables = false;
             this.WriteVersionFile(versionOptions);
@@ -733,7 +681,7 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
     }
 
     [Fact]
-    [Trait("TestCategory", "FailsOnAzurePipelines")]
+    [Trait("TestCategory", "FailsInCloudTest")]
     public async Task AssemblyInfo_IncrementalBuild()
     {
         this.WriteVersionFile(prerelease: "-beta");
@@ -762,190 +710,11 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
         Assert.Equal("1.2", fileInfo.FileVersion);
         Assert.Equal("1.2.0", fileInfo.ProductVersion);
         Assert.Equal("test", fileInfo.InternalName);
-        Assert.Equal("NerdBank", fileInfo.CompanyName);
+        Assert.Equal("Nerdbank", fileInfo.CompanyName);
         Assert.Equal($"Copyright (c) {DateTime.Now.Year}. All rights reserved.", fileInfo.LegalCopyright);
     }
 #endif
 
+    /// <inheritdoc/>
     protected override GitContext CreateGitContext(string path, string committish = null) => throw new NotImplementedException();
-
-    private static Version GetExpectedAssemblyVersion(VersionOptions versionOptions, Version version)
-    {
-        // Function should be very similar to VersionOracle.GetAssemblyVersion()
-        Version assemblyVersion = (versionOptions?.AssemblyVersion?.Version ?? versionOptions.Version.Version).EnsureNonNegativeComponents();
-        VersionOptions.VersionPrecision precision = versionOptions?.AssemblyVersion?.Precision ?? VersionOptions.DefaultVersionPrecision;
-
-        assemblyVersion = new System.Version(
-            assemblyVersion.Major,
-            precision >= VersionOptions.VersionPrecision.Minor ? assemblyVersion.Minor : 0,
-            precision >= VersionOptions.VersionPrecision.Build ? version.Build : 0,
-            precision >= VersionOptions.VersionPrecision.Revision ? version.Revision : 0);
-        return assemblyVersion;
-    }
-
-    private static RestoreEnvironmentVariables ApplyEnvironmentVariables(IReadOnlyDictionary<string, string> variables)
-    {
-        Requires.NotNull(variables, nameof(variables));
-
-        var oldValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (KeyValuePair<string, string> variable in variables)
-        {
-            oldValues[variable.Key] = Environment.GetEnvironmentVariable(variable.Key);
-            Environment.SetEnvironmentVariable(variable.Key, variable.Value);
-        }
-
-        return new RestoreEnvironmentVariables(oldValues);
-    }
-
-    private static string GetSemVerAppropriatePrereleaseTag(VersionOptions versionOptions)
-    {
-        return versionOptions.NuGetPackageVersionOrDefault.SemVer == 1
-            ? versionOptions.Version.Prerelease?.Replace('.', '-')
-            : versionOptions.Version.Prerelease;
-    }
-
-    private void AssertStandardProperties(VersionOptions versionOptions, BuildResults buildResult, string relativeProjectDirectory = null)
-    {
-        int versionHeight = this.GetVersionHeight(relativeProjectDirectory);
-        Version idAsVersion = this.GetVersion(relativeProjectDirectory);
-        string commitIdShort = this.CommitIdShort;
-        Version version = this.GetVersion(relativeProjectDirectory);
-        Version assemblyVersion = GetExpectedAssemblyVersion(versionOptions, version);
-        IEnumerable<string> additionalBuildMetadata = from item in buildResult.BuildResult.ProjectStateAfterBuild.GetItems("BuildMetadata")
-                                      select item.EvaluatedInclude;
-        string expectedBuildMetadata = $"+{commitIdShort}";
-        if (additionalBuildMetadata.Any())
-        {
-            expectedBuildMetadata += "." + string.Join(".", additionalBuildMetadata);
-        }
-
-        string expectedBuildMetadataWithoutCommitId = additionalBuildMetadata.Any() ? $"+{string.Join(".", additionalBuildMetadata)}" : string.Empty;
-
-        Assert.Equal($"{version}", buildResult.AssemblyFileVersion);
-        Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{versionOptions.Version.Prerelease}{expectedBuildMetadata}", buildResult.AssemblyInformationalVersion);
-
-        // The assembly version property should always have four integer components to it,
-        // per bug https://github.com/dotnet/Nerdbank.GitVersioning/issues/26
-        Assert.Equal($"{assemblyVersion.Major}.{assemblyVersion.Minor}.{assemblyVersion.Build}.{assemblyVersion.Revision}", buildResult.AssemblyVersion);
-
-        Assert.Equal(idAsVersion.Build.ToString(), buildResult.BuildNumber);
-        Assert.Equal($"{version}", buildResult.BuildVersion);
-        Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}", buildResult.BuildVersion3Components);
-        Assert.Equal(idAsVersion.Build.ToString(), buildResult.BuildVersionNumberComponent);
-        Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}", buildResult.BuildVersionSimple);
-        Assert.Equal(this.LibGit2Repository.Head.Tip.Id.Sha, buildResult.GitCommitId);
-        Assert.Equal(this.LibGit2Repository.Head.Tip.Author.When.UtcTicks.ToString(CultureInfo.InvariantCulture), buildResult.GitCommitDateTicks);
-        Assert.Equal(commitIdShort, buildResult.GitCommitIdShort);
-        Assert.Equal(versionHeight.ToString(), buildResult.GitVersionHeight);
-        Assert.Equal($"{version.Major}.{version.Minor}", buildResult.MajorMinorVersion);
-        Assert.Equal(versionOptions.Version.Prerelease, buildResult.PrereleaseVersion);
-        Assert.Equal(expectedBuildMetadata, buildResult.SemVerBuildSuffix);
-
-        string GetPkgVersionSuffix(bool useSemVer2)
-        {
-            string pkgVersionSuffix = buildResult.PublicRelease ? string.Empty : $"-g{commitIdShort}";
-            if (useSemVer2)
-            {
-                pkgVersionSuffix += expectedBuildMetadataWithoutCommitId;
-            }
-
-            return pkgVersionSuffix;
-        }
-
-        // NuGet is now SemVer 2.0 and will pass additional build metadata if provided
-        string nugetPkgVersionSuffix = GetPkgVersionSuffix(useSemVer2: versionOptions?.NuGetPackageVersionOrDefault.SemVer == 2);
-        Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{GetSemVerAppropriatePrereleaseTag(versionOptions)}{nugetPkgVersionSuffix}", buildResult.NuGetPackageVersion);
-
-        // Chocolatey only supports SemVer 1.0
-        string chocolateyPkgVersionSuffix = GetPkgVersionSuffix(useSemVer2: false);
-        Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}{GetSemVerAppropriatePrereleaseTag(versionOptions)}{chocolateyPkgVersionSuffix}", buildResult.ChocolateyPackageVersion);
-
-        VersionOptions.CloudBuildNumberOptions buildNumberOptions = versionOptions.CloudBuildOrDefault.BuildNumberOrDefault;
-        if (buildNumberOptions.EnabledOrDefault)
-        {
-            VersionOptions.CloudBuildNumberCommitIdOptions commitIdOptions = buildNumberOptions.IncludeCommitIdOrDefault;
-            var buildNumberSemVer = SemanticVersion.Parse(buildResult.CloudBuildNumber);
-            bool hasCommitData = commitIdOptions.WhenOrDefault == VersionOptions.CloudBuildNumberCommitWhen.Always
-                || (commitIdOptions.WhenOrDefault == VersionOptions.CloudBuildNumberCommitWhen.NonPublicReleaseOnly && !buildResult.PublicRelease);
-            Version expectedVersion = hasCommitData && commitIdOptions.WhereOrDefault == VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent
-                ? idAsVersion
-                : new Version(version.Major, version.Minor, version.Build);
-            Assert.Equal(expectedVersion, buildNumberSemVer.Version);
-            Assert.Equal(buildResult.PrereleaseVersion, buildNumberSemVer.Prerelease);
-            string expectedBuildNumberMetadata = hasCommitData && commitIdOptions.WhereOrDefault == VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata
-                ? $"+{commitIdShort}"
-                : string.Empty;
-            if (additionalBuildMetadata.Any())
-            {
-                expectedBuildNumberMetadata = expectedBuildNumberMetadata.Length == 0
-                    ? "+" + string.Join(".", additionalBuildMetadata)
-                    : expectedBuildNumberMetadata + "." + string.Join(".", additionalBuildMetadata);
-            }
-
-            Assert.Equal(expectedBuildNumberMetadata, buildNumberSemVer.BuildMetadata);
-        }
-        else
-        {
-            Assert.Equal(string.Empty, buildResult.CloudBuildNumber);
-        }
-    }
-
-    private ProjectRootElement CreateNativeProjectRootElement(string projectDirectory, string projectName)
-    {
-        using (var reader = XmlReader.Create(Assembly.GetExecutingAssembly().GetManifestResourceStream($"{ThisAssembly.RootNamespace}.test.vcprj")))
-        {
-            var pre = ProjectRootElement.Create(reader, this.projectCollection);
-            pre.FullPath = Path.Combine(projectDirectory, projectName);
-            pre.AddImport(Path.Combine(this.RepoPath, GitVersioningTargetsFileName));
-            return pre;
-        }
-    }
-
-    private void MakeItAVBProject()
-    {
-        ProjectImportElement csharpImport = this.testProject.Imports.Single(i => i.Project.Contains("CSharp"));
-        csharpImport.Project = "$(MSBuildToolsPath)/Microsoft.VisualBasic.targets";
-        ProjectPropertyElement isVbProperty = this.testProject.Properties.Single(p => p.Name == "IsVB");
-        isVbProperty.Value = "true";
-    }
-
-    private struct RestoreEnvironmentVariables : IDisposable
-    {
-        private readonly IReadOnlyDictionary<string, string> applyVariables;
-
-        internal RestoreEnvironmentVariables(IReadOnlyDictionary<string, string> applyVariables)
-        {
-            this.applyVariables = applyVariables;
-        }
-
-        public void Dispose()
-        {
-            ApplyEnvironmentVariables(this.applyVariables);
-        }
-    }
-
-    private static class CloudBuild
-    {
-        public static readonly ImmutableDictionary<string, string> SuppressEnvironment = ImmutableDictionary<string, string>.Empty
-            // AppVeyor
-            .Add("APPVEYOR", string.Empty)
-            .Add("APPVEYOR_REPO_TAG", string.Empty)
-            .Add("APPVEYOR_REPO_TAG_NAME", string.Empty)
-            .Add("APPVEYOR_PULL_REQUEST_NUMBER", string.Empty)
-            // VSTS
-            .Add("SYSTEM_TEAMPROJECTID", string.Empty)
-            .Add("BUILD_SOURCEBRANCH", string.Empty)
-            // Teamcity
-            .Add("BUILD_VCS_NUMBER", string.Empty)
-            .Add("BUILD_GIT_BRANCH", string.Empty);
-
-        public static readonly ImmutableDictionary<string, string> VSTS = SuppressEnvironment
-            .SetItem("SYSTEM_TEAMPROJECTID", "1");
-
-        public static readonly ImmutableDictionary<string, string> AppVeyor = SuppressEnvironment
-            .SetItem("APPVEYOR", "True");
-
-        public static readonly ImmutableDictionary<string, string> Teamcity = SuppressEnvironment
-            .SetItem("BUILD_VCS_NUMBER", "1");
-    }
 }
