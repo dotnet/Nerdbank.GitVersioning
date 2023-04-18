@@ -181,7 +181,7 @@ public abstract partial class RepoTestBase : IDisposable
         }
 
         bool localContextCreated = this.Context is null;
-        GitContext? context = this.Context ?? GitContext.Create(this.RepoPath, writable: true);
+        GitContext? context = this.Context ?? GitContext.Create(this.RepoPath, engine: GitContext.Engine.ReadWrite);
         try
         {
             string versionFilePath = context.VersionFile.SetVersion(Path.Combine(this.RepoPath, relativeDirectory), versionData);

@@ -20,7 +20,7 @@ public class GitContextManagedTests : GitContextTests
 
     /// <inheritdoc/>
     protected override GitContext CreateGitContext(string path, string committish = null)
-        => GitContext.Create(path, committish, writable: false);
+        => GitContext.Create(path, committish, engine: GitContext.Engine.ReadOnly);
 }
 
 [Trait("Engine", "LibGit2")]
@@ -33,7 +33,7 @@ public class GitContextLibGit2Tests : GitContextTests
 
     /// <inheritdoc/>
     protected override GitContext CreateGitContext(string path, string committish = null)
-        => GitContext.Create(path, committish, writable: true);
+        => GitContext.Create(path, committish, engine: GitContext.Engine.ReadWrite);
 }
 
 public abstract class GitContextTests : RepoTestBase
