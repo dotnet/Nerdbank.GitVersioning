@@ -15,7 +15,7 @@ Param(
     [string]$MsBuildVerbosity = 'minimal'
 )
 
-$msbuildCommandLine = "dotnet build `"$PSScriptRoot\src\Nerdbank.GitVersioning.sln`" /m /verbosity:$MsBuildVerbosity /nologo /p:Platform=`"Any CPU`" /t:build,pack"
+$msbuildCommandLine = "dotnet build `"$PSScriptRoot\Nerdbank.GitVersioning.sln`" /m /verbosity:$MsBuildVerbosity /nologo /p:Platform=`"Any CPU`" /t:build,pack"
 
 if (Test-Path "C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll") {
     $msbuildCommandLine += " /logger:`"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll`""
@@ -27,7 +27,7 @@ if ($Configuration) {
 
 Push-Location .
 try {
-    if ($PSCmdlet.ShouldProcess("$PSScriptRoot\src\Nerdbank.GitVersioning.sln", "msbuild")) {
+    if ($PSCmdlet.ShouldProcess("$PSScriptRoot\Nerdbank.GitVersioning.sln", "msbuild")) {
         Invoke-Expression $msbuildCommandLine
         if ($LASTEXITCODE -ne 0) {
             throw "dotnet build failed"
