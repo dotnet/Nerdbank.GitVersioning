@@ -50,6 +50,7 @@ steps:
     --descriptionUrl 'https://github.com/dotnet/Nerdbank.GitVersioning'
   displayName: 🔏 Code sign
   condition: and(succeeded(), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), eq(variables['Agent.OS'], 'Windows_NT'), ne(variables['Build.Reason'], 'PullRequest'))
+  enabled: false # signing is broken with the expired cert, I suppose
 
 - pwsh: >
     obj/SignClient sign
@@ -63,6 +64,7 @@ steps:
     --descriptionUrl 'https://github.com/dotnet/Nerdbank.GitVersioning'
   displayName: 🔏 Code sign LKG
   condition: and(succeeded(), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), eq(variables['Agent.OS'], 'Windows_NT'), ne(variables['Build.Reason'], 'PullRequest'))
+  enabled: false # signing is broken with the expired cert, I suppose
 
 - powershell: azure-pipelines/variables/_pipelines.ps1
   failOnStderr: true
