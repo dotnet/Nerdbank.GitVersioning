@@ -668,7 +668,7 @@ public class GitRepository : IDisposable
 
     private static string TrimEndingDirectorySeparator(string path)
     {
-#if NETSTANDARD2_0
+#if NETFRAMEWORK
         if (string.IsNullOrEmpty(path) || path.Length == 1)
         {
             return path;
@@ -699,7 +699,7 @@ public class GitRepository : IDisposable
         Requires.Argument(data.Length == hexString.Length / 2, nameof(data), "Length must be exactly half that of " + nameof(hexString) + ".");
         for (int index = 0; index < data.Length; index++)
         {
-#if !NETSTANDARD2_0
+#if NET6_0_OR_GREATER
             ReadOnlySpan<char> byteValue = hexString.AsSpan(index * 2, 2);
             if (!byte.TryParse(byteValue, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out data[index]))
             {

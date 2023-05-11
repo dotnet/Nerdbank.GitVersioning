@@ -65,7 +65,7 @@ public class GitPackDeltafiedStream : Stream
         set => throw new NotImplementedException();
     }
 
-#if NETSTANDARD2_0
+#if NETFRAMEWORK
     /// <summary>
     /// Reads a sequence of bytes from the current <see cref="GitPackDeltafiedStream"/> and advances the position
     /// within the stream by the number of bytes read.

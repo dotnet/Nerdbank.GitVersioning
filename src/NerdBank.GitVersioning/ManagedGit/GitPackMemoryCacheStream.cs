@@ -44,7 +44,7 @@ internal class GitPackMemoryCacheStream : Stream
         throw new NotSupportedException();
     }
 
-#if NETSTANDARD2_0
+#if NETFRAMEWORK
     public int Read(Span<byte> buffer)
 #else
     /// <inheritdoc/>

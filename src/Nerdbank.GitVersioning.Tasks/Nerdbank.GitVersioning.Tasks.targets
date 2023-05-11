@@ -10,7 +10,7 @@
   <Target Name="PackBuildOutputs" DependsOnTargets="SatelliteDllsProjectOutputGroup;DebugSymbolsProjectOutputGroup">
     <PropertyGroup>
       <BuildSubDir Condition=" '$(TargetFramework)' == 'net6.0' ">MSBuildCore\</BuildSubDir>
-      <BuildSubDir Condition=" '$(TargetFramework)' == 'net462' ">MSBuildFull\</BuildSubDir>
+      <BuildSubDir Condition=" '$(TargetFramework)' == 'net472' ">MSBuildFull\</BuildSubDir>
     </PropertyGroup>
     <Error Text="Unrecognized TargetFramework" Condition=" '$(BuildSubDir)' == '' " />
     <ItemGroup>

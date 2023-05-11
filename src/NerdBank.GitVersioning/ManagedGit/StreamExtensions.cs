@@ -78,7 +78,7 @@ public static class StreamExtensions
         return value;
     }
 
-#if NETSTANDARD2_0
+#if NETFRAMEWORK
     /// <summary>
     /// Reads a sequence of bytes from the current stream and advances the position within the stream by
     /// the number of bytes read.

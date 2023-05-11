@@ -62,7 +62,7 @@ public class GitPackPooledStream : Stream
         this.stream.Flush();
     }
 
-#if !NETSTANDARD2_0
+#if NET6_0_OR_GREATER
     /// <inheritdoc/>
     public override int Read(Span<byte> buffer)
     {

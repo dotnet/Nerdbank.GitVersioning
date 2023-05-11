@@ -92,7 +92,7 @@ public class ZLibStream : Stream
         return read;
     }
 
-#if !NETSTANDARD2_0
+#if NET6_0_OR_GREATER
     /// <inheritdoc/>
     public override int Read(Span<byte> buffer)
     {
@@ -110,7 +110,7 @@ public class ZLibStream : Stream
         return read;
     }
 
-#if !NETSTANDARD2_0
+#if NET6_0_OR_GREATER
     /// <inheritdoc/>
     public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
     {
