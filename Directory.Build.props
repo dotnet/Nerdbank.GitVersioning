@@ -38,10 +38,6 @@
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <!-- LibGit2Sharp Native Binary version - used in both main project and Cake addin -->
-    <LibGit2SharpNativeVersion>2.0.315-alpha.0.9</LibGit2SharpNativeVersion>
-  </PropertyGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)3rdPartyNotices.txt" Pack="true" PackagePath="" />
   </ItemGroup>

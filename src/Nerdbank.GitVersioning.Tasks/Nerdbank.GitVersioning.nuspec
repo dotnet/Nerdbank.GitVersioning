@@ -32,9 +32,9 @@ IMPORTANT: The 3.x release may produce a different version height than prior maj
     <file src="$LibGit2SharpNativeBinaries$runtimes\**" target="build\runtimes\" />
 
     <!-- Additional copies to work around DllNotFoundException on Mono (https://github.com/dotnet/Nerdbank.GitVersioning/issues/222) -->
-    <file src="$LibGit2SharpNativeBinaries$runtimes\osx-x64\native\libgit2-b7bad55.dylib" target="build\MSBuildFull\lib\osx-x64\libgit2-b7bad55.dylib" />
-    <file src="$LibGit2SharpNativeBinaries$runtimes\osx-arm64\native\libgit2-b7bad55.dylib" target="build\MSBuildFull\lib\osx-arm64\libgit2-b7bad55.dylib" />
-    <file src="$LibGit2SharpNativeBinaries$runtimes\linux-x64\native\libgit2-b7bad55.so" target="build\MSBuildFull\lib\linux-x64\libgit2-b7bad55.so" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\osx-x64\native\lib$libgit2_filename$.dylib" target="build\MSBuildFull\lib\osx-x64\lib$libgit2_filename$.dylib" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\osx-arm64\native\lib$libgit2_filename$.dylib" target="build\MSBuildFull\lib\osx-arm64\lib$libgit2_filename$.dylib" />
+    <file src="$LibGit2SharpNativeBinaries$runtimes\linux-x64\native\lib$libgit2_filename$.so" target="build\MSBuildFull\lib\linux-x64\lib$libgit2_filename$.so" />
 
     <file src="$LibGit2SharpNativeBinaries$libgit2\LibGit2Sharp.dll.config" target="build\MSBuildCore\LibGit2Sharp.dll.config" />
     <file src="$BaseOutputPath$net6.0\LibGit2Sharp.dll" target="build\MSBuildCore\LibGit2Sharp.dll" />
