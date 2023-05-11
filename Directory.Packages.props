@@ -6,13 +6,16 @@
     <BenchmarkDotNetVersion>0.13.5</BenchmarkDotNetVersion>
     <MSBuildPackageVersion>16.9.0</MSBuildPackageVersion>
     <MSBuildPackageVersion Condition="'$(IsTestProject)'=='true'">15.9.20</MSBuildPackageVersion>
+    <!-- LibGit2Sharp Native Binary version - used in both main project and Cake addin -->
+    <LibGit2SharpNativeVersion>2.0.320</LibGit2SharpNativeVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="BenchmarkDotNet.Diagnostics.Windows" Version="$(BenchmarkDotNetVersion)" />
     <PackageVersion Include="BenchmarkDotNet" Version="$(BenchmarkDotNetVersion)" />
     <PackageVersion Include="Cake.Core" Version="3.0.0" />
     <PackageVersion Include="DotNetMDDocs" Version="0.112.39" />
-    <PackageVersion Include="LibGit2Sharp" Version="0.27.0-preview-0182" />
+    <PackageVersion Include="LibGit2Sharp" Version="0.27.2" />
+    <PackageVersion Include="LibGit2Sharp.NativeBinaries" Version="$(LibGit2SharpNativeVersion)" />
     <PackageVersion Include="Microsoft.Build.Framework" Version="$(MSBuildPackageVersion)" />
     <PackageVersion Include="Microsoft.Build.Locator" Version="1.5.5" />
     <PackageVersion Include="Microsoft.Build.Tasks.Core" Version="$(MSBuildPackageVersion)" />

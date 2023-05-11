@@ -2,7 +2,7 @@
   <Target Name="SetNuSpecProperties" BeforeTargets="GenerateNuspec" DependsOnTargets="GetBuildVersion">
     <PropertyGroup>
       <LibGit2SharpNativeBinaries>$(NuGetPackageRoot)libgit2sharp.nativebinaries\$(LibGit2SharpNativeVersion)\</LibGit2SharpNativeBinaries>
-      <NuspecProperties>$(NuspecProperties);Version=$(Version);commit=$(GitCommitId);BaseOutputPath=$(OutputPath);LibGit2SharpNativeBinaries=$(LibGit2SharpNativeBinaries)</NuspecProperties>
+      <NuspecProperties>$(NuspecProperties);Version=$(Version);commit=$(GitCommitId);BaseOutputPath=$(OutputPath);LibGit2SharpNativeBinaries=$(LibGit2SharpNativeBinaries);libgit2_filename=$(libgit2_filename)</NuspecProperties>
       <NuspecProperties Condition=" '$(PackLKG)' == 'true' ">$(NuspecProperties);LKGSuffix=.LKG</NuspecProperties>
     </PropertyGroup>
   </Target>
