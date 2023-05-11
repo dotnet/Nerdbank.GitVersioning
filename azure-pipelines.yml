@@ -31,7 +31,6 @@ resources:
     image: mcr.microsoft.com/dotnet/sdk:latest
 
 variables:
-  MSBuildTreatWarningsAsErrors: true
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
   BuildConfiguration: Release
   codecov_token: 92266a45-648d-454e-8fec-beffae2e6553

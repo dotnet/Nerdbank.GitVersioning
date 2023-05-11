@@ -8,7 +8,7 @@ steps:
     git config --global user.email me@ci.com
   displayName: ⚙️ Configure git commit author for testing
 
-- script: dotnet build -t:build,pack --no-restore -c $(BuildConfiguration) /bl:"$(Build.ArtifactStagingDirectory)/build_logs/build.binlog"
+- script: dotnet build -t:build,pack --no-restore -c $(BuildConfiguration) -warnaserror /bl:"$(Build.ArtifactStagingDirectory)/build_logs/build.binlog"
   displayName: 🛠 dotnet build
 
 - script: dotnet pack -c $(BuildConfiguration) --no-build -p:PackLKG=true /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild_lkg.binlog"
