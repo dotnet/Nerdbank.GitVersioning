@@ -73,7 +73,7 @@ public unsafe class MemoryMappedStream : Stream
         return read;
     }
 
-#if !NETSTANDARD2_0
+#if NET6_0_OR_GREATER
     /// <inheritdoc/>
     public override int Read(Span<byte> buffer)
     {

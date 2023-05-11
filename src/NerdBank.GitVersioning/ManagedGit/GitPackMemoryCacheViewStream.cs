@@ -42,7 +42,7 @@ internal class GitPackMemoryCacheViewStream : Stream
         return this.Read(buffer.AsSpan(offset, count));
     }
 
-#if NETSTANDARD2_0
+#if NETFRAMEWORK
     public int Read(Span<byte> buffer)
 #else
     /// <inheritdoc/>
