@@ -20,8 +20,8 @@ public class GitPackMemoryCacheTests
         {
             var cache = new GitPackMemoryCache();
 
-            Stream stream1 = cache.Add(0, stream);
-            Assert.True(cache.TryOpen(0, out Stream stream2));
+            Stream stream1 = cache.Add(0, "anObjectType", stream);
+            Assert.True(cache.TryOpen(0, "anObjectType", out Stream stream2));
 
             using (stream1)
             using (stream2)

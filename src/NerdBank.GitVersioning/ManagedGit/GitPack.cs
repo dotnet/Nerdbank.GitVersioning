@@ -178,7 +178,7 @@ public class GitPack : IDisposable
         }
 #endif
 
-        if (this.cache.TryOpen(offset, out Stream? stream))
+        if (this.cache.TryOpen(offset, objectType, out Stream? stream))
         {
             return stream!;
         }
@@ -216,7 +216,7 @@ public class GitPack : IDisposable
             throw;
         }
 
-        return this.cache.Add(offset, objectStream);
+        return this.cache.Add(offset, objectType, objectStream);
     }
 
     /// <summary>
