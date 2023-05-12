@@ -25,9 +25,9 @@ public class GitPackNullCache : GitPackCache
     }
 
     /// <inheritdoc/>
-    public override bool TryOpen(long offset, string objectType, [NotNullWhen(true)] out Stream? stream)
+    public override bool TryOpen(long offset, [NotNullWhen(true)] out (Stream ContentStream, string ObjectType)? hit)
     {
-        stream = null;
+        hit = null;
         return false;
     }
 

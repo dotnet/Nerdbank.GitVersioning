@@ -21,10 +21,12 @@ public class GitPackMemoryCacheTests
             var cache = new GitPackMemoryCache();
 
             Stream stream1 = cache.Add(0, "anObjectType", stream);
-            Assert.True(cache.TryOpen(0, "anObjectType", out Stream stream2));
+            Assert.True(cache.TryOpen(0, out (Stream ContentStream, string ObjectType)? hit));
+            Assert.True(hit.HasValue);
+            Assert.Equal("anObjectType", hit.Value.ObjectType);
 
             using (stream1)
-            using (stream2)
+            using (Stream stream2 = hit.Value.ContentStream)
             {
                 stream1.Seek(5, SeekOrigin.Begin);
                 Assert.Equal(5, stream1.Position);
