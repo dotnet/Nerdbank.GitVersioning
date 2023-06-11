@@ -105,10 +105,10 @@ stages:
       clean: true
       submodules: true # keep the warnings quiet about the wiki not being enlisted
     - task: UseDotNet@2
-      displayName: Install .NET 7.0.203 SDK
+      displayName: Install .NET 7.0.302 SDK
       inputs:
         packageType: sdk
-        version: 7.0.203
+        version: 7.0.302
     - script: dotnet --info
       displayName: Show dotnet SDK info
     - bash: |
