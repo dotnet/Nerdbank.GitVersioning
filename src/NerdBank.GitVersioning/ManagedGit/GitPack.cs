@@ -221,7 +221,7 @@ public class GitPack : IDisposable
             throw;
         }
 
-        return this.cache.Add(offset, objectType, objectStream);
+        return this.cache.Add(offset, objectStream, objectType);
     }
 
     /// <summary>

@@ -45,15 +45,15 @@ public abstract class GitPackCache : IDisposable
     /// <param name="offset">
     /// The offset of the Git object in the Git pack.
     /// </param>
-    /// <param name="objectType">The object type of the object to add to the cache.</param>
     /// <param name="stream">
     /// A <see cref="Stream"/> which represents the object to add. This stream
     /// will be copied to the cache.
     /// </param>
+    /// <param name="objectType">The object type of the object to add to the cache.</param>
     /// <returns>
     /// A <see cref="Stream"/> which represents the cached entry.
     /// </returns>
-    public abstract Stream Add(long offset, string objectType, Stream stream);
+    public abstract Stream Add(long offset, Stream stream, string objectType);
 
     /// <inheritdoc/>
     public void Dispose()

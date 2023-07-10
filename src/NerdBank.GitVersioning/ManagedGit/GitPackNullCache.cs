@@ -19,7 +19,7 @@ public class GitPackNullCache : GitPackCache
     public static GitPackNullCache Instance { get; } = new GitPackNullCache();
 
     /// <inheritdoc/>
-    public override Stream Add(long offset, string objectType, Stream stream)
+    public override Stream Add(long offset, Stream stream, string objectType)
     {
         return stream;
     }

@@ -20,7 +20,7 @@ public class GitPackMemoryCacheTests
         {
             var cache = new GitPackMemoryCache();
 
-            Stream stream1 = cache.Add(0, "anObjectType", stream);
+            Stream stream1 = cache.Add(0, stream, "anObjectType");
             Assert.True(cache.TryOpen(0, out (Stream ContentStream, string ObjectType)? hit));
             Assert.True(hit.HasValue);
             Assert.Equal("anObjectType", hit.Value.ObjectType);

@@ -21,7 +21,7 @@ namespace Nerdbank.GitVersioning.ManagedGit;
 ///   twice, it is read from the <see cref="MemoryStream"/>, rather than the underlying <see cref="Stream"/>.
 /// </para>
 /// <para>
-///   <see cref="Add(long, string, Stream)"/> and <see cref="TryOpen(long, out ValueTuple{Stream, string}?)"/> return <see cref="Stream"/>
+///   <see cref="Add(long, Stream, string)"/> and <see cref="TryOpen(long, out ValueTuple{Stream, string}?)"/> return <see cref="Stream"/>
 ///   objects which may operate on the same underlying <see cref="Stream"/>, but independently maintain
 ///   their state.
 /// </para>
@@ -31,7 +31,7 @@ public class GitPackMemoryCache : GitPackCache
     private readonly Dictionary<long, (GitPackMemoryCacheStream, string)> cache = new();
 
     /// <inheritdoc/>
-    public override Stream Add(long offset, string objectType, Stream stream)
+    public override Stream Add(long offset, Stream stream, string objectType)
     {
         var cacheStream = new GitPackMemoryCacheStream(stream);
         this.cache.Add(offset, (cacheStream, objectType));
