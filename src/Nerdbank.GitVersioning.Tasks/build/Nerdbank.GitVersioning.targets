@@ -120,6 +120,9 @@
       <VersionSourceFile>$([MSBuild]::NormalizePath('$(IntermediateOutputPath)', '$(AssemblyName).Version$(DefaultLanguageSourceExtension)'))</VersionSourceFile>
       <NewVersionSourceFile>$(VersionSourceFile).new</NewVersionSourceFile>
     </PropertyGroup>
+    <ItemGroup>
+      <AdditionalThisAssemblyFields Include="NuGetPackageVersion" String="$(NuGetPackageVersion)" Condition="'$(NBGV_ThisAssemblyIncludesPackageVersion)' == 'true'" />
+    </ItemGroup>
     <MakeDir Directories="$(IntermediatePath)"/>
     <Nerdbank.GitVersioning.Tasks.AssemblyVersionInfo
                   OutputFile="$(NewVersionSourceFile)"
