@@ -38,6 +38,47 @@ You should only build with this property set from one release branch per
 major.minor version to avoid the risk of producing multiple unique NuGet
 packages with a colliding version spec.
 
+## Customization through MSBuild
+
+### Properties
+
+The following MSBuild properties may be set in your project to customize certain Nerdbank.GitVersioning behaviors:
+
+Property | Default | Description
+--|--|--
+`NBGV_ThisAssemblyNamespace` | `$(RootNamespace)` | Sets the namespace to use for the generated `ThisAssembly` class.
+`NBGV_EmitThisAssemblyClass` | `true` | When `false`, suppresses generation of the `ThisAssembly` class.
+`NBGV_ThisAssemblyIncludesPackageVersion` | `false` | When `true`, a `NuGetPackageVersion` property is added to the `ThisAssembly` class.
+
+### Custom `ThisAssembly` static fields and constants
+
+Custom constants may be added to the `ThisAssembly` class through `AdditionalThisAssemblyFields` items defined in your project.
+The item name becomes the constant's name. The value of the constant may be defined by metadata whose name determines the type of the constant as follows:
+
+Metadata name | Property type | Notes
+--|--|--
+`String` | `string` | These may also carry `EmitIfEmpty="true"` metadata to force generation of the constant even if the string value is empty.
+`Boolean` | `bool` |
+`Ticks` | `DateTime` | The integer specified in msbuild metadata will be interpreted as ticks to construct the `DateTime` value.
+
+For example, to the following MSBuild items:
+
+```xml
+<ItemGroup>
+  <AdditionalThisAssemblyFields Include="FinalRelease" Boolean="true" />
+  <AdditionalThisAssemblyFields Include="MyMessage" String="Hello World" />
+  <AdditionalThisAssemblyFields Include="AGoodMoment" Ticks="638300335845163552" />
+</ItemGroup>
+```
+
+Will add the following constants or static fields to the `ThisAssembly` class:
+
+```cs
+internal const bool FinalRelease = true;
+internal const string MyMessage = "Hello World";
+internal static readonly DateTime AGoodMoment = new System.DateTime(638300335845163552L, System.DateTimeKind.Utc);
+```
+
 ## Custom build authoring
 
 If you are writing your own MSBuild targets or properties and need to consume version information,
