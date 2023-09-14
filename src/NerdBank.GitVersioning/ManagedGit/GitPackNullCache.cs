@@ -19,15 +19,15 @@ public class GitPackNullCache : GitPackCache
     public static GitPackNullCache Instance { get; } = new GitPackNullCache();
 
     /// <inheritdoc/>
-    public override Stream Add(long offset, Stream stream)
+    public override Stream Add(long offset, Stream stream, string objectType)
     {
         return stream;
     }
 
     /// <inheritdoc/>
-    public override bool TryOpen(long offset, [NotNullWhen(true)] out Stream? stream)
+    public override bool TryOpen(long offset, [NotNullWhen(true)] out (Stream ContentStream, string ObjectType)? hit)
     {
-        stream = null;
+        hit = null;
         return false;
     }
 

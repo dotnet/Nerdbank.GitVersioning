@@ -178,9 +178,14 @@ public class GitPack : IDisposable
         }
 #endif
 
-        if (this.cache.TryOpen(offset, out Stream? stream))
+        if (this.cache.TryOpen(offset, out (Stream ContentStream, string ObjectType)? hit))
         {
-            return stream!;
+            if (hit.Value.ObjectType != objectType)
+            {
+                throw new GitException($"An object of type {objectType} could not be located at offset {offset}.") { ErrorCode = GitException.ErrorCodes.ObjectNotFound };
+            }
+
+            return hit.Value.ContentStream;
         }
 
         GitPackObjectType packObjectType;
@@ -216,7 +221,7 @@ public class GitPack : IDisposable
             throw;
         }
 
-        return this.cache.Add(offset, objectStream);
+        return this.cache.Add(offset, objectStream, objectType);
     }
 
     /// <summary>

@@ -22,14 +22,14 @@ public abstract class GitPackCache : IDisposable
     /// <param name="offset">
     /// The offset of the Git object in the Git pack.
     /// </param>
-    /// <param name="stream">
-    /// A <see cref="Stream"/> which will be set to the cached Git object.
+    /// <param name="hit">
+    /// A (<see cref="Stream"/>, ContentType) tuple which will be set to the cached data if found.
     /// </param>
     /// <returns>
     /// <see langword="true"/> if the object was found in cache; otherwise,
     /// <see langword="false"/>.
     /// </returns>
-    public abstract bool TryOpen(long offset, [NotNullWhen(true)] out Stream? stream);
+    public abstract bool TryOpen(long offset, [NotNullWhen(true)] out (Stream ContentStream, string ObjectType)? hit);
 
     /// <summary>
     /// Gets statistics about the cache usage.
@@ -49,10 +49,11 @@ public abstract class GitPackCache : IDisposable
     /// A <see cref="Stream"/> which represents the object to add. This stream
     /// will be copied to the cache.
     /// </param>
+    /// <param name="objectType">The object type of the object to add to the cache.</param>
     /// <returns>
     /// A <see cref="Stream"/> which represents the cached entry.
     /// </returns>
-    public abstract Stream Add(long offset, Stream stream);
+    public abstract Stream Add(long offset, Stream stream, string objectType);
 
     /// <inheritdoc/>
     public void Dispose()
