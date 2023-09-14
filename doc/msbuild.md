@@ -79,7 +79,7 @@ internal const string MyMessage = "Hello World";
 internal static readonly DateTime AGoodMoment = new System.DateTime(638300335845163552L, System.DateTimeKind.Utc);
 ```
 
-## Custom build authoring
+### Custom build authoring
 
 If you are writing your own MSBuild targets or properties and need to consume version information,
 Nerdbank.GitVersioning is there to help.
@@ -100,6 +100,11 @@ In the above example, the `AssemblyVersion` property, which is set by the
 `GetBuildVersion` target defined by Nerdbank.GitVersioning, is used to define
 another property.
 It could also be used to define msbuild items or anything else you want.
+
+Note that in the simple example above, `MyPropertySetter` will not execute unless explicitly requested from the command line with a `/t:MyPropertySetter` switch.
+If you want your target to run as part of a build by default, you will need to add attributes to the `Target` or set other properties that influence existing targets to depend on this one.
+For example, you might add `BeforeTargets="CoreCompile"` if your target sets properties that will be consumed by the compiler.
+[Learn more about custom MSBuild targets from the Microsoft documentation](https://learn.microsoft.com/visualstudio/msbuild/msbuild-targets).
 
 ### MSBuild properties defined in `GetBuildVersion`
 
