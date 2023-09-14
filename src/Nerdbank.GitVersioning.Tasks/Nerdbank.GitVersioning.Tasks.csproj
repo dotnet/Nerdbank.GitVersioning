@@ -25,10 +25,6 @@
       <Pack>true</Pack>
       <PackagePath>buildCrossTargeting\</PackagePath>
     </None>
-    <None Include="readme.txt">
-      <Pack>true</Pack>
-      <PackagePath>readme.txt</PackagePath>
-    </None>
   </ItemGroup>
 
   <ItemDefinitionGroup>
