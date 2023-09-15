@@ -160,8 +160,7 @@ public class GitPack : IDisposable
                 value = this.GetObject(offset.Value, objectType);
                 return true;
             }
-            catch (GitException gexc)
-            when (gexc.ErrorCode == GitException.ErrorCodes.ObjectNotFound)
+            catch (GitException gexc) when (gexc.ErrorCode == GitException.ErrorCodes.ObjectNotFound)
             {
                 value = null;
                 return false;

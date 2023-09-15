@@ -27,6 +27,7 @@ steps:
     md $(Build.ArtifactStagingDirectory)\drop
     7z a $(Build.ArtifactStagingDirectory)\drop\nbgv.7z * -r
     Write-Host "##vso[artifact.upload containerfolder=drop;artifactname=drop;]$(Build.ArtifactStagingDirectory)\drop"
+  displayName: Capture .git directory
   condition: and(failed(), eq(variables['Agent.OS'], 'Windows_NT'))
 
 - powershell: azure-pipelines/dotnet-test-cloud.ps1 -Configuration $(BuildConfiguration) -Agent $(Agent.JobName) -PublishResults
