@@ -37,7 +37,7 @@ namespace Nerdbank.GitVersioning.Tasks
 ------------------------------------------------------------------------------
 ";
 
-#if NET462
+#if NETFRAMEWORK
         private static readonly CodeGeneratorOptions CodeGeneratorOptions = new CodeGeneratorOptions
         {
             BlankLinesBetweenMembers = false,
@@ -66,6 +66,8 @@ namespace Nerdbank.GitVersioning.Tasks
         public string AssemblyInformationalVersion { get; set; }
 
         public string RootNamespace { get; set; }
+
+        public string ThisAssemblyNamespace { get; set; }
 
         public string AssemblyOriginatorKeyFile { get; set; }
 
@@ -112,14 +114,15 @@ namespace Nerdbank.GitVersioning.Tasks
 
         public string BuildCode()
         {
-            this.generator = this.CreateGenerator();
+            this.generator = this.CreateGenerator(this.ThisAssemblyNamespace, this.RootNamespace);
+
             if (this.generator is object)
             {
                 this.generator.AddComment(FileHeaderComment);
                 this.generator.AddBlankLine();
                 this.generator.AddAnalysisSuppressions();
                 this.generator.AddBlankLine();
-                this.generator.EmitNamespaceIfRequired(this.RootNamespace ?? "AssemblyInfo");
+
                 this.GenerateAssemblyAttributes();
 
                 if (this.EmitThisAssemblyClass)
@@ -133,7 +136,7 @@ namespace Nerdbank.GitVersioning.Tasks
             return null;
         }
 
-#if NET462
+#if NETFRAMEWORK
         /// <inheritdoc/>
         public override bool Execute()
         {
@@ -183,7 +186,7 @@ namespace Nerdbank.GitVersioning.Tasks
         }
 #endif
 
-#if !NET462
+#if !NETFRAMEWORK
         /// <inheritdoc/>
         public override bool Execute()
         {
@@ -230,7 +233,7 @@ namespace Nerdbank.GitVersioning.Tasks
             }
         }
 
-#if NET462
+#if NETFRAMEWORK
         private static CodeMemberField CreateField<T>(string name, T value)
         {
             return new CodeMemberField(typeof(T), name)
@@ -368,6 +371,7 @@ namespace Nerdbank.GitVersioning.Tasks
 
         private void GenerateAssemblyAttributes()
         {
+            this.generator.StartAssemblyAttributes();
             this.generator.DeclareAttribute(typeof(AssemblyVersionAttribute), this.AssemblyVersion);
             this.generator.DeclareAttribute(typeof(AssemblyFileVersionAttribute), this.AssemblyFileVersion);
             this.generator.DeclareAttribute(typeof(AssemblyInformationalVersionAttribute), this.AssemblyInformationalVersion);
@@ -560,18 +564,23 @@ namespace Nerdbank.GitVersioning.Tasks
             this.generator.EndThisAssemblyClass();
         }
 
-        private CodeGenerator CreateGenerator()
+        private CodeGenerator CreateGenerator(string thisAssemblyNamespace, string rootNamespace)
         {
+            // The C#/VB generators did not emit namespaces in past versions of NB.GV, so for compatibility, only check the
+            // new ThisAssemblyNamespace property for these.
+            var userNs = !string.IsNullOrEmpty(thisAssemblyNamespace) ? thisAssemblyNamespace : null;
+
             switch (this.CodeLanguage.ToLowerInvariant())
             {
                 case "c#":
-                    return new CSharpCodeGenerator();
+                    return new CSharpCodeGenerator(userNs);
                 case "visual basic":
                 case "visualbasic":
                 case "vb":
-                    return new VisualBasicCodeGenerator();
+                    return new VisualBasicCodeGenerator(userNs);
                 case "f#":
-                    return new FSharpCodeGenerator();
+                    // The F# generator must emit a namespace, so it respects both ThisAssemblyNamespace and RootNamespace.
+                    return new FSharpCodeGenerator(userNs ?? (!string.IsNullOrEmpty(rootNamespace) ? rootNamespace : "AssemblyInfo"));
                 default:
                     return null;
             }
@@ -626,12 +635,15 @@ namespace Nerdbank.GitVersioning.Tasks
 
         private abstract class CodeGenerator
         {
-            internal CodeGenerator()
+            internal CodeGenerator(string ns)
             {
                 this.CodeBuilder = new StringBuilder();
+                this.Namespace = ns;
             }
 
             protected StringBuilder CodeBuilder { get; }
+
+            protected string Namespace { get; }
 
             protected virtual IEnumerable<string> WarningCodesToSuppress { get; } = new string[]
             {
@@ -641,6 +653,10 @@ namespace Nerdbank.GitVersioning.Tasks
             internal abstract void AddAnalysisSuppressions();
 
             internal abstract void AddComment(string comment);
+
+            internal virtual void StartAssemblyAttributes()
+            {
+            }
 
             internal abstract void DeclareAttribute(Type type, string arg);
 
@@ -653,14 +669,6 @@ namespace Nerdbank.GitVersioning.Tasks
             internal abstract void AddThisAssemblyMember(string name, DateTime value);
 
             internal abstract void EndThisAssemblyClass();
-
-            /// <summary>
-            /// Gives languages that *require* a namespace a chance to emit such.
-            /// </summary>
-            /// <param name="ns">The RootNamespace of the project.</param>
-            internal virtual void EmitNamespaceIfRequired(string ns)
-            {
-            }
 
             internal string GetCode() => this.CodeBuilder.ToString();
 
@@ -683,6 +691,11 @@ namespace Nerdbank.GitVersioning.Tasks
 
         private class FSharpCodeGenerator : CodeGenerator
         {
+            public FSharpCodeGenerator(string ns)
+                : base(ns)
+            {
+            }
+
             internal override void AddAnalysisSuppressions()
             {
                 this.CodeBuilder.AppendLine($"#nowarn {string.Join(" ", this.WarningCodesToSuppress.Select(c => $"\"{c}\""))}");
@@ -708,9 +721,9 @@ namespace Nerdbank.GitVersioning.Tasks
                 this.CodeBuilder.AppendLine($"  static member internal {name} = new System.DateTime({value.Ticks}L, System.DateTimeKind.Utc)");
             }
 
-            internal override void EmitNamespaceIfRequired(string ns)
+            internal override void StartAssemblyAttributes()
             {
-                this.CodeBuilder.AppendLine($"namespace {ns}");
+                this.CodeBuilder.AppendLine($"namespace {this.Namespace}");
             }
 
             internal override void DeclareAttribute(Type type, string arg)
@@ -738,6 +751,11 @@ namespace Nerdbank.GitVersioning.Tasks
 
         private class CSharpCodeGenerator : CodeGenerator
         {
+            public CSharpCodeGenerator(string ns)
+                : base(ns)
+            {
+            }
+
             internal override void AddAnalysisSuppressions()
             {
                 this.CodeBuilder.AppendLine($"#pragma warning disable {string.Join(", ", this.WarningCodesToSuppress)}");
@@ -755,6 +773,11 @@ namespace Nerdbank.GitVersioning.Tasks
 
             internal override void StartThisAssemblyClass()
             {
+                if (this.Namespace is { } ns)
+                {
+                    this.CodeBuilder.AppendLine($"namespace {ns} {{");
+                }
+
                 this.CodeBuilder.AppendLine($"#if {CompilerDefinesAroundGeneratedCodeAttribute}");
                 this.CodeBuilder.AppendLine($"[System.CodeDom.Compiler.GeneratedCode(\"{GeneratorName}\",\"{GeneratorVersion}\")]");
                 this.CodeBuilder.AppendLine("#endif");
@@ -782,11 +805,21 @@ namespace Nerdbank.GitVersioning.Tasks
             internal override void EndThisAssemblyClass()
             {
                 this.CodeBuilder.AppendLine("}");
+
+                if (this.Namespace is not null)
+                {
+                    this.CodeBuilder.AppendLine("}");
+                }
             }
         }
 
         private class VisualBasicCodeGenerator : CodeGenerator
         {
+            public VisualBasicCodeGenerator(string ns)
+                : base(ns)
+            {
+            }
+
             internal override void AddAnalysisSuppressions()
             {
                 this.CodeBuilder.AppendLine($"#Disable Warning {string.Join(", ", this.WarningCodesToSuppress)}");
@@ -804,6 +837,11 @@ namespace Nerdbank.GitVersioning.Tasks
 
             internal override void StartThisAssemblyClass()
             {
+                if (this.Namespace is { } ns)
+                {
+                    this.CodeBuilder.AppendLine($"Namespace {ns}");
+                }
+
                 this.CodeBuilder.AppendLine($"#If {CompilerDefinesAroundExcludeFromCodeCoverageAttribute.Replace("||", " Or ")} Then");
                 this.CodeBuilder.AppendLine($"<System.CodeDom.Compiler.GeneratedCode(\"{GeneratorName}\",\"{GeneratorVersion}\")>");
                 this.CodeBuilder.AppendLine("<System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage>");
@@ -834,6 +872,11 @@ namespace Nerdbank.GitVersioning.Tasks
             internal override void EndThisAssemblyClass()
             {
                 this.CodeBuilder.AppendLine("End Class");
+
+                if (this.Namespace is not null)
+                {
+                    this.CodeBuilder.AppendLine("End Namespace");
+                }
             }
         }
     }

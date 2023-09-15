@@ -1,6 +1,6 @@
 {
-  "$schema": "https://raw.githubusercontent.com/dotnet/Nerdbank.GitVersioning/main/src/NerdBank.GitVersioning/version.schema.json",
-  "version": "3.6-alpha",
+  "$schema": "https://raw.githubusercontent.com/dotnet/Nerdbank.GitVersioning/master/src/NerdBank.GitVersioning/version.schema.json",
+  "version": "3.7-alpha",
   "assemblyVersion": {
     "precision": "revision"
   },
@@ -10,6 +10,9 @@
     "^refs/heads/v\\d+\\.\\d+$"
   ],
   "cloudBuild": {
-    "setVersionVariables": false
+    "setVersionVariables": false,
+    "buildNumber": {
+      "enabled": false
+    }
   }
 }

@@ -24,7 +24,7 @@ public class VersionOracleManagedTests : VersionOracleTests
 
     /// <inheritdoc/>
     protected override GitContext CreateGitContext(string path, string committish = null)
-        => GitContext.Create(path, committish, writable: false);
+        => GitContext.Create(path, committish, engine: GitContext.Engine.ReadOnly);
 }
 
 [Trait("Engine", "LibGit2")]
@@ -37,7 +37,7 @@ public class VersionOracleLibGit2Tests : VersionOracleTests
 
     /// <inheritdoc/>
     protected override GitContext CreateGitContext(string path, string committish = null)
-        => GitContext.Create(path, committish, writable: true);
+        => GitContext.Create(path, committish, engine: GitContext.Engine.ReadWrite);
 }
 
 public abstract class VersionOracleTests : RepoTestBase
@@ -604,15 +604,19 @@ public abstract class VersionOracleTests : RepoTestBase
 
         string workTreePath = this.CreateDirectoryForNewRepo();
         Directory.Delete(workTreePath);
+        Worktree worktree;
         if (detachedHead)
         {
-            this.LibGit2Repository.Worktrees.Add("HEAD~1", "myworktree", workTreePath, isLocked: false);
+            worktree = this.LibGit2Repository.Worktrees.Add("HEAD~1", "myworktree", workTreePath, isLocked: false);
         }
         else
         {
             this.LibGit2Repository.Branches.Add("wtbranch", "HEAD~1");
-            this.LibGit2Repository.Worktrees.Add("wtbranch", "myworktree", workTreePath, isLocked: false);
+            worktree = this.LibGit2Repository.Worktrees.Add("wtbranch", "myworktree", workTreePath, isLocked: false);
         }
+
+        // Workaround for https://github.com/libgit2/libgit2sharp/issues/2037
+        Commands.Checkout(worktree.WorktreeRepository, "HEAD", new CheckoutOptions { CheckoutModifiers = CheckoutModifiers.Force });
 
         GitContext context = this.CreateGitContext(workTreePath);
         var oracleWorkTree = new VersionOracle(context);

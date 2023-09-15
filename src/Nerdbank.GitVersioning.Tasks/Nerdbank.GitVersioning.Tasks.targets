@@ -1,0 +1,35 @@
+<Project>
+  <Target Name="SetNuSpecProperties" BeforeTargets="GenerateNuspec" DependsOnTargets="GetBuildVersion">
+    <PropertyGroup>
+      <LibGit2SharpNativeBinaries>$(NuGetPackageRoot)libgit2sharp.nativebinaries\$(LibGit2SharpNativeVersion)\</LibGit2SharpNativeBinaries>
+      <NuspecProperties>$(NuspecProperties);Version=$(Version);commit=$(GitCommitId);BaseOutputPath=$(OutputPath);LibGit2SharpNativeBinaries=$(LibGit2SharpNativeBinaries);libgit2_filename=$(libgit2_filename)</NuspecProperties>
+      <NuspecProperties Condition=" '$(PackLKG)' == 'true' ">$(NuspecProperties);LKGSuffix=.LKG</NuspecProperties>
+    </PropertyGroup>
+  </Target>
+
+  <Target Name="PackBuildOutputs" DependsOnTargets="SatelliteDllsProjectOutputGroup;DebugSymbolsProjectOutputGroup">
+    <PropertyGroup>
+      <BuildSubDir Condition=" '$(TargetFramework)' == 'net6.0' ">MSBuildCore\</BuildSubDir>
+      <BuildSubDir Condition=" '$(TargetFramework)' == 'net472' ">MSBuildFull\</BuildSubDir>
+    </PropertyGroup>
+    <Error Text="Unrecognized TargetFramework" Condition=" '$(BuildSubDir)' == '' " />
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="
+                        $(OutputPath)LibGit2Sharp.dll*;
+                        $(OutputPath)MSBuildExtensionTask.dll;
+                        $(OutputPath)Microsoft.DotNet.PlatformAbstractions.dll;
+                        $(OutputPath)Nerdbank.GitVersioning.*dll;
+                        $(OutputPath)Newtonsoft.Json.dll;
+                        $(OutputPath)System.Text.Json.dll;
+                        $(OutputPath)System.Runtime.CompilerServices.Unsafe.dll;
+                        $(OutputPath)Validation.dll;
+               ">
+        <PackagePath>build\$(BuildSubDir)</PackagePath>
+      </TfmSpecificPackageFile>
+      <!-- Package up the libgit2 native binaries -->
+      <TfmSpecificPackageFile Include="@(ContentWithTargetPath)" Condition=" '%(ContentWithTargetPath.CopyToOutputDirectory)' == 'PreserveNewest' ">
+        <PackagePath>build\$(BuildSubDir)%(ContentWithTargetPath.TargetPath)</PackagePath>
+      </TfmSpecificPackageFile>
+    </ItemGroup>
+  </Target>
+</Project>

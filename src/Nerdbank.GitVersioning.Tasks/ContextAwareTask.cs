@@ -11,6 +11,7 @@ using Nerdbank.GitVersioning;
 #endif
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
+using Nerdbank.GitVersioning.LibGit2;
 
 namespace MSBuildExtensionTask
 {
@@ -23,10 +24,11 @@ namespace MSBuildExtensionTask
         /// <inheritdoc/>
         public override bool Execute()
         {
-#if NETCOREAPP
             string taskAssemblyPath = this.GetType().GetTypeInfo().Assembly.Location;
-
-            Assembly inContextAssembly = GitLoaderContext.Instance.LoadFromAssemblyPath(taskAssemblyPath);
+            string unmanagedBaseDirectory = Path.GetDirectoryName(Path.GetDirectoryName(taskAssemblyPath));
+#if NETCOREAPP
+            GitLoaderContext loaderContext = new(unmanagedBaseDirectory);
+            Assembly inContextAssembly = loaderContext.LoadFromAssemblyPath(taskAssemblyPath);
             Type innerTaskType = inContextAssembly.GetType(this.GetType().FullName);
             object innerTask = Activator.CreateInstance(innerTaskType);
 
@@ -55,18 +57,7 @@ namespace MSBuildExtensionTask
 
             return result;
 #else
-            // On .NET Framework (on Windows), we find native binaries by adding them to our PATH.
-            if (this.UnmanagedDllDirectory is not null)
-            {
-                string pathEnvVar = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
-                string[] searchPaths = pathEnvVar.Split(Path.PathSeparator);
-                if (!searchPaths.Contains(this.UnmanagedDllDirectory, StringComparer.OrdinalIgnoreCase))
-                {
-                    pathEnvVar += Path.PathSeparator + this.UnmanagedDllDirectory;
-                    Environment.SetEnvironmentVariable("PATH", pathEnvVar);
-                }
-            }
-
+            LibGit2GitExtensions.LoadNativeBinary(unmanagedBaseDirectory);
             return this.ExecuteInner();
 #endif
         }

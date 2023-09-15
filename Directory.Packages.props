@@ -1,0 +1,54 @@
+<Project>
+  <!-- https://learn.microsoft.com/nuget/consume-packages/central-package-management -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+    <BenchmarkDotNetVersion>0.13.5</BenchmarkDotNetVersion>
+    <MSBuildPackageVersion>16.11.0</MSBuildPackageVersion>
+    <MSBuildPackageVersion Condition="'$(IsTestProject)'=='true'">15.9.20</MSBuildPackageVersion>
+    <!-- LibGit2Sharp Native Binary version - used in both main project and Cake addin -->
+    <LibGit2SharpNativeVersion>2.0.320</LibGit2SharpNativeVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="BenchmarkDotNet.Diagnostics.Windows" Version="$(BenchmarkDotNetVersion)" />
+    <PackageVersion Include="BenchmarkDotNet" Version="$(BenchmarkDotNetVersion)" />
+    <PackageVersion Include="Cake.Core" Version="3.0.0" />
+    <PackageVersion Include="DotNetMDDocs" Version="0.112.39" />
+    <PackageVersion Include="LibGit2Sharp" Version="0.27.2" />
+    <PackageVersion Include="LibGit2Sharp.NativeBinaries" Version="$(LibGit2SharpNativeVersion)" />
+    <PackageVersion Include="Microsoft.Build.Framework" Version="$(MSBuildPackageVersion)" />
+    <PackageVersion Include="Microsoft.Build.Locator" Version="1.5.5" />
+    <PackageVersion Include="Microsoft.Build.Tasks.Core" Version="$(MSBuildPackageVersion)" />
+    <PackageVersion Include="Microsoft.Build.Utilities.Core" Version="$(MSBuildPackageVersion)" />
+    <PackageVersion Include="Microsoft.Build" Version="$(MSBuildPackageVersion)" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.6.0" />
+    <PackageVersion Include="Microsoft.DotNet.PlatformAbstractions" Version="3.1.6" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.7.2" />
+    <PackageVersion Include="Microsoft.Windows.CsWin32" Version="0.2.206-beta" />
+    <PackageVersion Include="Moq" Version="4.18.4" />
+    <PackageVersion Include="Nerdbank.GitVersioning.LKG" Version="3.4.173-alpha" />
+    <PackageVersion Include="Newtonsoft.Json.Schema" Version="3.0.15" />
+    <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageVersion Include="NuGet.PackageManagement" Version="6.5.0" />
+    <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+    <PackageVersion Include="System.Diagnostics.Tools" Version="4.3.0" />
+    <PackageVersion Include="System.Memory" Version="4.5.5" />
+    <PackageVersion Include="System.Runtime.Loader" Version="4.3.0" />
+    <PackageVersion Include="System.Text.Json" Version="7.0.3" />
+    <PackageVersion Include="System.Threading.Tasks.Dataflow" Version="7.0.0" />
+    <PackageVersion Include="Validation" Version="2.5.51" />
+    <PackageVersion Include="Xunit.Combinatorial" Version="1.6.24" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="2.5.0" />
+    <PackageVersion Include="Xunit.SkippableFact" Version="1.4.13" />
+    <PackageVersion Include="xunit" Version="2.5.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <GlobalPackageReference Include="CSharpIsNullAnalyzer" Version="0.1.495" />
+    <GlobalPackageReference Include="DotNetAnalyzers.DocumentationAnalyzers" Version="1.0.0-beta.59" />
+    <GlobalPackageReference Include="Nullable" Version="1.3.1" />
+    <GlobalPackageReference Include="StyleCop.Analyzers.Unstable" Version="1.2.0.507" />
+  </ItemGroup>
+  <ItemGroup>
+    <GlobalPackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" />
+  </ItemGroup>
+</Project>

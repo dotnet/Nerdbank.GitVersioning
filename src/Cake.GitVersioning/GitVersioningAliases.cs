@@ -29,7 +29,7 @@ namespace Cake.GitVersioning
         /// Task("GetVersion")
         ///     .Does(() =>
         /// {
-        ///     Information(GetVersioningGetVersion().SemVer2)
+        ///     Information(GitVersioningGetVersion().SemVer2)
         /// });
         /// ]]></code>
         /// </remarks>

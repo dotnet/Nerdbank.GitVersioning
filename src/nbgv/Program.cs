@@ -79,7 +79,8 @@ namespace Nerdbank.GitVersioning.Tool
         {
             string thisAssemblyPath = typeof(Program).GetTypeInfo().Assembly.Location;
 
-            Assembly inContextAssembly = GitLoaderContext.Instance.LoadFromAssemblyPath(thisAssemblyPath);
+            GitLoaderContext loaderContext = new(Path.GetDirectoryName(thisAssemblyPath));
+            Assembly inContextAssembly = loaderContext.LoadFromAssemblyPath(thisAssemblyPath);
             Type innerProgramType = inContextAssembly.GetType(typeof(Program).FullName);
             object innerProgram = Activator.CreateInstance(innerProgramType);
 
@@ -314,7 +315,7 @@ namespace Nerdbank.GitVersioning.Tool
                 return (int)ExitCodes.NoGitRepo;
             }
 
-            using var context = GitContext.Create(searchPath, writable: true);
+            using var context = GitContext.Create(searchPath, engine: GitContext.Engine.ReadWrite);
             if (!context.IsRepository)
             {
                 Console.Error.WriteLine("No git repo found at or above: \"{0}\"", searchPath);
@@ -416,7 +417,7 @@ namespace Nerdbank.GitVersioning.Tool
 
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(project);
 
-            using var context = GitContext.Create(searchPath, writable: AlwaysUseLibGit2);
+            using var context = GitContext.Create(searchPath, engine: AlwaysUseLibGit2 ? GitContext.Engine.ReadWrite : GitContext.Engine.ReadOnly);
             if (!context.IsRepository)
             {
                 Console.Error.WriteLine("No git repo found at or above: \"{0}\"", searchPath);
@@ -499,7 +500,7 @@ namespace Nerdbank.GitVersioning.Tool
             };
 
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(project);
-            using var context = GitContext.Create(searchPath, writable: true);
+            using var context = GitContext.Create(searchPath, engine: GitContext.Engine.ReadWrite);
             VersionOptions existingOptions = context.VersionFile.GetVersion(out string actualDirectory);
             string versionJsonPath;
             if (existingOptions is not null)
@@ -539,7 +540,7 @@ namespace Nerdbank.GitVersioning.Tool
 
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(project);
 
-            using var context = (LibGit2Context)GitContext.Create(searchPath, writable: true);
+            using var context = (LibGit2Context)GitContext.Create(searchPath, engine: GitContext.Engine.ReadWrite);
             if (context is null)
             {
                 Console.Error.WriteLine("No git repo found at or above: \"{0}\"", searchPath);
@@ -638,7 +639,7 @@ namespace Nerdbank.GitVersioning.Tool
 
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(project);
 
-            using var context = (LibGit2Context)GitContext.Create(searchPath, writable: true);
+            using var context = (LibGit2Context)GitContext.Create(searchPath, engine: GitContext.Engine.ReadWrite);
             if (!context.IsRepository)
             {
                 Console.Error.WriteLine("No git repo found at or above: \"{0}\"", searchPath);

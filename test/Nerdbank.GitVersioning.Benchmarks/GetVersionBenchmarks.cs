@@ -9,9 +9,8 @@ using BenchmarkDotNet.Jobs;
 
 namespace Nerdbank.GitVersioning.Benchmarks
 {
-    [SimpleJob(RuntimeMoniker.NetCoreApp31, baseline: true)]
-    [SimpleJob(RuntimeMoniker.Net60)]
-    [SimpleJob(RuntimeMoniker.Net461)]
+    [SimpleJob(RuntimeMoniker.Net70)]
+    [SimpleJob(RuntimeMoniker.Net472, baseline: true)]
     public class GetVersionBenchmarks
     {
         // You must manually clone these repositories:
@@ -29,7 +28,7 @@ namespace Nerdbank.GitVersioning.Benchmarks
         [Benchmark(Baseline = true)]
         public void GetVersionLibGit2()
         {
-            using var context = GitContext.Create(GetPath(this.ProjectDirectory), writable: true);
+            using var context = GitContext.Create(GetPath(this.ProjectDirectory), engine: GitContext.Engine.ReadWrite);
             var oracle = new VersionOracle(context, cloudBuild: null);
             this.Version = oracle.Version;
         }
@@ -37,7 +36,7 @@ namespace Nerdbank.GitVersioning.Benchmarks
         [Benchmark]
         public void GetVersionManaged()
         {
-            using var context = GitContext.Create(GetPath(this.ProjectDirectory), writable: false);
+            using var context = GitContext.Create(GetPath(this.ProjectDirectory), engine: GitContext.Engine.ReadOnly);
             var oracle = new VersionOracle(context, cloudBuild: null);
             this.Version = oracle.Version;
         }

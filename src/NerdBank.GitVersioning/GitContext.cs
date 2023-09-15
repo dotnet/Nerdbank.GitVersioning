@@ -41,6 +41,24 @@ public abstract class GitContext : IDisposable
         this.DotGitPath = dotGitPath;
     }
 
+    public enum Engine
+    {
+        /// <summary>
+        /// Uses the faster and platform independent managed git implementation.
+        /// </summary>
+        ReadOnly,
+
+        /// <summary>
+        /// Uses the LibGit2 engine.
+        /// </summary>
+        ReadWrite,
+
+        /// <summary>
+        /// Uses a stubbed out engine that doesn't compute versions at all.
+        /// </summary>
+        Disabled,
+    }
+
     /// <summary>
     /// Gets the absolute path to the base directory of the git working tree.
     /// </summary>
@@ -115,17 +133,21 @@ public abstract class GitContext : IDisposable
     /// </summary>
     /// <param name="path">The path to a directory for which version information is required.</param>
     /// <param name="committish">The SHA-1 or ref for a git commit.</param>
-    /// <param name="writable"><see langword="true"/> if mutating the git repository may be required; <see langword="false" /> otherwise.</param>
+    /// <param name="engine">The git engine to use.</param>
     /// <returns>The newly created <see cref="GitContext"/>.</returns>
-    public static GitContext Create(string path, string? committish = null, bool writable = false)
+    public static GitContext Create(string path, string? committish = null, Engine engine = Engine.ReadOnly)
     {
         Requires.NotNull(path, nameof(path));
 
         if (TryFindGitPaths(path, out string? gitDirectory, out string? workingTreeDirectory, out string? workingTreeRelativePath))
         {
-            GitContext result = writable
-                ? new LibGit2.LibGit2Context(workingTreeDirectory, gitDirectory, committish)
-                : new Managed.ManagedGitContext(workingTreeDirectory, gitDirectory, committish);
+            GitContext result = engine switch
+            {
+                Engine.Disabled => new DisabledGitContext(workingTreeDirectory),
+                Engine.ReadWrite => new LibGit2.LibGit2Context(workingTreeDirectory, gitDirectory, committish),
+                Engine.ReadOnly => new Managed.ManagedGitContext(workingTreeDirectory, gitDirectory, committish),
+                _ => throw new ArgumentException("Unrecognized value.", nameof(engine)),
+            };
             result.RepoRelativeProjectDirectory = workingTreeRelativePath;
             return result;
         }

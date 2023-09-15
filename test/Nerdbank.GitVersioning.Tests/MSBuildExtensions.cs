@@ -21,7 +21,20 @@ internal static class MSBuildExtensions
         {
             if (!loaded)
             {
+#if NET
+                if (IntPtr.Size == 4)
+                {
+                    // 32-bit .NET runtime requires special code to find the x86 SDK (where MSBuild is).
+                    MSBuildLocator.RegisterMSBuildPath(@"C:\Program Files (x86)\dotnet\sdk\7.0.302");
+                }
+                else
+                {
+                    MSBuildLocator.RegisterDefaults();
+                }
+#else
                 MSBuildLocator.RegisterDefaults();
+#endif
+
                 loaded = true;
             }
         }

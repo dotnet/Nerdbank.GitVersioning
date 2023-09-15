@@ -23,11 +23,8 @@ jobs:
   - template: install-dependencies.yml
   - pwsh: |
       Invoke-WebRequest -Uri "https://dot.net/v1/dotnet-install.ps1" -OutFile dotnet-install.ps1
-      & .\dotnet-install.ps1 -Architecture x86 -Version 6.0.403 -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose
+      & .\dotnet-install.ps1 -Architecture x86 -Version 7.0.302 -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose
     displayName: ⚙ Install 32-bit .NET SDK and runtimes
-
-  - powershell: '& (./azure-pipelines/Get-nbgv.ps1) cloud -c'
-    displayName: ⚙ Set build number
 
   - template: dotnet.yml
     parameters:
@@ -42,6 +39,8 @@ jobs:
     clean: true
     submodules: true # keep the warnings quiet about the wiki not being enlisted
   - template: install-dependencies.yml
+  - powershell: dotnet tool run nbgv cloud -c
+    displayName: ⚙ Set build number
   - template: dotnet.yml
     parameters:
       RunTests: ${{ parameters.RunTests }}

@@ -219,13 +219,16 @@ namespace Nerdbank.GitVersioning.Tasks
                     Requires.Argument(!containsDotDotSlash, nameof(this.ProjectPathRelativeToGitRepoRoot), "Path must not use ..\\");
                 }
 
-                bool useLibGit2 = false;
+                GitContext.Engine engine = GitContext.Engine.ReadOnly;
                 if (!string.IsNullOrWhiteSpace(this.GitEngine))
                 {
-                    useLibGit2 =
-                        this.GitEngine == "Managed" ? false :
-                        this.GitEngine == "LibGit2" ? true :
-                        throw new ArgumentException("GitEngine property must be set to either \"Managed\" or \"LibGit2\" or left empty.");
+                    engine = this.GitEngine switch
+                    {
+                        "Managed" => GitContext.Engine.ReadOnly,
+                        "LibGit2" => GitContext.Engine.ReadWrite,
+                        "Disabled" => GitContext.Engine.Disabled,
+                        _ => throw new ArgumentException("GitEngine property must be set to either \"Disabled\", \"Managed\" or \"LibGit2\" or left empty."),
+                    };
                 }
 
                 ICloudBuild cloudBuild = CloudBuild.Active;
@@ -233,7 +236,7 @@ namespace Nerdbank.GitVersioning.Tasks
                 string projectDirectory = this.ProjectPathRelativeToGitRepoRoot is object && this.GitRepoRoot is object
                     ? Path.Combine(this.GitRepoRoot, this.ProjectPathRelativeToGitRepoRoot)
                     : this.ProjectDirectory;
-                using var context = GitContext.Create(projectDirectory, writable: useLibGit2);
+                using var context = GitContext.Create(projectDirectory, engine: engine);
                 var oracle = new VersionOracle(context, cloudBuild, overrideBuildNumberOffset);
                 if (!string.IsNullOrEmpty(this.DefaultPublicRelease))
                 {

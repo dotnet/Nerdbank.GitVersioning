@@ -21,33 +21,33 @@ namespace Nerdbank.GitVersioning.ManagedGit;
 ///   twice, it is read from the <see cref="MemoryStream"/>, rather than the underlying <see cref="Stream"/>.
 /// </para>
 /// <para>
-///   <see cref="Add(long, Stream)"/> and <see cref="TryOpen(long, out Stream?)"/> return <see cref="Stream"/>
+///   <see cref="Add(long, Stream, string)"/> and <see cref="TryOpen(long, out ValueTuple{Stream, string}?)"/> return <see cref="Stream"/>
 ///   objects which may operate on the same underlying <see cref="Stream"/>, but independently maintain
 ///   their state.
 /// </para>
 /// </summary>
 public class GitPackMemoryCache : GitPackCache
 {
-    private readonly Dictionary<long, GitPackMemoryCacheStream> cache = new Dictionary<long, GitPackMemoryCacheStream>();
+    private readonly Dictionary<long, (GitPackMemoryCacheStream, string)> cache = new();
 
     /// <inheritdoc/>
-    public override Stream Add(long offset, Stream stream)
+    public override Stream Add(long offset, Stream stream, string objectType)
     {
         var cacheStream = new GitPackMemoryCacheStream(stream);
-        this.cache.Add(offset, cacheStream);
+        this.cache.Add(offset, (cacheStream, objectType));
         return new GitPackMemoryCacheViewStream(cacheStream);
     }
 
     /// <inheritdoc/>
-    public override bool TryOpen(long offset, [NotNullWhen(true)] out Stream? stream)
+    public override bool TryOpen(long offset, [NotNullWhen(true)] out (Stream ContentStream, string ObjectType)? hit)
     {
-        if (this.cache.TryGetValue(offset, out GitPackMemoryCacheStream? cacheStream))
+        if (this.cache.TryGetValue(offset, out (GitPackMemoryCacheStream Stream, string ObjectType) tuple))
         {
-            stream = new GitPackMemoryCacheViewStream(cacheStream!);
+            hit = (new GitPackMemoryCacheViewStream(tuple.Stream), tuple.ObjectType);
             return true;
         }
 
-        stream = null;
+        hit = null;
         return false;
     }
 
@@ -64,8 +64,8 @@ public class GitPackMemoryCache : GitPackCache
         {
             while (this.cache.Count > 0)
             {
-                long key = this.cache.Keys.First();
-                GitPackMemoryCacheStream? stream = this.cache[key];
+                var key = this.cache.Keys.First();
+                (GitPackMemoryCacheStream? stream, _) = this.cache[key];
                 stream.Dispose();
                 this.cache.Remove(key);
             }
