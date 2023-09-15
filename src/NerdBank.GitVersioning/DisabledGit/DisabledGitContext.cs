@@ -26,6 +26,8 @@ internal class DisabledGitContext : GitContext
 
     public override string? HeadCanonicalName => null;
 
+    public override IReadOnlyCollection<string>? HeadTags => null;
+
     private string DebuggerDisplay => $"\"{this.WorkingTreePath}\" (disabled-git)";
 
     public override void ApplyTag(string name) => throw new NotSupportedException();

@@ -853,7 +853,7 @@ public class GitRepository : IDisposable
         {
             // could contain "peeled" or "fully-peeled" or (typically) both.
             // The meaning of any of these is equivalent for our use case.
-#if NETSTANDARD2_0
+#if NETFRAMEWORK
             tagsPeeled = firstLine.IndexOf("peeled", StringComparison.Ordinal) >= 0;
 #else
             tagsPeeled = firstLine.Contains("peeled", StringComparison.Ordinal);
