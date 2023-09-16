@@ -33,6 +33,9 @@ internal class NoGitContext : GitContext
     /// <inheritdoc/>
     public override string? HeadCanonicalName => null;
 
+    /// <inheritdoc/>
+    public override IReadOnlyCollection<string>? HeadTags => null;
+
     private string DebuggerDisplay => $"\"{this.WorkingTreePath}\" (no-git)";
 
     /// <inheritdoc/>

@@ -14,6 +14,11 @@ namespace Nerdbank.GitVersioning.LibGit2;
 [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
 public class LibGit2Context : GitContext
 {
+    /// <summary>
+    /// Caching field behind <see cref="HeadTags" /> property.
+    /// </summary>
+    private IReadOnlyCollection<string>? headTags;
+
     internal LibGit2Context(string workingTreeDirectory, string dotGitPath, string? committish = null)
         : base(workingTreeDirectory, dotGitPath)
     {
@@ -50,6 +55,20 @@ public class LibGit2Context : GitContext
 
     /// <inheritdoc />
     public override string HeadCanonicalName => this.Repository.Head.CanonicalName;
+
+    /// <inheritdoc />
+    public override IReadOnlyCollection<string>? HeadTags
+    {
+        get
+        {
+            return this.headTags ??= this.Commit is not null
+                ? this.Repository.Tags
+                    .Where(tag => tag.Target.Sha.Equals(this.Commit.Sha))
+                    .Select(tag => tag.CanonicalName)
+                    .ToList()
+                : null;
+        }
+    }
 
     private string DebuggerDisplay => $"\"{this.WorkingTreePath}\" (libgit2)";
 

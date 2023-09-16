@@ -67,17 +67,17 @@ public unsafe struct GitObjectId : IEquatable<GitObjectId>
     }
 
     /// <summary>
-    /// Parses a <see cref="string"/> which contains the hexadecimal representation of a
-    /// <see cref="GitObjectId"/>.
+    /// Parses a <see cref="ReadOnlySpan{T}"/> of <see cref="char"/> which contains the
+    /// hexadecimal representation of a <see cref="GitObjectId"/>.
     /// </summary>
     /// <param name="value">
-    /// A <see cref="string"/> which contains the hexadecimal representation of the
-    /// <see cref="GitObjectId"/>.
+    /// A <see cref="ReadOnlySpan{T}"/> of <see cref="char"/> which contains the
+    /// hexadecimal representation of the <see cref="GitObjectId"/>.
     /// </param>
     /// <returns>
     /// A <see cref="GitObjectId"/>.
     /// </returns>
-    public static GitObjectId Parse(string value)
+    public static GitObjectId Parse(ReadOnlySpan<char> value)
     {
         Debug.Assert(value.Length == 40);
 
@@ -92,6 +92,23 @@ public unsafe struct GitObjectId : IEquatable<GitObjectId>
             bytes[i >> 1] = (byte)(c1 + c2);
         }
 
+        return objectId;
+    }
+
+    /// <summary>
+    /// Parses a <see cref="string"/> which contains the hexadecimal representation of a
+    /// <see cref="GitObjectId"/>.
+    /// </summary>
+    /// <param name="value">
+    /// A <see cref="string"/> which contains the hexadecimal representation of the
+    /// <see cref="GitObjectId"/>.
+    /// </param>
+    /// <returns>
+    /// A <see cref="GitObjectId"/>.
+    /// </returns>
+    public static GitObjectId Parse(string value)
+    {
+        GitObjectId objectId = Parse(value.AsSpan());
         objectId.sha = value.ToLower();
         return objectId;
     }
@@ -109,7 +126,10 @@ public unsafe struct GitObjectId : IEquatable<GitObjectId>
     /// </returns>
     public static GitObjectId ParseHex(ReadOnlySpan<byte> value)
     {
-        Debug.Assert(value.Length == 40);
+        if (value.Length != 40)
+        {
+            throw new ArgumentException($"Length should be exactly 40, but was {value.Length}.", nameof(value));
+        }
 
         var objectId = default(GitObjectId);
         Span<byte> bytes = objectId.Value;

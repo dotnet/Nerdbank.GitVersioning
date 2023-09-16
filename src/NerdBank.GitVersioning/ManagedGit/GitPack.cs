@@ -3,6 +3,7 @@
 
 #nullable enable
 
+using System.Diagnostics.CodeAnalysis;
 using System.IO.MemoryMappedFiles;
 using System.Text;
 
@@ -141,7 +142,7 @@ public class GitPack : IDisposable
     /// <returns>
     /// <see langword="true"/> if the object was found; otherwise, <see langword="false"/>.
     /// </returns>
-    public bool TryGetObject(GitObjectId objectId, string objectType, out Stream? value)
+    public bool TryGetObject(GitObjectId objectId, string objectType, [NotNullWhen(true)] out Stream? value)
     {
         long? offset = this.GetOffset(objectId);
 
@@ -152,8 +153,18 @@ public class GitPack : IDisposable
         }
         else
         {
-            value = this.GetObject(offset.Value, objectType);
-            return true;
+            // This try-catch should probably be replaced by a non-throwing GetObject implementation.
+            // This is in turn dependend on a proper GitPackReader.TryGetObject implementation.
+            try
+            {
+                value = this.GetObject(offset.Value, objectType);
+                return true;
+            }
+            catch (GitException gexc) when (gexc.ErrorCode == GitException.ErrorCodes.ObjectNotFound)
+            {
+                value = null;
+                return false;
+            }
         }
     }
 
@@ -202,6 +213,10 @@ public class GitPack : IDisposable
 
             case "blob":
                 packObjectType = GitPackObjectType.OBJ_BLOB;
+                break;
+
+            case "tag":
+                packObjectType = GitPackObjectType.OBJ_TAG;
                 break;
 
             default:

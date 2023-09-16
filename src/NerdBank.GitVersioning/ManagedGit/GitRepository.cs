@@ -1,4 +1,4 @@
-﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
+// Copyright (c) .NET Foundation and Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #nullable enable
@@ -377,38 +377,29 @@ public class GitRepository : IDisposable
         }
 
         // Match in packed-refs file.
-        string packedRefPath = Path.Combine(this.CommonDirectory, "packed-refs");
-        if (File.Exists(packedRefPath))
+        foreach ((string line, string? _) in this.EnumeratePackedRefsWithPeelLines(out var _))
         {
-            using StreamReader? refReader = File.OpenText(packedRefPath);
-            string? line;
-            while ((line = refReader.ReadLine()) is object)
-            {
-                if (line.StartsWith("#", StringComparison.Ordinal))
-                {
-                    continue;
-                }
+            var refName = line.Substring(41);
+            GitObjectId GetObjId() => GitObjectId.Parse(line.AsSpan().Slice(0, 40));
 
-                string refName = line.Substring(41);
-                if (string.Equals(refName, objectish, StringComparison.Ordinal))
+            if (string.Equals(refName, objectish, StringComparison.Ordinal))
+            {
+                return GetObjId();
+            }
+            else if (!objectish.StartsWith("refs/", StringComparison.Ordinal))
+            {
+                // Not a canonical ref, so try heads and tags
+                if (string.Equals(refName, "refs/heads/" + objectish, StringComparison.Ordinal))
                 {
-                    return GitObjectId.Parse(line.Substring(0, 40));
+                    return GetObjId();
                 }
-                else if (!objectish.StartsWith("refs/", StringComparison.Ordinal))
+                else if (string.Equals(refName, "refs/tags/" + objectish, StringComparison.Ordinal))
                 {
-                    // Not a canonical ref, so try heads and tags
-                    if (string.Equals(refName, "refs/heads/" + objectish, StringComparison.Ordinal))
-                    {
-                        return GitObjectId.Parse(line.Substring(0, 40));
-                    }
-                    else if (string.Equals(refName, "refs/tags/" + objectish, StringComparison.Ordinal))
-                    {
-                        return GitObjectId.Parse(line.Substring(0, 40));
-                    }
-                    else if (string.Equals(refName, "refs/remotes/" + objectish, StringComparison.Ordinal))
-                    {
-                        return GitObjectId.Parse(line.Substring(0, 40));
-                    }
+                    return GetObjId();
+                }
+                else if (string.Equals(refName, "refs/remotes/" + objectish, StringComparison.Ordinal))
+                {
+                    return GetObjId();
                 }
             }
         }
@@ -582,7 +573,7 @@ public class GitRepository : IDisposable
     /// <see langword="true"/> if the object could be found; otherwise,
     /// <see langword="false"/>.
     /// </returns>
-    public bool TryGetObjectBySha(GitObjectId sha, string objectType, out Stream? value)
+    public bool TryGetObjectBySha(GitObjectId sha, string objectType, [NotNullWhen(true)] out Stream? value)
     {
 #if DEBUG
         if (!this.histogram.TryAdd(sha, 1))
@@ -646,6 +637,62 @@ public class GitRepository : IDisposable
         }
 
         return builder.ToString();
+    }
+
+    /// <summary>
+    /// Returns a list of canonical names of tags that point to the given Git object id.
+    /// </summary>
+    /// <param name="objectId">The git object id to get the corresponding tags for.</param>
+    /// <returns>A list of canonical names of tags.</returns>
+    public List<string> LookupTags(GitObjectId objectId)
+    {
+        var tags = new List<string>();
+
+        void HandleCandidate(GitObjectId pointsAt, string tagName, bool isPeeled)
+        {
+            if (objectId.Equals(pointsAt))
+            {
+                tags.Add(tagName);
+            }
+            else if (!isPeeled && this.TryGetObjectBySha(pointsAt, "tag", out Stream? tagContent))
+            {
+                GitAnnotatedTag tag = GitAnnotatedTagReader.Read(tagContent, pointsAt);
+                if ("commit".Equals(tag.Type, StringComparison.Ordinal) && objectId.Equals(tag.Object))
+                {
+                    tags.Add($"refs/tags/{tag.Tag}");
+                }
+            }
+        }
+
+        // Both tag files and packed-refs might either contain lightweight or annotated tags.
+        // tag files
+        var tagDir = Path.Combine(this.CommonDirectory, "refs", "tags");
+        foreach (var tagFile in Directory.EnumerateFiles(tagDir, "*", SearchOption.AllDirectories))
+        {
+            var tagObjId = GitObjectId.ParseHex(File.ReadAllBytes(tagFile).AsSpan().Slice(0, 40));
+
+            // \ is not legal in git tag names
+            var tagName = tagFile.Substring(tagDir.Length + 1).Replace('\\', '/');
+            var canonical = $"refs/tags/{tagName}";
+
+            HandleCandidate(tagObjId, canonical, false);
+        }
+
+        // packed-refs file
+        foreach ((string line, string? peelLine) in this.EnumeratePackedRefsWithPeelLines(out var tagsPeeled))
+        {
+            var refName = line.Substring(41);
+
+            // If we remove this check we do find local and remote branch heads too.
+            if (refName.StartsWith("refs/tags/", StringComparison.Ordinal))
+            {
+                ReadOnlySpan<char> tagSpan = peelLine is null ? line.AsSpan().Slice(0, 40) : peelLine.AsSpan().Slice(1, 40);
+                var tagObjId = GitObjectId.Parse(tagSpan);
+                HandleCandidate(tagObjId, refName, tagsPeeled);
+            }
+        }
+
+        return tags;
     }
 
     /// <inheritdoc/>
@@ -766,5 +813,113 @@ public class GitRepository : IDisposable
         }
 
         return packs.AsMemory(0, addCount);
+    }
+
+    private IEnumerable<string> EnumerateLines(string filePath)
+    {
+        using StreamReader sr = File.OpenText(filePath);
+        string? line;
+        while ((line = sr.ReadLine()) is not null)
+        {
+            yield return line;
+        }
+    }
+
+    /// <summary>
+    /// Enumerate the lines in the packed-refs file. Skips comment lines.
+    /// </summary>
+    private IEnumerable<string> EnumeratePackedRefsRaw(out bool tagsPeeled)
+    {
+        tagsPeeled = false;
+        string packedRefPath = Path.Combine(this.CommonDirectory, "packed-refs");
+        if (!File.Exists(packedRefPath))
+        {
+            return Enumerable.Empty<string>();
+        }
+
+        // We use the rather simple EnumerateLines iterator here because this way
+        // the disposable StreamReader can survive when this method already returned and
+        // Enumerate() runs.
+        IEnumerator<string> lines = this.EnumerateLines(packedRefPath).GetEnumerator();
+        if (!lines.MoveNext())
+        {
+            return Enumerable.Empty<string>();
+        }
+
+        // see https://github.com/git/git/blob/d9d677b2d8cc5f70499db04e633ba7a400f64cbf/refs/packed-backend.c#L618
+        const string fileHeaderPrefix = "# pack-refs with:";
+        string firstLine = lines.Current;
+        if (firstLine.StartsWith(fileHeaderPrefix))
+        {
+            // could contain "peeled" or "fully-peeled" or (typically) both.
+            // The meaning of any of these is equivalent for our use case.
+#if NETFRAMEWORK
+            tagsPeeled = firstLine.IndexOf("peeled", StringComparison.Ordinal) >= 0;
+#else
+            tagsPeeled = firstLine.Contains("peeled", StringComparison.Ordinal);
+#endif
+        }
+
+        IEnumerable<string> Enumerate()
+        {
+            do
+            {
+                // We process the first line here again and continue because it starts with #.
+                // We could add a MoveNext() above if the header prefix was found, but we'd need
+                // to handle the case that it returned false then.
+                var line = lines.Current;
+                if (line.StartsWith("#", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                yield return line;
+            }
+            while (lines.MoveNext());
+        }
+
+        return Enumerate();
+    }
+
+    /// <summary>
+    /// Enumerate the lines in the packed-refs file. If a line has a corresponding peel
+    /// line, they are returned together.
+    /// </summary>
+    private IEnumerable<(string Record, string? PeelLine)> EnumeratePackedRefsWithPeelLines(out bool tagsPeeled)
+    {
+        IEnumerable<string> rawEnum = this.EnumeratePackedRefsRaw(out tagsPeeled);
+        return Enumerate();
+
+        IEnumerable<(string Record, string? PeelLine)> Enumerate()
+        {
+            string? recordLine = null;
+            foreach (var line in rawEnum)
+            {
+                if (line[0] == '^')
+                {
+                    if (recordLine is null)
+                    {
+                        throw new GitException("packed-refs format is broken. Found a peel line without a preceeding record it belongs to.");
+                    }
+
+                    yield return (recordLine, line);
+                    recordLine = null;
+                }
+                else
+                {
+                    if (recordLine is not null)
+                    {
+                        yield return (recordLine, null);
+                    }
+
+                    recordLine = line;
+                }
+            }
+
+            if (recordLine is not null)
+            {
+                yield return (recordLine, null);
+            }
+        }
     }
 }
