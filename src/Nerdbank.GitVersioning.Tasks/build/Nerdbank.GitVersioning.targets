@@ -119,6 +119,9 @@
     <PropertyGroup>
       <VersionSourceFile>$([MSBuild]::NormalizePath('$(IntermediateOutputPath)', '$(AssemblyName).Version$(DefaultLanguageSourceExtension)'))</VersionSourceFile>
       <NewVersionSourceFile>$(VersionSourceFile).new</NewVersionSourceFile>
+      <!-- Workaround WPF inner build RootNamespace changing: https://github.com/dotnet/Nerdbank.GitVersioning/issues/175 -->
+      <NBGV_RootNamespace>$(RootNamespace)</NBGV_RootNamespace>
+      <NBGV_RootNamespace Condition="$(RootNamespace.EndsWith('_wpftmp')) and '$(_TargetAssemblyProjectName)'!=''">$(_TargetAssemblyProjectName)</NBGV_RootNamespace>
     </PropertyGroup>
     <MakeDir Directories="$(IntermediatePath)"/>
     <Nerdbank.GitVersioning.Tasks.AssemblyVersionInfo
@@ -128,7 +131,7 @@
                   AssemblyFileVersion="$(AssemblyFileVersion)"
                   AssemblyInformationalVersion="$(AssemblyInformationalVersion)"
                   AssemblyName="$(AssemblyName)"
-                  RootNamespace="$(RootNamespace)"
+                  RootNamespace="$(NBGV_RootNamespace)"
                   ThisAssemblyNamespace="$(NBGV_ThisAssemblyNamespace)"
                   AssemblyOriginatorKeyFile="$(AssemblyOriginatorKeyFile)"
                   AssemblyTitle="$(AssemblyTitle)"
