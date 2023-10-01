@@ -37,7 +37,7 @@
     "typescript": "^5.0.4"
   },
   "dependencies": {
-    "camel-case": "^4.1.2"
+    "camel-case": "^5.0.0"
   },
   "scripts": {
     "build": "gulp"
