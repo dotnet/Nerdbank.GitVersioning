@@ -12,7 +12,7 @@
   <ItemGroup>
     <PackageVersion Include="BenchmarkDotNet.Diagnostics.Windows" Version="$(BenchmarkDotNetVersion)" />
     <PackageVersion Include="BenchmarkDotNet" Version="$(BenchmarkDotNetVersion)" />
-    <PackageVersion Include="Cake.Core" Version="3.0.0" />
+    <PackageVersion Include="Cake.Core" Version="3.1.0" />
     <PackageVersion Include="DotNetMDDocs" Version="0.112.39" />
     <PackageVersion Include="LibGit2Sharp" Version="0.27.2" />
     <PackageVersion Include="LibGit2Sharp.NativeBinaries" Version="$(LibGit2SharpNativeVersion)" />
