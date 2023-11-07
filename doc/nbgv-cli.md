@@ -165,6 +165,23 @@ For each branch, the following properties are provided:
 **Note:** When the current branch is already the release branch for the current version, no new branch will be created.
 In that case, the `NewBranch` property will be `null`.
 
+### Customizing the `prepare-release` commit message
+
+By default, the `prepare-release` command generates commit message with this format "Set version to {version}". So with this new option. You can add a prefix or suffix to the default commit message
+
+For example, running the following command on `master`
+
+```
+nbgv prepare-release --commit-message-pattern "Custom commit message pattern - {0} custom message"
+```
+
+So your commit message is going to be this:
+
+```
+Custom commit message pattern - Set version to '1.0' custom message
+```
+**Note:** You must consider that commit message pattern must contain only one {0} and valid commit message characters.
+
 ## Creating a version tag
 
 The `tag` command automates the task of tagging a commit with a version.

@@ -127,7 +127,10 @@ public class ReleaseManager
     /// <param name="outputMode">
     /// The output format to use for writing to stdout.
     /// </param>
-    public void PrepareRelease(string projectDirectory, string releaseUnstableTag = null, Version nextVersion = null, VersionOptions.ReleaseVersionIncrement? versionIncrement = null, ReleaseManagerOutputMode outputMode = default)
+    /// <param name="commitMessagePattern">
+    /// Custom pattern to add a prefix or suffix to the default commit message.
+    /// </param>
+    public void PrepareRelease(string projectDirectory, string releaseUnstableTag = null, Version nextVersion = null, VersionOptions.ReleaseVersionIncrement? versionIncrement = null, ReleaseManagerOutputMode outputMode = default, string commitMessagePattern = null)
     {
         Requires.NotNull(projectDirectory, nameof(projectDirectory));
 
@@ -168,7 +171,7 @@ public class ReleaseManager
                 this.WriteToOutput(releaseInfo);
             }
 
-            this.UpdateVersion(context, versionOptions.Version, releaseVersion);
+            this.UpdateVersion(context, versionOptions.Version, releaseVersion, commitMessagePattern);
             return;
         }
 
@@ -192,7 +195,7 @@ public class ReleaseManager
         // create release branch and update version
         Branch releaseBranch = repository.CreateBranch(releaseBranchName);
         global::LibGit2Sharp.Commands.Checkout(repository, releaseBranch);
-        this.UpdateVersion(context, versionOptions.Version, releaseVersion);
+        this.UpdateVersion(context, versionOptions.Version, releaseVersion, commitMessagePattern);
 
         if (outputMode == ReleaseManagerOutputMode.Text)
         {
@@ -201,7 +204,7 @@ public class ReleaseManager
 
         // update version on main branch
         global::LibGit2Sharp.Commands.Checkout(repository, originalBranchName);
-        this.UpdateVersion(context, versionOptions.Version, nextDevVersion);
+        this.UpdateVersion(context, versionOptions.Version, nextDevVersion, commitMessagePattern);
 
         if (outputMode == ReleaseManagerOutputMode.Text)
         {
@@ -261,7 +264,7 @@ public class ReleaseManager
         return branchNameFormat.Replace("{version}", versionOptions.Version.Version.ToString());
     }
 
-    private void UpdateVersion(LibGit2Context context, SemanticVersion oldVersion, SemanticVersion newVersion)
+    private void UpdateVersion(LibGit2Context context, SemanticVersion oldVersion, SemanticVersion newVersion, string commitMessagePattern)
     {
         Requires.NotNull(context, nameof(context));
 
@@ -290,7 +293,8 @@ public class ReleaseManager
             // Author a commit only if we effectively changed something.
             if (!context.Repository.Head.Tip.Tree.Equals(context.Repository.Index.WriteToTree()))
             {
-                context.Repository.Commit($"Set version to '{versionOptions.Version}'", signature, signature, new CommitOptions() { AllowEmptyCommit = false });
+                string commitMessage = string.Format(commitMessagePattern, $"Set version to '{versionOptions.Version}'");
+                context.Repository.Commit(commitMessage, signature, signature, new CommitOptions() { AllowEmptyCommit = false });
             }
         }
     }

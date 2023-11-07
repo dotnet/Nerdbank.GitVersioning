@@ -10,6 +10,7 @@ using System.CommandLine.Parsing;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Build.Construction;
@@ -69,6 +70,7 @@ namespace Nerdbank.GitVersioning.Tool
             ShallowClone,
             InternalError,
             InvalidTagNameSetting,
+            InvalidCommitMessagePattern,
         }
 
         private static bool AlwaysUseLibGit2 => string.Equals(Environment.GetEnvironmentVariable("NBGV_GitEngine"), "LibGit2", StringComparison.Ordinal);
@@ -217,6 +219,7 @@ namespace Nerdbank.GitVersioning.Tool
                 var nextVersion = new Option<string>("--nextVersion", "The version to set for the current branch. If omitted, the next version is determined automatically by incrementing the current version.");
                 var versionIncrement = new Option<string>("--versionIncrement", "Overrides the 'versionIncrement' setting set in version.json for determining the next version of the current branch.");
                 var format = new Option<string>(new[] { "--format", "-f" }, $"The format to write information about the release. Allowed values are: {string.Join(", ", SupportedFormats)}. The default is {DefaultOutputFormat}.").FromAmong(SupportedFormats);
+                var commitMessagePattern = new Option<string>("--commit-message-pattern", "Custom pattern to add a prefix or suffix to the default commit message.");
                 var tagArgument = new Argument<string>("tag", "The prerelease tag to apply on the release branch (if any). If not specified, any existing prerelease tag will be removed. The preceding hyphen may be omitted.")
                 {
                     Arity = ArgumentArity.ZeroOrOne,
@@ -227,10 +230,11 @@ namespace Nerdbank.GitVersioning.Tool
                     nextVersion,
                     versionIncrement,
                     format,
+                    commitMessagePattern,
                     tagArgument,
                 };
 
-                prepareRelease.SetHandler(OnPrepareReleaseCommand, project, nextVersion, versionIncrement, format, tagArgument);
+                prepareRelease.SetHandler(OnPrepareReleaseCommand, project, nextVersion, versionIncrement, format, tagArgument, commitMessagePattern);
             }
 
             var root = new RootCommand($"{ThisAssembly.AssemblyTitle} v{ThisAssembly.AssemblyInformationalVersion}")
@@ -710,7 +714,7 @@ namespace Nerdbank.GitVersioning.Tool
             return Task.FromResult((int)ExitCodes.OK);
         }
 
-        private static Task<int> OnPrepareReleaseCommand(string project, string nextVersion, string versionIncrement, string format, string tag)
+        private static Task<int> OnPrepareReleaseCommand(string project, string nextVersion, string versionIncrement, string format, string tag, string commitMessagePattern)
         {
             // validate project path property
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(project);
@@ -763,11 +767,29 @@ namespace Nerdbank.GitVersioning.Tool
                 return Task.FromResult((int)ExitCodes.UnsupportedFormat);
             }
 
+            // validate commit message pattern
+            if (string.IsNullOrEmpty(commitMessagePattern))
+            {
+                commitMessagePattern = "{0}";
+            }
+
+            if (AreCurlyBracesBalanced(commitMessagePattern))
+            {
+                Console.Error.WriteLine("Commit message pattern contains unbalanced curly braces.");
+                return Task.FromResult((int)ExitCodes.InvalidCommitMessagePattern);
+            }
+
+            if (!Regex.IsMatch(commitMessagePattern, @"^(?=.*\{0\})(?!.*\{[1-9]\})(?!.*\{\{0\}\})(?!.*\{0\}.*\{0\})[^\x00-\x08\x0B\x0C\x0E-\x1F<>'\""\\]*(?:\{0\}[^\x00-\x08\x0B\x0C\x0E-\x1F<>'\""\\]*)*(?!\{[1-9]\})*$"))
+            {
+                Console.Error.WriteLine("Commit message pattern must contain only one {0} and valid commit message characters.");
+                return Task.FromResult((int)ExitCodes.InvalidCommitMessagePattern);
+            }
+
             // run prepare-release
             try
             {
                 var releaseManager = new ReleaseManager(Console.Out, Console.Error);
-                releaseManager.PrepareRelease(searchPath, tag, nextVersionParsed, versionIncrementParsed, outputMode);
+                releaseManager.PrepareRelease(searchPath, tag, nextVersionParsed, versionIncrementParsed, outputMode, commitMessagePattern);
                 return Task.FromResult((int)ExitCodes.OK);
             }
             catch (ReleaseManager.ReleasePreparationException ex)
@@ -888,6 +910,30 @@ namespace Nerdbank.GitVersioning.Tool
                     Console.WriteLine($"{commit.Sha} {oracle.Version} {commit.MessageShort}");
                 }
             }
+        }
+
+        private static bool AreCurlyBracesBalanced(string text)
+        {
+            var curlyBraceCount = 0;
+
+            foreach (char c in text)
+            {
+                if (c == '{')
+                {
+                    curlyBraceCount++;
+                }
+                else if (c == '}')
+                {
+                    curlyBraceCount--;
+
+                    if (curlyBraceCount < 0)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return curlyBraceCount != 0;
         }
     }
 }

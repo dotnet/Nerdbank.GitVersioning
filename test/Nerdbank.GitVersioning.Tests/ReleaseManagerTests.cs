@@ -638,6 +638,34 @@ public abstract class ReleaseManagerTests : RepoTestBase
         Assert.Equal(expectedReleaseVersionOptions, releaseVersion);
     }
 
+    [Theory]
+    [InlineData("1.0-beta", "{0} Custom commit message pattern", "Set version to '1.0' Custom commit message pattern")]
+    [InlineData("1.0-beta", "Custom commit message pattern - {0} custom message", "Custom commit message pattern - Set version to '1.0' custom message")]
+    [InlineData("1.0-beta", "Custom commit message pattern - {0}", "Custom commit message pattern - Set version to '1.0'")]
+    [InlineData("1.0-beta", "{0}", "Set version to '1.0'")]
+    public void PrepareRelease_WithCustomCommitMessagePattern(string initialVersion, string commitMessagePattern, string expectedCommitMessage)
+    {
+        // Create and configure the repository
+        this.InitializeSourceControl();
+
+        var versionOptions = new VersionOptions()
+        {
+            Version = SemanticVersion.Parse(initialVersion),
+        };
+
+        this.WriteVersionFile(versionOptions);
+
+        // Run PrepareRelease with the custom commit message pattern
+        var releaseManager = new ReleaseManager();
+        releaseManager.PrepareRelease(this.RepoPath, commitMessagePattern: commitMessagePattern);
+
+        // Verify that the commit message on the release branch matches the expected pattern
+        string releaseBranchName = "v1.0";
+        Branch releaseBranch = this.LibGit2Repository.Branches[releaseBranchName];
+        Commit releaseBranchCommit = releaseBranch.Tip;
+        Assert.Equal(expectedCommitMessage, releaseBranchCommit.MessageShort);
+    }
+
     /// <inheritdoc/>
     protected override void InitializeSourceControl(bool withInitialCommit = true)
     {
