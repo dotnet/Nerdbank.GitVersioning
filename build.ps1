@@ -17,10 +17,6 @@ Param(
 
 $msbuildCommandLine = "dotnet build `"$PSScriptRoot\Nerdbank.GitVersioning.sln`" /m /verbosity:$MsBuildVerbosity /nologo /p:Platform=`"Any CPU`" /t:build,pack"
 
-if (Test-Path "C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll") {
-    $msbuildCommandLine += " /logger:`"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll`""
-}
-
 if ($Configuration) {
     $msbuildCommandLine += " /p:Configuration=$Configuration"
 }
@@ -31,6 +27,13 @@ try {
         Invoke-Expression $msbuildCommandLine
         if ($LASTEXITCODE -ne 0) {
             throw "dotnet build failed"
+        }
+    }
+
+    if ($PSCmdlet.ShouldProcess('src/nbgv', 'dotnet publish')) {
+        dotnet publish src/nbgv -c $Configuration -o src/nerdbank-gitversioning.npm/out/nbgv.cli/tools/net6.0/any
+        if ($LASTEXITCODE -ne 0) {
+            throw "dotnet publish failed"
         }
     }
 
