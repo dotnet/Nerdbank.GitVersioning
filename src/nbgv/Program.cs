@@ -768,11 +768,6 @@ namespace Nerdbank.GitVersioning.Tool
             }
 
             // validate commit message pattern
-            if (string.IsNullOrEmpty(commitMessagePattern))
-            {
-                commitMessagePattern = "{0}";
-            }
-
             if (AreCurlyBracesBalanced(commitMessagePattern))
             {
                 Console.Error.WriteLine("Commit message pattern contains unbalanced curly braces.");

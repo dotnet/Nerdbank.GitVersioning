@@ -130,7 +130,7 @@ public class ReleaseManager
     /// <param name="commitMessagePattern">
     /// Custom pattern to add a prefix or suffix to the default commit message.
     /// </param>
-    public void PrepareRelease(string projectDirectory, string releaseUnstableTag = null, Version nextVersion = null, VersionOptions.ReleaseVersionIncrement? versionIncrement = null, ReleaseManagerOutputMode outputMode = default, string commitMessagePattern = null)
+    public void PrepareRelease(string projectDirectory, string releaseUnstableTag = null, Version nextVersion = null, VersionOptions.ReleaseVersionIncrement? versionIncrement = null, ReleaseManagerOutputMode outputMode = default, string commitMessagePattern = "{0}")
     {
         Requires.NotNull(projectDirectory, nameof(projectDirectory));
 
