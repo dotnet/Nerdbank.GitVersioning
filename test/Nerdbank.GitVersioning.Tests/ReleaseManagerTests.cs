@@ -639,9 +639,9 @@ public abstract class ReleaseManagerTests : RepoTestBase
     }
 
     [Theory]
-    [InlineData("1.0-beta", "{0} Custom commit message pattern", "Set version to '1.0' Custom commit message pattern")]
-    [InlineData("1.0-beta", "Custom commit message pattern - {0} custom message", "Custom commit message pattern - Set version to '1.0' custom message")]
-    [InlineData("1.0-beta", "Custom commit message pattern - {0}", "Custom commit message pattern - Set version to '1.0'")]
+    [InlineData("1.0-beta", "{0} Custom commit message pattern", "'1.0' Custom commit message pattern")]
+    [InlineData("1.0-beta", "Custom commit message pattern - {0} custom message", "Custom commit message pattern - '1.0' custom message")]
+    [InlineData("1.0-beta", "Custom commit message pattern - {0}", "Custom commit message pattern - '1.0'")]
     [InlineData("1.0-beta", "{0}", "Set version to '1.0'")]
     public void PrepareRelease_WithCustomCommitMessagePattern(string initialVersion, string commitMessagePattern, string expectedCommitMessage)
     {

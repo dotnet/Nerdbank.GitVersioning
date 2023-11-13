@@ -293,10 +293,15 @@ public class ReleaseManager
             // Author a commit only if we effectively changed something.
             if (!context.Repository.Head.Tip.Tree.Equals(context.Repository.Index.WriteToTree()))
             {
-                string commitMessage = string.Format(commitMessagePattern, $"Set version to '{versionOptions.Version}'");
+                string commitMessage = this.GetCommitMessage(commitMessagePattern, versionOptions.Version);
                 context.Repository.Commit(commitMessage, signature, signature, new CommitOptions() { AllowEmptyCommit = false });
             }
         }
+    }
+
+    private string GetCommitMessage(string commitMessagePattern, SemanticVersion version)
+    {
+        return commitMessagePattern == "{0}" ? $"Set version to '{version}'" : string.Format(commitMessagePattern, $"'{version}'");
     }
 
     private Signature GetSignature(Repository repository)
