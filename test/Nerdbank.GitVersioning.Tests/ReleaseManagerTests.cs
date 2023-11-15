@@ -639,10 +639,10 @@ public abstract class ReleaseManagerTests : RepoTestBase
     }
 
     [Theory]
-    [InlineData("1.0-beta", "{0} Custom commit message pattern", "'1.0' Custom commit message pattern")]
-    [InlineData("1.0-beta", "Custom commit message pattern - {0} custom message", "Custom commit message pattern - '1.0' custom message")]
-    [InlineData("1.0-beta", "Custom commit message pattern - {0}", "Custom commit message pattern - '1.0'")]
-    [InlineData("1.0-beta", "{0}", "Set version to '1.0'")]
+    [InlineData("1.0-beta", "{0} Custom commit message pattern", "1.0 Custom commit message pattern")]
+    [InlineData("1.0-beta", "Custom commit message pattern - {0} custom message", "Custom commit message pattern - 1.0 custom message")]
+    [InlineData("1.0-beta", "Custom commit message pattern - {0}", "Custom commit message pattern - 1.0")]
+    [InlineData("1.0-beta", "{0}", "1.0")]
     public void PrepareRelease_WithCustomCommitMessagePattern(string initialVersion, string commitMessagePattern, string expectedCommitMessage)
     {
         // Create and configure the repository
@@ -657,7 +657,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
 
         // Run PrepareRelease with the custom commit message pattern
         var releaseManager = new ReleaseManager();
-        releaseManager.PrepareRelease(this.RepoPath, commitMessagePattern: commitMessagePattern);
+        releaseManager.PrepareRelease(this.RepoPath, unformattedCommitMessage: commitMessagePattern);
 
         // Verify that the commit message on the release branch matches the expected pattern
         string releaseBranchName = "v1.0";

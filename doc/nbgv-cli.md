@@ -167,9 +167,10 @@ In that case, the `NewBranch` property will be `null`.
 
 ### Customizing the `prepare-release` commit message
 
-By default, the `prepare-release` command generates a commit message with the format "Set version to {version}". So with this new option, You can add a prefix or suffix to the default commit message (which will replace just the version).
+By default, the `prepare-release` command generates a commit message with the format "Set version to {version}".
+A switch allows you to customize the commit message, using `{0}` as a placeholder for the version.
 
-For example, running the following command on `master`
+For example, running the following command:
 
 ```
 nbgv prepare-release --commit-message-pattern "Custom commit message pattern - {0} custom message"
@@ -178,9 +179,8 @@ nbgv prepare-release --commit-message-pattern "Custom commit message pattern - {
 So your commit message is going to be this:
 
 ```
-Custom commit message pattern '1.0' custom message
+Custom commit message pattern - 1.0 custom message
 ```
-**Note:** Must include {0} in the pattern to represent the version.
 
 ## Creating a version tag
 

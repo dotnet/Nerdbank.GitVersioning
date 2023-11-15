@@ -70,7 +70,7 @@ namespace Nerdbank.GitVersioning.Tool
             ShallowClone,
             InternalError,
             InvalidTagNameSetting,
-            InvalidCommitMessagePattern,
+            InvalidUnformattedCommitMessage,
         }
 
         private static bool AlwaysUseLibGit2 => string.Equals(Environment.GetEnvironmentVariable("NBGV_GitEngine"), "LibGit2", StringComparison.Ordinal);
@@ -219,7 +219,7 @@ namespace Nerdbank.GitVersioning.Tool
                 var nextVersion = new Option<string>("--nextVersion", "The version to set for the current branch. If omitted, the next version is determined automatically by incrementing the current version.");
                 var versionIncrement = new Option<string>("--versionIncrement", "Overrides the 'versionIncrement' setting set in version.json for determining the next version of the current branch.");
                 var format = new Option<string>(new[] { "--format", "-f" }, $"The format to write information about the release. Allowed values are: {string.Join(", ", SupportedFormats)}. The default is {DefaultOutputFormat}.").FromAmong(SupportedFormats);
-                var commitMessagePattern = new Option<string>("--commit-message-pattern", "Custom pattern to add a prefix or suffix to the default commit message. Must include '{0}' in the pattern to represent the version.");
+                var unformattedCommitMessage = new Option<string>("--commit-message-pattern", "A custom message to use for the commit that changes the version number. May include {0} for the version number. If not specified, the default is \"Set version to '{0}'\".");
                 var tagArgument = new Argument<string>("tag", "The prerelease tag to apply on the release branch (if any). If not specified, any existing prerelease tag will be removed. The preceding hyphen may be omitted.")
                 {
                     Arity = ArgumentArity.ZeroOrOne,
@@ -230,11 +230,11 @@ namespace Nerdbank.GitVersioning.Tool
                     nextVersion,
                     versionIncrement,
                     format,
-                    commitMessagePattern,
+                    unformattedCommitMessage,
                     tagArgument,
                 };
 
-                prepareRelease.SetHandler(OnPrepareReleaseCommand, project, nextVersion, versionIncrement, format, tagArgument, commitMessagePattern);
+                prepareRelease.SetHandler(OnPrepareReleaseCommand, project, nextVersion, versionIncrement, format, tagArgument, unformattedCommitMessage);
             }
 
             var root = new RootCommand($"{ThisAssembly.AssemblyTitle} v{ThisAssembly.AssemblyInformationalVersion}")
@@ -714,7 +714,7 @@ namespace Nerdbank.GitVersioning.Tool
             return Task.FromResult((int)ExitCodes.OK);
         }
 
-        private static Task<int> OnPrepareReleaseCommand(string project, string nextVersion, string versionIncrement, string format, string tag, string commitMessagePattern)
+        private static Task<int> OnPrepareReleaseCommand(string project, string nextVersion, string versionIncrement, string format, string tag, string unformattedCommitMessage)
         {
             // validate project path property
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(project);
@@ -767,26 +767,24 @@ namespace Nerdbank.GitVersioning.Tool
                 return Task.FromResult((int)ExitCodes.UnsupportedFormat);
             }
 
-            if (string.IsNullOrEmpty(commitMessagePattern))
+            if (!string.IsNullOrEmpty(unformattedCommitMessage))
             {
-                commitMessagePattern = "{0}";
-            }
-
-            try
-            {
-                string.Format(commitMessagePattern, "FormatValidator");
-            }
-            catch (FormatException ex)
-            {
-                Console.Error.WriteLine($"InvalidCommitMessagePattern: {ex.Message}");
-                return Task.FromResult((int)ExitCodes.InvalidCommitMessagePattern);
+                try
+                {
+                    string.Format(unformattedCommitMessage, "FormatValidator");
+                }
+                catch (FormatException ex)
+                {
+                    Console.Error.WriteLine($"Invalid commit message pattern: {ex.Message}");
+                    return Task.FromResult((int)ExitCodes.InvalidUnformattedCommitMessage);
+                }
             }
 
             // run prepare-release
             try
             {
                 var releaseManager = new ReleaseManager(Console.Out, Console.Error);
-                releaseManager.PrepareRelease(searchPath, tag, nextVersionParsed, versionIncrementParsed, outputMode, commitMessagePattern);
+                releaseManager.PrepareRelease(searchPath, tag, nextVersionParsed, versionIncrementParsed, outputMode, unformattedCommitMessage);
                 return Task.FromResult((int)ExitCodes.OK);
             }
             catch (ReleaseManager.ReleasePreparationException ex)
