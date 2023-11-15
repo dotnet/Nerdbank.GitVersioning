@@ -27,8 +27,12 @@ resources:
     image: mcr.microsoft.com/dotnet/sdk:6.0-jammy
   - container: jammy70
     image: mcr.microsoft.com/dotnet/sdk:7.0-jammy
-  - container: debian
+  - container: jammy80
+    image: mcr.microsoft.com/dotnet/sdk:8.0-jammy
+  - container: debian70
     image: mcr.microsoft.com/dotnet/sdk:7.0
+  - container: debian80
+    image: mcr.microsoft.com/dotnet/sdk:8.0
 
 variables:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
@@ -54,12 +58,22 @@ stages:
       matrix:
         Ubuntu_Focal:
           containerImage: focal
+          testCake: true
         Ubuntu_Jammy_60:
           containerImage: jammy60
+          testCake: true
         Ubuntu_Jammy_70:
           containerImage: jammy70
-        Debian:
-          containerImage: debian
+          testCake: true
+        Ubuntu_Jammy_80:
+          containerImage: jammy80
+          testCake: false
+        Debian_70:
+          containerImage: debian70
+          testCake: true
+        Debian_80:
+          containerImage: debian80
+          testCake: false
     pool:
       vmImage: ubuntu-22.04
     container: $[ variables['containerImage'] ]
@@ -105,10 +119,10 @@ stages:
       clean: true
       submodules: true # keep the warnings quiet about the wiki not being enlisted
     - task: UseDotNet@2
-      displayName: Install .NET 7.0.401 SDK
+      displayName: Install .NET 8.0.100 SDK
       inputs:
         packageType: sdk
-        version: 7.0.401
+        version: 8.0.100
     - script: dotnet --info
       displayName: Show dotnet SDK info
     - bash: |
@@ -122,7 +136,7 @@ stages:
         dotnet build -c Release
       displayName: Build in Release mode
     - script: |
-        dotnet run -c Release -f net7.0 -- --filter *GetVersionBenchmarks* --artifacts $(Build.ArtifactStagingDirectory)/benchmarks/packed/$(imageName)
+        dotnet run -c Release -f net8.0 -- --filter *GetVersionBenchmarks* --artifacts $(Build.ArtifactStagingDirectory)/benchmarks/packed/$(imageName)
       workingDirectory: test/Nerdbank.GitVersioning.Benchmarks
       displayName: Run benchmarks (packed)
     - bash: |
@@ -139,7 +153,7 @@ stages:
         git unpack-objects < .git/objects/pack/*.pack
       displayName: Unpack Git repositories
     - script: |
-        dotnet run -c Release -f net7.0 -- --filter '*GetVersionBenchmarks*' --artifacts $(Build.ArtifactStagingDirectory)/benchmarks/unpacked/$(imageName)
+        dotnet run -c Release -f net8.0 -- --filter '*GetVersionBenchmarks*' --artifacts $(Build.ArtifactStagingDirectory)/benchmarks/unpacked/$(imageName)
       workingDirectory: test/Nerdbank.GitVersioning.Benchmarks
       displayName: Run benchmarks (unpacked)
     - task: PublishBuildArtifacts@1

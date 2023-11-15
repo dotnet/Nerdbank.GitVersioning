@@ -63,6 +63,7 @@ steps:
 
     dotnet cake
   displayName: Consume Cake.GitVersioning
+  condition: and(succeeded(), ne(variables.testCake, 'false'))
   failOnStderr: true
 
 - script: >
