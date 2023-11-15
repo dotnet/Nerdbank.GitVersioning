@@ -119,6 +119,7 @@
     <PropertyGroup>
       <VersionSourceFile>$([MSBuild]::NormalizePath('$(IntermediateOutputPath)', '$(AssemblyName).Version$(DefaultLanguageSourceExtension)'))</VersionSourceFile>
       <NewVersionSourceFile>$(VersionSourceFile).new</NewVersionSourceFile>
+      <NBGV_ThisAssemblyNamespace Condition="'$(NBGV_ThisAssemblyNamespace)' == ''">$(RootNamespace)<NBGV_ThisAssemblyNamespace>
     </PropertyGroup>
     <ItemGroup>
       <AdditionalThisAssemblyFields Include="NuGetPackageVersion" String="$(NuGetPackageVersion)" Condition="'$(NBGV_ThisAssemblyIncludesPackageVersion)' == 'true'" />
