@@ -28,7 +28,7 @@ resources:
   - container: jammy70
     image: mcr.microsoft.com/dotnet/sdk:7.0-jammy
   - container: debian
-    image: mcr.microsoft.com/dotnet/sdk:latest
+    image: mcr.microsoft.com/dotnet/sdk:7.0
 
 variables:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
