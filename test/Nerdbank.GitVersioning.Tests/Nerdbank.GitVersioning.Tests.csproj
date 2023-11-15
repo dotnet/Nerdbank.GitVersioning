@@ -39,7 +39,6 @@
     <PackageReference Include="Microsoft.Build" ExcludeAssets="runtime" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
-    <PackageReference Include="Moq" />
     <PackageReference Include="Nerdbank.GitVersioning.LKG" />
     <PackageReference Include="Newtonsoft.Json.Schema" />
     <PackageReference Include="System.Memory" />
