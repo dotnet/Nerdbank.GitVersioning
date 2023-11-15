@@ -6,7 +6,7 @@
     <BaseOutputPath Condition=" '$(BaseOutputPath)' == '' ">$(RepoRootPath)bin\$(MSBuildProjectName)\</BaseOutputPath>
     <PackageOutputPath>$(RepoRootPath)bin\Packages\$(Configuration)\</PackageOutputPath>
     <DocumentationRootFolder>$(MSBuildThisFileDirectory)..\wiki\api</DocumentationRootFolder>
-    <LangVersion>latest</LangVersion>
+    <LangVersion>11</LangVersion>
     <!--<Nullable>enable</Nullable>-->
     <ImplicitUsings>enable</ImplicitUsings>
     <AnalysisLevel>latest</AnalysisLevel>
