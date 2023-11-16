@@ -627,7 +627,7 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
         AssemblyProductAttribute assemblyProduct = assembly.GetCustomAttribute<AssemblyProductAttribute>();
         AssemblyCompanyAttribute assemblyCompany = assembly.GetCustomAttribute<AssemblyCompanyAttribute>();
         AssemblyCopyrightAttribute assemblyCopyright = assembly.GetCustomAttribute<AssemblyCopyrightAttribute>();
-        Type thisAssemblyClass = assembly.GetType("ThisAssembly") ?? assembly.GetType("TestNamespace.ThisAssembly");
+        Type thisAssemblyClass = assembly.GetType("ThisAssembly") ?? assembly.GetType("TestNamespace.TestNamespace.ThisAssembly");
         Assert.NotNull(thisAssemblyClass);
 
         Assert.Equal(new Version(result.AssemblyVersion), assembly.GetName().Version);
