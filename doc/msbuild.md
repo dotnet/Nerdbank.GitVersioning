@@ -46,7 +46,7 @@ The following MSBuild properties may be set in your project to customize certain
 
 Property | Default | Description
 --|--|--
-`NBGV_ThisAssemblyNamespace` | `$(RootNamespace)` | Sets the namespace to use for the generated `ThisAssembly` class.
+`NBGV_ThisAssemblyNamespace` | (empty) | Sets the namespace to use for the generated `ThisAssembly` class.
 `NBGV_EmitThisAssemblyClass` | `true` | When `false`, suppresses generation of the `ThisAssembly` class.
 `NBGV_ThisAssemblyIncludesPackageVersion` | `false` | When `true`, a `NuGetPackageVersion` property is added to the `ThisAssembly` class.
 
