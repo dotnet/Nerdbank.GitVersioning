@@ -63,15 +63,15 @@ public class AssemblyInfoTest : IClassFixture<MSBuildFixture> // The MSBuildFixt
 #nowarn ""CA2243""
 
 namespace AssemblyInfo
-[<assembly: System.Reflection.AssemblyVersionAttribute(""1.3.0.0"")>]
-[<assembly: System.Reflection.AssemblyFileVersionAttribute(""1.3.1.0"")>]
-[<assembly: System.Reflection.AssemblyInformationalVersionAttribute("""")>]
+[<assembly: global.System.Reflection.AssemblyVersionAttribute(""1.3.0.0"")>]
+[<assembly: global.System.Reflection.AssemblyFileVersionAttribute(""1.3.1.0"")>]
+[<assembly: global.System.Reflection.AssemblyInformationalVersionAttribute("""")>]
 {(thisAssemblyClass.GetValueOrDefault(true) ? $@"do()
 #if NETSTANDARD || NETFRAMEWORK || NETCOREAPP
-[<System.CodeDom.Compiler.GeneratedCode(""{AssemblyVersionInfo.GeneratorName}"",""{AssemblyVersionInfo.GeneratorVersion}"")>]
+[<global.System.CodeDom.Compiler.GeneratedCode(""{AssemblyVersionInfo.GeneratorName}"",""{AssemblyVersionInfo.GeneratorVersion}"")>]
 #endif
 #if NET40_OR_GREATER || NETCOREAPP2_0_OR_GREATER || NETSTANDARD2_0_OR_GREATER
-[<System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage>]
+[<global.System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage>]
 #endif
 type internal ThisAssembly() =
   static member internal AssemblyCompany = ""company""
@@ -80,7 +80,7 @@ type internal ThisAssembly() =
   static member internal CustomBool = true
   static member internal CustomString1 = ""abc""
   static member internal CustomString3 = """"
-  static member internal CustomTicks = new System.DateTime(637509805729817056L, System.DateTimeKind.Utc)
+  static member internal CustomTicks = new global.System.DateTime(637509805729817056L, global.System.DateTimeKind.Utc)
   static member internal IsPrerelease = false
   static member internal IsPublicRelease = false
   static member internal RootNamespace = """"
@@ -128,15 +128,15 @@ namespace {(
         : !string.IsNullOrWhiteSpace(rootNamespace)
             ? rootNamespace
             : "AssemblyInfo")}
-[<assembly: System.Reflection.AssemblyVersionAttribute(""1.3.0.0"")>]
-[<assembly: System.Reflection.AssemblyFileVersionAttribute(""1.3.1.0"")>]
-[<assembly: System.Reflection.AssemblyInformationalVersionAttribute("""")>]
+[<assembly: global.System.Reflection.AssemblyVersionAttribute(""1.3.0.0"")>]
+[<assembly: global.System.Reflection.AssemblyFileVersionAttribute(""1.3.1.0"")>]
+[<assembly: global.System.Reflection.AssemblyInformationalVersionAttribute("""")>]
 do()
 #if NETSTANDARD || NETFRAMEWORK || NETCOREAPP
-[<System.CodeDom.Compiler.GeneratedCode(""{AssemblyVersionInfo.GeneratorName}"",""{AssemblyVersionInfo.GeneratorVersion}"")>]
+[<global.System.CodeDom.Compiler.GeneratedCode(""{AssemblyVersionInfo.GeneratorName}"",""{AssemblyVersionInfo.GeneratorVersion}"")>]
 #endif
 #if NET40_OR_GREATER || NETCOREAPP2_0_OR_GREATER || NETSTANDARD2_0_OR_GREATER
-[<System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage>]
+[<global.System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage>]
 #endif
 type internal ThisAssembly() =
   static member internal AssemblyCompany = ""company""
@@ -201,14 +201,14 @@ do()
 
 #pragma warning disable CA2243
 
-[assembly: System.Reflection.AssemblyVersionAttribute(""1.3.0.0"")]
-[assembly: System.Reflection.AssemblyFileVersionAttribute(""1.3.1.0"")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("""")]
+[assembly: global::System.Reflection.AssemblyVersionAttribute(""1.3.0.0"")]
+[assembly: global::System.Reflection.AssemblyFileVersionAttribute(""1.3.1.0"")]
+[assembly: global::System.Reflection.AssemblyInformationalVersionAttribute("""")]
 {(thisAssemblyClass.GetValueOrDefault(true) ? $@"#if NETSTANDARD || NETFRAMEWORK || NETCOREAPP
-[System.CodeDom.Compiler.GeneratedCode(""{AssemblyVersionInfo.GeneratorName}"",""{AssemblyVersionInfo.GeneratorVersion}"")]
+[global::System.CodeDom.Compiler.GeneratedCode(""{AssemblyVersionInfo.GeneratorName}"",""{AssemblyVersionInfo.GeneratorVersion}"")]
 #endif
 #if NET40_OR_GREATER || NETCOREAPP2_0_OR_GREATER || NETSTANDARD2_0_OR_GREATER
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 #endif
 internal static partial class ThisAssembly {{
     internal const string AssemblyCompany = ""company"";
@@ -217,7 +217,7 @@ internal static partial class ThisAssembly {{
     internal const bool CustomBool = true;
     internal const string CustomString1 = ""abc"";
     internal const string CustomString3 = """";
-    internal static readonly System.DateTime CustomTicks = new System.DateTime(637509805729817056L, System.DateTimeKind.Utc);
+    internal static readonly global::System.DateTime CustomTicks = new global::System.DateTime(637509805729817056L, global::System.DateTimeKind.Utc);
     internal const bool IsPrerelease = false;
     internal const bool IsPublicRelease = false;
     internal const string RootNamespace = """";
@@ -263,14 +263,14 @@ internal static partial class ThisAssembly {{
 
 #pragma warning disable CA2243
 
-[assembly: System.Reflection.AssemblyVersionAttribute(""1.3.0.0"")]
-[assembly: System.Reflection.AssemblyFileVersionAttribute(""1.3.1.0"")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("""")]{nsStart}
+[assembly: global::System.Reflection.AssemblyVersionAttribute(""1.3.0.0"")]
+[assembly: global::System.Reflection.AssemblyFileVersionAttribute(""1.3.1.0"")]
+[assembly: global::System.Reflection.AssemblyInformationalVersionAttribute("""")]{nsStart}
 #if NETSTANDARD || NETFRAMEWORK || NETCOREAPP
-[System.CodeDom.Compiler.GeneratedCode(""{AssemblyVersionInfo.GeneratorName}"",""{AssemblyVersionInfo.GeneratorVersion}"")]
+[global::System.CodeDom.Compiler.GeneratedCode(""{AssemblyVersionInfo.GeneratorName}"",""{AssemblyVersionInfo.GeneratorVersion}"")]
 #endif
 #if NET40_OR_GREATER || NETCOREAPP2_0_OR_GREATER || NETSTANDARD2_0_OR_GREATER
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 #endif
 internal static partial class ThisAssembly {{
     internal const string AssemblyCompany = ""company"";
@@ -316,15 +316,15 @@ internal static partial class ThisAssembly {{
 
 #Disable Warning CA2243
 
-<Assembly: System.Reflection.AssemblyVersionAttribute(""1.3.0.0"")>
-<Assembly: System.Reflection.AssemblyFileVersionAttribute(""1.3.1.0"")>
-<Assembly: System.Reflection.AssemblyInformationalVersionAttribute("""")>
+<Assembly: Global.System.Reflection.AssemblyVersionAttribute(""1.3.0.0"")>
+<Assembly: Global.System.Reflection.AssemblyFileVersionAttribute(""1.3.1.0"")>
+<Assembly: Global.System.Reflection.AssemblyInformationalVersionAttribute("""")>
 {(thisAssemblyClass.GetValueOrDefault(true) ? $@"#If NET40_OR_GREATER  Or  NETCOREAPP2_0_OR_GREATER  Or  NETSTANDARD2_0_OR_GREATER Then
-<System.CodeDom.Compiler.GeneratedCode(""{AssemblyVersionInfo.GeneratorName}"",""{AssemblyVersionInfo.GeneratorVersion}"")>
-<System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage>
+<Global.System.CodeDom.Compiler.GeneratedCode(""{AssemblyVersionInfo.GeneratorName}"",""{AssemblyVersionInfo.GeneratorVersion}"")>
+<Global.System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage>
 Partial Friend NotInheritable Class ThisAssembly
 #ElseIf NETSTANDARD  Or  NETFRAMEWORK  Or  NETCOREAPP Then
-<System.CodeDom.Compiler.GeneratedCode(""{AssemblyVersionInfo.GeneratorName}"",""{AssemblyVersionInfo.GeneratorVersion}"")>
+<Global.System.CodeDom.Compiler.GeneratedCode(""{AssemblyVersionInfo.GeneratorName}"",""{AssemblyVersionInfo.GeneratorVersion}"")>
 Partial Friend NotInheritable Class ThisAssembly
 #Else
 Partial Friend NotInheritable Class ThisAssembly
@@ -377,15 +377,15 @@ End Class
 
 #Disable Warning CA2243
 
-<Assembly: System.Reflection.AssemblyVersionAttribute(""1.3.0.0"")>
-<Assembly: System.Reflection.AssemblyFileVersionAttribute(""1.3.1.0"")>
-<Assembly: System.Reflection.AssemblyInformationalVersionAttribute("""")>{nsStart}
+<Assembly: Global.System.Reflection.AssemblyVersionAttribute(""1.3.0.0"")>
+<Assembly: Global.System.Reflection.AssemblyFileVersionAttribute(""1.3.1.0"")>
+<Assembly: Global.System.Reflection.AssemblyInformationalVersionAttribute("""")>{nsStart}
 #If NET40_OR_GREATER  Or  NETCOREAPP2_0_OR_GREATER  Or  NETSTANDARD2_0_OR_GREATER Then
-<System.CodeDom.Compiler.GeneratedCode(""{AssemblyVersionInfo.GeneratorName}"",""{AssemblyVersionInfo.GeneratorVersion}"")>
-<System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage>
+<Global.System.CodeDom.Compiler.GeneratedCode(""{AssemblyVersionInfo.GeneratorName}"",""{AssemblyVersionInfo.GeneratorVersion}"")>
+<Global.System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage>
 Partial Friend NotInheritable Class ThisAssembly
 #ElseIf NETSTANDARD  Or  NETFRAMEWORK  Or  NETCOREAPP Then
-<System.CodeDom.Compiler.GeneratedCode(""{AssemblyVersionInfo.GeneratorName}"",""{AssemblyVersionInfo.GeneratorVersion}"")>
+<Global.System.CodeDom.Compiler.GeneratedCode(""{AssemblyVersionInfo.GeneratorName}"",""{AssemblyVersionInfo.GeneratorVersion}"")>
 Partial Friend NotInheritable Class ThisAssembly
 #Else
 Partial Friend NotInheritable Class ThisAssembly
