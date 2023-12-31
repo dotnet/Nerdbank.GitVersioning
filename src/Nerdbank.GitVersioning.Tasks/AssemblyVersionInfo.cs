@@ -247,7 +247,7 @@ namespace Nerdbank.GitVersioning.Tasks
         {
             Requires.NotNullOrEmpty(name, nameof(name));
 
-            ////internal static System.DateTime GitCommitDate => new System.DateTime({ticks}, System.DateTimeKind.Utc);");
+            ////internal static global::System.DateTime GitCommitDate => new global::System.DateTime({ticks}, global::System.DateTimeKind.Utc);");
 
             var property = new CodeMemberProperty()
             {
@@ -294,7 +294,7 @@ namespace Nerdbank.GitVersioning.Tasks
 
             var codeAttributeDeclarationCollection = new CodeAttributeDeclarationCollection();
             codeAttributeDeclarationCollection.Add(new CodeAttributeDeclaration(
-                "System.CodeDom.Compiler.GeneratedCode",
+                "global::System.CodeDom.Compiler.GeneratedCode",
                 new CodeAttributeArgument(new CodePrimitiveExpression(GeneratorName)),
                 new CodeAttributeArgument(new CodePrimitiveExpression(GeneratorVersion))));
             thisAssembly.CustomAttributes = codeAttributeDeclarationCollection;
@@ -718,7 +718,7 @@ namespace Nerdbank.GitVersioning.Tasks
 
             internal override void AddThisAssemblyMember(string name, DateTime value)
             {
-                this.CodeBuilder.AppendLine($"  static member internal {name} = new System.DateTime({value.Ticks}L, System.DateTimeKind.Utc)");
+                this.CodeBuilder.AppendLine($"  static member internal {name} = new global.System.DateTime({value.Ticks}L, global.System.DateTimeKind.Utc)");
             }
 
             internal override void StartAssemblyAttributes()
@@ -728,7 +728,7 @@ namespace Nerdbank.GitVersioning.Tasks
 
             internal override void DeclareAttribute(Type type, string arg)
             {
-                this.CodeBuilder.AppendLine($"[<assembly: {type.FullName}(\"{arg}\")>]");
+                this.CodeBuilder.AppendLine($"[<assembly: global.{type.FullName}(\"{arg}\")>]");
             }
 
             internal override void EndThisAssemblyClass()
@@ -740,10 +740,10 @@ namespace Nerdbank.GitVersioning.Tasks
             {
                 this.CodeBuilder.AppendLine("do()");
                 this.CodeBuilder.AppendLine($"#if {CompilerDefinesAroundGeneratedCodeAttribute}");
-                this.CodeBuilder.AppendLine($"[<System.CodeDom.Compiler.GeneratedCode(\"{GeneratorName}\",\"{GeneratorVersion}\")>]");
+                this.CodeBuilder.AppendLine($"[<global.System.CodeDom.Compiler.GeneratedCode(\"{GeneratorName}\",\"{GeneratorVersion}\")>]");
                 this.CodeBuilder.AppendLine("#endif");
                 this.CodeBuilder.AppendLine($"#if {CompilerDefinesAroundExcludeFromCodeCoverageAttribute}");
-                this.CodeBuilder.AppendLine("[<System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage>]");
+                this.CodeBuilder.AppendLine("[<global.System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage>]");
                 this.CodeBuilder.AppendLine("#endif");
                 this.CodeBuilder.AppendLine("type internal ThisAssembly() =");
             }
@@ -768,7 +768,7 @@ namespace Nerdbank.GitVersioning.Tasks
 
             internal override void DeclareAttribute(Type type, string arg)
             {
-                this.CodeBuilder.AppendLine($"[assembly: {type.FullName}(\"{arg}\")]");
+                this.CodeBuilder.AppendLine($"[assembly: global::{type.FullName}(\"{arg}\")]");
             }
 
             internal override void StartThisAssemblyClass()
@@ -779,10 +779,10 @@ namespace Nerdbank.GitVersioning.Tasks
                 }
 
                 this.CodeBuilder.AppendLine($"#if {CompilerDefinesAroundGeneratedCodeAttribute}");
-                this.CodeBuilder.AppendLine($"[System.CodeDom.Compiler.GeneratedCode(\"{GeneratorName}\",\"{GeneratorVersion}\")]");
+                this.CodeBuilder.AppendLine($"[global::System.CodeDom.Compiler.GeneratedCode(\"{GeneratorName}\",\"{GeneratorVersion}\")]");
                 this.CodeBuilder.AppendLine("#endif");
                 this.CodeBuilder.AppendLine($"#if {CompilerDefinesAroundExcludeFromCodeCoverageAttribute}");
-                this.CodeBuilder.AppendLine("[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]");
+                this.CodeBuilder.AppendLine("[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]");
                 this.CodeBuilder.AppendLine("#endif");
                 this.CodeBuilder.AppendLine("internal static partial class ThisAssembly {");
             }
@@ -799,7 +799,7 @@ namespace Nerdbank.GitVersioning.Tasks
 
             internal override void AddThisAssemblyMember(string name, DateTime value)
             {
-                this.CodeBuilder.AppendLine($"    internal static readonly System.DateTime {name} = new System.DateTime({value.Ticks}L, System.DateTimeKind.Utc);");
+                this.CodeBuilder.AppendLine($"    internal static readonly global::System.DateTime {name} = new global::System.DateTime({value.Ticks}L, global::System.DateTimeKind.Utc);");
             }
 
             internal override void EndThisAssemblyClass()
@@ -832,7 +832,7 @@ namespace Nerdbank.GitVersioning.Tasks
 
             internal override void DeclareAttribute(Type type, string arg)
             {
-                this.CodeBuilder.AppendLine($"<Assembly: {type.FullName}(\"{arg}\")>");
+                this.CodeBuilder.AppendLine($"<Assembly: Global.{type.FullName}(\"{arg}\")>");
             }
 
             internal override void StartThisAssemblyClass()
@@ -843,11 +843,11 @@ namespace Nerdbank.GitVersioning.Tasks
                 }
 
                 this.CodeBuilder.AppendLine($"#If {CompilerDefinesAroundExcludeFromCodeCoverageAttribute.Replace("||", " Or ")} Then");
-                this.CodeBuilder.AppendLine($"<System.CodeDom.Compiler.GeneratedCode(\"{GeneratorName}\",\"{GeneratorVersion}\")>");
-                this.CodeBuilder.AppendLine("<System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage>");
+                this.CodeBuilder.AppendLine($"<Global.System.CodeDom.Compiler.GeneratedCode(\"{GeneratorName}\",\"{GeneratorVersion}\")>");
+                this.CodeBuilder.AppendLine("<Global.System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage>");
                 this.CodeBuilder.AppendLine("Partial Friend NotInheritable Class ThisAssembly");
                 this.CodeBuilder.AppendLine($"#ElseIf {CompilerDefinesAroundGeneratedCodeAttribute.Replace("||", " Or ")} Then");
-                this.CodeBuilder.AppendLine($"<System.CodeDom.Compiler.GeneratedCode(\"{GeneratorName}\",\"{GeneratorVersion}\")>");
+                this.CodeBuilder.AppendLine($"<Global.System.CodeDom.Compiler.GeneratedCode(\"{GeneratorName}\",\"{GeneratorVersion}\")>");
                 this.CodeBuilder.AppendLine("Partial Friend NotInheritable Class ThisAssembly");
                 this.CodeBuilder.AppendLine("#Else");
                 this.CodeBuilder.AppendLine("Partial Friend NotInheritable Class ThisAssembly");
@@ -866,7 +866,7 @@ namespace Nerdbank.GitVersioning.Tasks
 
             internal override void AddThisAssemblyMember(string name, DateTime value)
             {
-                this.CodeBuilder.AppendLine($"    Friend Shared ReadOnly {name} As System.DateTime = New System.DateTime({value.Ticks}L, System.DateTimeKind.Utc)");
+                this.CodeBuilder.AppendLine($"    Friend Shared ReadOnly {name} As Global.System.DateTime = New Global.System.DateTime({value.Ticks}L, Global.System.DateTimeKind.Utc)");
             }
 
             internal override void EndThisAssemblyClass()
