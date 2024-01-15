@@ -40,8 +40,31 @@
       <GenerateAssemblyVersionInfo Condition=" '$(GenerateAssemblyVersionInfo)' == '' and '$(TargetExt)' != '.dll' and '$(TargetExt)' != '.exe' ">false</GenerateAssemblyVersionInfo>
       <GenerateAssemblyVersionInfo Condition=" '$(GenerateAssemblyVersionInfo)' == '' and '$(NBGV_CacheMode)' == 'VersionGenerationTarget' ">false</GenerateAssemblyVersionInfo>
 
-      <!-- Suppress assembly version info generation for WiX Toolset project. -->
-      <GenerateAssemblyVersionInfo Condition=" '$(GenerateAssemblyVersionInfo)' == '' and '$(Language)' == 'wix' ">false</GenerateAssemblyVersionInfo>
+      <!--
+      Suppress assembly version info generation for unsupported programming languages.
+
+      Useful references:
+
+      * https://github.com/dotnet/arcade/blob/240c3371d337e159b5150e06bb048bfa34835271/src/Microsoft.DotNet.Arcade.Sdk/tools/ProjectDefaults.props#L57-L62
+      * https://github.com/dotnet/fsharp/blob/c980a10854168bec671e89f89d7a2959aac83ead/src/FSharp.Build/Microsoft.FSharp.Targets#L43
+      * https://github.com/dotnet/fsharp/blob/c980a10854168bec671e89f89d7a2959aac83ead/src/FSharp.Build/Microsoft.FSharp.NetSdk.props#L38
+      * https://github.com/dotnet/msbuild/blob/ceb160a675bf52a84109d68e3848aaf71fe6677a/src/Tasks/Microsoft.CSharp.CurrentVersion.targets#L38
+      * https://github.com/dotnet/msbuild/blob/ceb160a675bf52a84109d68e3848aaf71fe6677a/src/Tasks/Microsoft.VisualBasic.CurrentVersion.targets#L38
+      * https://github.com/dotnet/project-system/blob/048d517592310e6ef215033ebfdb6c6b2dff2bba/eng/imports/LanguageSettings.props#L4-L11
+      * https://github.com/dotnet/runtime/blob/ce3e77368c09fd9e02344a20e36a72ec892e10ea/src/libraries/System.CodeDom/src/System/CodeDom/Compiler/CodeDomProvider.cs#L20-L35
+      -->
+      <_NBGV_LanguageMode Condition=" '$(Language)' == 'c++' ">Native</_NBGV_LanguageMode>
+      <_NBGV_LanguageMode Condition=" '$(Language)' == 'c#' ">Managed</_NBGV_LanguageMode>
+      <_NBGV_LanguageMode Condition=" '$(Language)' == 'cs' ">Managed</_NBGV_LanguageMode>
+      <_NBGV_LanguageMode Condition=" '$(Language)' == 'csharp' ">Managed</_NBGV_LanguageMode>
+      <_NBGV_LanguageMode Condition=" '$(Language)' == 'vb' ">Managed</_NBGV_LanguageMode>
+      <_NBGV_LanguageMode Condition=" '$(Language)' == 'visualbasic' ">Managed</_NBGV_LanguageMode>
+      <_NBGV_LanguageMode Condition=" '$(Language)' == 'visual basic' ">Managed</_NBGV_LanguageMode>
+      <_NBGV_LanguageMode Condition=" '$(Language)' == 'f#' ">Managed</_NBGV_LanguageMode>
+      <_NBGV_LanguageMode Condition=" '$(Language)' == 'fs' ">Managed</_NBGV_LanguageMode>
+      <_NBGV_LanguageMode Condition=" '$(Language)' == 'fsharp' ">Managed</_NBGV_LanguageMode>
+
+      <GenerateAssemblyVersionInfo Condition=" '$(GenerateAssemblyVersionInfo)' == '' and '$(_NBGV_LanguageMode)' == '' ">false</GenerateAssemblyVersionInfo>
 
       <!-- Workaround the property stomping that msbuild does (see https://github.com/microsoft/msbuild/pull/4922) with manual imports. -->
       <PrepareForBuildDependsOn>
@@ -115,7 +138,7 @@
 
   <Target Name="GetNuGetPackageVersion" DependsOnTargets="GetBuildVersion" Returns="$(NuGetPackageVersion)" />
 
-  <Target Name="GenerateAssemblyNBGVVersionInfo" DependsOnTargets="GetBuildVersion" Condition=" '$(Language)' != '' and '$(GenerateAssemblyVersionInfo)' != 'false' ">
+  <Target Name="GenerateAssemblyNBGVVersionInfo" DependsOnTargets="GetBuildVersion" Condition=" '$(_NBGV_LanguageMode)' == 'Managed' and '$(GenerateAssemblyVersionInfo)' != 'false' ">
     <PropertyGroup>
       <VersionSourceFile>$([MSBuild]::NormalizePath('$(IntermediateOutputPath)', '$(AssemblyName).Version$(DefaultLanguageSourceExtension)'))</VersionSourceFile>
       <NewVersionSourceFile>$(VersionSourceFile).new</NewVersionSourceFile>
@@ -162,7 +185,7 @@
     </ItemGroup>
   </Target>
 
-  <Target Name="GenerateNativeNBGVVersionInfo" DependsOnTargets="GetBuildVersion" Condition=" '$(Language)'=='C++' and '$(GenerateAssemblyVersionInfo)' != 'false' ">
+  <Target Name="GenerateNativeNBGVVersionInfo" DependsOnTargets="GetBuildVersion" Condition=" '$(_NBGV_LanguageMode)' == 'Native' and '$(GenerateAssemblyVersionInfo)' != 'false' ">
     <PropertyGroup>
       <VersionSourceFile>$([MSBuild]::NormalizePath('$(IntermediateOutputPath)', '$(AssemblyName).Version.rc'))</VersionSourceFile>
       <NewVersionSourceFile>$(VersionSourceFile).new</NewVersionSourceFile>

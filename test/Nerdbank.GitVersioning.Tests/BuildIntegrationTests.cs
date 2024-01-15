@@ -194,25 +194,6 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
 
     /// <summary>
     /// Emulate a project with an unsupported language, and verify that
-    /// one warning is emitted because the assembly info file couldn't be generated.
-    /// </summary>
-    [Fact]
-    public async Task AssemblyInfo_NotProducedWithoutCodeDomProvider()
-    {
-        ProjectPropertyGroupElement propertyGroup = this.testProject.CreatePropertyGroupElement();
-        this.testProject.AppendChild(propertyGroup);
-        propertyGroup.AddProperty("Language", "NoCodeDOMProviderForThisLanguage");
-
-        this.WriteVersionFile();
-        BuildResults result = await this.BuildAsync(Targets.GenerateAssemblyNBGVVersionInfo, logVerbosity: LoggerVerbosity.Minimal, assertSuccessfulBuild: false);
-        Assert.Equal(BuildResultCode.Failure, result.BuildResult.OverallResult);
-        string versionCsFilePath = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"));
-        Assert.False(File.Exists(versionCsFilePath));
-        Assert.Single(result.LoggedEvents.OfType<BuildErrorEventArgs>());
-    }
-
-    /// <summary>
-    /// Emulate a project with an unsupported language, and verify that
     /// no errors are emitted because the target is skipped.
     /// </summary>
     [Fact]
