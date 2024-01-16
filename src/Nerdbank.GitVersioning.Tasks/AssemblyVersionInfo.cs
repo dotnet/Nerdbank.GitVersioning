@@ -397,6 +397,8 @@ namespace Nerdbank.GitVersioning.Tasks
                     this.generator.DeclareAttribute(typeof(AssemblyCopyrightAttribute), this.AssemblyCopyright);
                 }
             }
+
+            this.generator.EndAssemblyAttributes();
         }
 
         private List<KeyValuePair<string, (object Value, bool EmitIfEmpty /* Only applies to string values */)>> GetFieldsForThisAssembly()
@@ -658,6 +660,10 @@ namespace Nerdbank.GitVersioning.Tasks
             {
             }
 
+            internal virtual void EndAssemblyAttributes()
+            {
+            }
+
             internal abstract void DeclareAttribute(Type type, string arg);
 
             internal abstract void StartThisAssemblyClass();
@@ -726,6 +732,11 @@ namespace Nerdbank.GitVersioning.Tasks
                 this.CodeBuilder.AppendLine($"namespace {this.Namespace}");
             }
 
+            internal override void EndAssemblyAttributes()
+            {
+                this.CodeBuilder.AppendLine("do()");
+            }
+
             internal override void DeclareAttribute(Type type, string arg)
             {
                 this.CodeBuilder.AppendLine($"[<assembly: {type.FullName}(\"{arg}\")>]");
@@ -738,7 +749,6 @@ namespace Nerdbank.GitVersioning.Tasks
 
             internal override void StartThisAssemblyClass()
             {
-                this.CodeBuilder.AppendLine("do()");
                 this.CodeBuilder.AppendLine($"#if {CompilerDefinesAroundGeneratedCodeAttribute}");
                 this.CodeBuilder.AppendLine($"[<System.CodeDom.Compiler.GeneratedCode(\"{GeneratorName}\",\"{GeneratorVersion}\")>]");
                 this.CodeBuilder.AppendLine("#endif");
