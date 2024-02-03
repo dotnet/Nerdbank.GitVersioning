@@ -1048,7 +1048,7 @@ public abstract class VersionOracleTests : RepoTestBase
         // Assert that we don't see any tags.
         Assert.Empty(oracle.Tags);
 
-        // Create a tag.
+        // Create a lighweight tag.
         this.LibGit2Repository.ApplyTag("mytag");
 
         // Refresh our context before asking again.
@@ -1057,6 +1057,16 @@ public abstract class VersionOracleTests : RepoTestBase
 
         // Assert that we see the tag.
         Assert.Equal("refs/tags/mytag", Assert.Single(oracle2.Tags));
+
+        // Add another commit
+        this.AddCommits(1);
+
+        // Refresh our context before asking again.
+        this.Context = this.CreateGitContext(this.RepoPath);
+        VersionOracle oracle3 = new(this.Context);
+
+        // Assert that HEAD is not pointing to the tag.
+        Assert.Empty(oracle3.Tags);
     }
 
     [Fact]
@@ -1070,7 +1080,7 @@ public abstract class VersionOracleTests : RepoTestBase
         // Assert that we don't see any tags.
         Assert.Empty(oracle.Tags);
 
-        // Create a tag.
+        // Create an annotated tag.
         this.LibGit2Repository.ApplyTag("mytag", this.Signer, "my tag");
 
         // Refresh our context before asking again.
@@ -1079,6 +1089,16 @@ public abstract class VersionOracleTests : RepoTestBase
 
         // Assert that we see the tag.
         Assert.Equal("refs/tags/mytag", Assert.Single(oracle2.Tags));
+
+        // Add another commit
+        this.AddCommits(1);
+
+        // Refresh our context before asking again.
+        this.Context = this.CreateGitContext(this.RepoPath);
+        VersionOracle oracle3 = new(this.Context);
+
+        // Assert that HEAD is not pointing to the tag.
+        Assert.Empty(oracle3.Tags);
     }
 
     [Fact]

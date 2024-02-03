@@ -272,6 +272,21 @@ public class GitRepositoryTests : RepoTestBase
     }
 
     [Fact]
+    public void TryGetObjectByShaAndWrongTypeTest()
+    {
+        this.InitializeSourceControl();
+        this.AddCommits(2);
+
+        var headObjectId = GitObjectId.Parse(this.LibGit2Repository.Head.Tip.Sha);
+
+        using (var repository = GitRepository.Create(this.RepoPath))
+        {
+            Assert.False(repository.TryGetObjectBySha(headObjectId, "tree", out Stream value));
+            Assert.Null(value);
+        }
+    }
+
+    [Fact]
     public void GetMissingObjectByShaTest()
     {
         this.InitializeSourceControl();
