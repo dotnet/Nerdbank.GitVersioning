@@ -779,7 +779,8 @@ public class GitRepository : IDisposable
 
         if (string.CompareOrdinal(objectStream.ObjectType, objectType) != 0)
         {
-            throw new GitException($"Got a {objectStream.ObjectType} instead of a {objectType} when opening object {sha}");
+            value = null;
+            return false;
         }
 
         value = objectStream;
