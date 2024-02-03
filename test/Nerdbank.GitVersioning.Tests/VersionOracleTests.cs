@@ -1048,7 +1048,7 @@ public abstract class VersionOracleTests : RepoTestBase
         // Assert that we don't see any tags.
         Assert.Empty(oracle.Tags);
 
-        // Create a lighweight tag.
+        // Create a lightweight tag.
         this.LibGit2Repository.ApplyTag("mytag");
 
         // Refresh our context before asking again.
