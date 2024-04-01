@@ -7,10 +7,6 @@ updates:
   directory: /
   schedule:
     interval: monthly
-  ignore:
-  # This package has unlisted versions on nuget.org that are not supported. Avoid them.
-  - dependency-name: dotnet-format
-    versions: ["6.x", "7.x", "8.x", "9.x"]
 - package-ecosystem: npm
   directory: /src/nerdbank-gitversioning.npm
   schedule:
