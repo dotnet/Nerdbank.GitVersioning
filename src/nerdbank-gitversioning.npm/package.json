@@ -28,7 +28,7 @@
     "@types/node": "^18.7.14",
     "del": "^7.0.0",
     "gulp": "^4.0.2",
-    "gulp-cli": "^2.3.0",
+    "gulp-cli": "^3.0.0",
     "gulp-sourcemaps": "3.0.0",
     "gulp-typescript": "^5.0.1",
     "gulp-util": "^3.0.8",
