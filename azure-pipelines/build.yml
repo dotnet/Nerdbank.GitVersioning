@@ -23,7 +23,7 @@ jobs:
   - template: install-dependencies.yml
   - pwsh: |
       Invoke-WebRequest -Uri "https://dot.net/v1/dotnet-install.ps1" -OutFile dotnet-install.ps1
-      & .\dotnet-install.ps1 -Architecture x86 -Version 8.0.100 -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose
+      & .\dotnet-install.ps1 -Architecture x86 -Version 8.0.201 -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose
     displayName: ⚙ Install 32-bit .NET SDK and runtimes
 
   - template: dotnet.yml
