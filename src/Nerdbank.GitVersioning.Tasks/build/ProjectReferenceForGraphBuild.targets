@@ -1,0 +1,7 @@
+<Project>
+  <ItemGroup>
+    <ProjectReference Include="@(NBGV_CachingProjectReference)">
+      <NBGV_InnerProject>true</NBGV_InnerProject>
+    </ProjectReference>
+  </ItemGroup>
+</Project>

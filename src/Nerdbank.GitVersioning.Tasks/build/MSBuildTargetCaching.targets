@@ -33,14 +33,14 @@
       <Visible>false</Visible>
       <PrivateAssets>all</PrivateAssets>
     </NBGV_CachingProjectReference>
-
-    <!-- Declare a P2P so that "msbuild -graph -isolate" doesn't complain when we use the MSBuild task to invoke our inner shared project.
-         This causes a lot of problems (https://github.com/dotnet/Nerdbank.GitVersioning/issues?q=label%3Amsbuild-p2p+) with projects
-         that expect to understand all their own ProjectReferences though, so only define it when the user is running a graph build. -->
-    <ProjectReference Include="@(NBGV_CachingProjectReference)" Condition="'$(IsGraphBuild)'=='true'">
-      <NBGV_InnerProject>true</NBGV_InnerProject>
-    </ProjectReference>
   </ItemGroup>
+
+  <!-- Declare a P2P so that "msbuild -graph -isolate" doesn't complain when we use the MSBuild task to invoke our inner shared project.
+       This causes a lot of problems (https://github.com/dotnet/Nerdbank.GitVersioning/issues?q=label%3Amsbuild-p2p+) with projects
+       that expect to understand all their own ProjectReferences though, so only define it when the user is running a graph build.
+       Rather than condition the item (which the legacy project system 'sees through' using MSBuild APIs),
+       we condition an import so that the item will be utterly undiscoverable by the project system. -->
+  <Import Project="ProjectReferenceForGraphBuild.targets" Condition="'$(IsGraphBuild)'=='true'"/>
 
   <Target Name="InvokeGetBuildVersionTask">
     <Error Text="BuildMetadata items changed after a copy was made. Add all BuildMetadata items before importing this file." Condition=" '@(BuildMetadata)' != '@(_BuildMetadataSnapped)' " />
