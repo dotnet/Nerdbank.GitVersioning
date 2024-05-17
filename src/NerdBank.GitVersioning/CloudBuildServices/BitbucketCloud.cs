@@ -20,10 +20,10 @@ public class BitbucketCloud : ICloudBuild
     public bool IsPullRequest => !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("BITBUCKET_PR_ID"));
 
     /// <inheritdoc />
-    public string BuildingBranch => Environment.GetEnvironmentVariable("BITBUCKET_BRANCH");
+    public string BuildingBranch => CloudBuild.ShouldStartWith(Environment.GetEnvironmentVariable("BITBUCKET_BRANCH"), "refs/heads/");
 
     /// <inheritdoc />
-    public string BuildingTag => Environment.GetEnvironmentVariable("BITBUCKET_TAG");
+    public string BuildingTag => CloudBuild.ShouldStartWith(Environment.GetEnvironmentVariable("BITBUCKET_TAG"), "refs/tags/");
 
     /// <inheritdoc />
     public string GitCommitId => Environment.GetEnvironmentVariable("BITBUCKET_COMMIT");

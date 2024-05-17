@@ -66,8 +66,8 @@ namespace AssemblyInfo
 [<assembly: global.System.Reflection.AssemblyVersionAttribute(""1.3.0.0"")>]
 [<assembly: global.System.Reflection.AssemblyFileVersionAttribute(""1.3.1.0"")>]
 [<assembly: global.System.Reflection.AssemblyInformationalVersionAttribute("""")>]
-{(thisAssemblyClass.GetValueOrDefault(true) ? $@"do()
-#if NETSTANDARD || NETFRAMEWORK || NETCOREAPP
+do()
+{(thisAssemblyClass.GetValueOrDefault(true) ? $@"#if NETSTANDARD || NETFRAMEWORK || NETCOREAPP
 [<global.System.CodeDom.Compiler.GeneratedCode(""{AssemblyVersionInfo.GeneratorName}"",""{AssemblyVersionInfo.GeneratorVersion}"")>]
 #endif
 #if NET40_OR_GREATER || NETCOREAPP2_0_OR_GREATER || NETSTANDARD2_0_OR_GREATER
