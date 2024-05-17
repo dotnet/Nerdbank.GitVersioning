@@ -281,7 +281,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         Version version = this.GetVersion(relativeProjectDirectory);
         Version assemblyVersion = GetExpectedAssemblyVersion(versionOptions, version);
         IEnumerable<string> additionalBuildMetadata = from item in buildResult.BuildResult.ProjectStateAfterBuild.GetItems("BuildMetadata")
-                                      select item.EvaluatedInclude;
+                                                      select item.EvaluatedInclude;
         string expectedBuildMetadata = $"+{commitIdShort}";
         if (additionalBuildMetadata.Any())
         {
@@ -430,8 +430,8 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         string prefix = $"{ThisAssembly.RootNamespace}.Targets.";
 
         IEnumerable<string> streamNames = from name in Assembly.GetExecutingAssembly().GetManifestResourceNames()
-                          where name.StartsWith(prefix, StringComparison.Ordinal)
-                          select name;
+                                          where name.StartsWith(prefix, StringComparison.Ordinal)
+                                          select name;
         foreach (string name in streamNames)
         {
             using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(name))

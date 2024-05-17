@@ -8,6 +8,7 @@
     "k--kato.docomment",
     "editorconfig.editorconfig",
     "formulahendry.dotnet-test-explorer",
+    "esbenp.prettier-vscode",
     "pflannery.vscode-versionlens",
     "davidanson.vscode-markdownlint",
     "dotjoshjohnson.xml",
