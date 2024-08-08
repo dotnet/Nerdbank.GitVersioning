@@ -2,8 +2,8 @@
   "compilerOptions": {
     "target": "es6",
     "declaration": true,
-    "module": "commonjs",
-    "moduleResolution": "node",
+    "module": "Node16",
+    "moduleResolution": "node16",
     "sourceMap": true,
     "noImplicitAny": false,
     "outDir": "js"
