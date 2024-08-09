@@ -36,9 +36,7 @@
     "source-map": "^0.7.4",
     "typescript": "^5.0.4"
   },
-  "dependencies": {
-    "change-case": "5.4.4"
-  },
+  "dependencies": {},
   "scripts": {
     "build": "gulp"
   }

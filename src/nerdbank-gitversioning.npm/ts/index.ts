@@ -46,9 +46,9 @@ export async function getVersion(projectDirectory?: string, dotnetCommand?: stri
 
     var directResult = JSON.parse(versionText.stdout);
     var result = {};
-    const { camelCase } = await import('change-case');
     for (var field in directResult) {
-        result[camelCase(field)] = directResult[field];
+        const camelCaseFieldName = field.charAt(0).toLowerCase() + field.slice(1);
+        result[camelCaseFieldName] = directResult[field];
     }
 
     return <IGitVersion>result;
