@@ -5,7 +5,6 @@ var ts = require('gulp-typescript');
 var sourcemaps = require('gulp-sourcemaps');
 var merge = require('merge2');
 // var tslint = require('gulp-tslint');
-var del = import('del');
 var path = require('path');
 
 const outDir = 'out';
@@ -20,12 +19,9 @@ gulp.task('tsc', function () {
         .pipe(sourcemaps.init())
         .pipe(tsProject());
 
-    return merge([
-        tsResult.dts.pipe(gulp.dest(outDir)),
-        tsResult.js
-            .pipe(sourcemaps.write('.'))
-            .pipe(gulp.dest(outDir))
-    ]);
+    return merge(
+        tsResult.js.pipe(sourcemaps.write('.')).pipe(gulp.dest(outDir)),
+        tsResult.dts.pipe(gulp.dest(outDir)));
 });
 
 gulp.task('copyPackageContents', gulp.series('tsc', function () {
@@ -53,10 +49,9 @@ gulp.task('package', gulp.series('setPackageVersion', function () {
         });
 }));
 
-gulp.task('clean', function () {
-    return del([
-        outDir
-    ])
+gulp.task('clean', async function () {
+    const del = await import('del');
+    await del.deleteAsync([outDir]);
 });
 
 gulp.task('default', gulp.series('package', function (done) {
@@ -64,7 +59,7 @@ gulp.task('default', gulp.series('package', function (done) {
 }));
 
 gulp.task('watch', gulp.series('tsc', function () {
-    return gulp.watch('**/*.ts', ['tsc']);
+    return gulp.watch('**/*.ts', gulp.series('tsc'));
 }));
 
 gulp.task('test', gulp.series('tsc', async function () {

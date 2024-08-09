@@ -1,6 +1,5 @@
 'use strict';
 
-import * as camelCase from 'camel-case';
 import { execAsync } from './asyncprocess';
 import { getNbgvCommand } from './core';
 
@@ -48,7 +47,8 @@ export async function getVersion(projectDirectory?: string, dotnetCommand?: stri
     var directResult = JSON.parse(versionText.stdout);
     var result = {};
     for (var field in directResult) {
-        result[camelCase.camelCase(field)] = directResult[field];
+        const camelCaseFieldName = field.charAt(0).toLowerCase() + field.slice(1);
+        result[camelCaseFieldName] = directResult[field];
     }
 
     return <IGitVersion>result;
