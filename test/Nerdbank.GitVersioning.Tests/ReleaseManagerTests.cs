@@ -638,6 +638,44 @@ public abstract class ReleaseManagerTests : RepoTestBase
         Assert.Equal(expectedReleaseVersionOptions, releaseVersion);
     }
 
+    [Fact]
+    public void PrepareRelease_DoesNotResetNegativeVersionHeightOffset()
+    {
+        // create and configure repository
+        this.InitializeSourceControl();
+
+        var initialVersionOptions = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("1.0-beta"),
+            VersionHeightOffset = -1,
+        };
+
+        var expectedReleaseVersionOptions = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("1.0"),
+            VersionHeightOffset = -1,
+        };
+
+        var expectedMainVersionOptions = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("1.1-alpha"),
+            VersionHeightOffset = -1,
+        };
+
+        // create version.json
+        this.WriteVersionFile(initialVersionOptions);
+
+        var releaseManager = new ReleaseManager();
+        releaseManager.PrepareRelease(this.RepoPath);
+
+        this.SetContextToHead();
+        VersionOptions newVersion = this.Context.VersionFile.GetVersion();
+        Assert.Equal(expectedMainVersionOptions, newVersion);
+
+        VersionOptions releaseVersion = this.GetVersionOptions(committish: this.LibGit2Repository.Branches["v1.0"].Tip.Sha);
+        Assert.Equal(expectedReleaseVersionOptions, releaseVersion);
+    }
+
     [Theory]
     [InlineData("1.0-beta", "{0} Custom commit message pattern", "1.0 Custom commit message pattern")]
     [InlineData("1.0-beta", "Custom commit message pattern - {0} custom message", "Custom commit message pattern - 1.0 custom message")]
