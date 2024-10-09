@@ -30,6 +30,8 @@ internal class NoGitContext : GitContext
     /// <inheritdoc/>
     public override DateTimeOffset? GitCommitDate => null;
 
+    public override DateTimeOffset? GitCommitAuthorDate => null;
+
     /// <inheritdoc/>
     public override string? HeadCanonicalName => null;
 

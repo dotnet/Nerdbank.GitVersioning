@@ -169,6 +169,7 @@
                   PrereleaseVersion="$(PrereleaseVersion)"
                   GitCommitId="$(GitCommitId)"
                   GitCommitDateTicks="$(GitCommitDateTicks)"
+                  GitCommitAuthorDateTicks="$(GitCommitAuthorDateTicks)"
                   EmitNonVersionCustomAttributes="$(NBGV_EmitNonVersionCustomAttributes)"
                   EmitThisAssemblyClass="$(NBGV_EmitThisAssemblyClass)"
                   AdditionalThisAssemblyFields="@(AdditionalThisAssemblyFields)"

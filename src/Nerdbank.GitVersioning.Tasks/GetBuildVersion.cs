@@ -166,6 +166,13 @@ namespace Nerdbank.GitVersioning.Tasks
         public string GitCommitDateTicks { get; private set; }
 
         /// <summary>
+        /// Gets the Git revision control commit author date for HEAD (the current source code version), expressed as the number of 100-nanosecond
+        /// intervals that have elapsed since January 1, 0001 at 00:00:00.000 in the Gregorian calendar.
+        /// </summary>
+        [Output]
+        public string GitCommitAuthorDateTicks { get; private set; }
+
+        /// <summary>
         /// Gets the number of commits in the longest single path between
         /// the specified commit and the most distant ancestor (inclusive)
         /// that set the version to the value at HEAD.
@@ -266,6 +273,7 @@ namespace Nerdbank.GitVersioning.Tasks
                 this.GitCommitId = oracle.GitCommitId;
                 this.GitCommitIdShort = oracle.GitCommitIdShort;
                 this.GitCommitDateTicks = oracle.GitCommitDate is not null ? oracle.GitCommitDate.Value.UtcTicks.ToString(CultureInfo.InvariantCulture) : null;
+                this.GitCommitAuthorDateTicks = oracle.GitCommitAuthorDate is not null ? oracle.GitCommitAuthorDate.Value.UtcTicks.ToString(CultureInfo.InvariantCulture) : null;
                 this.GitVersionHeight = oracle.VersionHeight;
                 this.BuildMetadataFragment = oracle.BuildMetadataFragment;
                 this.CloudBuildNumber = oracle.CloudBuildNumberEnabled ? oracle.CloudBuildNumber : null;
@@ -314,6 +322,7 @@ namespace Nerdbank.GitVersioning.Tasks
                     { "GitCommitId", this.GitCommitId },
                     { "GitCommitIdShort", this.GitCommitIdShort },
                     { "GitCommitDateTicks", this.GitCommitDateTicks },
+                    { "GitCommitAuthorDateTicks", this.GitCommitAuthorDateTicks },
                     { "GitVersionHeight", this.GitVersionHeight.ToString(CultureInfo.InvariantCulture) },
                     { "BuildNumber", this.BuildNumber.ToString(CultureInfo.InvariantCulture) },
                     { "BuildVersionNumberComponent", this.BuildNumber.ToString(CultureInfo.InvariantCulture) },

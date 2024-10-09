@@ -296,7 +296,7 @@ public class GitRepository : IDisposable
     /// Gets the current HEAD commit, if available.
     /// </summary>
     /// <param name="readAuthor">
-    /// A value indicating whether to populate the <see cref="GitCommit.Author"/> field.
+    /// A value indicating whether to populate the <see cref="GitCommit.Author"/> and <see cref="GitCommit.Committer"/> fields.
     /// </param>
     /// <returns>
     /// The current HEAD commit, or <see langword="null"/> if not available.
@@ -320,7 +320,7 @@ public class GitRepository : IDisposable
     /// The Git object Id of the commit.
     /// </param>
     /// <param name="readAuthor">
-    /// A value indicating whether to populate the <see cref="GitCommit.Author"/> field.
+    /// A value indicating whether to populate the <see cref="GitCommit.Author"/> and <see cref="GitCommit.Committer"/> fields.
     /// </param>
     /// <returns>
     /// The requested commit.

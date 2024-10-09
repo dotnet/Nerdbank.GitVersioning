@@ -48,6 +48,11 @@ public struct GitCommit : IEquatable<GitCommit>
     /// </summary>
     public GitSignature? Author { get; set; }
 
+    /// <summary>
+    /// Gets or sets the committer of this commit.
+    /// </summary>
+    public GitSignature? Committer { get; set; }
+
     public static bool operator ==(GitCommit left, GitCommit right)
     {
         return Equals(left, right);

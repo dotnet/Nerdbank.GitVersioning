@@ -114,6 +114,11 @@ public abstract class GitContext : IDisposable
     public abstract DateTimeOffset? GitCommitDate { get; }
 
     /// <summary>
+    /// Gets the date that the commit identified by <see cref="GitCommitId"/> was authored.
+    /// </summary>
+    public abstract DateTimeOffset? GitCommitAuthorDate { get; }
+
+    /// <summary>
     /// Gets the canonical name for HEAD's position (e.g. <c>refs/heads/main</c>).
     /// </summary>
     public abstract string? HeadCanonicalName { get; }
