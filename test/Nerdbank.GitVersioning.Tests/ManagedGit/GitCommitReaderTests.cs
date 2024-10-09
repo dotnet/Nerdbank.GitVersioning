@@ -32,7 +32,11 @@ public class GitCommitReaderTests
             Assert.Equal(new DateTimeOffset(2020, 10, 6, 13, 40, 09, TimeSpan.FromHours(-6)), author.Date);
             Assert.Equal("andrewarnott@gmail.com", author.Email);
 
-            // Committer and commit message are not read
+            GitSignature committer = commit.Committer.Value;
+
+            Assert.Equal("Andrew Arnott", committer.Name);
+            Assert.Equal(new DateTimeOffset(2020, 10, 6, 14, 40, 09, TimeSpan.FromHours(-6)), committer.Date);
+            Assert.Equal("andrewarnott@gmail.com", committer.Email);
         }
     }
 

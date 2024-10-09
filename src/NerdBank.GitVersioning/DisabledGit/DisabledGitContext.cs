@@ -24,6 +24,8 @@ internal class DisabledGitContext : GitContext
 
     public override DateTimeOffset? GitCommitDate => null;
 
+    public override DateTimeOffset? GitCommitAuthorDate => null;
+
     public override string? HeadCanonicalName => null;
 
     public override IReadOnlyCollection<string>? HeadTags => null;

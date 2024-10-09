@@ -19,6 +19,7 @@ public static class GitCommitReader
     private static readonly byte[] TreeStart = GitRepository.Encoding.GetBytes("tree ");
     private static readonly byte[] ParentStart = GitRepository.Encoding.GetBytes("parent ");
     private static readonly byte[] AuthorStart = GitRepository.Encoding.GetBytes("author ");
+    private static readonly byte[] CommitterStart = GitRepository.Encoding.GetBytes("committer ");
 
     /// <summary>
     /// Reads a <see cref="GitCommit"/> object from a <see cref="Stream"/>.
@@ -30,7 +31,7 @@ public static class GitCommitReader
     /// The <see cref="GitObjectId"/> of the commit.
     /// </param>
     /// <param name="readAuthor">
-    /// A value indicating whether to populate the <see cref="GitCommit.Author"/> field.
+    /// A value indicating whether to populate the <see cref="GitCommit.Author"/> and <see cref="GitCommit.Committer"/> fields.
     /// </param>
     /// <returns>
     /// The <see cref="GitCommit"/>.
@@ -67,7 +68,7 @@ public static class GitCommitReader
     /// The <see cref="GitObjectId"/> of the commit.
     /// </param>
     /// <param name="readAuthor">
-    /// A value indicating whether to populate the <see cref="GitCommit.Author"/> field.
+    /// A value indicating whether to populate the <see cref="GitCommit.Author"/> and <see cref="GitCommit.Committer"/> fields.
     /// </param>
     /// <returns>
     /// The <see cref="GitCommit"/>.
@@ -102,11 +103,22 @@ public static class GitCommitReader
             buffer = buffer.Slice(ParentLineLength);
         }
 
-        GitSignature signature = default;
+        GitSignature author = default;
+        GitSignature committer = default;
 
-        if (readAuthor && !TryReadAuthor(buffer, out signature))
+        if (readAuthor)
         {
-            throw new GitException();
+            if (!TryReadAuthor(buffer, out author, out int lineLength))
+            {
+                throw new GitException();
+            }
+
+            buffer = buffer.Slice(lineLength);
+
+            if (!TryReadCommitter(buffer, out committer))
+            {
+                throw new GitException();
+            }
         }
 
         return new GitCommit()
@@ -116,7 +128,8 @@ public static class GitCommitReader
             SecondParent = secondParent,
             AdditionalParents = additionalParents,
             Tree = tree,
-            Author = readAuthor ? signature : null,
+            Author = readAuthor ? author : null,
+            Committer = readAuthor ? committer : null,
         };
     }
 
@@ -153,16 +166,27 @@ public static class GitCommitReader
         return true;
     }
 
-    private static bool TryReadAuthor(ReadOnlySpan<byte> line, out GitSignature signature)
+    private static bool TryReadAuthor(ReadOnlySpan<byte> line, out GitSignature signature, out int lineLength)
+    {
+        return TryReadSignature(line, AuthorStart, out signature, out lineLength);
+    }
+
+    private static bool TryReadCommitter(ReadOnlySpan<byte> line, out GitSignature signature)
+    {
+        return TryReadSignature(line, CommitterStart, out signature, out _);
+    }
+
+    private static bool TryReadSignature(ReadOnlySpan<byte> line, byte[] signatureStart, out GitSignature signature, out int lineLength)
     {
         signature = default;
+        lineLength = default;
 
-        if (!line.Slice(0, AuthorStart.Length).SequenceEqual(AuthorStart))
+        if (!line.Slice(0, signatureStart.Length).SequenceEqual(signatureStart))
         {
             return false;
         }
 
-        line = line.Slice(AuthorStart.Length);
+        line = line.Slice(signatureStart.Length);
 
         int emailStart = line.IndexOf((byte)'<');
         int emailEnd = line.IndexOf((byte)'>');
@@ -179,6 +203,7 @@ public static class GitCommitReader
         long ticks = long.Parse(GitRepository.GetString(time.Slice(0, offsetStart)));
         signature.Date = DateTimeOffset.FromUnixTimeSeconds(ticks);
 
+        lineLength = signatureStart.Length + lineEnd + 1;
         return true;
     }
 }

@@ -91,6 +91,8 @@ namespace Nerdbank.GitVersioning.Tasks
 
         public string GitCommitDateTicks { get; set; }
 
+        public string GitCommitAuthorDateTicks { get; set; }
+
         public bool EmitThisAssemblyClass { get; set; } = true;
 
         /// <summary>
@@ -438,6 +440,11 @@ namespace Nerdbank.GitVersioning.Tasks
             if (long.TryParse(this.GitCommitDateTicks, out long gitCommitDateTicks))
             {
                 fields.Add("GitCommitDate", (new DateTime(gitCommitDateTicks, DateTimeKind.Utc), true));
+            }
+
+            if (long.TryParse(this.GitCommitAuthorDateTicks, out long gitCommitAuthorDateTicks))
+            {
+                fields.Add("GitCommitAuthorDate", (new DateTime(gitCommitAuthorDateTicks, DateTimeKind.Utc), true));
             }
 
             if (this.AdditionalThisAssemblyFields is object)

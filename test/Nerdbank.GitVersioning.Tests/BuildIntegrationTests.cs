@@ -304,7 +304,8 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         Assert.Equal(idAsVersion.Build.ToString(), buildResult.BuildVersionNumberComponent);
         Assert.Equal($"{idAsVersion.Major}.{idAsVersion.Minor}.{idAsVersion.Build}", buildResult.BuildVersionSimple);
         Assert.Equal(this.LibGit2Repository.Head.Tip.Id.Sha, buildResult.GitCommitId);
-        Assert.Equal(this.LibGit2Repository.Head.Tip.Author.When.UtcTicks.ToString(CultureInfo.InvariantCulture), buildResult.GitCommitDateTicks);
+        Assert.Equal(this.LibGit2Repository.Head.Tip.Committer.When.UtcTicks.ToString(CultureInfo.InvariantCulture), buildResult.GitCommitDateTicks);
+        Assert.Equal(this.LibGit2Repository.Head.Tip.Author.When.UtcTicks.ToString(CultureInfo.InvariantCulture), buildResult.GitCommitAuthorDateTicks);
         Assert.Equal(commitIdShort, buildResult.GitCommitIdShort);
         Assert.Equal(versionHeight.ToString(), buildResult.GitVersionHeight);
         Assert.Equal($"{version.Major}.{version.Minor}", buildResult.MajorMinorVersion);
@@ -557,6 +558,8 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         public string GitCommitIdShort => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitCommitIdShort");
 
         public string GitCommitDateTicks => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitCommitDateTicks");
+
+        public string GitCommitAuthorDateTicks => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitCommitAuthorDateTicks");
 
         public string GitVersionHeight => this.BuildResult.ProjectStateAfterBuild.GetPropertyValue("GitVersionHeight");
 

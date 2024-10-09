@@ -51,7 +51,10 @@ public class LibGit2Context : GitContext
     public override bool IsHead => this.Repository.Head?.Tip?.Equals(this.Commit) ?? false;
 
     /// <inheritdoc />
-    public override DateTimeOffset? GitCommitDate => this.Commit?.Author.When;
+    public override DateTimeOffset? GitCommitDate => this.Commit?.Committer.When;
+
+    /// <inheritdoc />
+    public override DateTimeOffset? GitCommitAuthorDate => this.Commit?.Author.When;
 
     /// <inheritdoc />
     public override string HeadCanonicalName => this.Repository.Head.CanonicalName;

@@ -266,6 +266,11 @@ public class VersionOracle
     public DateTimeOffset? GitCommitDate => this.context.GitCommitDate;
 
     /// <summary>
+    /// Gets the Git revision control commit author date for HEAD (the current source code version).
+    /// </summary>
+    public DateTimeOffset? GitCommitAuthorDate => this.context.GitCommitAuthorDate;
+
+    /// <summary>
     /// Gets or sets the number of commits in the longest single path between
     /// the specified commit and the most distant ancestor (inclusive)
     /// that set the version to the value at HEAD.
