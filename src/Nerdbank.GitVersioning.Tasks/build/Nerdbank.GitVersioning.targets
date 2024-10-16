@@ -8,6 +8,11 @@
       $(VersionDependsOn)
     </VersionDependsOn>
 
+    <CleanDependsOn>
+      GetBuildVersion;
+      $(CleanDependsOn)
+    </CleanDependsOn>
+
     <GenerateNuspecDependsOn>
       GetBuildVersion;
       $(GenerateNuspecDependsOn)

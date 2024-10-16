@@ -132,6 +132,14 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
     }
 
     [Fact]
+    public async Task GetBuildVersion_Hooks_Clean()
+    {
+        this.WriteVersionFile("1.2");
+        BuildResults buildResult = await this.BuildAsync("Clean");
+        Assert.Equal("1.2", buildResult.BuildVersion);
+    }
+
+    [Fact]
     public async Task GetBuildVersion_Without_Git_HighPrecisionAssemblyVersion()
     {
         this.WriteVersionFile(new VersionOptions
