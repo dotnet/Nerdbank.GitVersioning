@@ -74,9 +74,9 @@ stages:
     strategy:
       matrix:
         macOS_Catalina:
-          vmImage: macOS-12
+          vmImage: macOS-14
         macOS_Monterey:
-          vmImage: macOS-12
+          vmImage: macOS-14
     pool:
       vmImage: $[ variables['vmImage'] ]
     steps:
@@ -96,7 +96,7 @@ stages:
           imageName: windows-2022
           repoDir: '${USERPROFILE}/source/repos'
         macOS:
-          imageName: macOS-12
+          imageName: macOS-14
           repoDir: '~/git'
     pool:
       vmImage: $(imageName)
