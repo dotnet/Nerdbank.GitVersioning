@@ -29,7 +29,7 @@
     <PackageVersion Include="Nerdbank.GitVersioning.LKG" Version="3.4.173-alpha" />
     <PackageVersion Include="Newtonsoft.Json.Schema" Version="4.0.1" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageVersion Include="NuGet.PackageManagement" Version="6.11.0" />
+    <PackageVersion Include="NuGet.PackageManagement" Version="6.11.1" />
     <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
     <PackageVersion Include="System.Diagnostics.Tools" Version="4.3.0" />
     <PackageVersion Include="System.Memory" Version="4.5.5" />
