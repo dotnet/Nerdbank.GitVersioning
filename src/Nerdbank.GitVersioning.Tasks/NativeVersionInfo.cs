@@ -108,6 +108,8 @@ END
 
         public string TargetFileName { get; set; }
 
+        public bool UseAssemblyVersionInNativeVersion { get; set; } = true;
+
         /// <inheritdoc/>
         public override bool Execute()
         {
@@ -166,7 +168,7 @@ END
                 return;
             }
 
-            if (!Version.TryParse(this.AssemblyVersion, out Version productVersion))
+            if (!Version.TryParse(this.AssemblyVersion, out Version productVersion) || !this.UseAssemblyVersionInNativeVersion)
             {
                 productVersion = fileVersion;
             }
