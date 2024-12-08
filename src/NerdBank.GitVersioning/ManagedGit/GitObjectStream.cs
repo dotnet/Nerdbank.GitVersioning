@@ -45,7 +45,7 @@ public class GitObjectStream : ZLibStream
     private void ReadObjectTypeAndLength(string objectType)
     {
         Span<byte> buffer = stackalloc byte[128];
-        this.Read(buffer.Slice(0, objectType.Length + 1));
+        this.ReadAll(buffer.Slice(0, objectType.Length + 1));
 
         string? actualObjectType = GitRepository.GetString(buffer.Slice(0, objectType.Length));
         this.ObjectType = actualObjectType;
@@ -55,7 +55,7 @@ public class GitObjectStream : ZLibStream
 
         while (headerLength < buffer.Length)
         {
-            this.Read(buffer.Slice(headerLength, 1));
+            this.ReadAll(buffer.Slice(headerLength, 1));
 
             if (buffer[headerLength] == 0)
             {
