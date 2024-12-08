@@ -23,7 +23,7 @@ public class GitPackDeltafiedStreamTests
         using (Stream expectedStream = TestUtilities.GetEmbeddedResource(expectedPath))
         {
             expected = new byte[expectedStream.Length];
-            expectedStream.Read(expected);
+            expectedStream.ReadAll(expected);
         }
 
         byte[] actual = new byte[expected.Length];
@@ -34,7 +34,7 @@ public class GitPackDeltafiedStreamTests
         {
             ////Assert.Equal(expected.Length, deltafiedStream.Length);
 
-            deltafiedStream.Read(actual);
+            deltafiedStream.ReadAll(actual);
 
             Assert.Equal(expected, actual);
         }
