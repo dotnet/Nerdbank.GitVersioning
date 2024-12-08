@@ -8,7 +8,7 @@ steps:
     git config --global user.email me@ci.com
   displayName: ⚙️ Configure git commit author for testing
 
-- script: dotnet build -t:build,pack --no-restore -c $(BuildConfiguration) -warnaserror /bl:"$(Build.ArtifactStagingDirectory)/build_logs/build.binlog"
+- script: dotnet build -t:build,pack --no-restore -c $(BuildConfiguration) -warnAsError -warnNotAsError:NU1901,NU1902,NU1903,NU1904 /bl:"$(Build.ArtifactStagingDirectory)/build_logs/build.binlog"
   displayName: 🛠 dotnet build
 
 - script: dotnet pack -c $(BuildConfiguration) --no-build -p:PackLKG=true /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild_lkg.binlog"
@@ -85,7 +85,7 @@ steps:
   - powershell: |
       $ArtifactStagingFolder = & "azure-pipelines/Get-ArtifactsStagingDirectory.ps1"
       $CoverageResultsFolder = Join-Path $ArtifactStagingFolder "coverageResults-$(Agent.JobName)"
-      azure-pipelines/publish-CodeCov.ps1 -CodeCovToken "$(codecov_token)" -PathToCodeCoverage "$CoverageResultsFolder" -Name "$(Agent.JobName) Coverage Results" -Flags "$(Agent.JobName)Host,$(BuildConfiguration)"
+      azure-pipelines/publish-CodeCov.ps1 -CodeCovToken "$(codecov_token)" -PathToCodeCoverage "$CoverageResultsFolder" -Name "$(Agent.JobName) Coverage Results" -Flags "$(Agent.JobName)"
     displayName: 📢 Publish code coverage results to codecov.io
     timeoutInMinutes: 3
     continueOnError: true
