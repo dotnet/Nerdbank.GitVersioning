@@ -23,7 +23,7 @@ jobs:
   - template: install-dependencies.yml
   - pwsh: |
       Invoke-WebRequest -Uri "https://dot.net/v1/dotnet-install.ps1" -OutFile dotnet-install.ps1
-      & .\dotnet-install.ps1 -Architecture x86 -Version 8.0.402 -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose
+      & .\dotnet-install.ps1 -Architecture x86 -Version 9.0.100 -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose
     displayName: ⚙ Install 32-bit .NET SDK and runtimes
 
   - template: dotnet.yml
@@ -44,8 +44,10 @@ jobs:
   - template: dotnet.yml
     parameters:
       RunTests: ${{ parameters.RunTests }}
-  - script: dotnet format --verify-no-changes --no-restore
+  - script: dotnet format --verify-no-changes
     displayName: 💅 Verify formatted code
+    env:
+      dotnetformat: true # part of a workaround for https://github.com/dotnet/sdk/issues/44951
 
 - job: WrapUp
   dependsOn:
