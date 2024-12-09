@@ -7,10 +7,6 @@ updates:
   directory: /
   schedule:
     interval: monthly
-- package-ecosystem: dotnet-sdk
-  directory: /
-  schedule:
-    interval: monthly
 - package-ecosystem: npm
   directory: /src/nerdbank-gitversioning.npm
   schedule:
