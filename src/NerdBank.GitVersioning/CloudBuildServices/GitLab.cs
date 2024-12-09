@@ -20,7 +20,7 @@ internal class GitLab : ICloudBuild
 
     /// <inheritdoc/>
     public string BuildingTag =>
-        Environment.GetEnvironmentVariable("CI_COMMIT_TAG") is not null ?
+        !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CI_COMMIT_TAG")) ?
             $"refs/tags/{Environment.GetEnvironmentVariable("CI_COMMIT_TAG")}" : null;
 
     /// <inheritdoc/>
