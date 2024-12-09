@@ -37,12 +37,12 @@ IMPORTANT: The 3.x release may produce a different version height than prior maj
     <file src="$LibGit2SharpNativeBinaries$runtimes\linux-x64\native\lib$libgit2_filename$.so" target="build\MSBuildFull\lib\linux-x64\lib$libgit2_filename$.so" />
 
     <file src="$LibGit2SharpNativeBinaries$libgit2\LibGit2Sharp.dll.config" target="build\MSBuildCore\LibGit2Sharp.dll.config" />
-    <file src="$BaseOutputPath$net6.0\LibGit2Sharp.dll" target="build\MSBuildCore\LibGit2Sharp.dll" />
-    <file src="$BaseOutputPath$net6.0\Microsoft.DotNet.PlatformAbstractions.dll" target="build\MSBuildCore\Microsoft.DotNet.PlatformAbstractions.dll" />
-    <file src="$BaseOutputPath$net6.0\Nerdbank.GitVersioning.dll" target="build\MSBuildCore\Nerdbank.GitVersioning.dll" />
-    <file src="$BaseOutputPath$net6.0\Nerdbank.GitVersioning.Tasks.dll" target="build\MSBuildCore\Nerdbank.GitVersioning.Tasks.dll" />
-    <file src="$BaseOutputPath$net6.0\Newtonsoft.Json.dll" target="build\MSBuildCore\Newtonsoft.Json.dll" />
-    <file src="$BaseOutputPath$net6.0\Validation.dll" target="build\MSBuildCore\Validation.dll" />
+    <file src="$BaseOutputPath$net8.0\LibGit2Sharp.dll" target="build\MSBuildCore\LibGit2Sharp.dll" />
+    <file src="$BaseOutputPath$net8.0\Microsoft.DotNet.PlatformAbstractions.dll" target="build\MSBuildCore\Microsoft.DotNet.PlatformAbstractions.dll" />
+    <file src="$BaseOutputPath$net8.0\Nerdbank.GitVersioning.dll" target="build\MSBuildCore\Nerdbank.GitVersioning.dll" />
+    <file src="$BaseOutputPath$net8.0\Nerdbank.GitVersioning.Tasks.dll" target="build\MSBuildCore\Nerdbank.GitVersioning.Tasks.dll" />
+    <file src="$BaseOutputPath$net8.0\Newtonsoft.Json.dll" target="build\MSBuildCore\Newtonsoft.Json.dll" />
+    <file src="$BaseOutputPath$net8.0\Validation.dll" target="build\MSBuildCore\Validation.dll" />
 
     <file src="build\InProjectVersionComputation.targets" target="build\InProjectVersionComputation.targets" />
     <file src="build\MSBuildTargetCaching.targets" target="build\MSBuildTargetCaching.targets" />
