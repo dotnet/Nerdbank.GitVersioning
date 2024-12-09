@@ -21,18 +21,14 @@ parameters:
 
 resources:
   containers:
-  - container: focal
-    image: mcr.microsoft.com/dotnet/sdk:6.0-focal
-  - container: jammy60
-    image: mcr.microsoft.com/dotnet/sdk:6.0-jammy
-  - container: jammy70
-    image: mcr.microsoft.com/dotnet/sdk:7.0-jammy
   - container: jammy80
     image: mcr.microsoft.com/dotnet/sdk:8.0-jammy
-  - container: debian70
-    image: mcr.microsoft.com/dotnet/sdk:7.0
+  - container: noble90
+    image: mcr.microsoft.com/dotnet/sdk:9.0-noble
   - container: debian80
     image: mcr.microsoft.com/dotnet/sdk:8.0
+  - container: debian90
+    image: mcr.microsoft.com/dotnet/sdk:9.0
 
 variables:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
@@ -56,24 +52,18 @@ stages:
   - job: linux
     strategy:
       matrix:
-        Ubuntu_Focal:
-          containerImage: focal
-          testCake: true
-        Ubuntu_Jammy_60:
-          containerImage: jammy60
-          testCake: true
-        Ubuntu_Jammy_70:
-          containerImage: jammy70
-          testCake: true
         Ubuntu_Jammy_80:
           containerImage: jammy80
-          testCake: false
-        Debian_70:
-          containerImage: debian70
+          testCake: true
+        Ubuntu_Noble_90:
+          containerImage: noble90
           testCake: true
         Debian_80:
           containerImage: debian80
-          testCake: false
+          testCake: true
+        Debian_90:
+          containerImage: debian90
+          testCake: true
     pool:
       vmImage: ubuntu-22.04
     container: $[ variables['containerImage'] ]
