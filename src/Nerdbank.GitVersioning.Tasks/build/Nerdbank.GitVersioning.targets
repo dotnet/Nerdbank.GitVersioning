@@ -215,6 +215,7 @@
                   AssemblyLanguage="$(AssemblyLanguage)"
                   AssemblyCodepage="$(AssemblyCodepage)"
                   TargetFileName="$(TargetFileName)"
+                  UseAssemblyVersionInNativeVersion="$(NBGV_UseAssemblyVersionInNativeVersion)"
                   />
     <!-- Avoid applying the newly generated Version.rc file to the build
          unless it has changed in order to allow for incremental building. -->

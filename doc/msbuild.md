@@ -49,6 +49,7 @@ Property | Default | Description
 `NBGV_ThisAssemblyNamespace` | (empty) | Sets the namespace to use for the generated `ThisAssembly` class.
 `NBGV_EmitThisAssemblyClass` | `true` | When `false`, suppresses generation of the `ThisAssembly` class.
 `NBGV_ThisAssemblyIncludesPackageVersion` | `false` | When `true`, a `NuGetPackageVersion` property is added to the `ThisAssembly` class.
+`NBGV_UseAssemblyVersionInNativeVersion` | `true` | When `false`, uses the `AssemblyFileVersion` as a native `PRODUCTVERSION`.
 
 ### Custom `ThisAssembly` static fields and constants
 
