@@ -48,6 +48,9 @@ public class GitException : Exception
     /// Initializes a new instance of the <see cref="GitException"/> class.
     /// </summary>
     /// <inheritdoc cref="Exception(SerializationInfo, StreamingContext)"/>
+#if NET
+    [Obsolete]
+#endif
     protected GitException(SerializationInfo info, StreamingContext context)
         : base(info, context)
     {
@@ -82,6 +85,9 @@ public class GitException : Exception
     public bool IsShallowClone { get; set; }
 
     /// <inheritdoc/>
+#if NET
+    [Obsolete]
+#endif
     public override void GetObjectData(SerializationInfo info, StreamingContext context)
     {
         base.GetObjectData(info, context);
