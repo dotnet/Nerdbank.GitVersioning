@@ -24,60 +24,67 @@ internal static class GitPackReader
             throw new ArgumentNullException(nameof(stream));
         }
 
-        // Read the signature
+        try
+        {
+            // Read the signature
 #if DEBUG
-        stream.Seek(0, SeekOrigin.Begin);
-        Span<byte> buffer = stackalloc byte[12];
-        stream.ReadAll(buffer);
+            stream.Seek(0, SeekOrigin.Begin);
+            Span<byte> buffer = stackalloc byte[12];
+            stream.ReadAll(buffer);
 
-        Debug.Assert(buffer.Slice(0, 4).SequenceEqual(Signature));
+            Debug.Assert(buffer.Slice(0, 4).SequenceEqual(Signature));
 
-        int versionNumber = BinaryPrimitives.ReadInt32BigEndian(buffer.Slice(4, 4));
-        Debug.Assert(versionNumber == 2);
+            int versionNumber = BinaryPrimitives.ReadInt32BigEndian(buffer.Slice(4, 4));
+            Debug.Assert(versionNumber == 2);
 
-        int numberOfObjects = BinaryPrimitives.ReadInt32BigEndian(buffer.Slice(8, 4));
+            int numberOfObjects = BinaryPrimitives.ReadInt32BigEndian(buffer.Slice(8, 4));
 #endif
 
-        stream.Seek(offset, SeekOrigin.Begin);
+            stream.Seek(offset, SeekOrigin.Begin);
 
-        (GitPackObjectType type, long decompressedSize) = ReadObjectHeader(stream);
+            (GitPackObjectType type, long decompressedSize) = ReadObjectHeader(stream);
 
-        if (type == GitPackObjectType.OBJ_OFS_DELTA)
-        {
-            long baseObjectRelativeOffset = ReadVariableLengthInteger(stream);
-            long baseObjectOffset = offset - baseObjectRelativeOffset;
+            if (type == GitPackObjectType.OBJ_OFS_DELTA)
+            {
+                long baseObjectRelativeOffset = ReadVariableLengthInteger(stream);
+                long baseObjectOffset = offset - baseObjectRelativeOffset;
 
-            var deltaStream = new ZLibStream(stream, decompressedSize);
-            Stream? baseObjectStream = pack.GetObject(baseObjectOffset, objectType);
+                var deltaStream = new ZLibStream(stream, decompressedSize);
+                Stream? baseObjectStream = pack.GetObject(baseObjectOffset, objectType);
 
-            return new GitPackDeltafiedStream(baseObjectStream, deltaStream);
+                return new GitPackDeltafiedStream(baseObjectStream, deltaStream);
+            }
+            else if (type == GitPackObjectType.OBJ_REF_DELTA)
+            {
+                Span<byte> baseObjectId = stackalloc byte[20];
+                stream.ReadAll(baseObjectId);
+
+                Stream baseObject = pack.GetObjectFromRepository(GitObjectId.Parse(baseObjectId), objectType)!;
+                var seekableBaseObject = new GitPackMemoryCacheStream(baseObject);
+
+                var deltaStream = new ZLibStream(stream, decompressedSize);
+
+                return new GitPackDeltafiedStream(seekableBaseObject, deltaStream);
+            }
+
+            // Tips for handling deltas: https://github.com/choffmeister/gitnet/blob/4d907623d5ce2d79a8875aee82e718c12a8aad0b/src/GitNet/GitPack.cs
+            if (type != packObjectType)
+            {
+                throw new GitException($"An object of type {objectType} could not be located at offset {offset}.") { ErrorCode = GitException.ErrorCodes.ObjectNotFound };
+            }
+
+            return new ZLibStream(stream, decompressedSize);
         }
-        else if (type == GitPackObjectType.OBJ_REF_DELTA)
+        catch (EndOfStreamException eof)
         {
-            Span<byte> baseObjectId = stackalloc byte[20];
-            stream.ReadAll(baseObjectId);
-
-            Stream baseObject = pack.GetObjectFromRepository(GitObjectId.Parse(baseObjectId), objectType)!;
-            var seekableBaseObject = new GitPackMemoryCacheStream(baseObject);
-
-            var deltaStream = new ZLibStream(stream, decompressedSize);
-
-            return new GitPackDeltafiedStream(seekableBaseObject, deltaStream);
+            throw new GitException($"An object of type {objectType} could not be located at offset {offset}.", eof) { ErrorCode = GitException.ErrorCodes.ObjectNotFound };
         }
-
-        // Tips for handling deltas: https://github.com/choffmeister/gitnet/blob/4d907623d5ce2d79a8875aee82e718c12a8aad0b/src/GitNet/GitPack.cs
-        if (type != packObjectType)
-        {
-            throw new GitException($"An object of type {objectType} could not be located at offset {offset}.") { ErrorCode = GitException.ErrorCodes.ObjectNotFound };
-        }
-
-        return new ZLibStream(stream, decompressedSize);
     }
 
     private static (GitPackObjectType ObjectType, long Length) ReadObjectHeader(Stream stream)
     {
         Span<byte> value = stackalloc byte[1];
-        stream.Read(value);
+        stream.ReadAll(value);
 
         var type = (GitPackObjectType)((value[0] & 0b0111_0000) >> 4);
         long length = value[0] & 0b_1111;
@@ -91,7 +98,7 @@ internal static class GitPackReader
 
         do
         {
-            stream.Read(value);
+            stream.ReadAll(value);
             length = length | ((value[0] & 0b0111_1111L) << shift);
             shift += 7;
         }

@@ -41,7 +41,7 @@ namespace ManagedGit
                 // Seek past the commit 137 header, and make sure we can read the 'tree' word
                 Assert.Equal(11, stream.Seek(11, SeekOrigin.Begin));
                 byte[] tree = new byte[4];
-                stream.Read(tree);
+                stream.ReadAll(tree);
                 Assert.Equal("tree", Encoding.UTF8.GetString(tree));
 
                 // Valid no-ops
