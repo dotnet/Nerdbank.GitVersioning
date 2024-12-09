@@ -497,18 +497,18 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         public static readonly ImmutableDictionary<string, string> SuppressEnvironment = ImmutableDictionary<string, string>.Empty
 
             // AppVeyor
-            .Add("APPVEYOR", string.Empty)
-            .Add("APPVEYOR_REPO_TAG", string.Empty)
-            .Add("APPVEYOR_REPO_TAG_NAME", string.Empty)
-            .Add("APPVEYOR_PULL_REQUEST_NUMBER", string.Empty)
+            .Add("APPVEYOR", null)
+            .Add("APPVEYOR_REPO_TAG", null)
+            .Add("APPVEYOR_REPO_TAG_NAME", null)
+            .Add("APPVEYOR_PULL_REQUEST_NUMBER", null)
 
             // VSTS
-            .Add("SYSTEM_TEAMPROJECTID", string.Empty)
-            .Add("BUILD_SOURCEBRANCH", string.Empty)
+            .Add("SYSTEM_TEAMPROJECTID", null)
+            .Add("BUILD_SOURCEBRANCH", null)
 
             // Teamcity
-            .Add("BUILD_VCS_NUMBER", string.Empty)
-            .Add("BUILD_GIT_BRANCH", string.Empty);
+            .Add("BUILD_VCS_NUMBER", null)
+            .Add("BUILD_GIT_BRANCH", null);
 
         public static readonly ImmutableDictionary<string, string> VSTS = SuppressEnvironment
             .SetItem("SYSTEM_TEAMPROJECTID", "1");

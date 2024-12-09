@@ -77,9 +77,9 @@ stages:
     strategy:
       matrix:
         macOS_Catalina:
-          vmImage: macOS-12
+          vmImage: macOS-14
         macOS_Monterey:
-          vmImage: macOS-12
+          vmImage: macOS-14
     pool:
       vmImage: $[ variables['vmImage'] ]
     steps:
@@ -99,7 +99,7 @@ stages:
           imageName: windows-2022
           repoDir: '${USERPROFILE}/source/repos'
         macOS:
-          imageName: macOS-12
+          imageName: macOS-14
           repoDir: '~/git'
     pool:
       vmImage: $(imageName)
@@ -109,10 +109,10 @@ stages:
       clean: true
       submodules: true # keep the warnings quiet about the wiki not being enlisted
     - task: UseDotNet@2
-      displayName: Install .NET 8.0.402 SDK
+      displayName: Install .NET 9.0.100 SDK
       inputs:
         packageType: sdk
-        version: 8.0.402
+        version: 9.0.100
     - script: dotnet --info
       displayName: Show dotnet SDK info
     - bash: |
@@ -126,7 +126,7 @@ stages:
         dotnet build -c Release
       displayName: Build in Release mode
     - script: |
-        dotnet run -c Release -f net8.0 -- --filter *GetVersionBenchmarks* --artifacts $(Build.ArtifactStagingDirectory)/benchmarks/packed/$(imageName)
+        dotnet run -c Release -f net9.0 -- --filter *GetVersionBenchmarks* --artifacts $(Build.ArtifactStagingDirectory)/benchmarks/packed/$(imageName)
       workingDirectory: test/Nerdbank.GitVersioning.Benchmarks
       displayName: Run benchmarks (packed)
     - bash: |
@@ -143,7 +143,7 @@ stages:
         git unpack-objects < .git/objects/pack/*.pack
       displayName: Unpack Git repositories
     - script: |
-        dotnet run -c Release -f net8.0 -- --filter '*GetVersionBenchmarks*' --artifacts $(Build.ArtifactStagingDirectory)/benchmarks/unpacked/$(imageName)
+        dotnet run -c Release -f net9.0 -- --filter '*GetVersionBenchmarks*' --artifacts $(Build.ArtifactStagingDirectory)/benchmarks/unpacked/$(imageName)
       workingDirectory: test/Nerdbank.GitVersioning.Benchmarks
       displayName: Run benchmarks (unpacked)
     - task: PublishBuildArtifacts@1

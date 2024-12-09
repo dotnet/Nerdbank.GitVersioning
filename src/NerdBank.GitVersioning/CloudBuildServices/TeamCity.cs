@@ -21,7 +21,7 @@ internal class TeamCity : ICloudBuild
     public string GitCommitId => Environment.GetEnvironmentVariable("BUILD_VCS_NUMBER");
 
     /// <inheritdoc/>
-    public bool IsApplicable => this.GitCommitId is not null;
+    public bool IsApplicable => !string.IsNullOrEmpty(this.GitCommitId);
 
     /// <inheritdoc/>
     public bool IsPullRequest => false;

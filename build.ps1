@@ -31,7 +31,7 @@ try {
     }
 
     if ($PSCmdlet.ShouldProcess('src/nbgv', 'dotnet publish')) {
-        dotnet publish src/nbgv -c $Configuration -o src/nerdbank-gitversioning.npm/out/nbgv.cli/tools/net6.0/any
+        dotnet publish src/nbgv -c $Configuration -o src/nerdbank-gitversioning.npm/out/nbgv.cli/tools/net8.0/any
         if ($LASTEXITCODE -ne 0) {
             throw "dotnet publish failed"
         }
