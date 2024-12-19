@@ -1,6 +1,14 @@
-# Using the nbgv .NET Core CLI tool
+# `nbgv` CLI tool
 
-Perform a one-time install of the `nbgv` tool using the following dotnet CLI command:
+The `nbgv` CLI tool is useful for all repos regardless of ecosystem.
+
+The tool is distributed as a .NET CLI tool.
+
+Perform a one-time install of the `nbgv` tool by acquiring it from the NuGet gallery.
+
+[![NuGet package](https://img.shields.io/nuget/v/nbgv?label=nbgv)](https://www.nuget.org/packages/nbgv)
+
+The CLI command for installation is typically:
 
 ```ps1
 dotnet tool install -g nbgv

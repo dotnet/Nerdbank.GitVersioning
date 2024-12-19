@@ -1,5 +1,26 @@
-- name: Features
-  href: features.md
+items:
 - name: Getting Started
   href: getting-started.md
-
+- name: Build systems
+  items:
+  - href: build-systems/msbuild.md
+  - href: build-systems/cake.md
+  - href: build-systems/gulp.md
+  - href: cloudbuild.md
+  - href: quickbuild.md
+- name: Ecosystems
+  items:
+  - href: ecosystems/dotnet.md
+    items:
+    - href: nuget-acquisition.md
+  - href: ecosystems/node.md
+    items:
+    - href: npm-acquisition.md
+  - href: ecosystems/vsix.md
+- href: nbgv-cli.md
+- href: path-filters.md
+- href: public-vs-stable.md
+- href: versionJson.md
+- href: version-calculation.md
+- href: faq.md
+- href: migrating.md

@@ -1,17 +1,4 @@
 {
-	"metadata": [
-		{
-			"src": [
-				{
-					"src": "../src/Library",
-					"files": [
-						"**/*.csproj"
-					]
-				}
-			],
-			"dest": "api"
-		}
-	],
 	"build": {
 		"content": [
 			{
@@ -39,8 +26,8 @@
 			"modern"
 		],
 		"globalMetadata": {
-			"_appName": "Library",
-			"_appTitle": "Library",
+			"_appName": "Nerdbank.GitVersioning",
+			"_appTitle": "Nerdbank.GitVersioning",
 			"_enableSearch": true,
 			"pdf": false
 		}

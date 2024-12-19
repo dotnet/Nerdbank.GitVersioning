@@ -1,4 +1,4 @@
 - name: Docs
   href: docs/
-- name: API
-  href: api/
+- name: GitHub
+  href: https://github.com/dotnet/Nerdbank.GitVersioning

@@ -46,7 +46,7 @@ This results in the entire repository tree being considered for version height c
 
 ## Path filter format
 
-Path filters take on a variety of formats, and can specify paths relative to the `version.json` or relative to the root of the repository. See the [Path filter format](#path-filter-format) section for more information.
+Path filters take on a variety of formats, and can specify paths relative to the `version.json` or relative to the root of the repository.
 
 Multiple path filters may also be specified. The order is irrelevant. After a path matches any non-exclude path filter, it will be run through all exclude path filter. If it matches, the path is ignored.
 

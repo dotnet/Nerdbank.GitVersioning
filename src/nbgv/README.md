@@ -1,4 +1,4 @@
-This is a .NET tool that provides CLI access to [Nerdbank.GitVersioning](https://github.com/dotnet/Nerdbank.GitVersioning#readme) functions.
+This is a .NET tool that provides CLI access to [Nerdbank.GitVersioning](https://dotnet.github.io/Nerdbank.GitVersioning/) functions.
 
 Some operations supported by this tool:
 

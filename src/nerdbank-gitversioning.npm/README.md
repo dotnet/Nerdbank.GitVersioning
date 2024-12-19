@@ -58,6 +58,6 @@ await nbgv.setPackageVersion();
 await nbgv.resetPackageVersionPlaceholder();
 ```
 
-See our [project README][GitHubREADME] for more information.
+See our [product documentation][Documentation] for more information.
 
-[GitHubREADME]: https://github.com/dotnet/Nerdbank.GitVersioning/blob/master/README.md
+[Documentation]: https://dotnet.github.io/Nerdbank.GitVersioning/
