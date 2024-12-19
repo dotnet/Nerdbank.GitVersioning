@@ -1,4 +1,4 @@
-# MSBuild
+# MSBuild / `dotnet build`
 
 Installing the `Nerdbank.GitVersioning` package from NuGet into your MSBuild-based projects is the recommended way to add version information to your MSBuild project outputs including assemblies, native dll's, and packages.
 
@@ -168,7 +168,7 @@ If you still see many invocations, you may have a build that sets global propert
 Investigate this using the MSBuild `/bl` switch and view the log with the excellent [MSBuild Structured Log Viewer](https://msbuildlog.com) tool.
 Using that tool, search for `$task GetBuildVersion` and look at the global properties passed to the special `Nerdbank.GitVersioning.Inner.targets` project, as shown:
 
-[![MSBuild Structure Logger screenshot](globalproperties_log.png)
+[![MSBuild Structure Logger screenshot](../../images/globalproperties_log.png)
 
 Compare the set of global properties for each `Nerdbank.GitVersioning.Inner.targets` project to identify which properties are unique each time.
 Add the names of the unique properties to the `Directory.Build.props` file:

@@ -48,6 +48,8 @@ jobs:
     displayName: 💅 Verify formatted code
     env:
       dotnetformat: true # part of a workaround for https://github.com/dotnet/sdk/issues/44951
+  - script: dotnet docfx docfx/docfx.json --warningsAsErrors --disableGitFeatures
+    displayName: 📚 Verify docfx build
 
 - job: WrapUp
   dependsOn:

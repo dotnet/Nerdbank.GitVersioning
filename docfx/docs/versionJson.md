@@ -83,4 +83,4 @@ to automatically drop the `-gabc123` git commit ID suffix from the version, maki
 convenient to build releases out of these refs with a friendly version number
 that assumes linear versioning.
 
-[Learn more about pathFilters](pathFilters.md).
+[Learn more about pathFilters](path-filters.md).

@@ -1,10 +1,42 @@
-# .NET support
+# .NET
 
-Nerdbank.GitVersioning offers first class version stamping support for .NET assemblies.
+Nerdbank.GitVersioning offers first class version stamping support for .NET assemblies and NuGet packages.
+
+## Hello, World! for versioning
+
+The following commands demonstrate Nerdbank.GitVersioning on a new project:
+
+```ps1
+mkdir NbgvExample
+cd NbgvExample
+git init
+dotnet new classlib --framework=netstandard2.0
+git add *.cs *.csproj
+git commit -m "Plain vanilla project"
+dotnet tool install -g nbgv
+nbgv install
+git commit -m "Add version stamping"
+dotnet pack
+dir .\bin\Release\*.nupkg
+```
+
+This will build a package versioned 1.0.1-beta.
+
+Then make a small change, commit the change, and pack again to see the version change:
+
+```ps1
+touch README.md
+git add README.md
+git commit -m "Add README"
+dotnet pack
+dir .\bin\Release\*.nupkg
+```
+
+Now we have another package, the new one versioned 1.0.2-beta.
 
 ## Assembly version generation
 
-During the build it adds source code such as this to your compilation:
+During the build Nerdbank.GitVersioning adds source code such as this to your compilation:
 
 ```csharp
 [assembly: System.Reflection.AssemblyVersion("1.0")]
@@ -12,7 +44,7 @@ During the build it adds source code such as this to your compilation:
 [assembly: System.Reflection.AssemblyInformationalVersion("1.0.24-alpha+g9a7eb6c819")]
 ```
 
-* The first and second integer components of the versions above come from the 
+* The first and second integer components of the versions above come from the
 version file.
 * The third integer component of the version here is the height of your git history up to
 that point, such that it reliably increases with each release.

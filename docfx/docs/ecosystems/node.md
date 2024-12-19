@@ -1,8 +1,6 @@
-# Node support
+# Node.js
 
-## Acquisition
-
-See [NPM acquisition](npm-acquisition.md).
+First, you should [acquire the `nerdbank-gitversioning` NPM package](../npm-acquisition.md).
 
 ## Acquiring version information
 
@@ -28,4 +26,4 @@ Will print out a JavaScript object resembling this:
 
 ## Build integration
 
-Check out our [instructions for gulp](gulp.md).
+Check out our [instructions for gulp](../build-systems/gulp.md).
