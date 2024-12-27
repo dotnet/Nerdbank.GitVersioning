@@ -166,7 +166,7 @@ jobs:
       shell: bash
       run: |
         mkdir -p $(repoDir)
-        git clone https://github.com/xunit/xunit $(repoDir)/xunit
-        git clone https://github.com/gimlichael/Cuemon $(repoDir)/Cuemon
-        git clone https://github.com/kerryjiang/SuperSocket $(repoDir)/SuperSocket
-        git clone https://github.com/dotnet/Nerdbank.GitVersioning $(repoDir)/Nerdbank.GitVersioning
+        git clone https://github.com/xunit/xunit "${{ matrix.repoDir }}"
+        git clone https://github.com/gimlichael/Cuemon "${{ matrix.repoDir }}"
+        git clone https://github.com/kerryjiang/SuperSocket "${{ matrix.repoDir }}"
+        git clone https://github.com/dotnet/Nerdbank.GitVersioning "${{ matrix.repoDir }}"
