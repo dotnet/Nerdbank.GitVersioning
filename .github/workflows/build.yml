@@ -108,6 +108,9 @@ jobs:
     needs: build
 
     runs-on: ubuntu-22.04
+    container:
+      image: ${{ matrix.container }}
+
     strategy:
       fail-fast: false
       matrix:
@@ -166,7 +169,39 @@ jobs:
       shell: bash
       run: |
         mkdir -p $(repoDir)
-        git clone https://github.com/xunit/xunit "${{ matrix.repoDir }}"
-        git clone https://github.com/gimlichael/Cuemon "${{ matrix.repoDir }}"
-        git clone https://github.com/kerryjiang/SuperSocket "${{ matrix.repoDir }}"
-        git clone https://github.com/dotnet/Nerdbank.GitVersioning "${{ matrix.repoDir }}"
+        git clone https://github.com/xunit/xunit ${{ matrix.repoDir }}
+        git clone https://github.com/gimlichael/Cuemon ${{ matrix.repoDir }}
+        git clone https://github.com/kerryjiang/SuperSocket ${{ matrix.repoDir }}
+        git clone https://github.com/dotnet/Nerdbank.GitVersioning ${{ matrix.repoDir }}
+
+    - name: Build in Release mode
+      run: dotnet build -c Release
+
+    - name: Run benchmarks (packed)
+      run: dotnet run -c Release -f net9.0 -- --filter *GetVersionBenchmarks* --artifacts ${{ runner.temp }}/_artifacts//benchmarks/packed/${{ matrix.os }}
+      working-directory: test/Nerdbank.GitVersioning.Benchmarks
+
+    - name: Unpack Git repositories
+      shell: bash
+      run: |
+        cd ${{ matrix.repoDir }}/xunit
+        git unpack-objects < .git/objects/pack/*.pack
+
+        cd ${{ matrix.repoDir }}/Cuemon
+        git unpack-objects < .git/objects/pack/*.pack
+
+        cd ${{ matrix.repoDir }}/SuperSocket
+        git unpack-objects < .git/objects/pack/*.pack
+
+        cd ${{ matrix.repoDir }}/Nerdbank.GitVersioning
+        git unpack-objects < .git/objects/pack/*.pack
+
+    - name: Run benchmarks (unpacked)
+      run: dotnet run -c Release -f net9.0 -- --filter '*GetVersionBenchmarks*' --artifacts ${{ runner.temp }}/_artifacts//benchmarks/unpacked/${{ matrix.os }}
+      working-directory: test/Nerdbank.GitVersioning.Benchmarks
+
+    - name: Publish benchmarks artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmarks
+        path: ${{ runner.temp }}/_artifacts//benchmarks
