@@ -67,9 +67,9 @@ jobs:
     - name: Capture .git directory
       shell: pwsh
       run: |
-        md $(Build.ArtifactStagingDirectory)\drop
-        7z a $(Build.ArtifactStagingDirectory)\drop\nbgv.7z * -r
-        Write-Host "##vso[artifact.upload containerfolder=drop;artifactname=drop;]$(Build.ArtifactStagingDirectory)\drop"
+        md ${{ runner.temp }}\_artifacts\drop
+        7z a ${{ runner.temp }}\_artifacts\drop\nbgv.7z * -r
+        Write-Host "##vso[artifact.upload containerfolder=drop;artifactname=drop;]${{ runner.temp }}\_artifacts\drop"
       if: failure() && runner.os == 'Windows'
     - name: 🧪 test
       run: |
@@ -169,10 +169,10 @@ jobs:
       shell: bash
       run: |
         mkdir -p ${{ matrix.repoDir }}
-        git clone https://github.com/xunit/xunit ${{ matrix.repoDir }}
-        git clone https://github.com/gimlichael/Cuemon ${{ matrix.repoDir }}
-        git clone https://github.com/kerryjiang/SuperSocket ${{ matrix.repoDir }}
-        git clone https://github.com/dotnet/Nerdbank.GitVersioning ${{ matrix.repoDir }}
+        git clone https://github.com/xunit/xunit ${{ matrix.repoDir }}/xunit
+        git clone https://github.com/gimlichael/Cuemon ${{ matrix.repoDir }}/Cuemon
+        git clone https://github.com/kerryjiang/SuperSocket ${{ matrix.repoDir }}/SuperSocket
+        git clone https://github.com/dotnet/Nerdbank.GitVersioning ${{ matrix.repoDir }}/Nerdbank.GitVersioning
 
     - name: Build in Release mode
       run: dotnet build -c Release
