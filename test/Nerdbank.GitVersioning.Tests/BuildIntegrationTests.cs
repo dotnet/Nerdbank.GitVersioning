@@ -28,6 +28,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         "APPVEYOR",
         "SYSTEM_",
         "BUILD_",
+        "GITHUB_",
         "NBGV_GitEngine",
     };
 
