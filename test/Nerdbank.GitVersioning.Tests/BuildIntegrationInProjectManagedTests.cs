@@ -2,7 +2,6 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Xunit;
-using Xunit.Abstractions;
 
 [Trait("Engine", EngineString)]
 [Collection("Build")] // msbuild sets current directory in the process, so we can't have it be concurrent with other build tests.

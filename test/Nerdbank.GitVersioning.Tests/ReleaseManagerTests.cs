@@ -9,7 +9,6 @@ using Nerdbank.GitVersioning;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Xunit;
-using Xunit.Abstractions;
 
 using ReleaseOptions = Nerdbank.GitVersioning.VersionOptions.ReleaseOptions;
 using ReleasePreparationError = Nerdbank.GitVersioning.ReleaseManager.ReleasePreparationError;

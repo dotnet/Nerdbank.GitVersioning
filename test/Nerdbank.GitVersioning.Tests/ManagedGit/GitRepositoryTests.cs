@@ -9,7 +9,6 @@ using LibGit2Sharp;
 using Nerdbank.GitVersioning;
 using Nerdbank.GitVersioning.ManagedGit;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace ManagedGit;
 

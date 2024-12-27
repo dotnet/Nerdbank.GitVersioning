@@ -11,7 +11,7 @@ using LibGit2Sharp;
 using Nerdbank.GitVersioning;
 using Nerdbank.GitVersioning.LibGit2;
 using Validation;
-using Xunit.Abstractions;
+using Xunit;
 
 public abstract partial class RepoTestBase : IDisposable
 {

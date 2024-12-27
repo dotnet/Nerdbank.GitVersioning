@@ -8,7 +8,6 @@ using LibGit2Sharp;
 using Nerdbank.GitVersioning;
 using Nerdbank.GitVersioning.ManagedGit;
 using Xunit;
-using Xunit.Abstractions;
 using Version = System.Version;
 
 #pragma warning disable SA1402 // File may only contain a single type
