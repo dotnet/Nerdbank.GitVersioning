@@ -132,3 +132,41 @@ jobs:
         git config --global init.defaultBranch main
         git config --global user.name ci
         git config --global user.email me@ci.com
+
+  perf_testing:
+    name: 🫏 Performance testing
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - os: ubuntu-22.04
+          repoDir: '~/git'
+        - os: windows-2022
+          repoDir: '${USERPROFILE}/source/repos'
+        - os: macos-14
+          repoDir: '~/git'
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
+        submodules: true
+
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v2
+      with:
+        global-json-file: global.json
+
+    - name: Show .NET SDK info
+      run: dotnet --info
+
+    - name: Clone test repos
+      shell: bash
+      run: |
+        mkdir -p $(repoDir)
+        git clone https://github.com/xunit/xunit $(repoDir)/xunit
+        git clone https://github.com/gimlichael/Cuemon $(repoDir)/Cuemon
+        git clone https://github.com/kerryjiang/SuperSocket $(repoDir)/SuperSocket
+        git clone https://github.com/dotnet/Nerdbank.GitVersioning $(repoDir)/Nerdbank.GitVersioning
