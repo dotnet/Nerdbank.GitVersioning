@@ -157,7 +157,7 @@ jobs:
         fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
         submodules: true
 
-    - name: Setup .NET Core
+    - name: Install .NET SDK
       uses: actions/setup-dotnet@v2
       with:
         global-json-file: global.json
@@ -176,9 +176,10 @@ jobs:
 
     - name: Build in Release mode
       run: dotnet build -c Release
+      working-directory: test/Nerdbank.GitVersioning.Benchmarks
 
     - name: Run benchmarks (packed)
-      run: dotnet run -c Release -f net9.0 -- --filter *GetVersionBenchmarks* --artifacts ${{ runner.temp }}/_artifacts//benchmarks/packed/${{ matrix.os }}
+      run: dotnet run -c Release -f net9.0 --no-build -- --filter '*GetVersionBenchmarks*' --artifacts ${{ runner.temp }}/_artifacts//benchmarks/packed/${{ matrix.os }}
       working-directory: test/Nerdbank.GitVersioning.Benchmarks
 
     - name: Unpack Git repositories
@@ -197,11 +198,11 @@ jobs:
         git unpack-objects < .git/objects/pack/*.pack
 
     - name: Run benchmarks (unpacked)
-      run: dotnet run -c Release -f net9.0 -- --filter '*GetVersionBenchmarks*' --artifacts ${{ runner.temp }}/_artifacts//benchmarks/unpacked/${{ matrix.os }}
+      run: dotnet run -c Release -f net9.0 --no-build -- --filter '*GetVersionBenchmarks*' --artifacts ${{ runner.temp }}/_artifacts//benchmarks/unpacked/${{ matrix.os }}
       working-directory: test/Nerdbank.GitVersioning.Benchmarks
 
     - name: Publish benchmarks artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: benchmarks
-        path: ${{ runner.temp }}/_artifacts//benchmarks
+        name: benchmarks-${{ matrix.os }}
+        path: ${{ runner.temp }}/_artifacts/benchmarks
