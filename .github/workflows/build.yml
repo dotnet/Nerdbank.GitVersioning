@@ -82,6 +82,7 @@ jobs:
       shell: pwsh
     - name: 🧪 test x86
       run: tools/dotnet-test-cloud.ps1 -Configuration ${{ env.BUILDCONFIGURATION }} -Agent ${{ runner.os }} -PublishResults -X86
+      if: success() && runner.os == 'Windows'
     - name: 💅🏻 Verify formatted code
       run: dotnet format --verify-no-changes --no-restore
       shell: pwsh
@@ -101,3 +102,33 @@ jobs:
       timeout-minutes: 3
       continue-on-error: true
       if: env.codecov_token != ''
+
+  functional_testing:
+    name: 🧪 Functional testing
+    needs: build
+
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        container:
+        - mcr.microsoft.com/dotnet/sdk:8.0-jammy
+        - mcr.microsoft.com/dotnet/sdk:9.0-noble
+        - mcr.microsoft.com/dotnet/sdk:8.0
+        - mcr.microsoft.com/dotnet/sdk:9.0
+
+    steps:
+    - name: Show .NET SDK info
+      run: dotnet --info
+
+    - name: Download Build Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: deployables-Windows
+        path: ${{ runner.temp }}/deployables
+
+    - name: Set up git username and email address
+      run: |
+        git config --global init.defaultBranch main
+        git config --global user.name ci
+        git config --global user.email me@ci.com
