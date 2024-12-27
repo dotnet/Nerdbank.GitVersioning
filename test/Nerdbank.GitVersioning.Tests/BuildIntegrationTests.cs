@@ -472,6 +472,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
             string name = (string)variable.Key;
             if (ToxicEnvironmentVariablePrefixes.Any(toxic => name.StartsWith(toxic, StringComparison.OrdinalIgnoreCase)))
             {
+                Environment.SetEnvironmentVariable(name, null);
                 this.globalProperties[name] = string.Empty;
             }
         }
