@@ -168,11 +168,11 @@ jobs:
     - name: Clone test repos
       shell: bash
       run: |
-        mkdir -p "${{ matrix.repoDir }}"
-        git clone https://github.com/xunit/xunit "${{ matrix.repoDir }}"
-        git clone https://github.com/gimlichael/Cuemon "${{ matrix.repoDir }}"
-        git clone https://github.com/kerryjiang/SuperSocket "${{ matrix.repoDir }}"
-        git clone https://github.com/dotnet/Nerdbank.GitVersioning "${{ matrix.repoDir }}"
+        mkdir -p ${{ matrix.repoDir }}
+        git clone https://github.com/xunit/xunit ${{ matrix.repoDir }}
+        git clone https://github.com/gimlichael/Cuemon ${{ matrix.repoDir }}
+        git clone https://github.com/kerryjiang/SuperSocket ${{ matrix.repoDir }}
+        git clone https://github.com/dotnet/Nerdbank.GitVersioning ${{ matrix.repoDir }}
 
     - name: Build in Release mode
       run: dotnet build -c Release
