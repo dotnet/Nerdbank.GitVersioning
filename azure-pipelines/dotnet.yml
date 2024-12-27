@@ -30,15 +30,15 @@ steps:
   displayName: Capture .git directory
   condition: and(failed(), eq(variables['Agent.OS'], 'Windows_NT'))
 
-- powershell: azure-pipelines/dotnet-test-cloud.ps1 -Configuration $(BuildConfiguration) -Agent $(Agent.JobName) -PublishResults
+- powershell: tools/dotnet-test-cloud.ps1 -Configuration $(BuildConfiguration) -Agent $(Agent.JobName) -PublishResults
   displayName: 🧪 dotnet test
   condition: and(succeeded(), ${{ parameters.RunTests }})
 
-- powershell: azure-pipelines/dotnet-test-cloud.ps1 -Configuration $(BuildConfiguration) -Agent $(Agent.JobName) -PublishResults -X86
+- powershell: tools/dotnet-test-cloud.ps1 -Configuration $(BuildConfiguration) -Agent $(Agent.JobName) -PublishResults -X86
   displayName: 🧪 dotnet test x86
   condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))
 
-- powershell: azure-pipelines/artifacts/_pipelines.ps1 -ArtifactNameSuffix "-$(Agent.JobName)" -StageOnly
+- powershell: azure-pipelines/publish_artifacts.ps1 -ArtifactNameSuffix "-$(Agent.JobName)" -StageOnly
   failOnStderr: true
   displayName: 🗃️ Stage artifacts
   condition: succeededOrFailed()
@@ -71,21 +71,21 @@ steps:
   displayName: 🔏 Code sign LKG
   condition: and(succeeded(), eq(variables['System.TeamFoundationCollectionUri'], 'https://dev.azure.com/andrewarnott/'), eq(variables['Agent.OS'], 'Windows_NT'), ne(variables['Build.Reason'], 'PullRequest'))
 
-- powershell: azure-pipelines/variables/_pipelines.ps1
+- powershell: tools/variables/_define.ps1
   failOnStderr: true
   displayName: ⚙ Update pipeline variables based on build outputs
   condition: succeededOrFailed()
 
-- powershell: azure-pipelines/artifacts/_pipelines.ps1 -ArtifactNameSuffix "-$(Agent.JobName)" -Verbose
+- powershell: azure-pipelines/publish_artifacts.ps1 -ArtifactNameSuffix "-$(Agent.JobName)" -Verbose
   failOnStderr: true
   displayName: 📢 Publish artifacts
   condition: succeededOrFailed()
 
 - ${{ if and(ne(variables['codecov_token'], ''), parameters.RunTests) }}:
   - powershell: |
-      $ArtifactStagingFolder = & "azure-pipelines/Get-ArtifactsStagingDirectory.ps1"
+      $ArtifactStagingFolder = & "tools/Get-ArtifactsStagingDirectory.ps1"
       $CoverageResultsFolder = Join-Path $ArtifactStagingFolder "coverageResults-$(Agent.JobName)"
-      azure-pipelines/publish-CodeCov.ps1 -CodeCovToken "$(codecov_token)" -PathToCodeCoverage "$CoverageResultsFolder" -Name "$(Agent.JobName) Coverage Results" -Flags "$(Agent.JobName)"
+      tools/publish-CodeCov.ps1 -CodeCovToken "$(codecov_token)" -PathToCodeCoverage "$CoverageResultsFolder" -Name "$(Agent.JobName) Coverage Results" -Flags "$(Agent.JobName)"
     displayName: 📢 Publish code coverage results to codecov.io
     timeoutInMinutes: 3
     continueOnError: true

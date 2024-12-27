@@ -8,7 +8,7 @@ using Microsoft.Build.Framework;
 using Microsoft.Build.Locator;
 using Microsoft.Build.Logging;
 using Validation;
-using Xunit.Abstractions;
+using Xunit;
 
 internal static class MSBuildExtensions
 {
@@ -25,7 +25,7 @@ internal static class MSBuildExtensions
                 if (IntPtr.Size == 4)
                 {
                     // 32-bit .NET runtime requires special code to find the x86 SDK (where MSBuild is).
-                    MSBuildLocator.RegisterMSBuildPath(@"C:\Program Files (x86)\dotnet\sdk\9.0.100");
+                    MSBuildLocator.RegisterMSBuildPath(@"C:\Program Files (x86)\dotnet\sdk\9.0.101");
                 }
                 else
                 {

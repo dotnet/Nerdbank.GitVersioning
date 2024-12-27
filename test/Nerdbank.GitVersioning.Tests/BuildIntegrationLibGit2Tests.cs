@@ -3,7 +3,6 @@
 
 using Nerdbank.GitVersioning;
 using Xunit;
-using Xunit.Abstractions;
 
 [Trait("Engine", EngineString)]
 [Collection("Build")] // msbuild sets current directory in the process, so we can't have it be concurrent with other build tests.

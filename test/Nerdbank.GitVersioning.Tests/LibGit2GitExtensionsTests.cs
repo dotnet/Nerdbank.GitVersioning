@@ -12,7 +12,6 @@ using Nerdbank.GitVersioning;
 using Nerdbank.GitVersioning.LibGit2;
 using Validation;
 using Xunit;
-using Xunit.Abstractions;
 using Version = System.Version;
 
 public class LibGit2GitExtensionsTests : RepoTestBase
@@ -464,11 +463,11 @@ public class LibGit2GitExtensionsTests : RepoTestBase
         Assert.Equal(2, v2.Build);
     }
 
-    [SkippableFact(Skip = "It fails already.")] // Skippable, only run test on specific machine
+    [Fact(Skip = "It fails already.")] // Skippable, only run test on specific machine
     public void TestBiggerRepo()
     {
         string testBiggerRepoPath = @"D:\git\Nerdbank.GitVersioning";
-        Skip.If(!Directory.Exists(testBiggerRepoPath));
+        Assert.SkipWhen(!Directory.Exists(testBiggerRepoPath), $"{testBiggerRepoPath} does not exist.");
 
         using var largeRepo = new Repository(testBiggerRepoPath);
         foreach (Commit commit in largeRepo.Head.Commits)

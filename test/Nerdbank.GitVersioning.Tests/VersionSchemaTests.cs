@@ -7,7 +7,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Schema;
 using Xunit;
-using Xunit.Abstractions;
 
 public class VersionSchemaTests
 {

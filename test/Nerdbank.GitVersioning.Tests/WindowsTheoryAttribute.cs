@@ -7,22 +7,11 @@ using Xunit;
 
 public class WindowsTheoryAttribute : TheoryAttribute
 {
-    /// <inheritdoc/>
-    public override string Skip
+    public WindowsTheoryAttribute()
     {
-        get
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                return "This test runs on Windows only";
-            }
-
-            return null;
-        }
-
-        set
-        {
-            throw new NotSupportedException();
+            this.Skip = "This test runs on Windows only";
         }
     }
 }

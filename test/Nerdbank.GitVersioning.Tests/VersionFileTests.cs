@@ -11,7 +11,6 @@ using LibGit2Sharp;
 using Nerdbank.GitVersioning;
 using Newtonsoft.Json;
 using Xunit;
-using Xunit.Abstractions;
 using Version = System.Version;
 
 #pragma warning disable SA1402 // File may only contain a single type

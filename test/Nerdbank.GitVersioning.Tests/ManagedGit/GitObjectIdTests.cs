@@ -6,7 +6,6 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Nerdbank.GitVersioning.ManagedGit;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace ManagedGit;
 

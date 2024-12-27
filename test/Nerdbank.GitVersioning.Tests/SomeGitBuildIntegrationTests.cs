@@ -13,7 +13,6 @@ using Microsoft.CodeAnalysis;
 using Nerdbank.GitVersioning;
 using Validation;
 using Xunit;
-using Xunit.Abstractions;
 using Version = System.Version;
 
 /// <summary>
