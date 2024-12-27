@@ -121,82 +121,18 @@ jobs:
         - mcr.microsoft.com/dotnet/sdk:9.0
 
     steps:
-    - name: Show .NET SDK info
-      run: dotnet --info
+    - name: Functional testing
+      uses: ./.github/actions/publish-artifacts
 
-    - name: Download Build Artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: deployables-Windows
-        path: deployables
+  functional_testing_macOS:
+    name: 🧪 Functional testing
+    needs: build
 
-    - name: Set up git username and email address
-      run: |
-        git config --global init.defaultBranch main
-        git config --global user.name ci
-        git config --global user.email me@ci.com
+    runs-on: macOS-14
 
-    - name: Consume NB.GV from .NET build
-      shell: bash
-      run: >
-        PkgFileName=$(ls deployables/Nerdbank.GitVersioning.*nupkg)
-
-        NBGV_NuGetPackageVersion=$([[ $PkgFileName =~ Nerdbank.GitVersioning\.(.*)\.nupkg ]] && echo "${BASH_REMATCH[1]}")
-
-        echo "<configuration><packageSources><add key='local' value='deployables' /></packageSources></configuration>" > nuget.config &&
-        dotnet new classlib -o lib &&
-        cd lib &&
-        echo '{"version":"42.42"}' > version.json &&
-        git init &&
-        git add version.json &&
-        git commit -m "Initial commit" &&
-        mkdir lib && cd lib &&
-        for l in c# f# vb;
-        do
-          echo Testing language $l &&
-          dotnet new classlib -lang=$l &&
-          dotnet add package nerdbank.gitversioning -v $NBGV_NuGetPackageVersion &&
-          dotnet pack -c debug /p:TreatWarningsAsErrors=false &&
-          ls bin/debug/lib.42.42.1*.nupkg 1> /dev/null 2>&1 &&
-          rm -r *
-          if [ $? -ne 0 ]; then exit 1; fi
-        done
-
-    - name: Consume Cake.GitVersioning
-      shell: bash
-      run: >
-        PkgFileName=$(ls deployables/Cake.GitVersioning.*nupkg)
-
-        NBGV_NuGetPackageVersion=$([[ $PkgFileName =~ Cake.GitVersioning\.(.*)\.nupkg ]] && echo "${BASH_REMATCH[1]}")
-
-        echo $NBGV_NuGetPackageVersion
-
-        mkdir caketest &&
-        cd caketest &&
-        git init &&
-        dotnet new tool-manifest &&
-        dotnet tool install Cake.Tool
-
-        echo "#addin nuget:?package=Cake.GitVersioning&version=${NBGV_NuGetPackageVersion}&prerelease=true"
-
-        echo "#addin nuget:?package=Cake.GitVersioning&version=${NBGV_NuGetPackageVersion}&prerelease=true" > build.cake
-
-        echo "Information(GitVersioningGetVersion().Version.ToString());" >> build.cake
-
-        dotnet cake
-
-    - name: Use nbgv dotnet CLI tool
-      shell: bash
-      run: >
-        echo DOTNET_ROOT=$DOTNET_ROOT
-
-        PkgFileName=$(ls deployables/Nerdbank.GitVersioning.*nupkg)
-
-        NBGV_NuGetPackageVersion=$([[ $PkgFileName =~ Nerdbank.GitVersioning\.(.*)\.nupkg ]] && echo "${BASH_REMATCH[1]}")
-
-        dotnet tool install nbgv --tool-path . --version $NBGV_NuGetPackageVersion --add-source deployables-Windows &&
-        ./nbgv get-version -f json -p lib &&
-        ./nbgv get-version -f json -p lib | grep 42.42.1
+    steps:
+    - name: Functional testing
+      uses: ./.github/actions/publish-artifacts
 
   perf_testing:
     name: 🫏 Performance testing
