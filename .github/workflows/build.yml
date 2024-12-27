@@ -104,7 +104,7 @@ jobs:
       if: env.codecov_token != ''
 
   functional_testing:
-    name: 🧪 Functional testing
+    name: 🧪 Linux testing
     needs: build
 
     runs-on: ubuntu-22.04
@@ -125,7 +125,7 @@ jobs:
       uses: ./.github/actions/publish-artifacts
 
   functional_testing_macOS:
-    name: 🧪 Functional testing
+    name: 🧪 macOS testing
     needs: build
 
     runs-on: macOS-14
