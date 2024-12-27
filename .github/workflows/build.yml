@@ -1,0 +1,103 @@
+name: 🏭 Build
+
+on:
+  push:
+    branches:
+    - main
+    - 'v*.*'
+    - validate/*
+  pull_request:
+  workflow_dispatch:
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  BUILDCONFIGURATION: Release
+  # codecov_token: 4dc9e7e2-6b01-4932-a180-847b52b43d35 # Get a new one from https://codecov.io/
+  NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages/
+
+# dotnetfoundation code signing
+
+jobs:
+  build:
+    name: 🏭 Build
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+        - ubuntu-22.04
+        - windows-2022
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
+        submodules: true
+    - name: ⚙ Install prerequisites
+      run: |
+        ./init.ps1 -UpgradePrerequisites
+        dotnet --info
+
+        # Print mono version if it is present.
+        if (Get-Command mono -ErrorAction SilentlyContinue) {
+          mono --version
+        }
+      shell: pwsh
+    - name: ⚙ Install 32-bit .NET SDK and runtimes
+      shell: pwsh
+      run: |
+        Invoke-WebRequest -Uri "https://dot.net/v1/dotnet-install.ps1" -OutFile dotnet-install.ps1
+        & .\dotnet-install.ps1 -Architecture x86 -Version 9.0.101 -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose
+      if: runner.os == 'Windows'
+    - name: ⚙️ Set pipeline variables based on source
+      run: tools/variables/_define.ps1
+      shell: pwsh
+    - name: 🛠 build
+      run: dotnet build -t:build,pack --no-restore -c ${{ env.BUILDCONFIGURATION }} -warnAsError -warnNotAsError:NU1901,NU1902,NU1903,NU1904 /bl:"${{ runner.temp }}/_artifacts/build_logs/build.binlog"
+    - name: 🛠️ Build LKG package
+      run: dotnet pack -c ${{ env.BUILDCONFIGURATION }} --no-build -p:PackLKG=true /bl:"${{ runner.temp }}/_artifacts/build_logs/msbuild_lkg.binlog"
+      working-directory: src/Nerdbank.GitVersioning.Tasks
+    - name: 📢 Publish nbgv tool
+      run: dotnet publish -c ${{ env.BUILDCONFIGURATION }} -o ../nerdbank-gitversioning.npm/out/nbgv.cli/tools/net8.0/any /bl:"${{ runner.temp }}/_artifacts/build_logs/nbgv_publish.binlog"
+      working-directory: src/nbgv
+    - name: 🛠️ Build nerdbank-gitversioning NPM package
+      run: yarn build
+      working-directory: src/nerdbank-gitversioning.npm
+    - name: Capture .git directory
+      shell: pwsh
+      run: |
+        md $(Build.ArtifactStagingDirectory)\drop
+        7z a $(Build.ArtifactStagingDirectory)\drop\nbgv.7z * -r
+        Write-Host "##vso[artifact.upload containerfolder=drop;artifactname=drop;]$(Build.ArtifactStagingDirectory)\drop"
+      if: failure() && runner.os == 'Windows'
+    - name: 🧪 test
+      run: |
+        Write-Host "⚙️ Configure git commit author for testing"
+        git config --global user.name ci
+        git config --global user.email me@ci.com
+
+        Write-Host "🧪 Run tests"
+        tools/dotnet-test-cloud.ps1 -Configuration ${{ env.BUILDCONFIGURATION }} -Agent ${{ runner.os }} -PublishResults
+      shell: pwsh
+    - name: 🧪 test x86
+      run: tools/dotnet-test-cloud.ps1 -Configuration ${{ env.BUILDCONFIGURATION }} -Agent ${{ runner.os }} -PublishResults -X86
+    - name: 💅🏻 Verify formatted code
+      run: dotnet format --verify-no-changes --no-restore
+      shell: pwsh
+      if: runner.os == 'Linux'
+    - name: 📚 Verify docfx build
+      run: dotnet docfx docfx/docfx.json --warningsAsErrors --disableGitFeatures
+      if: runner.os == 'Linux'
+    - name: ⚙ Update pipeline variables based on build outputs
+      run: tools/variables/_define.ps1
+      shell: pwsh
+    - name: 📢 Publish artifacts
+      uses: ./.github/actions/publish-artifacts
+      if: cancelled() == false
+    - name: 📢 Publish code coverage results to codecov.io
+      run: ./tools/publish-CodeCov.ps1 -CodeCovToken "${{ env.codecov_token }}" -PathToCodeCoverage "${{ runner.temp }}/_artifacts/coverageResults" -Name "${{ runner.os }} Coverage Results" -Flags "${{ runner.os }}"
+      shell: pwsh
+      timeout-minutes: 3
+      continue-on-error: true
+      if: env.codecov_token != ''
