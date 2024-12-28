@@ -28,6 +28,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         "APPVEYOR",
         "SYSTEM_",
         "BUILD_",
+        "GITHUB_",
         "NBGV_GitEngine",
     };
 
@@ -471,6 +472,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
             string name = (string)variable.Key;
             if (ToxicEnvironmentVariablePrefixes.Any(toxic => name.StartsWith(toxic, StringComparison.OrdinalIgnoreCase)))
             {
+                Environment.SetEnvironmentVariable(name, null);
                 this.globalProperties[name] = string.Empty;
             }
         }

@@ -1,6 +1,6 @@
 ﻿# Nerdbank.GitVersioning
 
-[![Build Status](https://dev.azure.com/andrewarnott/OSS/_apis/build/status/Nerdbank.GitVersioning)](https://dev.azure.com/andrewarnott/OSS/_build/latest?definitionId=18)
+[![🏭 Build](https://github.com/dotnet/Nerdbank.GitVersioning/actions/workflows/build.yml/badge.svg)](https://github.com/dotnet/Nerdbank.GitVersioning/actions/workflows/build.yml)
 [![NuGet package](https://img.shields.io/nuget/v/Nerdbank.GitVersioning.svg)](https://nuget.org/packages/Nerdbank.GitVersioning)
 [![NuGet downloads](https://img.shields.io/nuget/dt/Nerdbank.GitVersioning.svg)](https://nuget.org/packages/Nerdbank.GitVersioning)
 [![NPM package](https://img.shields.io/npm/v/nerdbank-gitversioning.svg)](https://www.npmjs.com/package/nerdbank-gitversioning)

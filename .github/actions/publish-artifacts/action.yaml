@@ -65,3 +65,9 @@ runs:
       name: deployables-${{ runner.os }}
       path: ${{ runner.temp }}/_artifacts/deployables
     if: always()
+  - name: 📢 Upload deployables-LKG
+    uses: actions/upload-artifact@v4
+    with:
+      name: deployables-LKG-${{ runner.os }}
+      path: ${{ runner.temp }}/_artifacts/deployables-LKG
+    if: always()

@@ -239,6 +239,7 @@ namespace Nerdbank.GitVersioning.Tasks
                 }
 
                 ICloudBuild cloudBuild = CloudBuild.Active;
+                this.Log.LogMessage(MessageImportance.Low, "Cloud build provider: {0}", cloudBuild?.GetType().Name ?? "None");
                 int? overrideBuildNumberOffset = (this.OverrideBuildNumberOffset == int.MaxValue) ? (int?)null : this.OverrideBuildNumberOffset;
                 string projectDirectory = this.ProjectPathRelativeToGitRepoRoot is object && this.GitRepoRoot is object
                     ? Path.Combine(this.GitRepoRoot, this.ProjectPathRelativeToGitRepoRoot)
