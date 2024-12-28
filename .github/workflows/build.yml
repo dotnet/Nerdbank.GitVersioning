@@ -96,6 +96,16 @@ jobs:
     - name: 📢 Publish artifacts
       uses: ./.github/actions/publish-artifacts
       if: cancelled() == false
+    - name: 📦 Push CI package
+      shell: pwsh
+      run: |
+        if ('${{ secrets.AZP_TOKEN }}') {
+          dotnet nuget add source https://pkgs.dev.azure.com/andrewarnott/OSS/_packaging/PublicCI/nuget/v3/index.json -n publicCI -u andrewarnott -p ${{ secrets.AZP_TOKEN }} --store-password-in-clear-text
+          dotnet nuget push ${{ runner.temp }}/_artifacts/deployables/*.nupkg -s publicCI -k x
+          dotnet nuget push ${{ runner.temp }}/_artifacts/deployables-LKG/*.nupkg -s publicCI -k x
+        }
+      if: success() && runner.os == 'Linux' && github.event_name != 'pull_request'
+      continue-on-error: true
     - name: 📢 Publish code coverage results to codecov.io
       run: ./tools/publish-CodeCov.ps1 -CodeCovToken "${{ env.codecov_token }}" -PathToCodeCoverage "${{ runner.temp }}/_artifacts/coverageResults" -Name "${{ runner.os }} Coverage Results" -Flags "${{ runner.os }}"
       shell: pwsh
