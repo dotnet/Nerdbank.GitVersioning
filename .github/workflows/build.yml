@@ -104,7 +104,7 @@ jobs:
           dotnet nuget push ${{ runner.temp }}/_artifacts/deployables/*.nupkg -s publicCI -k x
           dotnet nuget push ${{ runner.temp }}/_artifacts/deployables-LKG/*.nupkg -s publicCI -k x
         }
-      if: success() && runner.os == 'Windows' && github.event_name != 'pull_request'
+      if: success() && runner.os == 'Windows'
       continue-on-error: true
     - name: 📢 Publish code coverage results to codecov.io
       run: ./tools/publish-CodeCov.ps1 -CodeCovToken "${{ env.codecov_token }}" -PathToCodeCoverage "${{ runner.temp }}/_artifacts/coverageResults" -Name "${{ runner.os }} Coverage Results" -Flags "${{ runner.os }}"
