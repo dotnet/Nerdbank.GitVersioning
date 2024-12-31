@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>net8.0</TargetFrameworks>
     <OutputType>Exe</OutputType>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
     <SignAssembly>false</SignAssembly>
     <IsTestProject>true</IsTestProject>
     <IsPackable>false</IsPackable>
