@@ -124,4 +124,4 @@ Consider that main builds a 1.2 version, and has a version height of 10. So its 
 Or, if the topic branch *has* committed and moved onto 1.2.11, that could still collide because `main` may have moved on as well, using that same version. But since the topic branch always adds `-gc0ffee` hash suffixes to the package version, it won't conflict.
 Also: you don't want a topic branch to be seen as newer and better than what's in the main branch unless the user is explicitly opting into unstable behavior, so the `-gc0ffee` suffix is useful because it forces the package to be seen as "unstable". Once it merges with `main`, it will drop its `-gc0ffee` suffix, but will retain any other `-prerelease` tag specified in the version.json file.
 
-[nbgv_prepare-release]: https://github.com/dotnet/Nerdbank.GitVersioning/blob/master/doc/nbgv-cli.md#preparing-a-release
+[nbgv_prepare-release]: https://github.com/dotnet/Nerdbank.GitVersioning/blob/master/docfx/docs/nbgv-cli.md#preparing-a-release
