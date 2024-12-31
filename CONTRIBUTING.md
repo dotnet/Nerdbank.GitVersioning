@@ -48,7 +48,7 @@ The Visual Studio 2019 Test Explorer will list and execute all tests.
 ## Releases
 
 Use `nbgv tag` to create a tag for a particular commit that you mean to release.
-[Learn more about `nbgv` and its `tag` and `prepare-release` commands](https://github.com/dotnet/Nerdbank.GitVersioning/blob/main/docfx/docs/nbgv-cli.md).
+[Learn more about `nbgv` and its `tag` and `prepare-release` commands](https://dotnet.github.io/Nerdbank.GitVersioning/docs/nbgv-cli.html).
 
 Push the tag.
 
