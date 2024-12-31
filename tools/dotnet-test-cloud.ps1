@@ -25,6 +25,7 @@ Param(
 
 $RepoRoot = (Resolve-Path "$PSScriptRoot/..").Path
 $ArtifactStagingFolder = & "$PSScriptRoot/Get-ArtifactsStagingDirectory.ps1"
+Write-Host "ArtifactStagingFolder: $ArtifactStagingFolder"
 
 $dotnet = 'dotnet'
 if ($x86) {
@@ -44,6 +45,8 @@ if ($x86) {
   }
 }
 
+Write-Host "test logs will be written to '$ArtifactStagingFolder/test_logs'"
+
 & $dotnet test $RepoRoot `
     --no-build `
     -c $Configuration `
@@ -58,6 +61,7 @@ if ($x86) {
 
 $unknownCounter = 0
 Get-ChildItem -Recurse -Path $RepoRoot\test\*.trx |% {
+  Write-Host "Found trx at $_"
   Copy-Item $_ -Destination $ArtifactStagingFolder/test_logs/
 
   if ($PublishResults) {
