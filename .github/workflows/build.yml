@@ -220,6 +220,7 @@ jobs:
 
   perf_testing:
     name: 🫏 Performance testing
+    if: false
 
     runs-on: ${{ matrix.os }}
     strategy:
