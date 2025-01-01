@@ -46,7 +46,7 @@ if ($x86) {
 }
 
 $testBinLog = Join-Path $ArtifactStagingFolder build_logs test.binlog
-$testDiagLog = Join-Path $ArtifactStagingFolder test_logs diag.log
+$testResultsDirectory = Join-Path $ArtifactStagingFolder test_logs
 Write-Host "test logs will be written to '$testDiagLog'"
 
 & $dotnet test $RepoRoot `
@@ -58,10 +58,11 @@ Write-Host "test logs will be written to '$testDiagLog'"
     --blame-hang-timeout 60s `
     --blame-crash `
     -bl:"$testBinLog" `
-    --diag "$testDiagLog;TraceLevel=info" `
-    --logger trx `
+    -- `
+    --results-directory $testResultsDirectory `
+    --long-running 60 `
 
-Write-Host "Does $testDiagLog exist? $(Test-Path $testDiagLog)"
+Write-Host "Does $testResultsDirectory exist? $(Test-Path $testResultsDirectory)"
 
 $unknownCounter = 0
 Get-ChildItem -Recurse -Path $RepoRoot\test\*.trx |% {
