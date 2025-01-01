@@ -46,7 +46,6 @@ NPM packages too.
 `dotnet test` will run all tests.
 
 The Visual Studio 2022 Test Explorer will list and execute all tests.
-Visual Studio needs a preview feature called "Use testing platform server mode" enabled.
 
 A few tests will fail without a certain VC++ toolset installed.
 

@@ -176,8 +176,8 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
                     result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"))));
         this.Logger.WriteLine(versionCsContent);
 
-        SyntaxTree sourceFile = CSharpSyntaxTree.ParseText(versionCsContent, cancellationToken: TestContext.Current.CancellationToken);
-        SyntaxNode syntaxTree = await sourceFile.GetRootAsync(TestContext.Current.CancellationToken);
+        SyntaxTree sourceFile = CSharpSyntaxTree.ParseText(versionCsContent);
+        SyntaxNode syntaxTree = await sourceFile.GetRootAsync();
         IEnumerable<VariableDeclaratorSyntax> fields = syntaxTree.DescendantNodes().OfType<VariableDeclaratorSyntax>();
 
         var publicKeyField = (LiteralExpressionSyntax)fields.SingleOrDefault(f => f.Identifier.ValueText == "PublicKey")?.Initializer.Value;

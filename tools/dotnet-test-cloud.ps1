@@ -44,8 +44,8 @@ if ($x86) {
   }
 }
 
-$testBinLog = Join-Path $ArtifactStagingFolder build_logs test.binlog
-$testResultsDirectory = Join-Path $ArtifactStagingFolder test_logs
+$testBinLog = Join-Path $ArtifactStagingFolder (Join-Path build_logs test.binlog)
+$testDiagLog = Join-Path $ArtifactStagingFolder (Join-Path test_logs diag.log)
 
 & $dotnet test $RepoRoot `
     --no-build `
@@ -56,10 +56,8 @@ $testResultsDirectory = Join-Path $ArtifactStagingFolder test_logs
     --blame-hang-timeout 60s `
     --blame-crash `
     -bl:"$testBinLog" `
-    -- `
-    --results-directory $testResultsDirectory `
-    --report-xunit-trx `
-    --long-running 60 `
+    --diag "$testDiagLog;TraceLevel=info" `
+    --logger trx `
 
 $unknownCounter = 0
 Get-ChildItem -Recurse -Path $RepoRoot\test\*.trx |% {
