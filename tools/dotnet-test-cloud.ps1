@@ -47,7 +47,7 @@ if ($x86) {
 
 $testBinLog = Join-Path $ArtifactStagingFolder build_logs test.binlog
 $testResultsDirectory = Join-Path $ArtifactStagingFolder test_logs
-Write-Host "test logs will be written to '$testDiagLog'"
+Write-Host "test logs will be written to '$testResultsDirectory'"
 
 & $dotnet test $RepoRoot `
     --no-build `
@@ -60,6 +60,7 @@ Write-Host "test logs will be written to '$testDiagLog'"
     -bl:"$testBinLog" `
     -- `
     --results-directory $testResultsDirectory `
+    --report-xunit-trx `
     --long-running 60 `
 
 Write-Host "Does $testResultsDirectory exist? $(Test-Path $testResultsDirectory)"
