@@ -45,11 +45,9 @@ if ($x86) {
   }
 }
 
-$testLogsDir = Join-Path $ArtifactStagingFolder build_logs
-$testBinLog = Join-Path $testLogsDir test.binlog
-$testDiagLog = Join-Path $testLogsDir diag.log
-Write-Host "test logs will be written to '$ArtifactStagingFolder/test_logs'"
-
+$testBinLog = Join-Path $ArtifactStagingFolder build_logs test.binlog
+$testDiagLog = Join-Path $ArtifactStagingFolder test_logs diag.log
+Write-Host "test logs will be written to '$testDiagLog'"
 
 & $dotnet test $RepoRoot `
     --no-build `
@@ -62,6 +60,8 @@ Write-Host "test logs will be written to '$ArtifactStagingFolder/test_logs'"
     -bl:"$testBinLog" `
     --diag "$testDiagLog;TraceLevel=info" `
     --logger trx `
+
+Write-Host "Does $testDiagLog exist? $(Test-Path $testDiagLog)"
 
 $unknownCounter = 0
 Get-ChildItem -Recurse -Path $RepoRoot\test\*.trx |% {
