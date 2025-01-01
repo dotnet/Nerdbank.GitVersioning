@@ -43,7 +43,11 @@ NPM packages too.
 
 ## Testing
 
-The Visual Studio 2019 Test Explorer will list and execute all tests.
+`dotnet test` will run all tests.
+
+The Visual Studio 2022 Test Explorer will list and execute all tests.
+
+A few tests will fail without a certain VC++ toolset installed.
 
 ## Releases
 

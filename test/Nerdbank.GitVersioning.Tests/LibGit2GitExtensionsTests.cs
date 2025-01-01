@@ -467,7 +467,7 @@ public class LibGit2GitExtensionsTests : RepoTestBase
     public void TestBiggerRepo()
     {
         string testBiggerRepoPath = @"D:\git\Nerdbank.GitVersioning";
-        Assert.SkipWhen(!Directory.Exists(testBiggerRepoPath), $"{testBiggerRepoPath} does not exist.");
+        Skip.If(!Directory.Exists(testBiggerRepoPath), $"{testBiggerRepoPath} does not exist.");
 
         using var largeRepo = new Repository(testBiggerRepoPath);
         foreach (Commit commit in largeRepo.Head.Commits)
