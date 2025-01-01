@@ -45,7 +45,11 @@ if ($x86) {
   }
 }
 
+$testLogsDir = Join-Path $ArtifactStagingFolder build_logs
+$testBinLog = Join-Path $testLogsDir test.binlog
+$testDiagLog = Join-Path $testLogsDir diag.log
 Write-Host "test logs will be written to '$ArtifactStagingFolder/test_logs'"
+
 
 & $dotnet test $RepoRoot `
     --no-build `
@@ -55,8 +59,8 @@ Write-Host "test logs will be written to '$ArtifactStagingFolder/test_logs'"
     --settings "$PSScriptRoot/test.runsettings" `
     --blame-hang-timeout 60s `
     --blame-crash `
-    -bl:"$ArtifactStagingFolder/build_logs/test.binlog" `
-    --diag "$ArtifactStagingFolder/test_logs/diag.log;TraceLevel=info" `
+    -bl:"$testBinLog" `
+    --diag "$testDiagLog;TraceLevel=info" `
     --logger trx `
 
 $unknownCounter = 0
