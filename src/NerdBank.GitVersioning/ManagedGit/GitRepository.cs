@@ -666,16 +666,19 @@ public class GitRepository : IDisposable
 
         // Both tag files and packed-refs might either contain lightweight or annotated tags.
         // tag files
-        var tagDir = Path.Combine(this.CommonDirectory, "refs", "tags");
-        foreach (var tagFile in Directory.EnumerateFiles(tagDir, "*", SearchOption.AllDirectories))
+        string tagDir = Path.Combine(this.CommonDirectory, "refs", "tags");
+        if (Directory.Exists(tagDir))
         {
-            var tagObjId = GitObjectId.ParseHex(File.ReadAllBytes(tagFile).AsSpan().Slice(0, 40));
+            foreach (string tagFile in Directory.EnumerateFiles(tagDir, "*", SearchOption.AllDirectories))
+            {
+                var tagObjId = GitObjectId.ParseHex(File.ReadAllBytes(tagFile).AsSpan().Slice(0, 40));
 
-            // \ is not legal in git tag names
-            var tagName = tagFile.Substring(tagDir.Length + 1).Replace('\\', '/');
-            var canonical = $"refs/tags/{tagName}";
+                // \ is not legal in git tag names
+                var tagName = tagFile.Substring(tagDir.Length + 1).Replace('\\', '/');
+                var canonical = $"refs/tags/{tagName}";
 
-            HandleCandidate(tagObjId, canonical, false);
+                HandleCandidate(tagObjId, canonical, false);
+            }
         }
 
         // packed-refs file
