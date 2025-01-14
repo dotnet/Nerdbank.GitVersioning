@@ -51,6 +51,15 @@ Property | Default | Description
 `NBGV_ThisAssemblyIncludesPackageVersion` | `false` | When `true`, a `NuGetPackageVersion` property is added to the `ThisAssembly` class.
 `NBGV_UseAssemblyVersionInNativeVersion` | `true` | When `false`, uses the `AssemblyFileVersion` as a native `PRODUCTVERSION`.
 
+### Items
+
+The following MSBuild items may be declared in your project to customize the computed version:
+
+Item type | Description
+--|--
+`BuildMetadata` | Adds `+ItemName` build metadata for each item to the computed version.
+`PrereleaseIdentifier` | Adds `-ItemName` build metadata for each item to the computed version.
+
 ### Custom `ThisAssembly` static fields and constants
 
 Custom constants may be added to the `ThisAssembly` class through `AdditionalThisAssemblyFields` items defined in your project.

@@ -291,6 +291,111 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Matches(@"^2.3.1-g[a-f0-9]{7}$", oracle.ChocolateyPackageVersion);
     }
 
+    [Fact]
+    public void ExtraPrereleaseIdentifiers_StableBase_V1()
+    {
+        var workingCopyVersion = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("2.3"),
+            NuGetPackageVersion = new VersionOptions.NuGetPackageVersionOptions
+            {
+                SemVer = 1,
+            },
+        };
+        this.WriteVersionFile(workingCopyVersion);
+        this.InitializeSourceControl();
+        VersionOracle oracle = new(this.Context)
+        {
+            ExtraPrereleaseIdentifiers = { "i1", "i2" },
+            PublicRelease = true,
+        };
+        Assert.Equal(@"2.3.1-i1-i2", oracle.NuGetPackageVersion);
+    }
+
+    [Fact]
+    public void ExtraPrereleaseIdentifiers_StableBase_V2()
+    {
+        var workingCopyVersion = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("2.3"),
+            NuGetPackageVersion = new VersionOptions.NuGetPackageVersionOptions
+            {
+                SemVer = 2,
+            },
+        };
+        this.WriteVersionFile(workingCopyVersion);
+        this.InitializeSourceControl();
+        VersionOracle oracle = new(this.Context)
+        {
+            ExtraPrereleaseIdentifiers = { "i1", "i2" },
+            PublicRelease = true,
+        };
+        Assert.Equal(@"2.3.1-i1.i2", oracle.NuGetPackageVersion);
+    }
+
+    [Fact]
+    public void ExtraPrereleaseIdentifiers_StableBase_V2_NonPublic()
+    {
+        var workingCopyVersion = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("2.3"),
+            NuGetPackageVersion = new VersionOptions.NuGetPackageVersionOptions
+            {
+                SemVer = 2,
+            },
+        };
+        this.WriteVersionFile(workingCopyVersion);
+        this.InitializeSourceControl();
+        VersionOracle oracle = new(this.Context)
+        {
+            ExtraPrereleaseIdentifiers = { "i1", "i2" },
+            PublicRelease = false,
+        };
+        Assert.Matches(@"^2\.3\.1-i1\.i2\.g", oracle.NuGetPackageVersion);
+    }
+
+    [Fact]
+    public void ExtraPrereleaseIdentifiers_UnstableBase_V1()
+    {
+        var workingCopyVersion = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("2.3-abc"),
+            NuGetPackageVersion = new VersionOptions.NuGetPackageVersionOptions
+            {
+                SemVer = 1,
+            },
+        };
+        this.WriteVersionFile(workingCopyVersion);
+        this.InitializeSourceControl();
+        VersionOracle oracle = new(this.Context)
+        {
+            ExtraPrereleaseIdentifiers = { "i1", "i2" },
+            PublicRelease = true,
+        };
+        Assert.Equal(@"2.3.1-abc-i1-i2", oracle.NuGetPackageVersion);
+    }
+
+    [Fact]
+    public void ExtraPrereleaseIdentifiers_UnstableBase_V2()
+    {
+        var workingCopyVersion = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("2.3-abc"),
+            NuGetPackageVersion = new VersionOptions.NuGetPackageVersionOptions
+            {
+                SemVer = 2,
+            },
+        };
+        this.WriteVersionFile(workingCopyVersion);
+        this.InitializeSourceControl();
+        VersionOracle oracle = new(this.Context)
+        {
+            ExtraPrereleaseIdentifiers = { "i1", "i2" },
+            PublicRelease = true,
+        };
+        Assert.Equal(@"2.3.1-abc.i1.i2", oracle.NuGetPackageVersion);
+    }
+
     [Theory]
     [InlineData("1.2.0.0", null, null)]
     [InlineData("1.0.0.0", null, VersionOptions.VersionPrecision.Major)]

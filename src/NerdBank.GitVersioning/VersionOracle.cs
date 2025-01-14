@@ -208,7 +208,31 @@ public class VersionOracle
     /// <summary>
     /// Gets the prerelease version information, including a leading hyphen.
     /// </summary>
-    public string PrereleaseVersion => this.ReplaceMacros(this.VersionOptions?.Version?.Prerelease ?? string.Empty);
+    /// <value>An empty string for a stable release, or a string like <c>-beta</c>.</value>
+    public string PrereleaseVersion
+    {
+        get
+        {
+            string result = this.ReplaceMacros(this.VersionOptions?.Version?.Prerelease ?? string.Empty);
+
+            foreach (string identifier in this.ExtraPrereleaseIdentifiers)
+            {
+                if (result.Length == 0)
+                {
+                    result = "-";
+                }
+                else
+                {
+                    // In semver v2, identifiers should be separated by periods.
+                    result += this.VersionOptions?.NuGetPackageVersionOrDefault.SemVerOrDefault >= 2 ? '.' : '-';
+                }
+
+                result += identifier;
+            }
+
+            return result;
+        }
+    }
 
     /// <summary>
     /// Gets the prerelease version information, omitting the leading hyphen, if any.
@@ -378,6 +402,12 @@ public class VersionOracle
     /// </summary>
     [Ignore]
     public List<string> BuildMetadata { get; } = new List<string>();
+
+    /// <summary>
+    /// Gets a list of prerelease identifiers to add to whatever the default prerelease identifiers are.
+    /// </summary>
+    [Ignore]
+    public List<string> ExtraPrereleaseIdentifiers { get; } = new List<string>();
 
     /// <summary>
     /// Gets the +buildMetadata fragment for the semantic version.

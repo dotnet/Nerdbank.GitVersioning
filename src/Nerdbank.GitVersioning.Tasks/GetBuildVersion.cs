@@ -1,12 +1,7 @@
 ﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Reflection;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using MSBuildExtensionTask;
@@ -27,6 +22,11 @@ namespace Nerdbank.GitVersioning.Tasks
         /// Gets or sets identifiers to append as build metadata.
         /// </summary>
         public string BuildMetadata { get; set; }
+
+        /// <summary>
+        /// Gets or sets an array of prerelease identifiers to append to whatever else may be determined by default.
+        /// </summary>
+        public string PrereleaseIdentifiers { get; set; }
 
         /// <summary>
         /// Gets or sets the value of the PublicRelease property in MSBuild at the
@@ -254,6 +254,11 @@ namespace Nerdbank.GitVersioning.Tasks
                 if (this.BuildMetadata is not null)
                 {
                     oracle.BuildMetadata.AddRange(this.BuildMetadata.Split(';'));
+                }
+
+                if (this.PrereleaseIdentifiers is { Length: > 0 })
+                {
+                    oracle.ExtraPrereleaseIdentifiers.AddRange(this.PrereleaseIdentifiers.Split(';'));
                 }
 
                 if (IsMisconfiguredPrereleaseAndSemVer1(oracle))
