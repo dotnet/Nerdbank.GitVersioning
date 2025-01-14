@@ -17,6 +17,7 @@
     <Nerdbank.GitVersioning.Tasks.GetBuildVersion
       BuildingRef="$(_NBGV_BuildingRef)"
       BuildMetadata="$(BuildMetadata.Replace(',',';'))"
+      PrereleaseIdentifiers="$(PrereleaseIdentifiers.Replace(',',';'))"
       DefaultPublicRelease="$(PublicRelease)"
       ProjectDirectory="$(GitVersionBaseDirectory)"
       GitRepoRoot="$(GitRepoRoot)"

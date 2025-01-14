@@ -6,6 +6,7 @@
          CallTarget invoked targets do not see properties set by the calling target. -->
     <PropertyGroup>
       <BuildMetadata>@(BuildMetadata, ',')</BuildMetadata>
+      <PrereleaseIdentifiers>@(PrereleaseIdentifier, ',')</PrereleaseIdentifiers>
     </PropertyGroup>
   </Target>
 

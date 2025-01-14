@@ -155,6 +155,21 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         Assert.Equal("3.4.0", buildResult.AssemblyInformationalVersion);
     }
 
+    [Fact]
+    public async Task WithExtraPrereleaseIdentifiers()
+    {
+        this.WriteVersionFile(new VersionOptions
+        {
+            Version = SemanticVersion.Parse("3.4"),
+        });
+        this.InitializeSourceControl();
+        this.testProject.AddItem("PrereleaseIdentifier", "i1");
+        this.testProject.AddItem("PrereleaseIdentifier", "i2");
+        this.globalProperties["PublicRelease"] = "true";
+        BuildResults buildResult = await this.BuildAsync();
+        Assert.Matches(@"^3\.4\.[01]-i1-i2$", buildResult.NuGetPackageVersion);
+    }
+
     // TODO: add key container test.
     [Theory]
     [InlineData("keypair.snk", false)]

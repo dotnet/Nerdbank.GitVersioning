@@ -16,12 +16,13 @@
     <NBGV_GlobalPropertiesToRemove Include="RuntimeIdentifier" />
 
     <_BuildMetadataSnapped Include="@(BuildMetadata)" />
+    <_PrereleaseIdentifierSnapped Include="@(PrereleaseIdentifier)" />
   </ItemGroup>
 
   <ItemGroup>
     <NBGV_CachingProjectReference Include="$(NBGV_CachingProjectReference)">
       <Targets>GetBuildVersion_Properties;GetBuildVersion_CloudBuildVersionVars</Targets>
-      <Properties>$(NBGV_InnerGlobalProperties)BuildMetadata=@(BuildMetadata, ',');</Properties>
+      <Properties>$(NBGV_InnerGlobalProperties)BuildMetadata=@(BuildMetadata, ',');PrereleaseIdentifiers=@(PrereleaseIdentifier, ',')</Properties>
       <SetConfiguration>Configuration=Release</SetConfiguration>
       <SetPlatform>Platform=AnyCPU</SetPlatform>
       <GlobalPropertiesToRemove>@(NBGV_GlobalPropertiesToRemove)</GlobalPropertiesToRemove>
@@ -44,6 +45,7 @@
 
   <Target Name="InvokeGetBuildVersionTask">
     <Error Text="BuildMetadata items changed after a copy was made. Add all BuildMetadata items before importing this file." Condition=" '@(BuildMetadata)' != '@(_BuildMetadataSnapped)' " />
+    <Error Text="PrereleaseIdentifier items changed after a copy was made. Add all PrereleaseIdentifier items before importing this file." Condition=" '@(PrereleaseIdentifier)' != '@(_PrereleaseIdentifierSnapped)' " />
 
     <!-- Calculate version by invoking another "project" with global properties that will serve as a key
          into an msbuild cache to ensure we only invoke the GetBuildVersion task as many times as will produce a unique value. -->
