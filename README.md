@@ -31,3 +31,7 @@ For more information see the [.NET Foundation Code of Conduct](https://dotnetfou
 
  [semver]: http://semver.org
  [GitHeightMinimum]: https://github.com/dotnet/Nerdbank.GitVersioning/issues/102#issuecomment-269591960
+
+## Sponsorships
+
+[<img src="https://api.gitsponsors.com/api/badge/img?id=35752188" height="20">](https://api.gitsponsors.com/api/badge/link?p=xwTY6flp7mghVjBf4MDCOwGwXftpXy8WaJad5qkXT7fZJ2G/IlZygi7EQMNw/vpAMlBUsKoxfd1TJP/RrQEfeRggKd84BILPmfe2XQ0ulQVxERIicJSKf4doQvfjpwas9kDSH4jx9JhlxSsnhrf8Tw==)
