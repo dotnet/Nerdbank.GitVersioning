@@ -9,7 +9,7 @@ This project is actively developed using the following software.
 It is highly recommended that anyone contributing to this library use the same
 software.
 
-1. [Visual Studio 2019][VS]
+1. [Visual Studio 2022][VS]
 2. [Node.js][NodeJs] v16 (v18 breaks our build)
 
 ### Optional additional software
