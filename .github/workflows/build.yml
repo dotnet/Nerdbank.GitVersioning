@@ -288,3 +288,13 @@ jobs:
       with:
         name: benchmarks-${{ matrix.os }}
         path: ${{ runner.temp }}/_artifacts/benchmarks
+
+  docs:
+    name: 📃 Docs
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: 🔗 Markup Link Checker (mlc)
+      uses: becheran/mlc@v0.19.2
+      with:
+        args: --do-not-warn-for-redirect-to https://learn.microsoft.com*,https://dotnet.microsoft.com/*,https://dev.azure.com/*,https://app.codecov.io/* -p docfx
