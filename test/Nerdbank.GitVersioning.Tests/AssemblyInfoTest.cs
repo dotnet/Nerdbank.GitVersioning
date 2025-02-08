@@ -13,7 +13,7 @@ using Xunit.Sdk;
 
 public class AssemblyInfoTest : IClassFixture<MSBuildFixture> // The MSBuildFixture throws PlatformNotSupportedException when run on mono.
 {
-    [SkippableTheory(typeof(PlatformNotSupportedException))]
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     [InlineData(null)]
@@ -91,7 +91,7 @@ do()
         Assert.Equal(expected, built);
     }
 
-    [SkippableTheory(typeof(PlatformNotSupportedException))]
+    [Theory]
     [InlineData(null, "MyRootNamespace")]
     [InlineData("", "MyRootNamespace")]
     [InlineData("MyCustomNamespace", null)]
@@ -152,7 +152,7 @@ do()
         Assert.Equal(expected, built);
     }
 
-    [SkippableTheory(typeof(PlatformNotSupportedException))]
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     [InlineData(null)]
@@ -228,7 +228,7 @@ internal static partial class ThisAssembly {{
         Assert.Equal(expected, built);
     }
 
-    [SkippableTheory(typeof(PlatformNotSupportedException))]
+    [Theory]
     [InlineData(null, "MyRootNamespace")]
     [InlineData("", "MyRootNamespace")]
     [InlineData("MyCustomNamespace", null)]
@@ -286,7 +286,7 @@ internal static partial class ThisAssembly {{
         Assert.Equal(expected, built);
     }
 
-    [SkippableTheory(typeof(PlatformNotSupportedException))]
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     [InlineData(null)]
@@ -342,7 +342,7 @@ End Class
         Assert.Equal(expected, built);
     }
 
-    [SkippableTheory(typeof(PlatformNotSupportedException))]
+    [Theory]
     [InlineData(null, "MyRootNamespace")]
     [InlineData("", "MyRootNamespace")]
     [InlineData("MyCustomNamespace", null)]
