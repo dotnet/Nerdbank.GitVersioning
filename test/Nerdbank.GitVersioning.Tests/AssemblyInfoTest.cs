@@ -61,7 +61,6 @@ public class AssemblyInfoTest : IClassFixture<MSBuildFixture> // The MSBuildFixt
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#nowarn ""CA2243""
 
 namespace AssemblyInfo
 [<assembly: global.System.Reflection.AssemblyVersionAttribute(""1.3.0.0"")>]
@@ -121,7 +120,6 @@ do()
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#nowarn ""CA2243""
 
 namespace {(
     !string.IsNullOrWhiteSpace(thisAssemblyNamespace)

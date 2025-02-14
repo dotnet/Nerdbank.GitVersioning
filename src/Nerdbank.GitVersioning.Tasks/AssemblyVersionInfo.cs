@@ -709,9 +709,14 @@ namespace Nerdbank.GitVersioning.Tasks
             {
             }
 
+            protected override IEnumerable<string> WarningCodesToSuppress { get; } = [];
+
             internal override void AddAnalysisSuppressions()
             {
-                this.CodeBuilder.AppendLine($"#nowarn {string.Join(" ", this.WarningCodesToSuppress.Select(c => $"\"{c}\""))}");
+                if (this.WarningCodesToSuppress.Any())
+                {
+                    this.CodeBuilder.AppendLine($"#nowarn {string.Join(" ", this.WarningCodesToSuppress.Select(c => $"\"{c}\""))}");
+                }
             }
 
             internal override void AddComment(string comment)
