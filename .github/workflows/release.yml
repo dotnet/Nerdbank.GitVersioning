@@ -29,6 +29,11 @@ jobs:
           echo "NUGET_API_KEY_DEFINED=true" >> $env:GITHUB_ENV
         }
 
+        if ('${{ secrets.NPM_API_KEY }}') {
+          Write-Host "NPM_API_KEY secret detected. NPM packages will be pushed."
+          echo "NPM_API_KEY_DEFINED=true" >> $env:GITHUB_ENV
+        }
+
     - name: 🔎 Search for build of ${{ github.ref }}
       shell: pwsh
       id: findrunid
@@ -107,10 +112,10 @@ jobs:
       if: ${{ env.NUGET_API_KEY_DEFINED == 'true' }}
 
     - name: 🚀 Push NPM packages
+      shell: pwsh
       run: |
-        npm config set //registry.npmjs.org/:_authToken=${{ secrets.NPM_API_KEY }}
+        npm set //registry.npmjs.org/:_authToken=${{ secrets.NPM_API_KEY }}
         Get-ChildItem '${{ runner.temp }}/deployables/*.tgz' |% {
           npm publish $_ --registry=https://registry.npmjs.org/
         }
-      env:
-        NPM_AUTH_TOKEN: ${{ secrets.NPM_API_KEY }}
+      if: ${{ env.NPM_API_KEY_DEFINED == 'true' }}
