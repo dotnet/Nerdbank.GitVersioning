@@ -29,6 +29,11 @@ jobs:
           echo "NUGET_API_KEY_DEFINED=true" >> $env:GITHUB_ENV
         }
 
+        if ('${{ secrets.NPM_API_KEY }}') {
+          Write-Host "NPM_API_KEY secret detected. NPM packages will be pushed."
+          echo "NPM_API_KEY_DEFINED=true" >> $env:GITHUB_ENV
+        }
+
     - name: 🔎 Search for build of ${{ github.ref }}
       shell: pwsh
       id: findrunid
@@ -77,6 +82,8 @@ jobs:
     - name: 🔏 Code sign
       shell: pwsh
       run: >
+        rm global.json # avoid a need to install a particular SDK version
+
         dotnet tool install --tool-path obj SignClient
 
         obj/SignClient sign
@@ -91,11 +98,11 @@ jobs:
 
     - name: 💽 Upload artifacts to release
       shell: pwsh
-      if: ${{ github.event.release.assets_url }} != ''
+      if: ${{ github.event_name == 'release' && github.event.release.assets_url != '' }}
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
-        Get-ChildItem '${{ runner.temp }}/deployables' |% {
+        Get-ChildItem '${{ runner.temp }}/deployables' -File -Recurse |% {
           Write-Host "Uploading $($_.Name) to release..."
           gh release -R ${{ github.repository }} upload "${{ github.ref_name }}" $_.FullName
         }
@@ -105,10 +112,10 @@ jobs:
       if: ${{ env.NUGET_API_KEY_DEFINED == 'true' }}
 
     - name: 🚀 Push NPM packages
+      shell: pwsh
       run: |
-        npm config set //registry.npmjs.org/:_authToken=${{ secrets.NPM_API_KEY }}
+        npm set //registry.npmjs.org/:_authToken=${{ secrets.NPM_API_KEY }}
         Get-ChildItem '${{ runner.temp }}/deployables/*.tgz' |% {
           npm publish $_ --registry=https://registry.npmjs.org/
         }
-      env:
-        NPM_AUTH_TOKEN: ${{ secrets.NPM_API_KEY }}
+      if: ${{ env.NPM_API_KEY_DEFINED == 'true' }}
