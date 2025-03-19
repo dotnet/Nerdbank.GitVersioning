@@ -7,31 +7,34 @@ using Xunit;
 
 public class CommandTests : RepoTestBase
 {
-    private readonly TestOutputHelperToTextWriterAdapter adapter;
-
     public CommandTests(ITestOutputHelper logger)
         : base(logger)
     {
-        this.adapter = new(logger);
     }
 
     // TODO: This is tightly coupled to the cloud build service. Can I use a FakeCloudBuildService instead?
-    [Theory]
-    [InlineData("VisualStudioTeamServices")]
-    [InlineData("TeamCity")]
-    [InlineData("Jenkins")]
-    public void CloudCommand_BuildNumber(string ciSystem)
+    [Theory, CombinatorialData]
+    public void CloudCommand_CloudBuildNumber([CombinatorialValues("VisualStudioTeamServices", "TeamCity", "Jenkins")] string ciSystem, bool setCloudBuildNumber)
     {
         var outWriter = new StringWriter();
         var errWriter = new StringWriter();
 
         var command = new CloudCommand(outWriter, errWriter);
 
-        command.SetBuildVariables(this.RepoPath, metadata: [], version: "1.2.3.4", ciSystem, allVars: false, commonVars: false, additionalVariables: [], alwaysUseLibGit2: false);
+        command.SetBuildVariables(this.RepoPath, metadata: [], version: "1.2.3.4", ciSystem, allVars: false, commonVars: false, setCloudBuildNumber, additionalVariables: [], alwaysUseLibGit2: false);
 
         outWriter.Flush();
         errWriter.Flush();
-        Assert.NotEmpty(outWriter.ToString());
+
+        if (setCloudBuildNumber)
+        {
+            Assert.NotEmpty(outWriter.ToString());
+        }
+        else
+        {
+            Assert.Empty(outWriter.ToString());
+        }
+
         Assert.Empty(errWriter.ToString());
     }
 

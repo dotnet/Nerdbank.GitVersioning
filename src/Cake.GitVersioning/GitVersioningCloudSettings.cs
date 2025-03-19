@@ -38,6 +38,11 @@ namespace Cake.GitVersioning
         public bool CommonVariables { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether to set the cloud build number.
+        /// </summary>
+        public bool CloudBuildNumber { get; set; }
+
+        /// <summary>
         /// Gets additional cloud build variables to define.
         /// </summary>
         public Dictionary<string, string> AdditionalVariables { get; } = new(StringComparer.OrdinalIgnoreCase);
