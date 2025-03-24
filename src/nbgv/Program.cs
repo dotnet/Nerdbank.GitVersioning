@@ -194,7 +194,7 @@ namespace Nerdbank.GitVersioning.Tool
                 var ciSystem = new Option<string>(new[] { "--ci-system", "-s" }, "Force activation for a particular CI system. If not specified, auto-detection will be used. Supported values are: " + string.Join(", ", CloudProviderNames)).FromAmong(CloudProviderNames);
                 var allVars = new Option<bool>(new[] { "--all-vars", "-a" }, "Defines ALL version variables as cloud build variables, with a \"NBGV_\" prefix.");
                 var commonVars = new Option<bool>(new[] { "--common-vars", "-c" }, "Defines a few common version variables as cloud build variables, with a \"Git\" prefix (e.g. GitBuildVersion, GitBuildVersionSimple, GitAssemblyInformationalVersion).");
-                var skipCloudBuildNumber = new Option<bool>(new[] { "--skip-cloud-build-number", "-b" }, "Do not emit the cloud build variable to set the build number. This is useful when you want to set other cloud build variables but not the build number.");
+                var skipCloudBuildNumber = new Option<bool>(new[] { "--skip-cloud-build-number" }, "Do not emit the cloud build variable to set the build number. This is useful when you want to set other cloud build variables but not the build number.");
                 var define = new Option<string[]>(new[] { "--define", "-d" }, () => Array.Empty<string>(), "Additional cloud build variables to define. Each should be in the NAME=VALUE syntax.")
                 {
                     Arity = ArgumentArity.OneOrMore,
