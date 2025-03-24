@@ -6,6 +6,17 @@
 [![NPM package](https://img.shields.io/npm/v/nerdbank-gitversioning.svg)](https://www.npmjs.com/package/nerdbank-gitversioning)
 [![Join the chat at https://gitter.im/AArnott/Nerdbank.GitVersioning](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/AArnott/Nerdbank.GitVersioning?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
+Stamp your assemblies, packages and more with a unique version generated from a single, simple version.json file and include git commit IDs for non-official builds.
+
+## Features
+
+* Ensure unique versions generated for every git commit that conform to semantic versioning.
+* Optional CLI tool calculates versions and backtracks from a computed version to its source git commit.
+* MSBuild and NPM integration to automatically stamp various packaging and executables with the computed version. MSBuild integration includes `ThisAssembly` class generation that provides your code with runtime access to all kinds of version information, strong name keys, etc.
+* Gives you control over the base version number, placement for the git 'height' incrementing integer, and the prerelease label identifiers via a version.json file.
+* Update cloud build names with version number for easy correlation.
+* Cross platform. Runs everywhere .NET runs.
+
 ## Overview
 
 This package adds precise, semver-compatible git commit information
@@ -31,7 +42,3 @@ For more information see the [.NET Foundation Code of Conduct](https://dotnetfou
 
  [semver]: http://semver.org
  [GitHeightMinimum]: https://github.com/dotnet/Nerdbank.GitVersioning/issues/102#issuecomment-269591960
-
-## Sponsorships
-
-[<img src="https://api.gitsponsors.com/api/badge/img?id=35752188" height="20">](https://api.gitsponsors.com/api/badge/link?p=xwTY6flp7mghVjBf4MDCOwGwXftpXy8WaJad5qkXT7fZJ2G/IlZygi7EQMNw/vpAMlBUsKoxfd1TJP/RrQEfeRggKd84BILPmfe2XQ0ulQVxERIicJSKf4doQvfjpwas9kDSH4jx9JhlxSsnhrf8Tw==)
