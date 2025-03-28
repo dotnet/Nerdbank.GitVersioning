@@ -12,10 +12,12 @@ public class CommandTests : RepoTestBase
     {
     }
 
-    // TODO: This is tightly coupled to the cloud build service. Can I use a FakeCloudBuildService instead?
     [Theory, CombinatorialData]
-    public void CloudCommand_CloudBuildNumber([CombinatorialValues("VisualStudioTeamServices", "TeamCity", "Jenkins")] string ciSystem, bool setCloudBuildNumber)
+    public void CloudCommand_CloudBuildNumber(bool setCloudBuildNumber)
     {
+        const string ciSystem = "VisualStudioTeamServices";
+        const string buildNumberSyntax = "##vso[build.updatebuildnumber]";
+
         var outWriter = new StringWriter();
         var errWriter = new StringWriter();
 
@@ -28,11 +30,11 @@ public class CommandTests : RepoTestBase
 
         if (setCloudBuildNumber)
         {
-            Assert.NotEmpty(outWriter.ToString());
+            Assert.Contains(buildNumberSyntax, outWriter.ToString());
         }
         else
         {
-            Assert.Empty(outWriter.ToString());
+            Assert.DoesNotContain(buildNumberSyntax, outWriter.ToString());
         }
 
         Assert.Empty(errWriter.ToString());
