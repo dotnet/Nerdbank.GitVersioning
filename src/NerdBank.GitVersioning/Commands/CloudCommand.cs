@@ -69,13 +69,16 @@ public class CloudCommand
     /// <param name="commonVars">
     /// Controls whether to define common version variables as cloud build variables.
     /// </param>
+    /// <param name="cloudBuildNumber">
+    /// Controls whether to emit the cloud build variable to set the build number.
+    /// </param>
     /// <param name="additionalVariables">
     /// Additional cloud build variables to define.
     /// </param>
     /// <param name="alwaysUseLibGit2">
     /// Force usage of LibGit2 for accessing the git repository.
     /// </param>
-    public void SetBuildVariables(string projectDirectory, IEnumerable<string> metadata, string version, string ciSystem, bool allVars, bool commonVars, IEnumerable<KeyValuePair<string, string>> additionalVariables, bool alwaysUseLibGit2)
+    public void SetBuildVariables(string projectDirectory, IEnumerable<string> metadata, string version, string ciSystem, bool allVars, bool commonVars, bool cloudBuildNumber, IEnumerable<KeyValuePair<string, string>> additionalVariables, bool alwaysUseLibGit2)
     {
         Requires.NotNull(projectDirectory, nameof(projectDirectory));
         Requires.NotNull(additionalVariables, nameof(additionalVariables));
@@ -137,7 +140,10 @@ public class CloudCommand
                 version = oracle.CloudBuildNumber;
             }
 
-            activeCloudBuild.SetCloudBuildNumber(version, this.stdout, this.stderr);
+            if (cloudBuildNumber)
+            {
+                activeCloudBuild.SetCloudBuildNumber(version, this.stdout, this.stderr);
+            }
 
             foreach (KeyValuePair<string, string> pair in variables)
             {

@@ -87,6 +87,7 @@ namespace Cake.GitVersioning
                 settings.CISystem?.ToString(),
                 settings.AllVariables,
                 settings.CommonVariables,
+                settings.CloudBuildNumber,
                 settings.AdditionalVariables,
                 false);
         }
