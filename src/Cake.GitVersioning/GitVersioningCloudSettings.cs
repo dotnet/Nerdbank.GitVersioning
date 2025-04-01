@@ -30,12 +30,20 @@ namespace Cake.GitVersioning
         /// <summary>
         /// Gets or sets a value indicating whether to define ALL version variables as cloud build variables, with a "NBGV_" prefix.
         /// </summary>
+        /// <value>The default value is <see langword="false" />.</value>
         public bool AllVariables { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether to define a few common version variables as cloud build variables, with a "Git" prefix.
         /// </summary>
+        /// <value>The default value is <see langword="false" />.</value>
         public bool CommonVariables { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to set the cloud build number.
+        /// </summary>
+        /// <value>The default value is <see langword="true" />.</value>
+        public bool CloudBuildNumber { get; set; } = true;
 
         /// <summary>
         /// Gets additional cloud build variables to define.
