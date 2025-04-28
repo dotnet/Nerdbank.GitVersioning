@@ -123,7 +123,7 @@ public abstract class VersionFile
     }
 
     /// <summary>
-    /// Tries to read a version.json file from the specified string, but favors returning null instead of throwing a <see cref="JsonSerializationException"/>.
+    /// Tries to read a version.json file from the specified string, but favors returning null instead of throwing a <see cref="JsonException"/>.
     /// </summary>
     /// <param name="jsonContent">The content of the version.json file.</param>
     /// <param name="repoRelativeBaseDirectory">Directory that this version.json file is relative to the root of the repository.</param>
@@ -134,7 +134,7 @@ public abstract class VersionFile
         {
             return JsonConvert.DeserializeObject<VersionOptions>(jsonContent, VersionOptions.GetJsonSettings(repoRelativeBaseDirectory: repoRelativeBaseDirectory));
         }
-        catch (JsonSerializationException)
+        catch (JsonException)
         {
             return null;
         }
