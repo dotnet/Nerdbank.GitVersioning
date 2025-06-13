@@ -105,7 +105,7 @@ internal class ManagedVersionFile : VersionFile
                         throw new FormatException(
                             $"Failure while reading {JsonFileName} from commit {this.Context.GitCommitId}. " +
                             "Fix this commit with rebase if this is an error, or review this doc on how to migrate to Nerdbank.GitVersioning: " +
-                            "https://github.com/dotnet/Nerdbank.GitVersioning/blob/main/doc/migrating.md",
+                            "https://github.com/dotnet/Nerdbank.GitVersioning/blob/main/docfx/docs/migrating.md",
                             ex);
                     }
 
