@@ -4,7 +4,7 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
-    <BenchmarkDotNetVersion>0.13.12</BenchmarkDotNetVersion>
+    <BenchmarkDotNetVersion>0.15.1</BenchmarkDotNetVersion>
     <MSBuildPackageVersion>16.11.6</MSBuildPackageVersion>
     <MSBuildPackageVersion Condition="'$(IsTestProject)'=='true'">17.13.9</MSBuildPackageVersion>
     <!-- LibGit2Sharp Native Binary version - used in both main project and Cake addin -->
@@ -22,7 +22,7 @@
     <PackageVersion Include="Microsoft.Build.Tasks.Core" Version="$(MSBuildPackageVersion)" />
     <PackageVersion Include="Microsoft.Build.Utilities.Core" Version="$(MSBuildPackageVersion)" />
     <PackageVersion Include="Microsoft.Build" Version="$(MSBuildPackageVersion)" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.13.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
     <PackageVersion Include="Microsoft.DotNet.PlatformAbstractions" Version="3.1.6" />
     <PackageVersion Include="Microsoft.Windows.CsWin32" Version="0.3.183" />
     <PackageVersion Include="Nerdbank.GitVersioning.LKG" Version="3.4.173-alpha" />
