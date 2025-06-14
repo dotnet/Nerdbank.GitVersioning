@@ -24,17 +24,17 @@
     "versioning"
   ],
   "devDependencies": {
-    "@types/node": "^18.7.14",
-    "del": "^8.0.0",
-    "gulp": "^5.0.0",
-    "gulp-cli": "^3.0.0",
+    "@types/node": "18.19.76",
+    "del": "8.0.0",
+    "gulp": "5.0.0",
+    "gulp-cli": "3.0.0",
     "gulp-sourcemaps": "3.0.0",
-    "gulp-typescript": "^5.0.1",
-    "gulp-util": "^3.0.8",
-    "merge2": "^1.4.1",
-    "path": "^0.12.7",
-    "source-map": "^0.7.4",
-    "typescript": "^5.0.4"
+    "gulp-typescript": "5.0.1",
+    "gulp-util": "3.0.8",
+    "merge2": "1.4.1",
+    "path": "0.12.7",
+    "source-map": "0.7.4",
+    "typescript": "5.5.4"
   },
   "dependencies": {},
   "scripts": {
