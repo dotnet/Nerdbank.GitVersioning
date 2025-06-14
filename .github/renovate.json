@@ -19,6 +19,10 @@
 		{
 			"matchPackageNames": ["*"],
 			"allowedVersions": "!/-g[a-f0-9]+$/"
+		},
+		{
+			"matchPackageNames": ["LibGit2Sharp.NativeBinaries", "LibGit2Sharp"],
+			"groupName": "LibGit2Sharp"
 		}
 	]
 }
