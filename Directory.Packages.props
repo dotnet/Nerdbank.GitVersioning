@@ -32,7 +32,7 @@
     <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
     <PackageVersion Include="System.Diagnostics.Tools" Version="4.3.0" />
     <PackageVersion Include="System.Drawing.Common" Version="4.7.3" />
-    <PackageVersion Include="System.Memory" Version="4.6.0" />
+    <PackageVersion Include="System.Memory" Version="4.6.3" />
     <PackageVersion Include="System.Runtime.Loader" Version="4.3.0" />
     <PackageVersion Include="System.Security.Cryptography.Xml" Version="4.7.1" />
     <PackageVersion Include="System.Text.Json" Version="8.0.5" />
