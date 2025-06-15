@@ -6,7 +6,7 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
     <BenchmarkDotNetVersion>0.15.1</BenchmarkDotNetVersion>
     <MSBuildPackageVersion>16.11.6</MSBuildPackageVersion>
-    <MSBuildPackageVersion Condition="'$(IsTestProject)'=='true'">17.13.9</MSBuildPackageVersion>
+    <MSBuildPackageVersion Condition="'$(IsTestProject)'=='true'">17.14.8</MSBuildPackageVersion>
     <!-- LibGit2Sharp Native Binary version - used in both main project and Cake addin -->
     <LibGit2SharpNativeVersion>2.0.323</LibGit2SharpNativeVersion>
   </PropertyGroup>
