@@ -393,7 +393,9 @@ namespace Nerdbank.GitVersioning.Tool
                 context.Stage(directoryPackagesPropsPath);
             }
 
-            ProjectItemElement item = propsFile.Items.FirstOrDefault(i => i.ItemType == PackageReferenceItemType && i.Include == PackageId);
+            ProjectItemElement item = propsFile.Items.FirstOrDefault(i =>
+                string.Equals(i.ItemType, PackageReferenceItemType, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(i.Include, PackageId, StringComparison.OrdinalIgnoreCase));
 
             if (item is null)
             {
@@ -418,7 +420,8 @@ namespace Nerdbank.GitVersioning.Tool
                 if (isCpmEnabled)
                 {
                     // Remove Version metadata if CPM is enabled
-                    ProjectMetadataElement versionMetadata = item.Metadata.FirstOrDefault(m => m.Name == VersionMetadataName);
+                    ProjectMetadataElement versionMetadata = item.Metadata.FirstOrDefault(m =>
+                        string.Equals(m.Name, VersionMetadataName, StringComparison.OrdinalIgnoreCase));
                     if (versionMetadata is not null)
                     {
                         item.RemoveChild(versionMetadata);
@@ -427,7 +430,8 @@ namespace Nerdbank.GitVersioning.Tool
                 else
                 {
                     // Update Version metadata if CPM is not enabled
-                    ProjectMetadataElement versionMetadata = item.Metadata.FirstOrDefault(m => m.Name == VersionMetadataName);
+                    ProjectMetadataElement versionMetadata = item.Metadata.FirstOrDefault(m =>
+                        string.Equals(m.Name, VersionMetadataName, StringComparison.OrdinalIgnoreCase));
                     if (versionMetadata is not null)
                     {
                         versionMetadata.Value = packageVersion;
@@ -926,7 +930,8 @@ namespace Nerdbank.GitVersioning.Tool
             const string VersionMetadataName = "Version";
 
             ProjectItemElement item = propsFile.Items.FirstOrDefault(i =>
-                i.ItemType == PackageVersionItemType && i.Include == packageId);
+                string.Equals(i.ItemType, PackageVersionItemType, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(i.Include, packageId, StringComparison.OrdinalIgnoreCase));
 
             if (item is null)
             {
@@ -940,7 +945,8 @@ namespace Nerdbank.GitVersioning.Tool
             }
             else
             {
-                ProjectMetadataElement versionMetadata = item.Metadata.FirstOrDefault(m => m.Name == VersionMetadataName);
+                ProjectMetadataElement versionMetadata = item.Metadata.FirstOrDefault(m =>
+                    string.Equals(m.Name, VersionMetadataName, StringComparison.OrdinalIgnoreCase));
                 if (versionMetadata is not null)
                 {
                     versionMetadata.Value = packageVersion;
