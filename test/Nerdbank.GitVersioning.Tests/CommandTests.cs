@@ -76,6 +76,57 @@ public class CommandTests : RepoTestBase
         Assert.Empty(errWriter.ToString());
     }
 
+    [Theory, CombinatorialData]
+    public void CloudCommand_AllVarsWithOutput(bool withOutput)
+    {
+        const string ciSystem = "VisualStudioTeamServices";
+
+        var outWriter = new StringWriter();
+        var errWriter = new StringWriter();
+
+        var command = new CloudCommand(outWriter, errWriter);
+
+        command.SetBuildVariables(this.RepoPath, metadata: [], version: "1.2.3.4", ciSystem, allVars: true, commonVars: false, cloudBuildNumber: false, additionalVariables: [], alwaysUseLibGit2: false, withOutput);
+
+        outWriter.Flush();
+        errWriter.Flush();
+
+        var output = outWriter.ToString();
+
+        // Should contain some NBGV_ variables (from --all-vars)
+        Assert.Contains("##vso[task.setvariable variable=NBGV_", output);
+
+        // Check if output variables are present based on withOutput flag
+        var outputVariableCount = CountOccurrences(output, ";isOutput=true;");
+        var regularVariableCount = CountOccurrences(output, "##vso[task.setvariable variable=");
+
+        if (withOutput)
+        {
+            // Should have output variables for each regular variable
+            Assert.True(outputVariableCount > 0, "Should have output variables when withOutput=true");
+            Assert.Equal(regularVariableCount, outputVariableCount * 2); // Each variable creates 2 lines: regular + output
+        }
+        else
+        {
+            // Should have no output variables
+            Assert.Equal(0, outputVariableCount);
+        }
+
+        Assert.Empty(errWriter.ToString());
+    }
+
+    private static int CountOccurrences(string text, string pattern)
+    {
+        int count = 0;
+        int index = 0;
+        while ((index = text.IndexOf(pattern, index)) != -1)
+        {
+            count++;
+            index += pattern.Length;
+        }
+        return count;
+    }
+
     protected override GitContext CreateGitContext(string path, string committish = null)
         => GitContext.Create(path, committish, engine: GitContext.Engine.ReadWrite);
 }
