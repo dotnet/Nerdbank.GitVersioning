@@ -89,7 +89,8 @@ namespace Cake.GitVersioning
                 settings.CommonVariables,
                 settings.CloudBuildNumber,
                 settings.AdditionalVariables,
-                false);
+                false,
+                false); // withOutput: Default to false for backward compatibility
         }
     }
 }

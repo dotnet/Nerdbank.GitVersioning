@@ -38,11 +38,22 @@ internal class VisualStudioTeamServices : ICloudBuild
     /// <inheritdoc/>
     public IReadOnlyDictionary<string, string> SetCloudBuildVariable(string name, string value, TextWriter stdout, TextWriter stderr)
     {
+        // For backward compatibility, we need to maintain the previous behavior of setting both regular and output variables
+        // However, this method is primarily called by MSBuild tasks, so we'll default to the old behavior
+        return SetCloudBuildVariable(name, value, stdout, stderr, isOutput: true);
+    }
+
+    /// <inheritdoc/>
+    public IReadOnlyDictionary<string, string> SetCloudBuildVariable(string name, string value, TextWriter stdout, TextWriter stderr, bool isOutput)
+    {
         Utilities.FileOperationWithRetry(() =>
         {
             TextWriter output = stdout ?? Console.Out;
             output.WriteLine($"##vso[task.setvariable variable={name};]{value}");
-            output.WriteLine($"##vso[task.setvariable variable={name};isOutput=true;]{value}");
+            if (isOutput)
+            {
+                output.WriteLine($"##vso[task.setvariable variable={name};isOutput=true;]{value}");
+            }
         });
         return GetDictionaryFor(name, value);
     }

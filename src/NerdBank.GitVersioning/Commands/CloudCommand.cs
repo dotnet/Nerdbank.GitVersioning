@@ -78,7 +78,10 @@ public class CloudCommand
     /// <param name="alwaysUseLibGit2">
     /// Force usage of LibGit2 for accessing the git repository.
     /// </param>
-    public void SetBuildVariables(string projectDirectory, IEnumerable<string> metadata, string version, string ciSystem, bool allVars, bool commonVars, bool cloudBuildNumber, IEnumerable<KeyValuePair<string, string>> additionalVariables, bool alwaysUseLibGit2)
+    /// <param name="withOutput">
+    /// Controls whether to set variables with isOutput=true for cloud builds that support it (e.g. Azure DevOps).
+    /// </param>
+    public void SetBuildVariables(string projectDirectory, IEnumerable<string> metadata, string version, string ciSystem, bool allVars, bool commonVars, bool cloudBuildNumber, IEnumerable<KeyValuePair<string, string>> additionalVariables, bool alwaysUseLibGit2, bool withOutput = false)
     {
         Requires.NotNull(projectDirectory, nameof(projectDirectory));
         Requires.NotNull(additionalVariables, nameof(additionalVariables));
@@ -147,7 +150,7 @@ public class CloudCommand
 
             foreach (KeyValuePair<string, string> pair in variables)
             {
-                activeCloudBuild.SetCloudBuildVariable(pair.Key, pair.Value, this.stdout, this.stderr);
+                activeCloudBuild.SetCloudBuildVariable(pair.Key, pair.Value, this.stdout, this.stderr, withOutput);
             }
         }
         else

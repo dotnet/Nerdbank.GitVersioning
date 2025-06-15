@@ -55,6 +55,11 @@ public partial class RepoTestBase
 
         public IReadOnlyDictionary<string, string> SetCloudBuildVariable(string name, string value, TextWriter? stdout, TextWriter? stderr)
         {
+            return SetCloudBuildVariable(name, value, stdout, stderr, isOutput: false);
+        }
+
+        public IReadOnlyDictionary<string, string> SetCloudBuildVariable(string name, string value, TextWriter? stdout, TextWriter? stderr, bool isOutput)
+        {
             return new Dictionary<string, string>();
         }
     }

@@ -37,6 +37,13 @@ internal class AtlassianBamboo : ICloudBuild
     /// <inheritdoc/>
     public IReadOnlyDictionary<string, string> SetCloudBuildVariable(string name, string value, TextWriter stdout, TextWriter stderr)
     {
+        return SetCloudBuildVariable(name, value, stdout, stderr, isOutput: false);
+    }
+
+    /// <inheritdoc/>
+    public IReadOnlyDictionary<string, string> SetCloudBuildVariable(string name, string value, TextWriter stdout, TextWriter stderr, bool isOutput)
+    {
+        // Atlassian Bamboo doesn't support output variables like Azure DevOps, so we ignore the isOutput parameter
         return new Dictionary<string, string>();
     }
 }

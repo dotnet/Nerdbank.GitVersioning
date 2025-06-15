@@ -53,4 +53,15 @@ public interface ICloudBuild
     /// <param name="stderr">An optional redirection for what should be written to the standard error stream.</param>
     /// <returns>A dictionary of environment/build variables that the caller should set to update the environment to match the new settings.</returns>
     IReadOnlyDictionary<string, string> SetCloudBuildVariable(string name, string value, TextWriter? stdout, TextWriter? stderr);
+
+    /// <summary>
+    /// Sets a cloud build variable, if supported.
+    /// </summary>
+    /// <param name="name">The name of the variable.</param>
+    /// <param name="value">The value for the variable.</param>
+    /// <param name="stdout">An optional redirection for what should be written to the standard out stream.</param>
+    /// <param name="stderr">An optional redirection for what should be written to the standard error stream.</param>
+    /// <param name="isOutput">Controls whether to set the variable as an output variable for use in subsequent jobs (if supported by the cloud build system).</param>
+    /// <returns>A dictionary of environment/build variables that the caller should set to update the environment to match the new settings.</returns>
+    IReadOnlyDictionary<string, string> SetCloudBuildVariable(string name, string value, TextWriter? stdout, TextWriter? stderr, bool isOutput);
 }

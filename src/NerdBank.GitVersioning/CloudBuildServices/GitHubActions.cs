@@ -42,6 +42,13 @@ internal class GitHubActions : ICloudBuild
     /// <inheritdoc/>
     public IReadOnlyDictionary<string, string> SetCloudBuildVariable(string name, string value, TextWriter stdout, TextWriter stderr)
     {
+        return SetCloudBuildVariable(name, value, stdout, stderr, isOutput: false);
+    }
+
+    /// <inheritdoc/>
+    public IReadOnlyDictionary<string, string> SetCloudBuildVariable(string name, string value, TextWriter stdout, TextWriter stderr, bool isOutput)
+    {
+        // GitHub Actions doesn't have the concept of output variables like Azure DevOps, so we ignore the isOutput parameter
         Utilities.FileOperationWithRetry(() => File.AppendAllLines(EnvironmentFile, new[] { $"{name}={value}" }));
         return GetDictionaryFor(name, value);
     }

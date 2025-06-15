@@ -200,6 +200,7 @@ namespace Nerdbank.GitVersioning.Tool
                     Arity = ArgumentArity.OneOrMore,
                     AllowMultipleArgumentsPerToken = true,
                 };
+                var withOutput = new Option<bool>(new[] { "--with-output" }, "For Azure DevOps, also set variables with isOutput=true so they can be used in subsequent jobs.");
                 cloud = new Command("cloud", "Communicates with the ambient cloud build to set the build number and/or other cloud build variables.")
                 {
                     project,
@@ -210,9 +211,10 @@ namespace Nerdbank.GitVersioning.Tool
                     commonVars,
                     skipCloudBuildNumber,
                     define,
+                    withOutput,
                 };
 
-                cloud.SetHandler(OnCloudCommand, project, metadata, version, ciSystem, allVars, commonVars, skipCloudBuildNumber, define);
+                cloud.SetHandler(OnCloudCommand, project, metadata, version, ciSystem, allVars, commonVars, skipCloudBuildNumber, define, withOutput);
             }
 
             Command prepareRelease;
@@ -658,7 +660,7 @@ namespace Nerdbank.GitVersioning.Tool
             return Task.FromResult((int)ExitCodes.OK);
         }
 
-        private static Task<int> OnCloudCommand(string project, string[] metadata, string version, string ciSystem, bool allVars, bool commonVars, bool skipCloudBuildNumber, string[] define)
+        private static Task<int> OnCloudCommand(string project, string[] metadata, string version, string ciSystem, bool allVars, bool commonVars, bool skipCloudBuildNumber, string[] define, bool withOutput)
         {
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(project);
             if (!Directory.Exists(searchPath))
@@ -692,7 +694,7 @@ namespace Nerdbank.GitVersioning.Tool
             try
             {
                 var cloudCommand = new CloudCommand(Console.Out, Console.Error);
-                cloudCommand.SetBuildVariables(searchPath, metadata, version, ciSystem, allVars, commonVars, !skipCloudBuildNumber, additionalVariables, AlwaysUseLibGit2);
+                cloudCommand.SetBuildVariables(searchPath, metadata, version, ciSystem, allVars, commonVars, !skipCloudBuildNumber, additionalVariables, AlwaysUseLibGit2, withOutput);
             }
             catch (CloudCommand.CloudCommandException ex)
             {
