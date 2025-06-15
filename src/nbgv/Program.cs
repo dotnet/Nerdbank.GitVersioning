@@ -912,18 +912,7 @@ namespace Nerdbank.GitVersioning.Tool
                 return false;
             }
 
-            try
-            {
-                ProjectRootElement propsFile = ProjectRootElement.Open(directoryPackagesPropsPath);
-                ProjectPropertyElement cpmProperty = propsFile.Properties.FirstOrDefault(p =>
-                    string.Equals(p.Name, "ManagePackageVersionsCentrally", StringComparison.OrdinalIgnoreCase));
-                return cpmProperty is not null &&
-                       string.Equals(cpmProperty.Value, "true", StringComparison.OrdinalIgnoreCase);
-            }
-            catch
-            {
-                return false;
-            }
+            return true;
         }
 
         private static void UpdateDirectoryPackagesProps(string path, string packageId, string packageVersion)
