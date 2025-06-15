@@ -703,6 +703,136 @@ public abstract class ReleaseManagerTests : RepoTestBase
         Assert.Equal(expectedCommitMessage, releaseBranchCommit.MessageShort);
     }
 
+    [Fact]
+    public void PrepareRelease_ResetVersionHeightToZero_WithHeightInPrerelease_Success()
+    {
+        // create and configure repository
+        this.InitializeSourceControl();
+
+        var initialVersionOptions = new VersionOptions()
+        {
+            Version = SemanticVersion.Parse("1.2-beta.{height}"),
+        };
+
+        // create version.json
+        this.WriteVersionFile(initialVersionOptions);
+
+        // Create some commits to get a version height > 0
+        this.AddCommits(5);
+
+        var releaseManager = new ReleaseManager();
+        releaseManager.PrepareRelease(this.RepoPath, releaseUnstableTag: null, resetVersionHeightToZero: true);
+
+        // Get the version options from the release branch
+        VersionOptions releaseVersion = this.GetVersionOptions(committish: this.LibGit2Repository.Branches["v1.2"].Tip.Sha);
+
+        // The release branch should have versionHeightOffset set to reset patch version to 0
+        Assert.NotNull(releaseVersion.VersionHeightOffset);
+        Assert.True(releaseVersion.VersionHeightOffset < 0); // Should be negative to reset height
+        Assert.Equal(SemanticVersion.Parse("1.2"), releaseVersion.Version);
+    }
+
+    [Fact]
+    public void PrepareRelease_ResetVersionHeightToZero_WithHeightInPrerelease_NewerTag_Success()
+    {
+        // create and configure repository
+        this.InitializeSourceControl();
+
+        var initialVersionOptions = new VersionOptions()
+        {
+            Version = SemanticVersion.Parse("1.2-beta.{height}"),
+        };
+
+        // create version.json
+        this.WriteVersionFile(initialVersionOptions);
+
+        // Create some commits to get a version height > 0
+        this.AddCommits(3);
+
+        var releaseManager = new ReleaseManager();
+        releaseManager.PrepareRelease(this.RepoPath, releaseUnstableTag: "rc", resetVersionHeightToZero: true);
+
+        // Get the version options from the release branch
+        VersionOptions releaseVersion = this.GetVersionOptions(committish: this.LibGit2Repository.Branches["v1.2"].Tip.Sha);
+
+        // The release branch should have versionHeightOffset set to reset patch version to 0
+        Assert.NotNull(releaseVersion.VersionHeightOffset);
+        Assert.True(releaseVersion.VersionHeightOffset < 0); // Should be negative to reset height
+        Assert.Equal(SemanticVersion.Parse("1.2-rc.{height}"), releaseVersion.Version);
+    }
+
+    [Fact]
+    public void PrepareRelease_ResetVersionHeightToZero_WithoutHeightInPrerelease_Fails()
+    {
+        // create and configure repository
+        this.InitializeSourceControl();
+
+        var initialVersionOptions = new VersionOptions()
+        {
+            Version = SemanticVersion.Parse("1.2-beta"), // No {height} placeholder
+        };
+
+        // create version.json
+        this.WriteVersionFile(initialVersionOptions);
+
+        var releaseManager = new ReleaseManager();
+
+        // Should fail because {height} is not in the prerelease tag
+        this.AssertError(
+            () => releaseManager.PrepareRelease(this.RepoPath, releaseUnstableTag: null, resetVersionHeightToZero: true),
+            ReleasePreparationError.InvalidResetVersionHeightConfiguration);
+    }
+
+    [Fact]
+    public void PrepareRelease_ResetVersionHeightToZero_WithOlderTag_Fails()
+    {
+        // create and configure repository
+        this.InitializeSourceControl();
+
+        var initialVersionOptions = new VersionOptions()
+        {
+            Version = SemanticVersion.Parse("1.2-beta.{height}"),
+        };
+
+        // create version.json
+        this.WriteVersionFile(initialVersionOptions);
+
+        var releaseManager = new ReleaseManager();
+
+        // Should fail because "alpha" is older than "beta" per semver rules
+        this.AssertError(
+            () => releaseManager.PrepareRelease(this.RepoPath, releaseUnstableTag: "alpha", resetVersionHeightToZero: true),
+            ReleasePreparationError.InvalidResetVersionHeightConfiguration);
+    }
+
+    [Fact]
+    public void PrepareRelease_ResetVersionHeightToZero_WithoutResetFlag_DoesNotSetOffset()
+    {
+        // create and configure repository
+        this.InitializeSourceControl();
+
+        var initialVersionOptions = new VersionOptions()
+        {
+            Version = SemanticVersion.Parse("1.2-beta.{height}"),
+        };
+
+        // create version.json
+        this.WriteVersionFile(initialVersionOptions);
+
+        // Create some commits to get a version height > 0
+        this.AddCommits(3);
+
+        var releaseManager = new ReleaseManager();
+        releaseManager.PrepareRelease(this.RepoPath, releaseUnstableTag: null, resetVersionHeightToZero: false);
+
+        // Get the version options from the release branch
+        VersionOptions releaseVersion = this.GetVersionOptions(committish: this.LibGit2Repository.Branches["v1.2"].Tip.Sha);
+
+        // The release branch should NOT have versionHeightOffset set when flag is false
+        Assert.Null(releaseVersion.VersionHeightOffset);
+        Assert.Equal(SemanticVersion.Parse("1.2"), releaseVersion.Version);
+    }
+
     /// <inheritdoc/>
     protected override void InitializeSourceControl(bool withInitialCommit = true)
     {

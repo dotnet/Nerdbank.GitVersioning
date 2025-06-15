@@ -86,6 +86,11 @@ public class ReleaseManager
         /// The versionIncrement setting cannot be applied to the current version.
         /// </summary>
         InvalidVersionIncrementSetting,
+
+        /// <summary>
+        /// The --reset-version-height-to-zero option cannot be used with the current version configuration.
+        /// </summary>
+        InvalidResetVersionHeightConfiguration,
     }
 
     /// <summary>
@@ -131,7 +136,11 @@ public class ReleaseManager
     /// <param name="unformattedCommitMessage">
     /// An optional, custom message to use for the commit that sets the new version number. May use <c>{0}</c> to substitute the new version number.
     /// </param>
-    public void PrepareRelease(string projectDirectory, string releaseUnstableTag = null, Version nextVersion = null, VersionOptions.ReleaseVersionIncrement? versionIncrement = null, ReleaseManagerOutputMode outputMode = default, string unformattedCommitMessage = null)
+    /// <param name="resetVersionHeightToZero">
+    /// When <see langword="true"/>, automatically sets versionHeightOffset to reset the patch version to 0. 
+    /// Only works when {height} is in the prerelease tag and the new tag sorts as newer than the current one per semver rules.
+    /// </param>
+    public void PrepareRelease(string projectDirectory, string releaseUnstableTag = null, Version nextVersion = null, VersionOptions.ReleaseVersionIncrement? versionIncrement = null, ReleaseManagerOutputMode outputMode = default, string unformattedCommitMessage = null, bool resetVersionHeightToZero = false)
     {
         Requires.NotNull(projectDirectory, nameof(projectDirectory));
 
@@ -153,6 +162,12 @@ public class ReleaseManager
             throw new ReleasePreparationException(ReleasePreparationError.NoVersionFile);
         }
 
+        // Validate the resetVersionHeightToZero option
+        if (resetVersionHeightToZero)
+        {
+            this.ValidateResetVersionHeightToZero(versionOptions, releaseUnstableTag);
+        }
+
         string releaseBranchName = this.GetReleaseBranchName(versionOptions);
         string originalBranchName = repository.Head.FriendlyName;
         SemanticVersion releaseVersion = string.IsNullOrEmpty(releaseUnstableTag)
@@ -172,7 +187,7 @@ public class ReleaseManager
                 this.WriteToOutput(releaseInfo);
             }
 
-            this.UpdateVersion(context, versionOptions.Version, releaseVersion, unformattedCommitMessage);
+            this.UpdateVersion(context, versionOptions.Version, releaseVersion, unformattedCommitMessage, resetVersionHeightToZero);
             return;
         }
 
@@ -196,7 +211,7 @@ public class ReleaseManager
         // create release branch and update version
         Branch releaseBranch = repository.CreateBranch(releaseBranchName);
         global::LibGit2Sharp.Commands.Checkout(repository, releaseBranch);
-        this.UpdateVersion(context, versionOptions.Version, releaseVersion, unformattedCommitMessage);
+        this.UpdateVersion(context, versionOptions.Version, releaseVersion, unformattedCommitMessage, resetVersionHeightToZero);
 
         if (outputMode == ReleaseManagerOutputMode.Text)
         {
@@ -265,7 +280,31 @@ public class ReleaseManager
         return branchNameFormat.Replace("{version}", versionOptions.Version.Version.ToString());
     }
 
-    private void UpdateVersion(LibGit2Context context, SemanticVersion oldVersion, SemanticVersion newVersion, string unformattedCommitMessage)
+    private void ValidateResetVersionHeightToZero(VersionOptions versionOptions, string releaseUnstableTag)
+    {
+        // Check if {height} is explicitly placed in the prerelease tag
+        if (string.IsNullOrEmpty(versionOptions.Version.Prerelease) || !versionOptions.Version.Prerelease.Contains("{height}"))
+        {
+            this.stderr.WriteLine("The --reset-version-height-to-zero option can only be used when '{height}' is explicitly placed in the prerelease tag.");
+            throw new ReleasePreparationException(ReleasePreparationError.InvalidResetVersionHeightConfiguration);
+        }
+
+        // If we're removing the prerelease tag entirely, that's always valid
+        if (!string.IsNullOrEmpty(releaseUnstableTag))
+        {
+            // Check if the new prerelease tag sorts as newer than the current one per semver rules
+            string currentPrereleaseWithoutHeight = versionOptions.Version.Prerelease.Replace(".{height}", string.Empty).Replace("{height}", string.Empty);
+
+            // Use NuGet's SemVer comparison logic to check ordering
+            if (string.Compare(releaseUnstableTag, currentPrereleaseWithoutHeight, StringComparison.OrdinalIgnoreCase) <= 0)
+            {
+                this.stderr.WriteLine($"The --reset-version-height-to-zero option can only be used when the new prerelease tag '{releaseUnstableTag}' sorts as newer than the current tag '{currentPrereleaseWithoutHeight}' per semver rules.");
+                throw new ReleasePreparationException(ReleasePreparationError.InvalidResetVersionHeightConfiguration);
+            }
+        }
+    }
+
+    private void UpdateVersion(LibGit2Context context, SemanticVersion oldVersion, SemanticVersion newVersion, string unformattedCommitMessage, bool resetVersionHeightToZero = false)
     {
         Requires.NotNull(context, nameof(context));
 
@@ -280,7 +319,13 @@ public class ReleaseManager
 
         if (!EqualityComparer<SemanticVersion>.Default.Equals(versionOptions.Version, newVersion))
         {
-            if (versionOptions.VersionHeightOffset != -1 && versionOptions.VersionHeightPosition.HasValue && SemanticVersion.WillVersionChangeResetVersionHeight(versionOptions.Version, newVersion, versionOptions.VersionHeightPosition.Value))
+            if (resetVersionHeightToZero)
+            {
+                // Calculate the current version height and set versionHeightOffset to reset patch version to 0
+                var currentVersionHeight = LibGit2GitExtensions.GetVersionHeight(context);
+                versionOptions.VersionHeightOffset = -currentVersionHeight;
+            }
+            else if (versionOptions.VersionHeightOffset != -1 && versionOptions.VersionHeightPosition.HasValue && SemanticVersion.WillVersionChangeResetVersionHeight(versionOptions.Version, newVersion, versionOptions.VersionHeightPosition.Value))
             {
                 // The version will be reset by this change, so remove the version height offset property.
                 versionOptions.VersionHeightOffset = null;
