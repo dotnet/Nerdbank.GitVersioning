@@ -382,23 +382,61 @@ namespace Nerdbank.GitVersioning.Tool
             const string PrivateAssetsMetadataName = "PrivateAssets";
             const string VersionMetadataName = "Version";
 
+            // Check if Central Package Management is enabled
+            bool isCpmEnabled = IsCentralPackageManagementEnabled(path);
+
+            if (isCpmEnabled)
+            {
+                // Update Directory.Packages.props with PackageVersion
+                UpdateDirectoryPackagesProps(path, PackageId, packageVersion);
+                string directoryPackagesPropsPath = Path.Combine(path, "Directory.Packages.props");
+                context.Stage(directoryPackagesPropsPath);
+            }
+
             ProjectItemElement item = propsFile.Items.FirstOrDefault(i => i.ItemType == PackageReferenceItemType && i.Include == PackageId);
 
             if (item is null)
             {
+                var metadata = new Dictionary<string, string>
+                {
+                    { PrivateAssetsMetadataName, "all" },
+                };
+
+                // Only add Version if CPM is not enabled
+                if (!isCpmEnabled)
+                {
+                    metadata[VersionMetadataName] = packageVersion;
+                }
+
                 item = propsFile.AddItem(
                     PackageReferenceItemType,
                     PackageId,
-                    new Dictionary<string, string>
-                    {
-                        { PrivateAssetsMetadataName, "all" },
-                        { VersionMetadataName, packageVersion },
-                    });
+                    metadata);
             }
             else
             {
-                ProjectMetadataElement versionMetadata = item.Metadata.Single(m => m.Name == VersionMetadataName);
-                versionMetadata.Value = packageVersion;
+                if (isCpmEnabled)
+                {
+                    // Remove Version metadata if CPM is enabled
+                    ProjectMetadataElement versionMetadata = item.Metadata.FirstOrDefault(m => m.Name == VersionMetadataName);
+                    if (versionMetadata is not null)
+                    {
+                        item.RemoveChild(versionMetadata);
+                    }
+                }
+                else
+                {
+                    // Update Version metadata if CPM is not enabled
+                    ProjectMetadataElement versionMetadata = item.Metadata.FirstOrDefault(m => m.Name == VersionMetadataName);
+                    if (versionMetadata is not null)
+                    {
+                        versionMetadata.Value = packageVersion;
+                    }
+                    else
+                    {
+                        item.AddMetadata(VersionMetadataName, packageVersion);
+                    }
+                }
             }
 
             item.Condition = "!Exists('packages.config')";
@@ -864,6 +902,67 @@ namespace Nerdbank.GitVersioning.Tool
                 cancellationToken);
 
             return pkg.LatestVersion?.ToNormalizedString();
+        }
+
+        private static bool IsCentralPackageManagementEnabled(string path)
+        {
+            string directoryPackagesPropsPath = Path.Combine(path, "Directory.Packages.props");
+            if (!File.Exists(directoryPackagesPropsPath))
+            {
+                return false;
+            }
+
+            try
+            {
+                ProjectRootElement propsFile = ProjectRootElement.Open(directoryPackagesPropsPath);
+                ProjectPropertyElement cpmProperty = propsFile.Properties.FirstOrDefault(p =>
+                    string.Equals(p.Name, "ManagePackageVersionsCentrally", StringComparison.OrdinalIgnoreCase));
+                return cpmProperty is not null &&
+                       string.Equals(cpmProperty.Value, "true", StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static void UpdateDirectoryPackagesProps(string path, string packageId, string packageVersion)
+        {
+            string directoryPackagesPropsPath = Path.Combine(path, "Directory.Packages.props");
+            ProjectRootElement propsFile = File.Exists(directoryPackagesPropsPath)
+                ? ProjectRootElement.Open(directoryPackagesPropsPath)
+                : ProjectRootElement.Create(directoryPackagesPropsPath);
+
+            const string PackageVersionItemType = "PackageVersion";
+            const string VersionMetadataName = "Version";
+
+            ProjectItemElement item = propsFile.Items.FirstOrDefault(i =>
+                i.ItemType == PackageVersionItemType && i.Include == packageId);
+
+            if (item is null)
+            {
+                item = propsFile.AddItem(
+                    PackageVersionItemType,
+                    packageId,
+                    new Dictionary<string, string>
+                    {
+                        { VersionMetadataName, packageVersion },
+                    });
+            }
+            else
+            {
+                ProjectMetadataElement versionMetadata = item.Metadata.FirstOrDefault(m => m.Name == VersionMetadataName);
+                if (versionMetadata is not null)
+                {
+                    versionMetadata.Value = packageVersion;
+                }
+                else
+                {
+                    item.AddMetadata(VersionMetadataName, packageVersion);
+                }
+            }
+
+            propsFile.Save(directoryPackagesPropsPath);
         }
 
         private static string GetSpecifiedOrCurrentDirectoryPath(string versionJsonRoot)
