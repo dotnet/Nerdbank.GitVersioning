@@ -137,7 +137,7 @@ public class ReleaseManager
     /// An optional, custom message to use for the commit that sets the new version number. May use <c>{0}</c> to substitute the new version number.
     /// </param>
     /// <param name="resetVersionHeightToZero">
-    /// When <see langword="true"/>, automatically sets versionHeightOffset to reset the patch version to 0. 
+    /// When <see langword="true"/>, automatically sets versionHeightOffset to reset the patch version to 0.
     /// Only works when {height} is in the prerelease tag and the new tag sorts as newer than the current one per semver rules.
     /// </param>
     public void PrepareRelease(string projectDirectory, string releaseUnstableTag = null, Version nextVersion = null, VersionOptions.ReleaseVersionIncrement? versionIncrement = null, ReleaseManagerOutputMode outputMode = default, string unformattedCommitMessage = null, bool resetVersionHeightToZero = false)
@@ -294,6 +294,12 @@ public class ReleaseManager
         {
             // Check if the new prerelease tag sorts as newer than the current one per semver rules
             string currentPrereleaseWithoutHeight = versionOptions.Version.Prerelease.Replace(".{height}", string.Empty).Replace("{height}", string.Empty);
+
+            // Remove leading hyphen if present (since prerelease tags don't include the hyphen in semver comparison)
+            if (currentPrereleaseWithoutHeight.StartsWith("-"))
+            {
+                currentPrereleaseWithoutHeight = currentPrereleaseWithoutHeight.Substring(1);
+            }
 
             // Use NuGet's SemVer comparison logic to check ordering
             if (string.Compare(releaseUnstableTag, currentPrereleaseWithoutHeight, StringComparison.OrdinalIgnoreCase) <= 0)
