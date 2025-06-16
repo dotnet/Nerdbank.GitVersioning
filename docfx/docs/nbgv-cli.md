@@ -86,6 +86,10 @@ nbgv prepare-release rc
 no new branch will be created. Instead the tool will just update the version
 in the current branch by replacing or removing the prerelease tag.
 
+### Customizing the stable version
+
+The `--reset-version-height-to-zero` switch may be used when the unstable version had `{height}` as a prerelease tag in order to ship the stable release with the version height reset to 0.
+
 ### Customizing the next version
 
 By default, the next version of the main branch is determined from the current

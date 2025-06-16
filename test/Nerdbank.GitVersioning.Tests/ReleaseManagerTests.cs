@@ -759,6 +759,10 @@ public abstract class ReleaseManagerTests : RepoTestBase
         Assert.NotNull(releaseVersion.VersionHeightOffset);
         Assert.True(releaseVersion.VersionHeightOffset < 0); // Should be negative to reset height
         Assert.Equal(SemanticVersion.Parse("1.2-rc.{height}"), releaseVersion.Version);
+
+        // The main branch should not have versionOffsetHeight set.
+        VersionOptions mainVersion = this.GetVersionOptions(committish: this.LibGit2Repository.Branches["master"].Tip.Sha);
+        Assert.Null(mainVersion.VersionHeightOffset);
     }
 
     [Fact]
