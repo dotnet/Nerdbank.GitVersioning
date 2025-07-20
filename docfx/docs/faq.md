@@ -63,3 +63,7 @@ We have [a public feed][PublicCI] where our CI pushes packages.
 Adding the feed source URL to your nuget.config file will allow you to consume package versions that haven't been publicly released to nuget.org yet.
 
 [PublicCI]: https://dev.azure.com/andrewarnott/OSS/_packaging?_a=feed&feed=PublicCI
+
+## How do I temporarily disable Nerdbank.GitVersioning so I can build with a shallow clone?
+
+Set the `NBGV_GitEngine` environment variable to `Disabled`.
