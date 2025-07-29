@@ -33,7 +33,7 @@
     "gulp-util": "3.0.8",
     "merge2": "1.4.1",
     "path": "0.12.7",
-    "source-map": "0.7.4",
+    "source-map": "0.7.6",
     "typescript": "5.5.4"
   },
   "dependencies": {},
