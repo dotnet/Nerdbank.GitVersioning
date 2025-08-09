@@ -6,6 +6,8 @@ Since Nerdbank.GitVersioning dependencies will fail on shallow clones, this can 
 For most repos, setting the `NBGV_GitEngine=Disabled` environment variable is an effective way to unblock these agents.
 This does not completely remove Nerdbank.GitVersioning from your build, but it removes all access to git history and thus allows your builds to succeed in a shallow clone.
 
+Note that the environment variable name and value are _case sensitive_.
+
 A few caveats with this:
 
 * Version stamps will be incorrect.
@@ -19,7 +21,7 @@ To configure the Copilot Coding Agent to set this environment variable, follow t
 1. Select Environments from the list on the left.
 1. Select the `copilot` environment. You may have to create this environment yourself if you have not yet assigned the Copilot Coding Agent an issue to work on in your repo.
 1. Find the "Environment variables" section.
-1. Add an environment variable. Give it the name `NBGV_GitEngine` and the value `Disabled`.
+1. Add an environment variable. Give it the name `NBGV_GitEngine` and the value `Disabled`. Note these are _case senstive_.
 
 See also [GitHub Copilot Coding Agent docs](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/customize-the-agent-environment#setting-environment-variables-in-copilots-environment) for setting environment variables.
 
