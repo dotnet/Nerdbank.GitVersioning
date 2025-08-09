@@ -23,4 +23,5 @@ items:
 - href: versionJson.md
 - href: version-calculation.md
 - href: faq.md
+- href: shallow-cloning-agents.md
 - href: migrating.md
