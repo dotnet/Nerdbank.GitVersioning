@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
-using System.CommandLine.Builder;
 using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
 using System.IO;
@@ -91,7 +90,7 @@ namespace Nerdbank.GitVersioning.Tool
             return result;
         }
 
-        private static Parser BuildCommandLine()
+        private static RootCommand BuildCommandLine()
         {
 #pragma warning disable IDE0008
             Command install;
@@ -109,7 +108,13 @@ namespace Nerdbank.GitVersioning.Tool
                     version,
                     source,
                 };
-                install.SetHandler(OnInstallCommand, path, version, source);
+                install.SetAction(async parseResult =>
+                {
+                    var pathValue = parseResult.GetValue(path);
+                    var versionValue = parseResult.GetValue(version);
+                    var sourceValue = parseResult.GetValue(source);
+                    return await OnInstallCommand(pathValue, versionValue, sourceValue);
+                });
             }
 
             Command getVersion;
@@ -135,7 +140,15 @@ namespace Nerdbank.GitVersioning.Tool
                     commit,
                 };
 
-                getVersion.SetHandler(OnGetVersionCommand, project, metadata, format, variable, commit);
+                getVersion.SetAction(async parseResult =>
+                {
+                    var projectValue = parseResult.GetValue(project);
+                    var metadataValue = parseResult.GetValue(metadata);
+                    var formatValue = parseResult.GetValue(format);
+                    var variableValue = parseResult.GetValue(variable);
+                    var commitValue = parseResult.GetValue(commit);
+                    return await OnGetVersionCommand(projectValue, metadataValue, formatValue, variableValue, commitValue);
+                });
             }
 
             Command setVersion;
@@ -148,7 +161,12 @@ namespace Nerdbank.GitVersioning.Tool
                     version,
                 };
 
-                setVersion.SetHandler(OnSetVersionCommand, project, version);
+                setVersion.SetAction(parseResult =>
+                {
+                    var projectValue = parseResult.GetValue(project);
+                    var versionValue = parseResult.GetValue(version);
+                    return OnSetVersionCommand(projectValue, versionValue);
+                });
             }
 
             Command tag;
@@ -164,7 +182,12 @@ namespace Nerdbank.GitVersioning.Tool
                     versionOrRef,
                 };
 
-                tag.SetHandler(OnTagCommand, project, versionOrRef);
+                tag.SetAction(async parseResult =>
+                {
+                    var projectValue = parseResult.GetValue(project);
+                    var versionOrRefValue = parseResult.GetValue(versionOrRef);
+                    return await OnTagCommand(projectValue, versionOrRefValue);
+                });
             }
 
             Command getCommits;
@@ -179,7 +202,13 @@ namespace Nerdbank.GitVersioning.Tool
                     version,
                 };
 
-                getCommits.SetHandler(OnGetCommitsCommand, project, quiet, version);
+                getCommits.SetAction(async parseResult =>
+                {
+                    var projectValue = parseResult.GetValue(project);
+                    var quietValue = parseResult.GetValue(quiet);
+                    var versionValue = parseResult.GetValue(version);
+                    return await OnGetCommitsCommand(projectValue, quietValue, versionValue);
+                });
             }
 
             Command cloud;
@@ -212,7 +241,18 @@ namespace Nerdbank.GitVersioning.Tool
                     define,
                 };
 
-                cloud.SetHandler(OnCloudCommand, project, metadata, version, ciSystem, allVars, commonVars, skipCloudBuildNumber, define);
+                cloud.SetAction(async parseResult =>
+                {
+                    var projectValue = parseResult.GetValue(project);
+                    var metadataValue = parseResult.GetValue(metadata);
+                    var versionValue = parseResult.GetValue(version);
+                    var ciSystemValue = parseResult.GetValue(ciSystem);
+                    var allVarsValue = parseResult.GetValue(allVars);
+                    var commonVarsValue = parseResult.GetValue(commonVars);
+                    var skipCloudBuildNumberValue = parseResult.GetValue(skipCloudBuildNumber);
+                    var defineValue = parseResult.GetValue(define);
+                    return await OnCloudCommand(projectValue, metadataValue, versionValue, ciSystemValue, allVarsValue, commonVarsValue, skipCloudBuildNumberValue, defineValue);
+                });
             }
 
             Command prepareRelease;
@@ -236,7 +276,16 @@ namespace Nerdbank.GitVersioning.Tool
                     tagArgument,
                 };
 
-                prepareRelease.SetHandler(OnPrepareReleaseCommand, project, nextVersion, versionIncrement, format, tagArgument, unformattedCommitMessage);
+                prepareRelease.SetAction(async parseResult =>
+                {
+                    var projectValue = parseResult.GetValue(project);
+                    var nextVersionValue = parseResult.GetValue(nextVersion);
+                    var versionIncrementValue = parseResult.GetValue(versionIncrement);
+                    var formatValue = parseResult.GetValue(format);
+                    var tagArgumentValue = parseResult.GetValue(tagArgument);
+                    var unformattedCommitMessageValue = parseResult.GetValue(unformattedCommitMessage);
+                    return await OnPrepareReleaseCommand(projectValue, nextVersionValue, versionIncrementValue, formatValue, tagArgumentValue, unformattedCommitMessageValue);
+                });
             }
 
             var root = new RootCommand($"{ThisAssembly.AssemblyTitle} v{ThisAssembly.AssemblyInformationalVersion}")
@@ -250,14 +299,11 @@ namespace Nerdbank.GitVersioning.Tool
                 prepareRelease,
             };
 
-            return new CommandLineBuilder(root)
-                .UseDefaults()
-                .UseExceptionHandler((ex, context) => PrintException(ex, context))
-                .Build();
+            return root;
 #pragma warning restore IDE0008
         }
 
-        private static void PrintException(Exception ex, InvocationContext context)
+        private static void PrintException(Exception ex)
         {
             try
             {
@@ -274,8 +320,9 @@ namespace Nerdbank.GitVersioning.Tool
         {
             try
             {
-                Parser parser = BuildCommandLine();
-                exitCode = (ExitCodes)parser.Invoke(args);
+                RootCommand rootCommand = BuildCommandLine();
+                var parseResult = rootCommand.Parse(args);
+                exitCode = (ExitCodes)parseResult.Invoke();
             }
             catch (GitException ex)
             {
