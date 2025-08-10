@@ -325,6 +325,12 @@ public class ReleaseManager
         return new ReleaseInfo(originalBranchInfo, releaseBranchInfo);
     }
 
+    public void WriteToOutput(ReleaseInfo releaseInfo)
+    {
+        string json = JsonConvert.SerializeObject(releaseInfo, Formatting.Indented, new SemanticVersionJsonConverter());
+        this.stdout.WriteLine(json);
+    }
+
     private static bool IsVersionDecrement(SemanticVersion oldVersion, SemanticVersion newVersion)
     {
         if (newVersion.Version > oldVersion.Version)
@@ -477,12 +483,6 @@ public class ReleaseManager
 
         // return next version with prerelease tag specified in version.json
         return nextDevVersion.SetFirstPrereleaseTag(versionOptions.ReleaseOrDefault.FirstUnstableTagOrDefault);
-    }
-
-    public void WriteToOutput(ReleaseInfo releaseInfo)
-    {
-        string json = JsonConvert.SerializeObject(releaseInfo, Formatting.Indented, new SemanticVersionJsonConverter());
-        this.stdout.WriteLine(json);
     }
 
     /// <summary>

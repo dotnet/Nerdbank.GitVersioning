@@ -720,7 +720,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
     public void SimulatePrepareRelease_BasicScenario()
     {
         this.InitializeSourceControl();
-        
+
         var versionOptions = new VersionOptions()
         {
             Version = SemanticVersion.Parse("1.2-beta"),
@@ -746,7 +746,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
     public void SimulatePrepareRelease_WithPrereleaseTag()
     {
         this.InitializeSourceControl();
-        
+
         var versionOptions = new VersionOptions()
         {
             Version = SemanticVersion.Parse("1.2-beta"),
@@ -772,7 +772,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
     public void SimulatePrepareRelease_WithVersionIncrement()
     {
         this.InitializeSourceControl();
-        
+
         var versionOptions = new VersionOptions()
         {
             Version = SemanticVersion.Parse("1.2-beta"),
@@ -798,7 +798,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
     public void SimulatePrepareRelease_WithNextVersion()
     {
         this.InitializeSourceControl();
-        
+
         var versionOptions = new VersionOptions()
         {
             Version = SemanticVersion.Parse("1.2-beta"),
@@ -820,14 +820,13 @@ public abstract class ReleaseManagerTests : RepoTestBase
         Assert.Equal("1.5-alpha", result.CurrentBranch.Version.ToString());
     }
 
-    // Note: SameVersionError test removed because it requires very specific conditions 
+    // Note: SameVersionError test removed because it requires very specific conditions
     // that are difficult to reproduce in simulation mode
-
     [Fact]
     public void SimulatePrepareRelease_BranchAlreadyExists()
     {
         this.InitializeSourceControl();
-        
+
         var versionOptions = new VersionOptions()
         {
             Version = SemanticVersion.Parse("1.2-beta"),
@@ -853,7 +852,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
     public void SimulatePrepareRelease_OnReleaseBranch()
     {
         this.InitializeSourceControl();
-        
+
         var versionOptions = new VersionOptions()
         {
             Version = SemanticVersion.Parse("1.2-beta"),
