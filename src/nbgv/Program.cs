@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation and Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+#nullable enable
+
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
@@ -415,6 +417,121 @@ namespace Nerdbank.GitVersioning.Tool
             return (int)exitCode;
         }
 
+        /// <summary>
+        /// Detects the default branch name for the repository following the algorithm:
+        /// 1. If the upstream remote exists, use its HEAD reference
+        /// 2. If the origin remote exists, use its HEAD reference
+        /// 3. If any remote exists, pick one arbitrarily and use its HEAD reference
+        /// 4. If only one local branch exists, use that one
+        /// 5. Use git config init.defaultBranch if the named branch exists locally
+        /// 6. Use the first local branch that exists from: master, main, develop.
+        /// </summary>
+        /// <param name="context">The git context to query.</param>
+        /// <returns>The detected default branch name, defaulting to "master" if none can be determined.</returns>
+        private static string DetectDefaultBranch(GitContext context)
+        {
+            if (context is LibGit2.LibGit2Context libgit2Context)
+            {
+                LibGit2Sharp.Repository repository = libgit2Context.Repository;
+
+                // Step 1-3: Check remotes for HEAD reference
+                string[] remotePreferenceOrder = { "upstream", "origin" };
+
+                foreach (string remoteName in remotePreferenceOrder)
+                {
+                    LibGit2Sharp.Remote? remote = repository.Network.Remotes[remoteName];
+                    if (remote is object)
+                    {
+                        string? defaultBranch = GetDefaultBranchFromRemote(repository, remoteName);
+                        if (!string.IsNullOrEmpty(defaultBranch))
+                        {
+                            return defaultBranch;
+                        }
+                    }
+                }
+
+                // Check any other remotes if upstream/origin didn't work
+                foreach (LibGit2Sharp.Remote remote in repository.Network.Remotes)
+                {
+                    if (remote.Name != "upstream" && remote.Name != "origin")
+                    {
+                        string? defaultBranch = GetDefaultBranchFromRemote(repository, remote.Name);
+                        if (!string.IsNullOrEmpty(defaultBranch))
+                        {
+                            return defaultBranch;
+                        }
+                    }
+                }
+
+                // Step 4: If only one local branch exists, use that one
+                LibGit2Sharp.Branch[] localBranches = repository.Branches.Where(b => !b.IsRemote).ToArray();
+                if (localBranches.Length == 1)
+                {
+                    return localBranches[0].FriendlyName;
+                }
+
+                // Step 5: Use git config init.defaultBranch if the named branch exists locally
+                try
+                {
+                    string? configDefaultBranch = repository.Config.Get<string>("init.defaultBranch")?.Value;
+                    if (!string.IsNullOrEmpty(configDefaultBranch) &&
+                        localBranches.Any(b => b.FriendlyName == configDefaultBranch))
+                    {
+                        return configDefaultBranch;
+                    }
+                }
+                catch
+                {
+                    // Ignore config read errors
+                }
+
+                // Step 6: Use the first local branch that exists from: master, main, develop
+                string[] commonBranchNames = { "master", "main", "develop" };
+                foreach (string branchName in commonBranchNames)
+                {
+                    if (localBranches.Any(b => b.FriendlyName == branchName))
+                    {
+                        return branchName;
+                    }
+                }
+            }
+
+            // Fallback to "master" if nothing else works
+            return "master";
+        }
+
+        /// <summary>
+        /// Gets the default branch name from a remote's HEAD reference.
+        /// </summary>
+        /// <param name="repository">The repository to query.</param>
+        /// <param name="remoteName">The name of the remote.</param>
+        /// <returns>The default branch name, or null if it cannot be determined.</returns>
+        private static string? GetDefaultBranchFromRemote(LibGit2Sharp.Repository repository, string remoteName)
+        {
+            try
+            {
+                // Try to get the symbolic reference for the remote HEAD
+                string remoteHeadRef = $"refs/remotes/{remoteName}/HEAD";
+                LibGit2Sharp.Reference? remoteHead = repository.Refs[remoteHeadRef];
+                
+                if (remoteHead?.TargetIdentifier is object)
+                {
+                    // Extract branch name from refs/remotes/{remote}/{branch}
+                    string targetRef = remoteHead.TargetIdentifier;
+                    if (targetRef.StartsWith($"refs/remotes/{remoteName}/"))
+                    {
+                        return targetRef.Substring($"refs/remotes/{remoteName}/".Length);
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore errors when trying to read remote HEAD
+            }
+
+            return null;
+        }
+
         private static async Task<int> OnInstallCommand(string path, string version, string[] source)
         {
             if (!SemanticVersion.TryParse(string.IsNullOrEmpty(version) ? DefaultVersionSpec : version, out SemanticVersion semver))
@@ -423,22 +540,6 @@ namespace Nerdbank.GitVersioning.Tool
                 return (int)ExitCodes.InvalidVersionSpec;
             }
 
-            var options = new VersionOptions
-            {
-                Version = semver,
-                PublicReleaseRefSpec = new string[]
-                {
-                    @"^refs/heads/master$",
-                    @"^refs/heads/v\d+(?:\.\d+)?$",
-                },
-                CloudBuild = new VersionOptions.CloudBuildOptions
-                {
-                    BuildNumber = new VersionOptions.CloudBuildNumberOptions
-                    {
-                        Enabled = true,
-                    },
-                },
-            };
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(path);
             if (!Directory.Exists(searchPath))
             {
@@ -453,12 +554,31 @@ namespace Nerdbank.GitVersioning.Tool
                 return (int)ExitCodes.NoGitRepo;
             }
 
+            string defaultBranch = DetectDefaultBranch(context);
+
+            var options = new VersionOptions
+            {
+                Version = semver,
+                PublicReleaseRefSpec = new string[]
+                {
+                    $@"^refs/heads/{defaultBranch}$",
+                    @"^refs/heads/v\d+(?:\.\d+)?$",
+                },
+                CloudBuild = new VersionOptions.CloudBuildOptions
+                {
+                    BuildNumber = new VersionOptions.CloudBuildNumberOptions
+                    {
+                        Enabled = true,
+                    },
+                },
+            };
+
             if (string.IsNullOrEmpty(path))
             {
                 path = context.WorkingTreePath;
             }
 
-            VersionOptions existingOptions = context.VersionFile.GetVersion();
+            VersionOptions? existingOptions = context.VersionFile.GetVersion();
             if (existingOptions is not null)
             {
                 if (!string.IsNullOrEmpty(version) && version != DefaultVersionSpec)
