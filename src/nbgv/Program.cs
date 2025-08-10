@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
-using System.CommandLine.Builder;
 using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
 using System.IO;
@@ -91,15 +90,24 @@ namespace Nerdbank.GitVersioning.Tool
             return result;
         }
 
-        private static Parser BuildCommandLine()
+        private static RootCommand BuildCommandLine()
         {
 #pragma warning disable IDE0008
             Command install;
             {
-                var path = new Option<string>(new[] { "--path", "-p" }, "The path to the directory that should contain the version.json file. The default is the root of the git repo.").LegalFilePathsOnly();
-                var version = new Option<string>(new[] { "--version", "-v" }, () => DefaultVersionSpec, $"The initial version to set.");
-                var source = new Option<string[]>(new[] { "--source", "-s" }, () => Array.Empty<string>(), $"The URI(s) of the NuGet package source(s) used to determine the latest stable version of the {PackageId} package. This setting overrides all of the sources specified in the NuGet.Config files.")
+                var path = new Option<string>("--path", ["-p"])
                 {
+                    Description = "The path to the directory that should contain the version.json file. The default is the root of the git repo.",
+                };
+                var version = new Option<string>("--version", ["-v"])
+                {
+                    Description = $"The initial version to set.",
+                    DefaultValueFactory = _ => DefaultVersionSpec,
+                };
+                var source = new Option<string[]>("--source", ["-s"])
+                {
+                    Description = $"The URI(s) of the NuGet package source(s) used to determine the latest stable version of the {PackageId} package. This setting overrides all of the sources specified in the NuGet.Config files.",
+                    DefaultValueFactory = _ => Array.Empty<string>(),
                     Arity = ArgumentArity.OneOrMore,
                     AllowMultipleArgumentsPerToken = true,
                 };
@@ -109,21 +117,39 @@ namespace Nerdbank.GitVersioning.Tool
                     version,
                     source,
                 };
-                install.SetHandler(OnInstallCommand, path, version, source);
+                install.SetAction(async (ParseResult parseResult, CancellationToken cancellationToken) =>
+                {
+                    var pathValue = parseResult.GetValue(path);
+                    var versionValue = parseResult.GetValue(version);
+                    var sourceValue = parseResult.GetValue(source);
+                    return await OnInstallCommand(pathValue, versionValue, sourceValue);
+                });
             }
 
             Command getVersion;
             {
-                var project = new Option<string>(new[] { "--project", "-p" }, "The path to the project or project directory. The default is the current directory.").LegalFilePathsOnly();
-                var metadata = new Option<string[]>("--metadata", () => Array.Empty<string>(), "Adds an identifier to the build metadata part of a semantic version.")
+                var project = new Option<string>("--project", ["-p"])
                 {
+                    Description = "The path to the project or project directory. The default is the current directory.",
+                };
+                var metadata = new Option<string[]>("--metadata", Array.Empty<string>())
+                {
+                    Description = "Adds an identifier to the build metadata part of a semantic version.",
                     Arity = ArgumentArity.OneOrMore,
                     AllowMultipleArgumentsPerToken = true,
                 };
-                var format = new Option<string>(new[] { "--format", "-f" }, $"The format to write the version information. Allowed values are: {string.Join(", ", SupportedFormats)}. The default is {DefaultOutputFormat}.").FromAmong(SupportedFormats);
-                var variable = new Option<string>(new[] { "--variable", "-v" }, "The name of just one version property to print to stdout. When specified, the output is always in raw text. Useful in scripts.");
-                var commit = new Argument<string>("commit-ish", () => DefaultRef, $"The commit/ref to get the version information for.")
+                var format = new Option<string>("--format", ["-f"])
                 {
+                    Description = $"The format to write the version information. Allowed values are: {string.Join(", ", SupportedFormats)}. The default is {DefaultOutputFormat}.",
+                };
+                var variable = new Option<string>("--variable", ["-v"])
+                {
+                    Description = "The name of just one version property to print to stdout. When specified, the output is always in raw text. Useful in scripts.",
+                };
+                var commit = new Argument<string>("commit-ish")
+                {
+                    Description = $"The commit/ref to get the version information for.",
+                    DefaultValueFactory = _ => DefaultRef,
                     Arity = ArgumentArity.ZeroOrOne,
                 };
                 getVersion = new Command("get-version", "Gets the version information for a project.")
@@ -135,27 +161,51 @@ namespace Nerdbank.GitVersioning.Tool
                     commit,
                 };
 
-                getVersion.SetHandler(OnGetVersionCommand, project, metadata, format, variable, commit);
+                getVersion.SetAction(async (ParseResult parseResult, CancellationToken cancellationToken) =>
+                {
+                    var projectValue = parseResult.GetValue(project);
+                    var metadataValue = parseResult.GetValue(metadata);
+                    var formatValue = parseResult.GetValue(format);
+                    var variableValue = parseResult.GetValue(variable);
+                    var commitValue = parseResult.GetValue(commit);
+                    return await OnGetVersionCommand(projectValue, metadataValue, formatValue, variableValue, commitValue);
+                });
             }
 
             Command setVersion;
             {
-                var project = new Option<string>(new[] { "--project", "-p" }, "The path to the project or project directory. The default is the root directory of the repo that spans the current directory, or an existing version.json file, if applicable.").LegalFilePathsOnly();
-                var version = new Argument<string>("version", "The version to set.");
+                var project = new Option<string>("--project", ["-p"])
+                {
+                    Description = "The path to the project or project directory. The default is the root directory of the repo that spans the current directory, or an existing version.json file, if applicable.",
+                };
+                var version = new Argument<string>("version")
+                {
+                    Description = "The version to set.",
+                };
                 setVersion = new Command("set-version", "Updates the version stamp that is applied to a project.")
                 {
                     project,
                     version,
                 };
 
-                setVersion.SetHandler(OnSetVersionCommand, project, version);
+                setVersion.SetAction(async (ParseResult parseResult, CancellationToken cancellationToken) =>
+                {
+                    var projectValue = parseResult.GetValue(project);
+                    var versionValue = parseResult.GetValue(version);
+                    return await OnSetVersionCommand(projectValue, versionValue);
+                });
             }
 
             Command tag;
             {
-                var project = new Option<string>(new[] { "--project", "-p" }, "The path to the project or project directory. The default is the root directory of the repo that spans the current directory, or an existing version.json file, if applicable.").LegalFilePathsOnly();
-                var versionOrRef = new Argument<string>("versionOrRef", () => DefaultRef, $"The a.b.c[.d] version or git ref to be tagged.")
+                var project = new Option<string>("--project", ["-p"])
                 {
+                    Description = "The path to the project or project directory. The default is the root directory of the repo that spans the current directory, or an existing version.json file, if applicable.",
+                };
+                var versionOrRef = new Argument<string>("versionOrRef")
+                {
+                    Description = $"The a.b.c[.d] version or git ref to be tagged.",
+                    DefaultValueFactory = _ => DefaultRef,
                     Arity = ArgumentArity.ZeroOrOne,
                 };
                 tag = new Command("tag", "Creates a git tag to mark a version.")
@@ -164,14 +214,28 @@ namespace Nerdbank.GitVersioning.Tool
                     versionOrRef,
                 };
 
-                tag.SetHandler(OnTagCommand, project, versionOrRef);
+                tag.SetAction(async (ParseResult parseResult, CancellationToken cancellationToken) =>
+                {
+                    var projectValue = parseResult.GetValue(project);
+                    var versionOrRefValue = parseResult.GetValue(versionOrRef);
+                    return await OnTagCommand(projectValue, versionOrRefValue);
+                });
             }
 
             Command getCommits;
             {
-                var project = new Option<string>(new[] { "--project", "-p" }, "The path to the project or project directory. The default is the root directory of the repo that spans the current directory, or an existing version.json file, if applicable.").LegalFilePathsOnly();
-                var quiet = new Option<bool>(new[] { "--quiet", "-q" }, "Use minimal output.");
-                var version = new Argument<string>("version", "The a.b.c[.d] version to find.");
+                var project = new Option<string>("--project", ["-p"])
+                {
+                    Description = "The path to the project or project directory. The default is the root directory of the repo that spans the current directory, or an existing version.json file, if applicable.",
+                };
+                var quiet = new Option<bool>("--quiet", ["-q"])
+                {
+                    Description = "Use minimal output.",
+                };
+                var version = new Argument<string>("version")
+                {
+                    Description = "The a.b.c[.d] version to find.",
+                };
                 getCommits = new Command("get-commits", "Gets the commit(s) that match a given version.")
                 {
                     project,
@@ -179,24 +243,51 @@ namespace Nerdbank.GitVersioning.Tool
                     version,
                 };
 
-                getCommits.SetHandler(OnGetCommitsCommand, project, quiet, version);
+                getCommits.SetAction(async (ParseResult parseResult, CancellationToken cancellationToken) =>
+                {
+                    var projectValue = parseResult.GetValue(project);
+                    var quietValue = parseResult.GetValue(quiet);
+                    var versionValue = parseResult.GetValue(version);
+                    return await OnGetCommitsCommand(projectValue, quietValue, versionValue);
+                });
             }
 
             Command cloud;
             {
-                var project = new Option<string>(new[] { "--project", "-p" }, "The path to the project or project directory used to calculate the version. The default is the current directory. Ignored if the -v option is specified.").LegalFilePathsOnly();
-                var metadata = new Option<string[]>("--metadata", () => Array.Empty<string>(), "Adds an identifier to the build metadata part of a semantic version.")
+                var project = new Option<string>("--project", ["-p"])
                 {
+                    Description = "The path to the project or project directory used to calculate the version. The default is the current directory. Ignored if the -v option is specified.",
+                };
+                var metadata = new Option<string[]>("--metadata", Array.Empty<string>())
+                {
+                    Description = "Adds an identifier to the build metadata part of a semantic version.",
                     Arity = ArgumentArity.OneOrMore,
                     AllowMultipleArgumentsPerToken = true,
                 };
-                var version = new Option<string>(new[] { "--version", "-v" }, "The string to use for the cloud build number. If not specified, the computed version will be used.");
-                var ciSystem = new Option<string>(new[] { "--ci-system", "-s" }, "Force activation for a particular CI system. If not specified, auto-detection will be used. Supported values are: " + string.Join(", ", CloudProviderNames)).FromAmong(CloudProviderNames);
-                var allVars = new Option<bool>(new[] { "--all-vars", "-a" }, "Defines ALL version variables as cloud build variables, with a \"NBGV_\" prefix.");
-                var commonVars = new Option<bool>(new[] { "--common-vars", "-c" }, "Defines a few common version variables as cloud build variables, with a \"Git\" prefix (e.g. GitBuildVersion, GitBuildVersionSimple, GitAssemblyInformationalVersion).");
-                var skipCloudBuildNumber = new Option<bool>(new[] { "--skip-cloud-build-number" }, "Do not emit the cloud build variable to set the build number. This is useful when you want to set other cloud build variables but not the build number.");
-                var define = new Option<string[]>(new[] { "--define", "-d" }, () => Array.Empty<string>(), "Additional cloud build variables to define. Each should be in the NAME=VALUE syntax.")
+                var version = new Option<string>("--version", ["-v"])
                 {
+                    Description = "The string to use for the cloud build number. If not specified, the computed version will be used.",
+                };
+                var ciSystem = new Option<string>("--ci-system", ["-s"])
+                {
+                    Description = "Force activation for a particular CI system. If not specified, auto-detection will be used. Supported values are: " + string.Join(", ", CloudProviderNames),
+                };
+                var allVars = new Option<bool>("--all-vars", ["-a"])
+                {
+                    Description = "Defines ALL version variables as cloud build variables, with a \"NBGV_\" prefix.",
+                };
+                var commonVars = new Option<bool>("--common-vars", ["-c"])
+                {
+                    Description = "Defines a few common version variables as cloud build variables, with a \"Git\" prefix (e.g. GitBuildVersion, GitBuildVersionSimple, GitAssemblyInformationalVersion).",
+                };
+                var skipCloudBuildNumber = new Option<bool>("--skip-cloud-build-number", Array.Empty<string>())
+                {
+                    Description = "Do not emit the cloud build variable to set the build number. This is useful when you want to set other cloud build variables but not the build number.",
+                };
+                var define = new Option<string[]>("--define", ["-d"])
+                {
+                    Description = "Additional cloud build variables to define. Each should be in the NAME=VALUE syntax.",
+                    DefaultValueFactory = _ => Array.Empty<string>(),
                     Arity = ArgumentArity.OneOrMore,
                     AllowMultipleArgumentsPerToken = true,
                 };
@@ -212,18 +303,45 @@ namespace Nerdbank.GitVersioning.Tool
                     define,
                 };
 
-                cloud.SetHandler(OnCloudCommand, project, metadata, version, ciSystem, allVars, commonVars, skipCloudBuildNumber, define);
+                cloud.SetAction(async (ParseResult parseResult, CancellationToken cancellationToken) =>
+                {
+                    var projectValue = parseResult.GetValue(project);
+                    var metadataValue = parseResult.GetValue(metadata);
+                    var versionValue = parseResult.GetValue(version);
+                    var ciSystemValue = parseResult.GetValue(ciSystem);
+                    var allVarsValue = parseResult.GetValue(allVars);
+                    var commonVarsValue = parseResult.GetValue(commonVars);
+                    var skipCloudBuildNumberValue = parseResult.GetValue(skipCloudBuildNumber);
+                    var defineValue = parseResult.GetValue(define);
+                    return await OnCloudCommand(projectValue, metadataValue, versionValue, ciSystemValue, allVarsValue, commonVarsValue, skipCloudBuildNumberValue, defineValue);
+                });
             }
 
             Command prepareRelease;
             {
-                var project = new Option<string>(new[] { "--project", "-p" }, "The path to the project or project directory. The default is the current directory.").LegalFilePathsOnly();
-                var nextVersion = new Option<string>("--nextVersion", "The version to set for the current branch. If omitted, the next version is determined automatically by incrementing the current version.");
-                var versionIncrement = new Option<string>("--versionIncrement", "Overrides the 'versionIncrement' setting set in version.json for determining the next version of the current branch.");
-                var format = new Option<string>(new[] { "--format", "-f" }, $"The format to write information about the release. Allowed values are: {string.Join(", ", SupportedFormats)}. The default is {DefaultOutputFormat}.").FromAmong(SupportedFormats);
-                var unformattedCommitMessage = new Option<string>("--commit-message-pattern", "A custom message to use for the commit that changes the version number. May include {0} for the version number. If not specified, the default is \"Set version to '{0}'\".");
-                var tagArgument = new Argument<string>("tag", "The prerelease tag to apply on the release branch (if any). If not specified, any existing prerelease tag will be removed. The preceding hyphen may be omitted.")
+                var project = new Option<string>("--project", ["-p"])
                 {
+                    Description = "The path to the project or project directory. The default is the current directory.",
+                };
+                var nextVersion = new Option<string>("--nextVersion", Array.Empty<string>())
+                {
+                    Description = "The version to set for the current branch. If omitted, the next version is determined automatically by incrementing the current version.",
+                };
+                var versionIncrement = new Option<string>("--versionIncrement", Array.Empty<string>())
+                {
+                    Description = "Overrides the 'versionIncrement' setting set in version.json for determining the next version of the current branch.",
+                };
+                var format = new Option<string>("--format", ["-f"])
+                {
+                    Description = $"The format to write information about the release. Allowed values are: {string.Join(", ", SupportedFormats)}. The default is {DefaultOutputFormat}.",
+                };
+                var unformattedCommitMessage = new Option<string>("--commit-message-pattern", Array.Empty<string>())
+                {
+                    Description = "A custom message to use for the commit that changes the version number. May include {0} for the version number. If not specified, the default is \"Set version to '{0}'\".",
+                };
+                var tagArgument = new Argument<string>("tag")
+                {
+                    Description = "The prerelease tag to apply on the release branch (if any). If not specified, any existing prerelease tag will be removed. The preceding hyphen may be omitted.",
                     Arity = ArgumentArity.ZeroOrOne,
                 };
                 prepareRelease = new Command("prepare-release", "Prepares a release by creating a release branch for the current version and adjusting the version on the current branch.")
@@ -236,7 +354,16 @@ namespace Nerdbank.GitVersioning.Tool
                     tagArgument,
                 };
 
-                prepareRelease.SetHandler(OnPrepareReleaseCommand, project, nextVersion, versionIncrement, format, tagArgument, unformattedCommitMessage);
+                prepareRelease.SetAction(async (ParseResult parseResult, CancellationToken cancellationToken) =>
+                {
+                    var projectValue = parseResult.GetValue(project);
+                    var nextVersionValue = parseResult.GetValue(nextVersion);
+                    var versionIncrementValue = parseResult.GetValue(versionIncrement);
+                    var formatValue = parseResult.GetValue(format);
+                    var tagArgumentValue = parseResult.GetValue(tagArgument);
+                    var unformattedCommitMessageValue = parseResult.GetValue(unformattedCommitMessage);
+                    return await OnPrepareReleaseCommand(projectValue, nextVersionValue, versionIncrementValue, formatValue, tagArgumentValue, unformattedCommitMessageValue);
+                });
             }
 
             var root = new RootCommand($"{ThisAssembly.AssemblyTitle} v{ThisAssembly.AssemblyInformationalVersion}")
@@ -250,14 +377,11 @@ namespace Nerdbank.GitVersioning.Tool
                 prepareRelease,
             };
 
-            return new CommandLineBuilder(root)
-                .UseDefaults()
-                .UseExceptionHandler((ex, context) => PrintException(ex, context))
-                .Build();
+            return root;
 #pragma warning restore IDE0008
         }
 
-        private static void PrintException(Exception ex, InvocationContext context)
+        private static void PrintException(Exception ex)
         {
             try
             {
@@ -274,8 +398,9 @@ namespace Nerdbank.GitVersioning.Tool
         {
             try
             {
-                Parser parser = BuildCommandLine();
-                exitCode = (ExitCodes)parser.Invoke(args);
+                RootCommand rootCommand = BuildCommandLine();
+                ParseResult parseResult = rootCommand.Parse(args);
+                exitCode = (ExitCodes)parseResult.Invoke();
             }
             catch (GitException ex)
             {
