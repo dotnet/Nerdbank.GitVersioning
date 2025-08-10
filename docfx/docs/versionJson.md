@@ -83,4 +83,6 @@ to automatically drop the `-gabc123` git commit ID suffix from the version, maki
 convenient to build releases out of these refs with a friendly version number
 that assumes linear versioning.
 
+When the `cloudBuild.buildNumber.includeCommitId.where` property is set to `fourthVersionComponent`, the first 15 bits of the commit hash is used to create the 4th integer in the version number.
+
 [Learn more about pathFilters](path-filters.md).
