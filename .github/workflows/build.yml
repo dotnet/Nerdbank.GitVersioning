@@ -50,6 +50,12 @@ jobs:
         Invoke-WebRequest -Uri "https://dot.net/v1/dotnet-install.ps1" -OutFile dotnet-install.ps1
         & .\dotnet-install.ps1 -Architecture x86 -Version 9.0.101 -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose
       if: runner.os == 'Windows'
+    - name: ⚙ Install node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+        cache: yarn
+        cache-dependency-path: src/nerdbank-gitversioning.npm/yarn.lock
     - name: ⚙️ Set pipeline variables based on source
       run: tools/variables/_define.ps1
       shell: pwsh

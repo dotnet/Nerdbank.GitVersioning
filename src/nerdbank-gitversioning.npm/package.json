@@ -4,7 +4,7 @@
   "description": "Stamps your NPM packages with semver 2.0 compliant git commit specific version information.",
   "author": {
     "name": "Andrew Arnott",
-    "email": "andrewarnott@gmail.com",
+    "email": "andrewarnott@live.com",
     "url": "http://blog.nerdbank.net/"
   },
   "bin": {
@@ -24,7 +24,7 @@
     "versioning"
   ],
   "devDependencies": {
-    "@types/node": "18.19.111",
+    "@types/node": "20.19.10",
     "del": "8.0.0",
     "gulp": "5.0.1",
     "gulp-cli": "3.1.0",
