@@ -654,10 +654,10 @@ namespace Nerdbank.GitVersioning.Tool
                     return Task.FromResult((int)ExitCodes.BadVariable);
                 }
 
-                object? propertyValue = property.GetValue(oracle);
+                object propertyValue = property.GetValue(oracle);
                 string output = propertyValue switch
                 {
-                    DateTimeOffset dateTimeOffset => dateTimeOffset.ToString("o", CultureInfo.InvariantCulture),
+                    DateTimeOffset dateTimeOffset => dateTimeOffset.ToString("yyyy-MM-ddTHH:mm:sszzz", CultureInfo.InvariantCulture),
                     _ => propertyValue?.ToString() ?? string.Empty,
                 };
                 Console.WriteLine(output);
