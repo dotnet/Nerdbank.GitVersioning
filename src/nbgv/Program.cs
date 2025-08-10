@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -664,7 +665,13 @@ namespace Nerdbank.GitVersioning.Tool
                     return Task.FromResult((int)ExitCodes.BadVariable);
                 }
 
-                Console.WriteLine(property.GetValue(oracle));
+                object propertyValue = property.GetValue(oracle);
+                string output = propertyValue switch
+                {
+                    DateTimeOffset dateTimeOffset => dateTimeOffset.ToString("yyyy-MM-ddTHH:mm:sszzz", CultureInfo.InvariantCulture),
+                    _ => propertyValue?.ToString() ?? string.Empty,
+                };
+                Console.WriteLine(output);
             }
 
             return Task.FromResult((int)ExitCodes.OK);
