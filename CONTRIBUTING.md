@@ -29,12 +29,12 @@ which downloads NuGet.exe and uses it to restore packages.
 Assuming your working directory is the root directory of this git repo,
 and you are running Windows PowerShell, the command is:
 
-    .\init.ps1
+    ./init.ps1
 
 Most of the repo may be built via building the solution file from Visual Studio 2019,
 but for a complete build, build from the VS2019 Developer Command Prompt:
 
-    .\build.ps1
+    ./build.ps1
 
 This repo is structured such that it builds the NuGet package first, using MSBuild.
 It then builds an NPM package that includes some of the outputs of MSBuild, along with
