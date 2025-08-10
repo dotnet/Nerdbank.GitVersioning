@@ -24,7 +24,7 @@
     "versioning"
   ],
   "devDependencies": {
-    "@types/node": "18.19.111",
+    "@types/node": "18.19.122",
     "del": "8.0.0",
     "gulp": "5.0.1",
     "gulp-cli": "3.1.0",
