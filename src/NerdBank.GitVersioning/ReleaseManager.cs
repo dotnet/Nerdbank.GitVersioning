@@ -230,6 +230,101 @@ public class ReleaseManager
         }
     }
 
+    /// <summary>
+    /// Simulates the prepare-release operation and returns the versions that would be set without making any changes.
+    /// </summary>
+    /// <param name="projectDirectory">
+    /// The path to the directory that may (or its ancestors may) define the version file.
+    /// </param>
+    /// <param name="releaseUnstableTag">
+    /// An optional prerelease tag to apply on the release branch.
+    /// If not specified, any existing prerelease tag will be removed from the release.
+    /// The preceding hyphen may be omitted.
+    /// </param>
+    /// <param name="nextVersion">
+    /// The version to use for the next release.
+    /// If not specified, the next version will be determined automatically by incrementing the current
+    /// version based on the current version and the <paramref name="versionIncrement"/> setting in <c>version.json</c>.
+    /// Parameter will be ignored if the current branch is a release branch.
+    /// </param>
+    /// <param name="versionIncrement">
+    /// The increment to apply in order to determine the next version on the current branch.
+    /// If specified, value will be used instead of the increment specified in <c>version.json</c>.
+    /// Parameter will be ignored if the current branch is a release branch.
+    /// </param>
+    /// <param name="outputMode">
+    /// The output format to use for writing to stdout.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ReleaseInfo"/> object containing information about the simulated release.
+    /// </returns>
+    public ReleaseInfo SimulatePrepareRelease(string projectDirectory, string releaseUnstableTag = null, Version nextVersion = null, VersionOptions.ReleaseVersionIncrement? versionIncrement = null, ReleaseManagerOutputMode outputMode = default)
+    {
+        Requires.NotNull(projectDirectory, nameof(projectDirectory));
+
+        // open the git repository
+        LibGit2Context context = this.GetRepository(projectDirectory);
+        Repository repository = context.Repository;
+
+        if (repository.Info.IsHeadDetached)
+        {
+            this.stderr.WriteLine("Detached head. Check out a branch first.");
+            throw new ReleasePreparationException(ReleasePreparationError.DetachedHead);
+        }
+
+        // get the current version
+        VersionOptions versionOptions = context.VersionFile.GetVersion();
+        if (versionOptions is null)
+        {
+            this.stderr.WriteLine($"Failed to load version file for directory '{projectDirectory}'.");
+            throw new ReleasePreparationException(ReleasePreparationError.NoVersionFile);
+        }
+
+        string releaseBranchName = this.GetReleaseBranchName(versionOptions);
+        string originalBranchName = repository.Head.FriendlyName;
+        SemanticVersion releaseVersion = string.IsNullOrEmpty(releaseUnstableTag)
+            ? versionOptions.Version.WithoutPrepreleaseTags()
+            : versionOptions.Version.SetFirstPrereleaseTag(releaseUnstableTag);
+
+        // check if the current branch is the release branch
+        if (string.Equals(originalBranchName, releaseBranchName, StringComparison.OrdinalIgnoreCase))
+        {
+            if (outputMode == ReleaseManagerOutputMode.Text)
+            {
+                this.stdout.WriteLine($"What-if: {releaseBranchName} branch would be advanced from {versionOptions.Version} to {releaseVersion}.");
+            }
+
+            return new ReleaseInfo(new ReleaseBranchInfo(releaseBranchName, repository.Head.Tip.Id.ToString(), releaseVersion));
+        }
+
+        SemanticVersion nextDevVersion = this.GetNextDevVersion(versionOptions, nextVersion, versionIncrement);
+
+        // check if the current version on the current branch is different from the next version
+        // otherwise, both the release branch and the dev branch would have the same version
+        if (versionOptions.Version.Version == nextDevVersion.Version)
+        {
+            this.stderr.WriteLine($"Version on '{originalBranchName}' is already set to next version {nextDevVersion.Version}.");
+            throw new ReleasePreparationException(ReleasePreparationError.NoVersionIncrement);
+        }
+
+        // check if the release branch already exists
+        if (repository.Branches[releaseBranchName] is not null)
+        {
+            this.stderr.WriteLine($"Cannot create branch '{releaseBranchName}' because it already exists.");
+            throw new ReleasePreparationException(ReleasePreparationError.BranchAlreadyExists);
+        }
+
+        if (outputMode == ReleaseManagerOutputMode.Text)
+        {
+            this.stdout.WriteLine($"What-if: {releaseBranchName} branch would track v{releaseVersion} stabilization and release.");
+            this.stdout.WriteLine($"What-if: {originalBranchName} branch would track v{nextDevVersion} development.");
+        }
+
+        var originalBranchInfo = new ReleaseBranchInfo(originalBranchName, repository.Head.Tip.Sha, nextDevVersion);
+        var releaseBranchInfo = new ReleaseBranchInfo(releaseBranchName, repository.Head.Tip.Id.ToString(), releaseVersion);
+        return new ReleaseInfo(originalBranchInfo, releaseBranchInfo);
+    }
+
     private static bool IsVersionDecrement(SemanticVersion oldVersion, SemanticVersion newVersion)
     {
         if (newVersion.Version > oldVersion.Version)
@@ -384,7 +479,7 @@ public class ReleaseManager
         return nextDevVersion.SetFirstPrereleaseTag(versionOptions.ReleaseOrDefault.FirstUnstableTagOrDefault);
     }
 
-    private void WriteToOutput(ReleaseInfo releaseInfo)
+    public void WriteToOutput(ReleaseInfo releaseInfo)
     {
         string json = JsonConvert.SerializeObject(releaseInfo, Formatting.Indented, new SemanticVersionJsonConverter());
         this.stdout.WriteLine(json);

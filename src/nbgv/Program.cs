@@ -339,6 +339,10 @@ namespace Nerdbank.GitVersioning.Tool
                 {
                     Description = "A custom message to use for the commit that changes the version number. May include {0} for the version number. If not specified, the default is \"Set version to '{0}'\".",
                 };
+                var whatIf = new Option<bool>("--what-if", Array.Empty<string>())
+                {
+                    Description = "Simulates the prepare-release operation and prints the new version that would be set, but does not actually make any changes.",
+                };
                 var tagArgument = new Argument<string>("tag")
                 {
                     Description = "The prerelease tag to apply on the release branch (if any). If not specified, any existing prerelease tag will be removed. The preceding hyphen may be omitted.",
@@ -351,6 +355,7 @@ namespace Nerdbank.GitVersioning.Tool
                     versionIncrement,
                     format,
                     unformattedCommitMessage,
+                    whatIf,
                     tagArgument,
                 };
 
@@ -362,7 +367,8 @@ namespace Nerdbank.GitVersioning.Tool
                     var formatValue = parseResult.GetValue(format);
                     var tagArgumentValue = parseResult.GetValue(tagArgument);
                     var unformattedCommitMessageValue = parseResult.GetValue(unformattedCommitMessage);
-                    return await OnPrepareReleaseCommand(projectValue, nextVersionValue, versionIncrementValue, formatValue, tagArgumentValue, unformattedCommitMessageValue);
+                    var whatIfValue = parseResult.GetValue(whatIf);
+                    return await OnPrepareReleaseCommand(projectValue, nextVersionValue, versionIncrementValue, formatValue, tagArgumentValue, unformattedCommitMessageValue, whatIfValue);
                 });
             }
 
@@ -883,7 +889,7 @@ namespace Nerdbank.GitVersioning.Tool
             return Task.FromResult((int)ExitCodes.OK);
         }
 
-        private static Task<int> OnPrepareReleaseCommand(string project, string nextVersion, string versionIncrement, string format, string tag, string unformattedCommitMessage)
+        private static Task<int> OnPrepareReleaseCommand(string project, string nextVersion, string versionIncrement, string format, string tag, string unformattedCommitMessage, bool whatIf)
         {
             // validate project path property
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(project);
@@ -949,11 +955,27 @@ namespace Nerdbank.GitVersioning.Tool
                 }
             }
 
-            // run prepare-release
+            // run prepare-release or simulate
             try
             {
                 var releaseManager = new ReleaseManager(Console.Out, Console.Error);
-                releaseManager.PrepareRelease(searchPath, tag, nextVersionParsed, versionIncrementParsed, outputMode, unformattedCommitMessage);
+
+                if (whatIf)
+                {
+                    // Simulate the release without making changes
+                    ReleaseManager.ReleaseInfo simulationResult = releaseManager.SimulatePrepareRelease(searchPath, tag, nextVersionParsed, versionIncrementParsed, outputMode);
+
+                    if (outputMode == ReleaseManager.ReleaseManagerOutputMode.Json)
+                    {
+                        releaseManager.WriteToOutput(simulationResult);
+                    }
+                }
+                else
+                {
+                    // Actually perform the release
+                    releaseManager.PrepareRelease(searchPath, tag, nextVersionParsed, versionIncrementParsed, outputMode, unformattedCommitMessage);
+                }
+
                 return Task.FromResult((int)ExitCodes.OK);
             }
             catch (ReleaseManager.ReleasePreparationException ex)
