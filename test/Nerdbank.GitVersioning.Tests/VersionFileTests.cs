@@ -645,6 +645,82 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.Equal(precision, versionOptions.NuGetPackageVersion.Precision);
     }
 
+    [Fact]
+    public void GetVersion_CaseInsensitivePathMatching_Simple()
+    {
+        // Simple test to debug the issue
+        this.InitializeSourceControl();
+
+        // Create a version.json file using the standard test method
+        this.WriteVersionFile(new VersionOptions { Version = new SemanticVersion("1.0.0") });
+
+        // Test reading from the root - this should work
+        VersionOptions actualVersionOptions = this.GetVersionOptions();
+        Assert.NotNull(actualVersionOptions);
+        Assert.Equal("1.0.0", actualVersionOptions.Version.ToString());
+    }
+
+    [Fact]
+    public void GetVersion_CaseInsensitivePathMatching()
+    {
+        // This test verifies that when a project's repo-relative path case doesn't match
+        // what git records, we still find the version.json file through case-insensitive fallback.
+        this.InitializeSourceControl();
+
+        // Create a version.json file in a subdirectory using the standard method
+        string subDirPath = "MyProject";
+        this.WriteVersionFile(
+            new VersionOptions
+            {
+                Version = new SemanticVersion("1.2.3"),
+                VersionHeightOffset = 10,
+            },
+            subDirPath);
+
+        // Configure the git repository for case-insensitive matching
+        // This simulates a Windows/macOS environment where the filesystem is case-insensitive
+        string gitConfigPath = Path.Combine(this.RepoPath, ".git", "config");
+        string configContent = File.ReadAllText(gitConfigPath);
+        if (!configContent.Contains("[core]"))
+        {
+            configContent += "\n[core]\n\tignorecase = true\n";
+        }
+        else if (!configContent.Contains("ignorecase"))
+        {
+            configContent = configContent.Replace("[core]", "[core]\n\tignorecase = true");
+        }
+
+        File.WriteAllText(gitConfigPath, configContent);
+
+        // First test: Get the version from the actual path with correct casing
+        VersionOptions actualVersionOptions = this.GetVersionOptions(subDirPath);
+
+        // Verify we found the version file and it has the expected version
+        Assert.NotNull(actualVersionOptions);
+        Assert.Equal("1.2.3", actualVersionOptions.Version.ToString());
+        Assert.Equal(10, actualVersionOptions.VersionHeightOffset);
+
+        // Second test: Now test with different casing in the path - this should work
+        // when core.ignorecase is true, because GetTreeEntry should fall back
+        // to case-insensitive matching
+        VersionOptions actualVersionOptionsWithDifferentCase = this.GetVersionOptions("myproject");
+
+        // This should also find the version file despite the case difference
+        // NOTE: This currently only works for the managed implementation, not LibGit2
+        if (this is VersionFileManagedTests)
+        {
+            Assert.NotNull(actualVersionOptionsWithDifferentCase);
+            Assert.Equal("1.2.3", actualVersionOptionsWithDifferentCase.Version.ToString());
+            Assert.Equal(10, actualVersionOptionsWithDifferentCase.VersionHeightOffset);
+        }
+        else
+        {
+            // LibGit2 implementation doesn't yet support case-insensitive fallback
+            // This test documents the current limitation
+            Assert.Null(actualVersionOptionsWithDifferentCase);
+        }
+    }
+
     private void AssertPathHasVersion(string committish, string absolutePath, VersionOptions expected)
     {
         VersionOptions actual = this.GetVersionOptions(absolutePath, committish);
