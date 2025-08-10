@@ -645,6 +645,61 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.Equal(precision, versionOptions.NuGetPackageVersion.Precision);
     }
 
+    [Fact]
+    public void GetVersion_CaseInsensitivePathMatching()
+    {
+        // This test verifies that when a project's repo-relative path case doesn't match
+        // what git records, we still find the version.json file through case-insensitive fallback.
+        this.InitializeSourceControl();
+
+        // Create a version.json file in a subdirectory with specific casing
+        string subdirPath = Path.Combine(this.RepoPath, "MyProject");
+        Directory.CreateDirectory(subdirPath);
+
+        string versionFilePath = Path.Combine(subdirPath, "version.json");
+        VersionOptions versionOptions = new VersionOptions
+        {
+            Version = new SemanticVersion("1.2.3"),
+            VersionHeightOffset = 10,
+        };
+
+        File.WriteAllText(versionFilePath, JsonConvert.SerializeObject(versionOptions, Formatting.Indented));
+        this.AddCommits();
+
+        // Configure the git repository for case-insensitive matching
+        // This simulates a Windows/macOS environment where the filesystem is case-insensitive
+        string gitConfigPath = Path.Combine(this.RepoPath, ".git", "config");
+        string configContent = File.ReadAllText(gitConfigPath);
+        if (!configContent.Contains("[core]"))
+        {
+            configContent += "\n[core]\n\tignorecase = true\n";
+        }
+        else if (!configContent.Contains("ignorecase"))
+        {
+            configContent = configContent.Replace("[core]", "[core]\n\tignorecase = true");
+        }
+
+        File.WriteAllText(gitConfigPath, configContent);
+
+        // First test: Get the version from the actual path with correct casing
+        VersionOptions actualVersionOptions = this.GetVersionOptions("MyProject");
+
+        // Verify we found the version file and it has the expected version
+        Assert.NotNull(actualVersionOptions);
+        Assert.Equal("1.2.3", actualVersionOptions.Version.ToString());
+        Assert.Equal(10, actualVersionOptions.VersionHeightOffset);
+
+        // Second test: Now test with different casing in the path - this should still work
+        // when core.ignorecase is true, because GetTreeEntry should fall back
+        // to case-insensitive matching
+        VersionOptions actualVersionOptionsWithDifferentCase = this.GetVersionOptions("myproject");
+
+        // This should also find the version file despite the case difference
+        Assert.NotNull(actualVersionOptionsWithDifferentCase);
+        Assert.Equal("1.2.3", actualVersionOptionsWithDifferentCase.Version.ToString());
+        Assert.Equal(10, actualVersionOptionsWithDifferentCase.VersionHeightOffset);
+    }
+
     private void AssertPathHasVersion(string committish, string absolutePath, VersionOptions expected)
     {
         VersionOptions actual = this.GetVersionOptions(absolutePath, committish);

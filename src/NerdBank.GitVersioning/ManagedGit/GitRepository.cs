@@ -95,9 +95,123 @@ public class GitRepository : IDisposable
         this.objectPathBuffer[pathLengthInChars - 1] = '\0'; // Make sure to initialize with zeros
 
         this.packs = new Lazy<ReadOnlyMemory<GitPack>>(this.LoadPacks);
+
+        // Read git configuration to determine case sensitivity
+        this.IgnoreCase = this.ReadIgnoreCaseFromConfig();
     }
 
-    // TODO: read from Git settings
+    /// <summary>
+    /// Reads the core.ignorecase setting from git configuration.
+    /// </summary>
+    /// <returns>True if case should be ignored, false otherwise.</returns>
+    private bool ReadIgnoreCaseFromConfig()
+    {
+        try
+        {
+            // Try to read from .git/config first (repository-specific)
+            string repoConfigPath = Path.Combine(this.GitDirectory, "config");
+            if (File.Exists(repoConfigPath))
+            {
+                if (TryReadIgnoreCaseFromConfigFile(repoConfigPath, out bool ignoreCase))
+                {
+                    return ignoreCase;
+                }
+            }
+
+            // Fall back to global config if repo config doesn't have the setting
+            string? globalConfigPath = GetGlobalConfigPath();
+            if (globalConfigPath is object && File.Exists(globalConfigPath))
+            {
+                if (TryReadIgnoreCaseFromConfigFile(globalConfigPath, out bool ignoreCase))
+                {
+                    return ignoreCase;
+                }
+            }
+        }
+        catch
+        {
+            // If we can't read config, default to case-sensitive
+        }
+
+        // Default to case-sensitive (false) if no config found or error occurred
+        return false;
+    }
+
+    /// <summary>
+    /// Attempts to read the core.ignorecase setting from a git config file.
+    /// </summary>
+    /// <param name="configPath">Path to the git config file.</param>
+    /// <param name="ignoreCase">The value of core.ignorecase if found.</param>
+    /// <returns>True if the setting was found and parsed successfully.</returns>
+    private static bool TryReadIgnoreCaseFromConfigFile(string configPath, out bool ignoreCase)
+    {
+        ignoreCase = false;
+        try
+        {
+            string[] lines = File.ReadAllLines(configPath);
+            bool inCoreSection = false;
+
+            foreach (string line in lines)
+            {
+                string trimmedLine = line.Trim();
+
+                // Check for section headers
+                if (trimmedLine.StartsWith("[") && trimmedLine.EndsWith("]"))
+                {
+                    string sectionName = trimmedLine.Substring(1, trimmedLine.Length - 2).Trim();
+                    inCoreSection = string.Equals(sectionName, "core", StringComparison.OrdinalIgnoreCase);
+                    continue;
+                }
+
+                // If we're in the [core] section, look for ignorecase setting
+                if (inCoreSection && trimmedLine.Contains("="))
+                {
+                    int equalIndex = trimmedLine.IndexOf('=');
+                    string key = trimmedLine.Substring(0, equalIndex).Trim();
+                    string value = trimmedLine.Substring(equalIndex + 1).Trim();
+
+                    if (string.Equals(key, "ignorecase", StringComparison.OrdinalIgnoreCase))
+                    {
+                        ignoreCase = string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
+                        return true;
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // Ignore errors and return false
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Gets the path to the global git config file.
+    /// </summary>
+    /// <returns>The path to the global config file, or null if not found.</returns>
+    private static string? GetGlobalConfigPath()
+    {
+        try
+        {
+            // Try common locations for global git config
+            string? homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            if (!string.IsNullOrEmpty(homeDir))
+            {
+                string gitConfigPath = Path.Combine(homeDir, ".gitconfig");
+                if (File.Exists(gitConfigPath))
+                {
+                    return gitConfigPath;
+                }
+            }
+        }
+        catch
+        {
+            // Ignore errors
+        }
+
+        return null;
+    }
 
     /// <summary>
     /// Gets the encoding used by this Git repository.
@@ -518,7 +632,21 @@ public class GitRepository : IDisposable
             throw new GitException($"The tree {treeId} was not found in this repository.") { ErrorCode = GitException.ErrorCodes.ObjectNotFound };
         }
 
-        return GitTreeStreamingReader.FindNode(treeStream, nodeName);
+        // Try case-sensitive search first
+        GitObjectId result = GitTreeStreamingReader.FindNode(treeStream, nodeName, ignoreCase: false);
+
+        // If not found and repository is configured for case-insensitive matching, try case-insensitive search
+        if (result == GitObjectId.Empty && this.IgnoreCase)
+        {
+            // Get a fresh stream for the second search since we can't reset position on ZLibStream
+            using Stream? treeStream2 = this.GetObjectBySha(treeId, "tree");
+            if (treeStream2 is not null)
+            {
+                result = GitTreeStreamingReader.FindNode(treeStream2, nodeName, ignoreCase: true);
+            }
+        }
+
+        return result;
     }
 
     /// <summary>
