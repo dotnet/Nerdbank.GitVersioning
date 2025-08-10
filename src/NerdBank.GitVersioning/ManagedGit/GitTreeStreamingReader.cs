@@ -105,6 +105,7 @@ public class GitTreeStreamingReader
             {
                 aChar = (byte)(aChar + 32);
             }
+
             if (bChar >= 'A' && bChar <= 'Z')
             {
                 bChar = (byte)(bChar + 32);

@@ -650,7 +650,7 @@ public abstract class VersionFileTests : RepoTestBase
     {
         // Simple test to debug the issue
         this.InitializeSourceControl();
-        
+
         // Create a version.json file using the standard test method
         this.WriteVersionFile(new VersionOptions { Version = new SemanticVersion("1.0.0") });
 
@@ -670,8 +670,8 @@ public abstract class VersionFileTests : RepoTestBase
         // Create a version.json file in a subdirectory using the standard method
         string subDirPath = "MyProject";
         this.WriteVersionFile(
-            new VersionOptions 
-            { 
+            new VersionOptions
+            {
                 Version = new SemanticVersion("1.2.3"),
                 VersionHeightOffset = 10,
             },
