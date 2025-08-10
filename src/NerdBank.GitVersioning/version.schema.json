@@ -162,7 +162,7 @@
                     "where": {
                       "type": "string",
                       "default": "buildMetadata",
-                      "description": "The position to include the commit ID information.",
+                      "description": "The position to include the commit ID information. If fourthVersionComponent is used, the first 15 bits of the commit hash will be used to form the 4th integer in the version number.",
                       "enum": [ "buildMetadata", "fourthVersionComponent" ]
                     }
                   }

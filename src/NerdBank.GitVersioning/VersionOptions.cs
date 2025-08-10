@@ -215,6 +215,7 @@ public class VersionOptions : IEquatable<VersionOptions>
 
         /// <summary>
         /// The commit ID appears as the 4th integer in the version (e.g. 1.2.3.23523).
+        /// Specifically, the first 15 bits of the commit hash are used as the 4th integer.
         /// </summary>
         FourthVersionComponent,
     }
