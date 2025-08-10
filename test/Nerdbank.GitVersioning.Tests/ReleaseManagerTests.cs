@@ -733,7 +733,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         this.WriteVersionFile(versionOptions);
 
         var releaseManager = new ReleaseManager();
-        ReleaseManager.ReleaseInfo result = releaseManager.SimulatePrepareRelease(this.RepoPath);
+        ReleaseManager.ReleaseInfo result = releaseManager.PrepareRelease(this.RepoPath, whatIf: true);
 
         Assert.NotNull(result);
         Assert.Equal("v1.2", result.NewBranch.Name);
@@ -759,7 +759,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         this.WriteVersionFile(versionOptions);
 
         var releaseManager = new ReleaseManager();
-        ReleaseManager.ReleaseInfo result = releaseManager.SimulatePrepareRelease(this.RepoPath, "rc");
+        ReleaseManager.ReleaseInfo result = releaseManager.PrepareRelease(this.RepoPath, "rc", whatIf: true);
 
         Assert.NotNull(result);
         Assert.Equal("v1.2", result.NewBranch.Name);
@@ -785,7 +785,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         this.WriteVersionFile(versionOptions);
 
         var releaseManager = new ReleaseManager();
-        ReleaseManager.ReleaseInfo result = releaseManager.SimulatePrepareRelease(this.RepoPath, versionIncrement: ReleaseVersionIncrement.Major);
+        ReleaseManager.ReleaseInfo result = releaseManager.PrepareRelease(this.RepoPath, versionIncrement: ReleaseVersionIncrement.Major, whatIf: true);
 
         Assert.NotNull(result);
         Assert.Equal("v1.2", result.NewBranch.Name);
@@ -811,7 +811,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         this.WriteVersionFile(versionOptions);
 
         var releaseManager = new ReleaseManager();
-        ReleaseManager.ReleaseInfo result = releaseManager.SimulatePrepareRelease(this.RepoPath, nextVersion: new Version("1.5"));
+        ReleaseManager.ReleaseInfo result = releaseManager.PrepareRelease(this.RepoPath, nextVersion: new Version("1.5"), whatIf: true);
 
         Assert.NotNull(result);
         Assert.Equal("v1.2", result.NewBranch.Name);
@@ -845,7 +845,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         var releaseManager = new ReleaseManager();
 
         // Should throw because release branch already exists
-        this.AssertError(() => releaseManager.SimulatePrepareRelease(this.RepoPath), ReleasePreparationError.BranchAlreadyExists);
+        this.AssertError(() => releaseManager.PrepareRelease(this.RepoPath, whatIf: true), ReleasePreparationError.BranchAlreadyExists);
     }
 
     [Fact]
@@ -868,7 +868,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         Commands.Checkout(this.LibGit2Repository, this.LibGit2Repository.CreateBranch("v1.2"));
 
         var releaseManager = new ReleaseManager();
-        ReleaseManager.ReleaseInfo result = releaseManager.SimulatePrepareRelease(this.RepoPath);
+        ReleaseManager.ReleaseInfo result = releaseManager.PrepareRelease(this.RepoPath, whatIf: true);
 
         Assert.NotNull(result);
         Assert.Equal("v1.2", result.CurrentBranch.Name);

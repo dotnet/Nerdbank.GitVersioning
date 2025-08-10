@@ -131,107 +131,19 @@ public class ReleaseManager
     /// <param name="unformattedCommitMessage">
     /// An optional, custom message to use for the commit that sets the new version number. May use <c>{0}</c> to substitute the new version number.
     /// </param>
-    public void PrepareRelease(string projectDirectory, string releaseUnstableTag = null, Version nextVersion = null, VersionOptions.ReleaseVersionIncrement? versionIncrement = null, ReleaseManagerOutputMode outputMode = default, string unformattedCommitMessage = null)
+    /// <param name="whatIf">
+    /// If true, simulates the prepare-release operation and returns the versions that would be set without making any changes.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ReleaseInfo"/> object containing information about the release when <paramref name="whatIf"/> is true; otherwise null.
+    /// </returns>
+    public ReleaseInfo PrepareRelease(string projectDirectory, string releaseUnstableTag = null, Version nextVersion = null, VersionOptions.ReleaseVersionIncrement? versionIncrement = null, ReleaseManagerOutputMode outputMode = default, string unformattedCommitMessage = null, bool whatIf = false)
     {
-        Requires.NotNull(projectDirectory, nameof(projectDirectory));
-
-        // open the git repository
-        LibGit2Context context = this.GetRepository(projectDirectory);
-        Repository repository = context.Repository;
-
-        if (repository.Info.IsHeadDetached)
-        {
-            this.stderr.WriteLine("Detached head. Check out a branch first.");
-            throw new ReleasePreparationException(ReleasePreparationError.DetachedHead);
-        }
-
-        // get the current version
-        VersionOptions versionOptions = context.VersionFile.GetVersion();
-        if (versionOptions is null)
-        {
-            this.stderr.WriteLine($"Failed to load version file for directory '{projectDirectory}'.");
-            throw new ReleasePreparationException(ReleasePreparationError.NoVersionFile);
-        }
-
-        string releaseBranchName = this.GetReleaseBranchName(versionOptions);
-        string originalBranchName = repository.Head.FriendlyName;
-        SemanticVersion releaseVersion = string.IsNullOrEmpty(releaseUnstableTag)
-            ? versionOptions.Version.WithoutPrepreleaseTags()
-            : versionOptions.Version.SetFirstPrereleaseTag(releaseUnstableTag);
-
-        // check if the current branch is the release branch
-        if (string.Equals(originalBranchName, releaseBranchName, StringComparison.OrdinalIgnoreCase))
-        {
-            if (outputMode == ReleaseManagerOutputMode.Text)
-            {
-                this.stdout.WriteLine($"{releaseBranchName} branch advanced from {versionOptions.Version} to {releaseVersion}.");
-            }
-            else
-            {
-                var releaseInfo = new ReleaseInfo(new ReleaseBranchInfo(releaseBranchName, repository.Head.Tip.Id.ToString(), releaseVersion));
-                this.WriteToOutput(releaseInfo);
-            }
-
-            this.UpdateVersion(context, versionOptions.Version, releaseVersion, unformattedCommitMessage);
-            return;
-        }
-
-        SemanticVersion nextDevVersion = this.GetNextDevVersion(versionOptions, nextVersion, versionIncrement);
-
-        // check if the current version on the current branch is different from the next version
-        // otherwise, both the release branch and the dev branch would have the same version
-        if (versionOptions.Version.Version == nextDevVersion.Version)
-        {
-            this.stderr.WriteLine($"Version on '{originalBranchName}' is already set to next version {nextDevVersion.Version}.");
-            throw new ReleasePreparationException(ReleasePreparationError.NoVersionIncrement);
-        }
-
-        // check if the release branch already exists
-        if (repository.Branches[releaseBranchName] is not null)
-        {
-            this.stderr.WriteLine($"Cannot create branch '{releaseBranchName}' because it already exists.");
-            throw new ReleasePreparationException(ReleasePreparationError.BranchAlreadyExists);
-        }
-
-        // create release branch and update version
-        Branch releaseBranch = repository.CreateBranch(releaseBranchName);
-        global::LibGit2Sharp.Commands.Checkout(repository, releaseBranch);
-        this.UpdateVersion(context, versionOptions.Version, releaseVersion, unformattedCommitMessage);
-
-        if (outputMode == ReleaseManagerOutputMode.Text)
-        {
-            this.stdout.WriteLine($"{releaseBranchName} branch now tracks v{releaseVersion} stabilization and release.");
-        }
-
-        // update version on main branch
-        global::LibGit2Sharp.Commands.Checkout(repository, originalBranchName);
-        this.UpdateVersion(context, versionOptions.Version, nextDevVersion, unformattedCommitMessage);
-
-        if (outputMode == ReleaseManagerOutputMode.Text)
-        {
-            this.stdout.WriteLine($"{originalBranchName} branch now tracks v{nextDevVersion} development.");
-        }
-
-        // Merge release branch back to main branch
-        var mergeOptions = new MergeOptions()
-        {
-            CommitOnSuccess = true,
-            MergeFileFavor = MergeFileFavor.Ours,
-        };
-        repository.Merge(releaseBranch, this.GetSignature(repository), mergeOptions);
-
-        if (outputMode == ReleaseManagerOutputMode.Json)
-        {
-            var originalBranchInfo = new ReleaseBranchInfo(originalBranchName, repository.Head.Tip.Sha, nextDevVersion);
-            var releaseBranchInfo = new ReleaseBranchInfo(releaseBranchName, repository.Branches[releaseBranchName].Tip.Id.ToString(), releaseVersion);
-            var releaseInfo = new ReleaseInfo(originalBranchInfo, releaseBranchInfo);
-
-            this.WriteToOutput(releaseInfo);
-        }
+        return this.PrepareReleaseCore(projectDirectory, releaseUnstableTag, nextVersion, versionIncrement, outputMode, unformattedCommitMessage, whatIf);
     }
 
     /// <summary>
-    /// Simulates the prepare-release operation and returns the versions that would be set without making any changes.
+    /// Core implementation of prepare-release functionality that can either simulate or execute the operation.
     /// </summary>
     /// <param name="projectDirectory">
     /// The path to the directory that may (or its ancestors may) define the version file.
@@ -255,10 +167,16 @@ public class ReleaseManager
     /// <param name="outputMode">
     /// The output format to use for writing to stdout.
     /// </param>
+    /// <param name="unformattedCommitMessage">
+    /// An optional, custom message to use for the commit that sets the new version number. May use <c>{0}</c> to substitute the new version number.
+    /// </param>
+    /// <param name="whatIf">
+    /// If true, simulates the prepare-release operation and returns the versions that would be set without making any changes.
+    /// </param>
     /// <returns>
-    /// A <see cref="ReleaseInfo"/> object containing information about the simulated release.
+    /// A <see cref="ReleaseInfo"/> object containing information about the release when <paramref name="whatIf"/> is true; otherwise null.
     /// </returns>
-    public ReleaseInfo SimulatePrepareRelease(string projectDirectory, string releaseUnstableTag = null, Version nextVersion = null, VersionOptions.ReleaseVersionIncrement? versionIncrement = null, ReleaseManagerOutputMode outputMode = default)
+    private ReleaseInfo PrepareReleaseCore(string projectDirectory, string releaseUnstableTag, Version nextVersion, VersionOptions.ReleaseVersionIncrement? versionIncrement, ReleaseManagerOutputMode outputMode, string unformattedCommitMessage, bool whatIf)
     {
         Requires.NotNull(projectDirectory, nameof(projectDirectory));
 
@@ -291,10 +209,30 @@ public class ReleaseManager
         {
             if (outputMode == ReleaseManagerOutputMode.Text)
             {
-                this.stdout.WriteLine($"What-if: {releaseBranchName} branch would be advanced from {versionOptions.Version} to {releaseVersion}.");
+                if (whatIf)
+                {
+                    this.stdout.WriteLine($"What-if: {releaseBranchName} branch would be advanced from {versionOptions.Version} to {releaseVersion}.");
+                }
+                else
+                {
+                    this.stdout.WriteLine($"{releaseBranchName} branch advanced from {versionOptions.Version} to {releaseVersion}.");
+                }
             }
 
-            return new ReleaseInfo(new ReleaseBranchInfo(releaseBranchName, repository.Head.Tip.Id.ToString(), releaseVersion));
+            var releaseInfo = new ReleaseInfo(new ReleaseBranchInfo(releaseBranchName, repository.Head.Tip.Id.ToString(), releaseVersion));
+
+            if (whatIf)
+            {
+                return releaseInfo;
+            }
+
+            if (outputMode == ReleaseManagerOutputMode.Json)
+            {
+                this.WriteToOutput(releaseInfo);
+            }
+
+            this.UpdateVersion(context, versionOptions.Version, releaseVersion, unformattedCommitMessage);
+            return null;
         }
 
         SemanticVersion nextDevVersion = this.GetNextDevVersion(versionOptions, nextVersion, versionIncrement);
@@ -316,13 +254,55 @@ public class ReleaseManager
 
         if (outputMode == ReleaseManagerOutputMode.Text)
         {
-            this.stdout.WriteLine($"What-if: {releaseBranchName} branch would track v{releaseVersion} stabilization and release.");
-            this.stdout.WriteLine($"What-if: {originalBranchName} branch would track v{nextDevVersion} development.");
+            if (whatIf)
+            {
+                this.stdout.WriteLine($"What-if: {releaseBranchName} branch would track v{releaseVersion} stabilization and release.");
+                this.stdout.WriteLine($"What-if: {originalBranchName} branch would track v{nextDevVersion} development.");
+            }
+            else
+            {
+                this.stdout.WriteLine($"{releaseBranchName} branch now tracks v{releaseVersion} stabilization and release.");
+                this.stdout.WriteLine($"{originalBranchName} branch now tracks v{nextDevVersion} development.");
+            }
         }
 
         var originalBranchInfo = new ReleaseBranchInfo(originalBranchName, repository.Head.Tip.Sha, nextDevVersion);
         var releaseBranchInfo = new ReleaseBranchInfo(releaseBranchName, repository.Head.Tip.Id.ToString(), releaseVersion);
-        return new ReleaseInfo(originalBranchInfo, releaseBranchInfo);
+        var releaseInfoResult = new ReleaseInfo(originalBranchInfo, releaseBranchInfo);
+
+        if (whatIf)
+        {
+            return releaseInfoResult;
+        }
+
+        // create release branch and update version
+        Branch releaseBranch = repository.CreateBranch(releaseBranchName);
+        global::LibGit2Sharp.Commands.Checkout(repository, releaseBranch);
+        this.UpdateVersion(context, versionOptions.Version, releaseVersion, unformattedCommitMessage);
+
+        // update version on main branch
+        global::LibGit2Sharp.Commands.Checkout(repository, originalBranchName);
+        this.UpdateVersion(context, versionOptions.Version, nextDevVersion, unformattedCommitMessage);
+
+        // Merge release branch back to main branch
+        var mergeOptions = new MergeOptions()
+        {
+            CommitOnSuccess = true,
+            MergeFileFavor = MergeFileFavor.Ours,
+        };
+        repository.Merge(releaseBranch, this.GetSignature(repository), mergeOptions);
+
+        if (outputMode == ReleaseManagerOutputMode.Json)
+        {
+            // Update the commit IDs with the actual final commit IDs after all operations
+            var finalOriginalBranchInfo = new ReleaseBranchInfo(originalBranchName, repository.Head.Tip.Sha, nextDevVersion);
+            var finalReleaseBranchInfo = new ReleaseBranchInfo(releaseBranchName, repository.Branches[releaseBranchName].Tip.Id.ToString(), releaseVersion);
+            var finalReleaseInfo = new ReleaseInfo(finalOriginalBranchInfo, finalReleaseBranchInfo);
+            
+            this.WriteToOutput(finalReleaseInfo);
+        }
+
+        return null;
     }
 
     public void WriteToOutput(ReleaseInfo releaseInfo)
