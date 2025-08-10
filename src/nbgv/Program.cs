@@ -146,6 +146,11 @@ namespace Nerdbank.GitVersioning.Tool
                 {
                     Description = "The name of just one version property to print to stdout. When specified, the output is always in raw text. Useful in scripts.",
                 };
+                var publicRelease = new Option<bool?>("--public-release")
+                {
+                    Description = "Specifies whether this is a public release. When specified, overrides the PublicRelease environment variable. Use --public-release=true or --public-release=false to explicitly set the value.",
+                    Arity = ArgumentArity.ZeroOrOne,
+                };
                 var commit = new Argument<string>("commit-ish")
                 {
                     Description = $"The commit/ref to get the version information for.",
@@ -158,6 +163,7 @@ namespace Nerdbank.GitVersioning.Tool
                     metadata,
                     format,
                     variable,
+                    publicRelease,
                     commit,
                 };
 
@@ -167,8 +173,9 @@ namespace Nerdbank.GitVersioning.Tool
                     var metadataValue = parseResult.GetValue(metadata);
                     var formatValue = parseResult.GetValue(format);
                     var variableValue = parseResult.GetValue(variable);
+                    var publicReleaseValue = parseResult.GetValue(publicRelease);
                     var commitValue = parseResult.GetValue(commit);
-                    return await OnGetVersionCommand(projectValue, metadataValue, formatValue, variableValue, commitValue);
+                    return await OnGetVersionCommand(projectValue, metadataValue, formatValue, variableValue, publicReleaseValue, commitValue);
                 });
             }
 
@@ -576,7 +583,7 @@ namespace Nerdbank.GitVersioning.Tool
             return (int)ExitCodes.OK;
         }
 
-        private static Task<int> OnGetVersionCommand(string project, string[] metadata, string format, string variable, string commitish)
+        private static Task<int> OnGetVersionCommand(string project, string[] metadata, string format, string variable, bool? publicReleaseArg, string commitish)
         {
             if (string.IsNullOrEmpty(format))
             {
@@ -609,8 +616,12 @@ namespace Nerdbank.GitVersioning.Tool
                 oracle.BuildMetadata.AddRange(metadata);
             }
 
-            // Take the PublicRelease environment variable into account, since the build would as well.
-            if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("PublicRelease")) && bool.TryParse(Environment.GetEnvironmentVariable("PublicRelease"), out bool publicRelease))
+            // Set PublicRelease - prioritize command line argument over environment variable
+            if (publicReleaseArg.HasValue)
+            {
+                oracle.PublicRelease = publicReleaseArg.Value;
+            }
+            else if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("PublicRelease")) && bool.TryParse(Environment.GetEnvironmentVariable("PublicRelease"), out bool publicRelease))
             {
                 oracle.PublicRelease = publicRelease;
             }
