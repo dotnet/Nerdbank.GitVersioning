@@ -274,9 +274,9 @@
           The major version must not exceed 124 to guarantee that the overall integer never exceeds 2100000000 even with the other numbers added.
           Other components are also limited since they must fit within the 8 or 16 bits allowed for them.
           Learn more from https://developer.android.com/studio/publish/versioning. -->
-    <Error Condition="$([System.Version]::Parse('$(BuildVersion)').Major) &gt; 124" Text="Major version must not exceed 124 per Android versioning rules." />
-    <Error Condition="$([System.Version]::Parse('$(BuildVersion)').Minor) &gt; 255" Text="Minor version must not exceed 256 per Android versioning rules." />
-    <Error Condition="$(BuildNumber) &gt; 65535" Text="Build number must not exceed 65535 per Android versioning rules." />
+    <Error Condition="$([System.Version]::Parse('$(BuildVersion)').Major) &gt; 124 AND '$(OutputType)'=='Exe'" Text="Major version must not exceed 124 per Android versioning rules." />
+    <Error Condition="$([System.Version]::Parse('$(BuildVersion)').Minor) &gt; 255 AND '$(OutputType)'=='Exe'" Text="Minor version must not exceed 256 per Android versioning rules." />
+    <Error Condition="$(BuildNumber) &gt; 65535 AND '$(OutputType)'=='Exe'" Text="Build number must not exceed 65535 per Android versioning rules." />
     <PropertyGroup>
       <_NBGV_Major_Shifted>$([MSBuild]::Multiply($([System.Version]::Parse('$(BuildVersion)').Major), 16777216))</_NBGV_Major_Shifted>
       <_NBGV_Minor_Shifted>$([MSBuild]::Multiply($([System.Version]::Parse('$(BuildVersion)').Minor), 65536))</_NBGV_Minor_Shifted>
