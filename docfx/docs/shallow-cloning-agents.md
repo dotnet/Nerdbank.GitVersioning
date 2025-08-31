@@ -27,7 +27,4 @@ See also [GitHub Copilot Coding Agent docs](https://docs.github.com/en/copilot/h
 
 ## Dependabot
 
-Dependabot does not yet allow configuring custom environment variables for its runtime environment.
-Consider up-voting [this issue](https://github.com/dependabot/dependabot-core/issues/4660).
-Be sure to vote up the top-level issue description as that tends to be the tally that maintainers pay attention to.
-But you may also upvote [this particular comment](https://github.com/dependabot/dependabot-core/issues/4660#issuecomment-3170935213) that describes our use case.
+We don't anticipate any issues with Dependabot, which [now sets](https://github.com/dependabot/dependabot-core/issues/4660#issuecomment-3181471227) `NBGV_GitEngine=Disabled` automatically.
