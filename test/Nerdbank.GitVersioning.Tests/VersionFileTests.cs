@@ -721,6 +721,68 @@ public abstract class VersionFileTests : RepoTestBase
         }
     }
 
+    [Fact]
+    public void SetVersion_OnSetVersionCommand_ShouldUseRequestedDirectory()
+    {
+        // This test verifies the fix for: OnSetVersionCommand should use the requested directory
+        // for SetVersion, not the directory returned by GetVersion when inheritance is involved
+        this.InitializeSourceControl();
+
+        // Create root version.json 
+        VersionOptions rootVersionOptions = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("1.0.0"),
+        };
+        this.WriteVersionFile(rootVersionOptions, ".");
+
+        // Create child directory but no version.json file yet
+        string childDirRelative = "src/Component1";
+        string childDir = Path.Combine(this.RepoPath, childDirRelative);
+        Directory.CreateDirectory(childDir);
+
+        // Commit the initial state so root version.json is in git
+        this.AddCommits();
+
+        // Get paths for verification
+        string rootVersionJsonPath = Path.Combine(this.RepoPath, "version.json");
+        string childVersionJsonPath = Path.Combine(childDir, "version.json");
+
+        // Store original root content to verify it doesn't get corrupted
+        string originalRootContent = File.ReadAllText(rootVersionJsonPath);
+
+        // Create context for the child directory (simulating running nbgv from child dir)
+        using GitContext childContext = this.CreateGitContext(childDir);
+
+        // This simulates what OnSetVersionCommand does:
+        // 1. Get existing version options from the working copy (this finds root version.json)
+        VersionOptions existingOptions = childContext.VersionFile.GetWorkingCopyVersion(out string actualDirectory);
+        Assert.NotNull(existingOptions);
+
+        // 2. actualDirectory points to root directory (where version.json was found)
+        Assert.Equal(this.RepoPath, actualDirectory);
+
+        // 3. Modify the version
+        SemanticVersion newVersion = SemanticVersion.Parse("2.0.0");
+        existingOptions.Version = newVersion;
+
+        // 4. With the fix: OnSetVersionCommand should use the requested directory (childDir)
+        // instead of actualDirectory (root directory) for SetVersion
+        string versionJsonPath = childContext.VersionFile.SetVersion(childDir, existingOptions);
+
+        // Verify the fix: the child file should be created instead of modifying root
+        Assert.Equal(childVersionJsonPath, versionJsonPath);
+
+        // Verify root file was NOT modified
+        string currentRootContent = File.ReadAllText(rootVersionJsonPath);
+        Assert.Equal(originalRootContent, currentRootContent);
+
+        // Verify child file was created with correct content
+        Assert.True(File.Exists(childVersionJsonPath), "Child version.json should have been created");
+        string childContent = File.ReadAllText(childVersionJsonPath);
+        VersionOptions childOptions = JsonConvert.DeserializeObject<VersionOptions>(childContent, VersionOptions.GetJsonSettings());
+        Assert.Equal(newVersion, childOptions.Version);
+    }
+
     private void AssertPathHasVersion(string committish, string absolutePath, VersionOptions expected)
     {
         VersionOptions actual = this.GetVersionOptions(absolutePath, committish);

@@ -697,7 +697,7 @@ namespace Nerdbank.GitVersioning.Tool
             if (existingOptions is not null)
             {
                 existingOptions.Version = semver;
-                versionJsonPath = context.VersionFile.SetVersion(actualDirectory, existingOptions);
+                versionJsonPath = context.VersionFile.SetVersion(searchPath, existingOptions);
             }
             else if (string.IsNullOrEmpty(project))
             {
