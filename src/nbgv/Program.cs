@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation and Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+#nullable enable
+
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
@@ -423,6 +425,430 @@ namespace Nerdbank.GitVersioning.Tool
             return (int)exitCode;
         }
 
+        /// <summary>
+        /// Detects the default branch name for the repository following the algorithm:
+        /// 1. If the upstream remote exists, use its HEAD reference
+        /// 2. If the origin remote exists, use its HEAD reference
+        /// 3. If any remote exists, pick one arbitrarily and use its HEAD reference
+        /// 4. If only one local branch exists, use that one
+        /// 5. Use git config init.defaultBranch if the named branch exists locally
+        /// 6. Use the first local branch that exists from: master, main, develop.
+        /// </summary>
+        /// <param name="context">The git context to query.</param>
+        /// <returns>The detected default branch name, defaulting to "master" if none can be determined.</returns>
+        private static string DetectDefaultBranch(GitContext context)
+        {
+            if (context is LibGit2.LibGit2Context libgit2Context)
+            {
+                LibGit2Sharp.Repository repository = libgit2Context.Repository;
+
+                // Step 1-3: Check remotes for HEAD reference
+                string[] remotePreferenceOrder = { "upstream", "origin" };
+
+                foreach (string remoteName in remotePreferenceOrder)
+                {
+                    LibGit2Sharp.Remote? remote = repository.Network.Remotes[remoteName];
+                    if (remote is object)
+                    {
+                        string? defaultBranch = GetDefaultBranchFromRemote(repository, remoteName);
+                        if (!string.IsNullOrEmpty(defaultBranch))
+                        {
+                            return defaultBranch;
+                        }
+                    }
+                }
+
+                // Check any other remotes if upstream/origin didn't work
+                foreach (LibGit2Sharp.Remote remote in repository.Network.Remotes)
+                {
+                    if (remote.Name != "upstream" && remote.Name != "origin")
+                    {
+                        string? defaultBranch = GetDefaultBranchFromRemote(repository, remote.Name);
+                        if (!string.IsNullOrEmpty(defaultBranch))
+                        {
+                            return defaultBranch;
+                        }
+                    }
+                }
+
+                // Step 4: If only one local branch exists, use that one
+                LibGit2Sharp.Branch[] localBranches = repository.Branches.Where(b => !b.IsRemote).ToArray();
+                if (localBranches.Length == 1)
+                {
+                    return localBranches[0].FriendlyName;
+                }
+
+                // Step 5: Use git config init.defaultBranch if the named branch exists locally
+                try
+                {
+                    string? configDefaultBranch = repository.Config.Get<string>("init.defaultBranch")?.Value;
+                    if (!string.IsNullOrEmpty(configDefaultBranch) &&
+                        localBranches.Any(b => b.FriendlyName == configDefaultBranch))
+                    {
+                        return configDefaultBranch;
+                    }
+                }
+                catch
+                {
+                    // Ignore config read errors
+                }
+
+                // Step 6: Use the first local branch that exists from: master, main, develop
+                string[] commonBranchNames = { "master", "main", "develop" };
+                foreach (string branchName in commonBranchNames)
+                {
+                    if (localBranches.Any(b => b.FriendlyName == branchName))
+                    {
+                        return branchName;
+                    }
+                }
+            }
+            else if (context.IsRepository)
+            {
+                // Alternative implementation that reads .git directory directly
+                string? dotGitPath = null;
+
+                // Try to get .git path from different context types
+                if (context is Managed.ManagedGitContext managedContext)
+                {
+                    dotGitPath = managedContext.Repository.GitDirectory;
+                }
+                else
+                {
+                    // Use public API to find git directory
+                    try
+                    {
+                        // Create a temporary GitContext to find the git directory
+                        using GitContext tempContext = GitContext.Create(context.WorkingTreePath, engine: GitContext.Engine.ReadOnly);
+                        if (tempContext.IsRepository && tempContext is Managed.ManagedGitContext tempManagedContext)
+                        {
+                            dotGitPath = tempManagedContext.Repository.GitDirectory;
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore errors in creating temporary context
+                    }
+                }
+
+                if (dotGitPath is object)
+                {
+                    // Step 1-3: Check remotes for HEAD reference
+                    string[] remotePreferenceOrder = { "upstream", "origin" };
+
+                    foreach (string remoteName in remotePreferenceOrder)
+                    {
+                        string? defaultBranch = GetDefaultBranchFromRemoteFiles(dotGitPath, remoteName);
+                        if (!string.IsNullOrEmpty(defaultBranch))
+                        {
+                            return defaultBranch;
+                        }
+                    }
+
+                    // Check any other remotes if upstream/origin didn't work
+                    string[] otherRemotes = GetRemoteNamesFromFiles(dotGitPath);
+                    foreach (string remoteName in otherRemotes)
+                    {
+                        if (remoteName != "upstream" && remoteName != "origin")
+                        {
+                            string? defaultBranch = GetDefaultBranchFromRemoteFiles(dotGitPath, remoteName);
+                            if (!string.IsNullOrEmpty(defaultBranch))
+                            {
+                                return defaultBranch;
+                            }
+                        }
+                    }
+
+                    // Step 4: If only one local branch exists, use that one
+                    string[] localBranches = GetLocalBranchNamesFromFiles(dotGitPath);
+                    if (localBranches.Length == 1)
+                    {
+                        return localBranches[0];
+                    }
+
+                    // Step 5: Use git config init.defaultBranch if the named branch exists locally
+                    string? configDefaultBranch = GetConfigValueFromFiles(dotGitPath, "init.defaultBranch");
+                    if (!string.IsNullOrEmpty(configDefaultBranch) && localBranches.Contains(configDefaultBranch))
+                    {
+                        return configDefaultBranch;
+                    }
+
+                    // Step 6: Use the first local branch that exists from: master, main, develop
+                    string[] commonBranchNames = { "master", "main", "develop" };
+                    foreach (string branchName in commonBranchNames)
+                    {
+                        if (localBranches.Contains(branchName))
+                        {
+                            return branchName;
+                        }
+                    }
+                }
+            }
+
+            // Fallback to "master" if nothing else works
+            return "master";
+        }
+
+        /// <summary>
+        /// Gets the default branch name from a remote's HEAD reference.
+        /// </summary>
+        /// <param name="repository">The repository to query.</param>
+        /// <param name="remoteName">The name of the remote.</param>
+        /// <returns>The default branch name, or null if it cannot be determined.</returns>
+        private static string? GetDefaultBranchFromRemote(LibGit2Sharp.Repository repository, string remoteName)
+        {
+            try
+            {
+                // Try to get the symbolic reference for the remote HEAD
+                string remoteHeadRef = $"refs/remotes/{remoteName}/HEAD";
+                LibGit2Sharp.Reference? remoteHead = repository.Refs[remoteHeadRef];
+
+                if (remoteHead?.TargetIdentifier is object)
+                {
+                    // Extract branch name from refs/remotes/{remote}/{branch}
+                    string targetRef = remoteHead.TargetIdentifier;
+                    if (targetRef.StartsWith($"refs/remotes/{remoteName}/"))
+                    {
+                        return targetRef.Substring($"refs/remotes/{remoteName}/".Length);
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore errors when trying to read remote HEAD
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Gets the default branch name from a remote's HEAD reference by reading .git files directly.
+        /// </summary>
+        /// <param name="dotGitPath">The path to the .git directory.</param>
+        /// <param name="remoteName">The name of the remote.</param>
+        /// <returns>The default branch name, or null if it cannot be determined.</returns>
+        private static string? GetDefaultBranchFromRemoteFiles(string dotGitPath, string remoteName)
+        {
+            try
+            {
+                // Try to read refs/remotes/{remote}/HEAD file
+                string remoteHeadPath = Path.Combine(dotGitPath, "refs", "remotes", remoteName, "HEAD");
+                if (File.Exists(remoteHeadPath))
+                {
+                    string content = File.ReadAllText(remoteHeadPath).Trim();
+
+                    // Content should be like "ref: refs/remotes/origin/main"
+                    if (content.StartsWith("ref: "))
+                    {
+                        string targetRef = content.Substring(5); // Remove "ref: " prefix
+                        string expectedPrefix = $"refs/remotes/{remoteName}/";
+                        if (targetRef.StartsWith(expectedPrefix))
+                        {
+                            return targetRef.Substring(expectedPrefix.Length);
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore file read errors
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Gets the names of all remotes by reading .git files directly.
+        /// </summary>
+        /// <param name="dotGitPath">The path to the .git directory.</param>
+        /// <returns>An array of remote names.</returns>
+        private static string[] GetRemoteNamesFromFiles(string dotGitPath)
+        {
+            try
+            {
+                string remotesPath = Path.Combine(dotGitPath, "refs", "remotes");
+                if (Directory.Exists(remotesPath))
+                {
+                    return Directory.GetDirectories(remotesPath)
+                        .Select(Path.GetFileName)
+                        .Where(name => !string.IsNullOrEmpty(name))
+                        .ToArray()!;
+                }
+            }
+            catch
+            {
+                // Ignore directory read errors
+            }
+
+            return Array.Empty<string>();
+        }
+
+        /// <summary>
+        /// Gets the names of all local branches by reading .git files directly.
+        /// </summary>
+        /// <param name="dotGitPath">The path to the .git directory.</param>
+        /// <returns>An array of local branch names.</returns>
+        private static string[] GetLocalBranchNamesFromFiles(string dotGitPath)
+        {
+            var branches = new List<string>();
+
+            try
+            {
+                // Read from refs/heads directory
+                string headsPath = Path.Combine(dotGitPath, "refs", "heads");
+                if (Directory.Exists(headsPath))
+                {
+                    AddBranchesFromDirectory(headsPath, string.Empty, branches);
+                }
+
+                // Also check packed-refs file
+                string packedRefsPath = Path.Combine(dotGitPath, "packed-refs");
+                if (File.Exists(packedRefsPath))
+                {
+                    string[] lines = File.ReadAllLines(packedRefsPath);
+                    foreach (string line in lines)
+                    {
+                        if (!line.StartsWith("#") && line.Contains(" refs/heads/"))
+                        {
+                            string[] parts = line.Split(' ');
+                            if (parts.Length >= 2 && parts[1].StartsWith("refs/heads/"))
+                            {
+                                string branchName = parts[1].Substring("refs/heads/".Length);
+                                if (!branches.Contains(branchName))
+                                {
+                                    branches.Add(branchName);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore file read errors
+            }
+
+            return branches.ToArray();
+        }
+
+        /// <summary>
+        /// Recursively adds branch names from a directory.
+        /// </summary>
+        /// <param name="directoryPath">The directory path to scan.</param>
+        /// <param name="relativePath">The relative path from refs/heads.</param>
+        /// <param name="branches">The list to add branch names to.</param>
+        private static void AddBranchesFromDirectory(string directoryPath, string relativePath, List<string> branches)
+        {
+            try
+            {
+                foreach (string filePath in Directory.GetFiles(directoryPath))
+                {
+                    string fileName = Path.GetFileName(filePath);
+                    string branchName = string.IsNullOrEmpty(relativePath) ? fileName : $"{relativePath}/{fileName}";
+                    branches.Add(branchName);
+                }
+
+                foreach (string subdirectoryPath in Directory.GetDirectories(directoryPath))
+                {
+                    string subdirectoryName = Path.GetFileName(subdirectoryPath);
+                    string newRelativePath = string.IsNullOrEmpty(relativePath) ? subdirectoryName : $"{relativePath}/{subdirectoryName}";
+                    AddBranchesFromDirectory(subdirectoryPath, newRelativePath, branches);
+                }
+            }
+            catch
+            {
+                // Ignore directory read errors
+            }
+        }
+
+        /// <summary>
+        /// Gets a git config value by reading .git files directly.
+        /// </summary>
+        /// <param name="dotGitPath">The path to the .git directory.</param>
+        /// <param name="configKey">The config key to read (e.g., "init.defaultBranch").</param>
+        /// <returns>The config value, or null if not found.</returns>
+        private static string? GetConfigValueFromFiles(string dotGitPath, string configKey)
+        {
+            try
+            {
+                // Check .git/config first
+                string configPath = Path.Combine(dotGitPath, "config");
+                if (File.Exists(configPath))
+                {
+                    string? value = ReadConfigValue(configPath, configKey);
+                    if (value is object)
+                    {
+                        return value;
+                    }
+                }
+
+                // Fall back to global config if available
+                string? homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                if (!string.IsNullOrEmpty(homeDir))
+                {
+                    string globalConfigPath = Path.Combine(homeDir, ".gitconfig");
+                    if (File.Exists(globalConfigPath))
+                    {
+                        return ReadConfigValue(globalConfigPath, configKey);
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore config read errors
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Reads a config value from a git config file.
+        /// </summary>
+        /// <param name="configPath">The path to the config file.</param>
+        /// <param name="configKey">The config key to read.</param>
+        /// <returns>The config value, or null if not found.</returns>
+        private static string? ReadConfigValue(string configPath, string configKey)
+        {
+            try
+            {
+                string[] lines = File.ReadAllLines(configPath);
+                string[] keyParts = configKey.Split('.');
+                if (keyParts.Length != 2)
+                {
+                    return null;
+                }
+
+                string section = keyParts[0];
+                string key = keyParts[1];
+                string sectionHeader = $"[{section}]";
+                bool inSection = false;
+
+                foreach (string line in lines)
+                {
+                    string trimmedLine = line.Trim();
+
+                    if (trimmedLine.StartsWith("[") && trimmedLine.EndsWith("]"))
+                    {
+                        inSection = string.Equals(trimmedLine, sectionHeader, StringComparison.OrdinalIgnoreCase);
+                    }
+                    else if (inSection && trimmedLine.Contains("="))
+                    {
+                        string[] parts = trimmedLine.Split('=', 2);
+                        if (parts.Length == 2 && string.Equals(parts[0].Trim(), key, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return parts[1].Trim().Trim('"');
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore file read errors
+            }
+
+            return null;
+        }
+
         private static async Task<int> OnInstallCommand(string path, string version, string[] source)
         {
             if (!SemanticVersion.TryParse(string.IsNullOrEmpty(version) ? DefaultVersionSpec : version, out SemanticVersion semver))
@@ -431,22 +857,6 @@ namespace Nerdbank.GitVersioning.Tool
                 return (int)ExitCodes.InvalidVersionSpec;
             }
 
-            var options = new VersionOptions
-            {
-                Version = semver,
-                PublicReleaseRefSpec = new string[]
-                {
-                    @"^refs/heads/master$",
-                    @"^refs/heads/v\d+(?:\.\d+)?$",
-                },
-                CloudBuild = new VersionOptions.CloudBuildOptions
-                {
-                    BuildNumber = new VersionOptions.CloudBuildNumberOptions
-                    {
-                        Enabled = true,
-                    },
-                },
-            };
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(path);
             if (!Directory.Exists(searchPath))
             {
@@ -461,12 +871,31 @@ namespace Nerdbank.GitVersioning.Tool
                 return (int)ExitCodes.NoGitRepo;
             }
 
+            string defaultBranch = DetectDefaultBranch(context);
+
+            var options = new VersionOptions
+            {
+                Version = semver,
+                PublicReleaseRefSpec = new string[]
+                {
+                    $@"^refs/heads/{defaultBranch}$",
+                    @"^refs/heads/v\d+(?:\.\d+)?$",
+                },
+                CloudBuild = new VersionOptions.CloudBuildOptions
+                {
+                    BuildNumber = new VersionOptions.CloudBuildNumberOptions
+                    {
+                        Enabled = true,
+                    },
+                },
+            };
+
             if (string.IsNullOrEmpty(path))
             {
                 path = context.WorkingTreePath;
             }
 
-            VersionOptions existingOptions = context.VersionFile.GetVersion();
+            VersionOptions? existingOptions = context.VersionFile.GetVersion();
             if (existingOptions is not null)
             {
                 if (!string.IsNullOrEmpty(version) && version != DefaultVersionSpec)
