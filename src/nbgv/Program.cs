@@ -697,7 +697,12 @@ namespace Nerdbank.GitVersioning.Tool
             if (existingOptions is not null)
             {
                 existingOptions.Version = semver;
-                versionJsonPath = context.VersionFile.SetVersion(searchPath, existingOptions);
+                // If the version file was found in the same directory where we're running the command,
+                // then update that file. Otherwise, create a new file in the requested directory.
+                string targetDirectory = string.Equals(actualDirectory, searchPath, StringComparison.OrdinalIgnoreCase) 
+                    ? actualDirectory 
+                    : searchPath;
+                versionJsonPath = context.VersionFile.SetVersion(targetDirectory, existingOptions);
             }
             else if (string.IsNullOrEmpty(project))
             {
