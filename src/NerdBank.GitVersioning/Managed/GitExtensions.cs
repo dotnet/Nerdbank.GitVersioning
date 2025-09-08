@@ -329,7 +329,7 @@ internal static class GitExtensions
             {
                 try
                 {
-                    options = ((ManagedVersionFile)this.context.VersionFile).GetVersion(commit, this.context.RepoRelativeProjectDirectory, this.blobVersionCache, out string? actualDirectory);
+                    options = ((ManagedVersionFile)this.context.VersionFile).GetVersion(commit, this.context.RepoRelativeProjectDirectory, this.blobVersionCache, VersionFileRequirements.Default, out _);
                 }
                 catch (Exception ex)
                 {

@@ -594,7 +594,7 @@ public static class LibGit2GitExtensions
             {
                 try
                 {
-                    options = ((LibGit2VersionFile)this.context.VersionFile).GetVersion(commit, this.context.RepoRelativeProjectDirectory, this.blobVersionCache, out string? actualDirectory);
+                    options = ((LibGit2VersionFile)this.context.VersionFile).GetVersion(commit, this.context.RepoRelativeProjectDirectory, this.blobVersionCache, VersionFileRequirements.Default, out _);
                 }
                 catch (Exception ex)
                 {

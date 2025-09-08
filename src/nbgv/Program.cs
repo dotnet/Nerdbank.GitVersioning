@@ -1,18 +1,9 @@
 // Copyright (c) .NET Foundation and Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System;
-using System.Collections.Generic;
 using System.CommandLine;
-using System.CommandLine.Invocation;
-using System.CommandLine.Parsing;
 using System.Globalization;
-using System.IO;
-using System.Linq;
 using System.Reflection;
-using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Build.Construction;
 using Nerdbank.GitVersioning.Commands;
 using Nerdbank.GitVersioning.LibGit2;
@@ -20,7 +11,6 @@ using Newtonsoft.Json;
 using NuGet.Common;
 using NuGet.Configuration;
 using NuGet.PackageManagement;
-using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 using NuGet.Resolver;
 using Validation;
@@ -692,12 +682,12 @@ namespace Nerdbank.GitVersioning.Tool
 
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(project);
             using var context = GitContext.Create(searchPath, engine: GitContext.Engine.ReadWrite);
-            VersionOptions existingOptions = context.VersionFile.GetVersion(out string actualDirectory);
+            VersionOptions existingOptions = context.VersionFile.GetVersion(VersionFileRequirements.NonMergedResult | VersionFileRequirements.VersionSpecified | VersionFileRequirements.AcceptInheritingFile, out VersionFileLocations locations);
             string versionJsonPath;
-            if (existingOptions is not null)
+            if (existingOptions is not null && locations.VersionSpecifyingVersionDirectory is not null)
             {
                 existingOptions.Version = semver;
-                versionJsonPath = context.VersionFile.SetVersion(actualDirectory, existingOptions);
+                versionJsonPath = context.VersionFile.SetVersion(locations.VersionSpecifyingVersionDirectory, existingOptions);
             }
             else if (string.IsNullOrEmpty(project))
             {
