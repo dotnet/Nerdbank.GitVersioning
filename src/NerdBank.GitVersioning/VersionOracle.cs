@@ -45,7 +45,7 @@ public class VersionOracle
 
         // Consider the working version only if the commit being inspected is HEAD.
         // Otherwise we're looking at historical data and should not consider the state of the working tree at all.
-        this.WorkingVersion = context.IsHead ? context.VersionFile.GetWorkingCopyVersion() : this.CommittedVersion;
+        this.WorkingVersion = context.IsHead ? context.VersionFile.GetWorkingCopyVersion(VersionFileRequirements.Default) : this.CommittedVersion;
 
         if (overrideVersionHeightOffset.HasValue)
         {

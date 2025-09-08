@@ -14,9 +14,9 @@ internal class DisabledGitVersionFile : VersionFile
 
     protected new DisabledGitContext Context => (DisabledGitContext)base.Context;
 
-    protected override VersionOptions? GetVersionCore(out string? actualDirectory)
+    protected override VersionOptions? GetVersionCore(VersionFileRequirements requirements, out VersionFileLocations locations)
     {
-        actualDirectory = null;
+        locations = default;
         return null;
     }
 }

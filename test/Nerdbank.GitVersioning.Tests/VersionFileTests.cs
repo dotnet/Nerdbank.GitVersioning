@@ -1,13 +1,6 @@
 ﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using LibGit2Sharp;
 using Nerdbank.GitVersioning;
 using Newtonsoft.Json;
 using Xunit;
@@ -570,7 +563,6 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.Equal(level1.Version.Version.Major, level2Options.Version.Version.Major);
         Assert.Equal(level1.Version.Version.Minor, level2Options.Version.Version.Minor);
         Assert.Equal(level2.AssemblyVersion.Precision, level2Options.AssemblyVersion.Precision);
-        Assert.True(level2Options.Inherit);
 
         VersionOptions level3Options = GetOption("foo/bar");
         Assert.Equal(level1.Version.Version.Major, level3Options.Version.Version.Major);
@@ -578,7 +570,6 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.Equal(level2.AssemblyVersion.Precision, level3Options.AssemblyVersion.Precision);
         Assert.Equal(level2.AssemblyVersion.Precision, level3Options.AssemblyVersion.Precision);
         Assert.Equal(level3.VersionHeightOffset, level3Options.VersionHeightOffset);
-        Assert.True(level3Options.Inherit);
 
         VersionOptions level2NoInheritOptions = GetOption("noInherit");
         Assert.Equal(level2NoInherit.Version, level2NoInheritOptions.Version);
@@ -587,7 +578,6 @@ public abstract class VersionFileTests : RepoTestBase
 
         VersionOptions level2InheritButResetVersionOptions = GetOption("inheritWithVersion");
         Assert.Equal(level2InheritButResetVersion.Version, level2InheritButResetVersionOptions.Version);
-        Assert.True(level2InheritButResetVersionOptions.Inherit);
 
         if (commitInSourceControl)
         {
@@ -610,8 +600,9 @@ public abstract class VersionFileTests : RepoTestBase
     {
         this.InitializeSourceControl();
         this.WriteVersionFile();
-        Assert.NotNull(this.Context.VersionFile.GetVersion(out string actualDirectory));
-        Assert.True(Path.IsPathRooted(actualDirectory));
+        Assert.NotNull(this.Context.VersionFile.GetVersion(VersionFileRequirements.Default, out VersionFileLocations locations));
+        Assert.True(Path.IsPathRooted(locations.NonInheritingVersionDirectory));
+        Assert.True(Path.IsPathRooted(locations.VersionSpecifyingVersionDirectory));
     }
 
     [Theory]
