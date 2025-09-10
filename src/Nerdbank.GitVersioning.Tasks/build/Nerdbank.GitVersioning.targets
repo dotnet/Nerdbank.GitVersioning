@@ -36,6 +36,7 @@
   <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="Nerdbank.GitVersioning.Tasks.NativeVersionInfo"/>
   <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="Nerdbank.GitVersioning.Tasks.SetCloudBuildVariables"/>
   <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="Nerdbank.GitVersioning.Tasks.CompareFiles"/>
+  <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="Nerdbank.GitVersioning.Tasks.StampMcpServerJson"/>
 
   <Target Name="NBGV_SetDefaults">
     <!-- Workarounds for https://github.com/dotnet/Nerdbank.GitVersioning/issues/404 -->
@@ -308,6 +309,34 @@
       <!-- Windows requirement: ApplicationDisplayVersion must be a four part version number -->
       <ApplicationDisplayVersion>$(BuildVersion)</ApplicationDisplayVersion>
     </PropertyGroup>
+  </Target>
+
+  <!-- Support for MCP servers: stamp version in server.json -->
+  <Target Name="NBGV_StampMcpServerJson"
+          Condition="'$(PackageType)' == 'McpServer'"
+          BeforeTargets="GenerateNuspec;_GetPackageFiles"
+          DependsOnTargets="GetBuildVersion">
+    <ItemGroup>
+      <_NBGV_OriginalServerJson Include="$(MSBuildProjectDirectory)\server.json" Condition="Exists('$(MSBuildProjectDirectory)\server.json')" />
+    </ItemGroup>
+    
+    <PropertyGroup Condition="'@(_NBGV_OriginalServerJson)' != ''">
+      <_NBGV_StampedServerJsonPath>$(IntermediateOutputPath)server.json</_NBGV_StampedServerJsonPath>
+    </PropertyGroup>
+    
+    <!-- Transform server.json with versioned content -->
+    <Nerdbank.GitVersioning.Tasks.StampMcpServerJson
+      Condition="'@(_NBGV_OriginalServerJson)' != ''"
+      SourceServerJson="%(_NBGV_OriginalServerJson.Identity)"
+      OutputServerJson="$(_NBGV_StampedServerJsonPath)"
+      Version="$(Version)" />
+    
+    <!-- Remove original server.json from packaging and add stamped version -->
+    <ItemGroup Condition="'$(_NBGV_StampedServerJsonPath)' != ''">
+      <Content Remove="server.json" />
+      <None Remove="server.json" />
+      <Content Include="$(_NBGV_StampedServerJsonPath)" PackagePath="server.json" Pack="true" />
+    </ItemGroup>
   </Target>
 
   <!-- Workaround till https://github.com/NuGet/NuGet.Client/issues/1064 is merged and used. -->
