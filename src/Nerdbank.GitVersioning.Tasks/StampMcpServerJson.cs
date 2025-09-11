@@ -3,8 +3,6 @@
 
 using System;
 using System.IO;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 
@@ -60,30 +58,12 @@ public class StampMcpServerJson : Microsoft.Build.Utilities.Task
                 Directory.CreateDirectory(outputDir);
             }
 
-            // Read and parse the server.json file
+            // Read the server.json file and replace version placeholders
             string jsonContent = File.ReadAllText(this.SourceServerJson);
-            JsonNode jsonNode = JsonNode.Parse(jsonContent);
-
-            if (jsonNode is JsonObject jsonObject)
-            {
-                // Replace all __VERSION__ placeholders in the JSON tree
-                this.ReplaceVersionPlaceholders(jsonNode, this.Version);
-
-                // Write the updated JSON with indentation for readability
-                var options = new JsonSerializerOptions
-                {
-                    WriteIndented = true,
-                };
-
-                string updatedJson = JsonSerializer.Serialize(jsonObject, options);
-                File.WriteAllText(this.OutputServerJson, updatedJson);
-
-                this.Log.LogMessage(MessageImportance.Low, $"Stamped version '{this.Version}' into server.json: {this.OutputServerJson}");
-            }
-            else
-            {
-                this.Log.LogError($"server.json does not contain a valid JSON object: {this.SourceServerJson}");
-            }
+            jsonContent = jsonContent.Replace("\"0.0.0-placeholder\"", $"\"{this.Version}\"");
+            
+            File.WriteAllText(this.OutputServerJson, jsonContent);
+            this.Log.LogMessage(MessageImportance.Low, $"Stamped version '{this.Version}' into server.json: {this.OutputServerJson}");
         }
         catch (Exception ex)
         {
@@ -91,68 +71,5 @@ public class StampMcpServerJson : Microsoft.Build.Utilities.Task
         }
 
         return !this.Log.HasLoggedErrors;
-    }
-
-    /// <summary>
-    /// Recursively walks the JSON tree and replaces any string values containing "__VERSION__" with the actual version.
-    /// </summary>
-    /// <param name="node">The JSON node to process.</param>
-    /// <param name="version">The version string to replace "__VERSION__" with.</param>
-    private void ReplaceVersionPlaceholders(JsonNode node, string version)
-    {
-        switch (node)
-        {
-            case JsonObject jsonObject:
-                foreach (var property in jsonObject.ToArray())
-                {
-                    if (property.Value != null)
-                    {
-                        this.ReplaceVersionPlaceholders(property.Value, version);
-                    }
-                }
-                break;
-
-            case JsonArray jsonArray:
-                for (int i = 0; i < jsonArray.Count; i++)
-                {
-                    if (jsonArray[i] != null)
-                    {
-                        this.ReplaceVersionPlaceholders(jsonArray[i], version);
-                    }
-                }
-                break;
-
-            case JsonValue jsonValue:
-                if (jsonValue.TryGetValue<string>(out string stringValue) && stringValue.Contains("__VERSION__"))
-                {
-                    string replacedValue = stringValue.Replace("__VERSION__", version);
-                    JsonNode parent = jsonValue.Parent;
-                    if (parent is JsonObject parentObject)
-                    {
-                        // Find the property key for this value
-                        foreach (var kvp in parentObject)
-                        {
-                            if (ReferenceEquals(kvp.Value, jsonValue))
-                            {
-                                parentObject[kvp.Key] = replacedValue;
-                                break;
-                            }
-                        }
-                    }
-                    else if (parent is JsonArray parentArray)
-                    {
-                        // Find the index for this value
-                        for (int i = 0; i < parentArray.Count; i++)
-                        {
-                            if (ReferenceEquals(parentArray[i], jsonValue))
-                            {
-                                parentArray[i] = replacedValue;
-                                break;
-                            }
-                        }
-                    }
-                }
-                break;
-        }
     }
 }

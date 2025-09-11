@@ -25,28 +25,30 @@ public class BuildIntegrationManagedTests : SomeGitBuildIntegrationTests
     public async Task McpServerJson_VersionStamping()
     {
         // Create a sample server.json file based on the real MCP server template
-        string serverJsonContent = @"{
-  ""$schema"": ""https://modelcontextprotocol.io/schemas/draft/2025-07-09/server.json"",
-  ""description"": ""Test .NET MCP Server"",
-  ""name"": ""io.github.test/testmcpserver"",
-  ""version"": ""__VERSION__"",
-  ""packages"": [
+        string serverJsonContent = /* lang=c#-test */ """
+{
+  "$schema": "https://modelcontextprotocol.io/schemas/draft/2025-07-09/server.json",
+  "description": "Test .NET MCP Server",
+  "name": "io.github.test/testmcpserver",
+  "version": "0.0.0-placeholder",
+  "packages": [
     {
-      ""registry_type"": ""nuget"",
-      ""identifier"": ""Test.McpServer"",
-      ""version"": ""__VERSION__"",
-      ""transport"": {
-        ""type"": ""stdio""
+      "registry_type": "nuget",
+      "identifier": "Test.McpServer",
+      "version": "0.0.0-placeholder",
+      "transport": {
+        "type": "stdio"
       },
-      ""package_arguments"": [],
-      ""environment_variables"": []
+      "package_arguments": [],
+      "environment_variables": []
     }
   ],
-  ""repository"": {
-    ""url"": ""https://github.com/test/testmcpserver"",
-    ""source"": ""github""
+  "repository": {
+    "url": "https://github.com/test/testmcpserver",
+    "source": "github"
   }
-}";
+}
+""";
 
         string serverJsonPath = Path.Combine(this.projectDirectory, "server.json");
         File.WriteAllText(serverJsonPath, serverJsonContent);
@@ -90,8 +92,8 @@ public class BuildIntegrationManagedTests : SomeGitBuildIntegrationTests
         Assert.Equal("Test .NET MCP Server", stampedJson["description"]?.ToString());
         Assert.Equal("Test.McpServer", package["identifier"]?.ToString());
 
-        // Verify that no __VERSION__ placeholders remain in the entire JSON
-        Assert.DoesNotContain("__VERSION__", stampedContent);
+        // Verify that no placeholder remain in the entire JSON
+        Assert.DoesNotContain("0.0.0-placeholder", stampedContent);
     }
 
     protected override GitContext CreateGitContext(string path, string committish = null)
