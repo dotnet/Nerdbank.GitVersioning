@@ -24,12 +24,28 @@ public class BuildIntegrationManagedTests : SomeGitBuildIntegrationTests
     [Fact]
     public async Task McpServerJson_VersionStamping()
     {
-        // Create a sample server.json file
+        // Create a sample server.json file based on the real MCP server template
         string serverJsonContent = @"{
-  ""name"": ""test-mcp-server"",
-  ""version"": ""0.0.0"",
-  ""description"": ""Test MCP server"",
-  ""runtime"": ""dotnet""
+  ""$schema"": ""https://modelcontextprotocol.io/schemas/draft/2025-07-09/server.json"",
+  ""description"": ""Test .NET MCP Server"",
+  ""name"": ""io.github.test/testmcpserver"",
+  ""version"": ""__VERSION__"",
+  ""packages"": [
+    {
+      ""registry_type"": ""nuget"",
+      ""identifier"": ""Test.McpServer"",
+      ""version"": ""__VERSION__"",
+      ""transport"": {
+        ""type"": ""stdio""
+      },
+      ""package_arguments"": [],
+      ""environment_variables"": []
+    }
+  ],
+  ""repository"": {
+    ""url"": ""https://github.com/test/testmcpserver"",
+    ""source"": ""github""
+  }
 }";
 
         string serverJsonPath = Path.Combine(this.projectDirectory, "server.json");
@@ -56,12 +72,26 @@ public class BuildIntegrationManagedTests : SomeGitBuildIntegrationTests
         Assert.NotNull(stampedJson);
 
         string expectedVersion = result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("Version");
+
+        // Verify root version was stamped
         Assert.Equal(expectedVersion, stampedJson["version"]?.ToString());
 
+        // Verify package version was also stamped
+        JsonArray packages = stampedJson["packages"]?.AsArray();
+        Assert.NotNull(packages);
+        Assert.Single(packages);
+
+        JsonObject package = packages[0]?.AsObject();
+        Assert.NotNull(package);
+        Assert.Equal(expectedVersion, package["version"]?.ToString());
+
         // Verify other properties were preserved
-        Assert.Equal("test-mcp-server", stampedJson["name"]?.ToString());
-        Assert.Equal("Test MCP server", stampedJson["description"]?.ToString());
-        Assert.Equal("dotnet", stampedJson["runtime"]?.ToString());
+        Assert.Equal("io.github.test/testmcpserver", stampedJson["name"]?.ToString());
+        Assert.Equal("Test .NET MCP Server", stampedJson["description"]?.ToString());
+        Assert.Equal("Test.McpServer", package["identifier"]?.ToString());
+
+        // Verify that no __VERSION__ placeholders remain in the entire JSON
+        Assert.DoesNotContain("__VERSION__", stampedContent);
     }
 
     protected override GitContext CreateGitContext(string path, string committish = null)

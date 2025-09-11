@@ -320,7 +320,7 @@
       <_NBGV_OriginalServerJson Include="$(MSBuildProjectDirectory)\server.json" Condition="Exists('$(MSBuildProjectDirectory)\server.json')" />
     </ItemGroup>
     
-    <PropertyGroup Condition="'@(_NBGV_OriginalServerJson)' != ''">
+    <PropertyGroup>
       <_NBGV_StampedServerJsonPath>$(IntermediateOutputPath)server.json</_NBGV_StampedServerJsonPath>
     </PropertyGroup>
     
