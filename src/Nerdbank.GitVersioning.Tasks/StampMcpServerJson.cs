@@ -1,10 +1,7 @@
 // Copyright (c) .NET Foundation and Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System;
-using System.IO;
 using Microsoft.Build.Framework;
-using Microsoft.Build.Utilities;
 
 namespace Nerdbank.GitVersioning.Tasks;
 
@@ -61,7 +58,7 @@ public class StampMcpServerJson : Microsoft.Build.Utilities.Task
             // Read the server.json file and replace version placeholders
             string jsonContent = File.ReadAllText(this.SourceServerJson);
             jsonContent = jsonContent.Replace("\"0.0.0-placeholder\"", $"\"{this.Version}\"");
-            
+
             File.WriteAllText(this.OutputServerJson, jsonContent);
             this.Log.LogMessage(MessageImportance.Low, $"Stamped version '{this.Version}' into server.json: {this.OutputServerJson}");
         }
