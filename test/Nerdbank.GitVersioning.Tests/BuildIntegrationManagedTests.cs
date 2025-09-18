@@ -50,13 +50,16 @@ public class BuildIntegrationManagedTests : SomeGitBuildIntegrationTests
 }
 """;
 
-        string serverJsonPath = Path.Combine(this.projectDirectory, "server.json");
+        string serverJsonPath = Path.Combine(this.projectDirectory, ".mcp", "server.json");
+        Directory.CreateDirectory(Path.Combine(this.projectDirectory, ".mcp"));
         File.WriteAllText(serverJsonPath, serverJsonContent);
 
         // Set PackageType to McpServer
         ProjectPropertyGroupElement propertyGroup = this.testProject.CreatePropertyGroupElement();
         this.testProject.AppendChild(propertyGroup);
         propertyGroup.AddProperty("PackageType", "McpServer");
+
+        this.testProject.AddItem("None", @".mcp\server.json", new Dictionary<string, string> { ["Pack"] = "true", ["PackagePath"] = "/.mcp/" });
 
         this.WriteVersionFile();
         BuildResults result = await this.BuildAsync("NBGV_StampMcpServerJson", logVerbosity: LoggerVerbosity.Detailed);
@@ -65,7 +68,9 @@ public class BuildIntegrationManagedTests : SomeGitBuildIntegrationTests
         Assert.Empty(result.LoggedEvents.OfType<BuildErrorEventArgs>());
 
         // Verify the stamped server.json was created
-        string stampedServerJsonPath = Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("IntermediateOutputPath"), "server.json");
+        string stampedServerJsonPath = result.BuildResult.ProjectStateAfterBuild.GetItems("None")
+            .Single(pi => $"{pi.GetMetadataValue("FileName")}{pi.GetMetadataValue("Extension")}" == "server.json")
+            .GetMetadataValue("FullPath");
         Assert.True(File.Exists(stampedServerJsonPath), $"Expected stamped server.json at: {stampedServerJsonPath}");
 
         // Verify the version was correctly stamped
