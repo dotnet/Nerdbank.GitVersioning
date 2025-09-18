@@ -317,25 +317,21 @@
           BeforeTargets="GenerateNuspec;_GetPackageFiles"
           DependsOnTargets="GetBuildVersion">
     <ItemGroup>
-      <_NBGV_OriginalServerJson Include="$(MSBuildProjectDirectory)\server.json" Condition="Exists('$(MSBuildProjectDirectory)\server.json')" />
+      <_NBGV_OriginalServerJson Include="@(None)" Condition="'%(None.FileName)%(None.Extension)'=='server.json'" />
+      <_NBGV_StampedServerJson Include="@(_NBGV_OriginalServerJson->'$(IntermediateOutputPath)\nb.gv\server.json')" />
     </ItemGroup>
-    
-    <PropertyGroup>
-      <_NBGV_StampedServerJsonPath>$(IntermediateOutputPath)server.json</_NBGV_StampedServerJsonPath>
-    </PropertyGroup>
-    
+
     <!-- Transform server.json with versioned content -->
     <Nerdbank.GitVersioning.Tasks.StampMcpServerJson
       Condition="'@(_NBGV_OriginalServerJson)' != ''"
-      SourceServerJson="%(_NBGV_OriginalServerJson.Identity)"
-      OutputServerJson="$(_NBGV_StampedServerJsonPath)"
+      SourceServerJson="@(_NBGV_OriginalServerJson)"
+      OutputServerJson="@(_NBGV_StampedServerJson)"
       Version="$(Version)" />
-    
+
     <!-- Remove original server.json from packaging and add stamped version -->
-    <ItemGroup Condition="'$(_NBGV_StampedServerJsonPath)' != ''">
-      <Content Remove="server.json" />
-      <None Remove="server.json" />
-      <Content Include="$(_NBGV_StampedServerJsonPath)" PackagePath="server.json" Pack="true" />
+    <ItemGroup>
+      <None Remove="@(_NBGV_OriginalServerJson)" />
+      <None Include="@(_NBGV_StampedServerJson)" />
     </ItemGroup>
   </Target>
 
