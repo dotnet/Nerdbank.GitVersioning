@@ -820,14 +820,14 @@ namespace Nerdbank.GitVersioning.Tool
 
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(project);
 
-            using var context = (LibGit2Context)GitContext.Create(searchPath, engine: GitContext.Engine.ReadWrite);
+            using var context = GitContext.Create(searchPath, engine: GitContext.Engine.ReadWrite);
             if (!context.IsRepository)
             {
                 Console.Error.WriteLine("No git repo found at or above: \"{0}\"", searchPath);
                 return Task.FromResult((int)ExitCodes.NoGitRepo);
             }
 
-            IEnumerable<LibGit2Sharp.Commit> candidateCommits = LibGit2GitExtensions.GetCommitsFromVersion(context, parsedVersion);
+            IEnumerable<LibGit2Sharp.Commit> candidateCommits = LibGit2GitExtensions.GetCommitsFromVersion((LibGit2Context)context, parsedVersion);
             PrintCommits(quiet, context, candidateCommits);
 
             return Task.FromResult((int)ExitCodes.OK);
