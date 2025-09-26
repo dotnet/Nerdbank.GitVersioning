@@ -13,7 +13,7 @@
     <SignAssembly>false</SignAssembly>
 
     <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PackBuildOutputs</TargetsForTfmSpecificContentInPackage>
-    <LibGit2SharpNativeBinaries>$(NuGetPackageRoot)\libgit2sharp.nativebinaries\$(LibGit2SharpNativeVersion)\</LibGit2SharpNativeBinaries>
+    <LibGit2SharpNativeBinaries>$([System.IO.Path]::Combine('$(NuGetPackageRoot)', 'libgit2sharp.nativebinaries\$(LibGit2SharpNativeVersion)\'))</LibGit2SharpNativeBinaries>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
