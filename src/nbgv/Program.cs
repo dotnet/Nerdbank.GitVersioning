@@ -98,7 +98,6 @@ namespace Nerdbank.GitVersioning.Tool
                 var source = new Option<string[]>("--source", ["-s"])
                 {
                     Description = $"The URI(s) of the NuGet package source(s) used to determine the latest stable version of the {PackageId} package. This setting overrides all of the sources specified in the NuGet.Config files.",
-                    DefaultValueFactory = _ => Array.Empty<string>(),
                     Arity = ArgumentArity.OneOrMore,
                     AllowMultipleArgumentsPerToken = true,
                 };
@@ -123,7 +122,7 @@ namespace Nerdbank.GitVersioning.Tool
                 {
                     Description = "The path to the project or project directory. The default is the current directory.",
                 };
-                var metadata = new Option<string[]>("--metadata", Array.Empty<string>())
+                var metadata = new Option<string[]>("--metadata")
                 {
                     Description = "Adds an identifier to the build metadata part of a semantic version.",
                     Arity = ArgumentArity.OneOrMore,
@@ -256,7 +255,7 @@ namespace Nerdbank.GitVersioning.Tool
                 {
                     Description = "The path to the project or project directory used to calculate the version. The default is the current directory. Ignored if the -v option is specified.",
                 };
-                var metadata = new Option<string[]>("--metadata", Array.Empty<string>())
+                var metadata = new Option<string[]>("--metadata")
                 {
                     Description = "Adds an identifier to the build metadata part of a semantic version.",
                     Arity = ArgumentArity.OneOrMore,
@@ -278,14 +277,13 @@ namespace Nerdbank.GitVersioning.Tool
                 {
                     Description = "Defines a few common version variables as cloud build variables, with a \"Git\" prefix (e.g. GitBuildVersion, GitBuildVersionSimple, GitAssemblyInformationalVersion).",
                 };
-                var skipCloudBuildNumber = new Option<bool>("--skip-cloud-build-number", Array.Empty<string>())
+                var skipCloudBuildNumber = new Option<bool>("--skip-cloud-build-number")
                 {
                     Description = "Do not emit the cloud build variable to set the build number. This is useful when you want to set other cloud build variables but not the build number.",
                 };
                 var define = new Option<string[]>("--define", ["-d"])
                 {
                     Description = "Additional cloud build variables to define. Each should be in the NAME=VALUE syntax.",
-                    DefaultValueFactory = _ => Array.Empty<string>(),
                     Arity = ArgumentArity.OneOrMore,
                     AllowMultipleArgumentsPerToken = true,
                 };
@@ -321,11 +319,11 @@ namespace Nerdbank.GitVersioning.Tool
                 {
                     Description = "The path to the project or project directory. The default is the current directory.",
                 };
-                var nextVersion = new Option<string>("--nextVersion", Array.Empty<string>())
+                var nextVersion = new Option<string>("--nextVersion")
                 {
                     Description = "The version to set for the current branch. If omitted, the next version is determined automatically by incrementing the current version.",
                 };
-                var versionIncrement = new Option<string>("--versionIncrement", Array.Empty<string>())
+                var versionIncrement = new Option<string>("--versionIncrement")
                 {
                     Description = "Overrides the 'versionIncrement' setting set in version.json for determining the next version of the current branch.",
                 };
@@ -333,9 +331,13 @@ namespace Nerdbank.GitVersioning.Tool
                 {
                     Description = $"The format to write information about the release. Allowed values are: {string.Join(", ", SupportedFormats)}. The default is {DefaultOutputFormat}.",
                 };
-                var unformattedCommitMessage = new Option<string>("--commit-message-pattern", Array.Empty<string>())
+                var unformattedCommitMessage = new Option<string>("--commit-message-pattern")
                 {
                     Description = "A custom message to use for the commit that changes the version number. May include {0} for the version number. If not specified, the default is \"Set version to '{0}'\".",
+                };
+                var whatIf = new Option<bool>("--what-if")
+                {
+                    Description = "Simulates the prepare-release operation and prints the new version that would be set, but does not actually make any changes.",
                 };
                 var tagArgument = new Argument<string>("tag")
                 {
@@ -349,6 +351,7 @@ namespace Nerdbank.GitVersioning.Tool
                     versionIncrement,
                     format,
                     unformattedCommitMessage,
+                    whatIf,
                     tagArgument,
                 };
 
@@ -360,7 +363,8 @@ namespace Nerdbank.GitVersioning.Tool
                     var formatValue = parseResult.GetValue(format);
                     var tagArgumentValue = parseResult.GetValue(tagArgument);
                     var unformattedCommitMessageValue = parseResult.GetValue(unformattedCommitMessage);
-                    return await OnPrepareReleaseCommand(projectValue, nextVersionValue, versionIncrementValue, formatValue, tagArgumentValue, unformattedCommitMessageValue);
+                    var whatIfValue = parseResult.GetValue(whatIf);
+                    return await OnPrepareReleaseCommand(projectValue, nextVersionValue, versionIncrementValue, formatValue, tagArgumentValue, unformattedCommitMessageValue, whatIfValue);
                 });
             }
 
@@ -891,7 +895,7 @@ namespace Nerdbank.GitVersioning.Tool
             return Task.FromResult((int)ExitCodes.OK);
         }
 
-        private static Task<int> OnPrepareReleaseCommand(string project, string nextVersion, string versionIncrement, string format, string tag, string unformattedCommitMessage)
+        private static Task<int> OnPrepareReleaseCommand(string project, string nextVersion, string versionIncrement, string format, string tag, string unformattedCommitMessage, bool whatIf)
         {
             // validate project path property
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(project);
@@ -957,11 +961,18 @@ namespace Nerdbank.GitVersioning.Tool
                 }
             }
 
-            // run prepare-release
+            // run prepare-release or simulate
             try
             {
                 var releaseManager = new ReleaseManager(Console.Out, Console.Error);
-                releaseManager.PrepareRelease(searchPath, tag, nextVersionParsed, versionIncrementParsed, outputMode, unformattedCommitMessage);
+
+                ReleaseManager.ReleaseInfo releaseInfo = releaseManager.PrepareRelease(searchPath, tag, nextVersionParsed, versionIncrementParsed, outputMode, unformattedCommitMessage, whatIf);
+
+                if (whatIf && outputMode == ReleaseManager.ReleaseManagerOutputMode.Json)
+                {
+                    releaseManager.WriteToOutput(releaseInfo);
+                }
+
                 return Task.FromResult((int)ExitCodes.OK);
             }
             catch (ReleaseManager.ReleasePreparationException ex)
