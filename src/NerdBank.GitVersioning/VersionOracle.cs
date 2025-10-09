@@ -306,34 +306,7 @@ public class VersionOracle
     /// when calculating the integer to use as the <see cref="BuildNumber"/>
     /// or elsewhere that the {height} macro is used.
     /// </summary>
-    public int VersionHeightOffset
-    {
-        get
-        {
-            if (this.VersionOptions is null)
-            {
-                return 0;
-            }
-
-            // Check if the offset applies to the current version
-            if (this.VersionOptions.VersionHeightOffsetAppliesTo is object &&
-                this.VersionOptions.Version is object &&
-                this.VersionOptions.VersionHeightPosition.HasValue)
-            {
-                // If the version would be reset by a change from VersionHeightOffsetAppliesTo to Version,
-                // then the offset does not apply.
-                if (SemanticVersion.WillVersionChangeResetVersionHeight(
-                    this.VersionOptions.VersionHeightOffsetAppliesTo,
-                    this.VersionOptions.Version,
-                    this.VersionOptions.VersionHeightPosition.Value))
-                {
-                    return 0;
-                }
-            }
-
-            return this.VersionOptions.VersionHeightOffsetOrDefault;
-        }
-    }
+    public int VersionHeightOffset => this.VersionOptions?.EffectiveVersionHeightOffset ?? 0;
 
     /// <summary>
     /// Gets or sets the ref (branch or tag) being built.

@@ -376,6 +376,38 @@ public class VersionOptions : IEquatable<VersionOptions>
     }
 
     /// <summary>
+    /// Gets the effective version height offset, taking into account the <see cref="VersionHeightOffsetAppliesTo"/> property.
+    /// </summary>
+    /// <returns>
+    /// The version height offset if it applies to the current version, or 0 if the version has changed
+    /// such that the offset should no longer be applied.
+    /// </returns>
+    [JsonIgnore]
+    public int EffectiveVersionHeightOffset
+    {
+        get
+        {
+            // Check if the offset applies to the current version
+            if (this.VersionHeightOffsetAppliesTo is object &&
+                this.Version is object &&
+                this.VersionHeightPosition.HasValue)
+            {
+                // If the version would be reset by a change from VersionHeightOffsetAppliesTo to Version,
+                // then the offset does not apply.
+                if (SemanticVersion.WillVersionChangeResetVersionHeight(
+                    this.VersionHeightOffsetAppliesTo,
+                    this.Version,
+                    this.VersionHeightPosition.Value))
+                {
+                    return 0;
+                }
+            }
+
+            return this.VersionHeightOffsetOrDefault;
+        }
+    }
+
+    /// <summary>
     /// Gets or sets the version to which the <see cref="VersionHeightOffset"/> applies.
     /// When the <see cref="Version"/> property changes such that the version height would be reset,
     /// and this property does not match the new version, the <see cref="VersionHeightOffset"/> will be ignored.
