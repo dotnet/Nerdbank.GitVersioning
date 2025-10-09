@@ -106,4 +106,7 @@ This allows version height offsets to implicitly reset as intended when the vers
 
 In this example, the offset of 100 will be applied as long as the version remains "1.0-beta". When you update the version to "1.1-alpha" (which would reset the version height), the offset will be automatically ignored because "1.1-alpha" does not match "1.0-beta".
 
+> [!NOTE]
+> This feature is particularly useful when a `version.json` file uses `"inherit": true` to get the version from a parent `version.json` file higher in the source tree. In such cases, you can set `versionHeightOffset` and `versionHeightOffsetAppliesTo` in the inheriting file without having to update it when the parent version changes. The offset will automatically stop applying when the inherited version no longer matches `versionHeightOffsetAppliesTo`.
+
 [Learn more about pathFilters](path-filters.md).
