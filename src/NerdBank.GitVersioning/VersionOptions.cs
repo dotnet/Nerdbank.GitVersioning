@@ -74,6 +74,12 @@ public class VersionOptions : IEquatable<VersionOptions>
     private int? buildNumberOffset;
 
     /// <summary>
+    /// Backing field for the <see cref="VersionHeightOffsetAppliesTo"/> property.
+    /// </summary>
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private SemanticVersion? versionHeightOffsetAppliesTo;
+
+    /// <summary>
     /// Backing field for the <see cref="SemVer1NumericIdentifierPadding"/> property.
     /// </summary>
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -146,6 +152,7 @@ public class VersionOptions : IEquatable<VersionOptions>
         this.version = copyFrom.version;
         this.assemblyVersion = copyFrom.assemblyVersion is object ? new AssemblyVersionOptions(copyFrom.assemblyVersion) : null;
         this.buildNumberOffset = copyFrom.buildNumberOffset;
+        this.versionHeightOffsetAppliesTo = copyFrom.versionHeightOffsetAppliesTo;
         this.semVer1NumericIdentifierPadding = copyFrom.semVer1NumericIdentifierPadding;
         this.gitCommitIdShortFixedLength = copyFrom.gitCommitIdShortFixedLength;
         this.gitCommitIdShortAutoMinimum = copyFrom.gitCommitIdShortAutoMinimum;
@@ -366,6 +373,25 @@ public class VersionOptions : IEquatable<VersionOptions>
 #pragma warning disable CS0618
         get => this.BuildNumberOffsetOrDefault;
 #pragma warning restore CS0618
+    }
+
+    /// <summary>
+    /// Gets or sets the version to which the <see cref="VersionHeightOffset"/> applies.
+    /// When the <see cref="Version"/> property changes such that the version height would be reset,
+    /// and this property does not match the new version, the <see cref="VersionHeightOffset"/> will be ignored.
+    /// </summary>
+    /// <value>A semantic version, or <see langword="null"/> to indicate no constraint.</value>
+    /// <remarks>
+    /// This property is typically used in conjunction with <see cref="VersionHeightOffset"/> to ensure
+    /// that the offset is only applied when the version matches the expected version. When the version
+    /// changes such that the version height would reset, this property can be used to automatically
+    /// stop applying the offset without needing to manually remove it from all version.json files.
+    /// </remarks>
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+    public SemanticVersion? VersionHeightOffsetAppliesTo
+    {
+        get => this.versionHeightOffsetAppliesTo;
+        set => this.SetIfNotReadOnly(ref this.versionHeightOffsetAppliesTo, value);
     }
 
     /// <summary>
@@ -1667,7 +1693,8 @@ public class VersionOptions : IEquatable<VersionOptions>
                 && NuGetPackageVersionOptions.EqualWithDefaultsComparer.Singleton.Equals(x.NuGetPackageVersionOrDefault, y.NuGetPackageVersionOrDefault)
                 && CloudBuildOptions.EqualWithDefaultsComparer.Singleton.Equals(x.CloudBuildOrDefault, y.CloudBuildOrDefault)
                 && ReleaseOptions.EqualWithDefaultsComparer.Singleton.Equals(x.ReleaseOrDefault, y.ReleaseOrDefault)
-                && x.VersionHeightOffset == y.VersionHeightOffset;
+                && x.VersionHeightOffset == y.VersionHeightOffset
+                && EqualityComparer<SemanticVersion?>.Default.Equals(x.VersionHeightOffsetAppliesTo, y.VersionHeightOffsetAppliesTo);
         }
 
         /// <inheritdoc />

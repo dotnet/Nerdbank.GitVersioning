@@ -282,8 +282,9 @@ public class ReleaseManager
         {
             if (versionOptions.VersionHeightOffset != -1 && versionOptions.VersionHeightPosition.HasValue && SemanticVersion.WillVersionChangeResetVersionHeight(versionOptions.Version, newVersion, versionOptions.VersionHeightPosition.Value))
             {
-                // The version will be reset by this change, so remove the version height offset property.
+                // The version will be reset by this change, so remove the version height offset properties.
                 versionOptions.VersionHeightOffset = null;
+                versionOptions.VersionHeightOffsetAppliesTo = null;
             }
 
             versionOptions.Version = newVersion;

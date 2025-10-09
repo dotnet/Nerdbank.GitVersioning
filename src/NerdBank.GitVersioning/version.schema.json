@@ -68,6 +68,11 @@
           "description": "A number to add to the git height when calculating the version height (which typically appears as the 3rd integer in a computed version). May be negative, but not of greater magnitude than the original git height.",
           "default": 0
         },
+        "versionHeightOffsetAppliesTo": {
+          "type": "string",
+          "description": "The version to which the versionHeightOffset applies. When the version property changes such that the version height would be reset, and this property does not match the new version, the versionHeightOffset will be ignored. This allows the offset to implicitly reset as intended without having to manually remove it from all version.json files.",
+          "pattern": "^v?(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:\\.(0|[1-9][0-9]*)(?:\\.(0|[1-9][0-9]*))?)?(-(?:[\\da-z\\-]+|\\{height\\})(?:\\.(?:[\\da-z\\-]+|\\{height\\}))*)?(\\+(?:[\\da-z\\-]+|\\{height\\})(?:\\.(?:[\\da-z\\-]+|\\{height\\}))*)?$"
+        },
         "buildNumberOffset": {
           "type": "integer",
           "description": "OBSOLETE by v3.0. Use \"versionHeightOffset\" instead. A number to add to the git height when calculating the version height (which typically appears as the 3rd integer in a computed version). May be negative, but not of greater magnitude than the original git height.",
