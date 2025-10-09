@@ -176,7 +176,7 @@ public class ManagedGitContext : GitContext
         // and forbids 0xffff as a value.
         if (versionHeightPosition.HasValue)
         {
-            int adjustedVersionHeight = versionHeight == 0 ? 0 : versionHeight + (versionOptions?.VersionHeightOffset ?? 0);
+            int adjustedVersionHeight = versionHeight == 0 ? 0 : versionHeight + (versionOptions?.EffectiveVersionHeightOffset ?? 0);
             Verify.Operation(adjustedVersionHeight <= MaximumBuildNumberOrRevisionComponent, "Git height is {0}, which is greater than the maximum allowed {0}.", adjustedVersionHeight, MaximumBuildNumberOrRevisionComponent);
             switch (versionHeightPosition.Value)
             {

@@ -219,6 +219,63 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(2, oracle.VersionHeightOffset);
     }
 
+    [Fact]
+    public void VersionHeightOffsetAppliesTo_Matching()
+    {
+        // When VersionHeightOffsetAppliesTo matches the current version, the offset should be applied
+        VersionOptions workingCopyVersion = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("7.8.9-beta"),
+            VersionHeightOffset = 5,
+            VersionHeightOffsetAppliesTo = SemanticVersion.Parse("7.8.9-beta"),
+        };
+        this.WriteVersionFile(workingCopyVersion);
+        this.InitializeSourceControl();
+        var oracle = new VersionOracle(this.Context);
+
+        // The offset should be applied because the version matches
+        Assert.Equal(5, oracle.VersionHeightOffset);
+        Assert.Equal(1, oracle.VersionHeight);
+    }
+
+    [Fact]
+    public void VersionHeightOffsetAppliesTo_NotMatching()
+    {
+        // When VersionHeightOffsetAppliesTo doesn't match the current version, the offset should NOT be applied
+        VersionOptions workingCopyVersion = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("7.9-beta"),
+            VersionHeightOffset = 5,
+            VersionHeightOffsetAppliesTo = SemanticVersion.Parse("7.8-beta"),
+        };
+        this.WriteVersionFile(workingCopyVersion);
+        this.InitializeSourceControl();
+        var oracle = new VersionOracle(this.Context);
+
+        // The offset should NOT be applied because the version changed (7.8 -> 7.9)
+        Assert.Equal(0, oracle.VersionHeightOffset);
+        Assert.Equal(1, oracle.VersionHeight);
+    }
+
+    [Fact]
+    public void VersionHeightOffsetAppliesTo_BuildNumberChange()
+    {
+        // When VersionHeightOffsetAppliesTo has a different build number, the offset should NOT be applied
+        VersionOptions workingCopyVersion = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("7.9-beta"),
+            VersionHeightOffset = 5,
+            VersionHeightOffsetAppliesTo = SemanticVersion.Parse("7.8-beta"),
+        };
+        this.WriteVersionFile(workingCopyVersion);
+        this.InitializeSourceControl();
+        var oracle = new VersionOracle(this.Context);
+
+        // The offset should NOT be applied because the minor version changed (7.8 -> 7.9)
+        Assert.Equal(0, oracle.VersionHeightOffset);
+        Assert.Equal(1, oracle.VersionHeight);
+    }
+
     [Theory]
     [InlineData("7.8.9-foo.25", "7.8.9-foo-0025")]
     [InlineData("7.8.9-foo.25s", "7.8.9-foo-25s")]

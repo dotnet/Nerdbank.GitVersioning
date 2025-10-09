@@ -34,6 +34,7 @@ The content of the version.json file is a JSON serialized object with these prop
     "precision": "revision" // optional. Use when you want a more precise assembly version than the default major.minor.
   },
   "versionHeightOffset": "zOffset", // optional. Use when you need to add/subtract a fixed value from the computed version height.
+  "versionHeightOffsetAppliesTo": "x.y-prerelease", // optional. Specifies the version to which versionHeightOffset applies. When the version changes such that version height would reset, and this doesn't match the new version, versionHeightOffset is ignored.
   "semVer1NumericIdentifierPadding": 4, // optional. Use when your -prerelease includes numeric identifiers and need semver1 support.
   "gitCommitIdShortFixedLength": 10, // optional. Set the commit ID abbreviation length.
   "gitCommitIdShortAutoMinimum": 0, // optional. Set to use the short commit ID abbreviation provided by the git repository.
@@ -84,5 +85,28 @@ convenient to build releases out of these refs with a friendly version number
 that assumes linear versioning.
 
 When the `cloudBuild.buildNumber.includeCommitId.where` property is set to `fourthVersionComponent`, the first 15 bits of the commit hash is used to create the 4th integer in the version number.
+
+## Version Height Offset
+
+The `versionHeightOffset` property allows you to add or subtract a fixed value from the git version height. This is typically used as a temporary workaround when migrating from another versioning system or when correcting version numbering discrepancies.
+
+The `versionHeightOffsetAppliesTo` property can be used in conjunction with `versionHeightOffset` to ensure that the offset is only applied when the version matches a specific value. When the `version` property changes such that the version height would be reset, and `versionHeightOffsetAppliesTo` does not match the new version, the `versionHeightOffset` will be automatically ignored.
+
+This allows version height offsets to implicitly reset as intended when the version changes, without having to manually remove the offset properties from all `version.json` files in the repository.
+
+### Example
+
+```json
+{
+  "version": "1.0-beta",
+  "versionHeightOffset": 100,
+  "versionHeightOffsetAppliesTo": "1.0-beta"
+}
+```
+
+In this example, the offset of 100 will be applied as long as the version remains "1.0-beta". When you update the version to "1.1-alpha" (which would reset the version height), the offset will be automatically ignored because "1.1-alpha" does not match "1.0-beta".
+
+> [!NOTE]
+> This feature is particularly useful when a `version.json` file uses `"inherit": true` to get the version from a parent `version.json` file higher in the source tree. In such cases, you can set `versionHeightOffset` and `versionHeightOffsetAppliesTo` in the inheriting file without having to update it when the parent version changes. The offset will automatically stop applying when the inherited version no longer matches `versionHeightOffsetAppliesTo`.
 
 [Learn more about pathFilters](path-filters.md).
