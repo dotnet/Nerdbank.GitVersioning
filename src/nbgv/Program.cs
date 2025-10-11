@@ -912,7 +912,7 @@ namespace Nerdbank.GitVersioning.Tool
             VersionOptions.ReleaseVersionIncrement? versionIncrementParsed = default;
             if (!string.IsNullOrEmpty(versionIncrement))
             {
-                if (!Enum.TryParse<VersionOptions.ReleaseVersionIncrement>(versionIncrement, true, out VersionOptions.ReleaseVersionIncrement parsed))
+                if (!Enum.TryParse(versionIncrement, true, out VersionOptions.ReleaseVersionIncrement parsed))
                 {
                     Console.Error.WriteLine($"\"{versionIncrement}\" is not a valid version increment");
                     return Task.FromResult((int)ExitCodes.InvalidVersionIncrement);
