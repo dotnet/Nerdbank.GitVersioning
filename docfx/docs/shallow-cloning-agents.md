@@ -27,7 +27,7 @@ See also [GitHub Copilot Coding Agent docs](https://docs.github.com/en/copilot/h
 
 ## Dependabot
 
-**As of Nerdbank.GitVersioning v3.7, the git engine is automatically disabled when running under Dependabot**, eliminating the need for manual configuration in most cases.
+**As of Nerdbank.GitVersioning v3.9, the git engine is automatically disabled when running under Dependabot**, eliminating the need for manual configuration in most cases.
 
 Specifically, when the `DEPENDABOT` environment variable is set to `true` (case-insensitive) and the `NBGV_GitEngine` environment variable is **not** set, Nerdbank.GitVersioning automatically behaves as if `NBGV_GitEngine=Disabled`. This ensures that Dependabot runs succeed without any additional setup.
 
