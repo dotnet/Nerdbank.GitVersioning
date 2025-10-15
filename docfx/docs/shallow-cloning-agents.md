@@ -31,3 +31,5 @@ Dependabot does not yet allow configuring custom environment variables for its r
 Consider up-voting [this issue](https://github.com/dependabot/dependabot-core/issues/4660).
 Be sure to vote up the top-level issue description as that tends to be the tally that maintainers pay attention to.
 But you may also upvote [this particular comment](https://github.com/dependabot/dependabot-core/issues/4660#issuecomment-3170935213) that describes our use case.
+
+There is [a known workaround](https://github.com/dependabot/dependabot-core/issues/4660#issuecomment-3399907801) for the time being.
