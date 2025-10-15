@@ -392,6 +392,17 @@ namespace Nerdbank.GitVersioning.Tool
             }
         }
 
+        /// <summary>
+        /// Gets the effective git engine to use based on environment variables and command settings.
+        /// </summary>
+        /// <param name="preferReadWrite">Whether to prefer ReadWrite (LibGit2) engine when not explicitly specified.</param>
+        /// <returns>The engine to use.</returns>
+        private static GitContext.Engine GetEffectiveGitEngine(bool preferReadWrite = false)
+        {
+            // Use the shared logic from GitContext which handles both NBGV_GitEngine and DEPENDABOT env vars
+            return GitContext.GetEffectiveGitEngine(preferReadWrite ? GitContext.Engine.ReadWrite : GitContext.Engine.ReadOnly);
+        }
+
         private static int MainInner(string[] args)
         {
             try
@@ -588,7 +599,7 @@ namespace Nerdbank.GitVersioning.Tool
 
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(project);
 
-            using var context = GitContext.Create(searchPath, engine: AlwaysUseLibGit2 ? GitContext.Engine.ReadWrite : GitContext.Engine.ReadOnly);
+            using var context = GitContext.Create(searchPath, engine: GetEffectiveGitEngine(preferReadWrite: AlwaysUseLibGit2));
             if (!context.IsRepository)
             {
                 Console.Error.WriteLine("No git repo found at or above: \"{0}\"", searchPath);

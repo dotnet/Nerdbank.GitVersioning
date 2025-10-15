@@ -189,4 +189,102 @@ public abstract class GitContextTests : RepoTestBase
         this.Context = this.CreateGitContext(Path.Combine(expandedRepo.RepoPath));
         Assert.Equal("refs/heads/main", this.Context.HeadCanonicalName);
     }
+
+    [Fact]
+    public void GetEffectiveGitEngine_DefaultBehavior()
+    {
+        // Arrange: Clear both environment variables
+        var originalDependabot = Environment.GetEnvironmentVariable("DEPENDABOT");
+        var originalNbgvGitEngine = Environment.GetEnvironmentVariable("NBGV_GitEngine");
+        try
+        {
+            Environment.SetEnvironmentVariable("DEPENDABOT", null);
+            Environment.SetEnvironmentVariable("NBGV_GitEngine", null);
+
+            // Act & Assert: With no environment variables, should return default ReadOnly
+            Assert.Equal(GitContext.Engine.ReadOnly, GitContext.GetEffectiveGitEngine());
+            Assert.Equal(GitContext.Engine.ReadWrite, GitContext.GetEffectiveGitEngine(GitContext.Engine.ReadWrite));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("DEPENDABOT", originalDependabot);
+            Environment.SetEnvironmentVariable("NBGV_GitEngine", originalNbgvGitEngine);
+        }
+    }
+
+    [Theory]
+    [InlineData("true")]
+    [InlineData("TRUE")]
+    [InlineData("True")]
+    public void GetEffectiveGitEngine_DependabotEnvironment_DisablesEngine(string dependabotValue)
+    {
+        // Arrange: Set DEPENDABOT=true and clear NBGV_GitEngine
+        var originalDependabot = Environment.GetEnvironmentVariable("DEPENDABOT");
+        var originalNbgvGitEngine = Environment.GetEnvironmentVariable("NBGV_GitEngine");
+        try
+        {
+            Environment.SetEnvironmentVariable("DEPENDABOT", dependabotValue);
+            Environment.SetEnvironmentVariable("NBGV_GitEngine", null);
+
+            // Act & Assert: Should return Disabled regardless of requested engine
+            Assert.Equal(GitContext.Engine.Disabled, GitContext.GetEffectiveGitEngine());
+            Assert.Equal(GitContext.Engine.Disabled, GitContext.GetEffectiveGitEngine(GitContext.Engine.ReadOnly));
+            Assert.Equal(GitContext.Engine.Disabled, GitContext.GetEffectiveGitEngine(GitContext.Engine.ReadWrite));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("DEPENDABOT", originalDependabot);
+            Environment.SetEnvironmentVariable("NBGV_GitEngine", originalNbgvGitEngine);
+        }
+    }
+
+    [Theory]
+    [InlineData("false")]
+    [InlineData("False")]
+    [InlineData("0")]
+    [InlineData("")]
+    public void GetEffectiveGitEngine_DependabotNotTrue_UsesDefault(string dependabotValue)
+    {
+        // Arrange: Set DEPENDABOT to non-true value and clear NBGV_GitEngine
+        var originalDependabot = Environment.GetEnvironmentVariable("DEPENDABOT");
+        var originalNbgvGitEngine = Environment.GetEnvironmentVariable("NBGV_GitEngine");
+        try
+        {
+            Environment.SetEnvironmentVariable("DEPENDABOT", dependabotValue);
+            Environment.SetEnvironmentVariable("NBGV_GitEngine", null);
+
+            // Act & Assert: Should use default behavior
+            Assert.Equal(GitContext.Engine.ReadOnly, GitContext.GetEffectiveGitEngine());
+            Assert.Equal(GitContext.Engine.ReadWrite, GitContext.GetEffectiveGitEngine(GitContext.Engine.ReadWrite));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("DEPENDABOT", originalDependabot);
+            Environment.SetEnvironmentVariable("NBGV_GitEngine", originalNbgvGitEngine);
+        }
+    }
+
+    [Theory]
+    [InlineData("LibGit2", GitContext.Engine.ReadWrite)]
+    [InlineData("Managed", GitContext.Engine.ReadOnly)]
+    [InlineData("Disabled", GitContext.Engine.Disabled)]
+    public void GetEffectiveGitEngine_NbgvGitEngineOverridesDependabot(string nbgvValue, GitContext.Engine expectedEngine)
+    {
+        // Arrange: Set both DEPENDABOT and NBGV_GitEngine
+        var originalDependabot = Environment.GetEnvironmentVariable("DEPENDABOT");
+        var originalNbgvGitEngine = Environment.GetEnvironmentVariable("NBGV_GitEngine");
+        try
+        {
+            Environment.SetEnvironmentVariable("DEPENDABOT", "true");
+            Environment.SetEnvironmentVariable("NBGV_GitEngine", nbgvValue);
+
+            // Act & Assert: NBGV_GitEngine should take precedence and be parsed correctly
+            Assert.Equal(expectedEngine, GitContext.GetEffectiveGitEngine());
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("DEPENDABOT", originalDependabot);
+            Environment.SetEnvironmentVariable("NBGV_GitEngine", originalNbgvGitEngine);
+        }
+    }
 }
