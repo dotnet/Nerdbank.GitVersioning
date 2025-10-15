@@ -27,9 +27,17 @@ See also [GitHub Copilot Coding Agent docs](https://docs.github.com/en/copilot/h
 
 ## Dependabot
 
+**As of Nerdbank.GitVersioning v3.7, the git engine is automatically disabled when running under Dependabot**, eliminating the need for manual configuration in most cases.
+
+Specifically, when the `DEPENDABOT` environment variable is set to `true` (case-insensitive) and the `NBGV_GitEngine` environment variable is **not** set, Nerdbank.GitVersioning automatically behaves as if `NBGV_GitEngine=Disabled`. This ensures that Dependabot runs succeed without any additional setup.
+
+If you need to override this behavior for any reason, you can explicitly set the `NBGV_GitEngine` environment variable to your desired value, which will take precedence over the automatic Dependabot detection.
+
+### Background
+
 Dependabot does not yet allow configuring custom environment variables for its runtime environment.
 Consider up-voting [this issue](https://github.com/dependabot/dependabot-core/issues/4660).
 Be sure to vote up the top-level issue description as that tends to be the tally that maintainers pay attention to.
 But you may also upvote [this particular comment](https://github.com/dependabot/dependabot-core/issues/4660#issuecomment-3170935213) that describes our use case.
 
-There is [a known workaround](https://github.com/dependabot/dependabot-core/issues/4660#issuecomment-3399907801) for the time being.
+There is [a known workaround](https://github.com/dependabot/dependabot-core/issues/4660#issuecomment-3399907801), but with the automatic detection feature, this workaround should no longer be necessary for most users.

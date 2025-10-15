@@ -134,6 +134,36 @@ public abstract class GitContext : IDisposable
     protected string? DotGitPath { get; }
 
     /// <summary>
+    /// Gets the effective git engine to use, taking into account automatic disabling for Dependabot.
+    /// </summary>
+    /// <param name="requestedEngine">The explicitly requested engine, or null if none was specified.</param>
+    /// <returns>The engine to use.</returns>
+    /// <remarks>
+    /// If the DEPENDABOT environment variable is set to "true" (case-insensitive) and the NBGV_GitEngine
+    /// environment variable is not set, this method returns <see cref="Engine.Disabled"/>.
+    /// Otherwise, it returns the <paramref name="requestedEngine"/> or <see cref="Engine.ReadOnly"/> if null.
+    /// </remarks>
+    public static Engine GetEffectiveGitEngine(Engine? requestedEngine = null)
+    {
+        // If NBGV_GitEngine is set, respect that setting regardless of Dependabot
+        string? nbgvGitEngine = Environment.GetEnvironmentVariable("NBGV_GitEngine");
+        if (!string.IsNullOrEmpty(nbgvGitEngine))
+        {
+            // The caller has already parsed NBGV_GitEngine if they wanted to, so just return the requested engine
+            return requestedEngine ?? Engine.ReadOnly;
+        }
+
+        // If we're in a Dependabot environment and NBGV_GitEngine is not set, automatically disable the git engine
+        if (IsDependabotEnvironment())
+        {
+            return Engine.Disabled;
+        }
+
+        // Otherwise, use the requested engine or default to ReadOnly
+        return requestedEngine ?? Engine.ReadOnly;
+    }
+
+    /// <summary>
     /// Creates a context for reading/writing version information at a given path and committish.
     /// </summary>
     /// <param name="path">The path to a directory for which version information is required.</param>
@@ -339,5 +369,15 @@ public abstract class GitContext : IDisposable
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Determines whether the current environment is running under Dependabot.
+    /// </summary>
+    /// <returns><see langword="true"/> if DEPENDABOT environment variable is set to "true" (case-insensitive); otherwise, <see langword="false"/>.</returns>
+    private static bool IsDependabotEnvironment()
+    {
+        string? dependabotEnvVar = Environment.GetEnvironmentVariable("DEPENDABOT");
+        return string.Equals(dependabotEnvVar, "true", StringComparison.OrdinalIgnoreCase);
     }
 }
