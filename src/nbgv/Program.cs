@@ -206,17 +206,23 @@ namespace Nerdbank.GitVersioning.Tool
                     DefaultValueFactory = _ => DefaultRef,
                     Arity = ArgumentArity.ZeroOrOne,
                 };
+                var whatIf = new Option<bool>("--what-if")
+                {
+                    Description = "Calculates and outputs the tag name without creating the tag.",
+                };
                 tag = new Command("tag", "Creates a git tag to mark a version.")
                 {
                     project,
                     versionOrRef,
+                    whatIf,
                 };
 
                 tag.SetAction(async (ParseResult parseResult, CancellationToken cancellationToken) =>
                 {
                     var projectValue = parseResult.GetValue(project);
                     var versionOrRefValue = parseResult.GetValue(versionOrRef);
-                    return await OnTagCommand(projectValue, versionOrRefValue);
+                    var whatIfValue = parseResult.GetValue(whatIf);
+                    return await OnTagCommand(projectValue, versionOrRefValue, whatIfValue);
                 });
             }
 
@@ -723,7 +729,7 @@ namespace Nerdbank.GitVersioning.Tool
             return Task.FromResult((int)ExitCodes.OK);
         }
 
-        private static Task<int> OnTagCommand(string project, string versionOrRef)
+        private static Task<int> OnTagCommand(string project, string versionOrRef, bool whatIf)
         {
             if (string.IsNullOrEmpty(versionOrRef))
             {
@@ -802,6 +808,13 @@ namespace Nerdbank.GitVersioning.Tool
 
             // replace the "{version}" placeholder with the actual version
             string tagName = tagNameFormat.Replace("{version}", oracle.SemVer2);
+
+            if (whatIf)
+            {
+                // In what-if mode, just output the tag name and exit
+                Console.WriteLine(tagName);
+                return Task.FromResult((int)ExitCodes.OK);
+            }
 
             try
             {
