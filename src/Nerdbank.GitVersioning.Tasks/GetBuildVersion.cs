@@ -226,10 +226,11 @@ namespace Nerdbank.GitVersioning.Tasks
                     Requires.Argument(!containsDotDotSlash, nameof(this.ProjectPathRelativeToGitRepoRoot), "Path must not use ..\\");
                 }
 
-                GitContext.Engine? explicitEngine = null;
+                GitContext.Engine engine;
                 if (!string.IsNullOrWhiteSpace(this.GitEngine))
                 {
-                    explicitEngine = this.GitEngine switch
+                    // MSBuild property GitEngine takes precedence over environment variables
+                    engine = this.GitEngine switch
                     {
                         "Managed" => GitContext.Engine.ReadOnly,
                         "LibGit2" => GitContext.Engine.ReadWrite,
@@ -237,8 +238,11 @@ namespace Nerdbank.GitVersioning.Tasks
                         _ => throw new ArgumentException("GitEngine property must be set to either \"Disabled\", \"Managed\" or \"LibGit2\" or left empty."),
                     };
                 }
-
-                GitContext.Engine engine = GitContext.GetEffectiveGitEngine(explicitEngine);
+                else
+                {
+                    // Use environment variable logic (NBGV_GitEngine and DEPENDABOT)
+                    engine = GitContext.GetEffectiveGitEngine();
+                }
 
                 ICloudBuild cloudBuild = CloudBuild.Active;
                 this.Log.LogMessage(MessageImportance.Low, "Cloud build provider: {0}", cloudBuild?.GetType().Name ?? "None");

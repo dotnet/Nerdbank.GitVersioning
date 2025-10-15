@@ -399,24 +399,7 @@ namespace Nerdbank.GitVersioning.Tool
         /// <returns>The engine to use.</returns>
         private static GitContext.Engine GetEffectiveGitEngine(bool preferReadWrite = false)
         {
-            string? nbgvGitEngine = Environment.GetEnvironmentVariable("NBGV_GitEngine");
-
-            // If NBGV_GitEngine is explicitly set, use it
-            if (!string.IsNullOrEmpty(nbgvGitEngine))
-            {
-                if (string.Equals(nbgvGitEngine, "LibGit2", StringComparison.Ordinal))
-                {
-                    return GitContext.Engine.ReadWrite;
-                }
-                else if (string.Equals(nbgvGitEngine, "Disabled", StringComparison.Ordinal))
-                {
-                    return GitContext.Engine.Disabled;
-                }
-
-                // Otherwise fall through to default logic
-            }
-
-            // Use the shared logic from GitContext
+            // Use the shared logic from GitContext which handles both NBGV_GitEngine and DEPENDABOT env vars
             return GitContext.GetEffectiveGitEngine(preferReadWrite ? GitContext.Engine.ReadWrite : GitContext.Engine.ReadOnly);
         }
 

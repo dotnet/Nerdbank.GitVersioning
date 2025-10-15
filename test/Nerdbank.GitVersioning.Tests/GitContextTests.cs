@@ -264,8 +264,11 @@ public abstract class GitContextTests : RepoTestBase
         }
     }
 
-    [Fact]
-    public void GetEffectiveGitEngine_NbgvGitEngineOverridesDependabot()
+    [Theory]
+    [InlineData("LibGit2", GitContext.Engine.ReadWrite)]
+    [InlineData("Managed", GitContext.Engine.ReadOnly)]
+    [InlineData("Disabled", GitContext.Engine.Disabled)]
+    public void GetEffectiveGitEngine_NbgvGitEngineOverridesDependabot(string nbgvValue, GitContext.Engine expectedEngine)
     {
         // Arrange: Set both DEPENDABOT and NBGV_GitEngine
         var originalDependabot = Environment.GetEnvironmentVariable("DEPENDABOT");
@@ -273,11 +276,10 @@ public abstract class GitContextTests : RepoTestBase
         try
         {
             Environment.SetEnvironmentVariable("DEPENDABOT", "true");
-            Environment.SetEnvironmentVariable("NBGV_GitEngine", "LibGit2");
+            Environment.SetEnvironmentVariable("NBGV_GitEngine", nbgvValue);
 
-            // Act & Assert: NBGV_GitEngine should take precedence
-            // When NBGV_GitEngine is set, GetEffectiveGitEngine returns the requested engine
-            Assert.Equal(GitContext.Engine.ReadWrite, GitContext.GetEffectiveGitEngine(GitContext.Engine.ReadWrite));
+            // Act & Assert: NBGV_GitEngine should take precedence and be parsed correctly
+            Assert.Equal(expectedEngine, GitContext.GetEffectiveGitEngine());
         }
         finally
         {
