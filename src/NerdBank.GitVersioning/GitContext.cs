@@ -141,6 +141,8 @@ public abstract class GitContext : IDisposable
     /// <returns>The engine to use.</returns>
     /// <remarks>
     /// If the NBGV_GitEngine environment variable is set, it takes precedence.
+    /// Valid values are "LibGit2", "Managed", and "Disabled" (case-sensitive).
+    /// Unrecognized values are treated as if the variable was not set, maintaining backward compatibility.
     /// Otherwise, if the DEPENDABOT environment variable is set to "true" (case-insensitive), returns <see cref="Engine.Disabled"/>.
     /// Otherwise, returns <paramref name="defaultEngine"/>.
     /// </remarks>
@@ -164,7 +166,9 @@ public abstract class GitContext : IDisposable
                 return Engine.ReadOnly;
             }
 
-            // If unrecognized value, fall through to default logic
+            // If unrecognized value, fall through to default logic.
+            // This maintains backward compatibility where invalid environment variable values
+            // are silently ignored rather than causing build failures.
         }
 
         // If we're in a Dependabot environment and NBGV_GitEngine is not set, automatically disable the git engine
