@@ -34,7 +34,7 @@
     "merge2": "1.4.1",
     "path": "0.12.7",
     "source-map": "0.7.6",
-    "typescript": "5.5.4"
+    "typescript": "5.9.3"
   },
   "dependencies": {},
   "scripts": {
