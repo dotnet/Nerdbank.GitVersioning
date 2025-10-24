@@ -99,7 +99,7 @@ try {
     git config core.safecrlf false # Avoid warnings when adding files with mangled line endings
 
     # Rename project directories and solution
-    git mv Library.sln "$LibraryName.sln"
+    git mv Library.slnx "$LibraryName.slnx"
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     git mv src/Library/Library.csproj "src/Library/$LibraryName.csproj"
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
