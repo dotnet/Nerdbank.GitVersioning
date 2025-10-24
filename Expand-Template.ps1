@@ -119,7 +119,7 @@ try {
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     dotnet sln add "test/$LibraryName.Tests"
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-    git add "$LibraryName.sln"
+    git add "$LibraryName.slnx"
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
     # Update project reference in test project. Add before removal to keep the same ItemGroup in place.
