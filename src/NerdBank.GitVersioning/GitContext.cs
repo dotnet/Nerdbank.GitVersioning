@@ -134,7 +134,7 @@ public abstract class GitContext : IDisposable
     protected string? DotGitPath { get; }
 
     /// <summary>
-    /// Gets the effective git engine to use, taking into account automatic disabling for Dependabot.
+    /// Gets the effective git engine to use, taking into account automatic disabling for Dependabot and GitHub Copilot.
     /// This overload checks the NBGV_GitEngine environment variable and parses it automatically.
     /// </summary>
     /// <param name="defaultEngine">The engine to use if no environment variables dictate otherwise.</param>
@@ -144,11 +144,12 @@ public abstract class GitContext : IDisposable
     /// Valid values are "LibGit2", "Managed", and "Disabled" (case-sensitive).
     /// Unrecognized values are treated as if the variable was not set, maintaining backward compatibility.
     /// Otherwise, if the DEPENDABOT environment variable is set to "true" (case-insensitive), returns <see cref="Engine.Disabled"/>.
+    /// Otherwise, if the GITHUB_ACTOR environment variable is set to "copilot-swe-agent[bot]", returns <see cref="Engine.Disabled"/>.
     /// Otherwise, returns <paramref name="defaultEngine"/>.
     /// </remarks>
     public static Engine GetEffectiveGitEngine(Engine defaultEngine = Engine.ReadOnly)
     {
-        // If NBGV_GitEngine is set, respect that setting regardless of Dependabot
+        // If NBGV_GitEngine is set, respect that setting regardless of Dependabot or GitHub Copilot
         string? nbgvGitEngine = Environment.GetEnvironmentVariable("NBGV_GitEngine");
         if (!string.IsNullOrEmpty(nbgvGitEngine))
         {
@@ -173,6 +174,12 @@ public abstract class GitContext : IDisposable
 
         // If we're in a Dependabot environment and NBGV_GitEngine is not set, automatically disable the git engine
         if (IsDependabotEnvironment())
+        {
+            return Engine.Disabled;
+        }
+
+        // If we're in a GitHub Copilot environment and NBGV_GitEngine is not set, automatically disable the git engine
+        if (IsGitHubCopilotEnvironment())
         {
             return Engine.Disabled;
         }
@@ -397,5 +404,15 @@ public abstract class GitContext : IDisposable
     {
         string? dependabotEnvVar = Environment.GetEnvironmentVariable("DEPENDABOT");
         return string.Equals(dependabotEnvVar, "true", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Determines whether the current environment is running under GitHub Copilot.
+    /// </summary>
+    /// <returns><see langword="true"/> if GITHUB_ACTOR environment variable is set to "copilot-swe-agent[bot]"; otherwise, <see langword="false"/>.</returns>
+    private static bool IsGitHubCopilotEnvironment()
+    {
+        string? githubActorEnvVar = Environment.GetEnvironmentVariable("GITHUB_ACTOR");
+        return string.Equals(githubActorEnvVar, "copilot-swe-agent[bot]", StringComparison.Ordinal);
     }
 }
