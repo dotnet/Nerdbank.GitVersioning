@@ -15,7 +15,15 @@ A few caveats with this:
 
 ## GitHub Copilot Coding Agent
 
-To configure the Copilot Coding Agent to set this environment variable, follow these steps to set environment variables for the `copilot` environment:
+**As of Nerdbank.GitVersioning v3.9, the git engine is automatically disabled when running under GitHub Copilot**, eliminating the need for manual configuration in most cases.
+
+Specifically, when the `GITHUB_ACTOR` environment variable is set to `copilot-swe-agent[bot]` and the `NBGV_GitEngine` environment variable is **not** set, Nerdbank.GitVersioning automatically behaves as if `NBGV_GitEngine=Disabled`. This ensures that GitHub Copilot runs succeed without any additional setup.
+
+If you need to override this behavior for any reason, you can explicitly set the `NBGV_GitEngine` environment variable to your desired value, which will take precedence over the automatic GitHub Copilot detection.
+
+### Manual configuration (optional)
+
+If automatic detection doesn't work for your scenario, you can manually configure the Copilot Coding Agent to set the environment variable by following these steps to set environment variables for the `copilot` environment:
 
 1. Navigate to your GitHub repo's Settings tab.
 1. Select Environments from the list on the left.
