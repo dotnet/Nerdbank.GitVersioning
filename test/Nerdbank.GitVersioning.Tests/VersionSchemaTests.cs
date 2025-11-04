@@ -112,4 +112,28 @@ public class VersionSchemaTests
         this.json = JObject.Parse(json);
         Assert.False(this.json.IsValid(this.schema));
     }
+
+    [Fact]
+    public void VersionField_SupportsUppercaseLettersInPreRelease()
+    {
+        // Test uppercase letters in pre-release identifiers
+        this.json = JObject.Parse(@"{ ""version"": ""2.3-BETA"" }");
+        Assert.True(this.json.IsValid(this.schema));
+        this.json = JObject.Parse(@"{ ""version"": ""2.3-Beta"" }");
+        Assert.True(this.json.IsValid(this.schema));
+        this.json = JObject.Parse(@"{ ""version"": ""2.3-RC"" }");
+        Assert.True(this.json.IsValid(this.schema));
+        this.json = JObject.Parse(@"{ ""version"": ""2.3-Alpha.1"" }");
+        Assert.True(this.json.IsValid(this.schema));
+        this.json = JObject.Parse(@"{ ""version"": ""2.3-BETA-Final"" }");
+        Assert.True(this.json.IsValid(this.schema));
+        this.json = JObject.Parse(@"{ ""version"": ""1.2.3-RC1"" }");
+        Assert.True(this.json.IsValid(this.schema));
+
+        // Test uppercase in build metadata
+        this.json = JObject.Parse(@"{ ""version"": ""2.3+BUILD"" }");
+        Assert.True(this.json.IsValid(this.schema));
+        this.json = JObject.Parse(@"{ ""version"": ""2.3-beta+BUILD.123"" }");
+        Assert.True(this.json.IsValid(this.schema));
+    }
 }
