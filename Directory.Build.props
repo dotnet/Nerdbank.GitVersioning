@@ -12,6 +12,7 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <ProduceReferenceAssembly>true</ProduceReferenceAssembly>
+    <RestoreEnablePackagePruning>true</RestoreEnablePackagePruning>
 
     <!-- https://learn.microsoft.com/en-us/dotnet/fundamentals/apicompat/package-validation/overview -->
     <EnablePackageValidation>true</EnablePackageValidation>
