@@ -110,6 +110,14 @@ try {
     git mv test/Library.Tests "test/$LibraryName.Tests"
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+    # Update project reference in test project. Add before removal to keep the same ItemGroup in place.
+    dotnet add "test/$LibraryName.Tests" reference "src/$LibraryName"
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    dotnet remove "test/$LibraryName.Tests" reference src/Library/Library.csproj
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    git add "test/$LibraryName.Tests/$LibraryName.Tests.csproj"
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
     # Refresh solution file both to update paths and give the projects unique GUIDs
     dotnet sln remove src/Library/Library.csproj
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -120,14 +128,6 @@ try {
     dotnet sln add "test/$LibraryName.Tests"
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     git add "$LibraryName.slnx"
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-    # Update project reference in test project. Add before removal to keep the same ItemGroup in place.
-    dotnet add "test/$LibraryName.Tests" reference "src/$LibraryName"
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-    dotnet remove "test/$LibraryName.Tests" reference src/Library/Library.csproj
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-    git add "test/$LibraryName.Tests/$LibraryName.Tests.csproj"
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
     # Establish a new strong-name key
