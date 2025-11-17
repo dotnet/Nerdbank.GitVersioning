@@ -7,9 +7,6 @@ Expands this template into an actual project, taking values for placeholders
 The name of the library. Should consist only of alphanumeric characters and periods.
 .PARAMETER Author
 The name to use in copyright and owner notices.
-.PARAMETER CodeCovToken
-A token obtained from codecov.io for your repo. If not specified, code coverage results will not be published to codecov.io,
-but can be added later by editing the Azure Pipelines YAML file.
 .PARAMETER CIFeed
 The `/{guid}` path to the Azure Pipelines artifact feed to push your nuget package to as part of your CI.
 .PARAMETER Squash
@@ -21,8 +18,6 @@ Param(
     [string]$LibraryName,
     [Parameter(Mandatory=$true)]
     [string]$Author,
-    [Parameter()]
-    [string]$CodeCovToken,
     [Parameter()]
     [string]$CIFeed,
     [Parameter()]
@@ -179,11 +174,6 @@ try {
     }
 
     $YmlReplacements = @{}
-    if ($CodeCovToken) {
-        $YmlReplacements['(codecov_token: ).*(#.*)'] = "`$1$CodeCovToken"
-    } else {
-        $YmlReplacements['(codecov_token: ).*(#.*)'] = "#`$1`$2"
-    }
     if ($CIFeed) {
         $YmlReplacements['(ci_feed: ).*(#.*)'] = "`$1$CIFeed"
     } else {
