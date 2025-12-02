@@ -2,7 +2,7 @@ parameters:
 - name: windowsPool
   type: object
   default:
-    vmImage: windows-2022
+    vmImage: windows-2025
 - name: includeMacOS
   type: boolean
 - name: RunTests
@@ -28,7 +28,7 @@ jobs:
 
 - job: Linux
   pool:
-    vmImage: Ubuntu-22.04
+    vmImage: ubuntu-24.04
   steps:
   - checkout: self
     fetchDepth: 0 # avoid shallow clone so nbgv can do its work.
@@ -46,7 +46,7 @@ jobs:
 - job: macOS
   condition: ${{ parameters.includeMacOS }}
   pool:
-    vmImage: macOS-14
+    vmImage: macOS-15
   steps:
   - checkout: self
     fetchDepth: 0 # avoid shallow clone so nbgv can do its work.

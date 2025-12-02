@@ -6,6 +6,18 @@ steps:
 - powershell: |
     git config user.name "test user"
     git config user.email "andrewarnott@gmail.com"
+    if ($IsLinux) {
+      Write-Host "##[group]strong-name-tool installation"
+      Write-Host "##[command]sudo apt-get install strong-name-tool"
+      sudo apt-get install strong-name-tool 2>&1
+      Write-Host "##[endgroup]"
+    }
+    if ($IsMacOS) {
+      Write-Host "##[group]mono installation"
+      Write-Host "##[command]brew install mono"
+      brew install mono 2>&1
+      Write-Host "##[endgroup]"
+    }
     ./Expand-Template.ps1 -LibraryName Calc -Author "Andrew Arnott"
   displayName: 🧪 Expanding template
   failOnStderr: true

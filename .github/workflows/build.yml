@@ -23,9 +23,9 @@ jobs:
       fail-fast: false
       matrix:
         os:
-        - ubuntu-22.04
-        - macos-14
-        - windows-2022
+        - ubuntu-24.04
+        - macOS-15
+        - windows-2025
 
     steps:
     - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6

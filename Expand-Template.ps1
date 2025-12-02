@@ -52,7 +52,7 @@ function Replace-Placeholders {
 $sn = Get-Command sn -ErrorAction SilentlyContinue
 if (-not $sn) {
     if ($IsMacOS -or $IsLinux) {
-        Write-Error "sn command not found on PATH. Install mono and/or vote up this issue: https://github.com/dotnet/sdk/issues/13560"
+        Write-Error 'sn command not found on PATH. Install mono, use "sudo apt-get install strong-name-tool" and/or vote up this issue: https://github.com/dotnet/sdk/issues/13560'
         exit(1)
     }
     $snExes = Get-ChildItem -Recurse "${env:ProgramFiles(x86)}\Microsoft SDKs\Windows\sn.exe"
