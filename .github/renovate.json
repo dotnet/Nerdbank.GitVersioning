@@ -1,6 +1,6 @@
 {
 	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
-	"extends": ["config:best-practices"],
+	"extends": ["config:best-practices","helpers:pinGitHubActionDigestsToSemver"],
 	"labels": ["dependencies"],
 	"packageRules": [
 		{
