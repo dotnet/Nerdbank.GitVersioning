@@ -42,7 +42,7 @@ Further customize your repo by:
 ### Maintaining your repo based on this template
 
 The best way to keep your repo in sync with this template's evolving features and best practices is to periodically merge the template into your repo:
-`
+
 ```ps1
 git fetch
 git checkout origin/main
