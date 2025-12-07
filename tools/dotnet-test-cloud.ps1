@@ -70,6 +70,8 @@ if ($isMTP) {
         --results-directory $testLogs `
         --report-trx `
         @extraArgs
+
+    $trxFiles = Get-ChildItem -Recurse -Path $testLogs\*.trx
 } else {
     $testDiagLog = Join-Path $ArtifactStagingFolder (Join-Path test_logs diag.log)
     & $dotnet test $RepoRoot `
@@ -82,13 +84,17 @@ if ($isMTP) {
         --blame-crash `
         -bl:"$testBinLog" `
         --diag "$testDiagLog;TraceLevel=info" `
-        --logger trx `
+        --logger trx
+
+    $trxFiles = Get-ChildItem -Recurse -Path $RepoRoot\test\*.trx
 }
 
 $unknownCounter = 0
-Get-ChildItem -Recurse -Path $RepoRoot\test\*.trx |% {
+$trxFiles |% {
   New-Item $testLogs -ItemType Directory -Force | Out-Null
-  Copy-Item $_ -Destination $testLogs
+  if (!($_.FullName.StartsWith($testLogs))) {
+    Copy-Item $_ -Destination $testLogs
+  }
 
   if ($PublishResults) {
     $x = [xml](Get-Content -LiteralPath $_)
