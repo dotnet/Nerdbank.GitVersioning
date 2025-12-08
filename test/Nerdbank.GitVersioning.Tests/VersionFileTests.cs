@@ -811,7 +811,9 @@ public abstract class VersionFileTests : RepoTestBase
         this.WriteVersionFile(parent);
 
         // Create a child version.json that specifies both version with prerelease AND prerelease property
-        // This creates an invalid state that should throw when read
+        // This creates an invalid state that should throw when read.
+        // Note: We manually create the JSON here (rather than using WriteVersionFile) because
+        // this is an intentionally invalid configuration that cannot be represented through the API.
         string childPath = Path.Combine(this.RepoPath, "child");
         Directory.CreateDirectory(childPath);
         string versionJsonPath = Path.Combine(childPath, "version.json");

@@ -245,7 +245,7 @@ public abstract class VersionFile
 
         // Apply the prerelease tag to the version
         string prereleaseTag = options.Prerelease;
-        if (!prereleaseTag.StartsWith("-"))
+        if (!prereleaseTag.StartsWith("-", StringComparison.Ordinal))
         {
             // Add the hyphen prefix if not present
             prereleaseTag = "-" + prereleaseTag;
