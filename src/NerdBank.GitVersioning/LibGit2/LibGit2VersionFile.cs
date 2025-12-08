@@ -126,6 +126,7 @@ internal class LibGit2VersionFile : VersionFile
                             }
 
                             JsonConvert.PopulateObject(versionJsonContent, result, VersionOptions.GetJsonSettings(repoRelativeBaseDirectory: searchDirectory));
+                            ApplyPrereleaseProperty(result);
                             result.Inherit = false;
                         }
                     }

@@ -141,6 +141,7 @@ internal class ManagedVersionFile : VersionFile
                             }
 
                             JsonConvert.PopulateObject(versionJsonContent, result, VersionOptions.GetJsonSettings(repoRelativeBaseDirectory: searchDirectory));
+                            ApplyPrereleaseProperty(result);
                             result.Inherit = false;
                         }
                         else

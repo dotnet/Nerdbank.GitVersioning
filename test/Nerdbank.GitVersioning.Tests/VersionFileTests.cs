@@ -712,6 +712,213 @@ public abstract class VersionFileTests : RepoTestBase
         }
     }
 
+    [Fact]
+    public void Prerelease_AddedToInheritedVersion()
+    {
+        // Arrange: Create a parent version.json with a stable version
+        VersionOptions parent = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("1.2"),
+        };
+        this.WriteVersionFile(parent);
+
+        // Create a child version.json that inherits and adds a prerelease tag
+        this.WriteVersionFile(
+            new VersionOptions
+            {
+                Inherit = true,
+                Prerelease = "beta",
+            },
+            "child");
+
+        // Act: Get the version from the child directory
+        using GitContext context = this.CreateGitContext(Path.Combine(this.RepoPath, "child"));
+        VersionOptions childOptions = context.VersionFile.GetVersion();
+
+        // Assert: The child should have the inherited version with the beta prerelease tag
+        Assert.NotNull(childOptions);
+        Assert.Equal("1.2-beta", childOptions.Version.ToString());
+        Assert.False(childOptions.Inherit); // Inherit should be false after merging
+        Assert.Null(childOptions.Prerelease); // Prerelease should be null after being applied
+    }
+
+    [Fact]
+    public void Prerelease_SuppressesInheritedPrerelease()
+    {
+        // Arrange: Create a parent version.json with a prerelease version
+        VersionOptions parent = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("1.2-alpha"),
+        };
+        this.WriteVersionFile(parent);
+
+        // Create a child version.json that inherits and suppresses the prerelease tag
+        this.WriteVersionFile(
+            new VersionOptions
+            {
+                Inherit = true,
+                Prerelease = string.Empty,
+            },
+            "child");
+
+        // Act: Get the version from the child directory
+        using GitContext context = this.CreateGitContext(Path.Combine(this.RepoPath, "child"));
+        VersionOptions childOptions = context.VersionFile.GetVersion();
+
+        // Assert: The child should have the inherited version without prerelease tag
+        Assert.NotNull(childOptions);
+        Assert.Equal("1.2", childOptions.Version.ToString());
+        Assert.False(childOptions.Inherit);
+        Assert.Null(childOptions.Prerelease);
+    }
+
+    [Fact]
+    public void Prerelease_InheritsAsIs_WhenNotSpecified()
+    {
+        // Arrange: Create a parent version.json with a prerelease version
+        VersionOptions parent = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("1.2-rc"),
+        };
+        this.WriteVersionFile(parent);
+
+        // Create a child version.json that inherits without specifying prerelease
+        this.WriteVersionFile(
+            new VersionOptions
+            {
+                Inherit = true,
+            },
+            "child");
+
+        // Act: Get the version from the child directory
+        using GitContext context = this.CreateGitContext(Path.Combine(this.RepoPath, "child"));
+        VersionOptions childOptions = context.VersionFile.GetVersion();
+
+        // Assert: The child should have the inherited version with the rc prerelease tag
+        Assert.NotNull(childOptions);
+        Assert.Equal("1.2-rc", childOptions.Version.ToString());
+        Assert.False(childOptions.Inherit);
+    }
+
+    [Fact]
+    public void Prerelease_ThrowsWhen_VersionAlreadyHasPrerelease()
+    {
+        // Arrange: Create a parent version.json with a stable version
+        VersionOptions parent = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("1.2"),
+        };
+        this.WriteVersionFile(parent);
+
+        // Create a child version.json that specifies both version with prerelease AND prerelease property
+        // This creates an invalid state that should throw when read.
+        // Note: We manually create the JSON here (rather than using WriteVersionFile) because
+        // this is an intentionally invalid configuration that cannot be represented through the API.
+        string childPath = Path.Combine(this.RepoPath, "child");
+        Directory.CreateDirectory(childPath);
+        string versionJsonPath = Path.Combine(childPath, "version.json");
+        string invalidJson = "{ \"inherit\": true, \"version\": \"1.2-alpha\", \"prerelease\": \"beta\" }";
+        File.WriteAllText(versionJsonPath, invalidJson);
+
+        // Act & Assert: Attempting to get the version should throw
+        using GitContext context = this.CreateGitContext(childPath);
+        Assert.Throws<InvalidOperationException>(() => context.VersionFile.GetVersion());
+    }
+
+    [Fact]
+    public void Prerelease_ThrowsWhen_InheritedVersionHasPrereleaseAndChildSpecifiesPrerelease()
+    {
+        // Arrange: Create a parent version.json with a prerelease version
+        VersionOptions parent = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("1.2-alpha"),
+        };
+        this.WriteVersionFile(parent);
+
+        // Create a child version.json that tries to override the prerelease with a non-empty value
+        // This should throw because you can't override a non-empty prerelease with another non-empty value
+        this.WriteVersionFile(
+            new VersionOptions
+            {
+                Inherit = true,
+                Prerelease = "beta",
+            },
+            "child");
+
+        // Act & Assert: Attempting to get the version should throw
+        using GitContext context = this.CreateGitContext(Path.Combine(this.RepoPath, "child"));
+        Assert.Throws<InvalidOperationException>(() => context.VersionFile.GetVersion());
+    }
+
+    [Fact]
+    public void Prerelease_MultiLevel_Inheritance()
+    {
+        // Arrange: Create a three-level hierarchy
+        // Level 1 (root): stable version
+        this.WriteVersionFile(new VersionOptions
+        {
+            Version = SemanticVersion.Parse("1.2"),
+        });
+
+        // Level 2: inherits and adds beta tag
+        this.WriteVersionFile(
+            new VersionOptions
+            {
+                Inherit = true,
+                Prerelease = "beta",
+            },
+            "level2");
+
+        // Level 3: inherits from level 2 (which already has beta applied)
+        this.WriteVersionFile(
+            new VersionOptions
+            {
+                Inherit = true,
+            },
+            "level2/level3");
+
+        // Act: Get versions from each level
+        using GitContext level1Context = this.CreateGitContext(this.RepoPath);
+        using GitContext level2Context = this.CreateGitContext(Path.Combine(this.RepoPath, "level2"));
+        using GitContext level3Context = this.CreateGitContext(Path.Combine(this.RepoPath, "level2/level3"));
+
+        VersionOptions level1Options = level1Context.VersionFile.GetVersion();
+        VersionOptions level2Options = level2Context.VersionFile.GetVersion();
+        VersionOptions level3Options = level3Context.VersionFile.GetVersion();
+
+        // Assert
+        Assert.Equal("1.2", level1Options.Version.ToString());
+        Assert.Equal("1.2-beta", level2Options.Version.ToString());
+        Assert.Equal("1.2-beta", level3Options.Version.ToString());
+    }
+
+    [Fact]
+    public void Prerelease_WithoutHyphen_IsHandledCorrectly()
+    {
+        // Arrange: Create a parent version.json with a stable version
+        VersionOptions parent = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("1.2"),
+        };
+        this.WriteVersionFile(parent);
+
+        // Create a child version.json with prerelease without hyphen (should be added automatically)
+        this.WriteVersionFile(
+            new VersionOptions
+            {
+                Inherit = true,
+                Prerelease = "alpha", // No hyphen
+            },
+            "child");
+
+        // Act
+        using GitContext context = this.CreateGitContext(Path.Combine(this.RepoPath, "child"));
+        VersionOptions childOptions = context.VersionFile.GetVersion();
+
+        // Assert: The hyphen should be added automatically
+        Assert.Equal("1.2-alpha", childOptions.Version.ToString());
+    }
+
     private void AssertPathHasVersion(string committish, string absolutePath, VersionOptions expected)
     {
         VersionOptions actual = this.GetVersionOptions(absolutePath, committish);
