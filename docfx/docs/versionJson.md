@@ -65,7 +65,8 @@ The content of the version.json file is a JSON serialized object with these prop
     "versionIncrement" : "minor",
     "firstUnstableTag" : "alpha"
   },
-  "inherit": false // optional. Set to true in secondary version.json files used to tweak settings for subsets of projects.
+  "inherit": false, // optional. Set to true in secondary version.json files used to tweak settings for subsets of projects.
+  "prerelease": "beta" // optional. Only valid when inherit is true. Adds or overrides the prerelease tag of the inherited version.
 }
 ```
 
@@ -108,5 +109,81 @@ In this example, the offset of 100 will be applied as long as the version remain
 
 > [!NOTE]
 > This feature is particularly useful when a `version.json` file uses `"inherit": true` to get the version from a parent `version.json` file higher in the source tree. In such cases, you can set `versionHeightOffset` and `versionHeightOffsetAppliesTo` in the inheriting file without having to update it when the parent version changes. The offset will automatically stop applying when the inherited version no longer matches `versionHeightOffsetAppliesTo`.
+
+## Prerelease Tag in Inheriting Files
+
+The `prerelease` property allows a version.json file that inherits from a parent to add or override the prerelease tag without duplicating the version number. This is particularly useful when you want to publish an "unstable" prerelease from a stable branch, or when one package is still considered unstable while its peers are already stable.
+
+### Usage Rules
+
+- The `prerelease` property can **only** be used when `"inherit": true` is set.
+- The `version` property in the inheriting file must **not** include a prerelease tag (the `-suffix` part).
+- Setting `"prerelease": "beta"` will append `-beta` to the inherited version.
+- Setting `"prerelease": ""` (empty string) will explicitly **suppress** any prerelease tag inherited from the parent.
+- Omitting the `prerelease` property will inherit the prerelease tag as-is from the parent.
+
+### Examples
+
+**Example 1: Adding a prerelease tag to a stable inherited version**
+
+Parent `version.json` at repository root:
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/dotnet/Nerdbank.GitVersioning/main/src/NerdBank.GitVersioning/version.schema.json",
+  "version": "1.2"
+}
+```
+
+Child `version.json` in a subdirectory (e.g., `src/ExperimentalPackage/version.json`):
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/dotnet/Nerdbank.GitVersioning/main/src/NerdBank.GitVersioning/version.schema.json",
+  "inherit": true,
+  "prerelease": "beta"
+}
+```
+
+Result: The subdirectory will use version `1.2-beta` while the rest of the repository uses `1.2`.
+
+**Example 2: Suppressing an inherited prerelease tag**
+
+Parent `version.json` at repository root:
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/dotnet/Nerdbank.GitVersioning/main/src/NerdBank.GitVersioning/version.schema.json",
+  "version": "1.2-alpha"
+}
+```
+
+Child `version.json` in a subdirectory (e.g., `src/StablePackage/version.json`):
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/dotnet/Nerdbank.GitVersioning/main/src/NerdBank.GitVersioning/version.schema.json",
+  "inherit": true,
+  "prerelease": ""
+}
+```
+
+Result: The subdirectory will use version `1.2` (stable) while the rest of the repository uses `1.2-alpha`.
+
+**Example 3: Inheriting the prerelease tag as-is**
+
+Parent `version.json` at repository root:
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/dotnet/Nerdbank.GitVersioning/main/src/NerdBank.GitVersioning/version.schema.json",
+  "version": "1.2-rc"
+}
+```
+
+Child `version.json` in a subdirectory:
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/dotnet/Nerdbank.GitVersioning/main/src/NerdBank.GitVersioning/version.schema.json",
+  "inherit": true
+}
+```
+
+Result: The subdirectory will inherit and use version `1.2-rc` from the parent.
 
 [Learn more about pathFilters](path-filters.md).

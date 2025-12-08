@@ -197,6 +197,70 @@ public abstract class VersionFile
         return true;
     }
 
+    /// <summary>
+    /// Applies the standalone <see cref="VersionOptions.Prerelease"/> property to the <see cref="VersionOptions.Version"/> property.
+    /// </summary>
+    /// <param name="options">The version options to modify.</param>
+    /// <remarks>
+    /// This method should be called after merging a child version.json with a parent version.json.
+    /// If the child specified a <see cref="VersionOptions.Prerelease"/> property, this method will apply it to the version.
+    /// </remarks>
+    protected static void ApplyPrereleaseProperty(VersionOptions options)
+    {
+        Requires.NotNull(options, nameof(options));
+
+        // Only apply if the Prerelease property was explicitly set
+        if (options.Prerelease is null)
+        {
+            return;
+        }
+
+        // The version must exist to apply a prerelease tag
+        if (options.Version is null)
+        {
+            throw new InvalidOperationException("The 'prerelease' property cannot be used without a 'version' property.");
+        }
+
+        // If prerelease is an empty string, it suppresses any inherited prerelease tag
+        if (options.Prerelease == string.Empty)
+        {
+            // Remove any existing prerelease tag
+            if (!string.IsNullOrEmpty(options.Version.Prerelease))
+            {
+                options.Version = new SemanticVersion(
+                    options.Version.Version,
+                    null,
+                    options.Version.BuildMetadata);
+            }
+
+            options.Prerelease = null;
+            return;
+        }
+
+        // Validate that the version doesn't already have a prerelease tag (non-empty prerelease being applied)
+        if (!string.IsNullOrEmpty(options.Version.Prerelease))
+        {
+            throw new InvalidOperationException("The 'prerelease' property cannot be used when the 'version' property already includes a prerelease tag.");
+        }
+
+        // Apply the prerelease tag to the version
+        string prereleaseTag = options.Prerelease;
+        if (!prereleaseTag.StartsWith("-"))
+        {
+            // Add the hyphen prefix if not present
+            prereleaseTag = "-" + prereleaseTag;
+        }
+
+        // Create a new SemanticVersion with the prerelease tag applied
+        options.Version = new SemanticVersion(
+            options.Version.Version,
+            prereleaseTag,
+            options.Version.BuildMetadata);
+
+        // Clear the Prerelease property since it has been applied
+        options.Prerelease = null;
+    }
+
     protected static string TrimTrailingPathSeparator(string path)
         => path.Length > 0 && (path[^1] == Path.DirectorySeparatorChar || path[^1] == Path.AltDirectorySeparatorChar) ? path[..^1] : path;
 
@@ -319,6 +383,7 @@ public abstract class VersionFile
                                 versionJsonContent,
                                 result,
                                 VersionOptions.GetJsonSettings(repoRelativeBaseDirectory: repoRelativeBaseDirectory));
+                            ApplyPrereleaseProperty(result);
                             result.Inherit = false;
                         }
                     }

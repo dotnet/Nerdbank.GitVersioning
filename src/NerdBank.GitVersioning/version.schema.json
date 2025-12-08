@@ -16,6 +16,7 @@
     "inheritingFile": {
       "allOf": [
         { "$ref": "#/definitions/allProperties" },
+        { "$ref": "#/definitions/inheritingProperties" },
         { "required": [ "inherit" ] },
         {
           "properties": {
@@ -214,6 +215,15 @@
             "pattern": "^(:\\^|:!|:/|[^:])"
           },
           "uniqueItems": true
+        }
+      }
+    },
+    "inheritingProperties": {
+      "properties": {
+        "prerelease": {
+          "type": "string",
+          "description": "A prerelease tag to append to the version inherited from a parent version.json file. This property can only be used when 'inherit' is true and the 'version' property does not include a prerelease tag. Set to an empty string to explicitly suppress an inherited prerelease tag. Omit this property to inherit the prerelease tag as-is from the parent.",
+          "pattern": "^[\\da-zA-Z\\-]*$"
         }
       }
     },

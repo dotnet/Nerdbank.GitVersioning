@@ -134,6 +134,12 @@ public class VersionOptions : IEquatable<VersionOptions>
     private bool inherit;
 
     /// <summary>
+    /// Backing field for the <see cref="Prerelease"/> property.
+    /// </summary>
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private string? prerelease;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="VersionOptions"/> class.
     /// </summary>
     public VersionOptions()
@@ -161,6 +167,7 @@ public class VersionOptions : IEquatable<VersionOptions>
         this.cloudBuild = copyFrom.cloudBuild is object ? new CloudBuildOptions(copyFrom.cloudBuild) : null;
         this.release = copyFrom.release is object ? new ReleaseOptions(copyFrom.release) : null;
         this.pathFilters = copyFrom.pathFilters?.ToList();
+        this.prerelease = copyFrom.prerelease;
     }
 
     /// <summary>
@@ -554,6 +561,27 @@ public class VersionOptions : IEquatable<VersionOptions>
     {
         get => this.inherit;
         set => this.SetIfNotReadOnly(ref this.inherit, value);
+    }
+
+    /// <summary>
+    /// Gets or sets a prerelease tag to append to an inherited version.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This property is only valid when <see cref="Inherit"/> is <see langword="true"/> and the <see cref="Version"/> property
+    /// does not already include a prerelease tag. When set, this prerelease tag will be appended to the version number
+    /// inherited from the parent version.json file.
+    /// </para>
+    /// <para>
+    /// Setting this to an empty string explicitly suppresses any prerelease tag that might be inherited.
+    /// Omitting this property (leaving it as <see langword="null"/>) means the prerelease tag will be inherited as-is from the parent.
+    /// </para>
+    /// </remarks>
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+    public string? Prerelease
+    {
+        get => this.prerelease;
+        set => this.SetIfNotReadOnly(ref this.prerelease, value);
     }
 
     /// <summary>
