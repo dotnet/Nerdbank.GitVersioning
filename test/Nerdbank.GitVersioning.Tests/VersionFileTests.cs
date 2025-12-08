@@ -815,11 +815,8 @@ public abstract class VersionFileTests : RepoTestBase
         string childPath = Path.Combine(this.RepoPath, "child");
         Directory.CreateDirectory(childPath);
         string versionJsonPath = Path.Combine(childPath, "version.json");
-        File.WriteAllText(versionJsonPath, @"{
-  ""inherit"": true,
-  ""version"": ""1.2-alpha"",
-  ""prerelease"": ""beta""
-}");
+        string invalidJson = "{ \"inherit\": true, \"version\": \"1.2-alpha\", \"prerelease\": \"beta\" }";
+        File.WriteAllText(versionJsonPath, invalidJson);
 
         // Act & Assert: Attempting to get the version should throw
         using GitContext context = this.CreateGitContext(childPath);
