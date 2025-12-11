@@ -50,8 +50,9 @@ $testLogs = Join-Path $ArtifactStagingFolder test_logs
 
 $globalJson = Get-Content $PSScriptRoot/../global.json | ConvertFrom-Json
 $isMTP = $globalJson.test.runner -eq 'Microsoft.Testing.Platform'
+$extraArgs = @()
+
 if ($isMTP) {
-    $extraArgs = @()
     if ($OnCI) { $extraArgs += '--no-progress' }
     & $dotnet test --solution $RepoRoot `
         --no-build `
@@ -84,7 +85,8 @@ if ($isMTP) {
         --blame-crash `
         -bl:"$testBinLog" `
         --diag "$testDiagLog;TraceLevel=info" `
-        --logger trx
+        --logger trx `
+        @extraArgs
 
     $trxFiles = Get-ChildItem -Recurse -Path $RepoRoot\test\*.trx
 }
