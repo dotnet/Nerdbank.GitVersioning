@@ -112,7 +112,7 @@ public class GitObjectIdTests
         // Common use case: create the path to the object in the Git object store,
         // e.g. git/objects/[byte 0]/[bytes 1 - 19]
         byte[] valueAsBytes = Encoding.Unicode.GetBytes("git/objects/00/01020304050607080910111213141516171819");
-        Span<char> valueAsChars = MemoryMarshal.Cast<byte, char>(valueAsBytes);
+        Span<char> valueAsChars = MemoryMarshal.Cast<byte, char>((Span<byte>)valueAsBytes);
 
         var objectId = GitObjectId.ParseHex(this.shaAsHexAsciiByteArray);
         objectId.CopyAsHex(0, 1, valueAsChars.Slice(12, 1 * 2));
