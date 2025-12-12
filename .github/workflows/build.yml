@@ -13,7 +13,6 @@ on:
 env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
   BUILDCONFIGURATION: Release
-  # codecov_token: 4dc9e7e2-6b01-4932-a180-847b52b43d35 # Get a new one from https://codecov.io/
   NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages/
 
 # dotnetfoundation code signing
@@ -27,11 +26,11 @@ jobs:
       fail-fast: false
       matrix:
         os:
-        - ubuntu-22.04
-        - windows-2022
+        - ubuntu-24.04
+        - windows-2025
 
     steps:
-    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+    - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       with:
         fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
         submodules: true
@@ -114,11 +113,13 @@ jobs:
       if: success() && runner.os == 'Windows' && github.event_name != 'pull_request'
       continue-on-error: true
     - name: 📢 Publish code coverage results to codecov.io
-      run: ./tools/publish-CodeCov.ps1 -CodeCovToken "${{ env.codecov_token }}" -PathToCodeCoverage "${{ runner.temp }}/_artifacts/coverageResults" -Name "${{ runner.os }} Coverage Results" -Flags "${{ runner.os }}"
+      run: |
+        if ('${{ secrets.CODECOV_TOKEN }}') {
+          ./tools/publish-CodeCov.ps1 -CodeCovToken '${{ secrets.CODECOV_TOKEN }}' -PathToCodeCoverage "${{ runner.temp }}/_artifacts/coverageResults" -Name "${{ runner.os }} Coverage Results" -Flags "${{ runner.os }}"
+        }
       shell: pwsh
       timeout-minutes: 3
       continue-on-error: true
-      if: env.codecov_token != ''
 
   functional_testing:
     name: 🧪 Functional testing
@@ -300,8 +301,8 @@ jobs:
     name: 📃 Docs
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+    - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
     - name: 🔗 Markup Link Checker (mlc)
-      uses: becheran/mlc@18a06b3aa2901ca197de59c8b0b1f54fdba6b3fa # v1.0.0
+      uses: becheran/mlc@6fa3bddc1a921454b7840df30b343f6415bc8d35 # v1.1.0
       with:
         args: --do-not-warn-for-redirect-to https://learn.microsoft.com*,https://dotnet.microsoft.com/*,https://dev.azure.com/*,https://app.codecov.io/* -p docfx -i https://www.npmjs.com/package/*,https://get.dot.net/
