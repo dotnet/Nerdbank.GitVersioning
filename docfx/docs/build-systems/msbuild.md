@@ -69,7 +69,7 @@ You can customize the metadata fields (CompanyName, LegalCopyright, ProductName,
 Property | Default | Version Resource Field | Description
 --|--|--|--
 `AssemblyCompany` | `$(AssemblyName)` | CompanyName | The name of your company or organization
-`AssemblyCopyright` | `Copyright (c) {Year}. All rights reserved.` | LegalCopyright | Copyright notice for your project
+`AssemblyCopyright` | `Copyright (c) [current year]. All rights reserved.` | LegalCopyright | Copyright notice for your project. The year is automatically set to the current year at build time.
 `AssemblyProduct` | `$(AssemblyName)` | ProductName | The name of your product
 `AssemblyTitle` | `$(AssemblyName)` | FileDescription | A description of your project or binary
 
@@ -80,7 +80,7 @@ Add these properties to your `.vcxproj` file to customize the version resource:
 ```xml
 <PropertyGroup>
   <AssemblyCompany>Contoso Corporation</AssemblyCompany>
-  <AssemblyCopyright>Copyright (c) 2024 Contoso Corporation. All rights reserved.</AssemblyCopyright>
+  <AssemblyCopyright>Copyright © Contoso Corporation. All rights reserved.</AssemblyCopyright>
   <AssemblyProduct>Contoso Application Suite</AssemblyProduct>
   <AssemblyTitle>Contoso Main Application</AssemblyTitle>
 </PropertyGroup>
@@ -92,7 +92,7 @@ Alternatively, you can set these properties in a `Directory.Build.props` file at
 <Project>
   <PropertyGroup>
     <AssemblyCompany>Contoso Corporation</AssemblyCompany>
-    <AssemblyCopyright>Copyright (c) 2024 Contoso Corporation. All rights reserved.</AssemblyCopyright>
+    <AssemblyCopyright>Copyright © Contoso Corporation. All rights reserved.</AssemblyCopyright>
     <AssemblyProduct>Contoso Application Suite</AssemblyProduct>
   </PropertyGroup>
 </Project>
