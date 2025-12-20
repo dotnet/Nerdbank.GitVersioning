@@ -134,6 +134,61 @@ public abstract class GitContext : IDisposable
     protected string? DotGitPath { get; }
 
     /// <summary>
+    /// Gets the effective git engine to use, taking into account automatic disabling for Dependabot and GitHub Copilot.
+    /// This overload checks the NBGV_GitEngine environment variable and parses it automatically.
+    /// </summary>
+    /// <param name="defaultEngine">The engine to use if no environment variables dictate otherwise.</param>
+    /// <returns>The engine to use.</returns>
+    /// <remarks>
+    /// If the NBGV_GitEngine environment variable is set, it takes precedence.
+    /// Valid values are "LibGit2", "Managed", and "Disabled" (case-sensitive).
+    /// Unrecognized values are treated as if the variable was not set, maintaining backward compatibility.
+    /// Otherwise, if the DEPENDABOT environment variable is set to "true" (case-insensitive), returns <see cref="Engine.Disabled"/>.
+    /// Otherwise, if the GITHUB_ACTOR environment variable is set to "copilot-swe-agent[bot]", returns <see cref="Engine.Disabled"/>.
+    /// Otherwise, returns <paramref name="defaultEngine"/>.
+    /// </remarks>
+    public static Engine GetEffectiveGitEngine(Engine defaultEngine = Engine.ReadOnly)
+    {
+        // If NBGV_GitEngine is set, respect that setting regardless of Dependabot or GitHub Copilot
+        string? nbgvGitEngine = Environment.GetEnvironmentVariable("NBGV_GitEngine");
+        if (!string.IsNullOrEmpty(nbgvGitEngine))
+        {
+            // Parse the NBGV_GitEngine value
+            if (string.Equals(nbgvGitEngine, "LibGit2", StringComparison.Ordinal))
+            {
+                return Engine.ReadWrite;
+            }
+            else if (string.Equals(nbgvGitEngine, "Disabled", StringComparison.Ordinal))
+            {
+                return Engine.Disabled;
+            }
+            else if (string.Equals(nbgvGitEngine, "Managed", StringComparison.Ordinal))
+            {
+                return Engine.ReadOnly;
+            }
+
+            // If unrecognized value, fall through to default logic.
+            // This maintains backward compatibility where invalid environment variable values
+            // are silently ignored rather than causing build failures.
+        }
+
+        // If we're in a Dependabot environment and NBGV_GitEngine is not set, automatically disable the git engine
+        if (IsDependabotEnvironment())
+        {
+            return Engine.Disabled;
+        }
+
+        // If we're in a GitHub Copilot environment and NBGV_GitEngine is not set, automatically disable the git engine
+        if (IsGitHubCopilotEnvironment())
+        {
+            return Engine.Disabled;
+        }
+
+        // Otherwise, use the default engine
+        return defaultEngine;
+    }
+
+    /// <summary>
     /// Creates a context for reading/writing version information at a given path and committish.
     /// </summary>
     /// <param name="path">The path to a directory for which version information is required.</param>
@@ -339,5 +394,25 @@ public abstract class GitContext : IDisposable
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Determines whether the current environment is running under Dependabot.
+    /// </summary>
+    /// <returns><see langword="true"/> if DEPENDABOT environment variable is set to "true" (case-insensitive); otherwise, <see langword="false"/>.</returns>
+    private static bool IsDependabotEnvironment()
+    {
+        string? dependabotEnvVar = Environment.GetEnvironmentVariable("DEPENDABOT");
+        return string.Equals(dependabotEnvVar, "true", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Determines whether the current environment is running under GitHub Copilot.
+    /// </summary>
+    /// <returns><see langword="true"/> if GITHUB_ACTOR environment variable is set to "copilot-swe-agent[bot]"; otherwise, <see langword="false"/>.</returns>
+    private static bool IsGitHubCopilotEnvironment()
+    {
+        string? githubActorEnvVar = Environment.GetEnvironmentVariable("GITHUB_ACTOR");
+        return string.Equals(githubActorEnvVar, "copilot-swe-agent[bot]", StringComparison.Ordinal);
     }
 }

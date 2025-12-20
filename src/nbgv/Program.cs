@@ -1,17 +1,9 @@
 // Copyright (c) .NET Foundation and Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System;
-using System.Collections.Generic;
 using System.CommandLine;
-using System.CommandLine.Invocation;
-using System.CommandLine.Parsing;
-using System.IO;
-using System.Linq;
+using System.Globalization;
 using System.Reflection;
-using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Build.Construction;
 using Nerdbank.GitVersioning.Commands;
 using Nerdbank.GitVersioning.LibGit2;
@@ -19,7 +11,6 @@ using Newtonsoft.Json;
 using NuGet.Common;
 using NuGet.Configuration;
 using NuGet.PackageManagement;
-using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 using NuGet.Resolver;
 using Validation;
@@ -145,6 +136,11 @@ namespace Nerdbank.GitVersioning.Tool
                 {
                     Description = "The name of just one version property to print to stdout. When specified, the output is always in raw text. Useful in scripts.",
                 };
+                var publicRelease = new Option<bool?>("--public-release")
+                {
+                    Description = "Specifies whether this is a public release. When specified, overrides the PublicRelease environment variable. Use --public-release=true or --public-release=false to explicitly set the value.",
+                    Arity = ArgumentArity.ZeroOrOne,
+                };
                 var commit = new Argument<string>("commit-ish")
                 {
                     Description = $"The commit/ref to get the version information for.",
@@ -157,6 +153,7 @@ namespace Nerdbank.GitVersioning.Tool
                     metadata,
                     format,
                     variable,
+                    publicRelease,
                     commit,
                 };
 
@@ -166,8 +163,9 @@ namespace Nerdbank.GitVersioning.Tool
                     var metadataValue = parseResult.GetValue(metadata);
                     var formatValue = parseResult.GetValue(format);
                     var variableValue = parseResult.GetValue(variable);
+                    var publicReleaseValue = parseResult.GetValue(publicRelease);
                     var commitValue = parseResult.GetValue(commit);
-                    return await OnGetVersionCommand(projectValue, metadataValue, formatValue, variableValue, commitValue);
+                    return await OnGetVersionCommand(projectValue, metadataValue, formatValue, variableValue, publicReleaseValue, commitValue);
                 });
             }
 
@@ -207,17 +205,23 @@ namespace Nerdbank.GitVersioning.Tool
                     DefaultValueFactory = _ => DefaultRef,
                     Arity = ArgumentArity.ZeroOrOne,
                 };
+                var whatIf = new Option<bool>("--what-if")
+                {
+                    Description = "Calculates and outputs the tag name without creating the tag.",
+                };
                 tag = new Command("tag", "Creates a git tag to mark a version.")
                 {
                     project,
                     versionOrRef,
+                    whatIf,
                 };
 
                 tag.SetAction(async (ParseResult parseResult, CancellationToken cancellationToken) =>
                 {
                     var projectValue = parseResult.GetValue(project);
                     var versionOrRefValue = parseResult.GetValue(versionOrRef);
-                    return await OnTagCommand(projectValue, versionOrRefValue);
+                    var whatIfValue = parseResult.GetValue(whatIf);
+                    return await OnTagCommand(projectValue, versionOrRefValue, whatIfValue);
                 });
             }
 
@@ -396,6 +400,17 @@ namespace Nerdbank.GitVersioning.Tool
                 Console.Error.WriteLine("Unhandled exception: {0}", ex.Message);
                 Console.Error.WriteLine("Unhandled exception while trying to print string version of the above exception: {0}", ex2);
             }
+        }
+
+        /// <summary>
+        /// Gets the effective git engine to use based on environment variables and command settings.
+        /// </summary>
+        /// <param name="preferReadWrite">Whether to prefer ReadWrite (LibGit2) engine when not explicitly specified.</param>
+        /// <returns>The engine to use.</returns>
+        private static GitContext.Engine GetEffectiveGitEngine(bool preferReadWrite = false)
+        {
+            // Use the shared logic from GitContext which handles both NBGV_GitEngine and DEPENDABOT env vars
+            return GitContext.GetEffectiveGitEngine(preferReadWrite ? GitContext.Engine.ReadWrite : GitContext.Engine.ReadOnly);
         }
 
         private static int MainInner(string[] args)
@@ -580,7 +595,7 @@ namespace Nerdbank.GitVersioning.Tool
             return (int)ExitCodes.OK;
         }
 
-        private static Task<int> OnGetVersionCommand(string project, string[] metadata, string format, string variable, string commitish)
+        private static Task<int> OnGetVersionCommand(string project, string[] metadata, string format, string variable, bool? publicReleaseArg, string commitish)
         {
             if (string.IsNullOrEmpty(format))
             {
@@ -594,7 +609,7 @@ namespace Nerdbank.GitVersioning.Tool
 
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(project);
 
-            using var context = GitContext.Create(searchPath, engine: AlwaysUseLibGit2 ? GitContext.Engine.ReadWrite : GitContext.Engine.ReadOnly);
+            using var context = GitContext.Create(searchPath, engine: GetEffectiveGitEngine(preferReadWrite: AlwaysUseLibGit2));
             if (!context.IsRepository)
             {
                 Console.Error.WriteLine("No git repo found at or above: \"{0}\"", searchPath);
@@ -613,8 +628,12 @@ namespace Nerdbank.GitVersioning.Tool
                 oracle.BuildMetadata.AddRange(metadata);
             }
 
-            // Take the PublicRelease environment variable into account, since the build would as well.
-            if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("PublicRelease")) && bool.TryParse(Environment.GetEnvironmentVariable("PublicRelease"), out bool publicRelease))
+            // Set PublicRelease - prioritize command line argument over environment variable
+            if (publicReleaseArg.HasValue)
+            {
+                oracle.PublicRelease = publicReleaseArg.Value;
+            }
+            else if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("PublicRelease")) && bool.TryParse(Environment.GetEnvironmentVariable("PublicRelease"), out bool publicRelease))
             {
                 oracle.PublicRelease = publicRelease;
             }
@@ -657,7 +676,13 @@ namespace Nerdbank.GitVersioning.Tool
                     return Task.FromResult((int)ExitCodes.BadVariable);
                 }
 
-                Console.WriteLine(property.GetValue(oracle));
+                object propertyValue = property.GetValue(oracle);
+                string output = propertyValue switch
+                {
+                    DateTimeOffset dateTimeOffset => dateTimeOffset.ToString("yyyy-MM-ddTHH:mm:sszzz", CultureInfo.InvariantCulture),
+                    _ => propertyValue?.ToString() ?? string.Empty,
+                };
+                Console.WriteLine(output);
             }
 
             return Task.FromResult((int)ExitCodes.OK);
@@ -678,12 +703,12 @@ namespace Nerdbank.GitVersioning.Tool
 
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(project);
             using var context = GitContext.Create(searchPath, engine: GitContext.Engine.ReadWrite);
-            VersionOptions existingOptions = context.VersionFile.GetVersion(out string actualDirectory);
+            VersionOptions existingOptions = context.VersionFile.GetVersion(VersionFileRequirements.NonMergedResult | VersionFileRequirements.VersionSpecified | VersionFileRequirements.AcceptInheritingFile, out VersionFileLocations locations);
             string versionJsonPath;
-            if (existingOptions is not null)
+            if (existingOptions is not null && locations.VersionSpecifyingVersionDirectory is not null)
             {
                 existingOptions.Version = semver;
-                versionJsonPath = context.VersionFile.SetVersion(actualDirectory, existingOptions);
+                versionJsonPath = context.VersionFile.SetVersion(locations.VersionSpecifyingVersionDirectory, existingOptions);
             }
             else if (string.IsNullOrEmpty(project))
             {
@@ -708,7 +733,7 @@ namespace Nerdbank.GitVersioning.Tool
             return Task.FromResult((int)ExitCodes.OK);
         }
 
-        private static Task<int> OnTagCommand(string project, string versionOrRef)
+        private static Task<int> OnTagCommand(string project, string versionOrRef, bool whatIf)
         {
             if (string.IsNullOrEmpty(versionOrRef))
             {
@@ -788,6 +813,13 @@ namespace Nerdbank.GitVersioning.Tool
             // replace the "{version}" placeholder with the actual version
             string tagName = tagNameFormat.Replace("{version}", oracle.SemVer2);
 
+            if (whatIf)
+            {
+                // In what-if mode, just output the tag name and exit
+                Console.WriteLine(tagName);
+                return Task.FromResult((int)ExitCodes.OK);
+            }
+
             try
             {
                 context.ApplyTag(tagName);
@@ -816,14 +848,14 @@ namespace Nerdbank.GitVersioning.Tool
 
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(project);
 
-            using var context = (LibGit2Context)GitContext.Create(searchPath, engine: GitContext.Engine.ReadWrite);
+            using var context = GitContext.Create(searchPath, engine: GitContext.Engine.ReadWrite);
             if (!context.IsRepository)
             {
                 Console.Error.WriteLine("No git repo found at or above: \"{0}\"", searchPath);
                 return Task.FromResult((int)ExitCodes.NoGitRepo);
             }
 
-            IEnumerable<LibGit2Sharp.Commit> candidateCommits = LibGit2GitExtensions.GetCommitsFromVersion(context, parsedVersion);
+            IEnumerable<LibGit2Sharp.Commit> candidateCommits = LibGit2GitExtensions.GetCommitsFromVersion((LibGit2Context)context, parsedVersion);
             PrintCommits(quiet, context, candidateCommits);
 
             return Task.FromResult((int)ExitCodes.OK);
@@ -908,7 +940,7 @@ namespace Nerdbank.GitVersioning.Tool
             VersionOptions.ReleaseVersionIncrement? versionIncrementParsed = default;
             if (!string.IsNullOrEmpty(versionIncrement))
             {
-                if (!Enum.TryParse<VersionOptions.ReleaseVersionIncrement>(versionIncrement, true, out VersionOptions.ReleaseVersionIncrement parsed))
+                if (!Enum.TryParse(versionIncrement, true, out VersionOptions.ReleaseVersionIncrement parsed))
                 {
                     Console.Error.WriteLine($"\"{versionIncrement}\" is not a valid version increment");
                     return Task.FromResult((int)ExitCodes.InvalidVersionIncrement);

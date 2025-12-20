@@ -32,10 +32,14 @@ internal class LibGit2VersionFile : VersionFile
     /// <param name="commit">The commit to read from.</param>
     /// <param name="repoRelativeProjectDirectory">The directory to consider when searching for the version.txt file.</param>
     /// <param name="blobVersionCache">An optional blob cache for storing the raw parse results of a version.txt or version.json file (before any inherit merge operations are applied).</param>
-    /// <param name="actualDirectory">Receives the full path to the directory in which the version file was found.</param>
+    /// <param name="requirements"><inheritdoc cref="GetVersionCore(VersionFileRequirements, out VersionFileLocations)" path="/param[@name='requirements']" /></param>
+    /// <param name="locations"><inheritdoc cref="GetVersionCore(VersionFileRequirements, out VersionFileLocations)" path="/param[@name='locations']" /></param>
     /// <returns>The version information read from the file.</returns>
-    internal VersionOptions? GetVersion(Commit commit, string repoRelativeProjectDirectory, Dictionary<ObjectId, VersionOptions?>? blobVersionCache, out string? actualDirectory)
+    internal VersionOptions? GetVersion(Commit commit, string repoRelativeProjectDirectory, Dictionary<ObjectId, VersionOptions?>? blobVersionCache, VersionFileRequirements requirements, out VersionFileLocations locations)
     {
+        repoRelativeProjectDirectory = TrimTrailingPathSeparator(repoRelativeProjectDirectory);
+        locations = default;
+
         string? searchDirectory = repoRelativeProjectDirectory ?? string.Empty;
         while (searchDirectory is object)
         {
@@ -58,8 +62,8 @@ internal class LibGit2VersionFile : VersionFile
                 if (result is object)
                 {
                     IBelongToARepository commitAsRepoMember = commit;
-                    actualDirectory = Path.Combine(commitAsRepoMember.Repository.Info.WorkingDirectory, searchDirectory);
-                    return result;
+                    this.ApplyLocations(result, Path.Combine(commitAsRepoMember.Repository.Info.WorkingDirectory, searchDirectory), ref locations);
+                    return VersionOptionsSatisfyRequirements(result, requirements) ? result : null;
                 }
             }
 
@@ -95,12 +99,19 @@ internal class LibGit2VersionFile : VersionFile
                     }
                 }
 
-                if (result?.Inherit ?? false)
+                this.ApplyLocations(result, Path.Combine(this.Context.WorkingTreePath, searchDirectory), ref locations);
+                if (VersionOptionsSatisfyRequirements(result, requirements))
+                {
+                    return result;
+                }
+
+                if (result?.Inherit is true)
                 {
                     if (parentDirectory is object)
                     {
-                        result = this.GetVersion(commit, parentDirectory, blobVersionCache, out actualDirectory);
-                        if (result is object)
+                        result = this.GetVersion(commit, parentDirectory, blobVersionCache, requirements, out VersionFileLocations parentLocations);
+                        this.MergeLocations(ref locations, parentLocations);
+                        if (!requirements.HasFlag(VersionFileRequirements.NonMergedResult) && result is not null)
                         {
                             if (versionJsonContent is null)
                             {
@@ -115,27 +126,31 @@ internal class LibGit2VersionFile : VersionFile
                             }
 
                             JsonConvert.PopulateObject(versionJsonContent, result, VersionOptions.GetJsonSettings(repoRelativeBaseDirectory: searchDirectory));
-                            return result;
+                            ApplyPrereleaseProperty(result);
+                            result.Inherit = false;
                         }
                     }
+                    else
+                    {
+                        throw new InvalidOperationException($"\"{candidatePath}\" inherits from a parent directory version.json file but none exists.");
+                    }
 
-                    throw new InvalidOperationException($"\"{candidatePath}\" inherits from a parent directory version.json file but none exists.");
+                    return VersionOptionsSatisfyRequirements(result, requirements) ? result : null;
                 }
                 else if (result is object)
                 {
                     IBelongToARepository commitAsRepoMember = commit;
-                    actualDirectory = Path.Combine(commitAsRepoMember.Repository.Info.WorkingDirectory, searchDirectory);
-                    return result;
+                    return VersionOptionsSatisfyRequirements(result, requirements) ? result : null;
                 }
             }
 
             searchDirectory = parentDirectory;
         }
 
-        actualDirectory = null;
+        locations = default;
         return null;
     }
 
     /// <inheritdoc/>
-    protected override VersionOptions? GetVersionCore(out string? actualDirectory) => this.GetVersion(this.Context.Commit!, this.Context.RepoRelativeProjectDirectory, null, out actualDirectory);
+    protected override VersionOptions? GetVersionCore(VersionFileRequirements requirements, out VersionFileLocations locations) => this.GetVersion(this.Context.Commit!, this.Context.RepoRelativeProjectDirectory, null, requirements, out locations);
 }

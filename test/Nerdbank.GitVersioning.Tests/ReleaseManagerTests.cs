@@ -864,6 +864,47 @@ public abstract class ReleaseManagerTests : RepoTestBase
         Assert.Null(result.NewBranch);
     }
 
+    [Fact]
+    public void PrepareRelease_ResetsVersionHeightOffsetAppliesTo()
+    {
+        // create and configure repository
+        this.InitializeSourceControl();
+
+        var initialVersionOptions = new VersionOptions()
+        {
+            Version = SemanticVersion.Parse("1.0-beta"),
+            VersionHeightOffset = 5,
+            VersionHeightOffsetAppliesTo = SemanticVersion.Parse("1.0-beta"),
+        };
+
+        var expectedReleaseVersionOptions = new VersionOptions()
+        {
+            Version = SemanticVersion.Parse("1.0"),
+            VersionHeightOffset = 5,
+            VersionHeightOffsetAppliesTo = SemanticVersion.Parse("1.0-beta"),
+        };
+
+        var expectedMainVersionOptions = new VersionOptions()
+        {
+            Version = SemanticVersion.Parse("1.1-alpha"),
+        };
+
+        // create version.json
+        this.WriteVersionFile(initialVersionOptions);
+
+        Commit tipBeforePrepareRelease = this.LibGit2Repository.Head.Tip;
+
+        var releaseManager = new ReleaseManager();
+        releaseManager.PrepareRelease(this.RepoPath);
+
+        this.SetContextToHead();
+        VersionOptions newVersion = this.Context.VersionFile.GetVersion();
+        Assert.Equal(expectedMainVersionOptions, newVersion);
+
+        VersionOptions releaseVersion = this.GetVersionOptions(committish: this.LibGit2Repository.Branches["v1.0"].Tip.Sha);
+        Assert.Equal(expectedReleaseVersionOptions, releaseVersion);
+    }
+
     /// <inheritdoc/>
     protected override void InitializeSourceControl(bool withInitialCommit = true)
     {

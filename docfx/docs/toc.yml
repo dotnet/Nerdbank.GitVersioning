@@ -16,6 +16,7 @@ items:
   - href: ecosystems/node.md
     items:
     - href: npm-acquisition.md
+  - href: ecosystems/python.md
   - href: ecosystems/vsix.md
 - href: nbgv-cli.md
 - href: path-filters.md

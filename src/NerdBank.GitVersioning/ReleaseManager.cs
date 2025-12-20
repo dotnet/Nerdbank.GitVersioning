@@ -353,7 +353,9 @@ public class ReleaseManager
         Requires.NotNull(context, nameof(context));
 
         Signature signature = this.GetSignature(context.Repository);
-        VersionOptions versionOptions = context.VersionFile.GetVersion();
+
+        // Retrieve the version options carefully to avoid 'flattening' an inheriting version.json file.
+        VersionOptions versionOptions = context.VersionFile.GetVersion(VersionFileRequirements.NonMergedResult | VersionFileRequirements.VersionSpecified | VersionFileRequirements.AcceptInheritingFile, out VersionFileLocations locations);
 
         if (IsVersionDecrement(oldVersion, newVersion))
         {
@@ -365,12 +367,13 @@ public class ReleaseManager
         {
             if (versionOptions.VersionHeightOffset != -1 && versionOptions.VersionHeightPosition.HasValue && SemanticVersion.WillVersionChangeResetVersionHeight(versionOptions.Version, newVersion, versionOptions.VersionHeightPosition.Value))
             {
-                // The version will be reset by this change, so remove the version height offset property.
+                // The version will be reset by this change, so remove the version height offset properties.
                 versionOptions.VersionHeightOffset = null;
+                versionOptions.VersionHeightOffsetAppliesTo = null;
             }
 
             versionOptions.Version = newVersion;
-            string filePath = context.VersionFile.SetVersion(context.AbsoluteProjectDirectory, versionOptions, includeSchemaProperty: true);
+            string filePath = context.VersionFile.SetVersion(locations.VersionSpecifyingVersionDirectory, versionOptions, includeSchemaProperty: true);
 
             global::LibGit2Sharp.Commands.Stage(context.Repository, filePath);
 

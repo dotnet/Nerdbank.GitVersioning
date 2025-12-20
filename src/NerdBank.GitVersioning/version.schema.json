@@ -16,6 +16,7 @@
     "inheritingFile": {
       "allOf": [
         { "$ref": "#/definitions/allProperties" },
+        { "$ref": "#/definitions/inheritingProperties" },
         { "required": [ "inherit" ] },
         {
           "properties": {
@@ -31,7 +32,7 @@
         "version": {
           "type": "string",
           "description": "The major.minor-pre version to use as the basis for version calculations. If {height} is not used in this value and the value has fewer than the full major.minor.build.revision specified, \".{height}\" will be appended by the build.",
-          "pattern": "^v?(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:\\.(0|[1-9][0-9]*)(?:\\.(0|[1-9][0-9]*))?)?(-(?:[\\da-z\\-]+|\\{height\\})(?:\\.(?:[\\da-z\\-]+|\\{height\\}))*)?(\\+(?:[\\da-z\\-]+|\\{height\\})(?:\\.(?:[\\da-z\\-]+|\\{height\\}))*)?$"
+          "pattern": "^v?(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:\\.(0|[1-9][0-9]*)(?:\\.(0|[1-9][0-9]*))?)?(-(?:[\\da-zA-Z\\-]+|\\{height\\})(?:\\.(?:[\\da-zA-Z\\-]+|\\{height\\}))*)?(\\+(?:[\\da-zA-Z\\-]+|\\{height\\})(?:\\.(?:[\\da-zA-Z\\-]+|\\{height\\}))*)?$"
         },
         "inherit": {
           "type": "boolean",
@@ -68,6 +69,11 @@
           "description": "A number to add to the git height when calculating the version height (which typically appears as the 3rd integer in a computed version). May be negative, but not of greater magnitude than the original git height.",
           "default": 0
         },
+        "versionHeightOffsetAppliesTo": {
+          "type": "string",
+          "description": "The version to which the versionHeightOffset applies. When the version property changes such that the version height would be reset, and this property does not match the new version, the versionHeightOffset will be ignored. This allows the offset to implicitly reset as intended without having to manually remove it from all version.json files.",
+          "pattern": "^v?(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:\\.(0|[1-9][0-9]*)(?:\\.(0|[1-9][0-9]*))?)?(-(?:[\\da-zA-Z\\-]+|\\{height\\})(?:\\.(?:[\\da-zA-Z\\-]+|\\{height\\}))*)?(\\+(?:[\\da-zA-Z\\-]+|\\{height\\})(?:\\.(?:[\\da-zA-Z\\-]+|\\{height\\}))*)?$"
+        },
         "buildNumberOffset": {
           "type": "integer",
           "description": "OBSOLETE by v3.0. Use \"versionHeightOffset\" instead. A number to add to the git height when calculating the version height (which typically appears as the 3rd integer in a computed version). May be negative, but not of greater magnitude than the original git height.",
@@ -89,7 +95,7 @@
         "gitCommitIdPrefix": {
           "type": "string",
           "description": "The git commit prefix (e.g. 'g') in non-public release versions.",
-          "pattern": "^[^0-9][\\da-z\\-_\\.]*$",
+          "pattern": "^[^0-9][\\da-zA-Z\\-_\\.]*$",
           "default": "g"
         },
         "gitCommitIdShortAutoMinimum": {
@@ -162,7 +168,7 @@
                     "where": {
                       "type": "string",
                       "default": "buildMetadata",
-                      "description": "The position to include the commit ID information.",
+                      "description": "The position to include the commit ID information. If fourthVersionComponent is used, the first 15 bits of the commit hash will be used to form the 4th integer in the version number.",
                       "enum": [ "buildMetadata", "fourthVersionComponent" ]
                     }
                   }
@@ -209,6 +215,15 @@
             "pattern": "^(:\\^|:!|:/|[^:])"
           },
           "uniqueItems": true
+        }
+      }
+    },
+    "inheritingProperties": {
+      "properties": {
+        "prerelease": {
+          "type": "string",
+          "description": "A prerelease tag to append to the version inherited from a parent version.json file. This property can only be used when 'inherit' is true and the 'version' property does not include a prerelease tag. Set to an empty string to explicitly suppress an inherited prerelease tag. Omit this property to inherit the prerelease tag as-is from the parent.",
+          "pattern": "^[\\da-zA-Z\\-]*$"
         }
       }
     },

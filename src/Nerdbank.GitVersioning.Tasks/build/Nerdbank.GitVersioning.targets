@@ -36,6 +36,7 @@
   <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="Nerdbank.GitVersioning.Tasks.NativeVersionInfo"/>
   <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="Nerdbank.GitVersioning.Tasks.SetCloudBuildVariables"/>
   <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="Nerdbank.GitVersioning.Tasks.CompareFiles"/>
+  <UsingTask AssemblyFile="$(NerdbankGitVersioningTasksPath)Nerdbank.GitVersioning.Tasks.dll" TaskName="Nerdbank.GitVersioning.Tasks.StampMcpServerJson"/>
 
   <Target Name="NBGV_SetDefaults">
     <!-- Workarounds for https://github.com/dotnet/Nerdbank.GitVersioning/issues/404 -->
@@ -118,7 +119,7 @@
   <Target Name="SetCloudBuildVersionVars"
         DependsOnTargets="GetBuildVersion"
         AfterTargets="GetBuildVersion"
-        Condition=" '@(CloudBuildVersionVars)' != '' ">
+        Condition=" '@(CloudBuildVersionVars)' != '' and '$(NBGV_SetCloudBuildVersionVars)' != 'false' ">
     <Nerdbank.GitVersioning.Tasks.SetCloudBuildVariables
       CloudBuildVersionVars="@(CloudBuildVersionVars)">
       <Output TaskParameter="MSBuildPropertyUpdates" ItemName="_MSBuildPropertyUpdates_Vars" />
@@ -274,9 +275,9 @@
           The major version must not exceed 124 to guarantee that the overall integer never exceeds 2100000000 even with the other numbers added.
           Other components are also limited since they must fit within the 8 or 16 bits allowed for them.
           Learn more from https://developer.android.com/studio/publish/versioning. -->
-    <Error Condition="$([System.Version]::Parse('$(BuildVersion)').Major) &gt; 124" Text="Major version must not exceed 124 per Android versioning rules." />
-    <Error Condition="$([System.Version]::Parse('$(BuildVersion)').Minor) &gt; 255" Text="Minor version must not exceed 256 per Android versioning rules." />
-    <Error Condition="$(BuildNumber) &gt; 65535" Text="Build number must not exceed 65535 per Android versioning rules." />
+    <Error Condition="$([System.Version]::Parse('$(BuildVersion)').Major) &gt; 124 AND '$(OutputType)'=='Exe'" Text="Major version must not exceed 124 per Android versioning rules." />
+    <Error Condition="$([System.Version]::Parse('$(BuildVersion)').Minor) &gt; 255 AND '$(OutputType)'=='Exe'" Text="Minor version must not exceed 256 per Android versioning rules." />
+    <Error Condition="$(BuildNumber) &gt; 65535 AND '$(OutputType)'=='Exe'" Text="Build number must not exceed 65535 per Android versioning rules." />
     <PropertyGroup>
       <_NBGV_Major_Shifted>$([MSBuild]::Multiply($([System.Version]::Parse('$(BuildVersion)').Major), 16777216))</_NBGV_Major_Shifted>
       <_NBGV_Minor_Shifted>$([MSBuild]::Multiply($([System.Version]::Parse('$(BuildVersion)').Minor), 65536))</_NBGV_Minor_Shifted>
@@ -308,6 +309,30 @@
       <!-- Windows requirement: ApplicationDisplayVersion must be a four part version number -->
       <ApplicationDisplayVersion>$(BuildVersion)</ApplicationDisplayVersion>
     </PropertyGroup>
+  </Target>
+
+  <!-- Support for MCP servers: stamp version in server.json -->
+  <Target Name="NBGV_StampMcpServerJson"
+          Condition="'$(PackageType)' == 'McpServer'"
+          BeforeTargets="GenerateNuspec;_GetPackageFiles"
+          DependsOnTargets="GetBuildVersion">
+    <ItemGroup>
+      <_NBGV_OriginalServerJson Include="@(None)" Condition="'%(None.FileName)%(None.Extension)'=='server.json'" />
+      <_NBGV_StampedServerJson Include="@(_NBGV_OriginalServerJson->'$(IntermediateOutputPath)\nb.gv\server.json')" />
+    </ItemGroup>
+
+    <!-- Transform server.json with versioned content -->
+    <Nerdbank.GitVersioning.Tasks.StampMcpServerJson
+      Condition="'@(_NBGV_OriginalServerJson)' != ''"
+      SourceServerJson="@(_NBGV_OriginalServerJson)"
+      OutputServerJson="@(_NBGV_StampedServerJson)"
+      Version="$(Version)" />
+
+    <!-- Remove original server.json from packaging and add stamped version -->
+    <ItemGroup>
+      <None Remove="@(_NBGV_OriginalServerJson)" />
+      <None Include="@(_NBGV_StampedServerJson)" />
+    </ItemGroup>
   </Target>
 
   <!-- Workaround till https://github.com/NuGet/NuGet.Client/issues/1064 is merged and used. -->

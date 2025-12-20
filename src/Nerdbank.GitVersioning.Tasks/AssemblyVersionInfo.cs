@@ -736,7 +736,7 @@ namespace Nerdbank.GitVersioning.Tasks
 
             internal override void AddThisAssemblyMember(string name, DateTime value)
             {
-                this.CodeBuilder.AppendLine($"  static member internal {name} = new global.System.DateTime({value.Ticks}L, global.System.DateTimeKind.Utc)");
+                this.CodeBuilder.AppendLine($"  static member internal {name} = global.System.DateTime({value.Ticks}L, global.System.DateTimeKind.Utc)");
             }
 
             internal override void StartAssemblyAttributes()

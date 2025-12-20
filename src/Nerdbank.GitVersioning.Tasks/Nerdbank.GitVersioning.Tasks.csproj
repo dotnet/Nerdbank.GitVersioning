@@ -3,6 +3,7 @@
     <TargetFrameworks>net472;net8.0</TargetFrameworks>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
+    <PackageId>Nerdbank.GitVersioning</PackageId>
     <NuSpecFile>Nerdbank.GitVersioning.nuspec</NuSpecFile>
 
     <NoPackageAnalysis>true</NoPackageAnalysis>

@@ -50,6 +50,7 @@ Property | Default | Description
 `NBGV_EmitThisAssemblyClass` | `true` | When `false`, suppresses generation of the `ThisAssembly` class.
 `NBGV_ThisAssemblyIncludesPackageVersion` | `false` | When `true`, a `NuGetPackageVersion` property is added to the `ThisAssembly` class.
 `NBGV_UseAssemblyVersionInNativeVersion` | `true` | When `false`, uses the `AssemblyFileVersion` as a native `PRODUCTVERSION`.
+`NBGV_SetCloudBuildVersionVars` | `true` | When `false`, suppresses the `SetCloudBuildVersionVars` target from executing, which sets cloud build version variables (e.g., `##vso[task.setvariable]` commands in Azure DevOps pipelines).
 
 ### Items
 
