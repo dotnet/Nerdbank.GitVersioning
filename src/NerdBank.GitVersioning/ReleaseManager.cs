@@ -104,6 +104,12 @@ public class ReleaseManager
         Json = 1,
     }
 
+    public void WriteToOutput(ReleaseInfo releaseInfo)
+    {
+        string json = JsonConvert.SerializeObject(releaseInfo, Formatting.Indented, new SemanticVersionJsonConverter());
+        this.stdout.WriteLine(json);
+    }
+
     /// <summary>
     /// Prepares a release for the specified directory by creating a release branch and incrementing the version in the current branch.
     /// </summary>
@@ -140,6 +146,24 @@ public class ReleaseManager
     public ReleaseInfo PrepareRelease(string projectDirectory, string releaseUnstableTag = null, Version nextVersion = null, VersionOptions.ReleaseVersionIncrement? versionIncrement = null, ReleaseManagerOutputMode outputMode = default, string unformattedCommitMessage = null, bool whatIf = false)
     {
         return this.PrepareReleaseCore(projectDirectory, releaseUnstableTag, nextVersion, versionIncrement, outputMode, unformattedCommitMessage, whatIf);
+    }
+
+    private static bool IsVersionDecrement(SemanticVersion oldVersion, SemanticVersion newVersion)
+    {
+        if (newVersion.Version > oldVersion.Version)
+        {
+            return false;
+        }
+        else if (newVersion.Version == oldVersion.Version)
+        {
+            return string.IsNullOrEmpty(oldVersion.Prerelease) &&
+                  !string.IsNullOrEmpty(newVersion.Prerelease);
+        }
+        else
+        {
+            // newVersion.Version < oldVersion.Version
+            return true;
+        }
     }
 
     /// <summary>
@@ -252,18 +276,10 @@ public class ReleaseManager
             throw new ReleasePreparationException(ReleasePreparationError.BranchAlreadyExists);
         }
 
-        if (outputMode == ReleaseManagerOutputMode.Text)
+        if (outputMode == ReleaseManagerOutputMode.Text && whatIf)
         {
-            if (whatIf)
-            {
-                this.stdout.WriteLine($"What-if: {releaseBranchName} branch would track v{releaseVersion} stabilization and release.");
-                this.stdout.WriteLine($"What-if: {originalBranchName} branch would track v{nextDevVersion} development.");
-            }
-            else
-            {
-                this.stdout.WriteLine($"{releaseBranchName} branch now tracks v{releaseVersion} stabilization and release.");
-                this.stdout.WriteLine($"{originalBranchName} branch now tracks v{nextDevVersion} development.");
-            }
+            this.stdout.WriteLine($"What-if: {releaseBranchName} branch would track v{releaseVersion} stabilization and release.");
+            this.stdout.WriteLine($"What-if: {originalBranchName} branch would track v{nextDevVersion} development.");
         }
 
         var originalBranchInfo = new ReleaseBranchInfo(originalBranchName, repository.Head.Tip.Sha, nextDevVersion);
@@ -280,9 +296,19 @@ public class ReleaseManager
         global::LibGit2Sharp.Commands.Checkout(repository, releaseBranch);
         this.UpdateVersion(context, versionOptions.Version, releaseVersion, unformattedCommitMessage);
 
+        if (outputMode == ReleaseManagerOutputMode.Text)
+        {
+            this.stdout.WriteLine($"{releaseBranchName} branch now tracks v{releaseVersion} stabilization and release.");
+        }
+
         // update version on main branch
         global::LibGit2Sharp.Commands.Checkout(repository, originalBranchName);
         this.UpdateVersion(context, versionOptions.Version, nextDevVersion, unformattedCommitMessage);
+
+        if (outputMode == ReleaseManagerOutputMode.Text)
+        {
+            this.stdout.WriteLine($"{originalBranchName} branch now tracks v{nextDevVersion} development.");
+        }
 
         // Merge release branch back to main branch
         var mergeOptions = new MergeOptions()
@@ -298,35 +324,11 @@ public class ReleaseManager
             var finalOriginalBranchInfo = new ReleaseBranchInfo(originalBranchName, repository.Head.Tip.Sha, nextDevVersion);
             var finalReleaseBranchInfo = new ReleaseBranchInfo(releaseBranchName, repository.Branches[releaseBranchName].Tip.Id.ToString(), releaseVersion);
             var finalReleaseInfo = new ReleaseInfo(finalOriginalBranchInfo, finalReleaseBranchInfo);
-            
+
             this.WriteToOutput(finalReleaseInfo);
         }
 
         return null;
-    }
-
-    public void WriteToOutput(ReleaseInfo releaseInfo)
-    {
-        string json = JsonConvert.SerializeObject(releaseInfo, Formatting.Indented, new SemanticVersionJsonConverter());
-        this.stdout.WriteLine(json);
-    }
-
-    private static bool IsVersionDecrement(SemanticVersion oldVersion, SemanticVersion newVersion)
-    {
-        if (newVersion.Version > oldVersion.Version)
-        {
-            return false;
-        }
-        else if (newVersion.Version == oldVersion.Version)
-        {
-            return string.IsNullOrEmpty(oldVersion.Prerelease) &&
-                  !string.IsNullOrEmpty(newVersion.Prerelease);
-        }
-        else
-        {
-            // newVersion.Version < oldVersion.Version
-            return true;
-        }
     }
 
     private string GetReleaseBranchName(VersionOptions versionOptions)

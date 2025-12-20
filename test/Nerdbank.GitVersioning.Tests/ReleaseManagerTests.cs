@@ -703,19 +703,6 @@ public abstract class ReleaseManagerTests : RepoTestBase
         Assert.Equal(expectedCommitMessage, releaseBranchCommit.MessageShort);
     }
 
-    /// <inheritdoc/>
-    protected override void InitializeSourceControl(bool withInitialCommit = true)
-    {
-        base.InitializeSourceControl(withInitialCommit);
-        this.Ignore_git2_UntrackedFile();
-    }
-
-    private void AssertError(Action testCode, ReleasePreparationError expectedError)
-    {
-        ReleasePreparationException ex = Assert.Throws<ReleasePreparationException>(testCode);
-        Assert.Equal(expectedError, ex.Error);
-    }
-
     [Fact]
     public void SimulatePrepareRelease_BasicScenario()
     {
@@ -875,5 +862,18 @@ public abstract class ReleaseManagerTests : RepoTestBase
         Assert.Equal("1.2", result.CurrentBranch.Version.ToString());
         // When on release branch, no new branch is created
         Assert.Null(result.NewBranch);
+    }
+
+    /// <inheritdoc/>
+    protected override void InitializeSourceControl(bool withInitialCommit = true)
+    {
+        base.InitializeSourceControl(withInitialCommit);
+        this.Ignore_git2_UntrackedFile();
+    }
+
+    private void AssertError(Action testCode, ReleasePreparationError expectedError)
+    {
+        ReleasePreparationException ex = Assert.Throws<ReleasePreparationException>(testCode);
+        Assert.Equal(expectedError, ex.Error);
     }
 }
