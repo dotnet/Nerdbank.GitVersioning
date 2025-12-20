@@ -104,6 +104,12 @@ public class ReleaseManager
         Json = 1,
     }
 
+    public void WriteToOutput(ReleaseInfo releaseInfo)
+    {
+        string json = JsonConvert.SerializeObject(releaseInfo, Formatting.Indented, new SemanticVersionJsonConverter());
+        this.stdout.WriteLine(json);
+    }
+
     /// <summary>
     /// Prepares a release for the specified directory by creating a release branch and incrementing the version in the current branch.
     /// </summary>
@@ -131,7 +137,70 @@ public class ReleaseManager
     /// <param name="unformattedCommitMessage">
     /// An optional, custom message to use for the commit that sets the new version number. May use <c>{0}</c> to substitute the new version number.
     /// </param>
-    public void PrepareRelease(string projectDirectory, string releaseUnstableTag = null, Version nextVersion = null, VersionOptions.ReleaseVersionIncrement? versionIncrement = null, ReleaseManagerOutputMode outputMode = default, string unformattedCommitMessage = null)
+    /// <param name="whatIf">
+    /// If true, simulates the prepare-release operation and returns the versions that would be set without making any changes.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ReleaseInfo"/> object containing information about the release when <paramref name="whatIf"/> is true; otherwise null.
+    /// </returns>
+    public ReleaseInfo PrepareRelease(string projectDirectory, string releaseUnstableTag = null, Version nextVersion = null, VersionOptions.ReleaseVersionIncrement? versionIncrement = null, ReleaseManagerOutputMode outputMode = default, string unformattedCommitMessage = null, bool whatIf = false)
+    {
+        return this.PrepareReleaseCore(projectDirectory, releaseUnstableTag, nextVersion, versionIncrement, outputMode, unformattedCommitMessage, whatIf);
+    }
+
+    private static bool IsVersionDecrement(SemanticVersion oldVersion, SemanticVersion newVersion)
+    {
+        if (newVersion.Version > oldVersion.Version)
+        {
+            return false;
+        }
+        else if (newVersion.Version == oldVersion.Version)
+        {
+            return string.IsNullOrEmpty(oldVersion.Prerelease) &&
+                  !string.IsNullOrEmpty(newVersion.Prerelease);
+        }
+        else
+        {
+            // newVersion.Version < oldVersion.Version
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// Core implementation of prepare-release functionality that can either simulate or execute the operation.
+    /// </summary>
+    /// <param name="projectDirectory">
+    /// The path to the directory that may (or its ancestors may) define the version file.
+    /// </param>
+    /// <param name="releaseUnstableTag">
+    /// An optional prerelease tag to apply on the release branch.
+    /// If not specified, any existing prerelease tag will be removed from the release.
+    /// The preceding hyphen may be omitted.
+    /// </param>
+    /// <param name="nextVersion">
+    /// The version to use for the next release.
+    /// If not specified, the next version will be determined automatically by incrementing the current
+    /// version based on the current version and the <paramref name="versionIncrement"/> setting in <c>version.json</c>.
+    /// Parameter will be ignored if the current branch is a release branch.
+    /// </param>
+    /// <param name="versionIncrement">
+    /// The increment to apply in order to determine the next version on the current branch.
+    /// If specified, value will be used instead of the increment specified in <c>version.json</c>.
+    /// Parameter will be ignored if the current branch is a release branch.
+    /// </param>
+    /// <param name="outputMode">
+    /// The output format to use for writing to stdout.
+    /// </param>
+    /// <param name="unformattedCommitMessage">
+    /// An optional, custom message to use for the commit that sets the new version number. May use <c>{0}</c> to substitute the new version number.
+    /// </param>
+    /// <param name="whatIf">
+    /// If true, simulates the prepare-release operation and returns the versions that would be set without making any changes.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ReleaseInfo"/> object containing information about the release when <paramref name="whatIf"/> is true; otherwise null.
+    /// </returns>
+    private ReleaseInfo PrepareReleaseCore(string projectDirectory, string releaseUnstableTag, Version nextVersion, VersionOptions.ReleaseVersionIncrement? versionIncrement, ReleaseManagerOutputMode outputMode, string unformattedCommitMessage, bool whatIf)
     {
         Requires.NotNull(projectDirectory, nameof(projectDirectory));
 
@@ -164,16 +233,30 @@ public class ReleaseManager
         {
             if (outputMode == ReleaseManagerOutputMode.Text)
             {
-                this.stdout.WriteLine($"{releaseBranchName} branch advanced from {versionOptions.Version} to {releaseVersion}.");
+                if (whatIf)
+                {
+                    this.stdout.WriteLine($"What-if: {releaseBranchName} branch would be advanced from {versionOptions.Version} to {releaseVersion}.");
+                }
+                else
+                {
+                    this.stdout.WriteLine($"{releaseBranchName} branch advanced from {versionOptions.Version} to {releaseVersion}.");
+                }
             }
-            else
+
+            var releaseInfo = new ReleaseInfo(new ReleaseBranchInfo(releaseBranchName, repository.Head.Tip.Id.ToString(), releaseVersion));
+
+            if (whatIf)
             {
-                var releaseInfo = new ReleaseInfo(new ReleaseBranchInfo(releaseBranchName, repository.Head.Tip.Id.ToString(), releaseVersion));
+                return releaseInfo;
+            }
+
+            if (outputMode == ReleaseManagerOutputMode.Json)
+            {
                 this.WriteToOutput(releaseInfo);
             }
 
             this.UpdateVersion(context, versionOptions.Version, releaseVersion, unformattedCommitMessage);
-            return;
+            return null;
         }
 
         SemanticVersion nextDevVersion = this.GetNextDevVersion(versionOptions, nextVersion, versionIncrement);
@@ -191,6 +274,21 @@ public class ReleaseManager
         {
             this.stderr.WriteLine($"Cannot create branch '{releaseBranchName}' because it already exists.");
             throw new ReleasePreparationException(ReleasePreparationError.BranchAlreadyExists);
+        }
+
+        if (outputMode == ReleaseManagerOutputMode.Text && whatIf)
+        {
+            this.stdout.WriteLine($"What-if: {releaseBranchName} branch would track v{releaseVersion} stabilization and release.");
+            this.stdout.WriteLine($"What-if: {originalBranchName} branch would track v{nextDevVersion} development.");
+        }
+
+        var originalBranchInfo = new ReleaseBranchInfo(originalBranchName, repository.Head.Tip.Sha, nextDevVersion);
+        var releaseBranchInfo = new ReleaseBranchInfo(releaseBranchName, repository.Head.Tip.Id.ToString(), releaseVersion);
+        var releaseInfoResult = new ReleaseInfo(originalBranchInfo, releaseBranchInfo);
+
+        if (whatIf)
+        {
+            return releaseInfoResult;
         }
 
         // create release branch and update version
@@ -222,30 +320,15 @@ public class ReleaseManager
 
         if (outputMode == ReleaseManagerOutputMode.Json)
         {
-            var originalBranchInfo = new ReleaseBranchInfo(originalBranchName, repository.Head.Tip.Sha, nextDevVersion);
-            var releaseBranchInfo = new ReleaseBranchInfo(releaseBranchName, repository.Branches[releaseBranchName].Tip.Id.ToString(), releaseVersion);
-            var releaseInfo = new ReleaseInfo(originalBranchInfo, releaseBranchInfo);
+            // Update the commit IDs with the actual final commit IDs after all operations
+            var finalOriginalBranchInfo = new ReleaseBranchInfo(originalBranchName, repository.Head.Tip.Sha, nextDevVersion);
+            var finalReleaseBranchInfo = new ReleaseBranchInfo(releaseBranchName, repository.Branches[releaseBranchName].Tip.Id.ToString(), releaseVersion);
+            var finalReleaseInfo = new ReleaseInfo(finalOriginalBranchInfo, finalReleaseBranchInfo);
 
-            this.WriteToOutput(releaseInfo);
+            this.WriteToOutput(finalReleaseInfo);
         }
-    }
 
-    private static bool IsVersionDecrement(SemanticVersion oldVersion, SemanticVersion newVersion)
-    {
-        if (newVersion.Version > oldVersion.Version)
-        {
-            return false;
-        }
-        else if (newVersion.Version == oldVersion.Version)
-        {
-            return string.IsNullOrEmpty(oldVersion.Prerelease) &&
-                  !string.IsNullOrEmpty(newVersion.Prerelease);
-        }
-        else
-        {
-            // newVersion.Version < oldVersion.Version
-            return true;
-        }
+        return null;
     }
 
     private string GetReleaseBranchName(VersionOptions versionOptions)
@@ -385,12 +468,6 @@ public class ReleaseManager
 
         // return next version with prerelease tag specified in version.json
         return nextDevVersion.SetFirstPrereleaseTag(versionOptions.ReleaseOrDefault.FirstUnstableTagOrDefault);
-    }
-
-    private void WriteToOutput(ReleaseInfo releaseInfo)
-    {
-        string json = JsonConvert.SerializeObject(releaseInfo, Formatting.Indented, new SemanticVersionJsonConverter());
-        this.stdout.WriteLine(json);
     }
 
     /// <summary>
