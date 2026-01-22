@@ -119,7 +119,7 @@
   <Target Name="SetCloudBuildVersionVars"
         DependsOnTargets="GetBuildVersion"
         AfterTargets="GetBuildVersion"
-        Condition=" '@(CloudBuildVersionVars)' != '' ">
+        Condition=" '@(CloudBuildVersionVars)' != '' and '$(NBGV_SetCloudBuildVersionVars)' != 'false' ">
     <Nerdbank.GitVersioning.Tasks.SetCloudBuildVariables
       CloudBuildVersionVars="@(CloudBuildVersionVars)">
       <Output TaskParameter="MSBuildPropertyUpdates" ItemName="_MSBuildPropertyUpdates_Vars" />

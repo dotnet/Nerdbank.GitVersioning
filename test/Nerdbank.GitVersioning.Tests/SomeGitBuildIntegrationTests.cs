@@ -714,6 +714,41 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
     }
 #endif
 
+    [Theory]
+    [Trait("TestCategory", "FailsInCloudTest")]
+    [MemberData(nameof(CloudBuildVariablesData))]
+    public async Task SetCloudBuildVersionVars_CanBeDisabled(IReadOnlyDictionary<string, string> properties, string expectedMessage, bool setAllVariables)
+    {
+        using (ApplyEnvironmentVariables(properties))
+        {
+            // Disable SetCloudBuildVersionVars target
+            this.testProject.AddProperty("NBGV_SetCloudBuildVersionVars", "false");
+
+            var versionOptions = new VersionOptions
+            {
+                Version = SemanticVersion.Parse("1.0"),
+                CloudBuild = new VersionOptions.CloudBuildOptions { SetAllVariables = setAllVariables, SetVersionVariables = true },
+            };
+            this.WriteVersionFile(versionOptions);
+            this.InitializeSourceControl();
+
+            BuildResults buildResult = await this.BuildAsync();
+            this.AssertStandardProperties(versionOptions, buildResult);
+
+            // Assert GitBuildVersion was NOT set because we disabled the target
+            string notExpectedMessage = UnitTestCloudBuildPrefix + expectedMessage
+                .Replace("{NAME}", "GitBuildVersion")
+                .Replace("{VALUE}", buildResult.BuildVersion);
+            Assert.DoesNotContain(notExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
+
+            // Assert GitBuildVersionSimple was NOT set
+            notExpectedMessage = UnitTestCloudBuildPrefix + expectedMessage
+                .Replace("{NAME}", "GitBuildVersionSimple")
+                .Replace("{VALUE}", buildResult.BuildVersionSimple);
+            Assert.DoesNotContain(notExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
+        }
+    }
+
     /// <inheritdoc/>
     protected override GitContext CreateGitContext(string path, string committish = null) => throw new NotImplementedException();
 }
