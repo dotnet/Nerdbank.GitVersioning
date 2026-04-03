@@ -1,7 +1,7 @@
 ﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
@@ -128,20 +128,14 @@ internal static class MSBuildExtensions
             throw new InvalidOperationException($"Could not find global.json by searching parent directories of '{AppContext.BaseDirectory}'.");
         }
 
-        using JsonDocument globalJson = JsonDocument.Parse(File.ReadAllText(globalJsonPath));
-        if (!globalJson.RootElement.TryGetProperty("sdk", out JsonElement sdkElement)
-            || !sdkElement.TryGetProperty("version", out JsonElement versionElement))
+        string globalJson = File.ReadAllText(globalJsonPath);
+        Match sdkVersionMatch = Regex.Match(globalJson, @"""version""\s*:\s*""(?<version>[^""]+)""");
+        if (!sdkVersionMatch.Success)
         {
             throw new InvalidOperationException($"The SDK version could not be determined from '{globalJsonPath}'.");
         }
 
-        string sdkVersion = versionElement.GetString();
-        if (string.IsNullOrEmpty(sdkVersion))
-        {
-            throw new InvalidOperationException($"The SDK version could not be determined from '{globalJsonPath}'.");
-        }
-
-        return sdkVersion;
+        return sdkVersionMatch.Groups["version"].Value;
     }
 
     private static string FindFileInAncestors(string startingDirectory, string fileName)

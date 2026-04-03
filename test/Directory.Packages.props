@@ -3,6 +3,6 @@
   <Import Project="$([MSBuild]::GetPathOfFileAbove($(MSBuildThisFile), $(MSBuildThisFileDirectory)..))" />
 
   <PropertyGroup>
-    <MSBuildPackageVersion>17.14.28</MSBuildPackageVersion>
+    <MSBuildPackageVersion>18.4.0</MSBuildPackageVersion>
   </PropertyGroup>
 </Project>
