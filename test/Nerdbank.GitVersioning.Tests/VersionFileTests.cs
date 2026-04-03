@@ -696,20 +696,10 @@ public abstract class VersionFileTests : RepoTestBase
         // to case-insensitive matching
         VersionOptions actualVersionOptionsWithDifferentCase = this.GetVersionOptions("myproject");
 
-        // This should also find the version file despite the case difference
-        // NOTE: This currently only works for the managed implementation, not LibGit2
-        if (this is VersionFileManagedTests)
-        {
-            Assert.NotNull(actualVersionOptionsWithDifferentCase);
-            Assert.Equal("1.2.3", actualVersionOptionsWithDifferentCase.Version.ToString());
-            Assert.Equal(10, actualVersionOptionsWithDifferentCase.VersionHeightOffset);
-        }
-        else
-        {
-            // LibGit2 implementation doesn't yet support case-insensitive fallback
-            // This test documents the current limitation
-            Assert.Null(actualVersionOptionsWithDifferentCase);
-        }
+        // This should also find the version file despite the case difference.
+        Assert.NotNull(actualVersionOptionsWithDifferentCase);
+        Assert.Equal("1.2.3", actualVersionOptionsWithDifferentCase.Version.ToString());
+        Assert.Equal(10, actualVersionOptionsWithDifferentCase.VersionHeightOffset);
     }
 
     private void AssertPathHasVersion(string committish, string absolutePath, VersionOptions expected)

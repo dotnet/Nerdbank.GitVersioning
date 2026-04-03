@@ -37,7 +37,7 @@ internal class LibGit2VersionFile : VersionFile
     /// <returns>The version information read from the file.</returns>
     internal VersionOptions? GetVersion(Commit commit, string repoRelativeProjectDirectory, Dictionary<ObjectId, VersionOptions?>? blobVersionCache, VersionFileRequirements requirements, out VersionFileLocations locations)
     {
-        repoRelativeProjectDirectory = TrimTrailingPathSeparator(repoRelativeProjectDirectory);
+        repoRelativeProjectDirectory = this.NormalizeTreeDirectoryPath(commit, TrimTrailingPathSeparator(repoRelativeProjectDirectory));
         locations = default;
 
         string? searchDirectory = repoRelativeProjectDirectory ?? string.Empty;
@@ -152,4 +152,36 @@ internal class LibGit2VersionFile : VersionFile
 
     /// <inheritdoc/>
     protected override VersionOptions? GetVersionCore(VersionFileRequirements requirements, out VersionFileLocations locations) => this.GetVersion(this.Context.Commit!, this.Context.RepoRelativeProjectDirectory, null, requirements, out locations);
+
+    private string NormalizeTreeDirectoryPath(Commit commit, string repoRelativeProjectDirectory)
+    {
+        if (string.IsNullOrEmpty(repoRelativeProjectDirectory) || !this.IsIgnoreCaseEnabled())
+        {
+            return repoRelativeProjectDirectory;
+        }
+
+        Tree currentTree = commit.Tree;
+        string[] pathSegments = repoRelativeProjectDirectory.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
+        var resolvedSegments = new List<string>(pathSegments.Length);
+
+        foreach (string segment in pathSegments)
+        {
+            TreeEntry? entry = currentTree[segment] ?? currentTree.FirstOrDefault(candidate => string.Equals(candidate.Name, segment, StringComparison.OrdinalIgnoreCase));
+            if (entry?.TargetType != TreeEntryTargetType.Tree || entry.Target is not Tree childTree)
+            {
+                return repoRelativeProjectDirectory;
+            }
+
+            resolvedSegments.Add(entry.Name);
+            currentTree = childTree;
+        }
+
+        return string.Join("/", resolvedSegments);
+    }
+
+    private bool IsIgnoreCaseEnabled()
+    {
+        ConfigurationEntry<bool>? ignoreCaseSetting = this.Context.Repository.Config.Get<bool>("core.ignorecase");
+        return ignoreCaseSetting?.Value ?? false;
+    }
 }
