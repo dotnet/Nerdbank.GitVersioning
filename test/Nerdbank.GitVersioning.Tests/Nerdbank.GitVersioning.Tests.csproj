@@ -40,8 +40,7 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
     <PackageReference Include="Nerdbank.GitVersioning.LKG" />
     <PackageReference Include="Newtonsoft.Json.Schema" />
-    <PackageReference Include="System.Memory" />
-    <PackageReference Include="System.Threading.Tasks.Dataflow" />
+    <PackageReference Include="System.Memory" Condition="'$(TargetFramework)' == 'net472'" />
     <PackageReference Include="Xunit.Combinatorial" />
     <PackageReference Include="xunit.v3.mtp-v2" />
   </ItemGroup>
