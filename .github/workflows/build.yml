@@ -47,8 +47,9 @@ jobs:
     - name: ⚙ Install 32-bit .NET SDK and runtimes
       shell: pwsh
       run: |
+        $globalJson = Get-Content global.json | ConvertFrom-Json
         Invoke-WebRequest -Uri "https://dot.net/v1/dotnet-install.ps1" -OutFile dotnet-install.ps1
-        & .\dotnet-install.ps1 -Architecture x86 -Version 9.0.101 -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose
+        & .\dotnet-install.ps1 -Architecture x86 -Version $globalJson.sdk.version -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose
       if: runner.os == 'Windows'
     - name: ⚙ Install node.js
       uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6

@@ -1,6 +1,7 @@
 ﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Text.Json;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
@@ -25,7 +26,7 @@ internal static class MSBuildExtensions
                 if (IntPtr.Size == 4)
                 {
                     // 32-bit .NET runtime requires special code to find the x86 SDK (where MSBuild is).
-                    MSBuildLocator.RegisterMSBuildPath(@"C:\Program Files (x86)\dotnet\sdk\9.0.101");
+                    MSBuildLocator.RegisterMSBuildPath(GetX86DotNetSdkPath());
                 }
                 else
                 {
@@ -76,4 +77,77 @@ internal static class MSBuildExtensions
         submission.ExecuteAsync(s => tcs.SetResult(s.BuildResult), null);
         return tcs.Task;
     }
+
+#if NET
+    private static string GetX86DotNetSdkPath()
+    {
+        string sdkVersion = GetSdkVersion();
+        string[] dotnetRoots =
+        {
+            Environment.GetEnvironmentVariable("DOTNET_ROOT_X86"),
+            Environment.GetEnvironmentVariable("DOTNET_ROOT(x86)"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "dotnet"),
+        };
+
+        foreach (string dotnetRoot in dotnetRoots)
+        {
+            if (string.IsNullOrWhiteSpace(dotnetRoot))
+            {
+                continue;
+            }
+
+            string candidate = Path.Combine(dotnetRoot, "sdk", sdkVersion);
+            if (Directory.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        throw new InvalidOperationException($"Could not find x86 .NET SDK '{sdkVersion}'.");
+    }
+
+    private static string GetSdkVersion()
+    {
+        string globalJsonPath = FindFileInAncestors(AppContext.BaseDirectory, "global.json");
+        if (string.IsNullOrEmpty(globalJsonPath))
+        {
+            throw new InvalidOperationException($"Could not find global.json by searching parent directories of '{AppContext.BaseDirectory}'.");
+        }
+
+        using JsonDocument globalJson = JsonDocument.Parse(File.ReadAllText(globalJsonPath));
+        if (!globalJson.RootElement.TryGetProperty("sdk", out JsonElement sdkElement)
+            || !sdkElement.TryGetProperty("version", out JsonElement versionElement))
+        {
+            throw new InvalidOperationException($"The SDK version could not be determined from '{globalJsonPath}'.");
+        }
+
+        string sdkVersion = versionElement.GetString();
+        if (string.IsNullOrEmpty(sdkVersion))
+        {
+            throw new InvalidOperationException($"The SDK version could not be determined from '{globalJsonPath}'.");
+        }
+
+        return sdkVersion;
+    }
+
+    private static string FindFileInAncestors(string startingDirectory, string fileName)
+    {
+        DirectoryInfo directory = new(startingDirectory);
+        while (true)
+        {
+            string candidate = Path.Combine(directory.FullName, fileName);
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+
+            if (directory.Parent is null)
+            {
+                return string.Empty;
+            }
+
+            directory = directory.Parent;
+        }
+    }
+#endif
 }
