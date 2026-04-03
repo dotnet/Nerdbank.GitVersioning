@@ -23,15 +23,7 @@ internal static class MSBuildExtensions
             if (!loaded)
             {
 #if NET
-                if (IntPtr.Size == 4)
-                {
-                    // 32-bit .NET runtime requires special code to find the x86 SDK (where MSBuild is).
-                    MSBuildLocator.RegisterMSBuildPath(GetX86DotNetSdkPath());
-                }
-                else
-                {
-                    MSBuildLocator.RegisterDefaults();
-                }
+                MSBuildLocator.RegisterMSBuildPath(GetDotNetSdkPath());
 #else
                 MSBuildLocator.RegisterDefaults();
 #endif
@@ -79,15 +71,37 @@ internal static class MSBuildExtensions
     }
 
 #if NET
-    private static string GetX86DotNetSdkPath()
+    private static string GetDotNetSdkPath()
     {
         string sdkVersion = GetSdkVersion();
-        string[] dotnetRoots =
+        List<string> dotnetRoots = new();
+        if (IntPtr.Size == 4)
         {
-            Environment.GetEnvironmentVariable("DOTNET_ROOT_X86"),
-            Environment.GetEnvironmentVariable("DOTNET_ROOT(x86)"),
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "dotnet"),
-        };
+            dotnetRoots.Add(Environment.GetEnvironmentVariable("DOTNET_ROOT_X86"));
+            dotnetRoots.Add(Environment.GetEnvironmentVariable("DOTNET_ROOT(x86)"));
+            dotnetRoots.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "dotnet"));
+        }
+        else
+        {
+            dotnetRoots.Add(Environment.GetEnvironmentVariable("DOTNET_ROOT"));
+
+            string processPath = Environment.ProcessPath;
+            if (!string.IsNullOrEmpty(processPath) && string.Equals(Path.GetFileNameWithoutExtension(processPath), "dotnet", StringComparison.OrdinalIgnoreCase))
+            {
+                dotnetRoots.Add(Path.GetDirectoryName(processPath));
+            }
+
+            if (OperatingSystem.IsWindows())
+            {
+                dotnetRoots.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "dotnet"));
+            }
+            else
+            {
+                dotnetRoots.Add("/usr/share/dotnet");
+                dotnetRoots.Add("/usr/local/share/dotnet");
+                dotnetRoots.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".dotnet"));
+            }
+        }
 
         foreach (string dotnetRoot in dotnetRoots)
         {
@@ -103,7 +117,7 @@ internal static class MSBuildExtensions
             }
         }
 
-        throw new InvalidOperationException($"Could not find x86 .NET SDK '{sdkVersion}'.");
+        throw new InvalidOperationException($"Could not find .NET SDK '{sdkVersion}'.");
     }
 
     private static string GetSdkVersion()
