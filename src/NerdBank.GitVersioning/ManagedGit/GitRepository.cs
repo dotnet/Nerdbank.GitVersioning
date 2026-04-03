@@ -866,11 +866,17 @@ public class GitRepository : IDisposable
     {
         try
         {
-            // Try to read from .git/config first (repository-specific)
-            string repoConfigPath = Path.Combine(this.GitDirectory, "config");
-            if (File.Exists(repoConfigPath))
+            string[] configPaths = this.GitDirectory == this.CommonDirectory
+                ? new[] { Path.Combine(this.CommonDirectory, "config") }
+                : new[]
+                {
+                    Path.Combine(this.CommonDirectory, "config"),
+                    Path.Combine(this.GitDirectory, "config"),
+                };
+
+            foreach (string repoConfigPath in configPaths)
             {
-                if (TryReadIgnoreCaseFromConfigFile(repoConfigPath, out bool ignoreCase))
+                if (File.Exists(repoConfigPath) && TryReadIgnoreCaseFromConfigFile(repoConfigPath, out bool ignoreCase))
                 {
                     return ignoreCase;
                 }
