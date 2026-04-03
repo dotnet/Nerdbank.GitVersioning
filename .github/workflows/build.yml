@@ -217,6 +217,9 @@ jobs:
     - name: Use nbgv dotnet CLI tool
       shell: bash
       run: >
+        DOTNET_ROOT=$(dirname "$(dirname "$(command -v dotnet)")") &&
+        export DOTNET_ROOT &&
+        if [[ "$(uname -s)" == "Darwin" && "$(uname -m)" == "arm64" ]]; then export DOTNET_ROOT_ARM64="$DOTNET_ROOT"; fi &&
         echo DOTNET_ROOT=$DOTNET_ROOT
 
         PkgFileName=$(ls deployables/Nerdbank.GitVersioning.*nupkg)
