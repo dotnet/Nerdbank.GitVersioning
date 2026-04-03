@@ -87,6 +87,7 @@ jobs:
         Write-Host "🧪 Run tests"
         tools/dotnet-test-cloud.ps1 -Configuration ${{ env.BUILDCONFIGURATION }} -Agent ${{ runner.os }} -PublishResults
       shell: pwsh
+      timeout-minutes: 15
     - name: 🧪 test x86
       run: tools/dotnet-test-cloud.ps1 -Configuration ${{ env.BUILDCONFIGURATION }} -Agent ${{ runner.os }} -PublishResults -X86
       if: success() && runner.os == 'Windows'

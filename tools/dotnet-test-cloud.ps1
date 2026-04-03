@@ -56,11 +56,14 @@ $failedTests = 0
 if ($isMTP) {
     if ($OnCI) { $extraArgs += '--no-progress' }
 
-    $dumpSwitches = @(
-        ,'--hangdump'
-        ,'--hangdump-timeout','120s'
-        ,'--crashdump'
-    )
+    $dumpSwitches = @()
+    if ($IsWindows) {
+        $dumpSwitches = @(
+            ,'--hangdump'
+            ,'--hangdump-timeout','120s'
+            ,'--crashdump'
+        )
+    }
     $mtpArgs = @(
         ,'--coverage'
         ,'--coverage-output-format','cobertura'
