@@ -83,6 +83,13 @@ public abstract partial class RepoTestBase : IDisposable
         {
             this.LibGit2Repository?.Dispose();
             this.Context?.Dispose();
+
+            // LibGit2Sharp may still hold native file handles even after Dispose().
+            // Force a GC cycle to release any lingering native handles before
+            // attempting to delete the temporary directories.
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+
             foreach (string dir in this.repoDirectories)
             {
                 try

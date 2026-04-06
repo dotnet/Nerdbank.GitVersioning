@@ -29,14 +29,19 @@ internal static class TestUtilities
         {
             Directory.Delete(path, true);
         }
-        catch (UnauthorizedAccessException)
+        catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
         {
             // Unknown why this fails so often.
             // Somehow making commits with libgit2sharp locks files
             // such that we can't delete them (but Windows Explorer can).
+            // Redirect stderr so that rd errors don't bleed into the test host's
+            // stderr, which can cause the test platform to misinterpret file-lock
+            // messages as a crash (non-zero exit + stderr output).
             var psi = new ProcessStartInfo("cmd.exe", $"/c rd /s /q \"{path}\"");
             psi.WorkingDirectory = Path.GetTempPath();
             psi.WindowStyle = ProcessWindowStyle.Hidden;
+            psi.RedirectStandardError = true;
+            psi.UseShellExecute = false;
             var process = Process.Start(psi);
             process.WaitForExit();
         }
