@@ -40,16 +40,30 @@ jobs:
 
           Write-Host "Resolved ${{ github.ref_name }} to $commitSha"
 
-          $releases = gh run list -R ${{ github.repository }} -c $commitSha -w .github/workflows/build.yml -s success --json databaseId,startedAt `
+          $releases = gh run list -R ${{ github.repository }} -c $commitSha -w .github/workflows/build.yml -s success --json databaseId,startedAt,event,headBranch `
             | ConvertFrom-Json | Sort-Object startedAt -Descending
+
+          $preferredReleases = $releases | Where-Object {
+            $_.event -eq 'push' -and ($_.headBranch -eq 'main' -or $_.headBranch -match '^v\d+(?:\.\d+)?$')
+          }
 
           if ($releases.length -eq 0) {
             Write-Error "No successful builds found for ${{ github.ref }}."
-          } elseif ($releases.length -gt 1) {
-            Write-Warning "More than one successful run found for ${{ github.ref }}. Artifacts from the most recent successful run will ship."
-          }
+          } else {
+            if ($preferredReleases.length -gt 0) {
+              $selectedReleases = $preferredReleases
+              $multipleRunsWarning = "More than one successful run found for ${{ github.ref }}. Preferring the most recent push build from a public-release branch."
+            } else {
+              $selectedReleases = $releases
+              $multipleRunsWarning = "More than one successful run found for ${{ github.ref }} and none were from a public-release branch. Artifacts from the most recent successful run will ship."
+            }
 
-          $runid = $releases[0].databaseId
+            if ($releases.length -gt 1) {
+              Write-Warning $multipleRunsWarning
+            }
+
+            $runid = $selectedReleases[0].databaseId
+          }
         }
 
         Write-Host "Using artifacts from run-id: $runid"
