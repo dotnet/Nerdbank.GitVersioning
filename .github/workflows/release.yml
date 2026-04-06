@@ -123,7 +123,7 @@ jobs:
       if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish_nuget }}
       run: dotnet nuget push ${{ runner.temp }}\deployables\*.nupkg --source https://api.nuget.org/v3/index.json -k '${{ steps.nuget-login.outputs.NUGET_API_KEY }}'
 
-    - uses: actions/setup-node@v6
+    - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
       if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish_npm }}
       with:
         node-version: 24
