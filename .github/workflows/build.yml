@@ -52,7 +52,7 @@ jobs:
         & .\dotnet-install.ps1 -Architecture x86 -Version $globalJson.sdk.version -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose
       if: runner.os == 'Windows'
     - name: ⚙ Install node.js
-      uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+      uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
       with:
         node-version: 20.x
         cache: yarn
