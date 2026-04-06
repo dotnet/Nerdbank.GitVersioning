@@ -1,16 +1,8 @@
-Function Get-FileFromWeb([Uri]$Uri, $OutFile) {
-    $OutDir = Split-Path $OutFile
-    if (!(Test-Path $OutFile)) {
-        Write-Verbose "Downloading $Uri..."
-        if (!(Test-Path $OutDir)) { New-Item -ItemType Directory -Path $OutDir | Out-Null }
-        try {
-            (New-Object System.Net.WebClient).DownloadFile($Uri, $OutFile)
-        }
-        finally {
-            # This try/finally causes the script to abort
-        }
-    }
-}
+# Symbol servers to search for PDBs, in order of priority.
+$SymbolServers = @(
+    'https://msdl.microsoft.com/download/symbols'
+    'https://symbols.nuget.org/download/symbols'
+)
 
 Function Unzip($Path, $OutDir) {
     $OutDir = (New-Item -ItemType Directory -Path $OutDir -Force).FullName
@@ -33,17 +25,31 @@ Function Unzip($Path, $OutDir) {
 Function Get-SymbolsFromPackage($id, $version) {
     $symbolPackagesPath = "$PSScriptRoot/../obj/SymbolsPackages"
     New-Item -ItemType Directory -Path $symbolPackagesPath -Force | Out-Null
-    $nupkgPath = Join-Path $symbolPackagesPath "$id.$version.nupkg"
-    $snupkgPath = Join-Path $symbolPackagesPath "$id.$version.snupkg"
     $unzippedPkgPath = Join-Path $symbolPackagesPath "$id.$version"
-    Get-FileFromWeb -Uri "https://www.nuget.org/api/v2/package/$id/$version" -OutFile $nupkgPath
-    Get-FileFromWeb -Uri "https://www.nuget.org/api/v2/symbolpackage/$id/$version" -OutFile $snupkgPath
 
-    Unzip -Path $nupkgPath -OutDir $unzippedPkgPath
-    Unzip -Path $snupkgPath -OutDir $unzippedPkgPath
+    # Download the package from configured feeds (failures are non-fatal for symbol collection)
+    & "$PSScriptRoot\Download-NuGetPackage.ps1" -PackageId $id -Version $version -OutputDirectory $symbolPackagesPath -ErrorAction SilentlyContinue | Out-Null
+    $global:LASTEXITCODE = 0
+    $nupkgFile = Get-ChildItem -Recurse -Path $symbolPackagesPath -Filter "$id.$version.nupkg" -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (!$nupkgFile) {
+        Write-Warning "Package $id $version not found in configured feeds. Skipping."
+        return
+    }
 
+    Unzip -Path $nupkgFile.FullName -OutDir $unzippedPkgPath
+
+    # Download symbols for each binary using dotnet-symbol
+    $serverArgs = $SymbolServers | ForEach-Object { '--server-path'; $_ }
+    $binaries = Get-ChildItem -Recurse -LiteralPath $unzippedPkgPath -Include *.dll, *.exe
+    foreach ($binary in $binaries) {
+        $prevErrorActionPreference = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        & dotnet symbol --symbols @serverArgs --output $binary.DirectoryName $binary.FullName 2>&1 | Out-Null
+        $ErrorActionPreference = $prevErrorActionPreference
+    }
+
+    # Output pairs of binary + PDB paths for archival
     Get-ChildItem -Recurse -LiteralPath $unzippedPkgPath -Filter *.pdb | % {
-        # Collect the DLLs/EXEs as well.
         $rootName = Join-Path $_.Directory $_.BaseName
         if ($rootName.EndsWith('.ni')) {
             $rootName = $rootName.Substring(0, $rootName.Length - 3)
@@ -80,7 +86,9 @@ Function Get-PackageVersion($id) {
 }
 
 # All 3rd party packages for which symbols packages are expected should be listed here.
-# These must all be sourced from nuget.org, as it is the only feed that supports symbol packages.
+# Packages are downloaded from configured feeds in nuget.config.
+# We should NOT add 3rd party packages to this list because PDBs may be unsafe for our debuggers to load,
+# so we should only archive 1st party symbols.
 $3rdPartyPackageIds = @()
 
 $3rdPartyPackageIds | % {
