@@ -8,6 +8,16 @@ on:
       ship_run_id:
         description: ID of the GitHub workflow run to ship
         required: true
+      publish_nuget:
+        description: Push NuGet packages
+        required: false
+        default: true
+        type: boolean
+      publish_npm:
+        description: Push NPM packages
+        required: false
+        default: true
+        type: boolean
 
 run-name: ${{ github.ref_name }}
 
@@ -18,17 +28,9 @@ jobs:
     permissions:
       actions: read # Required to download artifacts
       contents: write # Upload artifacts to Release
-      id-token: write # Required for NuGet CLI Login
+      id-token: write # Required for OIDC-based package publishing
     steps:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-    - name: ⚙️ Initialization
-      shell: pwsh
-      run: |
-        if ('${{ secrets.NPM_API_KEY }}') {
-          Write-Host "NPM_API_KEY secret detected. NPM packages will be pushed."
-          echo "NPM_API_KEY_DEFINED=true" >> $env:GITHUB_ENV
-        }
 
     - name: 🔎 Search for build of ${{ github.ref }}
       shell: pwsh
@@ -51,16 +53,28 @@ jobs:
 
           Write-Host "Resolved ${{ github.ref_name }} to $commitSha"
 
-          $releases = gh run list -R ${{ github.repository }} -c $commitSha -w .github/workflows/build.yml -s success --json databaseId,startedAt `
+          $releases = gh run list -R ${{ github.repository }} -c $commitSha -w .github/workflows/build.yml -s success --json databaseId,startedAt,event,headBranch `
             | ConvertFrom-Json | Sort-Object startedAt -Descending
+
+          $preferredReleases = $releases | Where-Object {
+            $_.event -eq 'push' -and ($_.headBranch -eq 'main' -or $_.headBranch -eq 'develop' -or $_.headBranch -match '^v\d+\.\d+$')
+          }
 
           if ($releases.length -eq 0) {
             Write-Error "No successful builds found for ${{ github.ref }}."
-          } elseif ($releases.length -gt 1) {
-            Write-Warning "More than one successful run found for ${{ github.ref }}. Artifacts from the most recent successful run will ship."
-          }
+          } elseif ($preferredReleases.length -gt 0) {
+            if ($releases.length -gt 1) {
+              Write-Warning "More than one successful run found for ${{ github.ref }}. Preferring the most recent push build from a public-release branch."
+            }
 
-          $runid = $releases[0].databaseId
+            $runid = $preferredReleases[0].databaseId
+          } else {
+            if ($releases.length -gt 1) {
+              Write-Warning "More than one successful run found for ${{ github.ref }} and none were from a public-release branch. Artifacts from the most recent successful run will ship."
+            }
+
+            $runid = $releases[0].databaseId
+          }
         }
 
         Write-Host "Using artifacts from run-id: $runid"
@@ -101,20 +115,42 @@ jobs:
     - name: 🪪 Authorize NuGet package push
       uses: NuGet/login@d22cc5f58ff5b88bf9bd452535b4335137e24544 # v1.1.0
       id: nuget-login
+      if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish_nuget }}
       with:
         user: ${{ secrets.NUGET_USER }}
 
     - name: 🚀 Push NuGet packages
+      if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish_nuget }}
       run: dotnet nuget push ${{ runner.temp }}\deployables\*.nupkg --source https://api.nuget.org/v3/index.json -k '${{ steps.nuget-login.outputs.NUGET_API_KEY }}'
 
+    - uses: actions/setup-node@v6
+      if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish_npm }}
+      with:
+        node-version: 24
+        registry-url: https://registry.npmjs.org
+
     - name: 🚀 Push NPM packages
+      if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish_npm }}
       shell: pwsh
       run: |
-        npm set //registry.npmjs.org/:_authToken=${{ secrets.NPM_API_KEY }}
         Get-ChildItem '${{ runner.temp }}/deployables/*.tgz' |% {
-          npm publish $_ --registry=https://registry.npmjs.org/
+          $packageMetadata = tar -xOf $_.FullName package/package.json | ConvertFrom-Json
+          Write-Host "Publishing NPM package $($packageMetadata.name)@$($packageMetadata.version) from $($_.Name)..."
+
+          if ($packageMetadata.version -match '(^|[.-])g[0-9a-f]{7,}$') {
+            throw "Refusing to publish non-public package version '$($packageMetadata.version)'. Release publishes must use a public-release build artifact."
+          }
+
+          $publishArgs = @($_.FullName, '--registry=https://registry.npmjs.org/')
+
+          if ($packageMetadata.version -match '-(?<prerelease>[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)') {
+            $publishTag = $Matches.prerelease.Split('.')[0]
+            Write-Host "Detected prerelease version $($packageMetadata.version). Publishing with dist-tag '$publishTag'."
+            $publishArgs += "--tag=$publishTag"
+          }
+
+          npm publish @publishArgs
         }
-      if: ${{ env.NPM_API_KEY_DEFINED == 'true' }}
 
     - name: 💽 Upload artifacts to release
       shell: pwsh
