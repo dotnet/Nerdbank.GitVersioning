@@ -1,7 +1,7 @@
 'use strict';
 
-import { execAsync } from './asyncprocess';
-import { getNbgvCommand } from './core';
+import { execAsync } from './asyncprocess.js';
+import { getNbgvCommand } from './core.js';
 
 /**
  * The various aspects of a version that can be calculated.
