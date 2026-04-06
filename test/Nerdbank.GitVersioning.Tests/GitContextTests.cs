@@ -93,14 +93,14 @@ public abstract class GitContextTests : RepoTestBase
         Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
     }
 
-    [SkippableTheory]
+    [Theory]
     [InlineData(4)]
     [InlineData(7)]
     [InlineData(8)]
     [InlineData(11)]
     public void GetShortUniqueCommitId(int length)
     {
-        Skip.If(length < 7 && this.Context is Nerdbank.GitVersioning.LibGit2.LibGit2Context, "LibGit2Sharp never returns commit IDs with fewer than 7 characters.");
+        Assert.SkipWhen(length < 7 && this.Context is Nerdbank.GitVersioning.LibGit2.LibGit2Context, "LibGit2Sharp never returns commit IDs with fewer than 7 characters.");
         Assert.Equal(this.Context.GitCommitId.Substring(0, length), this.Context.GetShortUniqueCommitId(length));
     }
 

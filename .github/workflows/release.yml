@@ -68,7 +68,7 @@ jobs:
         Echo "runid=$runid" >> $env:GITHUB_OUTPUT
 
     - name: 🔻 Download deployables artifacts
-      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
       with:
         name: deployables-Windows
         path: ${{ runner.temp }}/deployables
@@ -98,20 +98,8 @@ jobs:
         --azure-credential-type azure-cli
       shell: pwsh
 
-    - name: 💽 Upload artifacts to release
-      shell: pwsh
-      if: ${{ github.event_name == 'release' && github.event.release.assets_url != '' }}
-      continue-on-error: true # until we get this to work, be willing to skip it
-      env:
-        GH_TOKEN: ${{ github.token }}
-      run: |
-        Get-ChildItem '${{ runner.temp }}/deployables' -File -Recurse |% {
-          Write-Host "Uploading $($_.Name) to release..."
-          gh release -R ${{ github.repository }} upload "${{ github.ref_name }}" $_.FullName
-        }
-
     - name: 🪪 Authorize NuGet package push
-      uses: NuGet/login@d22cc5f58ff5b88bf9bd452535b4335137e24544 # v1
+      uses: NuGet/login@d22cc5f58ff5b88bf9bd452535b4335137e24544 # v1.1.0
       id: nuget-login
       with:
         user: ${{ secrets.NUGET_USER }}
@@ -127,3 +115,15 @@ jobs:
           npm publish $_ --registry=https://registry.npmjs.org/
         }
       if: ${{ env.NPM_API_KEY_DEFINED == 'true' }}
+
+    - name: 💽 Upload artifacts to release
+      shell: pwsh
+      if: ${{ github.event_name == 'release' && github.event.release.assets_url != '' }}
+      continue-on-error: true # until we get this to work, be willing to skip it
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        Get-ChildItem '${{ runner.temp }}/deployables' -File -Recurse |% {
+          Write-Host "Uploading $($_.Name) to release..."
+          gh release -R ${{ github.repository }} upload "${{ github.ref_name }}" $_.FullName
+        }

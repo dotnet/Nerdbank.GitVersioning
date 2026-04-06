@@ -25,6 +25,7 @@ Param(
 
 $RepoRoot = (Resolve-Path "$PSScriptRoot/..").Path
 $ArtifactStagingFolder = & "$PSScriptRoot/Get-ArtifactsStagingDirectory.ps1"
+$OnCI = ($env:CI -or $env:TF_BUILD)
 
 $dotnet = 'dotnet'
 if ($x86) {
@@ -45,23 +46,71 @@ if ($x86) {
 }
 
 $testBinLog = Join-Path $ArtifactStagingFolder (Join-Path build_logs test.binlog)
-$testDiagLog = Join-Path $ArtifactStagingFolder (Join-Path test_logs diag.log)
+$testLogs = Join-Path $ArtifactStagingFolder test_logs
 
-& $dotnet test $RepoRoot `
-    --no-build `
-    -c $Configuration `
-    --filter "TestCategory!=FailsInCloudTest" `
-    --collect "Code Coverage;Format=cobertura" `
-    --settings "$PSScriptRoot/test.runsettings" `
-    --blame-hang-timeout 60s `
-    --blame-crash `
-    -bl:"$testBinLog" `
-    --diag "$testDiagLog;TraceLevel=info" `
-    --logger trx `
+$globalJson = Get-Content $PSScriptRoot/../global.json | ConvertFrom-Json
+$isMTP = $globalJson.test.runner -eq 'Microsoft.Testing.Platform'
+$extraArgs = @()
+$failedTests = 0
+
+if ($isMTP) {
+    if ($OnCI) { $extraArgs += '--no-progress' }
+
+    $dumpSwitches = @()
+    if ($IsWindows) {
+        $dumpSwitches = @(
+            ,'--hangdump'
+            ,'--hangdump-timeout','120s'
+            ,'--crashdump'
+        )
+    }
+    $mtpArgs = @(
+        ,'--coverage'
+        ,'--coverage-output-format','cobertura'
+        ,'--diagnostic'
+        ,'--diagnostic-output-directory',$testLogs
+        ,'--diagnostic-verbosity','Information'
+        ,'--results-directory',$testLogs
+        ,'--report-trx'
+    )
+
+    & $dotnet test --solution $RepoRoot `
+        --no-build `
+        -c $Configuration `
+        -bl:"$testBinLog" `
+        --filter-not-trait 'TestCategory=FailsInCloudTest' `
+        --coverage-settings "$PSScriptRoot/test.runsettings" `
+        @mtpArgs `
+        @dumpSwitches `
+        @extraArgs
+    if ($LASTEXITCODE -ne 0) { $failedTests += 1 }
+
+    $trxFiles = Get-ChildItem -Recurse -Path $testLogs\*.trx
+} else {
+    $testDiagLog = Join-Path $ArtifactStagingFolder (Join-Path test_logs diag.log)
+    & $dotnet test $RepoRoot `
+        --no-build `
+        -c $Configuration `
+        --filter "TestCategory!=FailsInCloudTest" `
+        --collect "Code Coverage;Format=cobertura" `
+        --settings "$PSScriptRoot/test.runsettings" `
+        --blame-hang-timeout 60s `
+        --blame-crash `
+        -bl:"$testBinLog" `
+        --diag "$testDiagLog;TraceLevel=info" `
+        --logger trx `
+        @extraArgs
+    if ($LASTEXITCODE -ne 0) { $failedTests += 1 }
+
+    $trxFiles = Get-ChildItem -Recurse -Path $RepoRoot\test\*.trx
+}
 
 $unknownCounter = 0
-Get-ChildItem -Recurse -Path $RepoRoot\test\*.trx |% {
-  Copy-Item $_ -Destination $ArtifactStagingFolder/test_logs/
+$trxFiles |% {
+  New-Item $testLogs -ItemType Directory -Force | Out-Null
+  if (!($_.FullName.StartsWith($testLogs, [StringComparison]::OrdinalIgnoreCase))) {
+    Copy-Item $_ -Destination $testLogs
+  }
 
   if ($PublishResults) {
     $x = [xml](Get-Content -LiteralPath $_)
@@ -83,4 +132,8 @@ Get-ChildItem -Recurse -Path $RepoRoot\test\*.trx |% {
 
     Write-Host "##vso[results.publish type=VSTest;runTitle=$runTitle;publishRunAttachments=true;resultFiles=$_;failTaskOnFailedTests=true;testRunSystem=VSTS - PTR;]"
   }
+}
+
+if ($failedTests -ne 0) {
+    exit $failedTests
 }

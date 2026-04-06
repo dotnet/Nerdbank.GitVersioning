@@ -26,7 +26,7 @@ Get-ChildItem "$PSScriptRoot/../variables" |% {
 
         if ($value) {
             # We got something, so wrap it with quotes so it's treated like a literal value.
-            $value = "'$value'"
+            $value = "'" + $value.Replace("'", "''") + "'"
         }
     }
 
