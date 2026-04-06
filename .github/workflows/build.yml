@@ -242,9 +242,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - os: ubuntu-22.04
+        - os: ubuntu-24.04
           repoDir: '~/git'
-        - os: windows-2022
+        - os: windows-2025
           repoDir: '${USERPROFILE}/source/repos'
         - os: macos-14
           repoDir: '~/git'
