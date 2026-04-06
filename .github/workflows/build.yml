@@ -154,7 +154,7 @@ jobs:
       run: dotnet --info
 
     - name: Download Build Artifacts
-      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
       with:
         name: deployables-Windows
         path: deployables
@@ -300,7 +300,7 @@ jobs:
       working-directory: test/Nerdbank.GitVersioning.Benchmarks
 
     - name: Publish benchmarks artifacts
-      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
       with:
         name: benchmarks-${{ matrix.os }}
         path: ${{ runner.temp }}/_artifacts/benchmarks
