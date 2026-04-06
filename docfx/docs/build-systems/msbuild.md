@@ -61,6 +61,47 @@ Item type | Description
 `BuildMetadata` | Adds `+ItemName` build metadata for each item to the computed version.
 `PrereleaseIdentifier` | Adds `-ItemName` build metadata for each item to the computed version.
 
+### Native projects (C++)
+
+For native projects such as C++ applications and DLLs, Nerdbank.GitVersioning automatically generates a native version resource file that includes version information and metadata about your project. This resource is compiled into your binary and can be viewed in Windows Explorer's file properties dialog.
+
+You can customize the metadata fields (CompanyName, LegalCopyright, ProductName, and FileDescription) by setting standard MSBuild properties in your project file:
+
+Property | Default | Version Resource Field | Description
+--|--|--|--
+`AssemblyCompany` | `$(AssemblyName)` | CompanyName | The name of your company or organization
+`AssemblyCopyright` | `Copyright (c) [current year]. All rights reserved.` | LegalCopyright | Copyright notice for your project. The year is automatically set to the current year at build time.
+`AssemblyProduct` | `$(AssemblyName)` | ProductName | The name of your product
+`AssemblyTitle` | `$(AssemblyName)` | FileDescription | A description of your project or binary
+
+#### Example
+
+Add these properties to your `.vcxproj` file to customize the version resource:
+
+```xml
+<PropertyGroup>
+  <AssemblyCompany>Contoso Corporation</AssemblyCompany>
+  <AssemblyCopyright>Copyright © Contoso Corporation. All rights reserved.</AssemblyCopyright>
+  <AssemblyProduct>Contoso Application Suite</AssemblyProduct>
+  <AssemblyTitle>Contoso Main Application</AssemblyTitle>
+</PropertyGroup>
+```
+
+Alternatively, you can set these properties in a `Directory.Build.props` file at the root of your repository to apply them to all projects:
+
+```xml
+<Project>
+  <PropertyGroup>
+    <AssemblyCompany>Contoso Corporation</AssemblyCompany>
+    <AssemblyCopyright>Copyright © Contoso Corporation. All rights reserved.</AssemblyCopyright>
+    <AssemblyProduct>Contoso Application Suite</AssemblyProduct>
+  </PropertyGroup>
+</Project>
+```
+
+> [!NOTE]
+> The `AssemblyTitle` property is often set per-project since each binary typically has a unique description, while `AssemblyCompany`, `AssemblyCopyright`, and `AssemblyProduct` are commonly shared across all projects in a repository.
+
 ### Custom `ThisAssembly` static fields and constants
 
 Custom constants may be added to the `ThisAssembly` class through `AdditionalThisAssemblyFields` items defined in your project.
