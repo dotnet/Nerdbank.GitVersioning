@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import * as lib from './index'
+import * as lib from './index.js'
 
 (async () => {
     if (process.argv[2] === '--reset') {

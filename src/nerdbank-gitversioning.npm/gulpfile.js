@@ -10,6 +10,7 @@ var path = require('path');
 const outDir = 'out';
 var tsProject = ts.createProject('tsconfig.json', {
     declarationFiles: true,
+    module: 'CommonJS',
     typescript: require('typescript'),
 });
 
