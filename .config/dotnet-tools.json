@@ -36,6 +36,13 @@
         "repo"
       ],
       "rollForward": false
+    },
+    "dotnet-symbol": {
+      "version": "9.0.661903",
+      "commands": [
+        "dotnet-symbol"
+      ],
+      "rollForward": false
     }
   }
 }
