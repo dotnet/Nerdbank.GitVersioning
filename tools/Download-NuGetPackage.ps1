@@ -73,5 +73,5 @@ if ($Version) {
 if ($packageDir -and (Test-Path $packageDir)) {
     Write-Output $packageDir
 } else {
-    Write-Error "Package directory not found after download."
+    throw "Package directory not found after download. PackageId='$PackageId'; Version='$Version'; OutputDirectory='$OutputDirectory'; PackageRoot='$packageRoot'."
 }
