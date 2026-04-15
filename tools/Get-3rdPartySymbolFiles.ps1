@@ -1,49 +1,44 @@
-Function Get-FileFromWeb([Uri]$Uri, $OutFile) {
-    $OutDir = Split-Path $OutFile
-    if (!(Test-Path $OutFile)) {
-        Write-Verbose "Downloading $Uri..."
-        if (!(Test-Path $OutDir)) { New-Item -ItemType Directory -Path $OutDir | Out-Null }
-        try {
-            (New-Object System.Net.WebClient).DownloadFile($Uri, $OutFile)
-        }
-        finally {
-            # This try/finally causes the script to abort
-        }
-    }
-}
+[CmdletBinding()]
+Param (
+)
 
-Function Unzip($Path, $OutDir) {
-    $OutDir = (New-Item -ItemType Directory -Path $OutDir -Force).FullName
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
-
-    # Start by extracting to a temporary directory so that there are no file conflicts.
-    [System.IO.Compression.ZipFile]::ExtractToDirectory($Path, "$OutDir.out")
-
-    # Now move all files from the temp directory to $OutDir, overwriting any files.
-    Get-ChildItem -Path "$OutDir.out" -Recurse -File | ForEach-Object {
-        $destinationPath = Join-Path -Path $OutDir -ChildPath $_.FullName.Substring("$OutDir.out".Length).TrimStart([io.path]::DirectorySeparatorChar, [io.path]::AltDirectorySeparatorChar)
-        if (!(Test-Path -Path (Split-Path -Path $destinationPath -Parent))) {
-            New-Item -ItemType Directory -Path (Split-Path -Path $destinationPath -Parent) | Out-Null
-        }
-        Move-Item -Path $_.FullName -Destination $destinationPath -Force
-    }
-    Remove-Item -Path "$OutDir.out" -Recurse -Force
-}
+# Symbol servers to search for PDBs, in order of priority.
+$SymbolServers = @(
+    'https://msdl.microsoft.com/download/symbols'
+    'https://symbols.nuget.org/download/symbols'
+)
 
 Function Get-SymbolsFromPackage($id, $version) {
     $symbolPackagesPath = "$PSScriptRoot/../obj/SymbolsPackages"
     New-Item -ItemType Directory -Path $symbolPackagesPath -Force | Out-Null
-    $nupkgPath = Join-Path $symbolPackagesPath "$id.$version.nupkg"
-    $snupkgPath = Join-Path $symbolPackagesPath "$id.$version.snupkg"
-    $unzippedPkgPath = Join-Path $symbolPackagesPath "$id.$version"
-    Get-FileFromWeb -Uri "https://www.nuget.org/api/v2/package/$id/$version" -OutFile $nupkgPath
-    Get-FileFromWeb -Uri "https://www.nuget.org/api/v2/symbolpackage/$id/$version" -OutFile $snupkgPath
+    $packagePath = $null
 
-    Unzip -Path $nupkgPath -OutDir $unzippedPkgPath
-    Unzip -Path $snupkgPath -OutDir $unzippedPkgPath
+    # Download the package from configured feeds (failures are non-fatal for symbol collection)
+    $previousLastExitCode = $global:LASTEXITCODE
+    try {
+        $packagePath = & "$PSScriptRoot\Download-NuGetPackage.ps1" -PackageId $id -Version $version -OutputDirectory $symbolPackagesPath -ErrorAction SilentlyContinue
+    }
+    catch {
+        Write-Warning "Failed to download package $id $version from configured feeds. Skipping if not found locally. $($_.Exception.Message)"
+    }
+    $global:LASTEXITCODE = $previousLastExitCode
+    if (!$packagePath -or !(Test-Path -LiteralPath $packagePath)) {
+        Write-Warning "Package $id $version not found in configured feeds. Skipping."
+        return
+    }
 
-    Get-ChildItem -Recurse -LiteralPath $unzippedPkgPath -Filter *.pdb | % {
-        # Collect the DLLs/EXEs as well.
+    # Download symbols for each binary using dotnet-symbol
+    $serverArgs = $SymbolServers | ForEach-Object { '--server-path'; $_ }
+    $binaries = @(Get-ChildItem -Recurse -LiteralPath $packagePath -Include *.dll, *.exe)
+    if ($binaries) {
+        $prevErrorActionPreference = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        & dotnet symbol --symbols @serverArgs @($binaries.FullName) 2>&1 | Out-Null
+        $ErrorActionPreference = $prevErrorActionPreference
+    }
+
+    # Output pairs of binary + PDB paths for archival
+    Get-ChildItem -Recurse -LiteralPath $packagePath -Filter *.pdb | % {
         $rootName = Join-Path $_.Directory $_.BaseName
         if ($rootName.EndsWith('.ni')) {
             $rootName = $rootName.Substring(0, $rootName.Length - 3)
@@ -69,9 +64,36 @@ Function Get-SymbolsFromPackage($id, $version) {
     }
 }
 
+Function Get-PackageVersions() {
+    if ($script:PackageVersions) {
+        return $script:PackageVersions
+    }
+
+    $propsPath = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\Directory.Packages.props')).Path
+    $output = & dotnet msbuild $propsPath -nologo -verbosity:quiet -getItem:PackageVersion 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Failed to evaluate package versions from Directory.Packages.props.`n$($output | Out-String)"
+        return @{}
+    }
+
+    $jsonText = ($output | Out-String).Trim()
+    $jsonStart = $jsonText.IndexOf('{')
+    if ($jsonStart -lt 0) {
+        Write-Error 'Failed to locate JSON output from `dotnet msbuild -getItem:PackageVersion`.'
+        return @{}
+    }
+
+    $packageVersions = @{}
+    foreach ($item in @((ConvertFrom-Json $jsonText.Substring($jsonStart)).Items.PackageVersion)) {
+        $packageVersions[$item.Identity] = $item.Version
+    }
+
+    $script:PackageVersions = $packageVersions
+    $packageVersions
+}
+
 Function Get-PackageVersion($id) {
-    $versionProps = [xml](Get-Content -LiteralPath $PSScriptRoot\..\Directory.Packages.props)
-    $version = $versionProps.Project.ItemGroup.PackageVersion | ? { $_.Include -eq $id } | % { $_.Version }
+    $version = (Get-PackageVersions)[$id]
     if (!$version) {
         Write-Error "No package version found in Directory.Packages.props for the package '$id'"
     }
@@ -80,12 +102,17 @@ Function Get-PackageVersion($id) {
 }
 
 # All 3rd party packages for which symbols packages are expected should be listed here.
-# These must all be sourced from nuget.org, as it is the only feed that supports symbol packages.
+# Packages are downloaded from configured feeds in nuget.config.
+# We should NOT add 3rd party packages to this list because PDBs may be unsafe for our debuggers to load,
+# so we should only archive 1st party symbols.
 $3rdPartyPackageIds = @()
 
 $3rdPartyPackageIds | % {
     $version = Get-PackageVersion $_
     if ($version) {
+        Write-Verbose "Downloading symbols for package '$_' version '$version'."
         Get-SymbolsFromPackage -id $_ -version $version
+    } else {
+        Write-Warning "No version found for package '$_'. Skipping symbol download."
     }
 }
