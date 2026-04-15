@@ -27,8 +27,7 @@ public class GitPackIndexMappedReaderTests
             resourceStream.CopyTo(stream);
         }
 
-        using (FileStream stream = File.OpenRead(indexFile))
-        using (GitPackIndexReader reader = new GitPackIndexMappedReader(stream))
+        using (GitPackIndexReader reader = new GitPackIndexMappedReader(File.OpenRead(indexFile)))
         {
             // Offset of an object which is present
             Assert.Equal(12, reader.GetOffset(GitObjectId.Parse("f5b401f40ad83f13030e946c9ea22cb54cb853cd")));
@@ -59,17 +58,18 @@ public class GitPackIndexMappedReaderTests
             resourceStream.CopyTo(stream);
         }
 
-        using (FileStream stream = File.OpenRead(indexFile))
-        using (var reader = new GitPackIndexMappedReader(stream))
+        using (var reader = new GitPackIndexMappedReader(File.OpenRead(indexFile)))
         {
             // Offset of an object which is present
             (long? offset, GitObjectId? objectId) = reader.GetOffset(new byte[] { 0xf5, 0xb4, 0x01, 0xf4 });
             Assert.Equal(12, offset);
-            Assert.Equal(GitObjectId.Parse("f5b401f40ad83f13030e946c9ea22cb54cb853cd"), objectId);
+            Assert.True(objectId.HasValue);
+            Assert.Equal("f5b401f40ad83f13030e946c9ea22cb54cb853cd", objectId.Value.ToString());
 
             (offset, objectId) = reader.GetOffset(new byte[] { 0xd6, 0x78, 0x15, 0x52 });
             Assert.Equal(317, offset);
-            Assert.Equal(GitObjectId.Parse("d6781552a0a94adbf73ed77696712084754dc274"), objectId);
+            Assert.True(objectId.HasValue);
+            Assert.Equal("d6781552a0a94adbf73ed77696712084754dc274", objectId.Value.ToString());
 
             // null for an object which is not present
             (offset, objectId) = reader.GetOffset(new byte[] { 0x00, 0x00, 0x00, 0x00 });
