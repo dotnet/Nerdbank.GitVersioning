@@ -17,6 +17,7 @@ public class GitPack : IDisposable
     private readonly Func<FileStream> packStream;
     private readonly Lazy<FileStream> indexStream;
     private readonly GitPackCache cache;
+    private readonly bool useMemoryMappedPackFile;
     private readonly MemoryMappedFile? packFile = null;
     private readonly MemoryMappedViewAccessor? accessor = null;
 
@@ -86,8 +87,15 @@ public class GitPack : IDisposable
 
         if (IntPtr.Size > 4)
         {
-            this.packFile = MemoryMappedFile.CreateFromFile(this.packStream(), mapName: null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None, leaveOpen: false);
-            this.accessor = this.packFile.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
+            try
+            {
+                this.packFile = MemoryMappedFile.CreateFromFile(this.packStream(), mapName: null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None, leaveOpen: false);
+                this.accessor = this.packFile.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
+                this.useMemoryMappedPackFile = true;
+            }
+            catch (IOException)
+            {
+            }
         }
     }
 
@@ -300,7 +308,7 @@ public class GitPack : IDisposable
         // On 64-bit processes, we can use Memory Mapped Streams (the address space
         // will be large enough to map the entire packfile). On 32-bit processes,
         // we directly access the underlying stream.
-        if (IntPtr.Size > 4)
+        if (this.useMemoryMappedPackFile)
         {
             return new MemoryMappedStream(this.accessor);
         }
@@ -312,6 +320,13 @@ public class GitPack : IDisposable
 
     private GitPackIndexReader OpenIndex()
     {
-        return new GitPackIndexMappedReader(this.indexStream.Value);
+        try
+        {
+            return new GitPackIndexMappedReader(this.indexStream.Value);
+        }
+        catch (IOException)
+        {
+            return new GitPackIndexMemoryReader(this.indexStream.Value);
+        }
     }
 }

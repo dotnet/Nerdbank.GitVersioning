@@ -174,4 +174,35 @@ public class GitPackTests : IDisposable
             Assert.False(gitPack.TryGetObject(GitObjectId.Empty, "commit", out Stream commitStream));
         }
     }
+
+    [Fact]
+    public void GetPackedObject_FallsBackWhenMemoryMapUnavailable()
+    {
+        int invocationCount = 0;
+        Func<FileStream> packStreamFactory = () =>
+        {
+            if (IntPtr.Size > 4 && invocationCount++ == 0)
+            {
+                throw new IOException("No such device");
+            }
+
+            return File.OpenRead(this.packFile);
+        };
+
+        using (var gitPack = new GitPack(
+            (sha, objectType) => null,
+            new Lazy<FileStream>(() => File.OpenRead(this.indexFile)),
+            packStreamFactory,
+            GitPackNullCache.Instance))
+        using (Stream commitStream = gitPack.GetObject(12, "commit"))
+        using (SHA1 sha = SHA1.Create())
+        {
+            ZLibStream zlibStream = Assert.IsType<ZLibStream>(commitStream);
+            DeflateStream deflateStream = Assert.IsType<DeflateStream>(zlibStream.BaseStream);
+            FileStream directAccessStream = Assert.IsType<FileStream>(deflateStream.BaseStream);
+
+            Assert.Equal(222, commitStream.Length);
+            Assert.Equal("/zgldANj+jvgOwlecnOKylZDVQg=", Convert.ToBase64String(sha.ComputeHash(commitStream)));
+        }
+    }
 }
