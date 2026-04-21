@@ -38,9 +38,23 @@ public class GitPackIndexMemoryReader : GitPackIndexReader
         }
 
         stream.Position = 0;
-        using var memory = new MemoryStream();
-        stream.CopyTo(memory);
-        this.data = memory.ToArray();
+        if (stream.Length > int.MaxValue)
+        {
+            throw new IOException("Git pack index is too large to read into memory.");
+        }
+
+        this.data = new byte[(int)stream.Length];
+        int readLength = 0;
+        while (readLength < this.data.Length)
+        {
+            int bytesRead = stream.Read(this.data, readLength, this.data.Length - readLength);
+            if (bytesRead == 0)
+            {
+                throw new EndOfStreamException();
+            }
+
+            readLength += bytesRead;
+        }
     }
 
     /// <inheritdoc/>

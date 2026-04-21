@@ -22,12 +22,13 @@ public class GitPackIndexMemoryReaderTests
         string indexFile = Path.GetTempFileName();
 
         using (Stream resourceStream = TestUtilities.GetEmbeddedResource(@"ManagedGit\pack-7d6b2c56ffb97eedb92f4e28583c093f7ee4b3d9.idx"))
-        using (FileStream stream = File.Open(indexFile, FileMode.Open))
+        using (FileStream stream = File.Open(indexFile, FileMode.Create))
         {
             resourceStream.CopyTo(stream);
         }
 
-        using (GitPackIndexReader reader = new GitPackIndexMemoryReader(File.OpenRead(indexFile)))
+        using (FileStream stream = File.OpenRead(indexFile))
+        using (GitPackIndexReader reader = new GitPackIndexMemoryReader(stream))
         {
             Assert.Equal(12, reader.GetOffset(GitObjectId.Parse("f5b401f40ad83f13030e946c9ea22cb54cb853cd")));
             Assert.Equal(317, reader.GetOffset(GitObjectId.Parse("d6781552a0a94adbf73ed77696712084754dc274")));

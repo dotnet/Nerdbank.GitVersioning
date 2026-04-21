@@ -95,6 +95,8 @@ public class GitPack : IDisposable
             }
             catch (IOException)
             {
+                // Some filesystems used from Linux containers (e.g. NTFS/CIFS mounts) may reject mmap.
+                // Fall back to direct stream access in those cases.
             }
         }
     }
@@ -326,6 +328,8 @@ public class GitPack : IDisposable
         }
         catch (IOException)
         {
+            // Some filesystems used from Linux containers (e.g. NTFS/CIFS mounts) may reject mmap.
+            // Fall back to an in-memory index reader in those cases.
             return new GitPackIndexMemoryReader(this.indexStream.Value);
         }
     }
