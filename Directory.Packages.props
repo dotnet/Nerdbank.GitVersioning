@@ -6,7 +6,7 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
     <MicrosoftTestingPlatformVersion>2.2.1</MicrosoftTestingPlatformVersion>
     <BenchmarkDotNetVersion>0.15.8</BenchmarkDotNetVersion>
-    <MSBuildPackageVersion>16.11.6</MSBuildPackageVersion>
+    <MSBuildPackageVersion>18.4.0</MSBuildPackageVersion>
     <!-- LibGit2Sharp Native Binary version - used in both main project and Cake addin -->
     <LibGit2SharpNativeVersion>2.0.323</LibGit2SharpNativeVersion>
   </PropertyGroup>
@@ -22,7 +22,7 @@
     <PackageVersion Include="Microsoft.Build.Tasks.Core" Version="$(MSBuildPackageVersion)" />
     <PackageVersion Include="Microsoft.Build.Utilities.Core" Version="$(MSBuildPackageVersion)" />
     <PackageVersion Include="Microsoft.Build" Version="$(MSBuildPackageVersion)" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.3.0" />
     <PackageVersion Include="Microsoft.DotNet.PlatformAbstractions" Version="3.1.6" />
     <PackageVersion Include="Microsoft.Windows.CsWin32" Version="0.3.275" />
     <PackageVersion Include="Nerdbank.GitVersioning.LKG" Version="3.8.80-alpha" />
@@ -31,10 +31,10 @@
     <PackageVersion Include="NuGet.PackageManagement" Version="7.3.0" />
     <PackageVersion Include="System.CommandLine" Version="2.0.5" />
     <PackageVersion Include="System.Diagnostics.Tools" Version="4.3.0" />
-    <PackageVersion Include="System.Drawing.Common" Version="9.0.14" />
+    <PackageVersion Include="System.Drawing.Common" Version="10.0.7" />
     <PackageVersion Include="System.Memory" Version="4.6.3" />
     <PackageVersion Include="System.Runtime.Loader" Version="4.3.0" />
-    <PackageVersion Include="System.Security.Cryptography.Xml" Version="9.0.14" />
+    <PackageVersion Include="System.Security.Cryptography.Xml" Version="10.0.7" />
     <PackageVersion Include="System.Text.Json" Version="10.0.5" />
     <PackageVersion Include="System.Threading.Tasks.Dataflow" Version="10.0.5" />
     <PackageVersion Include="Validation" Version="2.6.68" />
