@@ -1,17 +1,19 @@
 ---
+name: update-library-template
 description: Merges the latest Library.Template into this repo (at position of HEAD) and resolves conflicts.
+disable-model-invocation: true
 ---
 
 # Instructions
 
-1. Run `tools/MergeFrom-Template.ps1`
+1. Run `./tools/MergeFrom-Template.ps1` from the repo root.
 2. Resolve merge conflicts, taking into account conflict resolution policy below.
 3. Validate the changes, as described in the validation section below.
 4. Committing your changes (if applicable).
 
 ## Conflict resolution policy
 
-There may be special notes in `.github/prompts/template-release-notes.md` that describe special considerations for certain files or scenarios to help you resolve conflicts appropriately.
+There may be [special notes](template-release-notes.md) that describe special considerations for certain files or scenarios to help you resolve conflicts appropriately.
 Always refer to that file before proceeding.
 In particular, focus on the *incoming* part of the file, since it represents the changes from the Library.Template that you are merging into your repo.
 

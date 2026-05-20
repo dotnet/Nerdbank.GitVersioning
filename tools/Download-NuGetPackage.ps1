@@ -54,7 +54,7 @@ if ($downloadExitCode -ne 0) {
 }
 
 # Return the path to the downloaded package directory (dotnet package download uses lowercase id)
-$packageIdLower = $PackageId.ToLower()
+$packageIdLower = $PackageId.ToLowerInvariant()
 if ($Version) {
     $packageRoot = Join-Path $OutputDirectory $packageIdLower
     $packageDir = Get-ChildItem -Path $packageRoot -Directory -ErrorAction SilentlyContinue |
