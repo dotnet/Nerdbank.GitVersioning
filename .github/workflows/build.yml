@@ -66,7 +66,11 @@ jobs:
       run: dotnet pack -c ${{ env.BUILDCONFIGURATION }} --no-build -p:PackLKG=true /bl:"${{ runner.temp }}/_artifacts/build_logs/msbuild_lkg.binlog"
       working-directory: src/Nerdbank.GitVersioning.Tasks
     - name: 📢 Publish nbgv tool
-      run: dotnet publish -c ${{ env.BUILDCONFIGURATION }} -o ../nerdbank-gitversioning.npm/out/nbgv.cli/tools/net8.0/any /bl:"${{ runner.temp }}/_artifacts/build_logs/nbgv_publish.binlog"
+      shell: pwsh
+      run: |
+        dotnet publish -f net8.0 -c ${{ env.BUILDCONFIGURATION }} -o ../nerdbank-gitversioning.npm/out/nbgv.cli/tools/net8.0/any /bl:"${{ runner.temp }}/_artifacts/build_logs/nbgv_publish_net8.binlog"
+        dotnet publish -f net9.0 -c ${{ env.BUILDCONFIGURATION }} -o ../nerdbank-gitversioning.npm/out/nbgv.cli/tools/net9.0/any /bl:"${{ runner.temp }}/_artifacts/build_logs/nbgv_publish_net9.binlog"
+        dotnet publish -f net10.0 -c ${{ env.BUILDCONFIGURATION }} -o ../nerdbank-gitversioning.npm/out/nbgv.cli/tools/net10.0/any /bl:"${{ runner.temp }}/_artifacts/build_logs/nbgv_publish_net10.binlog"
       working-directory: src/nbgv
     - name: 🛠️ Build nerdbank-gitversioning NPM package
       run: yarn build
