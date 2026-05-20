@@ -4,6 +4,6 @@ const nbgvPath = 'nbgv.cli';
 
 export function getNbgvCommand(dotnetCommand?: string): string {
     var command = dotnetCommand || 'dotnet';
-    const nbgvDll = path.join(__dirname, nbgvPath, "tools", "net8.0", "any", "nbgv.dll");
+    const nbgvDll = path.join(__dirname, nbgvPath, "tools", "net10.0", "any", "nbgv.dll");
     return `${command} "${nbgvDll}"`;
 }

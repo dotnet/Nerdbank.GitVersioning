@@ -4,7 +4,7 @@
     <ToolCommandName>nbgv</ToolCommandName>
     <PackAsTool>True</PackAsTool>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
     <RootNamespace>Nerdbank.GitVersioning.Tool</RootNamespace>
     <Description>A .NET Core Tool that can install, read and set version information based on git history, using Nerdbank.GitVersioning.</Description>
   </PropertyGroup>
@@ -13,7 +13,6 @@
     <PackageReference Include="NuGet.PackageManagement" />
     <PackageReference Include="System.CommandLine" />
     <PackageReference Include="Nerdbank.GitVersioning.LKG" PrivateAssets="all" />
-    <PackageReference Include="System.Diagnostics.Tools" />
     <PackageReference Include="Microsoft.Build" />
   </ItemGroup>
 
