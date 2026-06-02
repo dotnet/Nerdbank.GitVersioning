@@ -18,6 +18,9 @@ Always validate your changes locally before pushing them to the remote repositor
 
 When writing PR bodies or comments, avoid unmatched markdown code fences. Keep markdown well-formed.
 
+For purposes of assessing PR readiness by its PR checks, consider docfx related checks to be irrelevant.
+If a docfx check fails but all other checks succeed, then that is a 'successful' dependency update PR.
+
 ## Fix up dependency PRs with failing checks
 
 Before aggregating PRs, first try to fix any individual dependency update PRs with failing build/test checks.
