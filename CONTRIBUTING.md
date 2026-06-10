@@ -31,23 +31,11 @@ and you are running Windows PowerShell, the command is:
 
     ./init.ps1
 
-Most of the repo may be built via building the solution file from Visual Studio 2019,
-but for a complete build, build from the VS2019 Developer Command Prompt:
-
-    ./build.ps1
-
-This repo is structured such that it builds the NuGet package first, using MSBuild.
-It then builds an NPM package that includes some of the outputs of MSBuild, along with
-some javascript, for our NPM consumers who want a reasonable versioning story for their
-NPM packages too.
-
 ## Testing
 
-`dotnet test` will run all tests.
+You can use `dotnet test` to build and/or test the repo.
 
-The Visual Studio 2022 Test Explorer will list and execute all tests.
-
-A few tests will fail without a certain VC++ toolset installed.
+There may be tests that are known to be unstable or have special requirements. These can be avoided by running tests using the [dotnet-test-cloud.ps1](tools/dotnet-test-cloud.ps1) script *after* running `dotnet build`.
 
 ## Releases
 
@@ -118,3 +106,5 @@ git checkout origin/main
 # resolve any conflicts, then commit the merge commit.
 git push origin -u HEAD
 ```
+
+[pwsh]: https://learn.microsoft.com/powershell/scripting/install/installing-powershell
