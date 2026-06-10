@@ -3,14 +3,14 @@
   "isRoot": true,
   "tools": {
     "powershell": {
-      "version": "7.6.1",
+      "version": "7.6.2",
       "commands": [
         "pwsh"
       ],
       "rollForward": false
     },
     "dotnet-coverage": {
-      "version": "18.7.0",
+      "version": "18.8.0",
       "commands": [
         "dotnet-coverage"
       ],
@@ -31,7 +31,7 @@
       "rollForward": false
     },
     "nerdbank.dotnetrepotools": {
-      "version": "1.4.1",
+      "version": "1.5.15",
       "commands": [
         "repo"
       ],

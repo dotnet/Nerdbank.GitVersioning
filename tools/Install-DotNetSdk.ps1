@@ -59,18 +59,22 @@ $runtimeVersions = @()
 $windowsDesktopRuntimeVersions = @()
 $aspnetRuntimeVersions = @()
 if (!$SdkOnly) {
-    Get-ChildItem "$PSScriptRoot\..\src\*.*proj", "$PSScriptRoot\..\test\*.*proj", "$PSScriptRoot\..\Directory.Build.props" -Recurse | % {
+    $projFiles = Get-ChildItem "$PSScriptRoot\..\src\*.*proj", "$PSScriptRoot\..\test\*.*proj" -Recurse
+    $projFiles += Get-ChildItem "$PSScriptRoot\..\src\Directory.Build.props", "$PSScriptRoot\..\test\Directory.Build.props" -Recurse
+    $projFiles += Get-Item -LiteralPath "$PSScriptRoot\..\Directory.Build.props"
+    $projFiles | % {
         $projXml = [xml](Get-Content -LiteralPath $_)
-        $pg = $projXml.Project.PropertyGroup
-        if ($pg) {
-            $targetFrameworks = @()
-            $tf = $pg.TargetFramework
-            $targetFrameworks += $tf
-            $tfs = $pg.TargetFrameworks
-            if ($tfs) {
-                $targetFrameworks = $tfs -Split ';'
+        $targetFrameworks = @()
+        foreach ($pg in @($projXml.Project.PropertyGroup)) {
+            if ($pg.TargetFramework) {
+                $targetFrameworks += $pg.TargetFramework
+            }
+
+            if ($pg.TargetFrameworks) {
+                $targetFrameworks += $pg.TargetFrameworks -Split ';'
             }
         }
+
         $targetFrameworks |? { $_ -match 'net(?:coreapp)?(\d+\.\d+)' } |% {
             $v = $Matches[1]
             $runtimeVersions += $v
