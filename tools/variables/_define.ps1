@@ -11,6 +11,18 @@
 param (
 )
 
+function Add-GitHubActionsFileCommand {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+        [Parameter(Mandatory = $true)]
+        [string]$Value
+    )
+
+    $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+    [System.IO.File]::AppendAllText($Path, "$Value`n", $utf8NoBom)
+}
+
 (& "$PSScriptRoot\_all.ps1").GetEnumerator() |% {
     # Always use ALL CAPS for env var names since Azure Pipelines converts variable names to all caps and on non-Windows OS, env vars are case sensitive.
     $keyCaps = $_.Key.ToUpper()
@@ -24,7 +36,7 @@ param (
             # and the second that works across jobs and stages but must be fully qualified when referenced.
             Write-Host "##vso[task.setvariable variable=$keyCaps;isOutput=true]$($_.Value)"
         } elseif ($env:GITHUB_ACTIONS) {
-            Add-Content -LiteralPath $env:GITHUB_ENV -Value "$keyCaps=$($_.Value)"
+            Add-GitHubActionsFileCommand -Path $env:GITHUB_ENV -Value "$keyCaps=$($_.Value)"
         }
         Set-Item -LiteralPath "env:$keyCaps" -Value $_.Value
     }
