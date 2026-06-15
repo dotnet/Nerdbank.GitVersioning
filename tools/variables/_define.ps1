@@ -11,25 +11,7 @@
 param (
 )
 
-function Add-GitHubActionsEnvVariable {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Path,
-        [Parameter(Mandatory = $true)]
-        [string]$Name,
-        [Parameter(Mandatory = $true)]
-        [AllowEmptyString()]
-        [string]$Value
-    )
-
-    if ([string]::IsNullOrWhiteSpace($Name)) {
-        throw "GitHub Actions environment variable names must not be empty."
-    }
-
-    $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
-    $delimiter = [guid]::NewGuid().ToString('N')
-    [System.IO.File]::AppendAllText($Path, "$Name<<$delimiter`n$Value`n$delimiter`n", $utf8NoBom)
-}
+. "$PSScriptRoot\..\GitHubActions.ps1"
 
 (& "$PSScriptRoot\_all.ps1").GetEnumerator() |% {
     # Always use ALL CAPS for env var names since Azure Pipelines converts variable names to all caps and on non-Windows OS, env vars are case sensitive.
@@ -44,7 +26,7 @@ function Add-GitHubActionsEnvVariable {
             # and the second that works across jobs and stages but must be fully qualified when referenced.
             Write-Host "##vso[task.setvariable variable=$keyCaps;isOutput=true]$($_.Value)"
         } elseif ($env:GITHUB_ACTIONS) {
-            Add-GitHubActionsEnvVariable -Path $env:GITHUB_ENV -Name $keyCaps -Value ([string]$_.Value)
+            Add-GitHubActionsEnvVariable -Name $keyCaps -Value ([string]$_.Value)
         }
         Set-Item -LiteralPath "env:$keyCaps" -Value $_.Value
     }
