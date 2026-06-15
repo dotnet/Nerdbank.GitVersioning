@@ -12,12 +12,14 @@
     The CmdEnvScriptPath environment variable may be optionally set to a path to a cmd shell script to be created (or appended to if it already exists) that will set the environment variables in cmd.exe that are set within the PowerShell environment.
     This is used by init.cmd in order to reapply any new environment variables to the parent cmd.exe process that were set in the powershell child process.
 #>
-[CmdletBinding(SupportsShouldProcess=$true)]
+[CmdletBinding(SupportsShouldProcess = $true)]
 Param(
-    [Parameter(Mandatory=$true, Position=1)]
+    [Parameter(Mandatory = $true, Position = 1)]
     $Variables,
     [string[]]$PrependPath
 )
+
+. "$PSScriptRoot\GitHubActions.ps1"
 
 if ($Variables.Count -eq 0) {
     return $true
@@ -27,7 +29,8 @@ $cmdInstructions = !$env:TF_BUILD -and !$env:GITHUB_ACTIONS -and !$env:CmdEnvScr
 if ($cmdInstructions) {
     Write-Warning "Environment variables have been set that will be lost because you're running under cmd.exe"
     Write-Host "Environment variables that must be set manually:" -ForegroundColor Blue
-} else {
+}
+else {
     Write-Host "Environment variables set:" -ForegroundColor Blue
     Write-Host ($Variables | Out-String)
     if ($PrependPath) {
@@ -43,20 +46,8 @@ if ($env:GITHUB_ACTIONS) {
     Write-Host "GitHub Actions detected. Logging commands will be used to propagate environment variables and prepend path."
 }
 
-function Add-GitHubActionsFileCommand {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Path,
-        [Parameter(Mandatory = $true)]
-        [string]$Value
-    )
-
-    $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
-    [System.IO.File]::AppendAllText($Path, "$Value`n", $utf8NoBom)
-}
-
 $CmdEnvScript = ''
-$Variables.GetEnumerator() |% {
+$Variables.GetEnumerator() | % {
     Set-Item -LiteralPath env:$($_.Key) -Value $_.Value
 
     # If we're running in a cloud CI, set these environment variables so they propagate.
@@ -64,7 +55,7 @@ $Variables.GetEnumerator() |% {
         Write-Host "##vso[task.setvariable variable=$($_.Key);]$($_.Value)"
     }
     if ($env:GITHUB_ACTIONS) {
-        Add-GitHubActionsFileCommand -Path $env:GITHUB_ENV -Value "$($_.Key)=$($_.Value)"
+        Add-GitHubActionsEnvVariable -Name $_.Key -Value ([string]$_.Value)
     }
 
     if ($cmdInstructions) {
@@ -80,7 +71,7 @@ if ($IsMacOS -or $IsLinux) {
 }
 
 if ($PrependPath) {
-    $PrependPath |% {
+    $PrependPath | % {
         $newPathValue = "$_$pathDelimiter$env:PATH"
         Set-Item -LiteralPath env:PATH -Value $newPathValue
         if ($cmdInstructions) {
@@ -91,7 +82,7 @@ if ($PrependPath) {
             Write-Host "##vso[task.prependpath]$_"
         }
         if ($env:GITHUB_ACTIONS) {
-            Add-GitHubActionsFileCommand -Path $env:GITHUB_PATH -Value $_
+            Add-GitHubActionsEnvVariable -Name PATH -Value $newPathValue
         }
 
         $CmdEnvScript += "SET PATH=$_$pathDelimiter%PATH%"
