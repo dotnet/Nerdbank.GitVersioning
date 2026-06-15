@@ -43,16 +43,24 @@ if ($env:GITHUB_ACTIONS) {
     Write-Host "GitHub Actions detected. Logging commands will be used to propagate environment variables and prepend path."
 }
 
-function Add-GitHubActionsFileCommand {
+function Add-GitHubActionsEnvVariable {
     param(
         [Parameter(Mandatory = $true)]
         [string]$Path,
         [Parameter(Mandatory = $true)]
-        [string]$Value
-    )
+       [string]$Name,
+       [Parameter(Mandatory = $true)]
+       [AllowEmptyString()]
+       [string]$Value
+   )
 
-    $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
-    [System.IO.File]::AppendAllText($Path, "$Value`n", $utf8NoBom)
+   if ([string]::IsNullOrWhiteSpace($Name)) {
+       throw "GitHub Actions environment variable names must not be empty."
+   }
+
+   $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+   $delimiter = [guid]::NewGuid().ToString('N')
+   [System.IO.File]::AppendAllText($Path, "$Name<<$delimiter`n$Value`n$delimiter`n", $utf8NoBom)
 }
 
 $CmdEnvScript = ''
@@ -64,7 +72,7 @@ $Variables.GetEnumerator() |% {
         Write-Host "##vso[task.setvariable variable=$($_.Key);]$($_.Value)"
     }
     if ($env:GITHUB_ACTIONS) {
-        Add-GitHubActionsFileCommand -Path $env:GITHUB_ENV -Value "$($_.Key)=$($_.Value)"
+        Add-GitHubActionsEnvVariable -Path $env:GITHUB_ENV -Name $_.Key -Value ([string]$_.Value)
     }
 
     if ($cmdInstructions) {
@@ -91,7 +99,7 @@ if ($PrependPath) {
             Write-Host "##vso[task.prependpath]$_"
         }
         if ($env:GITHUB_ACTIONS) {
-            Add-GitHubActionsFileCommand -Path $env:GITHUB_PATH -Value $_
+            Add-GitHubActionsEnvVariable -Path $env:GITHUB_ENV -Name PATH -Value $newPathValue
         }
 
         $CmdEnvScript += "SET PATH=$_$pathDelimiter%PATH%"

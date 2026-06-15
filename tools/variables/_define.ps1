@@ -11,16 +11,24 @@
 param (
 )
 
-function Add-GitHubActionsFileCommand {
+function Add-GitHubActionsEnvVariable {
     param(
         [Parameter(Mandatory = $true)]
         [string]$Path,
         [Parameter(Mandatory = $true)]
+        [string]$Name,
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyString()]
         [string]$Value
     )
 
+    if ([string]::IsNullOrWhiteSpace($Name)) {
+        throw "GitHub Actions environment variable names must not be empty."
+    }
+
     $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
-    [System.IO.File]::AppendAllText($Path, "$Value`n", $utf8NoBom)
+    $delimiter = [guid]::NewGuid().ToString('N')
+    [System.IO.File]::AppendAllText($Path, "$Name<<$delimiter`n$Value`n$delimiter`n", $utf8NoBom)
 }
 
 (& "$PSScriptRoot\_all.ps1").GetEnumerator() |% {
@@ -36,7 +44,7 @@ function Add-GitHubActionsFileCommand {
             # and the second that works across jobs and stages but must be fully qualified when referenced.
             Write-Host "##vso[task.setvariable variable=$keyCaps;isOutput=true]$($_.Value)"
         } elseif ($env:GITHUB_ACTIONS) {
-            Add-GitHubActionsFileCommand -Path $env:GITHUB_ENV -Value "$keyCaps=$($_.Value)"
+            Add-GitHubActionsEnvVariable -Path $env:GITHUB_ENV -Name $keyCaps -Value ([string]$_.Value)
         }
         Set-Item -LiteralPath "env:$keyCaps" -Value $_.Value
     }
