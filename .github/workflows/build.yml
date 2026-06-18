@@ -3,9 +3,9 @@ name: 🏭 Build
 on:
   push:
     branches:
-    - main
-    - 'v*.*'
-    - validate/*
+      - main
+      - "v*.*"
+      - validate/*
   pull_request:
   workflow_dispatch:
 
@@ -23,60 +23,60 @@ jobs:
       fail-fast: false
       matrix:
         os:
-        - ubuntu-24.04
-        - macOS-15
-        - windows-2025
+          - ubuntu-24.04
+          - macOS-15
+          - windows-2025
 
     steps:
-    - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-      with:
-        fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
-    - name: ⚙ Install prerequisites
-      run: |
-        ./init.ps1 -UpgradePrerequisites
-        dotnet --info
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
+      - name: ⚙ Install prerequisites
+        run: |
+          ./init.ps1 -UpgradePrerequisites
+          dotnet --info
 
-        # Print mono version if it is present.
-        if (Get-Command mono -ErrorAction SilentlyContinue) {
-          mono --version
-        }
-      shell: pwsh
-    - name: ⚙️ Set pipeline variables based on source
-      run: tools/variables/_define.ps1
-      shell: pwsh
-    - name: 🛠 build
-      run: dotnet build -t:build,pack --no-restore -c ${{ env.BUILDCONFIGURATION }} -warnAsError -warnNotAsError:NU1901,NU1902,NU1903,NU1904 /bl:"${{ runner.temp }}/_artifacts/build_logs/build.binlog"
-    - name: 🧪 test
-      run: tools/dotnet-test-cloud.ps1 -Configuration ${{ env.BUILDCONFIGURATION }} -Agent ${{ runner.os }}
-      shell: pwsh
-    - name: 💅🏻 Verify formatted code
-      run: dotnet format --verify-no-changes --no-restore
-      shell: pwsh
-      if: runner.os == 'Linux'
-    - name: 📚 Verify docfx build
-      run: dotnet docfx docfx/docfx.json --warningsAsErrors --disableGitFeatures
-      if: runner.os == 'Linux'
-    - name: ⚙ Update pipeline variables based on build outputs
-      run: tools/variables/_define.ps1
-      shell: pwsh
-    - name: 📢 Publish artifacts
-      uses: ./.github/actions/publish-artifacts
-      if: cancelled() == false
-    - name: 📢 Publish code coverage results to codecov.io
-      run: |
-        if ('${{ secrets.CODECOV_TOKEN }}') {
-          ./tools/publish-CodeCov.ps1 -CodeCovToken '${{ secrets.CODECOV_TOKEN }}' -PathToCodeCoverage "${{ runner.temp }}/_artifacts/coverageResults" -Name "${{ runner.os }} Coverage Results" -Flags "${{ runner.os }}"
-        }
-      shell: pwsh
-      timeout-minutes: 3
-      continue-on-error: true
+          # Print mono version if it is present.
+          if (Get-Command mono -ErrorAction SilentlyContinue) {
+            mono --version
+          }
+        shell: pwsh
+      - name: ⚙️ Set pipeline variables based on source
+        run: tools/variables/_define.ps1
+        shell: pwsh
+      - name: 🛠 build
+        run: dotnet build -t:build,pack --no-restore -c ${{ env.BUILDCONFIGURATION }} -warnAsError -warnNotAsError:NU1901,NU1902,NU1903,NU1904 /bl:"${{ runner.temp }}/_artifacts/build_logs/build.binlog"
+      - name: 🧪 test
+        run: tools/dotnet-test-cloud.ps1 -Configuration ${{ env.BUILDCONFIGURATION }} -Agent ${{ runner.os }}
+        shell: pwsh
+      - name: 💅🏻 Verify formatted code
+        run: dotnet format --verify-no-changes --no-restore
+        shell: pwsh
+        if: runner.os == 'Linux'
+      - name: 📚 Verify docfx build
+        run: dotnet docfx docfx/docfx.json --warningsAsErrors --disableGitFeatures
+        if: runner.os == 'Linux'
+      - name: ⚙ Update pipeline variables based on build outputs
+        run: tools/variables/_define.ps1
+        shell: pwsh
+      - name: 📢 Publish artifacts
+        uses: ./.github/actions/publish-artifacts
+        if: cancelled() == false
+      - name: 📢 Publish code coverage results to codecov.io
+        run: |
+          if ('${{ secrets.CODECOV_TOKEN }}') {
+            ./tools/publish-CodeCov.ps1 -CodeCovToken '${{ secrets.CODECOV_TOKEN }}' -PathToCodeCoverage "${{ runner.temp }}/_artifacts/coverageResults" -Name "${{ runner.os }} Coverage Results" -Flags "${{ runner.os }}"
+          }
+        shell: pwsh
+        timeout-minutes: 3
+        continue-on-error: true
 
   docs:
     name: 📃 Docs
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-    - name: 🔗 Markup Link Checker (mlc)
-      uses: becheran/mlc@7ec24825cefe0c9c8c6bac48430e1f69e3ec356e # v1.2.0
-      with:
-        args: --do-not-warn-for-redirect-to https://learn.microsoft.com*,https://dotnet.microsoft.com/*,https://dev.azure.com/*,https://app.codecov.io/* -p docfx -i https://www.npmjs.com/package/*,https://get.dot.net/
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: 🔗 Markup Link Checker (mlc)
+        uses: becheran/mlc@7ec24825cefe0c9c8c6bac48430e1f69e3ec356e # v1.2.0
+        with:
+          args: --do-not-warn-for-redirect-to https://learn.microsoft.com*,https://dotnet.microsoft.com/*,https://dev.azure.com/*,https://app.codecov.io/* -p docfx -i https://www.npmjs.com/package/*,https://get.dot.net/
