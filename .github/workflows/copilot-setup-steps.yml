@@ -6,12 +6,12 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - main
+    - main
     paths:
-      - .github/workflows/copilot-setup-steps.yml
+    - .github/workflows/copilot-setup-steps.yml
   pull_request:
     paths:
-      - .github/workflows/copilot-setup-steps.yml
+    - .github/workflows/copilot-setup-steps.yml
 
 jobs:
   # The job MUST be called `copilot-setup-steps` or it will not be picked up by Copilot.
@@ -26,16 +26,16 @@ jobs:
     # You can define any steps you want, and they will run before the agent starts.
     # If you do not check out your code, Copilot will do this for you.
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
-      - name: ⚙ Install prerequisites
-        run: |
-          ./init.ps1 -UpgradePrerequisites -NoNuGetCredProvider
-          dotnet --info
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      with:
+        fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
+    - name: ⚙ Install prerequisites
+      run: |
+        ./init.ps1 -UpgradePrerequisites -NoNuGetCredProvider
+        dotnet --info
 
-          # Print mono version if it is present.
-          if (Get-Command mono -ErrorAction SilentlyContinue) {
-            mono --version
-          }
-        shell: pwsh
+        # Print mono version if it is present.
+        if (Get-Command mono -ErrorAction SilentlyContinue) {
+          mono --version
+        }
+      shell: pwsh
