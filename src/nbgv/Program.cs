@@ -1123,7 +1123,7 @@ namespace Nerdbank.GitVersioning.Tool
                 anyFound = true;
                 string versionJsonDir = Path.GetDirectoryName(versionJsonPath)!;
 
-                using GitContext context = GitContext.Create(versionJsonDir, engine: GetEffectiveGitEngine());
+                using GitContext context = GitContext.Create(versionJsonDir, engine: GetEffectiveGitEngine(preferReadWrite: true));
                 if (!context.IsRepository)
                 {
                     Console.Error.WriteLine($"No git repository found for version.json at: {versionJsonPath}");

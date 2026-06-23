@@ -301,7 +301,7 @@ public abstract class GitContext : IDisposable
 
     internal abstract Version GetIdAsVersion(VersionOptions? committedVersion, VersionOptions? workingVersion, int versionHeight);
 
-    internal string GetRepoRelativePath(string absolutePath)
+    internal string GetRepoRelativePath(string absolutePath, bool replaceBackslashes = false)
     {
         string? repoRoot = this.WorkingTreePath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
@@ -310,8 +310,9 @@ public abstract class GitContext : IDisposable
             throw new ArgumentException($"Path '{absolutePath}' is not within repository '{repoRoot}'", nameof(absolutePath));
         }
 
-        return absolutePath.Substring(repoRoot.Length)
+        string result = absolutePath.Substring(repoRoot.Length)
             .TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return replaceBackslashes ? result.Replace('\\', '/') : result;
     }
 
     /// <summary>

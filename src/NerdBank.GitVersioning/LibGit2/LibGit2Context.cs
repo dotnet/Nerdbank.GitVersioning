@@ -89,22 +89,7 @@ public class LibGit2Context : GitContext
     }
 
     /// <inheritdoc />
-    public override bool IsIgnored(string path)
-    {
-        try
-        {
-            // Convert absolute path to repo-relative path
-            string repoRelativePath = Path.GetRelativePath(this.WorkingTreePath, path);
-
-            // Use LibGit2Sharp's built-in ignore checking
-            return this.Repository.Ignore.IsPathIgnored(repoRelativePath);
-        }
-        catch
-        {
-            // If we can't determine ignore status, assume it's not ignored
-            return false;
-        }
-    }
+    public override bool IsIgnored(string path) => this.Repository.Ignore.IsPathIgnored(this.GetRepoRelativePath(path, replaceBackslashes: true));
 
     /// <inheritdoc />
     public override void ApplyTag(string name) => this.Repository.Tags.Add(name, this.Commit);
