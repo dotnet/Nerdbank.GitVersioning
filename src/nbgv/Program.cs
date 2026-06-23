@@ -1226,18 +1226,22 @@ namespace Nerdbank.GitVersioning.Tool
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
-            // For each project in the transitive closure, use the MSBuild evaluation model
-            // to collect all imported files that reside within the repository.
+            // For each project in the transitive closure, add its directory to the results.
+            // We include entire project directories rather than individual files.
             var results = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (string projectFile in allProjectFiles)
             {
                 if (IsWithinRepo(projectFile, repoRoot))
                 {
-                    results.Add(projectFile);
+                    // Add the project directory, not the individual .csproj file
+                    string projectDir = Path.GetDirectoryName(projectFile)!;
+                    results.Add(projectDir);
                 }
             }
 
+            // For MSBuild imports, we add specific imported files (not their directories)
+            // since these are typically shared build files like Directory.Build.props
             using var collection = new ProjectCollection(globalProperties);
             foreach (string projectFile in allProjectFiles)
             {
