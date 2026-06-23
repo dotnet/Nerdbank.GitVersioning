@@ -1112,7 +1112,13 @@ namespace Nerdbank.GitVersioning.Tool
             bool anyFound = false;
             bool anyMismatch = false;
 
-            foreach (string versionJsonPath in FindVersionJsonPaths(paths))
+            // First, collect all version.json paths so we can use them for boundary checking
+            IEnumerable<string> allVersionJsonPaths = FindVersionJsonPaths(paths).ToList();
+            var allVersionJsonDirs = new HashSet<string>(
+                allVersionJsonPaths.Select(p => Path.GetDirectoryName(p)!),
+                StringComparer.OrdinalIgnoreCase);
+
+            foreach (string versionJsonPath in allVersionJsonPaths)
             {
                 anyFound = true;
                 string versionJsonDir = Path.GetDirectoryName(versionJsonPath)!;
@@ -1126,7 +1132,14 @@ namespace Nerdbank.GitVersioning.Tool
 
                 try
                 {
-                    IReadOnlyList<FilterPath> computed = ComputePathFilters(versionJsonDir, context.WorkingTreePath, projectExtensions);
+                    IReadOnlyList<FilterPath> computed = ComputePathFilters(versionJsonDir, context.WorkingTreePath, projectExtensions, allVersionJsonDirs);
+
+                    // Skip version.json files that have no associated projects
+                    if (computed.Count == 0)
+                    {
+                        continue;
+                    }
+
                     VersionOptions? versionOptions = context.VersionFile.GetWorkingCopyVersion(
                         VersionFileRequirements.NonMergedResult | VersionFileRequirements.AcceptInheritingFile);
 
@@ -1193,22 +1206,29 @@ namespace Nerdbank.GitVersioning.Tool
         /// <param name="versionJsonDir">The directory containing the version.json file.</param>
         /// <param name="repoRoot">The absolute path to the root of the git repository.</param>
         /// <param name="projectExtensions">The MSBuild project file extensions to search for.</param>
-        /// <returns>A sorted, deduplicated list of repo-root-relative <see cref="FilterPath"/> objects.</returns>
+        /// <param name="versionJsonDirs">Set of all other version.json directories (for boundary checking).</param>
+        /// <returns>A sorted, deduplicated list of repo-root-relative <see cref="FilterPath"/> objects, or empty if no projects found.</returns>
         private static IReadOnlyList<FilterPath> ComputePathFilters(
             string versionJsonDir,
             string repoRoot,
-            IReadOnlyList<string> projectExtensions)
+            IReadOnlyList<string> projectExtensions,
+            ISet<string> versionJsonDirs)
         {
-            // Find all project files under the version.json directory.
-            List<string> projectFiles = projectExtensions
-                .SelectMany(ext => Directory.EnumerateFiles(versionJsonDir, "*" + ext, SearchOption.AllDirectories))
+            // Find all project files under the version.json directory, but stop at other version.json directories.
+            List<string> projectFiles = new();
+            foreach (string ext in projectExtensions)
+            {
+                projectFiles.AddRange(FindProjectFilesRespectingBoundaries(versionJsonDir, ext, versionJsonDir, versionJsonDirs));
+            }
+
+            projectFiles = projectFiles
                 .Select(Path.GetFullPath)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
             if (projectFiles.Count == 0)
             {
-                Console.Error.WriteLine($"Warning: No project files found under: {versionJsonDir}");
+                // No projects under this version.json, return empty to signal it should be skipped
                 return [];
             }
 
@@ -1281,6 +1301,38 @@ namespace Nerdbank.GitVersioning.Tool
                     return new FilterPath(":/" + repoRelative, string.Empty);
                 })
                 .ToList();
+        }
+
+        /// <summary>
+        /// Recursively finds project files starting from searchDir, but stops descending into
+        /// directories that contain their own version.json files (except for the root startDir).
+        /// </summary>
+        private static IEnumerable<string> FindProjectFilesRespectingBoundaries(
+            string searchDir,
+            string projectExtension,
+            string startDir,
+            ISet<string> versionJsonDirs)
+        {
+            // Find all projects in the current directory
+            foreach (string file in Directory.EnumerateFiles(searchDir, "*" + projectExtension))
+            {
+                yield return file;
+            }
+
+            // Recursively search subdirectories, but skip those with their own version.json
+            foreach (string subDir in Directory.EnumerateDirectories(searchDir))
+            {
+                // Skip if this subdirectory (or any ancestor) has a version.json (except the start directory)
+                if (subDir != startDir && versionJsonDirs.Contains(subDir))
+                {
+                    continue;
+                }
+
+                foreach (string file in FindProjectFilesRespectingBoundaries(subDir, projectExtension, startDir, versionJsonDirs))
+                {
+                    yield return file;
+                }
+            }
         }
 
         /// <summary>
