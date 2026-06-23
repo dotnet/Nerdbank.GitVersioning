@@ -252,6 +252,4 @@ usage: nbgv <command> [<args>]
                      current branch.
     path-filters     Manages the pathFilters property in version.json files
                      based on MSBuild project references and imports.
-                     See Path filters for more information.
-
 ```

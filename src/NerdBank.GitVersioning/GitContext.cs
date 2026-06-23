@@ -228,6 +228,13 @@ public abstract class GitContext : IDisposable
         }
     }
 
+    /// <summary>
+    /// Determines whether a file would be ignored by git based on common .gitignore patterns.
+    /// </summary>
+    /// <param name="path">The absolute file path to check.</param>
+    /// <returns>True if the file is ignored by git; false otherwise.</returns>
+    public virtual bool IsIgnored(string path) => false;
+
     /// <inheritdoc />
     public void Dispose()
     {

@@ -89,6 +89,33 @@ public class LibGit2Context : GitContext
     }
 
     /// <inheritdoc />
+    public override bool IsIgnored(string path)
+    {
+        // Use some common patterns that are typically in .gitignore files
+        // This is a simple approach that covers the most common build artifacts
+        string normalizedPath = path.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+
+        // Check for common generated directories
+        string[] ignoredDirNames = { "bin", "obj", "packages", ".vs", ".vscode", "node_modules" };
+        foreach (string dirName in ignoredDirNames)
+        {
+            string pattern = $"{Path.DirectorySeparatorChar}{dirName}{Path.DirectorySeparatorChar}";
+            if (normalizedPath.Contains(pattern))
+            {
+                return true;
+            }
+
+            // Also check for the directory at the end of the path
+            if (normalizedPath.EndsWith($"{Path.DirectorySeparatorChar}{dirName}"))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <inheritdoc />
     public override void ApplyTag(string name) => this.Repository.Tags.Add(name, this.Commit);
 
     /// <inheritdoc />

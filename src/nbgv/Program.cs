@@ -1132,7 +1132,7 @@ namespace Nerdbank.GitVersioning.Tool
 
                 try
                 {
-                    IReadOnlyList<FilterPath> computed = ComputePathFilters(versionJsonDir, context.WorkingTreePath, projectExtensions, allVersionJsonDirs);
+                    IReadOnlyList<FilterPath> computed = ComputePathFilters(versionJsonDir, context.WorkingTreePath, projectExtensions, allVersionJsonDirs, context);
 
                     // Skip version.json files that have no associated projects
                     if (computed.Count == 0)
@@ -1209,12 +1209,14 @@ namespace Nerdbank.GitVersioning.Tool
         /// <param name="repoRoot">The absolute path to the root of the git repository.</param>
         /// <param name="projectExtensions">The MSBuild project file extensions to search for.</param>
         /// <param name="versionJsonDirs">Set of all other version.json directories (for boundary checking).</param>
+        /// <param name="gitContext">The git context for accessing ignore rules.</param>
         /// <returns>A sorted, deduplicated list of repo-root-relative <see cref="FilterPath"/> objects, or empty if no projects found.</returns>
         private static IReadOnlyList<FilterPath> ComputePathFilters(
             string versionJsonDir,
             string repoRoot,
             IReadOnlyList<string> projectExtensions,
-            ISet<string> versionJsonDirs)
+            ISet<string> versionJsonDirs,
+            GitContext gitContext)
         {
             // Find all project files under the version.json directory, but stop at other version.json directories.
             List<string> projectFiles = new();
@@ -1275,10 +1277,8 @@ namespace Nerdbank.GitVersioning.Tool
                         string importPath = Path.GetFullPath(import.ImportedProject.FullPath);
                         if (IsWithinRepo(importPath, repoRoot))
                         {
-                            // Skip files in obj and bin directories as they are generated
-                            string normalizedPath = importPath.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
-                            if (normalizedPath.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}") ||
-                                normalizedPath.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}"))
+                            // Skip files that git would ignore (e.g., bin/, obj/ directories, per .gitignore)
+                            if (gitContext.IsIgnored(importPath))
                             {
                                 continue;
                             }

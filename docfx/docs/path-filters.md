@@ -85,8 +85,8 @@ The `nbgv path-filters` command uses the MSBuild project graph API to:
 
 - **Only processes version.json files with projects** - A `version.json` file with no associated MSBuild projects is skipped and left unchanged
 - **Respects version.json hierarchy** - When searching for projects under a `version.json`, the search stops at subdirectories that have their own `version.json` files
-- **Includes project directories** - Path filters include entire project directories (e.g., `/ProjectA`) rather than individual `.csproj` files, making filters cleaner and more intuitive
-- **Filters generated files** - Automatically excludes files in `obj/` and `bin/` directories (NuGet-generated imports)
+- **Includes project directories** - Path filters include entire project directories (e.g., `/ProjectA`) rather than individual `.csproj` files so that all source changes under those directories result in a new version of the project
+- **Filters ignored files** - Automatically excludes files that match `.gitignore` patterns (including generated directories like `obj/` and `bin/`)
 
 ### Usage
 
@@ -122,7 +122,7 @@ This command will:
 By default, both commands search from the current directory. You can specify specific paths:
 
 ```ps1
-nbgv path-filters check --path ./src/ProjectA --path ./src/ProjectB
+nbgv path-filters check ./src/ProjectA ./src/ProjectB
 ```
 
 #### Include additional project file extensions
