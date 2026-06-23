@@ -91,28 +91,19 @@ public class LibGit2Context : GitContext
     /// <inheritdoc />
     public override bool IsIgnored(string path)
     {
-        // Use some common patterns that are typically in .gitignore files
-        // This is a simple approach that covers the most common build artifacts
-        string normalizedPath = path.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
-
-        // Check for common generated directories
-        string[] ignoredDirNames = { "bin", "obj", "packages", ".vs", ".vscode", "node_modules" };
-        foreach (string dirName in ignoredDirNames)
+        try
         {
-            string pattern = $"{Path.DirectorySeparatorChar}{dirName}{Path.DirectorySeparatorChar}";
-            if (normalizedPath.Contains(pattern))
-            {
-                return true;
-            }
+            // Convert absolute path to repo-relative path
+            string repoRelativePath = Path.GetRelativePath(this.WorkingTreePath, path);
 
-            // Also check for the directory at the end of the path
-            if (normalizedPath.EndsWith($"{Path.DirectorySeparatorChar}{dirName}"))
-            {
-                return true;
-            }
+            // Use LibGit2Sharp's built-in ignore checking
+            return this.Repository.Ignore.IsPathIgnored(repoRelativePath);
         }
-
-        return false;
+        catch
+        {
+            // If we can't determine ignore status, assume it's not ignored
+            return false;
+        }
     }
 
     /// <inheritdoc />
