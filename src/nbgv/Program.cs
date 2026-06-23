@@ -4,7 +4,11 @@
 using System.CommandLine;
 using System.Globalization;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using Microsoft.Build.Construction;
+using Microsoft.Build.Evaluation;
+using Microsoft.Build.Graph;
+using Microsoft.Build.Locator;
 using Nerdbank.GitVersioning.Commands;
 using Nerdbank.GitVersioning.LibGit2;
 using Newtonsoft.Json;
@@ -61,6 +65,7 @@ namespace Nerdbank.GitVersioning.Tool
             InternalError,
             InvalidTagNameSetting,
             InvalidUnformattedCommitMessage,
+            PathFiltersMismatch,
         }
 
         private static bool AlwaysUseLibGit2 => string.Equals(Environment.GetEnvironmentVariable("NBGV_GitEngine"), "LibGit2", StringComparison.Ordinal);
@@ -374,6 +379,51 @@ namespace Nerdbank.GitVersioning.Tool
                 });
             }
 
+            Command pathFilters;
+            {
+                var paths = new Argument<string[]>("path")
+                {
+                    Description = "One or more paths to search. Each may be a directory (recursively searched for version.json files) or a version.json file directly (processed without recursive search). Defaults to the current directory.",
+                    Arity = ArgumentArity.ZeroOrMore,
+                };
+                var extraExtensions = new Option<string[]>("--ext", ["-e"])
+                {
+                    Description = "Additional MSBuild project file extensions to include (e.g. --ext .myproj). Default extensions are .csproj, .vbproj, .fsproj, and .vcxproj.",
+                    Arity = ArgumentArity.OneOrMore,
+                    AllowMultipleArgumentsPerToken = true,
+                };
+
+                var updateSubCommand = new Command("update", "Computes pathFilters based on MSBuild project references and imports and writes the result to each applicable version.json file.")
+                {
+                    paths,
+                    extraExtensions,
+                };
+                updateSubCommand.SetAction(async (ParseResult parseResult, CancellationToken cancellationToken) =>
+                {
+                    var pathsValue = parseResult.GetValue(paths);
+                    var extraExtensionsValue = parseResult.GetValue(extraExtensions);
+                    return await OnPathFiltersUpdateCommand(pathsValue, extraExtensionsValue);
+                });
+
+                var checkSubCommand = new Command("check", "Computes pathFilters based on MSBuild project references and imports and verifies they match what is in each applicable version.json file. Exits with a non-zero exit code when differences are found.")
+                {
+                    paths,
+                    extraExtensions,
+                };
+                checkSubCommand.SetAction(async (ParseResult parseResult, CancellationToken cancellationToken) =>
+                {
+                    var pathsValue = parseResult.GetValue(paths);
+                    var extraExtensionsValue = parseResult.GetValue(extraExtensions);
+                    return await OnPathFiltersCheckCommand(pathsValue, extraExtensionsValue);
+                });
+
+                pathFilters = new Command("path-filters", "Manages the pathFilters property in version.json files based on MSBuild project references and imports.")
+                {
+                    updateSubCommand,
+                    checkSubCommand,
+                };
+            }
+
             var root = new RootCommand($"{ThisAssembly.AssemblyTitle} v{ThisAssembly.AssemblyInformationalVersion}")
             {
                 install,
@@ -383,6 +433,7 @@ namespace Nerdbank.GitVersioning.Tool
                 getCommits,
                 cloud,
                 prepareRelease,
+                pathFilters,
             };
 
             return root;
@@ -415,6 +466,20 @@ namespace Nerdbank.GitVersioning.Tool
 
         private static int MainInner(string[] args)
         {
+            // Register MSBuild locator to ensure SDK resolvers are available for project evaluation.
+            // This must be called before any MSBuild code is loaded.
+            if (!MSBuildLocator.IsRegistered)
+            {
+                try
+                {
+                    MSBuildLocator.RegisterDefaults();
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"Warning: Failed to register MSBuildLocator: {ex.Message}");
+                }
+            }
+
             try
             {
                 RootCommand rootCommand = BuildCommandLine();
@@ -1030,6 +1095,270 @@ namespace Nerdbank.GitVersioning.Tool
             }
         }
 
+#nullable enable
+        private static Task<int> OnPathFiltersUpdateCommand(string[] paths, string[] extraExtensions)
+        {
+            return OnPathFiltersCommandCore(paths, extraExtensions, updateMode: true);
+        }
+
+        private static Task<int> OnPathFiltersCheckCommand(string[] paths, string[] extraExtensions)
+        {
+            return OnPathFiltersCommandCore(paths, extraExtensions, updateMode: false);
+        }
+
+        private static Task<int> OnPathFiltersCommandCore(string[] paths, string[] extraExtensions, bool updateMode)
+        {
+            IReadOnlyList<string> projectExtensions = GetProjectExtensions(extraExtensions);
+            bool anyFound = false;
+            bool anyMismatch = false;
+
+            foreach (string versionJsonPath in FindVersionJsonPaths(paths))
+            {
+                anyFound = true;
+                string versionJsonDir = Path.GetDirectoryName(versionJsonPath)!;
+
+                using GitContext context = GitContext.Create(versionJsonDir, engine: GetEffectiveGitEngine());
+                if (!context.IsRepository)
+                {
+                    Console.Error.WriteLine($"No git repository found for version.json at: {versionJsonPath}");
+                    continue;
+                }
+
+                try
+                {
+                    IReadOnlyList<FilterPath> computed = ComputePathFilters(versionJsonDir, context.WorkingTreePath, projectExtensions);
+                    VersionOptions? versionOptions = context.VersionFile.GetWorkingCopyVersion(
+                        VersionFileRequirements.NonMergedResult | VersionFileRequirements.AcceptInheritingFile);
+
+                    if (versionOptions is null)
+                    {
+                        Console.Error.WriteLine($"Could not load version.json at: {versionJsonPath}");
+                        continue;
+                    }
+
+                    if (updateMode)
+                    {
+                        versionOptions.PathFilters = computed.Count > 0 ? computed : null;
+                        context.VersionFile.SetVersion(versionJsonDir, versionOptions);
+                        Console.WriteLine($"Updated pathFilters in: {versionJsonPath}");
+                    }
+                    else
+                    {
+                        // Check mode: compare computed with existing
+                        IReadOnlyList<FilterPath> existing = versionOptions.PathFilters ?? [];
+                        var computedPaths = new SortedSet<string>(
+                            computed.Select(f => f.RepoRelativePath),
+                            StringComparer.OrdinalIgnoreCase);
+                        var existingPaths = new SortedSet<string>(
+                            existing.Select(f => f.RepoRelativePath),
+                            StringComparer.OrdinalIgnoreCase);
+
+                        if (!computedPaths.SetEquals(existingPaths))
+                        {
+                            anyMismatch = true;
+                            Console.Error.WriteLine($"pathFilters mismatch in: {versionJsonPath}");
+
+                            foreach (string m in computedPaths.Except(existingPaths, StringComparer.OrdinalIgnoreCase))
+                            {
+                                Console.Error.WriteLine($"  + missing: :/{m}");
+                            }
+
+                            foreach (string e in existingPaths.Except(computedPaths, StringComparer.OrdinalIgnoreCase))
+                            {
+                                Console.Error.WriteLine($"  - extra:   :/{e}");
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"Error processing {versionJsonPath}: {ex.Message}");
+                }
+            }
+
+            if (!anyFound)
+            {
+                Console.Error.WriteLine("No version.json files found.");
+                return Task.FromResult((int)ExitCodes.NoVersionJsonFound);
+            }
+
+            return Task.FromResult(anyMismatch ? (int)ExitCodes.PathFiltersMismatch : (int)ExitCodes.OK);
+        }
+
+        /// <summary>
+        /// Computes the <see cref="FilterPath"/> list for a given version.json directory
+        /// by using the MSBuild project graph API to find the transitive closure of project references
+        /// and the MSBuild evaluation model to find all imported files within the repository.
+        /// </summary>
+        /// <param name="versionJsonDir">The directory containing the version.json file.</param>
+        /// <param name="repoRoot">The absolute path to the root of the git repository.</param>
+        /// <param name="projectExtensions">The MSBuild project file extensions to search for.</param>
+        /// <returns>A sorted, deduplicated list of repo-root-relative <see cref="FilterPath"/> objects.</returns>
+        private static IReadOnlyList<FilterPath> ComputePathFilters(
+            string versionJsonDir,
+            string repoRoot,
+            IReadOnlyList<string> projectExtensions)
+        {
+            // Find all project files under the version.json directory.
+            List<string> projectFiles = projectExtensions
+                .SelectMany(ext => Directory.EnumerateFiles(versionJsonDir, "*" + ext, SearchOption.AllDirectories))
+                .Select(Path.GetFullPath)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (projectFiles.Count == 0)
+            {
+                Console.Error.WriteLine($"Warning: No project files found under: {versionJsonDir}");
+                return [];
+            }
+
+            var globalProperties = new Dictionary<string, string>
+            {
+                ["BuildingProject"] = "false",
+            };
+
+            // Use ProjectGraph to find the transitive closure of all project references.
+            IEnumerable<ProjectGraphEntryPoint> entryPoints = projectFiles.Select(f => new ProjectGraphEntryPoint(f, globalProperties));
+            ProjectGraph graph = new ProjectGraph(entryPoints);
+
+            List<string> allProjectFiles = graph.ProjectNodes
+                .Select(n => Path.GetFullPath(n.ProjectInstance.FullPath))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            // For each project in the transitive closure, use the MSBuild evaluation model
+            // to collect all imported files that reside within the repository.
+            var results = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (string projectFile in allProjectFiles)
+            {
+                if (IsWithinRepo(projectFile, repoRoot))
+                {
+                    results.Add(projectFile);
+                }
+            }
+
+            using var collection = new ProjectCollection(globalProperties);
+            foreach (string projectFile in allProjectFiles)
+            {
+                try
+                {
+                    Project project = collection.LoadProject(projectFile, globalProperties, toolsVersion: null);
+                    foreach (ResolvedImport import in project.Imports)
+                    {
+                        string importPath = Path.GetFullPath(import.ImportedProject.FullPath);
+                        if (IsWithinRepo(importPath, repoRoot))
+                        {
+                            // Skip files in obj and bin directories as they are generated
+                            string normalizedPath = importPath.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+                            if (normalizedPath.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}") ||
+                                normalizedPath.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}"))
+                            {
+                                continue;
+                            }
+
+                            results.Add(importPath);
+                        }
+                    }
+
+                    collection.UnloadProject(project);
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"Warning: Could not load imports for {projectFile}: {ex.Message}");
+                }
+            }
+
+            // Convert absolute paths to repo-root-relative FilterPath objects.
+            return results
+                .Select(p =>
+                {
+                    string repoRelative = Path.GetRelativePath(repoRoot, p).Replace('\\', '/');
+                    return new FilterPath(":/" + repoRelative, string.Empty);
+                })
+                .ToList();
+        }
+
+        /// <summary>
+        /// Returns a sequence of version.json file paths found by interpreting each of the given
+        /// input paths. Directories are searched recursively; a path directly to a version.json file
+        /// is used as-is without recursive search.
+        /// </summary>
+        private static IEnumerable<string> FindVersionJsonPaths(string[]? paths)
+        {
+            IEnumerable<string> searchRoots = paths is { Length: > 0 }
+                ? paths
+                : [Directory.GetCurrentDirectory()];
+
+            foreach (string path in searchRoots)
+            {
+                string fullPath = Path.GetFullPath(path);
+
+                if (string.Equals(Path.GetFileName(fullPath), VersionFile.JsonFileName, StringComparison.OrdinalIgnoreCase))
+                {
+                    // Direct path to a version.json file – use it without recursive search.
+                    if (File.Exists(fullPath))
+                    {
+                        yield return fullPath;
+                    }
+                    else
+                    {
+                        Console.Error.WriteLine($"File not found: {fullPath}");
+                    }
+                }
+                else if (Directory.Exists(fullPath))
+                {
+                    // Directory – recursively find all version.json files.
+                    foreach (string versionJson in Directory.EnumerateFiles(fullPath, VersionFile.JsonFileName, SearchOption.AllDirectories))
+                    {
+                        yield return versionJson;
+                    }
+                }
+                else
+                {
+                    Console.Error.WriteLine($"Path not found: {fullPath}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets the default project file extensions plus any extras provided on the command line.
+        /// </summary>
+        private static IReadOnlyList<string> GetProjectExtensions(string[]? extraExtensions)
+        {
+            var extensions = new List<string> { ".csproj", ".vbproj", ".fsproj", ".vcxproj" };
+            if (extraExtensions is { Length: > 0 })
+            {
+                foreach (string ext in extraExtensions)
+                {
+                    string normalized = ext.StartsWith('.') ? ext : "." + ext;
+                    if (!extensions.Contains(normalized, StringComparer.OrdinalIgnoreCase))
+                    {
+                        extensions.Add(normalized);
+                    }
+                }
+            }
+
+            return extensions;
+        }
+
+        /// <summary>
+        /// Determines whether <paramref name="absolutePath"/> is located within the repository root.
+        /// </summary>
+        private static bool IsWithinRepo(string absolutePath, string repoRoot)
+        {
+            string normalizedPath = Path.GetFullPath(absolutePath);
+            string normalizedRoot = Path.GetFullPath(repoRoot).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                + Path.DirectorySeparatorChar;
+
+            StringComparison comparison = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? StringComparison.OrdinalIgnoreCase
+                : StringComparison.Ordinal;
+
+            return normalizedPath.StartsWith(normalizedRoot, comparison);
+        }
+
+#nullable restore
         private static async Task<string> GetLatestPackageVersionAsync(string packageId, string root, IReadOnlyList<string> sources, CancellationToken cancellationToken = default)
         {
             ISettings settings = Settings.LoadDefaultSettings(root);
