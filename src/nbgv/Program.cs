@@ -386,7 +386,7 @@ namespace Nerdbank.GitVersioning.Tool
                     Description = "One or more paths to search. Each may be a directory (recursively searched for version.json files) or a version.json file directly (processed without recursive search). Defaults to the current directory.",
                     Arity = ArgumentArity.ZeroOrMore,
                 };
-                var extraExtensions = new Option<string[]>("--ext", ["-e"])
+                var extraExtensions = new Option<string[]>("--ext")
                 {
                     Description = "Additional MSBuild project file extensions to include (e.g. --ext .myproj). Default extensions are .csproj, .vbproj, .fsproj, and .vcxproj.",
                     Arity = ArgumentArity.OneOrMore,
@@ -1180,6 +1180,8 @@ namespace Nerdbank.GitVersioning.Tool
                             {
                                 Console.Error.WriteLine($"  - extra:   :/{e}");
                             }
+
+                            Console.Error.WriteLine("Use the 'nbgv path-filters update' command to update the pathFilters.");
                         }
                     }
                 }
