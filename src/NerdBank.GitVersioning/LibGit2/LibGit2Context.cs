@@ -89,6 +89,9 @@ public class LibGit2Context : GitContext
     }
 
     /// <inheritdoc />
+    public override bool IsIgnored(string path) => this.Repository.Ignore.IsPathIgnored(this.GetRepoRelativePath(path, replaceBackslashes: true));
+
+    /// <inheritdoc />
     public override void ApplyTag(string name) => this.Repository.Tags.Add(name, this.Commit);
 
     /// <inheritdoc />
