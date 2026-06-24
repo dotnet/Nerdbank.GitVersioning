@@ -30,7 +30,7 @@ jobs:
         - windows-2025
 
     steps:
-    - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       with:
         fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
         submodules: true
@@ -254,7 +254,7 @@ jobs:
           repoDir: '~/git'
 
     steps:
-    - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       with:
         fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
         submodules: true
@@ -313,7 +313,7 @@ jobs:
     name: 📃 Docs
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
     - name: 🔗 Markup Link Checker (mlc)
       uses: becheran/mlc@7ec24825cefe0c9c8c6bac48430e1f69e3ec356e # v1.2.0
       with:
