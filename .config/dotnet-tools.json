@@ -3,7 +3,7 @@
   "isRoot": true,
   "tools": {
     "powershell": {
-      "version": "7.6.2",
+      "version": "7.6.3",
       "commands": [
         "pwsh"
       ],
@@ -17,7 +17,7 @@
       "rollForward": false
     },
     "nbgv": {
-      "version": "3.9.50",
+      "version": "3.10.85",
       "commands": [
         "nbgv"
       ],
