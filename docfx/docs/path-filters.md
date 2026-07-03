@@ -57,3 +57,138 @@ Multiple path filters may also be specified. The order is irrelevant. After a pa
 | `/root-file.txt`<br>`:/dir/file.txt`                                               | File will be included. Path is absolute (i.e., relative to the root of the repository).                    |
 | `:!bar.txt`<br>`:^../foo/baz.txt`                                                  | File will be excluded. Path is relative to the `version.json` file. `:!` and `:^` prefixes are synonymous. |
 | `:!/root-file.txt`                                                                 | File will be excluded. Path is absolute (i.e., relative to the root of the repository).                    |
+
+## Managing path filters with `nbgv path-filters`
+
+For repositories with multiple projects and version.json files, manually maintaining `pathFilters` can be error-prone. The `nbgv path-filters` command automates this process by analyzing your MSBuild project structure and computing the correct path filters based on project references and shared build files.
+
+### When to use path-filters command
+
+Use the `nbgv path-filters` command in the following scenarios:
+
+- **Monorepo with multiple projects** - You have multiple projects in different directories, each with their own `version.json`
+- **Complex project dependencies** - Projects reference each other, and you need path filters to reflect these dependencies
+- **Shared build files** - You use `Directory.Build.props` or other shared MSBuild imports that should be tracked by multiple projects
+- **Maintaining accuracy** - You want to ensure path filters automatically stay in sync with your project structure
+
+### How it works
+
+The `nbgv path-filters` command uses the MSBuild project graph API to:
+
+1. **Discover project files** - Finds all MSBuild project files (`.csproj`, `.vbproj`, etc.) associated with each `version.json`
+2. **Compute transitive dependencies** - Uses the MSBuild project graph to determine the complete set of projects that each project depends on
+3. **Include shared build files** - Identifies MSBuild imports like `Directory.Build.props` that reside within the repository
+4. **Respect boundaries** - Stops searching for projects at directories containing their own `version.json` files, ensuring clean separation of concerns
+5. **Generate path filters** - Converts the discovered projects and files into appropriate `pathFilters` entries
+
+### Important behaviors
+
+- **Only processes version.json files with projects** - A `version.json` file with no associated MSBuild projects is skipped and left unchanged
+- **Respects version.json hierarchy** - When searching for projects under a `version.json`, the search stops at subdirectories that have their own `version.json` files
+- **Includes project directories** - Path filters include entire project directories (e.g., `/ProjectA`) rather than individual `.csproj` files so that all source changes under those directories result in a new version of the project
+- **Filters ignored files** - Automatically excludes files that match `.gitignore` patterns (including generated directories like `obj/` and `bin/`)
+
+### Usage
+
+#### Check current path filters
+
+To see what path filters should be present without making changes:
+
+```ps1
+nbgv path-filters check
+```
+
+This command will:
+- Compare the computed path filters against what's currently in each `version.json`
+- Display mismatches (missing or extra filters)
+- Exit with non-zero code if any mismatches are found (useful for CI validation)
+
+#### Update path filters
+
+To automatically compute and update all `version.json` files:
+
+```ps1
+nbgv path-filters update
+```
+
+This command will:
+- Compute the correct path filters for each `version.json`
+- Update each file that needs changes
+- Display which files were updated
+- Skip any `version.json` files that have no associated projects
+
+#### Specify which version.json files to process
+
+By default, both commands search from the current directory. You can specify specific paths:
+
+```ps1
+nbgv path-filters check ./src/ProjectA ./src/ProjectB
+```
+
+#### Include additional project file extensions
+
+By default, the tool searches for `.csproj` and `.vbproj` files. You can include other extensions:
+
+```ps1
+nbgv path-filters update --ext .fsproj --ext .csproj
+```
+
+### Example
+
+Consider a monorepo with this structure:
+
+```
+/
+  version.json (version: "1.0")
+  Directory.Build.props
+  /ProjectA
+    version.json (version: "2.0")
+    ProjectA.csproj
+  /ProjectB
+    version.json (version: "3.0")
+    ProjectB.csproj
+    (ProjectB.csproj references ProjectA.csproj)
+```
+
+Running `nbgv path-filters update` would produce:
+
+**Root version.json** - Left unchanged (has no projects directly under it)
+
+**ProjectA/version.json**:
+```json
+{
+  "version": "2.0",
+  "pathFilters": [
+    "/ProjectA",
+    "/Directory.Build.props"
+  ]
+}
+```
+
+**ProjectB/version.json**:
+```json
+{
+  "version": "3.0",
+  "pathFilters": [
+    "/ProjectA",
+    "/ProjectB",
+    "/Directory.Build.props"
+  ]
+}
+```
+
+Note that ProjectB's filters include ProjectA because ProjectB depends on it. Any change to ProjectA's source files will now correctly trigger a version bump for ProjectB as well.
+
+### CI Integration
+
+You can use the `path-filters check` command in your CI pipeline to validate that `pathFilters` are correctly maintained:
+
+```ps1
+nbgv path-filters check
+if ($LASTEXITCODE -ne 0) {
+  Write-Error "Path filters are out of date. Run 'nbgv path-filters update' locally."
+  exit 1
+}
+```
+
+This ensures that developers keep path filters in sync with project structure changes.

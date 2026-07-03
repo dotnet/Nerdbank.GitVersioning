@@ -250,4 +250,6 @@ usage: nbgv <command> [<args>]
     prepare-release  Prepares a release by creating a release branch for
                      the current version and adjusting the version on the
                      current branch.
+    path-filters     Manages the pathFilters property in version.json files
+                     based on MSBuild project references and imports.
 ```

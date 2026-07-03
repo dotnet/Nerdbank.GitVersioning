@@ -10,10 +10,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NuGet.PackageManagement" />
+    <PackageReference Include="NuGet.PackageManagement" ExcludeAssets="runtime" PrivateAssets="all" />
     <PackageReference Include="System.CommandLine" />
     <PackageReference Include="Nerdbank.GitVersioning.LKG" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.Build" />
+    <PackageReference Include="Microsoft.Build" ExcludeAssets="runtime" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Build.Locator" />
   </ItemGroup>
 
   <ItemGroup>
