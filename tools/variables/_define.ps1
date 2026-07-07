@@ -11,7 +11,9 @@
 param (
 )
 
-. "$PSScriptRoot\..\GitHubActions.ps1"
+if ($env:GITHUB_ACTIONS) {
+    . "$PSScriptRoot\..\GitHubActions.ps1"
+}
 
 (& "$PSScriptRoot\_all.ps1").GetEnumerator() |% {
     # Always use ALL CAPS for env var names since Azure Pipelines converts variable names to all caps and on non-Windows OS, env vars are case sensitive.
