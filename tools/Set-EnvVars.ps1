@@ -82,7 +82,7 @@ if ($PrependPath) {
             Write-Host "##vso[task.prependpath]$_"
         }
         if ($env:GITHUB_ACTIONS) {
-            Add-GitHubActionsEnvVariable -Name PATH -Value $newPathValue
+            Add-GitHubActionsPath -Value $_
         }
 
         $CmdEnvScript += "SET PATH=$_$pathDelimiter%PATH%"
