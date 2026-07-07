@@ -8,6 +8,10 @@ function Add-GitHubActionsEnvVariable {
         [string]$Value
     )
 
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        throw "GitHub Actions environment file must not be empty."
+    }
+
     if ([string]::IsNullOrWhiteSpace($Name)) {
         throw "GitHub Actions environment variable names must not be empty."
     }
