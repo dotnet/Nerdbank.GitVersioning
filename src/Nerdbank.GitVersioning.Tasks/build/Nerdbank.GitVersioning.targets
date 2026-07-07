@@ -69,6 +69,9 @@
       <_NBGV_LanguageMode Condition=" '$(Language)' == 'f#' ">Managed</_NBGV_LanguageMode>
       <_NBGV_LanguageMode Condition=" '$(Language)' == 'fs' ">Managed</_NBGV_LanguageMode>
       <_NBGV_LanguageMode Condition=" '$(Language)' == 'fsharp' ">Managed</_NBGV_LanguageMode>
+      <_NBGV_LanguageMode Condition=" '$(Language)' == 'g#' ">Managed</_NBGV_LanguageMode>
+      <_NBGV_LanguageMode Condition=" '$(Language)' == 'gs' ">Managed</_NBGV_LanguageMode>
+      <_NBGV_LanguageMode Condition=" '$(Language)' == 'gsharp' ">Managed</_NBGV_LanguageMode>
 
       <GenerateAssemblyVersionInfo Condition=" '$(GenerateAssemblyVersionInfo)' == '' and '$(_NBGV_LanguageMode)' == '' ">false</GenerateAssemblyVersionInfo>
 
