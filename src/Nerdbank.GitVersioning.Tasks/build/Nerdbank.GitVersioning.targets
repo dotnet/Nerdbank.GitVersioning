@@ -69,6 +69,9 @@
       <_NBGV_LanguageMode Condition=" '$(Language)' == 'f#' ">Managed</_NBGV_LanguageMode>
       <_NBGV_LanguageMode Condition=" '$(Language)' == 'fs' ">Managed</_NBGV_LanguageMode>
       <_NBGV_LanguageMode Condition=" '$(Language)' == 'fsharp' ">Managed</_NBGV_LanguageMode>
+      <_NBGV_LanguageMode Condition=" '$(Language)' == 'g#' ">Managed</_NBGV_LanguageMode>
+      <_NBGV_LanguageMode Condition=" '$(Language)' == 'gs' ">Managed</_NBGV_LanguageMode>
+      <_NBGV_LanguageMode Condition=" '$(Language)' == 'gsharp' ">Managed</_NBGV_LanguageMode>
 
       <GenerateAssemblyVersionInfo Condition=" '$(GenerateAssemblyVersionInfo)' == '' and '$(_NBGV_LanguageMode)' == '' ">false</GenerateAssemblyVersionInfo>
 
@@ -311,9 +314,11 @@
     </PropertyGroup>
   </Target>
 
-  <!-- Support for MCP servers: stamp version in server.json -->
+  <!-- Support for MCP servers: stamp version in server.json
+       Set the Condition to NOT run when RIDs and RID are both set and RID-specific packages are being created
+       (indicating an inner build which would share the output file with the outer build). -->
   <Target Name="NBGV_StampMcpServerJson"
-          Condition="'$(PackageType)' == 'McpServer'"
+          Condition="'$(PackageType)' == 'McpServer' and ('$(RuntimeIdentifiers)'=='' or '$(RuntimeIdentifier)'=='' or '$(CreateRidSpecificToolPackages)' != 'true')"
           BeforeTargets="GenerateNuspec;_GetPackageFiles"
           DependsOnTargets="GetBuildVersion">
     <ItemGroup>

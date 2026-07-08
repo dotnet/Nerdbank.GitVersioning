@@ -590,6 +590,11 @@ namespace Nerdbank.GitVersioning.Tasks
                 case "f#":
                     // The F# generator must emit a namespace, so it respects both ThisAssemblyNamespace and RootNamespace.
                     return new FSharpCodeGenerator(userNs ?? (!string.IsNullOrEmpty(rootNamespace) ? rootNamespace : "AssemblyInfo"));
+                case "g#":
+                case "gs":
+                case "gsharp":
+                    // The G# generator must emit a package (namespace), so it respects both ThisAssemblyNamespace and RootNamespace.
+                    return new GSharpCodeGenerator(userNs ?? (!string.IsNullOrEmpty(rootNamespace) ? rootNamespace : "AssemblyInfo"));
                 default:
                     return null;
             }
@@ -768,6 +773,65 @@ namespace Nerdbank.GitVersioning.Tasks
                 this.CodeBuilder.AppendLine("[<global.System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage>]");
                 this.CodeBuilder.AppendLine("#endif");
                 this.CodeBuilder.AppendLine("type internal ThisAssembly() =");
+            }
+        }
+
+        private class GSharpCodeGenerator : CodeGenerator
+        {
+            public GSharpCodeGenerator(string ns)
+                : base(ns)
+            {
+            }
+
+            // G# has no in-source pragmas; diagnostics are suppressed via MSBuild <NoWarn>.
+            protected override IEnumerable<string> WarningCodesToSuppress { get; } = [];
+
+            internal override void AddAnalysisSuppressions()
+            {
+            }
+
+            internal override void AddComment(string comment)
+            {
+                this.AddCodeComment(comment, "//");
+            }
+
+            internal override void StartAssemblyAttributes()
+            {
+                this.CodeBuilder.AppendLine($"package {this.Namespace}");
+            }
+
+            internal override void DeclareAttribute(Type type, string arg)
+            {
+                this.CodeBuilder.AppendLine($"@assembly: {type.FullName}(\"{arg}\")");
+            }
+
+            internal override void StartThisAssemblyClass()
+            {
+                this.CodeBuilder.AppendLine($"@System.CodeDom.Compiler.GeneratedCode(\"{GeneratorName}\",\"{GeneratorVersion}\")");
+                this.CodeBuilder.AppendLine("@System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage");
+                this.CodeBuilder.AppendLine("internal class ThisAssembly {");
+                this.CodeBuilder.AppendLine("  shared {");
+            }
+
+            internal override void AddThisAssemblyMember(string name, string value)
+            {
+                this.CodeBuilder.AppendLine($"    internal let {name} string = \"{value}\"");
+            }
+
+            internal override void AddThisAssemblyMember(string name, bool value)
+            {
+                this.CodeBuilder.AppendLine($"    internal let {name} bool = {(value ? "true" : "false")}");
+            }
+
+            internal override void AddThisAssemblyMember(string name, DateTime value)
+            {
+                this.CodeBuilder.AppendLine($"    internal let {name} System.DateTime = System.DateTime({value.Ticks}L, System.DateTimeKind.Utc)");
+            }
+
+            internal override void EndThisAssemblyClass()
+            {
+                this.CodeBuilder.AppendLine("  }");
+                this.CodeBuilder.AppendLine("}");
             }
         }
 
