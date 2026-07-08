@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
     This script translates the variables returned by the _all.ps1 script
-    into commands that instruct Azure Pipelines to actually set those variables for other pipeline tasks to consume.
+    into commands that instruct Azure Pipelines or GitHub Actions to actually set those variables for other pipeline tasks to consume.
 
     The build or release definition may have set these variables to override
     what the build would do. So only set them if they have not already been set.
