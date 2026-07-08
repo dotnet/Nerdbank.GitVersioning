@@ -9,6 +9,7 @@ using Xunit;
 #pragma warning disable SA1402 // File may only contain a single type
 #pragma warning disable SA1649 // File name should match first type name
 
+[Collection("Build")]
 [Trait("Engine", "Managed")]
 public class GitContextManagedTests : GitContextTests
 {
@@ -22,6 +23,7 @@ public class GitContextManagedTests : GitContextTests
         => GitContext.Create(path, committish, engine: GitContext.Engine.ReadOnly);
 }
 
+[Collection("Build")]
 [Trait("Engine", "LibGit2")]
 public class GitContextLibGit2Tests : GitContextTests
 {
