@@ -19,7 +19,9 @@ Param(
     [string[]]$PrependPath
 )
 
-. "$PSScriptRoot\GitHubActions.ps1"
+if ($env:GITHUB_ACTIONS) {
+    . "$PSScriptRoot\GitHubActions.ps1"
+}
 
 if ($Variables.Count -eq 0) {
     return $true
