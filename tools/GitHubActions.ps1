@@ -32,6 +32,10 @@ function Add-GitHubActionsPath {
         throw "GitHub Actions path file must not be empty."
     }
 
+    if ([string]::IsNullOrWhiteSpace($Value)) {
+        throw "GitHub Actions path entries must not be empty."
+    }
+
     $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
     [System.IO.File]::AppendAllText($Path, "$Value`n", $utf8NoBom)
 }
