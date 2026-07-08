@@ -9,7 +9,7 @@ function Add-GitHubActionsEnvVariable {
     )
 
     if ([string]::IsNullOrWhiteSpace($Path)) {
-        throw "GitHub Actions environment file path must not be empty."
+        throw "GitHub Actions GITHUB_ENV file path must not be empty."
     }
 
     if ([string]::IsNullOrWhiteSpace($Name)) {
@@ -29,7 +29,7 @@ function Add-GitHubActionsPath {
     )
 
     if ([string]::IsNullOrWhiteSpace($Path)) {
-        throw "GitHub Actions path file path must not be empty."
+        throw "GitHub Actions GITHUB_PATH file path must not be empty."
     }
 
     if ([string]::IsNullOrWhiteSpace($Value)) {
