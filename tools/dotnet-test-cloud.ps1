@@ -52,12 +52,13 @@ $globalJson = Get-Content $PSScriptRoot/../global.json | ConvertFrom-Json
 $isMTP = $globalJson.test.runner -eq 'Microsoft.Testing.Platform'
 $extraArgs = @()
 $failedTests = 0
+$publishTrx = $PublishResults -and $env:TF_BUILD
 
 if ($isMTP) {
     if ($OnCI) { $extraArgs += '--no-progress' }
 
     $dumpSwitches = @()
-    if ($IsWindows) {
+    if ($IsWindows -and $env:TF_BUILD) {
         $dumpSwitches = @(
             ,'--hangdump'
             ,'--hangdump-timeout','120s'
@@ -71,11 +72,14 @@ if ($isMTP) {
         ,'--diagnostic-output-directory',$testLogs
         ,'--diagnostic-verbosity','Information'
         ,'--results-directory',$testLogs
-        ,'--report-trx'
     )
 
+    if ($publishTrx) {
+       $mtpArgs += '--report-trx'
+    }
+
     & $dotnet test --solution $RepoRoot `
-        --no-build `
+       --no-build `
         -c $Configuration `
         -bl:"$testBinLog" `
         --filter-not-trait 'TestCategory=FailsInCloudTest' `
@@ -85,24 +89,31 @@ if ($isMTP) {
         @extraArgs
     if ($LASTEXITCODE -ne 0) { $failedTests += 1 }
 
-    $trxFiles = Get-ChildItem -Recurse -Path $testLogs\*.trx
+    $trxFiles = @(Get-ChildItem -Recurse -Path $testLogs\*.trx -ErrorAction Ignore)
 } else {
     $testDiagLog = Join-Path $ArtifactStagingFolder (Join-Path test_logs diag.log)
+    $vstestArgs = @(
+        '--collect', 'Code Coverage;Format=cobertura',
+        '--settings', "$PSScriptRoot/test.runsettings",
+        '--blame-hang-timeout', '60s',
+        '--blame-crash',
+        '-bl:"$testBinLog"',
+        '--diag', "$testDiagLog;TraceLevel=info"
+    )
+    if ($publishTrx) {
+        $vstestArgs += '--logger'
+        $vstestArgs += 'trx'
+    }
+
     & $dotnet test $RepoRoot `
         --no-build `
         -c $Configuration `
         --filter "TestCategory!=FailsInCloudTest" `
-        --collect "Code Coverage;Format=cobertura" `
-        --settings "$PSScriptRoot/test.runsettings" `
-        --blame-hang-timeout 60s `
-        --blame-crash `
-        -bl:"$testBinLog" `
-        --diag "$testDiagLog;TraceLevel=info" `
-        --logger trx `
+        @vstestArgs `
         @extraArgs
     if ($LASTEXITCODE -ne 0) { $failedTests += 1 }
 
-    $trxFiles = Get-ChildItem -Recurse -Path $RepoRoot\test\*.trx
+    $trxFiles = @(Get-ChildItem -Recurse -Path $RepoRoot\test\*.trx -ErrorAction Ignore)
 }
 
 $unknownCounter = 0
