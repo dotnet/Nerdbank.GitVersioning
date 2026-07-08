@@ -7,7 +7,8 @@ namespace Nerdbank.GitVersioning;
 
 internal static class Utilities
 {
-    private const int ProcessCannotAccessFileHR = unchecked((int)0x80070020);
+    private const int SharingViolation = unchecked((int)0x80070020); // ERROR_SHARING_VIOLATION
+    private const int AccessDenied = unchecked((int)0x80070005);   // ERROR_ACCESS_DENIED
 
     internal static void FileOperationWithRetry(Action operation)
     {
@@ -20,11 +21,15 @@ internal static class Utilities
                 operation();
                 break;
             }
-            catch (IOException ex) when (ex.HResult == ProcessCannotAccessFileHR && retriesLeft > 0)
+            catch (Exception ex) when (IsTransientFileAccessError(ex) && retriesLeft > 1)
             {
-                Task.Delay(100).Wait();
+                Thread.Sleep(100);
                 continue;
             }
         }
     }
+
+    private static bool IsTransientFileAccessError(Exception ex) => ex is
+        IOException { HResult: SharingViolation } or
+        UnauthorizedAccessException { HResult: AccessDenied };
 }
