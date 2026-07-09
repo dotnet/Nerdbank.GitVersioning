@@ -848,6 +848,48 @@ public abstract class VersionOracleTests : RepoTestBase
     }
 
     [Fact]
+    public void GetVersionHeight_MergeOfStaleBranchThatDidNotTouchFilteredPathDoesNotBumpHeight()
+    {
+        this.InitializeSourceControl();
+
+        string relativeDirectory = "some-sub-dir";
+
+        var versionData = VersionOptions.FromVersion(new Version("1.2"));
+        versionData.PathFilters = new[] { new FilterPath("./", relativeDirectory) };
+        this.WriteVersionFile(versionData, relativeDirectory);
+        Assert.Equal(1, this.GetVersionHeight(relativeDirectory));
+
+        // Branch off before the filtered folder advances, so the branch's copy of the folder lags the mainline.
+        string mainBranchName = this.LibGit2Repository.Head.FriendlyName;
+        Branch featureBranch = this.LibGit2Repository.CreateBranch("feature");
+
+        // On the mainline: a real edit to the filtered folder bumps the height.
+        string includedFilePath = Path.Combine(this.RepoPath, relativeDirectory, "included.txt");
+        File.WriteAllText(includedFilePath, "v1");
+        Commands.Stage(this.LibGit2Repository, includedFilePath);
+        this.LibGit2Repository.Commit("Edit filtered folder on main", this.Signer, this.Signer);
+        Assert.Equal(2, this.GetVersionHeight(relativeDirectory));
+
+        // On the (now stale) feature branch: edit only a file OUTSIDE the filtered folder.
+        Commands.Checkout(this.LibGit2Repository, featureBranch);
+        string outsideFilePath = Path.Combine(this.RepoPath, "outside.txt");
+        File.WriteAllText(outsideFilePath, "x");
+        Commands.Stage(this.LibGit2Repository, outsideFilePath);
+        this.LibGit2Repository.Commit("Edit outside the filtered folder on feature", this.Signer, this.Signer);
+
+        // Merge the stale feature branch back into the mainline as a non-fast-forward merge (as a PR merge would).
+        // The merge leaves the filtered folder identical to its first parent (main), so it must NOT bump the
+        // filtered height, even though the folder differs from the stale feature-branch (second) parent.
+        Commands.Checkout(this.LibGit2Repository, mainBranchName);
+        this.LibGit2Repository.Merge(
+            featureBranch,
+            this.Signer,
+            new MergeOptions { FastForwardStrategy = FastForwardStrategy.NoFastForward });
+
+        Assert.Equal(2, this.GetVersionHeight(relativeDirectory));
+    }
+
+    [Fact]
     public void GetVersionHeight_IntroducingFiltersIncrementsHeight()
     {
         this.InitializeSourceControl();

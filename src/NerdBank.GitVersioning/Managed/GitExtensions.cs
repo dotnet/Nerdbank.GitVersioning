@@ -149,22 +149,19 @@ internal static class GitExtensions
 
             if (pathFilters is not null)
             {
-                // If the diff between this commit and any of its parents
-                // touches a path that we care about, bump the height.
-                bool relevantCommit = false, anyParents = false;
-                foreach (GitObjectId parentId in commit.Parents)
+                // Bump the height only if this commit changed a filtered path relative to its
+                // first parent (the mainline this commit extends). Changes contributed by other
+                // parents were already counted in those parents' heights, which flow in via
+                // maxHeightAmongParents; comparing against every parent instead would count merge
+                // commits that never touched the filtered path (e.g. merges of a stale branch
+                // whose filtered path lagged the mainline), inflating the version height.
+                bool relevantCommit;
+                if (commit.Parents.Any())
                 {
-                    anyParents = true;
-                    GitCommit parent = repository.GetCommit(parentId);
-                    if (IsRelevantCommit(repository, commit, parent, pathFilters))
-                    {
-                        // No need to scan further, as a positive match will never turn negative.
-                        relevantCommit = true;
-                        break;
-                    }
+                    GitCommit firstParent = repository.GetCommit(commit.Parents.First());
+                    relevantCommit = IsRelevantCommit(repository, commit, firstParent, pathFilters);
                 }
-
-                if (!anyParents)
+                else
                 {
                     // A no-parent commit is relevant if it introduces anything in the filtered path.
                     relevantCommit = IsRelevantCommit(repository, commit, parent: default(GitCommit), pathFilters);

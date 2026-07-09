@@ -501,13 +501,17 @@ public static class LibGit2GitExtensions
                         ? null
                         : includePaths;
 
-                // If the diff between this commit and any of its parents
-                // touches a path that we care about, bump the height.
+                // Bump the height only if this commit changed a filtered path relative to its
+                // first parent (the mainline this commit extends). Changes contributed by other
+                // parents were already counted in those parents' heights, which flow in via
+                // maxHeightAmongParents; comparing against every parent instead would count merge
+                // commits that never touched the filtered path (e.g. merges of a stale branch
+                // whose filtered path lagged the mainline), inflating the version height.
                 // A no-parent commit is relevant if it introduces anything in the filtered path.
                 bool relevantCommit =
                     commit.Parents.Any()
-                        ? commit.Parents.Any(parent => ContainsRelevantChanges(commit.GetRepository().Diff
-                            .Compare<TreeChanges>(parent.Tree, commit.Tree, diffInclude, DiffOptions)))
+                        ? ContainsRelevantChanges(commit.GetRepository().Diff
+                            .Compare<TreeChanges>(commit.Parents.First().Tree, commit.Tree, diffInclude, DiffOptions))
                         : ContainsRelevantChanges(commit.GetRepository().Diff
                             .Compare<TreeChanges>(null, commit.Tree, diffInclude, DiffOptions));
 
