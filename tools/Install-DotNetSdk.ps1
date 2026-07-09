@@ -284,18 +284,15 @@ if ($IncludeX86) {
 }
 
 if ($IsMacOS -or $IsLinux) {
-    $DownloadUri = "https://raw.githubusercontent.com/dotnet/install-scripts/a3fbd0fd625032bac207f1f590e5353fe26faa59/src/dotnet-install.sh"
-    $DotNetInstallScriptPath = "$DotNetInstallScriptRoot/dotnet-install.sh"
+    $DotNetInstallScriptPath = "$PSScriptRoot/dotnet-install.sh"
 } else {
-    $DownloadUri = "https://raw.githubusercontent.com/dotnet/install-scripts/a3fbd0fd625032bac207f1f590e5353fe26faa59/src/dotnet-install.ps1"
-    $DotNetInstallScriptPath = "$DotNetInstallScriptRoot/dotnet-install.ps1"
+    $DotNetInstallScriptPath = "$PSScriptRoot/dotnet-install.ps1"
 }
 
+# Verify the cached script exists
 if (-not (Test-Path $DotNetInstallScriptPath)) {
-    Invoke-WebRequest -Uri $DownloadUri -OutFile $DotNetInstallScriptPath -UseBasicParsing
-    if ($IsMacOS -or $IsLinux) {
-        chmod +x $DotNetInstallScriptPath
-    }
+    Write-Error "Cached dotnet-install script not found at $DotNetInstallScriptPath. Run tools/Update-DotNetInstallScript.ps1 to download it."
+    exit 1
 }
 
 # In case the script we invoke is in a directory with spaces, wrap it with single quotes.
