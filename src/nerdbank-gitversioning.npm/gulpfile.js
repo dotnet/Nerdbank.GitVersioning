@@ -1,28 +1,16 @@
 'use strict';
 var gulp = require('gulp');
-var gutil = require('gulp-util');
-var ts = require('gulp-typescript');
-var sourcemaps = require('gulp-sourcemaps');
-var merge = require('merge2');
 // var tslint = require('gulp-tslint');
 var path = require('path');
+var cp = require('child_process');
+var util = require('util');
 
 const outDir = 'out';
-var tsProject = ts.createProject('tsconfig.json', {
-    declarationFiles: true,
-    module: 'CommonJS',
-    typescript: require('typescript'),
-});
+var execFileAsync = util.promisify(cp.execFile);
+var typeScriptCompilerPath = require.resolve('typescript');
 
-gulp.task('tsc', function () {
-    var tsResult = gulp.src(['*.ts', 'ts/**/*.ts'])
-        // .pipe(tslint())
-        .pipe(sourcemaps.init())
-        .pipe(tsProject());
-
-    return merge(
-        tsResult.js.pipe(sourcemaps.write('.')).pipe(gulp.dest(outDir)),
-        tsResult.dts.pipe(gulp.dest(outDir)));
+gulp.task('tsc', async function () {
+    await execFileAsync(process.execPath, [path.join(path.dirname(typeScriptCompilerPath), '..', 'bin', 'tsc')]);
 });
 
 gulp.task('copyPackageContents', gulp.series('tsc', function () {

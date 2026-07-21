@@ -28,10 +28,6 @@
     "del": "8.0.1",
     "gulp": "5.0.1",
     "gulp-cli": "3.1.0",
-    "gulp-sourcemaps": "3.0.0",
-    "gulp-typescript": "5.0.1",
-    "gulp-util": "3.0.8",
-    "merge2": "1.4.1",
     "path": "0.12.7",
     "source-map": "0.7.6",
     "typescript": "7.0.2"
