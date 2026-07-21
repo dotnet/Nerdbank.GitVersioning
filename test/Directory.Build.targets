@@ -21,6 +21,7 @@
       <LibGit2SharpOsxArm64NativeBinary Include="$(LibGit2SharpNativeBinaries)runtimes\osx-arm64\native\*.dylib" />
     </ItemGroup>
     <MakeDir Directories="$(OutDir)runtimes\win-x64\native;$(OutDir)runtimes\linux-x64\native;$(OutDir)runtimes\osx-x64\native;$(OutDir)runtimes\osx-arm64\native" />
+    <Copy SourceFiles="@(LibGit2SharpWinNativeBinary)" DestinationFiles="$(OutDir)git2-3f4182d.dll" Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'" />
     <Copy SourceFiles="@(LibGit2SharpWinNativeBinary)" DestinationFiles="$(OutDir)runtimes\win-x64\native\git2-3f4182d.dll" />
     <Copy SourceFiles="@(LibGit2SharpLinuxNativeBinary)" DestinationFiles="$(OutDir)runtimes\linux-x64\native\libgit2-3f4182d.so" />
     <Copy SourceFiles="@(LibGit2SharpOsxX64NativeBinary)" DestinationFiles="$(OutDir)runtimes\osx-x64\native\libgit2-3f4182d.dylib" />
