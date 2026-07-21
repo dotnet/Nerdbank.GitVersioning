@@ -10,14 +10,21 @@
     <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" Condition="Exists('xunit.runner.json')" />
   </ItemGroup>
 
-  <Target Name="CopyLibGit2SharpNativeBinaryCompatibilityName" AfterTargets="CopyFilesMarkedCopyLocal">
+  <Target Name="CopyLibGit2SharpNativeBinaryCompatibilityName" AfterTargets="Build" Condition="'$(TargetFramework)' != ''">
     <PropertyGroup>
       <LibGit2SharpNativeBinaries>$([System.IO.Path]::Combine('$(NuGetPackageRoot)', 'libgit2sharp.nativebinaries\$(LibGit2SharpNativeVersion)\'))</LibGit2SharpNativeBinaries>
     </PropertyGroup>
-    <Copy SourceFiles="$(LibGit2SharpNativeBinaries)runtimes\win-x64\native\*.dll" DestinationFiles="$(OutDir)runtimes\win-x64\native\git2-3f4182d.dll" />
-    <Copy SourceFiles="$(LibGit2SharpNativeBinaries)runtimes\linux-x64\native\*.so" DestinationFiles="$(OutDir)runtimes\linux-x64\native\libgit2-3f4182d.so" />
-    <Copy SourceFiles="$(LibGit2SharpNativeBinaries)runtimes\osx-x64\native\*.dylib" DestinationFiles="$(OutDir)runtimes\osx-x64\native\libgit2-3f4182d.dylib" />
-    <Copy SourceFiles="$(LibGit2SharpNativeBinaries)runtimes\osx-arm64\native\*.dylib" DestinationFiles="$(OutDir)runtimes\osx-arm64\native\libgit2-3f4182d.dylib" />
+    <ItemGroup>
+      <LibGit2SharpWinNativeBinary Include="$(LibGit2SharpNativeBinaries)runtimes\win-x64\native\*.dll" />
+      <LibGit2SharpLinuxNativeBinary Include="$(LibGit2SharpNativeBinaries)runtimes\linux-x64\native\*.so" />
+      <LibGit2SharpOsxX64NativeBinary Include="$(LibGit2SharpNativeBinaries)runtimes\osx-x64\native\*.dylib" />
+      <LibGit2SharpOsxArm64NativeBinary Include="$(LibGit2SharpNativeBinaries)runtimes\osx-arm64\native\*.dylib" />
+    </ItemGroup>
+    <MakeDir Directories="$(OutDir)runtimes\win-x64\native;$(OutDir)runtimes\linux-x64\native;$(OutDir)runtimes\osx-x64\native;$(OutDir)runtimes\osx-arm64\native" />
+    <Copy SourceFiles="@(LibGit2SharpWinNativeBinary)" DestinationFiles="$(OutDir)runtimes\win-x64\native\git2-3f4182d.dll" />
+    <Copy SourceFiles="@(LibGit2SharpLinuxNativeBinary)" DestinationFiles="$(OutDir)runtimes\linux-x64\native\libgit2-3f4182d.so" />
+    <Copy SourceFiles="@(LibGit2SharpOsxX64NativeBinary)" DestinationFiles="$(OutDir)runtimes\osx-x64\native\libgit2-3f4182d.dylib" />
+    <Copy SourceFiles="@(LibGit2SharpOsxArm64NativeBinary)" DestinationFiles="$(OutDir)runtimes\osx-arm64\native\libgit2-3f4182d.dylib" />
   </Target>
 
   <Import Project="$([MSBuild]::GetPathOfFileAbove($(MSBuildThisFile), $(MSBuildThisFileDirectory)..))" />
