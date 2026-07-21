@@ -64,11 +64,22 @@ namespace Nerdbank.GitVersioning
                     null;
 
                 string fileName = $"{prefix}{unmanagedDllName}{extension}";
-                string? directoryPath = LibGit2GitExtensions.FindLibGit2NativeBinaries(this.nativeDependencyBasePath);
-                if (directoryPath is not null && NativeLibrary.TryLoad(Path.Combine(directoryPath, fileName), out p))
+                if (LibGit2GitExtensions.FindLibGit2NativeBinaries(this.nativeDependencyBasePath) is string directoryPath)
                 {
-                    // Cache this to make us a little faster next time.
-                    this.lastLoadedLibrary = (unmanagedDllName, p);
+                    if (!NativeLibrary.TryLoad(Path.Combine(directoryPath, fileName), out p))
+                    {
+                        string? nativeLibraryPath = Directory.EnumerateFiles(directoryPath).FirstOrDefault();
+                        if (nativeLibraryPath is not null)
+                        {
+                            NativeLibrary.TryLoad(nativeLibraryPath, out p);
+                        }
+                    }
+
+                    if (p != IntPtr.Zero)
+                    {
+                        // Cache this to make us a little faster next time.
+                        this.lastLoadedLibrary = (unmanagedDllName, p);
+                    }
                 }
             }
 
