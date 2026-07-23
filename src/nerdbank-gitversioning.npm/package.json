@@ -29,7 +29,7 @@
     "gulp": "5.0.1",
     "gulp-cli": "3.1.0",
     "path": "0.12.7",
-    "source-map": "0.7.6",
+    "source-map": "0.8.0",
     "typescript": "7.0.2"
   },
   "dependencies": {},
