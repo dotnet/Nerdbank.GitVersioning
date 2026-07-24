@@ -145,7 +145,9 @@ public unsafe class MemoryMappedStream : Stream
     /// <inheritdoc/>
     protected override void Dispose(bool disposing)
     {
-        if (disposing)
+        // ReleasePointer must only run once per AcquirePointer; a second call corrupts the native heap
+        // (glibc: free(): invalid pointer) which has been observed as intermittent Ubuntu test host crashes.
+        if (disposing && !this.disposed)
         {
             this.accessor.SafeMemoryMappedViewHandle.ReleasePointer();
             this.disposed = true;

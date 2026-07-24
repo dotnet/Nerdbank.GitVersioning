@@ -174,4 +174,40 @@ public class GitPackTests : IDisposable
             Assert.False(gitPack.TryGetObject(GitObjectId.Empty, "commit", out Stream commitStream));
         }
     }
+
+    /// <summary>
+    /// Fully reading pack objects through the memory cache early-disposes the underlying pack stream,
+    /// then GitPack.Dispose disposes the cache which would dispose those streams again. That used to
+    /// double-call <see cref="MemoryMappedStream"/>'s ReleasePointer and crash the process with
+    /// free(): invalid pointer (glibc) — the Ubuntu CI host-crash pattern.
+    /// </summary>
+    [Fact]
+    public void FullyReadCachedObjects_DoesNotDoubleFreeNativeMemory()
+    {
+        // Use the default GitPackMemoryCache (not NullCache) so DisposeStreamIfRead is exercised.
+        using var gitPack = new GitPack(
+            (sha, objectType) => null,
+            new Lazy<FileStream>(() => File.OpenRead(this.indexFile)),
+            () => File.OpenRead(this.packFile));
+
+        (long Offset, string Type)[] objects = [(12L, "commit"), (317L, "commit")];
+
+        // Read non-delta and delta objects fully so the cache stream closes the underlying pack stream.
+        foreach ((long offset, string type) in objects)
+        {
+            using Stream stream = gitPack.GetObject(offset, type);
+            stream.CopyTo(Stream.Null);
+        }
+
+        // Second pass hits the cache; view streams share the already-closed source.
+        foreach ((long offset, string type) in objects)
+        {
+            using Stream stream = gitPack.GetObject(offset, type);
+            stream.CopyTo(Stream.Null);
+        }
+
+        // Explicit double-dispose of the pack (and thus the cache) must not abort the process.
+        gitPack.Dispose();
+        gitPack.Dispose();
+    }
 }

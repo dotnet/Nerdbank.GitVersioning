@@ -9,9 +9,9 @@ namespace Nerdbank.GitVersioning.ManagedGit;
 
 internal class GitPackMemoryCacheStream : Stream
 {
-    private readonly Stream stream;
     private readonly MemoryStream cacheStream = new MemoryStream();
     private readonly long length;
+    private Stream? stream;
 
     public GitPackMemoryCacheStream(Stream stream)
     {
@@ -51,7 +51,8 @@ internal class GitPackMemoryCacheStream : Stream
     public override int Read(Span<byte> buffer)
 #endif
     {
-        if (this.cacheStream.Length < this.length
+        if (this.stream is not null
+            && this.cacheStream.Length < this.length
             && this.cacheStream.Position + buffer.Length > this.cacheStream.Length)
         {
             long currentPosition = this.cacheStream.Position;
@@ -80,7 +81,7 @@ internal class GitPackMemoryCacheStream : Stream
             throw new NotSupportedException();
         }
 
-        if (offset > this.cacheStream.Length)
+        if (this.stream is not null && offset > this.cacheStream.Length)
         {
             this.cacheStream.Seek(0, SeekOrigin.End);
             int toRead = (int)(offset - this.cacheStream.Length);
@@ -111,7 +112,9 @@ internal class GitPackMemoryCacheStream : Stream
     {
         if (disposing)
         {
-            this.stream.Dispose();
+            // May already have been closed by DisposeStreamIfRead once the source was fully cached.
+            this.stream?.Dispose();
+            this.stream = null;
             this.cacheStream.Dispose();
         }
 
@@ -120,9 +123,10 @@ internal class GitPackMemoryCacheStream : Stream
 
     private void DisposeStreamIfRead()
     {
-        if (this.cacheStream.Length == this.stream.Length)
+        if (this.stream is not null && this.cacheStream.Length == this.stream.Length)
         {
             this.stream.Dispose();
+            this.stream = null;
         }
     }
 }
