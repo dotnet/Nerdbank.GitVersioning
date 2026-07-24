@@ -22,6 +22,7 @@ public class GitPackDeltafiedStream : Stream
     private long position;
     private DeltaInstruction? current;
     private int offset;
+    private bool disposed;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GitPackDeltafiedStream"/> class.
@@ -160,8 +161,12 @@ public class GitPackDeltafiedStream : Stream
     /// <inheritdoc/>
     protected override void Dispose(bool disposing)
     {
-        this.deltaStream.Dispose();
-        this.baseStream.Dispose();
+        if (disposing && !this.disposed)
+        {
+            this.deltaStream.Dispose();
+            this.baseStream.Dispose();
+            this.disposed = true;
+        }
     }
 
     private bool TryGetInstruction(out DeltaInstruction instruction)
