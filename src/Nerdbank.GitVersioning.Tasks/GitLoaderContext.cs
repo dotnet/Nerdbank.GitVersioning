@@ -9,11 +9,11 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using Nerdbank.GitVersioning.LibGit2;
-using RuntimeEnvironment = Microsoft.DotNet.PlatformAbstractions.RuntimeEnvironment;
 
 namespace Nerdbank.GitVersioning
 {
@@ -44,6 +44,14 @@ namespace Nerdbank.GitVersioning
 
         protected override IntPtr LoadUnmanagedDll(string unmanagedDllName)
         {
+            // Only intercept loads for libgit2 native libraries. Returning a handle from the
+            // libgit2 runtimes directory for other libraries (e.g. hostfxr, KERNEL32) causes
+            // EntryPointNotFoundException when P/Invokes hit the wrong module.
+            if (!IsLibGit2LibraryName(unmanagedDllName))
+            {
+                return IntPtr.Zero;
+            }
+
             IntPtr p = base.LoadUnmanagedDll(unmanagedDllName);
 
             if (p == IntPtr.Zero)
@@ -68,7 +76,10 @@ namespace Nerdbank.GitVersioning
                 {
                     if (!NativeLibrary.TryLoad(Path.Combine(directoryPath, fileName), out p))
                     {
-                        string? nativeLibraryPath = Directory.EnumerateFiles(directoryPath).FirstOrDefault();
+                        // Fall back to any libgit2 binary in the directory. This covers hash
+                        // mismatches between LibGit2Sharp and LibGit2Sharp.NativeBinaries.
+                        string? nativeLibraryPath = Directory.EnumerateFiles(directoryPath)
+                            .FirstOrDefault(static path => IsLibGit2LibraryName(Path.GetFileName(path)));
                         if (nativeLibraryPath is not null)
                         {
                             NativeLibrary.TryLoad(nativeLibraryPath, out p);
@@ -84,6 +95,34 @@ namespace Nerdbank.GitVersioning
             }
 
             return p;
+        }
+
+        /// <summary>
+        /// Returns whether <paramref name="name"/> refers to a libgit2 native library.
+        /// </summary>
+        /// <param name="name">An unmanaged library name or file name.</param>
+        /// <returns><see langword="true"/> if the name is a libgit2 native library; otherwise <see langword="false"/>.</returns>
+        private static bool IsLibGit2LibraryName(string name)
+        {
+            // Strip directory if present.
+            name = Path.GetFileName(name);
+
+            // Strip common native library extensions.
+            if (name.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) ||
+                name.EndsWith(".so", StringComparison.OrdinalIgnoreCase) ||
+                name.EndsWith(".dylib", StringComparison.OrdinalIgnoreCase))
+            {
+                name = Path.GetFileNameWithoutExtension(name);
+            }
+
+            // Unix DllImport names may include the "lib" prefix (e.g. libgit2-5853918).
+            if (name.StartsWith("lib", StringComparison.OrdinalIgnoreCase))
+            {
+                name = name.Substring(3);
+            }
+
+            // LibGit2Sharp uses hashed names like "git2-5853918" (and historically "git2").
+            return name.StartsWith("git2", StringComparison.OrdinalIgnoreCase);
         }
     }
 }
