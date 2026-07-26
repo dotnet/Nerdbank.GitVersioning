@@ -11,6 +11,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\..\src\Shared\**\*.cs" LinkBase="Shared" />
+    <!-- Linked in (rather than reached via InternalsVisibleTo, which a strong-named assembly cannot grant
+         to this unsigned test assembly) so that its internal members can be tested directly. -->
+    <Compile Include="..\..\src\NerdBank.GitVersioning\CloudBuildServices\GitHubActions.cs" LinkBase="CloudBuildServices" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="..\..\src\Nerdbank.GitVersioning.Tasks\build\*.targets;..\..\src\Nerdbank.GitVersioning.Tasks\build\*.props;..\..\src\Nerdbank.GitVersioning.Tasks\build\*.proj">
