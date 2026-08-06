@@ -20,6 +20,11 @@ namespace Nerdbank.GitVersioning.Tasks
 
         public string CloudBuildNumber { get; set; }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether cloud build output should be redirected through the MSBuild log.
+        /// </summary>
+        public bool RedirectOutput { get; set; }
+
         /// <inheritdoc/>
         public override bool Execute()
         {
@@ -31,11 +36,10 @@ namespace Nerdbank.GitVersioning.Tasks
                 // Take care in a unit test environment because it would actually
                 // adversely impact the build variables of the cloud build underway that
                 // is running the tests.
-                bool isUnitTest = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("_NBGV_UnitTest"));
                 var testStdOut = new StringBuilder();
                 var testStdErr = new StringBuilder();
-                TextWriter stdout = isUnitTest ? new StringWriter(testStdOut) : Console.Out;
-                TextWriter stderr = isUnitTest ? new StringWriter(testStdErr) : Console.Error;
+                TextWriter stdout = this.RedirectOutput ? new StringWriter(testStdOut) : Console.Out;
+                TextWriter stderr = this.RedirectOutput ? new StringWriter(testStdErr) : Console.Error;
 
                 if (!string.IsNullOrWhiteSpace(this.CloudBuildNumber))
                 {
@@ -67,7 +71,7 @@ namespace Nerdbank.GitVersioning.Tasks
                     Environment.SetEnvironmentVariable(item.Key, item.Value);
                 }
 
-                if (isUnitTest)
+                if (this.RedirectOutput)
                 {
                     this.PipeOutputToMSBuildLog(testStdOut.ToString(), warning: false);
                     this.PipeOutputToMSBuildLog(testStdErr.ToString(), warning: true);
