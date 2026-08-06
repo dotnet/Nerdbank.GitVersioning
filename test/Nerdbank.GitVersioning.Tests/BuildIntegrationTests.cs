@@ -479,6 +479,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         this.LoadTargetsIntoProjectCollection();
         this.testProject = this.CreateProjectRootElement(this.projectDirectory, "test.prj");
         this.globalProperties.Add("NerdbankGitVersioningTasksPath", Environment.CurrentDirectory + "\\");
+        this.globalProperties.Add("_NBGV_UnitTest", "true");
         Environment.SetEnvironmentVariable("_NBGV_UnitTest", "true");
 
         // Sterilize the test of any environment variables.

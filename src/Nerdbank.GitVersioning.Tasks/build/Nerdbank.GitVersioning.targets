@@ -124,7 +124,8 @@
         AfterTargets="GetBuildVersion"
         Condition=" '@(CloudBuildVersionVars)' != '' and '$(NBGV_SetCloudBuildVersionVars)' != 'false' ">
     <Nerdbank.GitVersioning.Tasks.SetCloudBuildVariables
-      CloudBuildVersionVars="@(CloudBuildVersionVars)">
+      CloudBuildVersionVars="@(CloudBuildVersionVars)"
+      RedirectOutput="$(_NBGV_UnitTest)">
       <Output TaskParameter="MSBuildPropertyUpdates" ItemName="_MSBuildPropertyUpdates_Vars" />
     </Nerdbank.GitVersioning.Tasks.SetCloudBuildVariables>
     <CreateProperty Value="%(_MSBuildPropertyUpdates_Vars.Value)" Condition=" '@(_MSBuildPropertyUpdates_Vars)' != '' ">
@@ -137,7 +138,8 @@
         AfterTargets="GetBuildVersion"
         Condition=" '$(CloudBuildNumber)' != '' ">
     <Nerdbank.GitVersioning.Tasks.SetCloudBuildVariables
-      CloudBuildNumber="$(CloudBuildNumber)">
+      CloudBuildNumber="$(CloudBuildNumber)"
+      RedirectOutput="$(_NBGV_UnitTest)">
       <Output TaskParameter="MSBuildPropertyUpdates" ItemName="_MSBuildPropertyUpdates_BuildNumber" />
     </Nerdbank.GitVersioning.Tasks.SetCloudBuildVariables>
     <CreateProperty Value="%(_MSBuildPropertyUpdates_BuildNumber.Value)" Condition=" '@(_MSBuildPropertyUpdates_BuildNumber)' != '' ">

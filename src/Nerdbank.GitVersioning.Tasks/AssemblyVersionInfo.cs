@@ -53,7 +53,7 @@ namespace Nerdbank.GitVersioning.Tasks
         public string CodeLanguage { get; set; }
 
         [Required]
-        public string OutputFile { get; set; }
+        public ITaskItem OutputFile { get; set; }
 
         public bool EmitNonVersionCustomAttributes { get; set; }
 
@@ -69,7 +69,7 @@ namespace Nerdbank.GitVersioning.Tasks
 
         public string ThisAssemblyNamespace { get; set; }
 
-        public string AssemblyOriginatorKeyFile { get; set; }
+        public ITaskItem AssemblyOriginatorKeyFile { get; set; }
 
         public string AssemblyKeyContainerName { get; set; }
 
@@ -146,8 +146,9 @@ namespace Nerdbank.GitVersioning.Tasks
             string fileContent = this.BuildCode();
             if (fileContent is object)
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(this.OutputFile));
-                Utilities.FileOperationWithRetry(() => File.WriteAllText(this.OutputFile, fileContent));
+                string outputFile = this.OutputFile.GetMetadata("FullPath");
+                Directory.CreateDirectory(Path.GetDirectoryName(outputFile));
+                Utilities.FileOperationWithRetry(() => File.WriteAllText(outputFile, fileContent));
             }
             else if (CodeDomProvider.IsDefinedLanguage(this.CodeLanguage))
             {
@@ -164,9 +165,10 @@ namespace Nerdbank.GitVersioning.Tasks
                         ns.Types.Add(this.CreateThisAssemblyClass());
                     }
 
-                    Directory.CreateDirectory(Path.GetDirectoryName(this.OutputFile));
+                    string outputFile = this.OutputFile.GetMetadata("FullPath");
+                    Directory.CreateDirectory(Path.GetDirectoryName(outputFile));
                     FileStream file = null;
-                    Utilities.FileOperationWithRetry(() => file = File.OpenWrite(this.OutputFile));
+                    Utilities.FileOperationWithRetry(() => file = File.OpenWrite(outputFile));
                     using (file)
                     {
                         using (var fileWriter = new StreamWriter(file, new UTF8Encoding(true), 4096, leaveOpen: true))
@@ -195,8 +197,9 @@ namespace Nerdbank.GitVersioning.Tasks
             string fileContent = this.BuildCode();
             if (fileContent is object)
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(this.OutputFile));
-                Utilities.FileOperationWithRetry(() => File.WriteAllText(this.OutputFile, fileContent));
+                string outputFile = this.OutputFile.GetMetadata("FullPath");
+                Directory.CreateDirectory(Path.GetDirectoryName(outputFile));
+                Utilities.FileOperationWithRetry(() => File.WriteAllText(outputFile, fileContent));
             }
             else
             {
@@ -605,11 +608,14 @@ namespace Nerdbank.GitVersioning.Tasks
             try
             {
                 byte[] publicKeyBytes = null;
-                if (!string.IsNullOrEmpty(this.AssemblyOriginatorKeyFile) && File.Exists(this.AssemblyOriginatorKeyFile))
+                FileInfo keyFile = this.AssemblyOriginatorKeyFile is object
+                    ? new FileInfo(this.AssemblyOriginatorKeyFile.GetMetadata("FullPath"))
+                    : null;
+                if (keyFile is object && keyFile.Exists)
                 {
-                    if (Path.GetExtension(this.AssemblyOriginatorKeyFile).Equals(".snk", StringComparison.OrdinalIgnoreCase))
+                    if (keyFile.Extension.Equals(".snk", StringComparison.OrdinalIgnoreCase))
                     {
-                        byte[] keyBytes = File.ReadAllBytes(this.AssemblyOriginatorKeyFile);
+                        byte[] keyBytes = File.ReadAllBytes(keyFile.FullName);
                         bool publicKeyOnly = keyBytes[0] != 0x07;
                         publicKeyBytes = publicKeyOnly ? keyBytes : GetPublicKeyFromKeyPair(keyBytes);
                     }

@@ -51,14 +51,11 @@ namespace Nerdbank.GitVersioning.Tasks
         /// Tests whether a file is up to date with respect to another,
         /// based on existence, last write time and file size.
         /// </summary>
-        /// <param name="sourcePath">The source path.</param>
-        /// <param name="destPath">The dest path.</param>
+        /// <param name="sourceInfo">The source file.</param>
+        /// <param name="destInfo">The destination file.</param>
         /// <returns><see langword="true"/> if the files are the same; <see langword="false"/> if the files are different.</returns>
-        internal static bool FastFileEqualityCheck(string sourcePath, string destPath)
+        internal static bool FastFileEqualityCheck(FileInfo sourceInfo, FileInfo destInfo)
         {
-            FileInfo sourceInfo = new FileInfo(sourcePath);
-            FileInfo destInfo = new FileInfo(destPath);
-
             if (sourceInfo.Exists ^ destInfo.Exists)
             {
                 // Either the source file or the destination file is missing.
@@ -86,7 +83,9 @@ namespace Nerdbank.GitVersioning.Tasks
 
             for (int i = 0; i < this.OriginalItems.Length; i++)
             {
-                if (!this.IsContentOfFilesTheSame(this.OriginalItems[i].ItemSpec, this.NewItems[i].ItemSpec))
+                FileInfo originalFile = new(this.OriginalItems[i].GetMetadata("FullPath"));
+                FileInfo newFile = new(this.NewItems[i].GetMetadata("FullPath"));
+                if (!this.IsContentOfFilesTheSame(originalFile, newFile))
                 {
                     return false;
                 }
@@ -95,29 +94,29 @@ namespace Nerdbank.GitVersioning.Tasks
             return true;
         }
 
-        private bool IsContentOfFilesTheSame(string file1, string file2)
+        private bool IsContentOfFilesTheSame(FileInfo file1, FileInfo file2)
         {
             // If exactly one file is missing, that's different.
-            if (File.Exists(file1) ^ File.Exists(file2))
+            if (file1.Exists ^ file2.Exists)
             {
                 return false;
             }
 
             // If both are missing, that's the same.
-            if (!File.Exists(file1))
+            if (!file1.Exists)
             {
                 return true;
             }
 
-            if (new FileInfo(file1).Length != new FileInfo(file2).Length)
+            if (file1.Length != file2.Length)
             {
                 return false;
             }
 
             // If both are present, we need to do a content comparison.
             // Keep our comparison simple by loading both in memory.
-            byte[] file1Content = File.ReadAllBytes(file1);
-            byte[] file2Content = File.ReadAllBytes(file2);
+            byte[] file1Content = File.ReadAllBytes(file1.FullName);
+            byte[] file2Content = File.ReadAllBytes(file2.FullName);
 
             // One more sanity check.
             if (file1Content.Length != file2Content.Length)

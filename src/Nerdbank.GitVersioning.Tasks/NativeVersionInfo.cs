@@ -78,7 +78,7 @@ END
         private CodeGenerator generator;
 
         [Required]
-        public string OutputFile { get; set; }
+        public ITaskItem OutputFile { get; set; }
 
         [Required]
         public string CodeLanguage { get; set; }
@@ -131,8 +131,9 @@ END
 
                 this.generator.EndFile();
 
-                Directory.CreateDirectory(Path.GetDirectoryName(this.OutputFile));
-                Utilities.FileOperationWithRetry(() => File.WriteAllText(this.OutputFile, this.generator.GetCode(), Encoding.Unicode));
+                string outputFile = this.OutputFile.GetMetadata("FullPath");
+                Directory.CreateDirectory(Path.GetDirectoryName(outputFile));
+                Utilities.FileOperationWithRetry(() => File.WriteAllText(outputFile, this.generator.GetCode(), Encoding.Unicode));
             }
 
             return !this.Log.HasLoggedErrors;
