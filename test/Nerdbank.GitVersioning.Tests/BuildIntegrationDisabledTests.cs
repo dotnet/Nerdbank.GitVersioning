@@ -1,6 +1,7 @@
 ﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Microsoft.Build.Framework;
 using Nerdbank.GitVersioning;
 using Xunit;
 
@@ -13,6 +14,33 @@ public class BuildIntegrationDisabledTests : BuildIntegrationTests
     public BuildIntegrationDisabledTests(ITestOutputHelper logger)
         : base(logger)
     {
+    }
+
+    [Fact]
+    public async Task ThisAssemblyGitPropertiesHavePlaceholders()
+    {
+        this.WriteVersionFile();
+
+        BuildResults result = await this.BuildAsync(Targets.GenerateAssemblyNBGVVersionInfo);
+        string versionSourceFile = result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile");
+        string generatedCode = File.ReadAllText(Path.Combine(this.projectDirectory, versionSourceFile));
+
+        Assert.Contains("internal const string GitCommitId = \"Unavailable from a shallow git clone\";", generatedCode);
+        Assert.Contains("internal static readonly global::System.DateTime GitCommitDate = new global::System.DateTime(626347344600000000L, global::System.DateTimeKind.Utc);", generatedCode);
+        Assert.Contains("internal static readonly global::System.DateTime GitCommitAuthorDate = new global::System.DateTime(626347344600000000L, global::System.DateTimeKind.Utc);", generatedCode);
+        BuildWarningEventArgs warning = Assert.Single(result.LoggedEvents.OfType<BuildWarningEventArgs>(), warning => warning.Code == "NBGV1001");
+        Assert.Contains("contain placeholder values", warning.Message);
+    }
+
+    [Fact]
+    public async Task PlaceholderWarningCanBeSuppressed()
+    {
+        this.WriteVersionFile();
+        this.globalProperties["MSBuildWarningsAsMessages"] = "NBGV1001";
+
+        BuildResults result = await this.BuildAsync(Targets.GenerateAssemblyNBGVVersionInfo);
+
+        Assert.DoesNotContain(result.LoggedEvents.OfType<BuildWarningEventArgs>(), warning => warning.Code == "NBGV1001");
     }
 
     protected override GitContext CreateGitContext(string path, string committish = null)
