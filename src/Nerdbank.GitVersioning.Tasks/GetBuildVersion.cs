@@ -307,7 +307,7 @@ namespace Nerdbank.GitVersioning.Tasks
                         columnNumber: 0,
                         endLineNumber: 0,
                         endColumnNumber: 0,
-                        message: "Git information is unavailable because the git engine is disabled. ThisAssembly.GitCommitId, ThisAssembly.GitCommitDate, and ThisAssembly.GitCommitAuthorDate contain placeholder values.");
+                        message: "Git information is unavailable because the git engine is disabled. Git-related MSBuild properties and ThisAssembly members contain placeholder values.");
                 }
 
                 this.GitVersionHeight = oracle.VersionHeight;
