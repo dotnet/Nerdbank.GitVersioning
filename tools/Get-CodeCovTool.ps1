@@ -10,15 +10,15 @@ Param(
 )
 
 if ($IsMacOS) {
-    $codeCovUrl = "https://uploader.codecov.io/latest/macos/codecov"
+    $codeCovUrl = "https://cli.codecov.io/latest/macos/codecov"
     $toolName = 'codecov'
 }
 elseif ($IsLinux) {
-    $codeCovUrl = "https://uploader.codecov.io/latest/linux/codecov"
+    $codeCovUrl = "https://cli.codecov.io/latest/linux/codecov"
     $toolName = 'codecov'
 }
 else {
-    $codeCovUrl = "https://uploader.codecov.io/latest/windows/codecov.exe"
+    $codeCovUrl = "https://cli.codecov.io/latest/windows/codecov.exe"
     $toolName = 'codecov.exe'
 }
 
@@ -41,7 +41,7 @@ Function Get-FileFromWeb([Uri]$Uri, $OutDir) {
 }
 
 $toolsPath = & "$PSScriptRoot\Get-TempToolsPath.ps1"
-$binaryToolsPath = Join-Path $toolsPath codecov
+$binaryToolsPath = Join-Path $toolsPath codecov-cli
 $testingPath = Join-Path $binaryToolsPath unverified
 $finalToolPath = Join-Path $binaryToolsPath $toolName
 
@@ -52,13 +52,20 @@ if (!(Test-Path $finalToolPath)) {
     $tool = Get-FileFromWeb $codeCovUrl $testingPath
     $sha = Get-FileFromWeb "$codeCovUrl$shaSuffix" $testingPath
     $sig = Get-FileFromWeb "$codeCovUrl$sigSuffix" $testingPath
-    $key = Get-FileFromWeb https://keybase.io/codecovsecurity/pgp_keys.asc $testingPath
+    $key = Get-FileFromWeb https://keybase.io/codecovsecops/pgp_keys.asc $testingPath
 
     if ((Get-Command gpg -ErrorAction SilentlyContinue)) {
         Write-Host "Importing codecov key" -ForegroundColor Yellow
         gpg --import $key
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to import the Codecov signature verification key."
+        }
+
         Write-Host "Verifying signature on codecov hash" -ForegroundColor Yellow
         gpg --verify $sig $sha
+        if ($LASTEXITCODE -ne 0) {
+            throw "Codecov CLI signature verification failed."
+        }
     } else {
         if ($AllowSkipVerify) {
             Write-Warning "gpg not found. Unable to verify hash signature."
