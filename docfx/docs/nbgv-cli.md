@@ -74,6 +74,15 @@ This will:
    This avoids having to resolve the conflict when merging the branch at a later
    time.
 
+To leave the release and main branches unmerged, pass `--no-merge`:
+
+```ps1
+nbgv prepare-release --no-merge
+```
+
+This is useful for branching models where fixes flow from the main branch to
+release branches by cherry-picking instead of merging release branches back.
+
 You can optionally include a prerelease tag on the release branch, e.g. when
 you want to do some stabilization first. This can be achieved by passing a
 tag to the command, e.g.:

@@ -472,6 +472,24 @@ public abstract class ReleaseManagerTests : RepoTestBase
     }
 
     [Fact]
+    public void PrepareRelease_DoesNotMergeReleaseBranchWhenDisabled()
+    {
+        this.InitializeSourceControl();
+        this.WriteVersionFile(new VersionOptions() { Version = SemanticVersion.Parse("1.0-beta") });
+
+        Commit tipBeforePrepareRelease = this.LibGit2Repository.Head.Tip;
+        var releaseManager = new ReleaseManager();
+        releaseManager.PrepareRelease(this.RepoPath, null, null, null, default, null, whatIf: false, mergeReleaseBranch: false);
+
+        Commit developmentTip = this.LibGit2Repository.Head.Tip;
+        Commit releaseTip = this.LibGit2Repository.Branches["v1.0"].Tip;
+        Assert.Single(developmentTip.Parents);
+        Assert.Equal(tipBeforePrepareRelease.Id, developmentTip.Parents.Single().Id);
+        Assert.Single(releaseTip.Parents);
+        Assert.Equal(tipBeforePrepareRelease.Id, releaseTip.Parents.Single().Id);
+    }
+
+    [Fact]
     public void PrepareRelease_JsonOutput()
     {
         // create and configure repository

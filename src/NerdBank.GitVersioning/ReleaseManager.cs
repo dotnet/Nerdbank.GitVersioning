@@ -140,12 +140,15 @@ public class ReleaseManager
     /// <param name="whatIf">
     /// If true, simulates the prepare-release operation and returns the versions that would be set without making any changes.
     /// </param>
+    /// <param name="mergeReleaseBranch">
+    /// A value indicating whether to merge the release branch back into the current branch.
+    /// </param>
     /// <returns>
     /// A <see cref="ReleaseInfo"/> object containing information about the release when <paramref name="whatIf"/> is true; otherwise null.
     /// </returns>
-    public ReleaseInfo PrepareRelease(string projectDirectory, string releaseUnstableTag = null, Version nextVersion = null, VersionOptions.ReleaseVersionIncrement? versionIncrement = null, ReleaseManagerOutputMode outputMode = default, string unformattedCommitMessage = null, bool whatIf = false)
+    public ReleaseInfo PrepareRelease(string projectDirectory, string releaseUnstableTag = null, Version nextVersion = null, VersionOptions.ReleaseVersionIncrement? versionIncrement = null, ReleaseManagerOutputMode outputMode = default, string unformattedCommitMessage = null, bool whatIf = false, bool mergeReleaseBranch = true)
     {
-        return this.PrepareReleaseCore(projectDirectory, releaseUnstableTag, nextVersion, versionIncrement, outputMode, unformattedCommitMessage, whatIf);
+        return this.PrepareReleaseCore(projectDirectory, releaseUnstableTag, nextVersion, versionIncrement, outputMode, unformattedCommitMessage, whatIf, mergeReleaseBranch);
     }
 
     private static bool IsVersionDecrement(SemanticVersion oldVersion, SemanticVersion newVersion)
@@ -197,10 +200,13 @@ public class ReleaseManager
     /// <param name="whatIf">
     /// If true, simulates the prepare-release operation and returns the versions that would be set without making any changes.
     /// </param>
+    /// <param name="mergeReleaseBranch">
+    /// A value indicating whether to merge the release branch back into the current branch.
+    /// </param>
     /// <returns>
     /// A <see cref="ReleaseInfo"/> object containing information about the release when <paramref name="whatIf"/> is true; otherwise null.
     /// </returns>
-    private ReleaseInfo PrepareReleaseCore(string projectDirectory, string releaseUnstableTag, Version nextVersion, VersionOptions.ReleaseVersionIncrement? versionIncrement, ReleaseManagerOutputMode outputMode, string unformattedCommitMessage, bool whatIf)
+    private ReleaseInfo PrepareReleaseCore(string projectDirectory, string releaseUnstableTag, Version nextVersion, VersionOptions.ReleaseVersionIncrement? versionIncrement, ReleaseManagerOutputMode outputMode, string unformattedCommitMessage, bool whatIf, bool mergeReleaseBranch)
     {
         Requires.NotNull(projectDirectory, nameof(projectDirectory));
 
@@ -310,13 +316,16 @@ public class ReleaseManager
             this.stdout.WriteLine($"{originalBranchName} branch now tracks v{nextDevVersion} development.");
         }
 
-        // Merge release branch back to main branch
-        var mergeOptions = new MergeOptions()
+        if (mergeReleaseBranch)
         {
-            CommitOnSuccess = true,
-            MergeFileFavor = MergeFileFavor.Ours,
-        };
-        repository.Merge(releaseBranch, this.GetSignature(repository), mergeOptions);
+            // Merge the release branch now to resolve the version.json conflict in favor of the development branch.
+            var mergeOptions = new MergeOptions()
+            {
+                CommitOnSuccess = true,
+                MergeFileFavor = MergeFileFavor.Ours,
+            };
+            repository.Merge(releaseBranch, this.GetSignature(repository), mergeOptions);
+        }
 
         if (outputMode == ReleaseManagerOutputMode.Json)
         {
