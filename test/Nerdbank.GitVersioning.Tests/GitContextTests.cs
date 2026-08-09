@@ -18,6 +18,15 @@ public class GitContextManagedTests : GitContextTests
     {
     }
 
+    [Theory]
+    [InlineData("HEAD~999")]
+    [InlineData("HEAD~-1")]
+    [InlineData("HEAD~2147483648")]
+    public void SelectInvalidFirstParentAncestor(string committish)
+    {
+        Assert.False(this.Context.TrySelectCommit(committish));
+    }
+
     /// <inheritdoc/>
     protected override GitContext CreateGitContext(string path, string committish = null)
         => GitContext.Create(path, committish, engine: GitContext.Engine.ReadOnly);
@@ -66,6 +75,22 @@ public abstract class GitContextTests : RepoTestBase
     {
         Assert.True(this.Context.TrySelectCommit("HEAD"));
         Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
+    }
+
+    [Theory]
+    [InlineData("HEAD~2", 2)]
+    [InlineData("HEAD~", 1)]
+    public void SelectFirstParentAncestor(string committish, int generations)
+    {
+        this.AddCommits(2);
+        LibGit2Sharp.Commit expectedCommit = this.LibGit2Repository.Head.Tip;
+        for (int i = 0; i < generations; i++)
+        {
+            expectedCommit = expectedCommit.Parents.First();
+        }
+
+        Assert.True(this.Context.TrySelectCommit(committish));
+        Assert.Equal(expectedCommit.Sha, this.Context.GitCommitId);
     }
 
     [Theory, CombinatorialData]

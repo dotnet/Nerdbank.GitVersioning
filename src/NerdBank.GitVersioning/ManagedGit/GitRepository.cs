@@ -340,10 +340,55 @@ public class GitRepository : IDisposable
     /// <summary>
     /// Parses any committish to an object id.
     /// </summary>
-    /// <param name="objectish">Any "objectish" string (e.g. commit ID (partial or full), branch name, tag name, or "HEAD").</param>
+    /// <param name="objectish">Any "objectish" string (e.g. commit ID (partial or full), branch name, tag name, "HEAD", or a first-parent ancestor).</param>
     /// <returns>The object ID referenced by <paramref name="objectish"/> if found; otherwise <see langword="null"/>.</returns>
     public GitObjectId? Lookup(string objectish)
     {
+        int ancestorOperatorIndex = objectish.IndexOf('~');
+        if (ancestorOperatorIndex > 0)
+        {
+            GitObjectId? objectId = this.Lookup(objectish.Substring(0, ancestorOperatorIndex));
+            if (objectId is null)
+            {
+                return null;
+            }
+
+            int position = ancestorOperatorIndex;
+            while (position < objectish.Length)
+            {
+                if (objectish[position++] != '~')
+                {
+                    return null;
+                }
+
+                int generationStart = position;
+                while (position < objectish.Length && objectish[position] >= '0' && objectish[position] <= '9')
+                {
+                    position++;
+                }
+
+                int generations = 1;
+                if (position > generationStart
+                    && !int.TryParse(objectish.Substring(generationStart, position - generationStart), NumberStyles.None, CultureInfo.InvariantCulture, out generations))
+                {
+                    return null;
+                }
+
+                for (int i = 0; i < generations; i++)
+                {
+                    GitObjectId? parent = this.GetCommit(objectId.Value).FirstParent;
+                    if (parent is null)
+                    {
+                        return null;
+                    }
+
+                    objectId = parent;
+                }
+            }
+
+            return objectId;
+        }
+
         bool skipObjectIdLookup = false;
 
         if (objectish == "HEAD")
