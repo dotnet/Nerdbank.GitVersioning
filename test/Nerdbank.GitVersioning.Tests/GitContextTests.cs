@@ -18,6 +18,15 @@ public class GitContextManagedTests : GitContextTests
     {
     }
 
+    [Theory]
+    [InlineData("HEAD~999")]
+    [InlineData("HEAD~-1")]
+    [InlineData("HEAD~2147483648")]
+    public void SelectInvalidFirstParentAncestor(string committish)
+    {
+        Assert.False(this.Context.TrySelectCommit(committish));
+    }
+
     /// <inheritdoc/>
     protected override GitContext CreateGitContext(string path, string committish = null)
         => GitContext.Create(path, committish, engine: GitContext.Engine.ReadOnly);
