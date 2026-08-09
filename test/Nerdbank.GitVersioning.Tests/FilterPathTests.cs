@@ -152,6 +152,27 @@ public class FilterPathTests
         Assert.False(filter.Excludes("loc/en/generated.cs", false));
     }
 
+    [Theory]
+    [InlineData("loc")]
+    [InlineData("loc/en")]
+    [InlineData("loc/en/MyProduct.resources")]
+    public void WildcardFilterMayIncludeChildren(string repoRelativePath)
+    {
+        var filter = new FilterPath(":/loc/*/MyProduct.*", string.Empty);
+
+        Assert.True(filter.IncludesChildren(repoRelativePath, false));
+    }
+
+    [Theory]
+    [InlineData("localization")]
+    [InlineData("docs")]
+    public void WildcardFilterCannotIncludeChildren(string repoRelativePath)
+    {
+        var filter = new FilterPath(":/loc/*/MyProduct.*", string.Empty);
+
+        Assert.False(filter.IncludesChildren(repoRelativePath, false));
+    }
+
     [Fact]
     public void InvalidPathspecsThrow()
     {

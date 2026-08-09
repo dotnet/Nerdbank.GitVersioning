@@ -254,19 +254,13 @@ internal static class GitExtensions
                 string fullPath = Path.Combine(relativePath, child.Key);
 
                 bool isRelevant =
-                    filters.Any(f => f.Includes(fullPath, repository.IgnoreCase))
+                    //// Either there are no include filters at all (i.e. everything is included), or there's an explicit include filter
+                    (!filters.Any(f => f.IsInclude) || filters.Any(f => f.Includes(fullPath, repository.IgnoreCase))
+                     || (!child.Value.IsFile && filters.Any(f => f.IncludesChildren(fullPath, repository.IgnoreCase))))
+                    //// The path is not excluded by any filters
                     && !filters.Any(f => f.Excludes(fullPath, repository.IgnoreCase));
-                bool useWildcardMatching = !isRelevant && filters.Any(f => f.HasWildcard);
 
-                if (useWildcardMatching)
-                {
-                    isRelevant =
-                        (!filters.Any(f => f.IsInclude) || filters.Any(f => f.Includes(fullPath, repository.IgnoreCase))
-                         || (!child.Value.IsFile && filters.Any(f => f.IncludesChildren(fullPath, repository.IgnoreCase))))
-                        && !filters.Any(f => f.Excludes(fullPath, repository.IgnoreCase));
-                }
-
-                if (useWildcardMatching && isRelevant && !child.Value.IsFile)
+                if (isRelevant && !child.Value.IsFile)
                 {
                     isRelevant = IsRelevantCommit(
                         repository,

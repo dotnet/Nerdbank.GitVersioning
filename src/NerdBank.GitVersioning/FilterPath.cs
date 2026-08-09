@@ -12,6 +12,7 @@ namespace Nerdbank.GitVersioning;
 public class FilterPath
 {
     private readonly bool hasWildcard;
+    private readonly string[] wildcardSegments;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FilterPath"/> class
@@ -74,6 +75,10 @@ public class FilterPath
         this.hasWildcard =
             this.RepoRelativePath.IndexOf('*') >= 0 ||
             this.RepoRelativePath.IndexOf('?') >= 0;
+        if (this.hasWildcard)
+        {
+            this.wildcardSegments = this.RepoRelativePath.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+        }
     }
 
     /// <summary>
@@ -212,7 +217,7 @@ public class FilterPath
 
         if (this.HasWildcard)
         {
-            return true;
+            return this.MatchesWildcard(repoRelativePath, ignoreCase, matchDescendants: true);
         }
 
         StringComparison stringComparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
@@ -381,12 +386,12 @@ public class FilterPath
     private static bool CharactersEqual(char left, char right, bool ignoreCase) =>
         left == right || (ignoreCase && char.ToUpperInvariant(left) == char.ToUpperInvariant(right));
 
-    private bool MatchesWildcard(string repoRelativePath, bool ignoreCase)
+    private bool MatchesWildcard(string repoRelativePath, bool ignoreCase, bool matchDescendants = false)
     {
         string[] candidateSegments = repoRelativePath
             .Replace('\\', '/')
             .Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
-        string[] filterSegments = this.RepoRelativePath.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+        string[] filterSegments = this.wildcardSegments!;
         var matches = new bool[filterSegments.Length + 1, candidateSegments.Length + 1];
 
         // A filter that identifies a directory also includes every path beneath it.
@@ -399,7 +404,8 @@ public class FilterPath
         {
             bool isRecursiveWildcard = filterSegments[filterIndex] == "**";
             matches[filterIndex, candidateSegments.Length] =
-                isRecursiveWildcard && matches[filterIndex + 1, candidateSegments.Length];
+                matchDescendants ||
+                (isRecursiveWildcard && matches[filterIndex + 1, candidateSegments.Length]);
 
             for (int candidateIndex = candidateSegments.Length - 1; candidateIndex >= 0; candidateIndex--)
             {
