@@ -491,15 +491,6 @@ public static class LibGit2GitExtensions
             var excludePaths = pathFilters?.Where(filter => filter.IsExclude).ToList();
 
             bool ignoreCase = commit.GetRepository().Config.Get<bool>("core.ignorecase")?.Value ?? false;
-            bool ContainsRelevantChanges(IEnumerable<TreeEntryChanges> changes) =>
-                !hasWildcardIncludes && excludePaths?.Count == 0
-                    ? changes.Any()
-                    //// If there is a single change that isn't excluded,
-                    //// then this commit is relevant.
-                    : changes.Any(change =>
-                        (!hasWildcardIncludes || pathFilters!.Any(include => include.Includes(change.Path, ignoreCase))) &&
-                        !excludePaths!.Any(exclude => exclude.Excludes(change.Path, ignoreCase)));
-
             int height = 1;
 
             if (includePaths is not null)
@@ -517,10 +508,18 @@ public static class LibGit2GitExtensions
                 // A no-parent commit is relevant if it introduces anything in the filtered path.
                 bool relevantCommit =
                     commit.Parents.Any()
-                        ? commit.Parents.Any(parent => ContainsRelevantChanges(commit.GetRepository().Diff
-                            .Compare<TreeChanges>(parent.Tree, commit.Tree, diffInclude, DiffOptions)))
-                        : ContainsRelevantChanges(commit.GetRepository().Diff
-                            .Compare<TreeChanges>(null, commit.Tree, diffInclude, DiffOptions));
+                        ? commit.Parents.Any(parent => ContainsRelevantChanges(
+                            commit.GetRepository().Diff.Compare<TreeChanges>(parent.Tree, commit.Tree, diffInclude, DiffOptions),
+                            hasWildcardIncludes,
+                            pathFilters!,
+                            excludePaths!,
+                            ignoreCase))
+                        : ContainsRelevantChanges(
+                            commit.GetRepository().Diff.Compare<TreeChanges>(null, commit.Tree, diffInclude, DiffOptions),
+                            hasWildcardIncludes,
+                            pathFilters!,
+                            excludePaths!,
+                            ignoreCase);
 
                 if (!relevantCommit)
                 {
@@ -544,6 +543,25 @@ public static class LibGit2GitExtensions
 
         Assumes.True(tracker.TryGetVersionHeight(startingCommit, out int result));
         return result;
+    }
+
+    private static bool ContainsRelevantChanges(
+        TreeChanges changes,
+        bool hasWildcardIncludes,
+        IReadOnlyList<FilterPath> pathFilters,
+        IReadOnlyList<FilterPath> excludePaths,
+        bool ignoreCase)
+    {
+        using (changes)
+        {
+            return !hasWildcardIncludes && excludePaths.Count == 0
+                ? changes.Any()
+                //// If there is a single change that isn't excluded,
+                //// then this commit is relevant.
+                : changes.Any(change =>
+                    (!hasWildcardIncludes || pathFilters.Any(include => include.Includes(change.Path, ignoreCase))) &&
+                    !excludePaths.Any(exclude => exclude.Excludes(change.Path, ignoreCase)));
+        }
     }
 
     /// <summary>
