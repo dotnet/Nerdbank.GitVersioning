@@ -34,6 +34,13 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Nerdbank.GitVersioning.Tasks\Nerdbank.GitVersioning.Tasks.csproj" />
     <ProjectReference Include="..\..\src\NerdBank.GitVersioning\Nerdbank.GitVersioning.csproj" />
+    <ProjectReference Include="..\..\src\nbgv\nbgv.csproj" ReferenceOutputAssembly="false" Condition="'$(TargetFramework)' == 'net10.0'" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>NbgvToolPath</_Parameter1>
+      <_Parameter2>$(RepoRootPath)bin\nbgv\$(Configuration)\net10.0\nbgv.dll</_Parameter2>
+    </AssemblyAttribute>
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Build.Locator" />
