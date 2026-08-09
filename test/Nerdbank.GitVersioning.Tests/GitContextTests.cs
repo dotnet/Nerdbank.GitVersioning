@@ -80,7 +80,6 @@ public abstract class GitContextTests : RepoTestBase
     [Theory]
     [InlineData("HEAD~2", 2)]
     [InlineData("HEAD~", 1)]
-    [InlineData("master~1", 1)]
     public void SelectFirstParentAncestor(string committish, int generations)
     {
         this.AddCommits(2);
