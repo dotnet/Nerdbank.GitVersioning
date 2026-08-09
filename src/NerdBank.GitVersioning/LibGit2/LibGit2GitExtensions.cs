@@ -473,21 +473,32 @@ public static class LibGit2GitExtensions
             VersionOptions? versionOptions = tracker.GetVersion(commit);
             IReadOnlyList<FilterPath>? pathFilters = versionOptions?.PathFilters;
 
-            var includePaths =
-                pathFilters
-                    ?.Where(filter => !filter.IsExclude)
-                    .Select(filter => filter.RepoRelativePath)
-                    .ToList();
+            List<string>? includePaths = null;
+            bool hasWildcardIncludes = false;
+            if (pathFilters is not null)
+            {
+                includePaths = new List<string>();
+                foreach (FilterPath filter in pathFilters)
+                {
+                    if (filter.IsInclude)
+                    {
+                        includePaths.Add(filter.RepoRelativePath);
+                        hasWildcardIncludes |= filter.HasWildcard;
+                    }
+                }
+            }
 
             var excludePaths = pathFilters?.Where(filter => filter.IsExclude).ToList();
 
             bool ignoreCase = commit.GetRepository().Config.Get<bool>("core.ignorecase")?.Value ?? false;
             bool ContainsRelevantChanges(IEnumerable<TreeEntryChanges> changes) =>
-                excludePaths?.Count == 0
+                !hasWildcardIncludes && excludePaths?.Count == 0
                     ? changes.Any()
                     //// If there is a single change that isn't excluded,
                     //// then this commit is relevant.
-                    : changes.Any(change => !excludePaths!.Any(exclude => exclude.Excludes(change.Path, ignoreCase)));
+                    : changes.Any(change =>
+                        (!hasWildcardIncludes || pathFilters!.Any(include => include.Includes(change.Path, ignoreCase))) &&
+                        !excludePaths!.Any(exclude => exclude.Excludes(change.Path, ignoreCase)));
 
             int height = 1;
 
@@ -497,7 +508,7 @@ public static class LibGit2GitExtensions
                 // paths refer to the root of the repository, then do not
                 // filter the diff at all.
                 List<string>? diffInclude =
-                    includePaths.Count == 0 || pathFilters!.Any(filter => filter.IsRoot)
+                    includePaths.Count == 0 || hasWildcardIncludes || pathFilters!.Any(filter => filter.IsRoot)
                         ? null
                         : includePaths;
 
