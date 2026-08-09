@@ -369,7 +369,7 @@ public class GitRepository : IDisposable
 
                 int generations = 1;
                 if (position > generationStart
-                    && !int.TryParse(objectish.AsSpan(generationStart, position - generationStart), NumberStyles.None, CultureInfo.InvariantCulture, out generations))
+                    && !int.TryParse(objectish.Substring(generationStart, position - generationStart), NumberStyles.None, CultureInfo.InvariantCulture, out generations))
                 {
                     return null;
                 }
