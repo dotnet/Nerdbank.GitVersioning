@@ -36,7 +36,7 @@
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
       <_Parameter1>NbgvToolPath</_Parameter1>
-      <_Parameter2>$(RepoRootPath)bin\nbgv\$(Configuration)\net10.0\nbgv.exe</_Parameter2>
+      <_Parameter2>$(RepoRootPath)bin\nbgv\$(Configuration)\net10.0\nbgv.dll</_Parameter2>
     </AssemblyAttribute>
   </ItemGroup>
   <ItemGroup>

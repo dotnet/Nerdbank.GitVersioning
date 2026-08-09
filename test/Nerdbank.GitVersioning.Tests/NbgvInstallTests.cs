@@ -45,19 +45,22 @@ public class NbgvInstallTests : RepoTestBase
             .GetCustomAttributes<AssemblyMetadataAttribute>()
             .Single(attribute => attribute.Key == "NbgvToolPath")
             .Value!;
-        var startInfo = new ProcessStartInfo(nbgvToolPath)
+        var startInfo = new ProcessStartInfo("dotnet")
         {
             RedirectStandardError = true,
             RedirectStandardOutput = true,
             UseShellExecute = false,
         };
+        startInfo.ArgumentList.Add(nbgvToolPath);
         startInfo.ArgumentList.Add("install");
         startInfo.ArgumentList.Add("--path");
         startInfo.ArgumentList.Add(this.RepoPath);
 
         using Process process = Process.Start(startInfo)!;
-        string standardError = await process.StandardError.ReadToEndAsync(TestContext.Current.CancellationToken);
-        await process.WaitForExitAsync(TestContext.Current.CancellationToken);
+        Task<string> standardOutputTask = process.StandardOutput.ReadToEndAsync(TestContext.Current.CancellationToken);
+        Task<string> standardErrorTask = process.StandardError.ReadToEndAsync(TestContext.Current.CancellationToken);
+        await Task.WhenAll(standardOutputTask, standardErrorTask, process.WaitForExitAsync(TestContext.Current.CancellationToken));
+        string standardError = await standardErrorTask;
 
         await cancellationSource.CancelAsync();
         listener.Stop();

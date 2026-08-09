@@ -72,10 +72,23 @@ namespace Nerdbank.GitVersioning.Tool
 
         public static int Main(string[] args)
         {
-            VisualStudioInstance msbuildInstance = MSBuildLocator.RegisterDefaults();
+            VisualStudioInstance msbuildInstance = null;
+            try
+            {
+                if (!MSBuildLocator.IsRegistered)
+                {
+                    msbuildInstance = MSBuildLocator.RegisterDefaults();
+                }
+            }
+            catch (InvalidOperationException ex)
+            {
+                Console.Error.WriteLine($"Failed to locate MSBuild: {ex.Message}");
+                return (int)ExitCodes.InternalError;
+            }
+
             string thisAssemblyPath = typeof(Program).GetTypeInfo().Assembly.Location;
 
-            GitLoaderContext loaderContext = new(Path.GetDirectoryName(thisAssemblyPath), msbuildInstance.MSBuildPath);
+            GitLoaderContext loaderContext = new(Path.GetDirectoryName(thisAssemblyPath), msbuildInstance?.MSBuildPath);
             Assembly inContextAssembly = loaderContext.LoadFromAssemblyPath(thisAssemblyPath);
             Type innerProgramType = inContextAssembly.GetType(typeof(Program).FullName);
             object innerProgram = Activator.CreateInstance(innerProgramType);
@@ -1448,7 +1461,8 @@ namespace Nerdbank.GitVersioning.Tool
 
             return versions
                 .Where(version => !version.IsPrerelease)
-                .Max()
+                .OrderByDescending(version => version)
+                .FirstOrDefault()
                 ?.ToNormalizedString();
         }
 
