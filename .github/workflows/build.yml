@@ -36,7 +36,7 @@ jobs:
         submodules: true
     - name: ⚙ Install prerequisites
       run: |
-        ./init.ps1 -UpgradePrerequisites
+        ./init.ps1 -UpgradePrerequisites -NoNuGetCredProvider
         dotnet --info
 
         # Print mono version if it is present.
@@ -125,7 +125,6 @@ jobs:
         }
       shell: pwsh
       timeout-minutes: 3
-      continue-on-error: true
 
   functional_testing:
     name: 🧪 Functional testing

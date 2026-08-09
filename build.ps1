@@ -15,7 +15,7 @@ Param(
     [string]$MsBuildVerbosity = 'minimal'
 )
 
-$msbuildCommandLine = "dotnet build `"$PSScriptRoot\Nerdbank.GitVersioning.sln`" /m /verbosity:$MsBuildVerbosity /nologo /p:Platform=`"Any CPU`" /t:build,pack"
+$msbuildCommandLine = "dotnet build `"$PSScriptRoot\Nerdbank.GitVersioning.slnx`" /m /verbosity:$MsBuildVerbosity /nologo /p:Platform=`"Any CPU`" /t:build,pack"
 
 if ($Configuration) {
     $msbuildCommandLine += " /p:Configuration=$Configuration"
@@ -23,7 +23,7 @@ if ($Configuration) {
 
 Push-Location .
 try {
-    if ($PSCmdlet.ShouldProcess("$PSScriptRoot\Nerdbank.GitVersioning.sln", "msbuild")) {
+    if ($PSCmdlet.ShouldProcess("$PSScriptRoot\Nerdbank.GitVersioning.slnx", "msbuild")) {
         Invoke-Expression $msbuildCommandLine
         if ($LASTEXITCODE -ne 0) {
             throw "dotnet build failed"

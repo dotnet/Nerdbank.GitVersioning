@@ -1,0 +1,35 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path=".gitignore" />
+    <File Path="3rdPartyNotices.txt" />
+    <File Path="azure-pipelines.yml" />
+    <File Path="build.ps1" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Build.targets" />
+    <File Path="Directory.Packages.props" />
+    <File Path="global.json" />
+    <File Path="init.ps1" />
+    <File Path="nuget.config" />
+    <File Path="README.md" />
+    <File Path="version.json" />
+  </Folder>
+  <Folder Name="/src/">
+    <File Path="src/.editorconfig" />
+    <File Path="src/Directory.Build.props" />
+    <File Path="src/Directory.Build.targets" />
+    <Project Path="src/Cake.GitVersioning/Cake.GitVersioning.csproj" />
+    <Project Path="src/nbgv/nbgv.csproj" />
+    <Project Path="src/nerdbank-gitversioning.npm/nb-gv.njsproj" />
+    <Project Path="src/Nerdbank.GitVersioning.Tasks/Nerdbank.GitVersioning.Tasks.csproj" />
+    <Project Path="src/NerdBank.GitVersioning/Nerdbank.GitVersioning.csproj" />
+  </Folder>
+  <Folder Name="/test/">
+    <File Path="test/.editorconfig" />
+    <File Path="test/Directory.Build.props" />
+    <File Path="test/Directory.Build.targets" />
+    <Project Path="test/Cake.GitVersioning.Tests/Cake.GitVersioning.Tests.csproj" />
+    <Project Path="test/Nerdbank.GitVersioning.Benchmarks/Nerdbank.GitVersioning.Benchmarks.csproj" />
+    <Project Path="test/Nerdbank.GitVersioning.Tests/Nerdbank.GitVersioning.Tests.csproj" />
+  </Folder>
+</Solution>
