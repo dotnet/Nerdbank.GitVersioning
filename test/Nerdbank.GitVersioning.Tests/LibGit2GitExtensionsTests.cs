@@ -100,7 +100,12 @@ public class LibGit2GitExtensionsTests : RepoTestBase
             FieldInfo diffField = typeof(TreeChanges).GetField("diff", BindingFlags.Instance | BindingFlags.NonPublic);
             Assert.NotNull(diffField);
             SafeHandle diffHandle = Assert.IsAssignableFrom<SafeHandle>(diffField.GetValue(changes));
-            MethodInfo containsRelevantChanges = typeof(LibGit2GitExtensions).GetMethod("ContainsRelevantChanges", BindingFlags.Static | BindingFlags.NonPublic);
+            MethodInfo containsRelevantChanges = typeof(LibGit2GitExtensions).GetMethod(
+                "ContainsRelevantChanges",
+                BindingFlags.Static | BindingFlags.NonPublic,
+                binder: null,
+                new[] { typeof(TreeChanges), typeof(bool), typeof(IReadOnlyList<FilterPath>), typeof(IReadOnlyList<FilterPath>), typeof(bool) },
+                modifiers: null);
             Assert.NotNull(containsRelevantChanges);
 
             object result = containsRelevantChanges.Invoke(null, new object[] { changes, false, Array.Empty<FilterPath>(), Array.Empty<FilterPath>(), false });
