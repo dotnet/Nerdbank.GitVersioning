@@ -11,6 +11,8 @@ namespace Nerdbank.GitVersioning;
 /// </summary>
 public class FilterPath
 {
+    private readonly bool hasWildcard;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="FilterPath"/> class
     /// from a pathspec-like string and a relative path within the repository.
@@ -26,7 +28,12 @@ public class FilterPath
     /// <item><c>:!relative/exclusion.txt</c></item>
     /// <item><c>:^relative/exclusion.txt</c></item>
     /// <item><c>:^/absolute/exclusion.txt</c></item>
+    /// <item><c>localization/*/messages.json</c></item>
+    /// <item><c>src/**/generated?.cs</c></item>
     /// </list>
+    /// Asterisks match zero or more characters within a path segment, question marks match one
+    /// character within a path segment, and a path segment consisting of two asterisks matches
+    /// zero or more path segments.
     /// </param>
     /// <param name="relativeTo">
     /// Path (relative to the root of the repository) that <paramref name="pathSpec"/> is relative to.
@@ -64,6 +71,9 @@ public class FilterPath
             this.RepoRelativePath
                 .Replace('\\', '/')
                 .TrimEnd('/');
+        this.hasWildcard =
+            this.RepoRelativePath.IndexOf('*') >= 0 ||
+            this.RepoRelativePath.IndexOf('?') >= 0;
     }
 
     /// <summary>
@@ -93,6 +103,11 @@ public class FilterPath
     internal bool IsRelative { get; }
 
     /// <summary>
+    /// Gets a value indicating whether this filter contains wildcard characters.
+    /// </summary>
+    internal bool HasWildcard => this.hasWildcard;
+
+    /// <summary>
     /// Determines if <paramref name="repoRelativePath"/> should be excluded by this <see cref="FilterPath"/>.
     /// </summary>
     /// <param name="repoRelativePath">Forward-slash delimited path (repo relative).</param>
@@ -114,6 +129,11 @@ public class FilterPath
         if (!this.IsExclude)
         {
             return false;
+        }
+
+        if (this.HasWildcard)
+        {
+            return this.MatchesWildcard(repoRelativePath, ignoreCase);
         }
 
         StringComparison stringComparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
@@ -150,6 +170,11 @@ public class FilterPath
             return true;
         }
 
+        if (this.HasWildcard)
+        {
+            return this.MatchesWildcard(repoRelativePath, ignoreCase);
+        }
+
         StringComparison stringComparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
         return this.RepoRelativePath.Equals(repoRelativePath, stringComparison) ||
                repoRelativePath.StartsWith(this.RepoRelativePath + "/", stringComparison);
@@ -181,6 +206,11 @@ public class FilterPath
         }
 
         if (this.IsRoot)
+        {
+            return true;
+        }
+
+        if (this.HasWildcard)
         {
             return true;
         }
@@ -315,5 +345,71 @@ public class FilterPath
         result.Insert(0, "../", dirsToAscend);
         result.Append(string.Join("/", pathParts.Skip(commonParts)));
         return (dirsToAscend, result);
+    }
+
+    private static bool MatchesSegment(string pattern, string value, bool ignoreCase)
+    {
+        var matches = new bool[pattern.Length + 1, value.Length + 1];
+        matches[pattern.Length, value.Length] = true;
+
+        for (int patternIndex = pattern.Length - 1; patternIndex >= 0; patternIndex--)
+        {
+            if (pattern[patternIndex] == '*')
+            {
+                matches[patternIndex, value.Length] = matches[patternIndex + 1, value.Length];
+            }
+
+            for (int valueIndex = value.Length - 1; valueIndex >= 0; valueIndex--)
+            {
+                if (pattern[patternIndex] == '*')
+                {
+                    matches[patternIndex, valueIndex] =
+                        matches[patternIndex + 1, valueIndex] ||
+                        matches[patternIndex, valueIndex + 1];
+                }
+                else if (pattern[patternIndex] == '?' ||
+                    CharactersEqual(pattern[patternIndex], value[valueIndex], ignoreCase))
+                {
+                    matches[patternIndex, valueIndex] = matches[patternIndex + 1, valueIndex + 1];
+                }
+            }
+        }
+
+        return matches[0, 0];
+    }
+
+    private static bool CharactersEqual(char left, char right, bool ignoreCase) =>
+        left == right || (ignoreCase && char.ToUpperInvariant(left) == char.ToUpperInvariant(right));
+
+    private bool MatchesWildcard(string repoRelativePath, bool ignoreCase)
+    {
+        string[] candidateSegments = repoRelativePath
+            .Replace('\\', '/')
+            .Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+        string[] filterSegments = this.RepoRelativePath.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+        var matches = new bool[filterSegments.Length + 1, candidateSegments.Length + 1];
+
+        // A filter that identifies a directory also includes every path beneath it.
+        for (int candidateIndex = 0; candidateIndex <= candidateSegments.Length; candidateIndex++)
+        {
+            matches[filterSegments.Length, candidateIndex] = true;
+        }
+
+        for (int filterIndex = filterSegments.Length - 1; filterIndex >= 0; filterIndex--)
+        {
+            bool isRecursiveWildcard = filterSegments[filterIndex] == "**";
+            matches[filterIndex, candidateSegments.Length] =
+                isRecursiveWildcard && matches[filterIndex + 1, candidateSegments.Length];
+
+            for (int candidateIndex = candidateSegments.Length - 1; candidateIndex >= 0; candidateIndex--)
+            {
+                matches[filterIndex, candidateIndex] = isRecursiveWildcard
+                    ? matches[filterIndex + 1, candidateIndex] || matches[filterIndex, candidateIndex + 1]
+                    : MatchesSegment(filterSegments[filterIndex], candidateSegments[candidateIndex], ignoreCase)
+                        && matches[filterIndex + 1, candidateIndex + 1];
+            }
+        }
+
+        return matches[0, 0];
     }
 }

@@ -26,6 +26,8 @@ public class FilterPathTests
     [InlineData(":/", "foo", "")]
     [InlineData(":/absolutepath.txt", "foo", "absolutepath.txt")]
     [InlineData(":/bar/absolutepath.txt", "foo", "bar/absolutepath.txt")]
+    [InlineData(":/loc/*/MyProduct.*", "foo", "loc/*/MyProduct.*")]
+    [InlineData("../**/generated?.cs", "foo/bar", "foo/**/generated?.cs")]
     public void CanBeParsedToRepoRelativePath(string pathSpec, string relativeTo, string expected)
     {
         Assert.Equal(expected, new FilterPath(pathSpec, relativeTo).RepoRelativePath);
@@ -107,6 +109,49 @@ public class FilterPathTests
         Assert.False(new FilterPath(pathSpec, relativeTo).Excludes(repoRelativePath, false));
     }
 
+    [Theory]
+    [InlineData(":/loc/*/MyProduct.*", "loc/en/MyProduct.resx")]
+    [InlineData(":/loc/*/MyProduct.*", "loc/en/MyProduct.")]
+    [InlineData(":/loc/?/MyProduct.*", "loc/e/MyProduct.resx")]
+    [InlineData(":/loc/**/MyProduct.*", "loc/MyProduct.resx")]
+    [InlineData(":/loc/**/MyProduct.*", "loc/en/subdir/MyProduct.resx")]
+    [InlineData(":/**/MyProduct.*", "MyProduct.resx")]
+    [InlineData("localization/*/messages.json", "src/localization/en/messages.json")]
+    [InlineData(":/eng/*", "eng/product/src/file.cs")]
+    public void PathsCanBeIncludedWithWildcards(string pathSpec, string repoRelativePath)
+    {
+        Assert.True(new FilterPath(pathSpec, "src").Includes(repoRelativePath, false));
+    }
+
+    [Theory]
+    [InlineData(":/loc/*/MyProduct.*", "loc/en/subdir/MyProduct.resx")]
+    [InlineData(":/loc/?/MyProduct.*", "loc/en/MyProduct.resx")]
+    [InlineData(":/loc/*/MyProduct.*", "loc/en/OtherProduct.resx")]
+    [InlineData(":/loc/*/MyProduct.*", "loc/EN/myproduct.resx")]
+    public void PathsDoNotMatchWildcards(string pathSpec, string repoRelativePath)
+    {
+        Assert.False(new FilterPath(pathSpec, string.Empty).Includes(repoRelativePath, false));
+    }
+
+    [Fact]
+    public void WildcardMatchingCanIgnoreCase()
+    {
+        var filter = new FilterPath(":/loc/*/MyProduct.*", string.Empty);
+
+        Assert.True(filter.Includes("LOC/en/myproduct.resx", true));
+        Assert.False(filter.Includes("LOC/en/myproduct.resx", false));
+    }
+
+    [Fact]
+    public void PathsCanBeExcludedWithWildcards()
+    {
+        var filter = new FilterPath(":^/loc/**/generated?.cs", string.Empty);
+
+        Assert.True(filter.Excludes("loc/generated1.cs", false));
+        Assert.True(filter.Excludes("loc/en/subdir/generatedA.cs", false));
+        Assert.False(filter.Excludes("loc/en/generated.cs", false));
+    }
+
     [Fact]
     public void InvalidPathspecsThrow()
     {
@@ -129,6 +174,8 @@ public class FilterPathTests
     [InlineData("../Directory.Build.props", "./foo", "../Directory.Build.props")]
     [InlineData(":!/Directory.Build.props", "./foo", ":!/Directory.Build.props")]
     [InlineData(":!relative.txt", "./foo", ":!relative.txt")]
+    [InlineData(":/loc/*/MyProduct.*", "./foo", "/loc/*/MyProduct.*")]
+    [InlineData("../**/generated?.cs", "./foo", "../**/generated?.cs")]
     public void ToPathSpec(string pathSpec, string relativeTo, string expectedPathSpec)
     {
         Assert.Equal(expectedPathSpec, new FilterPath(pathSpec, relativeTo).ToPathSpec(relativeTo));

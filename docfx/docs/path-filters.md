@@ -50,13 +50,18 @@ Path filters take on a variety of formats, and can specify paths relative to the
 
 Multiple path filters may also be specified. The order is irrelevant. After a path matches any non-exclude path filter, it will be run through all exclude path filter. If it matches, the path is ignored.
 
-| Path filter                                                                        | Description                                                                                                |
-| ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `./quux.txt`<br>`file-here.txt`<br>`sub-dir/foo.txt`<br>`../sibling/inclusion.txt` | File will be included. Path is relative to the `version.json` file.                                        |
-| `./`<br>`sub-dir`<br>`../sibling`                                                  | Directory will be included. Path is relative to the `version.json` file.                                   |
-| `/root-file.txt`<br>`:/dir/file.txt`                                               | File will be included. Path is absolute (i.e., relative to the root of the repository).                    |
-| `:!bar.txt`<br>`:^../foo/baz.txt`                                                  | File will be excluded. Path is relative to the `version.json` file. `:!` and `:^` prefixes are synonymous. |
-| `:!/root-file.txt`                                                                 | File will be excluded. Path is absolute (i.e., relative to the root of the repository).                    |
+| Path filter                                                                        | Description                                                                                                                      |
+| ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `./quux.txt`<br>`file-here.txt`<br>`sub-dir/foo.txt`<br>`../sibling/inclusion.txt` | File will be included. Path is relative to the `version.json` file.                                                              |
+| `./`<br>`sub-dir`<br>`../sibling`                                                  | Directory will be included. Path is relative to the `version.json` file.                                                         |
+| `/root-file.txt`<br>`:/dir/file.txt`                                               | File will be included. Path is absolute (i.e., relative to the root of the repository).                                          |
+| `loc/*/MyProduct.*`                                                                | Matching paths will be included. `*` matches exactly one path segment and any number of characters within that segment.          |
+| `src/**/generated?.cs`                                                             | Matching paths will be included. A complete `**` segment matches zero or more path segments, and `?` matches one character.      |
+| `:!bar.txt`<br>`:^../foo/baz.txt`                                                  | File will be excluded. Path is relative to the `version.json` file. `:!` and `:^` prefixes are synonymous.                       |
+| `:!/root-file.txt`                                                                 | File will be excluded. Path is absolute (i.e., relative to the root of the repository).                                          |
+| `:!/loc/**/generated.*`                                                            | Matching paths will be excluded. Wildcards have the same meaning in inclusion and exclusion filters.                            |
+
+Wildcard matching is applied to each `/`-delimited path segment. `*` matches zero or more characters without crossing a `/`, `?` matches exactly one character without crossing a `/`, and a segment consisting only of `**` matches zero or more complete path segments. Matching honors the repository's `core.ignorecase` setting. As with a path without wildcards, when a filter matches a directory, all paths beneath that directory are included or excluded.
 
 ## Managing path filters with `nbgv path-filters`
 

@@ -135,16 +135,6 @@ internal static class GitExtensions
             VersionOptions? versionOptions = tracker.GetVersion(commit);
             IReadOnlyList<FilterPath>? pathFilters = versionOptions?.PathFilters;
 
-            var includePaths =
-                pathFilters
-                    ?.Where(filter => !filter.IsExclude)
-                    .Select(filter => filter.RepoRelativePath)
-                    .ToList();
-
-            var excludePaths = pathFilters?.Where(filter => filter.IsExclude).ToList();
-
-            bool ignoreCase = repository.IgnoreCase;
-
             int height = 1;
 
             if (pathFilters is not null)
@@ -261,11 +251,30 @@ internal static class GitExtensions
             foreach (KeyValuePair<string, GitTreeEntry> child in parent.Children)
             {
                 // Determine whether the change was relevant.
-                string? fullPath = Path.Combine(relativePath, child.Key);
+                string fullPath = Path.Combine(relativePath, child.Key);
 
                 bool isRelevant =
                     filters.Any(f => f.Includes(fullPath, repository.IgnoreCase))
                     && !filters.Any(f => f.Excludes(fullPath, repository.IgnoreCase));
+                bool useWildcardMatching = !isRelevant && filters.Any(f => f.HasWildcard);
+
+                if (useWildcardMatching)
+                {
+                    isRelevant =
+                        (!filters.Any(f => f.IsInclude) || filters.Any(f => f.Includes(fullPath, repository.IgnoreCase))
+                         || (!child.Value.IsFile && filters.Any(f => f.IncludesChildren(fullPath, repository.IgnoreCase))))
+                        && !filters.Any(f => f.Excludes(fullPath, repository.IgnoreCase));
+                }
+
+                if (useWildcardMatching && isRelevant && !child.Value.IsFile)
+                {
+                    isRelevant = IsRelevantCommit(
+                        repository,
+                        GitTree.Empty,
+                        repository.GetTree(child.Value.Sha),
+                        $"{fullPath}/",
+                        filters);
+                }
 
                 if (isRelevant)
                 {

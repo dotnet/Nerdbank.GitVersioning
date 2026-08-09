@@ -895,6 +895,46 @@ public abstract class VersionOracleTests : RepoTestBase
     }
 
     [Fact]
+    public void GetVersionHeight_WildcardIncludeFilter()
+    {
+        this.InitializeSourceControl();
+
+        var versionData = VersionOptions.FromVersion(new Version("1.2"));
+        versionData.PathFilters = new[]
+        {
+            new FilterPath(":/loc/*/MyProduct.*", string.Empty),
+            new FilterPath(":^/loc/ignored/**", string.Empty),
+        };
+        this.WriteVersionFile(versionData);
+        int initialHeight = this.GetVersionHeight();
+
+        string nonMatchingFilePath = Path.Combine(this.RepoPath, "loc", "en", "subdir", "MyProduct.resx");
+        Directory.CreateDirectory(Path.GetDirectoryName(nonMatchingFilePath));
+        File.WriteAllText(nonMatchingFilePath, "hello");
+        Commands.Stage(this.LibGit2Repository, nonMatchingFilePath);
+        this.LibGit2Repository.Commit("Add non-matching localization file", this.Signer, this.Signer);
+        Assert.Equal(initialHeight, this.GetVersionHeight());
+
+        string excludedFilePath = Path.Combine(this.RepoPath, "loc", "ignored", "MyProduct.resx");
+        Directory.CreateDirectory(Path.GetDirectoryName(excludedFilePath));
+        File.WriteAllText(excludedFilePath, "hello");
+        Commands.Stage(this.LibGit2Repository, excludedFilePath);
+        this.LibGit2Repository.Commit("Add excluded localization file", this.Signer, this.Signer);
+        Assert.Equal(initialHeight, this.GetVersionHeight());
+
+        string matchingFilePath = Path.Combine(this.RepoPath, "loc", "en", "MyProduct.resx");
+        File.WriteAllText(matchingFilePath, "hello");
+        Commands.Stage(this.LibGit2Repository, matchingFilePath);
+        this.LibGit2Repository.Commit("Add matching localization file", this.Signer, this.Signer);
+        Assert.Equal(initialHeight + 1, this.GetVersionHeight());
+
+        File.Delete(matchingFilePath);
+        Commands.Stage(this.LibGit2Repository, matchingFilePath);
+        this.LibGit2Repository.Commit("Delete matching localization file", this.Signer, this.Signer);
+        Assert.Equal(initialHeight + 2, this.GetVersionHeight());
+    }
+
+    [Fact]
     public void GetVersionHeight_IncludeExcludeFilter()
     {
         this.InitializeSourceControl();
