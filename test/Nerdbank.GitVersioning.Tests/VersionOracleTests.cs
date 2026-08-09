@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using LibGit2Sharp;
 using Nerdbank.GitVersioning;
+using Nerdbank.GitVersioning.LibGit2;
 using Nerdbank.GitVersioning.ManagedGit;
 using Xunit;
 using Version = System.Version;
@@ -785,6 +786,179 @@ public abstract class VersionOracleTests : RepoTestBase
 
         Assert.True(context.TrySelectCommit("HEAD"));
         Assert.True(context.TrySelectCommit(this.LibGit2Repository.Head.Tip.Sha));
+    }
+
+    [Fact]
+    public void GetIdAsVersion_ReadsMajorMinorFromVersionTxt()
+    {
+        this.InitializeSourceControl();
+        this.WriteVersionFile("4.8");
+        Commit firstCommit = this.LibGit2Repository.Commits.First();
+
+        Version v1 = this.GetVersion(committish: firstCommit.Sha);
+        Assert.Equal(4, v1.Major);
+        Assert.Equal(8, v1.Minor);
+    }
+
+    [Fact]
+    public void GetIdAsVersion_ReadsMajorMinorFromVersionTxtInSubdirectory()
+    {
+        this.InitializeSourceControl();
+        this.WriteVersionFile("4.8", relativeDirectory: "foo/bar");
+        Commit firstCommit = this.LibGit2Repository.Commits.First();
+
+        Version v1 = this.GetVersion("foo/bar", firstCommit.Sha);
+        Assert.Equal(4, v1.Major);
+        Assert.Equal(8, v1.Minor);
+    }
+
+    [Fact]
+    public void GetIdAsVersion_MissingVersionTxt()
+    {
+        this.InitializeSourceControl();
+        this.AddCommits();
+        Commit firstCommit = this.LibGit2Repository.Commits.First();
+
+        Version v1 = this.GetVersion(committish: firstCommit.Sha);
+        Assert.Equal(0, v1.Major);
+        Assert.Equal(0, v1.Minor);
+    }
+
+    [Fact]
+    public void GetIdAsVersion_VersionFileNeverCheckedIn_3Ints()
+    {
+        this.InitializeSourceControl();
+        this.AddCommits();
+        var expectedVersion = new Version(1, 1, 0);
+        var unstagedVersionData = VersionOptions.FromVersion(expectedVersion);
+        this.Context.VersionFile.SetVersion(this.RepoPath, unstagedVersionData);
+        Version actualVersion = this.GetVersion();
+        Assert.Equal(expectedVersion.Major, actualVersion.Major);
+        Assert.Equal(expectedVersion.Minor, actualVersion.Minor);
+        Assert.Equal(expectedVersion.Build, actualVersion.Build);
+
+        // Height is expressed in the 4th integer since 3 were specified in version.json.
+        // height is 0 since the change hasn't been committed.
+        Assert.Equal(0, actualVersion.Revision);
+    }
+
+    [Fact]
+    public void GetIdAsVersion_VersionFileNeverCheckedIn_2Ints()
+    {
+        this.InitializeSourceControl();
+        this.AddCommits();
+        var expectedVersion = new Version(1, 1);
+        var unstagedVersionData = VersionOptions.FromVersion(expectedVersion);
+        this.Context.VersionFile.SetVersion(this.RepoPath, unstagedVersionData);
+        Version actualVersion = this.GetVersion();
+        Assert.Equal(expectedVersion.Major, actualVersion.Major);
+        Assert.Equal(expectedVersion.Minor, actualVersion.Minor);
+        Assert.Equal(0, actualVersion.Build); // height is 0 since the change hasn't been committed.
+        Assert.Equal(this.LibGit2Repository.Head.Commits.First().GetTruncatedCommitIdAsUInt16(), actualVersion.Revision);
+    }
+
+    [Fact]
+    public void GetIdAsVersion_VersionFileChangedOnDisk()
+    {
+        this.InitializeSourceControl();
+        this.WriteVersionFile();
+        this.AddCommits();
+
+        // Verify that we're seeing the original version.
+        Version actualVersion = this.GetVersion();
+        Assert.Equal(1, actualVersion.Major);
+        Assert.Equal(2, actualVersion.Minor);
+        Assert.Equal(2, actualVersion.Build);
+        Assert.Equal(this.LibGit2Repository.Head.Commits.First().GetTruncatedCommitIdAsUInt16(), actualVersion.Revision);
+
+        // Now make a change on disk that isn't committed yet.
+        string versionFile = this.Context.VersionFile.SetVersion(this.RepoPath, new Version("1.3"));
+
+        // Verify that HEAD reports whatever is on disk at the time.
+        actualVersion = this.GetVersion();
+        Assert.Equal(1, actualVersion.Major);
+        Assert.Equal(3, actualVersion.Minor);
+        Assert.Equal(0, actualVersion.Build);
+        Assert.Equal(this.LibGit2Repository.Head.Commits.First().GetTruncatedCommitIdAsUInt16(), actualVersion.Revision);
+
+        // Now commit it and verify the height advances 0->1
+        this.CommitVersionFile(versionFile, "1.3");
+        actualVersion = this.GetVersion();
+        Assert.Equal(1, actualVersion.Major);
+        Assert.Equal(3, actualVersion.Minor);
+        Assert.Equal(1, actualVersion.Build);
+        Assert.Equal(this.LibGit2Repository.Head.Commits.First().GetTruncatedCommitIdAsUInt16(), actualVersion.Revision);
+    }
+
+    [Fact]
+    public void GetIdAsVersion_FitsInsideCompilerConstraints()
+    {
+        this.InitializeSourceControl();
+        this.WriteVersionFile("2.5");
+        Commit firstCommit = this.LibGit2Repository.Commits.First();
+
+        Version version = this.GetVersion(committish: firstCommit.Sha);
+        this.Logger.WriteLine(version.ToString());
+
+        // The C# compiler produces a build warning and truncates the version number if it exceeds 0xfffe,
+        // even though a System.Version is made up of four 32-bit integers.
+        Assert.True(version.Build < 0xfffe, $"{nameof(Version.Build)} component exceeds maximum allowed by the compiler as an argument for AssemblyVersionAttribute and AssemblyFileVersionAttribute.");
+        Assert.True(version.Revision < 0xfffe, $"{nameof(Version.Revision)} component exceeds maximum allowed by the compiler as an argument for AssemblyVersionAttribute and AssemblyFileVersionAttribute.");
+    }
+
+    [Fact]
+    public void GetIdAsVersion_MigrationFromVersionTxtToJson()
+    {
+        this.InitializeSourceControl();
+        Commit txtCommit = this.WriteVersionTxtFile("4.8");
+
+        // Delete the version.txt file so the system writes the version.json file.
+        File.Delete(Path.Combine(this.RepoPath, "version.txt"));
+        Commit jsonCommit = this.WriteVersionFile("4.8");
+        Assert.True(File.Exists(Path.Combine(this.RepoPath, "version.json")));
+
+        Version v1 = this.GetVersion(committish: txtCommit.Sha);
+        Assert.Equal(4, v1.Major);
+        Assert.Equal(8, v1.Minor);
+        Assert.Equal(1, v1.Build);
+
+        Version v2 = this.GetVersion(committish: jsonCommit.Sha);
+        Assert.Equal(4, v2.Major);
+        Assert.Equal(8, v2.Minor);
+        Assert.Equal(2, v2.Build);
+    }
+
+    [Theory]
+    [InlineData("2.2", "2.2-alpha.{height}", 1, 1, true)]
+    [InlineData("2.2", "2.3", 1, 1, true)]
+    [InlineData("2.2", "2.3-alpha", 1, 1, true)]
+    [InlineData("2.2-alpha", "2.2-rc", 1, 2, false)]
+    [InlineData("2.2-alpha.{height}", "2.2", 1, 1, true)]
+    [InlineData("2.2-alpha.{height}", "2.2-rc.{height}", 1, 1, true)]
+    [InlineData("2.2-alpha.{height}", "2.3-rc.{height}", 1, 1, true)]
+    [InlineData("2.2-rc", "2.2", 1, 2, false)]
+    [InlineData("2.2-rc", "2.3", 1, 1, true)]
+    public void GetVersionHeight_ProgressAndReset(string version1, string version2, int expectedHeight1, int expectedHeight2, bool versionHeightReset)
+    {
+        const string repoRelativeSubDirectory = "subdir";
+
+        this.InitializeSourceControl();
+        this.WriteVersionFile(
+            new VersionOptions { Version = SemanticVersion.Parse(version1) },
+            repoRelativeSubDirectory);
+        this.WriteVersionFile(
+            new VersionOptions { Version = SemanticVersion.Parse(version2) },
+            repoRelativeSubDirectory);
+
+        int height2 = this.GetVersionHeight(repoRelativeSubDirectory);
+        int height1 = this.GetVersionHeight(this.LibGit2Repository.Head.Commits.Skip(1).First().Sha, repoRelativeSubDirectory);
+
+        this.Logger.WriteLine("Height 1: {0}", height1);
+        this.Logger.WriteLine("Height 2: {0}", height2);
+
+        Assert.Equal(expectedHeight1, height1);
+        Assert.Equal(expectedHeight2, height2);
+        Assert.Equal(!versionHeightReset, height2 > height1);
     }
 
     [Fact]
