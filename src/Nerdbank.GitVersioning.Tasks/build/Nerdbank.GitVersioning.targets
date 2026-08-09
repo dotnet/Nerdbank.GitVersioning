@@ -19,7 +19,7 @@
     </GenerateNuspecDependsOn>
 
     <GetPackageVersionDependsOn>
-      GetBuildVersion;
+      NBGV_GetPackageVersion;
       $(GetPackageVersionDependsOn)
     </GetPackageVersionDependsOn>
 
@@ -148,6 +148,16 @@
   </Target>
 
   <Target Name="GetNuGetPackageVersion" DependsOnTargets="GetBuildVersion" Returns="$(NuGetPackageVersion)" />
+
+  <!-- NuGet only needs PackageVersion when querying project references. Avoid the full target because Visual Studio
+       may issue this query with an empty TargetFramework global property, which causes SDK validation to fail. -->
+  <Target Name="NBGV_GetPackageVersion" DependsOnTargets="InvokeGetBuildVersionTask">
+    <CreateProperty
+      Value="%(NBGV_PropertyItems.Value)"
+      Condition=" '%(NBGV_PropertyItems.Identity)' == 'NuGetPackageVersion' ">
+      <Output TaskParameter="Value" PropertyName="PackageVersion" />
+    </CreateProperty>
+  </Target>
 
   <Target Name="GenerateAssemblyNBGVVersionInfo" DependsOnTargets="GetBuildVersion" Condition=" '$(_NBGV_LanguageMode)' == 'Managed' and '$(GenerateAssemblyVersionInfo)' != 'false' ">
     <PropertyGroup>
