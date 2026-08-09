@@ -1051,14 +1051,25 @@ public abstract class VersionOracleTests : RepoTestBase
         var versionData = VersionOptions.FromVersion(new Version("1.2"));
         versionData.PathFilters = new[] { new FilterPath(includeFilter, relativeDirectory) };
         this.WriteVersionFile(versionData, relativeDirectory);
+        string versionCommitId = this.LibGit2Repository.Head.Tip.Sha;
         Assert.Equal(1, this.GetVersionHeight(relativeDirectory));
 
         // Expect commit outside of project tree to not affect version height
         string otherFilePath = Path.Combine(this.RepoPath, "my-file.txt");
         File.WriteAllText(otherFilePath, "hello");
         Commands.Stage(this.LibGit2Repository, otherFilePath);
-        this.LibGit2Repository.Commit("Add other file outside of project root", this.Signer, this.Signer);
+        Commit headCommit = this.LibGit2Repository.Commit("Add other file outside of project root", this.Signer, this.Signer);
         Assert.Equal(1, this.GetVersionHeight(relativeDirectory));
+
+        VersionOracle oracle = this.GetVersionOracle(relativeDirectory);
+        string versionCommitIdShort = versionCommitId.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength);
+        string headCommitIdShort = headCommit.Sha.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength);
+        Assert.Equal(headCommit.Sha, oracle.GitCommitId);
+        Assert.Equal(headCommitIdShort, oracle.GitCommitIdShort);
+        Assert.EndsWith($"-g{versionCommitIdShort}", oracle.NuGetPackageVersion);
+        Assert.Equal($"+{versionCommitIdShort}", oracle.BuildMetadataFragment);
+        Assert.Equal(GitObjectId.Parse(versionCommitId).AsUInt16(), oracle.Version.Revision);
+        Assert.EndsWith($"+{headCommitIdShort}", oracle.AssemblyInformationalVersion);
 
         // Expect commit inside project tree to affect version height
         string containedFilePath = Path.Combine(this.RepoPath, relativeDirectory, "another-file.txt");

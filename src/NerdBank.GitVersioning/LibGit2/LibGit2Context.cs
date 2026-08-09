@@ -130,7 +130,10 @@ public class LibGit2Context : GitContext
     public override string GetShortUniqueCommitId(int minLength) => this.Repository.ObjectDatabase.ShortenObjectId(this.Commit, minLength);
 
     /// <inheritdoc/>
-    internal override int CalculateVersionHeight(VersionOptions? committedVersion, VersionOptions? workingVersion)
+    internal override string GetShortUniqueCommitId(string commitId, int minLength) => this.Repository.ObjectDatabase.ShortenObjectId(this.Repository.Lookup<Commit>(commitId), minLength);
+
+    /// <inheritdoc/>
+    internal override VersionHeightCalculation CalculateVersionHeight(VersionOptions? committedVersion, VersionOptions? workingVersion)
     {
         SemanticVersion? headCommitVersion = committedVersion?.Version ?? SemVer0;
 
@@ -142,7 +145,7 @@ public class LibGit2Context : GitContext
             {
                 // The working copy has changed the major.minor version.
                 // So by definition the version height is 0, since no commit represents it yet.
-                return 0;
+                return new VersionHeightCalculation(0, this.GitCommitId);
             }
         }
 
@@ -150,11 +153,12 @@ public class LibGit2Context : GitContext
     }
 
     /// <inheritdoc/>
-    internal override System.Version GetIdAsVersion(VersionOptions? committedVersion, VersionOptions? workingVersion, int versionHeight)
+    internal override System.Version GetIdAsVersion(VersionOptions? committedVersion, VersionOptions? workingVersion, VersionHeightCalculation versionHeight)
     {
         VersionOptions? version = IsVersionFileChangedInWorkingTree(committedVersion, workingVersion) ? workingVersion : committedVersion;
 
-        return this.Commit.GetIdAsVersionHelper(version, versionHeight);
+        Commit? versionCommit = versionHeight.CommitId is not null ? this.Repository.Lookup<Commit>(versionHeight.CommitId) : this.Commit;
+        return versionCommit.GetIdAsVersionHelper(version, versionHeight.Height);
     }
 
     /// <inheritdoc />

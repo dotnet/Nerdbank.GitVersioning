@@ -61,7 +61,7 @@ public static class LibGit2GitExtensions
     {
         Verify.Operation(context.Commit is object, "No commit is selected.");
         var tracker = new GitWalkTracker(context);
-        return GetCommitHeight(context.Commit, tracker, continueStepping);
+        return GetCommitHeight(context.Commit, tracker, continueStepping).Height;
     }
 
     /// <summary>
@@ -171,11 +171,11 @@ public static class LibGit2GitExtensions
     /// <param name="context">The git context to read from.</param>
     /// <param name="baseVersion">Optional base version to calculate the height. If not specified, the base version will be calculated by scanning the repository.</param>
     /// <returns>The height of the commit. Always a positive integer.</returns>
-    internal static int GetVersionHeight(LibGit2Context context, Version? baseVersion = null)
+    internal static GitContext.VersionHeightCalculation GetVersionHeight(LibGit2Context context, Version? baseVersion = null)
     {
         if (context.Commit is null)
         {
-            return 0;
+            return new GitContext.VersionHeightCalculation(0, null);
         }
 
         var tracker = new GitWalkTracker(context);
@@ -183,7 +183,7 @@ public static class LibGit2GitExtensions
         VersionOptions? versionOptions = tracker.GetVersion(context.Commit);
         if (versionOptions is null)
         {
-            return 0;
+            return new GitContext.VersionHeightCalculation(0, context.GitCommitId);
         }
 
         SemanticVersion? baseSemVer =
@@ -193,11 +193,10 @@ public static class LibGit2GitExtensions
         SemanticVersion.Position? versionHeightPosition = versionOptions.VersionHeightPosition;
         if (versionHeightPosition.HasValue)
         {
-            int height = GetHeight(context, c => CommitMatchesVersion(c, baseSemVer, versionHeightPosition.Value, tracker));
-            return height;
+            return GetCommitHeight(context.Commit, tracker, c => CommitMatchesVersion(c, baseSemVer, versionHeightPosition.Value, tracker));
         }
 
-        return 0;
+        return new GitContext.VersionHeightCalculation(0, context.GitCommitId);
     }
 
     /// <summary>
@@ -345,7 +344,7 @@ public static class LibGit2GitExtensions
             int expectedVersionHeight = SemanticVersion.ReadVersionPosition(version, position.Value);
 
             int actualVersionOffset = versionOptions.EffectiveVersionHeightOffset;
-            int actualVersionHeight = GetCommitHeight(commit, tracker, c => CommitMatchesVersion(c, version, position.Value - 1, tracker));
+            int actualVersionHeight = GetCommitHeight(commit, tracker, c => CommitMatchesVersion(c, version, position.Value - 1, tracker)).Height;
             return expectedVersionHeight != actualVersionHeight + actualVersionOffset;
         }
 
@@ -430,14 +429,14 @@ public static class LibGit2GitExtensions
     /// May be null to count the height to the original commit.
     /// </param>
     /// <returns>The height of the branch.</returns>
-    private static int GetCommitHeight(Commit startingCommit, GitWalkTracker tracker, Func<Commit, bool>? continueStepping)
+    private static GitContext.VersionHeightCalculation GetCommitHeight(Commit startingCommit, GitWalkTracker tracker, Func<Commit, bool>? continueStepping)
     {
         Requires.NotNull(startingCommit, nameof(startingCommit));
         Requires.NotNull(tracker, nameof(tracker));
 
         if (continueStepping is object && !continueStepping(startingCommit))
         {
-            return 0;
+            return new GitContext.VersionHeightCalculation(0, startingCommit.Sha);
         }
 
         var commitsToEvaluate = new Stack<Commit>();
@@ -445,10 +444,11 @@ public static class LibGit2GitExtensions
         {
             // Get max height among all parents, or schedule all missing parents for their own evaluation and return false.
             int maxHeightAmongParents = 0;
+            string? versionCommitId = null;
             bool parentMissing = false;
             foreach (Commit parent in commit.Parents)
             {
-                if (!tracker.TryGetVersionHeight(parent, out int parentHeight))
+                if (!tracker.TryGetVersionHeight(parent, out GitContext.VersionHeightCalculation parentCalculation))
                 {
                     if (continueStepping is object && !continueStepping(parent))
                     {
@@ -461,7 +461,11 @@ public static class LibGit2GitExtensions
                 }
                 else
                 {
-                    maxHeightAmongParents = Math.Max(maxHeightAmongParents, parentHeight);
+                    if (parentCalculation.Height > maxHeightAmongParents)
+                    {
+                        maxHeightAmongParents = parentCalculation.Height;
+                        versionCommitId = parentCalculation.CommitId;
+                    }
                 }
             }
 
@@ -527,7 +531,12 @@ public static class LibGit2GitExtensions
                 }
             }
 
-            tracker.RecordHeight(commit, height + maxHeightAmongParents);
+            if (height > 0)
+            {
+                versionCommitId = commit.Sha;
+            }
+
+            tracker.RecordHeight(commit, new GitContext.VersionHeightCalculation(height + maxHeightAmongParents, versionCommitId));
             return true;
         }
 
@@ -541,7 +550,7 @@ public static class LibGit2GitExtensions
             }
         }
 
-        Assumes.True(tracker.TryGetVersionHeight(startingCommit, out int result));
+        Assumes.True(tracker.TryGetVersionHeight(startingCommit, out GitContext.VersionHeightCalculation result));
         return result;
     }
 
@@ -605,7 +614,7 @@ public static class LibGit2GitExtensions
     {
         private readonly Dictionary<ObjectId, VersionOptions?> commitVersionCache = new Dictionary<ObjectId, VersionOptions?>();
         private readonly Dictionary<ObjectId, VersionOptions?> blobVersionCache = new Dictionary<ObjectId, VersionOptions?>();
-        private readonly Dictionary<ObjectId, int> heights = new Dictionary<ObjectId, int>();
+        private readonly Dictionary<ObjectId, GitContext.VersionHeightCalculation> heights = new Dictionary<ObjectId, GitContext.VersionHeightCalculation>();
         private readonly LibGit2Context context;
 
         internal GitWalkTracker(LibGit2Context context)
@@ -613,9 +622,9 @@ public static class LibGit2GitExtensions
             this.context = context;
         }
 
-        internal bool TryGetVersionHeight(Commit commit, out int height) => this.heights.TryGetValue(commit.Id, out height);
+        internal bool TryGetVersionHeight(Commit commit, out GitContext.VersionHeightCalculation height) => this.heights.TryGetValue(commit.Id, out height);
 
-        internal void RecordHeight(Commit commit, int height) => this.heights.Add(commit.Id, height);
+        internal void RecordHeight(Commit commit, GitContext.VersionHeightCalculation height) => this.heights.Add(commit.Id, height);
 
         internal VersionOptions? GetVersion(Commit commit)
         {

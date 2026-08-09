@@ -53,8 +53,11 @@ internal class NoGitContext : GitContext
     public override bool TrySelectCommit(string committish) => throw new InvalidOperationException(NotAGitRepoMessage);
 
     /// <inheritdoc/>
-    internal override int CalculateVersionHeight(VersionOptions? committedVersion, VersionOptions? workingVersion) => 0;
+    internal override string GetShortUniqueCommitId(string commitId, int minLength) => throw new InvalidOperationException(NotAGitRepoMessage);
 
     /// <inheritdoc/>
-    internal override Version GetIdAsVersion(VersionOptions? committedVersion, VersionOptions? workingVersion, int versionHeight) => throw new NotImplementedException();
+    internal override VersionHeightCalculation CalculateVersionHeight(VersionOptions? committedVersion, VersionOptions? workingVersion) => new(0, null);
+
+    /// <inheritdoc/>
+    internal override Version GetIdAsVersion(VersionOptions? committedVersion, VersionOptions? workingVersion, VersionHeightCalculation versionHeight) => throw new NotImplementedException();
 }
