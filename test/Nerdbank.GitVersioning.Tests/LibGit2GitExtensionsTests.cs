@@ -6,6 +6,8 @@ using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using LibGit2Sharp;
 using Nerdbank.GitVersioning;
 using Nerdbank.GitVersioning.LibGit2;
@@ -71,6 +73,51 @@ public class LibGit2GitExtensionsTests : RepoTestBase
 
         // This time stop in both branches of history, and verify that we count the taller one.
         Assert.Equal(3, LibGit2GitExtensions.GetHeight(this.Context, c => c != secondCommit && c != branchCommits[2]));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ContainsRelevantChangesDisposesTreeChanges(bool hasChanges)
+    {
+        Commit parent = this.LibGit2Repository.Commit("Parent", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
+        Commit child;
+        if (hasChanges)
+        {
+            string filePath = Path.Combine(this.RepoPath, "file.txt");
+            File.WriteAllText(filePath, "content");
+            Commands.Stage(this.LibGit2Repository, filePath);
+            child = this.LibGit2Repository.Commit("Add file", this.Signer, this.Signer);
+        }
+        else
+        {
+            child = this.LibGit2Repository.Commit("Empty child", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
+        }
+
+        TreeChanges changes = this.LibGit2Repository.Diff.Compare<TreeChanges>(parent.Tree, child.Tree);
+        try
+        {
+            FieldInfo diffField = typeof(TreeChanges).GetField("diff", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.NotNull(diffField);
+            SafeHandle diffHandle = Assert.IsAssignableFrom<SafeHandle>(diffField.GetValue(changes));
+            MethodInfo containsRelevantChanges = typeof(LibGit2GitExtensions).GetMethod(
+                "ContainsRelevantChanges",
+                BindingFlags.Static | BindingFlags.NonPublic,
+                binder: null,
+                new[] { typeof(TreeChanges), typeof(bool), typeof(IReadOnlyList<FilterPath>), typeof(IReadOnlyList<FilterPath>), typeof(bool) },
+                modifiers: null);
+            Assert.NotNull(containsRelevantChanges);
+
+            object result = containsRelevantChanges.Invoke(null, new object[] { changes, false, Array.Empty<FilterPath>(), Array.Empty<FilterPath>(), false });
+            Assert.NotNull(result);
+
+            Assert.Equal(hasChanges, Assert.IsType<bool>(result));
+            Assert.True(diffHandle.IsClosed);
+        }
+        finally
+        {
+            changes.Dispose();
+        }
     }
 
     [Fact]
