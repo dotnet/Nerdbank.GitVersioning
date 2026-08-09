@@ -350,6 +350,10 @@ namespace Nerdbank.GitVersioning.Tool
                 {
                     Description = "Simulates the prepare-release operation and prints the new version that would be set, but does not actually make any changes.",
                 };
+                var noMerge = new Option<bool>("--no-merge")
+                {
+                    Description = "Does not merge the release branch back into the current branch after updating both branches.",
+                };
                 var tagArgument = new Argument<string>("tag")
                 {
                     Description = "The prerelease tag to apply on the release branch (if any). If not specified, any existing prerelease tag will be removed. The preceding hyphen may be omitted.",
@@ -363,6 +367,7 @@ namespace Nerdbank.GitVersioning.Tool
                     format,
                     unformattedCommitMessage,
                     whatIf,
+                    noMerge,
                     tagArgument,
                 };
 
@@ -375,7 +380,8 @@ namespace Nerdbank.GitVersioning.Tool
                     var tagArgumentValue = parseResult.GetValue(tagArgument);
                     var unformattedCommitMessageValue = parseResult.GetValue(unformattedCommitMessage);
                     var whatIfValue = parseResult.GetValue(whatIf);
-                    return await OnPrepareReleaseCommand(projectValue, nextVersionValue, versionIncrementValue, formatValue, tagArgumentValue, unformattedCommitMessageValue, whatIfValue);
+                    var noMergeValue = parseResult.GetValue(noMerge);
+                    return await OnPrepareReleaseCommand(projectValue, nextVersionValue, versionIncrementValue, formatValue, tagArgumentValue, unformattedCommitMessageValue, whatIfValue, noMergeValue);
                 });
             }
 
@@ -984,7 +990,7 @@ namespace Nerdbank.GitVersioning.Tool
             return Task.FromResult((int)ExitCodes.OK);
         }
 
-        private static Task<int> OnPrepareReleaseCommand(string project, string nextVersion, string versionIncrement, string format, string tag, string unformattedCommitMessage, bool whatIf)
+        private static Task<int> OnPrepareReleaseCommand(string project, string nextVersion, string versionIncrement, string format, string tag, string unformattedCommitMessage, bool whatIf, bool noMerge)
         {
             // validate project path property
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(project);
@@ -1055,7 +1061,7 @@ namespace Nerdbank.GitVersioning.Tool
             {
                 var releaseManager = new ReleaseManager(Console.Out, Console.Error);
 
-                ReleaseManager.ReleaseInfo releaseInfo = releaseManager.PrepareRelease(searchPath, tag, nextVersionParsed, versionIncrementParsed, outputMode, unformattedCommitMessage, whatIf);
+                ReleaseManager.ReleaseInfo releaseInfo = releaseManager.PrepareRelease(searchPath, tag, nextVersionParsed, versionIncrementParsed, outputMode, unformattedCommitMessage, whatIf, mergeReleaseBranch: !noMerge);
 
                 if (whatIf && outputMode == ReleaseManager.ReleaseManagerOutputMode.Json)
                 {
