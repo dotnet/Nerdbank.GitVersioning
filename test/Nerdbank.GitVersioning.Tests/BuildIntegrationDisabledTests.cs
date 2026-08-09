@@ -1,6 +1,8 @@
 ﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Microsoft.Build.Construction;
+using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Nerdbank.GitVersioning;
 using Xunit;
@@ -41,6 +43,36 @@ public class BuildIntegrationDisabledTests : BuildIntegrationTests
         BuildResults result = await this.BuildAsync(Targets.GenerateAssemblyNBGVVersionInfo);
 
         Assert.DoesNotContain(result.LoggedEvents.OfType<BuildWarningEventArgs>(), warning => warning.Code == "NBGV1001");
+    }
+
+    [Fact]
+    public async Task GetPackageVersionWithEmptyTargetFrameworkGlobalProperty()
+    {
+        this.WriteVersionFile("3.4");
+        ProjectRootElement sdkProject = ProjectRootElement.Create(this.projectCollection);
+        sdkProject.Sdk = "Microsoft.NET.Sdk";
+        sdkProject.FullPath = Path.Combine(this.projectDirectory, "sdk.csproj");
+        sdkProject.AddProperty("TargetFramework", "net10.0");
+        sdkProject.AddImport(Path.Combine(this.RepoPath, GitVersioningPropsFileName));
+        sdkProject.AddImport(Path.Combine(this.RepoPath, GitVersioningTargetsFileName));
+        sdkProject.Save();
+
+        var globalProperties = new Dictionary<string, string>(this.globalProperties)
+        {
+            ["TargetFramework"] = string.Empty,
+        };
+        this.ApplyGlobalProperties(globalProperties);
+        BuildResult result = await this.buildManager.BuildAsync(
+            this.Logger,
+            this.projectCollection,
+            sdkProject,
+            "_GetProjectVersion",
+            globalProperties,
+            additionalLoggers: Array.Empty<ILogger>());
+
+        Assert.Equal(BuildResultCode.Success, result.OverallResult);
+        Assert.Equal("3.4.0-g", result.ProjectStateAfterBuild.GetPropertyValue("PackageVersion"));
+        Assert.Empty(result.ProjectStateAfterBuild.GetPropertyValue("BuildVersion"));
     }
 
     protected override GitContext CreateGitContext(string path, string committish = null)
