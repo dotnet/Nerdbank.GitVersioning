@@ -68,6 +68,23 @@ public abstract class GitContextTests : RepoTestBase
         Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
     }
 
+    [Theory]
+    [InlineData("HEAD~2", 2)]
+    [InlineData("HEAD~", 1)]
+    [InlineData("master~1", 1)]
+    public void SelectFirstParentAncestor(string committish, int generations)
+    {
+        this.AddCommits(2);
+        LibGit2Sharp.Commit expectedCommit = this.LibGit2Repository.Head.Tip;
+        for (int i = 0; i < generations; i++)
+        {
+            expectedCommit = expectedCommit.Parents.First();
+        }
+
+        Assert.True(this.Context.TrySelectCommit(committish));
+        Assert.Equal(expectedCommit.Sha, this.Context.GitCommitId);
+    }
+
     [Theory, CombinatorialData]
     public void SelectCommitByFullId(bool uppercase)
     {
