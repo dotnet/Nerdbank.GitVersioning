@@ -23,12 +23,18 @@ public class VersionOracle
 
     private readonly GitContext context;
 
-    private readonly ICloudBuild? cloudBuild;
+    private readonly string? gitCommitId;
+
+    private readonly string? versionGitCommitId;
+
+    private readonly string? versionGitCommitIdShort;
 
     /// <summary>
     /// The number of version components (up to the 4 integers) to include in <see cref="AssemblyInformationalVersion"/>.
     /// </summary>
     private readonly int assemblyInformationalVersionComponentCount;
+
+    private readonly Version assemblyInformationalVersion;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="VersionOracle"/> class.
@@ -39,7 +45,7 @@ public class VersionOracle
     public VersionOracle(GitContext context, ICloudBuild? cloudBuild = null, int? overrideVersionHeightOffset = null)
     {
         this.context = context;
-        this.cloudBuild = cloudBuild;
+        this.gitCommitId = context.GitCommitId ?? cloudBuild?.GitCommitId;
 
         this.CommittedVersion = context.VersionFile.GetVersion();
 
@@ -62,9 +68,12 @@ public class VersionOracle
 
         this.BuildingRef = cloudBuild?.BuildingTag ?? cloudBuild?.BuildingBranch ?? context.HeadCanonicalName;
 
+        GitContext.VersionHeightCalculation versionHeight;
         try
         {
-            this.VersionHeight = context.CalculateVersionHeight(this.CommittedVersion, this.WorkingVersion);
+            versionHeight = context.CalculateVersionHeight(this.CommittedVersion, this.WorkingVersion);
+            this.VersionHeight = versionHeight.Height;
+            this.versionGitCommitId = versionHeight.CommitId ?? this.gitCommitId;
         }
         catch (GitException ex) when (context.IsShallow && ex.ErrorCode == GitException.ErrorCodes.ObjectNotFound)
         {
@@ -86,7 +95,13 @@ public class VersionOracle
         // Override the typedVersion with the special build number and revision components, when available.
         if (context.IsRepository)
         {
-            this.Version = context.GetIdAsVersion(this.CommittedVersion, this.WorkingVersion, this.VersionHeight);
+            this.Version = context.GetIdAsVersion(this.CommittedVersion, this.WorkingVersion, versionHeight);
+            GitContext.VersionHeightCalculation headVersionHeight = new(this.VersionHeight, context.GitCommitId);
+            this.assemblyInformationalVersion = context.GetIdAsVersion(this.CommittedVersion, this.WorkingVersion, headVersionHeight);
+        }
+        else
+        {
+            this.assemblyInformationalVersion = this.Version;
         }
 
         this.CloudBuildNumberOptions = this.VersionOptions?.CloudBuild?.BuildNumberOrDefault ?? VersionOptions.CloudBuildNumberOptions.DefaultInstance;
@@ -98,9 +113,18 @@ public class VersionOracle
             int gitCommitIdShortAutoMinimum = this.VersionOptions?.GitCommitIdShortAutoMinimum ?? 0;
 
             // Get it from the git repository if there is a repository present and it is enabled.
-            this.GitCommitIdShort = this.GitCommitId is object && gitCommitIdShortAutoMinimum > 0
+            this.GitCommitIdShort = gitCommitIdShortAutoMinimum > 0
                 ? this.context.GetShortUniqueCommitId(gitCommitIdShortAutoMinimum)
                 : this.GitCommitId!.Substring(0, gitCommitIdShortFixedLength);
+        }
+
+        if (!string.IsNullOrEmpty(this.versionGitCommitId))
+        {
+            int gitCommitIdShortFixedLength = this.VersionOptions?.GitCommitIdShortFixedLength ?? VersionOptions.DefaultGitCommitIdShortFixedLength;
+            int gitCommitIdShortAutoMinimum = this.VersionOptions?.GitCommitIdShortAutoMinimum ?? 0;
+            this.versionGitCommitIdShort = gitCommitIdShortAutoMinimum > 0
+                ? this.context.GetShortUniqueCommitId(this.versionGitCommitId!, gitCommitIdShortAutoMinimum)
+                : this.versionGitCommitId!.Substring(0, gitCommitIdShortFixedLength);
         }
 
         if (this.VersionOptions?.PublicReleaseRefSpec?.Count > 0)
@@ -139,7 +163,7 @@ public class VersionOracle
                                    this.VersionOptions?.Version?.VersionHeightPosition == SemanticVersion.Position.Revision ||
                                    this.VersionOptions?.Version?.Version.Revision != -1;
 
-            string buildNumberMetadata = FormatBuildMetadata(commitIdInBuildMetadata ? this.BuildMetadataWithCommitId : this.BuildMetadata);
+            string buildNumberMetadata = FormatBuildMetadata(commitIdInBuildMetadata ? this.VersionBuildMetadataWithCommitId : this.BuildMetadata);
 
             Version buildNumberVersion = includeRevision ? this.Version : this.SimpleVersion;
             return $"{buildNumberVersion}{this.PrereleaseVersion}{buildNumberMetadata}";
@@ -197,7 +221,7 @@ public class VersionOracle
     /// Gets the version string to use for the <see cref="System.Reflection.AssemblyInformationalVersionAttribute"/>.
     /// </summary>
     public string AssemblyInformationalVersion =>
-        $"{this.Version.ToStringSafe(this.assemblyInformationalVersionComponentCount)}{this.PrereleaseVersion}{FormatBuildMetadata(this.BuildMetadataWithCommitId)}";
+        $"{this.assemblyInformationalVersion.ToStringSafe(this.assemblyInformationalVersionComponentCount)}{this.PrereleaseVersion}{FormatBuildMetadata(this.BuildMetadataWithCommitId)}";
 
     /// <summary>
     /// Gets or sets a value indicating whether the project is building
@@ -277,7 +301,7 @@ public class VersionOracle
     /// <summary>
     /// Gets the Git revision control commit id for HEAD (the current source code version).
     /// </summary>
-    public string? GitCommitId => this.context.GitCommitId ?? this.cloudBuild?.GitCommitId;
+    public string? GitCommitId => this.gitCommitId;
 
     /// <summary>
     /// Gets the first several characters of the Git revision control commit id for HEAD (the current source code version).
@@ -418,7 +442,7 @@ public class VersionOracle
     /// <summary>
     /// Gets the +buildMetadata fragment for the semantic version.
     /// </summary>
-    public string BuildMetadataFragment => FormatBuildMetadata(this.BuildMetadataWithCommitId);
+    public string BuildMetadataFragment => FormatBuildMetadata(this.VersionBuildMetadataWithCommitId);
 
     /// <summary>
     /// Gets the version to use for NuGet packages.
@@ -472,6 +496,22 @@ public class VersionOracle
     /// </summary>
     protected VersionOptions? WorkingVersion { get; }
 
+    private IEnumerable<string> VersionBuildMetadataWithCommitId
+    {
+        get
+        {
+            if (!string.IsNullOrEmpty(this.versionGitCommitIdShort))
+            {
+                yield return this.versionGitCommitIdShort!;
+            }
+
+            foreach (string identifier in this.BuildMetadata)
+            {
+                yield return identifier;
+            }
+        }
+    }
+
     /// <summary>
     /// Gets the build metadata, compliant to the NuGet-compatible subset of SemVer 1.0.
     /// </summary>
@@ -482,13 +522,13 @@ public class VersionOracle
     /// See <see href="https://github.com/dotnet/Nerdbank.GitVersioning/issues/260#issuecomment-445511898">this discussion</see>.
     /// </remarks>
     private string NuGetSemVer1BuildMetadata =>
-        this.PublicRelease ? string.Empty : $"-{this.VersionOptions?.GitCommitIdPrefix ?? "g"}{this.GitCommitIdShort}";
+        this.PublicRelease ? string.Empty : $"-{this.VersionOptions?.GitCommitIdPrefix ?? "g"}{this.versionGitCommitIdShort}";
 
     /// <summary>
     /// Gets the build metadata, compliant to SemVer 1.0.
     /// </summary>
     private string SemVer1BuildMetadata =>
-        this.PublicRelease ? string.Empty : $"-{this.GitCommitIdShort}";
+        this.PublicRelease ? string.Empty : $"-{this.versionGitCommitIdShort}";
 
     /// <summary>
     /// Gets a SemVer 1.0 compliant string that represents this version, including the -gCOMMITID suffix
@@ -549,7 +589,7 @@ public class VersionOracle
     /// The prefix to the commit ID is to remain SemVer2 compliant particularly when the partial commit ID we use is made up entirely of numerals.
     /// SemVer2 forbids numerals to begin with leading zeros, but a git commit just might, so we begin with prefix always to avoid failures when the commit ID happens to be problematic.
     /// </remarks>
-    private string GitCommitIdShortForNonPublicPrereleaseTag => (string.IsNullOrEmpty(this.PrereleaseVersion) ? "-" : ".") + (this.VersionOptions?.GitCommitIdPrefix ?? "g") + this.GitCommitIdShort;
+    private string GitCommitIdShortForNonPublicPrereleaseTag => (string.IsNullOrEmpty(this.PrereleaseVersion) ? "-" : ".") + (this.VersionOptions?.GitCommitIdPrefix ?? "g") + this.versionGitCommitIdShort;
 
     private int VersionHeightWithOffset => this.VersionHeight + this.VersionHeightOffset;
 

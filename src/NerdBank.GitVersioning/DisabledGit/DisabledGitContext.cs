@@ -40,7 +40,10 @@ internal class DisabledGitContext : GitContext
 
     public override bool TrySelectCommit(string committish) => true;
 
-    internal override int CalculateVersionHeight(VersionOptions? committedVersion, VersionOptions? workingVersion) => 0;
+    /// <inheritdoc/>
+    internal override string GetShortUniqueCommitId(string commitId, int minLength) => "nerdbankdisabled";
 
-    internal override Version GetIdAsVersion(VersionOptions? committedVersion, VersionOptions? workingVersion, int versionHeight) => Version0;
+    internal override VersionHeightCalculation CalculateVersionHeight(VersionOptions? committedVersion, VersionOptions? workingVersion) => new(0, null);
+
+    internal override Version GetIdAsVersion(VersionOptions? committedVersion, VersionOptions? workingVersion, VersionHeightCalculation versionHeight) => Version0;
 }

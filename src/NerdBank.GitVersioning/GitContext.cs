@@ -337,9 +337,17 @@ public abstract class GitContext : IDisposable
         return true;
     }
 
-    internal abstract int CalculateVersionHeight(VersionOptions? committedVersion, VersionOptions? workingVersion);
+    /// <summary>
+    /// Gets the shortest string that uniquely identifies a specified commit.
+    /// </summary>
+    /// <param name="commitId">The commit ID to shorten.</param>
+    /// <param name="minLength">A minimum length.</param>
+    /// <returns>A string that is at least <paramref name="minLength"/> in length but may be more as required to uniquely identify the commit.</returns>
+    internal abstract string GetShortUniqueCommitId(string commitId, int minLength);
 
-    internal abstract Version GetIdAsVersion(VersionOptions? committedVersion, VersionOptions? workingVersion, int versionHeight);
+    internal abstract VersionHeightCalculation CalculateVersionHeight(VersionOptions? committedVersion, VersionOptions? workingVersion);
+
+    internal abstract Version GetIdAsVersion(VersionOptions? committedVersion, VersionOptions? workingVersion, VersionHeightCalculation versionHeight);
 
     internal string GetRepoRelativePath(string absolutePath, bool replaceBackslashes = false)
     {
@@ -487,5 +495,32 @@ public abstract class GitContext : IDisposable
     {
         string? githubActorEnvVar = Environment.GetEnvironmentVariable("GITHUB_ACTOR");
         return string.Equals(githubActorEnvVar, "copilot-swe-agent[bot]", StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Describes the version height and the commit that last contributed to it.
+    /// </summary>
+    internal readonly struct VersionHeightCalculation
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="VersionHeightCalculation"/> struct.
+        /// </summary>
+        /// <param name="height">The calculated version height.</param>
+        /// <param name="commitId">The commit that last contributed to the height.</param>
+        internal VersionHeightCalculation(int height, string? commitId)
+        {
+            this.Height = height;
+            this.CommitId = commitId;
+        }
+
+        /// <summary>
+        /// Gets the calculated version height.
+        /// </summary>
+        internal int Height { get; }
+
+        /// <summary>
+        /// Gets the commit that last contributed to the height.
+        /// </summary>
+        internal string? CommitId { get; }
     }
 }
