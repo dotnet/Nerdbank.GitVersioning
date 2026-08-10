@@ -74,6 +74,10 @@ This will:
    This avoids having to resolve the conflict when merging the branch at a later
    time.
 
+If Git configuration enables `commit.gpgSign`, `prepare-release` uses the `git`
+executable on `PATH` to sign every commit it creates, including the merge commit.
+When commit signing is not enabled, `git` is not required.
+
 To leave the release and main branches unmerged, pass `--no-merge`:
 
 ```ps1

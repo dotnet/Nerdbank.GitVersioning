@@ -118,6 +118,7 @@ public abstract partial class RepoTestBase : IDisposable
 
         repo.Config.Set("user.name", this.Signer.Name, ConfigurationLevel.Local);
         repo.Config.Set("user.email", this.Signer.Email, ConfigurationLevel.Local);
+        repo.Config.Set("commit.gpgSign", false, ConfigurationLevel.Local);
         foreach (StatusEntry? file in repo.RetrieveStatus().Untracked)
         {
             if (!Path.GetFileName(file.FilePath).StartsWith("_git2_", StringComparison.Ordinal))

@@ -1103,6 +1103,8 @@ namespace Nerdbank.GitVersioning.Tool
                         return Task.FromResult((int)ExitCodes.DetachedHead);
                     case ReleaseManager.ReleasePreparationError.InvalidVersionIncrementSetting:
                         return Task.FromResult((int)ExitCodes.InvalidVersionIncrementSetting);
+                    case ReleaseManager.ReleasePreparationError.GitCommandFailed:
+                        return Task.FromResult((int)ExitCodes.InternalError);
                     default:
                         Report.Fail($"{nameof(ReleaseManager.ReleasePreparationError)}: {ex.Error}");
                         return Task.FromResult(-1);
