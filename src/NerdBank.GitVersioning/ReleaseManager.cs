@@ -462,7 +462,7 @@ public class ReleaseManager
             if (process.ExitCode != 0)
             {
                 string error = string.IsNullOrWhiteSpace(standardError) ? standardOutput : standardError;
-                this.stderr.WriteLine($"Git failed while creating a signed commit: {error.Trim()}");
+                this.stderr.WriteLine($"Git {arguments[0]} failed while creating a signed commit: {error.Trim()}");
                 throw new ReleasePreparationException(ReleasePreparationError.GitCommandFailed);
             }
         }

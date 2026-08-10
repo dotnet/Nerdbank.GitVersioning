@@ -502,7 +502,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         this.RunProcess(keyDirectory, "ssh-keygen", "-q", "-t", "ed25519", "-N", string.Empty, "-f", privateKeyPath);
 
         this.LibGit2Repository.Config.Set("gpg.format", "ssh", ConfigurationLevel.Local);
-        this.LibGit2Repository.Config.Set("user.signingKey", privateKeyPath + ".pub", ConfigurationLevel.Local);
+        this.LibGit2Repository.Config.Set("user.signingKey", privateKeyPath, ConfigurationLevel.Local);
         this.LibGit2Repository.Config.Set("commit.gpgSign", true, ConfigurationLevel.Local);
 
         new ReleaseManager().PrepareRelease(this.RepoPath);
@@ -992,7 +992,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         string standardOutput = process.StandardOutput.ReadToEnd();
         string standardError = process.StandardError.ReadToEnd();
         process.WaitForExit();
-        Assert.True(process.ExitCode == 0, standardError);
+        Assert.True(process.ExitCode == 0, string.IsNullOrWhiteSpace(standardError) ? standardOutput : standardError);
         return standardOutput;
     }
 }
