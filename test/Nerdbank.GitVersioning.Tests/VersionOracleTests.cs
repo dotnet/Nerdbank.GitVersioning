@@ -59,6 +59,18 @@ public abstract class VersionOracleTests : RepoTestBase
     }
 
     [Fact]
+    public void EmptyRepoWithCloudCommitNotInRepository()
+    {
+        this.InitializeSourceControl(withInitialCommit: false);
+        const string CloudCommitId = "4a89d8fdbc350fdcf20e0e839d35ddbe638a9315";
+
+        var oracle = new VersionOracle(this.Context, new FakeCloudBuild(CloudCommitId));
+
+        Assert.Equal(0, oracle.VersionHeight);
+        Assert.Equal(CloudCommitId, oracle.GitCommitId);
+    }
+
+    [Fact]
     public void Submodule_RecognizedWithCorrectVersion()
     {
         using (TestUtilities.ExpandedRepo expandedRepo = TestUtilities.ExtractRepoArchive("submodules"))

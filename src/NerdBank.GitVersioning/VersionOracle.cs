@@ -68,9 +68,10 @@ public class VersionOracle
 
         this.BuildingRef = cloudBuild?.BuildingTag ?? cloudBuild?.BuildingBranch ?? context.HeadCanonicalName;
 
+        GitContext.VersionHeightCalculation versionHeight;
         try
         {
-            GitContext.VersionHeightCalculation versionHeight = context.CalculateVersionHeight(this.CommittedVersion, this.WorkingVersion);
+            versionHeight = context.CalculateVersionHeight(this.CommittedVersion, this.WorkingVersion);
             this.VersionHeight = versionHeight.Height;
             this.versionGitCommitId = versionHeight.CommitId ?? this.gitCommitId;
         }
@@ -94,7 +95,6 @@ public class VersionOracle
         // Override the typedVersion with the special build number and revision components, when available.
         if (context.IsRepository)
         {
-            GitContext.VersionHeightCalculation versionHeight = new(this.VersionHeight, this.versionGitCommitId);
             this.Version = context.GetIdAsVersion(this.CommittedVersion, this.WorkingVersion, versionHeight);
             GitContext.VersionHeightCalculation headVersionHeight = new(this.VersionHeight, context.GitCommitId);
             this.assemblyInformationalVersion = context.GetIdAsVersion(this.CommittedVersion, this.WorkingVersion, headVersionHeight);

@@ -31,7 +31,7 @@ public partial class RepoTestBase
     /// <returns>The height of the repo at HEAD. Always a positive integer.</returns>
     protected int GetVersionHeight(string? repoRelativeProjectDirectory = null) => this.GetVersionHeight(committish: null, repoRelativeProjectDirectory);
 
-    private class FakeCloudBuild : ICloudBuild
+    protected class FakeCloudBuild : ICloudBuild
     {
         public FakeCloudBuild(string gitCommitId)
         {
