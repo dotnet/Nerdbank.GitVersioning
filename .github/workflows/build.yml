@@ -7,7 +7,6 @@ on:
     - 'v*.*'
     - validate/*
   pull_request:
-  merge_group:
   workflow_dispatch:
 
 env:
