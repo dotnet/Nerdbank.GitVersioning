@@ -210,4 +210,20 @@ public class GitPackTests : IDisposable
         gitPack.Dispose();
         gitPack.Dispose();
     }
+
+    [Fact]
+    public void PartiallyReadCachedObject_ReleasesPointerBeforeDisposingView()
+    {
+        using var gitPack = new GitPack(
+            (sha, objectType) => null,
+            new Lazy<FileStream>(() => File.OpenRead(this.indexFile)),
+            () => File.OpenRead(this.packFile));
+
+        using Stream stream = gitPack.GetObject(12, "commit");
+        Assert.NotEqual(-1, stream.ReadByte());
+
+        // The cache owns the partially-read source stream and must release its acquired pointer
+        // before GitPack disposes the memory-mapped view.
+        gitPack.Dispose();
+    }
 }
