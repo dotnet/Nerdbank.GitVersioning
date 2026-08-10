@@ -1,0 +1,52 @@
+name: 🧪 Merge queue
+
+on:
+  merge_group:
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  BUILDCONFIGURATION: Release
+  NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages/
+
+jobs:
+  build:
+    name: 🏭 Build and unit test
+    runs-on: ubuntu-24.04
+
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
+        submodules: true
+    - name: ⚙ Install prerequisites
+      run: |
+        ./init.ps1 -UpgradePrerequisites -NoNuGetCredProvider
+        dotnet --info
+      shell: pwsh
+    - name: ⚙ Install node.js
+      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      with:
+        node-version: 24.x
+        cache: yarn
+        cache-dependency-path: src/nerdbank-gitversioning.npm/yarn.lock
+    - name: ⚙️ Set pipeline variables based on source
+      run: tools/variables/_define.ps1
+      shell: pwsh
+    - name: 🛠 Build
+      run: dotnet build --no-restore -c ${{ env.BUILDCONFIGURATION }} -warnAsError -warnNotAsError:NU1901,NU1902,NU1903,NU1904 /bl:"${{ runner.temp }}/_artifacts/build_logs/build.binlog"
+    - name: 🧪 Test
+      run: |
+        git config --global user.name ci
+        git config --global user.email me@ci.com
+        tools/dotnet-test-cloud.ps1 -Configuration ${{ env.BUILDCONFIGURATION }} -Agent ${{ runner.os }} -PublishResults
+      shell: pwsh
+      timeout-minutes: 15
+
+  required_status_checks:
+    name: Required status checks pass
+    needs: build
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+    - name: Verify required jobs succeeded
+      run: test '${{ needs.build.result }}' = success

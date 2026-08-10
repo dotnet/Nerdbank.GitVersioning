@@ -7,7 +7,6 @@ on:
     - 'v*.*'
     - validate/*
   pull_request:
-  merge_group:
   workflow_dispatch:
 
 env:
@@ -131,6 +130,19 @@ jobs:
       shell: pwsh
       if: runner.os != 'Linux'
       timeout-minutes: 3
+
+  required_status_checks:
+    name: Required status checks pass
+    needs:
+    - build
+    - functional_testing
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+    - name: Verify required jobs succeeded
+      run: |
+        test '${{ needs.build.result }}' = success
+        test '${{ needs.functional_testing.result }}' = success
 
   functional_testing:
     name: 🧪 Functional testing
