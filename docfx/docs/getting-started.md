@@ -17,6 +17,7 @@ See relevant documentation for any of these topics:
 
 * [.NET](ecosystems/dotnet.md)
 * [Node](ecosystems/node.md)
+* [Python](ecosystems/python.md)
 * [VSIX](ecosystems/vsix.md)
 
 ## Build

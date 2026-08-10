@@ -191,8 +191,8 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
                     result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"))));
         this.Logger.WriteLine(versionCsContent);
 
-        SyntaxTree sourceFile = CSharpSyntaxTree.ParseText(versionCsContent);
-        SyntaxNode syntaxTree = await sourceFile.GetRootAsync();
+        SyntaxTree sourceFile = CSharpSyntaxTree.ParseText(versionCsContent, cancellationToken: TestContext.Current.CancellationToken);
+        SyntaxNode syntaxTree = await sourceFile.GetRootAsync(TestContext.Current.CancellationToken);
         IEnumerable<VariableDeclaratorSyntax> fields = syntaxTree.DescendantNodes().OfType<VariableDeclaratorSyntax>();
 
         var publicKeyField = (LiteralExpressionSyntax)fields.SingleOrDefault(f => f.Identifier.ValueText == "PublicKey")?.Initializer.Value;
@@ -479,6 +479,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         this.LoadTargetsIntoProjectCollection();
         this.testProject = this.CreateProjectRootElement(this.projectDirectory, "test.prj");
         this.globalProperties.Add("NerdbankGitVersioningTasksPath", Environment.CurrentDirectory + "\\");
+        this.globalProperties.Add("_NBGV_UnitTest", "true");
         Environment.SetEnvironmentVariable("_NBGV_UnitTest", "true");
 
         // Sterilize the test of any environment variables.

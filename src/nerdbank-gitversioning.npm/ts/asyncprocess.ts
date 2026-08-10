@@ -11,7 +11,10 @@ export function execAsync(command: string, options?: cp.ExecOptions) {
             if (error) {
                 reject(error);
             } else {
-                resolve({ stdout: stdout, stderr: stderr });
+                resolve({
+                    stdout: typeof stdout === 'string' ? stdout : stdout.toString(),
+                    stderr: typeof stderr === 'string' ? stderr : stderr.toString(),
+                });
             }
         }));
 };

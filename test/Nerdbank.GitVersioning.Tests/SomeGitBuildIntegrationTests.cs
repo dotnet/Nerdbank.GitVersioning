@@ -71,7 +71,7 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
     public async Task GetBuildVersion_In_Git_But_Without_Commits()
     {
         Repository.Init(this.RepoPath);
-        var repo = new Repository(this.RepoPath); // do not assign Repo property to avoid commits being generated later
+        using var repo = new Repository(this.RepoPath); // do not assign Repo property to avoid commits being generated later
         this.WriteVersionFile("3.4");
         Assumes.False(repo.Head.Commits.Any()); // verification that the test is doing what it claims
         BuildResults buildResult = await this.BuildAsync();
@@ -83,7 +83,7 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
     public async Task GetBuildVersion_In_Git_But_Head_Lacks_VersionFile()
     {
         Repository.Init(this.RepoPath);
-        var repo = new Repository(this.RepoPath); // do not assign Repo property to avoid commits being generated later
+        using var repo = new Repository(this.RepoPath); // do not assign Repo property to avoid commits being generated later
         repo.Commit("empty", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         this.WriteVersionFile("3.4");
         Assumes.True(repo.Index[VersionFile.JsonFileName] is null);
@@ -110,7 +110,7 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
     public async Task GetBuildVersion_In_Git_No_VersionFile_At_All()
     {
         Repository.Init(this.RepoPath);
-        var repo = new Repository(this.RepoPath); // do not assign Repo property to avoid commits being generated later
+        using var repo = new Repository(this.RepoPath); // do not assign Repo property to avoid commits being generated later
         repo.Commit("empty", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
         BuildResults buildResult = await this.BuildAsync();
         Assert.Equal("0.0.0." + this.GetVersion().Revision, buildResult.BuildVersion);
@@ -713,6 +713,41 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
         Assert.Equal($"Copyright (c) {DateTime.Now.Year}. All rights reserved.", fileInfo.LegalCopyright);
     }
 #endif
+
+    [Theory]
+    [Trait("TestCategory", "FailsInCloudTest")]
+    [MemberData(nameof(CloudBuildVariablesData))]
+    public async Task SetCloudBuildVersionVars_CanBeDisabled(IReadOnlyDictionary<string, string> properties, string expectedMessage, bool setAllVariables)
+    {
+        using (ApplyEnvironmentVariables(properties))
+        {
+            // Disable SetCloudBuildVersionVars target
+            this.testProject.AddProperty("NBGV_SetCloudBuildVersionVars", "false");
+
+            var versionOptions = new VersionOptions
+            {
+                Version = SemanticVersion.Parse("1.0"),
+                CloudBuild = new VersionOptions.CloudBuildOptions { SetAllVariables = setAllVariables, SetVersionVariables = true },
+            };
+            this.WriteVersionFile(versionOptions);
+            this.InitializeSourceControl();
+
+            BuildResults buildResult = await this.BuildAsync();
+            this.AssertStandardProperties(versionOptions, buildResult);
+
+            // Assert GitBuildVersion was NOT set because we disabled the target
+            string notExpectedMessage = UnitTestCloudBuildPrefix + expectedMessage
+                .Replace("{NAME}", "GitBuildVersion")
+                .Replace("{VALUE}", buildResult.BuildVersion);
+            Assert.DoesNotContain(notExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
+
+            // Assert GitBuildVersionSimple was NOT set
+            notExpectedMessage = UnitTestCloudBuildPrefix + expectedMessage
+                .Replace("{NAME}", "GitBuildVersionSimple")
+                .Replace("{VALUE}", buildResult.BuildVersionSimple);
+            Assert.DoesNotContain(notExpectedMessage, buildResult.LoggedEvents.Select(e => e.Message.TrimEnd()));
+        }
+    }
 
     /// <inheritdoc/>
     protected override GitContext CreateGitContext(string path, string committish = null) => throw new NotImplementedException();

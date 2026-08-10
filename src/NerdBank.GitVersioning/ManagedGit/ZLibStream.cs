@@ -36,6 +36,7 @@ public class ZLibStream : Stream
     private readonly DeflateStream stream;
     private long length;
     private long position;
+    private bool disposed;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ZLibStream"/>  class.
@@ -179,7 +180,11 @@ public class ZLibStream : Stream
     /// <inheritdoc/>
     protected override void Dispose(bool disposing)
     {
-        this.stream.Dispose();
+        if (disposing && !this.disposed)
+        {
+            this.stream.Dispose();
+            this.disposed = true;
+        }
     }
 
     /// <summary>

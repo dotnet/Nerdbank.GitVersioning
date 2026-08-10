@@ -13,5 +13,5 @@ internal class NoGitVersionFile : VersionFile
     }
 
     /// <inheritdoc/>
-    protected override VersionOptions GetVersionCore(out string actualDirectory) => throw Assumes.NotReachable();
+    protected override VersionOptions GetVersionCore(VersionFileRequirements requirements, out VersionFileLocations locations) => throw Assumes.NotReachable();
 }

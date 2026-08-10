@@ -45,7 +45,7 @@ public class VersionOracle
 
         // Consider the working version only if the commit being inspected is HEAD.
         // Otherwise we're looking at historical data and should not consider the state of the working tree at all.
-        this.WorkingVersion = context.IsHead ? context.VersionFile.GetWorkingCopyVersion() : this.CommittedVersion;
+        this.WorkingVersion = context.IsHead ? context.VersionFile.GetWorkingCopyVersion(VersionFileRequirements.Default) : this.CommittedVersion;
 
         if (overrideVersionHeightOffset.HasValue)
         {
@@ -306,7 +306,13 @@ public class VersionOracle
     /// when calculating the integer to use as the <see cref="BuildNumber"/>
     /// or elsewhere that the {height} macro is used.
     /// </summary>
-    public int VersionHeightOffset => this.VersionOptions?.VersionHeightOffsetOrDefault ?? 0;
+    /// <remarks>
+    /// This property returns the effective version height offset, which takes into account
+    /// the <see cref="VersionOptions.VersionHeightOffsetAppliesTo"/> property. If that property
+    /// is set and the version has changed such that the version height would be reset, this
+    /// will return 0 instead of the configured offset.
+    /// </remarks>
+    public int VersionHeightOffset => this.VersionOptions?.EffectiveVersionHeightOffset ?? 0;
 
     /// <summary>
     /// Gets or sets the ref (branch or tag) being built.

@@ -1,29 +1,21 @@
 // Copyright (c) .NET Foundation and Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#nullable enable
-
-using System;
-using System.Collections.Generic;
 using System.CommandLine;
-using System.CommandLine.Invocation;
-using System.CommandLine.Parsing;
-using System.IO;
-using System.Linq;
+using System.Globalization;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Build.Construction;
+using Microsoft.Build.Evaluation;
+using Microsoft.Build.Graph;
+using Microsoft.Build.Locator;
 using Nerdbank.GitVersioning.Commands;
 using Nerdbank.GitVersioning.LibGit2;
 using Newtonsoft.Json;
 using NuGet.Common;
 using NuGet.Configuration;
-using NuGet.PackageManagement;
-using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
-using NuGet.Resolver;
 using Validation;
 
 namespace Nerdbank.GitVersioning.Tool
@@ -72,6 +64,7 @@ namespace Nerdbank.GitVersioning.Tool
             InternalError,
             InvalidTagNameSetting,
             InvalidUnformattedCommitMessage,
+            PathFiltersMismatch,
         }
 
         private static bool AlwaysUseLibGit2 => string.Equals(Environment.GetEnvironmentVariable("NBGV_GitEngine"), "LibGit2", StringComparison.Ordinal);
@@ -80,9 +73,23 @@ namespace Nerdbank.GitVersioning.Tool
 
         public static int Main(string[] args)
         {
+            VisualStudioInstance msbuildInstance = null;
+            try
+            {
+                if (!MSBuildLocator.IsRegistered)
+                {
+                    msbuildInstance = MSBuildLocator.RegisterDefaults();
+                }
+            }
+            catch (InvalidOperationException ex)
+            {
+                Console.Error.WriteLine($"Failed to locate MSBuild: {ex.Message}");
+                return (int)ExitCodes.InternalError;
+            }
+
             string thisAssemblyPath = typeof(Program).GetTypeInfo().Assembly.Location;
 
-            GitLoaderContext loaderContext = new(Path.GetDirectoryName(thisAssemblyPath));
+            GitLoaderContext loaderContext = new(Path.GetDirectoryName(thisAssemblyPath), msbuildInstance?.MSBuildPath);
             Assembly inContextAssembly = loaderContext.LoadFromAssemblyPath(thisAssemblyPath);
             Type innerProgramType = inContextAssembly.GetType(typeof(Program).FullName);
             object innerProgram = Activator.CreateInstance(innerProgramType);
@@ -109,7 +116,6 @@ namespace Nerdbank.GitVersioning.Tool
                 var source = new Option<string[]>("--source", ["-s"])
                 {
                     Description = $"The URI(s) of the NuGet package source(s) used to determine the latest stable version of the {PackageId} package. This setting overrides all of the sources specified in the NuGet.Config files.",
-                    DefaultValueFactory = _ => Array.Empty<string>(),
                     Arity = ArgumentArity.OneOrMore,
                     AllowMultipleArgumentsPerToken = true,
                 };
@@ -134,7 +140,7 @@ namespace Nerdbank.GitVersioning.Tool
                 {
                     Description = "The path to the project or project directory. The default is the current directory.",
                 };
-                var metadata = new Option<string[]>("--metadata", Array.Empty<string>())
+                var metadata = new Option<string[]>("--metadata")
                 {
                     Description = "Adds an identifier to the build metadata part of a semantic version.",
                     Arity = ArgumentArity.OneOrMore,
@@ -148,6 +154,11 @@ namespace Nerdbank.GitVersioning.Tool
                 {
                     Description = "The name of just one version property to print to stdout. When specified, the output is always in raw text. Useful in scripts.",
                 };
+                var publicRelease = new Option<bool?>("--public-release")
+                {
+                    Description = "Specifies whether this is a public release. When specified, overrides the PublicRelease environment variable. Use --public-release=true or --public-release=false to explicitly set the value.",
+                    Arity = ArgumentArity.ZeroOrOne,
+                };
                 var commit = new Argument<string>("commit-ish")
                 {
                     Description = $"The commit/ref to get the version information for.",
@@ -160,6 +171,7 @@ namespace Nerdbank.GitVersioning.Tool
                     metadata,
                     format,
                     variable,
+                    publicRelease,
                     commit,
                 };
 
@@ -169,8 +181,9 @@ namespace Nerdbank.GitVersioning.Tool
                     var metadataValue = parseResult.GetValue(metadata);
                     var formatValue = parseResult.GetValue(format);
                     var variableValue = parseResult.GetValue(variable);
+                    var publicReleaseValue = parseResult.GetValue(publicRelease);
                     var commitValue = parseResult.GetValue(commit);
-                    return await OnGetVersionCommand(projectValue, metadataValue, formatValue, variableValue, commitValue);
+                    return await OnGetVersionCommand(projectValue, metadataValue, formatValue, variableValue, publicReleaseValue, commitValue);
                 });
             }
 
@@ -210,17 +223,23 @@ namespace Nerdbank.GitVersioning.Tool
                     DefaultValueFactory = _ => DefaultRef,
                     Arity = ArgumentArity.ZeroOrOne,
                 };
+                var whatIf = new Option<bool>("--what-if")
+                {
+                    Description = "Calculates and outputs the tag name without creating the tag.",
+                };
                 tag = new Command("tag", "Creates a git tag to mark a version.")
                 {
                     project,
                     versionOrRef,
+                    whatIf,
                 };
 
                 tag.SetAction(async (ParseResult parseResult, CancellationToken cancellationToken) =>
                 {
                     var projectValue = parseResult.GetValue(project);
                     var versionOrRefValue = parseResult.GetValue(versionOrRef);
-                    return await OnTagCommand(projectValue, versionOrRefValue);
+                    var whatIfValue = parseResult.GetValue(whatIf);
+                    return await OnTagCommand(projectValue, versionOrRefValue, whatIfValue);
                 });
             }
 
@@ -260,7 +279,7 @@ namespace Nerdbank.GitVersioning.Tool
                 {
                     Description = "The path to the project or project directory used to calculate the version. The default is the current directory. Ignored if the -v option is specified.",
                 };
-                var metadata = new Option<string[]>("--metadata", Array.Empty<string>())
+                var metadata = new Option<string[]>("--metadata")
                 {
                     Description = "Adds an identifier to the build metadata part of a semantic version.",
                     Arity = ArgumentArity.OneOrMore,
@@ -282,14 +301,13 @@ namespace Nerdbank.GitVersioning.Tool
                 {
                     Description = "Defines a few common version variables as cloud build variables, with a \"Git\" prefix (e.g. GitBuildVersion, GitBuildVersionSimple, GitAssemblyInformationalVersion).",
                 };
-                var skipCloudBuildNumber = new Option<bool>("--skip-cloud-build-number", Array.Empty<string>())
+                var skipCloudBuildNumber = new Option<bool>("--skip-cloud-build-number")
                 {
                     Description = "Do not emit the cloud build variable to set the build number. This is useful when you want to set other cloud build variables but not the build number.",
                 };
                 var define = new Option<string[]>("--define", ["-d"])
                 {
                     Description = "Additional cloud build variables to define. Each should be in the NAME=VALUE syntax.",
-                    DefaultValueFactory = _ => Array.Empty<string>(),
                     Arity = ArgumentArity.OneOrMore,
                     AllowMultipleArgumentsPerToken = true,
                 };
@@ -325,11 +343,11 @@ namespace Nerdbank.GitVersioning.Tool
                 {
                     Description = "The path to the project or project directory. The default is the current directory.",
                 };
-                var nextVersion = new Option<string>("--nextVersion", Array.Empty<string>())
+                var nextVersion = new Option<string>("--nextVersion")
                 {
                     Description = "The version to set for the current branch. If omitted, the next version is determined automatically by incrementing the current version.",
                 };
-                var versionIncrement = new Option<string>("--versionIncrement", Array.Empty<string>())
+                var versionIncrement = new Option<string>("--versionIncrement")
                 {
                     Description = "Overrides the 'versionIncrement' setting set in version.json for determining the next version of the current branch.",
                 };
@@ -337,9 +355,17 @@ namespace Nerdbank.GitVersioning.Tool
                 {
                     Description = $"The format to write information about the release. Allowed values are: {string.Join(", ", SupportedFormats)}. The default is {DefaultOutputFormat}.",
                 };
-                var unformattedCommitMessage = new Option<string>("--commit-message-pattern", Array.Empty<string>())
+                var unformattedCommitMessage = new Option<string>("--commit-message-pattern")
                 {
                     Description = "A custom message to use for the commit that changes the version number. May include {0} for the version number. If not specified, the default is \"Set version to '{0}'\".",
+                };
+                var whatIf = new Option<bool>("--what-if")
+                {
+                    Description = "Simulates the prepare-release operation and prints the new version that would be set, but does not actually make any changes.",
+                };
+                var noMerge = new Option<bool>("--no-merge")
+                {
+                    Description = "Does not merge the release branch back into the current branch after updating both branches.",
                 };
                 var tagArgument = new Argument<string>("tag")
                 {
@@ -353,6 +379,8 @@ namespace Nerdbank.GitVersioning.Tool
                     versionIncrement,
                     format,
                     unformattedCommitMessage,
+                    whatIf,
+                    noMerge,
                     tagArgument,
                 };
 
@@ -364,8 +392,55 @@ namespace Nerdbank.GitVersioning.Tool
                     var formatValue = parseResult.GetValue(format);
                     var tagArgumentValue = parseResult.GetValue(tagArgument);
                     var unformattedCommitMessageValue = parseResult.GetValue(unformattedCommitMessage);
-                    return await OnPrepareReleaseCommand(projectValue, nextVersionValue, versionIncrementValue, formatValue, tagArgumentValue, unformattedCommitMessageValue);
+                    var whatIfValue = parseResult.GetValue(whatIf);
+                    var noMergeValue = parseResult.GetValue(noMerge);
+                    return await OnPrepareReleaseCommand(projectValue, nextVersionValue, versionIncrementValue, formatValue, tagArgumentValue, unformattedCommitMessageValue, whatIfValue, noMergeValue);
                 });
+            }
+
+            Command pathFilters;
+            {
+                var paths = new Argument<string[]>("path")
+                {
+                    Description = "One or more paths to search. Each may be a directory (recursively searched for version.json files) or a version.json file directly (processed without recursive search). Defaults to the current directory.",
+                    Arity = ArgumentArity.ZeroOrMore,
+                };
+                var extraExtensions = new Option<string[]>("--ext")
+                {
+                    Description = "Additional MSBuild project file extensions to include (e.g. --ext .myproj). Default extensions are .csproj, .vbproj, .fsproj, and .vcxproj.",
+                    Arity = ArgumentArity.OneOrMore,
+                    AllowMultipleArgumentsPerToken = true,
+                };
+
+                var updateSubCommand = new Command("update", "Computes pathFilters based on MSBuild project references and imports and writes the result to each applicable version.json file.")
+                {
+                    paths,
+                    extraExtensions,
+                };
+                updateSubCommand.SetAction(async (ParseResult parseResult, CancellationToken cancellationToken) =>
+                {
+                    var pathsValue = parseResult.GetValue(paths);
+                    var extraExtensionsValue = parseResult.GetValue(extraExtensions);
+                    return await OnPathFiltersUpdateCommand(pathsValue, extraExtensionsValue);
+                });
+
+                var checkSubCommand = new Command("check", "Computes pathFilters based on MSBuild project references and imports and verifies they match what is in each applicable version.json file. Exits with a non-zero exit code when differences are found.")
+                {
+                    paths,
+                    extraExtensions,
+                };
+                checkSubCommand.SetAction(async (ParseResult parseResult, CancellationToken cancellationToken) =>
+                {
+                    var pathsValue = parseResult.GetValue(paths);
+                    var extraExtensionsValue = parseResult.GetValue(extraExtensions);
+                    return await OnPathFiltersCheckCommand(pathsValue, extraExtensionsValue);
+                });
+
+                pathFilters = new Command("path-filters", "Manages the pathFilters property in version.json files based on MSBuild project references and imports.")
+                {
+                    updateSubCommand,
+                    checkSubCommand,
+                };
             }
 
             var root = new RootCommand($"{ThisAssembly.AssemblyTitle} v{ThisAssembly.AssemblyInformationalVersion}")
@@ -377,6 +452,7 @@ namespace Nerdbank.GitVersioning.Tool
                 getCommits,
                 cloud,
                 prepareRelease,
+                pathFilters,
             };
 
             return root;
@@ -394,6 +470,17 @@ namespace Nerdbank.GitVersioning.Tool
                 Console.Error.WriteLine("Unhandled exception: {0}", ex.Message);
                 Console.Error.WriteLine("Unhandled exception while trying to print string version of the above exception: {0}", ex2);
             }
+        }
+
+        /// <summary>
+        /// Gets the effective git engine to use based on environment variables and command settings.
+        /// </summary>
+        /// <param name="preferReadWrite">Whether to prefer ReadWrite (LibGit2) engine when not explicitly specified.</param>
+        /// <returns>The engine to use.</returns>
+        private static GitContext.Engine GetEffectiveGitEngine(bool preferReadWrite = false)
+        {
+            // Use the shared logic from GitContext which handles both NBGV_GitEngine and DEPENDABOT env vars
+            return GitContext.GetEffectiveGitEngine(preferReadWrite ? GitContext.Engine.ReadWrite : GitContext.Engine.ReadOnly);
         }
 
         private static int MainInner(string[] args)
@@ -415,430 +502,6 @@ namespace Nerdbank.GitVersioning.Tool
             }
 
             return (int)exitCode;
-        }
-
-        /// <summary>
-        /// Detects the default branch name for the repository following the algorithm:
-        /// 1. If the upstream remote exists, use its HEAD reference
-        /// 2. If the origin remote exists, use its HEAD reference
-        /// 3. If any remote exists, pick one arbitrarily and use its HEAD reference
-        /// 4. If only one local branch exists, use that one
-        /// 5. Use git config init.defaultBranch if the named branch exists locally
-        /// 6. Use the first local branch that exists from: master, main, develop.
-        /// </summary>
-        /// <param name="context">The git context to query.</param>
-        /// <returns>The detected default branch name, defaulting to "master" if none can be determined.</returns>
-        private static string DetectDefaultBranch(GitContext context)
-        {
-            if (context is LibGit2.LibGit2Context libgit2Context)
-            {
-                LibGit2Sharp.Repository repository = libgit2Context.Repository;
-
-                // Step 1-3: Check remotes for HEAD reference
-                string[] remotePreferenceOrder = { "upstream", "origin" };
-
-                foreach (string remoteName in remotePreferenceOrder)
-                {
-                    LibGit2Sharp.Remote? remote = repository.Network.Remotes[remoteName];
-                    if (remote is object)
-                    {
-                        string? defaultBranch = GetDefaultBranchFromRemote(repository, remoteName);
-                        if (!string.IsNullOrEmpty(defaultBranch))
-                        {
-                            return defaultBranch;
-                        }
-                    }
-                }
-
-                // Check any other remotes if upstream/origin didn't work
-                foreach (LibGit2Sharp.Remote remote in repository.Network.Remotes)
-                {
-                    if (remote.Name != "upstream" && remote.Name != "origin")
-                    {
-                        string? defaultBranch = GetDefaultBranchFromRemote(repository, remote.Name);
-                        if (!string.IsNullOrEmpty(defaultBranch))
-                        {
-                            return defaultBranch;
-                        }
-                    }
-                }
-
-                // Step 4: If only one local branch exists, use that one
-                LibGit2Sharp.Branch[] localBranches = repository.Branches.Where(b => !b.IsRemote).ToArray();
-                if (localBranches.Length == 1)
-                {
-                    return localBranches[0].FriendlyName;
-                }
-
-                // Step 5: Use git config init.defaultBranch if the named branch exists locally
-                try
-                {
-                    string? configDefaultBranch = repository.Config.Get<string>("init.defaultBranch")?.Value;
-                    if (!string.IsNullOrEmpty(configDefaultBranch) &&
-                        localBranches.Any(b => b.FriendlyName == configDefaultBranch))
-                    {
-                        return configDefaultBranch;
-                    }
-                }
-                catch
-                {
-                    // Ignore config read errors
-                }
-
-                // Step 6: Use the first local branch that exists from: master, main, develop
-                string[] commonBranchNames = { "master", "main", "develop" };
-                foreach (string branchName in commonBranchNames)
-                {
-                    if (localBranches.Any(b => b.FriendlyName == branchName))
-                    {
-                        return branchName;
-                    }
-                }
-            }
-            else if (context.IsRepository)
-            {
-                // Alternative implementation that reads .git directory directly
-                string? dotGitPath = null;
-
-                // Try to get .git path from different context types
-                if (context is Managed.ManagedGitContext managedContext)
-                {
-                    dotGitPath = managedContext.Repository.GitDirectory;
-                }
-                else
-                {
-                    // Use public API to find git directory
-                    try
-                    {
-                        // Create a temporary GitContext to find the git directory
-                        using GitContext tempContext = GitContext.Create(context.WorkingTreePath, engine: GitContext.Engine.ReadOnly);
-                        if (tempContext.IsRepository && tempContext is Managed.ManagedGitContext tempManagedContext)
-                        {
-                            dotGitPath = tempManagedContext.Repository.GitDirectory;
-                        }
-                    }
-                    catch
-                    {
-                        // Ignore errors in creating temporary context
-                    }
-                }
-
-                if (dotGitPath is object)
-                {
-                    // Step 1-3: Check remotes for HEAD reference
-                    string[] remotePreferenceOrder = { "upstream", "origin" };
-
-                    foreach (string remoteName in remotePreferenceOrder)
-                    {
-                        string? defaultBranch = GetDefaultBranchFromRemoteFiles(dotGitPath, remoteName);
-                        if (!string.IsNullOrEmpty(defaultBranch))
-                        {
-                            return defaultBranch;
-                        }
-                    }
-
-                    // Check any other remotes if upstream/origin didn't work
-                    string[] otherRemotes = GetRemoteNamesFromFiles(dotGitPath);
-                    foreach (string remoteName in otherRemotes)
-                    {
-                        if (remoteName != "upstream" && remoteName != "origin")
-                        {
-                            string? defaultBranch = GetDefaultBranchFromRemoteFiles(dotGitPath, remoteName);
-                            if (!string.IsNullOrEmpty(defaultBranch))
-                            {
-                                return defaultBranch;
-                            }
-                        }
-                    }
-
-                    // Step 4: If only one local branch exists, use that one
-                    string[] localBranches = GetLocalBranchNamesFromFiles(dotGitPath);
-                    if (localBranches.Length == 1)
-                    {
-                        return localBranches[0];
-                    }
-
-                    // Step 5: Use git config init.defaultBranch if the named branch exists locally
-                    string? configDefaultBranch = GetConfigValueFromFiles(dotGitPath, "init.defaultBranch");
-                    if (!string.IsNullOrEmpty(configDefaultBranch) && localBranches.Contains(configDefaultBranch))
-                    {
-                        return configDefaultBranch;
-                    }
-
-                    // Step 6: Use the first local branch that exists from: master, main, develop
-                    string[] commonBranchNames = { "master", "main", "develop" };
-                    foreach (string branchName in commonBranchNames)
-                    {
-                        if (localBranches.Contains(branchName))
-                        {
-                            return branchName;
-                        }
-                    }
-                }
-            }
-
-            // Fallback to "master" if nothing else works
-            return "master";
-        }
-
-        /// <summary>
-        /// Gets the default branch name from a remote's HEAD reference.
-        /// </summary>
-        /// <param name="repository">The repository to query.</param>
-        /// <param name="remoteName">The name of the remote.</param>
-        /// <returns>The default branch name, or null if it cannot be determined.</returns>
-        private static string? GetDefaultBranchFromRemote(LibGit2Sharp.Repository repository, string remoteName)
-        {
-            try
-            {
-                // Try to get the symbolic reference for the remote HEAD
-                string remoteHeadRef = $"refs/remotes/{remoteName}/HEAD";
-                LibGit2Sharp.Reference? remoteHead = repository.Refs[remoteHeadRef];
-
-                if (remoteHead?.TargetIdentifier is object)
-                {
-                    // Extract branch name from refs/remotes/{remote}/{branch}
-                    string targetRef = remoteHead.TargetIdentifier;
-                    if (targetRef.StartsWith($"refs/remotes/{remoteName}/"))
-                    {
-                        return targetRef.Substring($"refs/remotes/{remoteName}/".Length);
-                    }
-                }
-            }
-            catch
-            {
-                // Ignore errors when trying to read remote HEAD
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Gets the default branch name from a remote's HEAD reference by reading .git files directly.
-        /// </summary>
-        /// <param name="dotGitPath">The path to the .git directory.</param>
-        /// <param name="remoteName">The name of the remote.</param>
-        /// <returns>The default branch name, or null if it cannot be determined.</returns>
-        private static string? GetDefaultBranchFromRemoteFiles(string dotGitPath, string remoteName)
-        {
-            try
-            {
-                // Try to read refs/remotes/{remote}/HEAD file
-                string remoteHeadPath = Path.Combine(dotGitPath, "refs", "remotes", remoteName, "HEAD");
-                if (File.Exists(remoteHeadPath))
-                {
-                    string content = File.ReadAllText(remoteHeadPath).Trim();
-
-                    // Content should be like "ref: refs/remotes/origin/main"
-                    if (content.StartsWith("ref: "))
-                    {
-                        string targetRef = content.Substring(5); // Remove "ref: " prefix
-                        string expectedPrefix = $"refs/remotes/{remoteName}/";
-                        if (targetRef.StartsWith(expectedPrefix))
-                        {
-                            return targetRef.Substring(expectedPrefix.Length);
-                        }
-                    }
-                }
-            }
-            catch
-            {
-                // Ignore file read errors
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Gets the names of all remotes by reading .git files directly.
-        /// </summary>
-        /// <param name="dotGitPath">The path to the .git directory.</param>
-        /// <returns>An array of remote names.</returns>
-        private static string[] GetRemoteNamesFromFiles(string dotGitPath)
-        {
-            try
-            {
-                string remotesPath = Path.Combine(dotGitPath, "refs", "remotes");
-                if (Directory.Exists(remotesPath))
-                {
-                    return Directory.GetDirectories(remotesPath)
-                        .Select(Path.GetFileName)
-                        .Where(name => !string.IsNullOrEmpty(name))
-                        .ToArray()!;
-                }
-            }
-            catch
-            {
-                // Ignore directory read errors
-            }
-
-            return Array.Empty<string>();
-        }
-
-        /// <summary>
-        /// Gets the names of all local branches by reading .git files directly.
-        /// </summary>
-        /// <param name="dotGitPath">The path to the .git directory.</param>
-        /// <returns>An array of local branch names.</returns>
-        private static string[] GetLocalBranchNamesFromFiles(string dotGitPath)
-        {
-            var branches = new List<string>();
-
-            try
-            {
-                // Read from refs/heads directory
-                string headsPath = Path.Combine(dotGitPath, "refs", "heads");
-                if (Directory.Exists(headsPath))
-                {
-                    AddBranchesFromDirectory(headsPath, string.Empty, branches);
-                }
-
-                // Also check packed-refs file
-                string packedRefsPath = Path.Combine(dotGitPath, "packed-refs");
-                if (File.Exists(packedRefsPath))
-                {
-                    string[] lines = File.ReadAllLines(packedRefsPath);
-                    foreach (string line in lines)
-                    {
-                        if (!line.StartsWith("#") && line.Contains(" refs/heads/"))
-                        {
-                            string[] parts = line.Split(' ');
-                            if (parts.Length >= 2 && parts[1].StartsWith("refs/heads/"))
-                            {
-                                string branchName = parts[1].Substring("refs/heads/".Length);
-                                if (!branches.Contains(branchName))
-                                {
-                                    branches.Add(branchName);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            catch
-            {
-                // Ignore file read errors
-            }
-
-            return branches.ToArray();
-        }
-
-        /// <summary>
-        /// Recursively adds branch names from a directory.
-        /// </summary>
-        /// <param name="directoryPath">The directory path to scan.</param>
-        /// <param name="relativePath">The relative path from refs/heads.</param>
-        /// <param name="branches">The list to add branch names to.</param>
-        private static void AddBranchesFromDirectory(string directoryPath, string relativePath, List<string> branches)
-        {
-            try
-            {
-                foreach (string filePath in Directory.GetFiles(directoryPath))
-                {
-                    string fileName = Path.GetFileName(filePath);
-                    string branchName = string.IsNullOrEmpty(relativePath) ? fileName : $"{relativePath}/{fileName}";
-                    branches.Add(branchName);
-                }
-
-                foreach (string subdirectoryPath in Directory.GetDirectories(directoryPath))
-                {
-                    string subdirectoryName = Path.GetFileName(subdirectoryPath);
-                    string newRelativePath = string.IsNullOrEmpty(relativePath) ? subdirectoryName : $"{relativePath}/{subdirectoryName}";
-                    AddBranchesFromDirectory(subdirectoryPath, newRelativePath, branches);
-                }
-            }
-            catch
-            {
-                // Ignore directory read errors
-            }
-        }
-
-        /// <summary>
-        /// Gets a git config value by reading .git files directly.
-        /// </summary>
-        /// <param name="dotGitPath">The path to the .git directory.</param>
-        /// <param name="configKey">The config key to read (e.g., "init.defaultBranch").</param>
-        /// <returns>The config value, or null if not found.</returns>
-        private static string? GetConfigValueFromFiles(string dotGitPath, string configKey)
-        {
-            try
-            {
-                // Check .git/config first
-                string configPath = Path.Combine(dotGitPath, "config");
-                if (File.Exists(configPath))
-                {
-                    string? value = ReadConfigValue(configPath, configKey);
-                    if (value is object)
-                    {
-                        return value;
-                    }
-                }
-
-                // Fall back to global config if available
-                string? homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-                if (!string.IsNullOrEmpty(homeDir))
-                {
-                    string globalConfigPath = Path.Combine(homeDir, ".gitconfig");
-                    if (File.Exists(globalConfigPath))
-                    {
-                        return ReadConfigValue(globalConfigPath, configKey);
-                    }
-                }
-            }
-            catch
-            {
-                // Ignore config read errors
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Reads a config value from a git config file.
-        /// </summary>
-        /// <param name="configPath">The path to the config file.</param>
-        /// <param name="configKey">The config key to read.</param>
-        /// <returns>The config value, or null if not found.</returns>
-        private static string? ReadConfigValue(string configPath, string configKey)
-        {
-            try
-            {
-                string[] lines = File.ReadAllLines(configPath);
-                string[] keyParts = configKey.Split('.');
-                if (keyParts.Length != 2)
-                {
-                    return null;
-                }
-
-                string section = keyParts[0];
-                string key = keyParts[1];
-                string sectionHeader = $"[{section}]";
-                bool inSection = false;
-
-                foreach (string line in lines)
-                {
-                    string trimmedLine = line.Trim();
-
-                    if (trimmedLine.StartsWith("[") && trimmedLine.EndsWith("]"))
-                    {
-                        inSection = string.Equals(trimmedLine, sectionHeader, StringComparison.OrdinalIgnoreCase);
-                    }
-                    else if (inSection && trimmedLine.Contains("="))
-                    {
-                        string[] parts = trimmedLine.Split('=', 2);
-                        if (parts.Length == 2 && string.Equals(parts[0].Trim(), key, StringComparison.OrdinalIgnoreCase))
-                        {
-                            return parts[1].Trim().Trim('"');
-                        }
-                    }
-                }
-            }
-            catch
-            {
-                // Ignore file read errors
-            }
-
-            return null;
         }
 
         private static async Task<int> OnInstallCommand(string path, string version, string[] source)
@@ -863,31 +526,44 @@ namespace Nerdbank.GitVersioning.Tool
                 return (int)ExitCodes.NoGitRepo;
             }
 
-            string defaultBranch = DetectDefaultBranch(context);
-
-            var options = new VersionOptions
-            {
-                Version = semver,
-                PublicReleaseRefSpec = new string[]
-                {
-                    $@"^refs/heads/{defaultBranch}$",
-                    @"^refs/heads/v\d+(?:\.\d+)?$",
-                },
-                CloudBuild = new VersionOptions.CloudBuildOptions
-                {
-                    BuildNumber = new VersionOptions.CloudBuildNumberOptions
-                    {
-                        Enabled = true,
-                    },
-                },
-            };
-
             if (string.IsNullOrEmpty(path))
             {
                 path = context.WorkingTreePath;
             }
 
-            VersionOptions? existingOptions = context.VersionFile.GetVersion();
+            // Validate given sources
+            foreach (string src in source)
+            {
+                // TODO: Can declare Option<Uri> to validate argument during parsing.
+                if (!Uri.TryCreate(src, UriKind.Absolute, out Uri _))
+                {
+                    Console.Error.WriteLine($"\"{src}\" is not a valid NuGet package source.");
+                    return (int)ExitCodes.InvalidNuGetPackageSource;
+                }
+            }
+
+            string packageVersion;
+            try
+            {
+                packageVersion = await GetLatestPackageVersionAsync(PackageId, path, source);
+            }
+            catch (FatalProtocolException ex)
+            {
+                Console.Error.WriteLine($"Failed to query NuGet package sources: {ex.Message}");
+                Console.Error.WriteLine("Use the '--source' option to override the sources configured in NuGet.Config files.");
+                return (int)ExitCodes.PackageIdNotFound;
+            }
+
+            if (string.IsNullOrEmpty(packageVersion))
+            {
+                string verifyPhrase = source.Any()
+                    ? "Please verify the given 'source' option(s)."
+                    : "Please verify the package sources in the NuGet.Config files.";
+                Console.Error.WriteLine($"Latest stable version of the {PackageId} package could not be determined. " + verifyPhrase);
+                return (int)ExitCodes.PackageIdNotFound;
+            }
+
+            VersionOptions existingOptions = context.VersionFile.GetVersion();
             if (existingOptions is not null)
             {
                 if (!string.IsNullOrEmpty(version) && version != DefaultVersionSpec)
@@ -901,6 +577,22 @@ namespace Nerdbank.GitVersioning.Tool
             }
             else
             {
+                var options = new VersionOptions
+                {
+                    Version = semver,
+                    PublicReleaseRefSpec = new string[]
+                    {
+                        $@"^refs/heads/{Regex.Escape(context.GetDefaultBranch())}$",
+                        @"^refs/heads/v\d+(?:\.\d+)?$",
+                    },
+                    CloudBuild = new VersionOptions.CloudBuildOptions
+                    {
+                        BuildNumber = new VersionOptions.CloudBuildNumberOptions
+                        {
+                            Enabled = true,
+                        },
+                    },
+                };
                 string versionJsonPath = context.VersionFile.SetVersion(path, options);
                 context.Stage(versionJsonPath);
             }
@@ -910,27 +602,6 @@ namespace Nerdbank.GitVersioning.Tool
             ProjectRootElement propsFile = File.Exists(directoryBuildPropsPath)
                 ? ProjectRootElement.Open(directoryBuildPropsPath)
                 : ProjectRootElement.Create(directoryBuildPropsPath);
-
-            // Validate given sources
-            foreach (string src in source)
-            {
-                // TODO: Can declare Option<Uri> to validate argument during parsing.
-                if (!Uri.TryCreate(src, UriKind.Absolute, out Uri _))
-                {
-                    Console.Error.WriteLine($"\"{src}\" is not a valid NuGet package source.");
-                    return (int)ExitCodes.InvalidNuGetPackageSource;
-                }
-            }
-
-            string packageVersion = GetLatestPackageVersionAsync(PackageId, path, source).GetAwaiter().GetResult();
-            if (string.IsNullOrEmpty(packageVersion))
-            {
-                string verifyPhrase = source.Any()
-                    ? "Please verify the given 'source' option(s)."
-                    : "Please verify the package sources in the NuGet.Config files.";
-                Console.Error.WriteLine($"Latest stable version of the {PackageId} package could not be determined. " + verifyPhrase);
-                return (int)ExitCodes.PackageIdNotFound;
-            }
 
             const string PackageReferenceItemType = "PackageReference";
             const string PrivateAssetsMetadataName = "PrivateAssets";
@@ -1005,7 +676,7 @@ namespace Nerdbank.GitVersioning.Tool
             return (int)ExitCodes.OK;
         }
 
-        private static Task<int> OnGetVersionCommand(string project, string[] metadata, string format, string variable, string commitish)
+        private static Task<int> OnGetVersionCommand(string project, string[] metadata, string format, string variable, bool? publicReleaseArg, string commitish)
         {
             if (string.IsNullOrEmpty(format))
             {
@@ -1019,7 +690,7 @@ namespace Nerdbank.GitVersioning.Tool
 
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(project);
 
-            using var context = GitContext.Create(searchPath, engine: AlwaysUseLibGit2 ? GitContext.Engine.ReadWrite : GitContext.Engine.ReadOnly);
+            using var context = GitContext.Create(searchPath, engine: GetEffectiveGitEngine(preferReadWrite: AlwaysUseLibGit2));
             if (!context.IsRepository)
             {
                 Console.Error.WriteLine("No git repo found at or above: \"{0}\"", searchPath);
@@ -1038,8 +709,12 @@ namespace Nerdbank.GitVersioning.Tool
                 oracle.BuildMetadata.AddRange(metadata);
             }
 
-            // Take the PublicRelease environment variable into account, since the build would as well.
-            if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("PublicRelease")) && bool.TryParse(Environment.GetEnvironmentVariable("PublicRelease"), out bool publicRelease))
+            // Set PublicRelease - prioritize command line argument over environment variable
+            if (publicReleaseArg.HasValue)
+            {
+                oracle.PublicRelease = publicReleaseArg.Value;
+            }
+            else if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("PublicRelease")) && bool.TryParse(Environment.GetEnvironmentVariable("PublicRelease"), out bool publicRelease))
             {
                 oracle.PublicRelease = publicRelease;
             }
@@ -1082,7 +757,13 @@ namespace Nerdbank.GitVersioning.Tool
                     return Task.FromResult((int)ExitCodes.BadVariable);
                 }
 
-                Console.WriteLine(property.GetValue(oracle));
+                object propertyValue = property.GetValue(oracle);
+                string output = propertyValue switch
+                {
+                    DateTimeOffset dateTimeOffset => dateTimeOffset.ToString("yyyy-MM-ddTHH:mm:sszzz", CultureInfo.InvariantCulture),
+                    _ => propertyValue?.ToString() ?? string.Empty,
+                };
+                Console.WriteLine(output);
             }
 
             return Task.FromResult((int)ExitCodes.OK);
@@ -1103,12 +784,12 @@ namespace Nerdbank.GitVersioning.Tool
 
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(project);
             using var context = GitContext.Create(searchPath, engine: GitContext.Engine.ReadWrite);
-            VersionOptions existingOptions = context.VersionFile.GetVersion(out string actualDirectory);
+            VersionOptions existingOptions = context.VersionFile.GetVersion(VersionFileRequirements.NonMergedResult | VersionFileRequirements.VersionSpecified | VersionFileRequirements.AcceptInheritingFile, out VersionFileLocations locations);
             string versionJsonPath;
-            if (existingOptions is not null)
+            if (existingOptions is not null && locations.VersionSpecifyingVersionDirectory is not null)
             {
                 existingOptions.Version = semver;
-                versionJsonPath = context.VersionFile.SetVersion(actualDirectory, existingOptions);
+                versionJsonPath = context.VersionFile.SetVersion(locations.VersionSpecifyingVersionDirectory, existingOptions);
             }
             else if (string.IsNullOrEmpty(project))
             {
@@ -1133,7 +814,7 @@ namespace Nerdbank.GitVersioning.Tool
             return Task.FromResult((int)ExitCodes.OK);
         }
 
-        private static Task<int> OnTagCommand(string project, string versionOrRef)
+        private static Task<int> OnTagCommand(string project, string versionOrRef, bool whatIf)
         {
             if (string.IsNullOrEmpty(versionOrRef))
             {
@@ -1213,6 +894,13 @@ namespace Nerdbank.GitVersioning.Tool
             // replace the "{version}" placeholder with the actual version
             string tagName = tagNameFormat.Replace("{version}", oracle.SemVer2);
 
+            if (whatIf)
+            {
+                // In what-if mode, just output the tag name and exit
+                Console.WriteLine(tagName);
+                return Task.FromResult((int)ExitCodes.OK);
+            }
+
             try
             {
                 context.ApplyTag(tagName);
@@ -1241,14 +929,14 @@ namespace Nerdbank.GitVersioning.Tool
 
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(project);
 
-            using var context = (LibGit2Context)GitContext.Create(searchPath, engine: GitContext.Engine.ReadWrite);
+            using var context = GitContext.Create(searchPath, engine: GitContext.Engine.ReadWrite);
             if (!context.IsRepository)
             {
                 Console.Error.WriteLine("No git repo found at or above: \"{0}\"", searchPath);
                 return Task.FromResult((int)ExitCodes.NoGitRepo);
             }
 
-            IEnumerable<LibGit2Sharp.Commit> candidateCommits = LibGit2GitExtensions.GetCommitsFromVersion(context, parsedVersion);
+            IEnumerable<LibGit2Sharp.Commit> candidateCommits = LibGit2GitExtensions.GetCommitsFromVersion((LibGit2Context)context, parsedVersion);
             PrintCommits(quiet, context, candidateCommits);
 
             return Task.FromResult((int)ExitCodes.OK);
@@ -1312,7 +1000,7 @@ namespace Nerdbank.GitVersioning.Tool
             return Task.FromResult((int)ExitCodes.OK);
         }
 
-        private static Task<int> OnPrepareReleaseCommand(string project, string nextVersion, string versionIncrement, string format, string tag, string unformattedCommitMessage)
+        private static Task<int> OnPrepareReleaseCommand(string project, string nextVersion, string versionIncrement, string format, string tag, string unformattedCommitMessage, bool whatIf, bool noMerge)
         {
             // validate project path property
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(project);
@@ -1333,7 +1021,7 @@ namespace Nerdbank.GitVersioning.Tool
             VersionOptions.ReleaseVersionIncrement? versionIncrementParsed = default;
             if (!string.IsNullOrEmpty(versionIncrement))
             {
-                if (!Enum.TryParse<VersionOptions.ReleaseVersionIncrement>(versionIncrement, true, out VersionOptions.ReleaseVersionIncrement parsed))
+                if (!Enum.TryParse(versionIncrement, true, out VersionOptions.ReleaseVersionIncrement parsed))
                 {
                     Console.Error.WriteLine($"\"{versionIncrement}\" is not a valid version increment");
                     return Task.FromResult((int)ExitCodes.InvalidVersionIncrement);
@@ -1378,11 +1066,18 @@ namespace Nerdbank.GitVersioning.Tool
                 }
             }
 
-            // run prepare-release
+            // run prepare-release or simulate
             try
             {
                 var releaseManager = new ReleaseManager(Console.Out, Console.Error);
-                releaseManager.PrepareRelease(searchPath, tag, nextVersionParsed, versionIncrementParsed, outputMode, unformattedCommitMessage);
+
+                ReleaseManager.ReleaseInfo releaseInfo = releaseManager.PrepareRelease(searchPath, tag, nextVersionParsed, versionIncrementParsed, outputMode, unformattedCommitMessage, whatIf, mergeReleaseBranch: !noMerge);
+
+                if (whatIf && outputMode == ReleaseManager.ReleaseManagerOutputMode.Json)
+                {
+                    releaseManager.WriteToOutput(releaseInfo);
+                }
+
                 return Task.FromResult((int)ExitCodes.OK);
             }
             catch (ReleaseManager.ReleasePreparationException ex)
@@ -1416,6 +1111,328 @@ namespace Nerdbank.GitVersioning.Tool
             }
         }
 
+#nullable enable
+        private static Task<int> OnPathFiltersUpdateCommand(string[] paths, string[] extraExtensions)
+        {
+            return OnPathFiltersCommandCore(paths, extraExtensions, updateMode: true);
+        }
+
+        private static Task<int> OnPathFiltersCheckCommand(string[] paths, string[] extraExtensions)
+        {
+            return OnPathFiltersCommandCore(paths, extraExtensions, updateMode: false);
+        }
+
+        private static Task<int> OnPathFiltersCommandCore(string[] paths, string[] extraExtensions, bool updateMode)
+        {
+            IReadOnlyList<string> projectExtensions = GetProjectExtensions(extraExtensions);
+            bool anyFound = false;
+            bool anyMismatch = false;
+
+            // First, collect all version.json paths so we can use them for boundary checking
+            IEnumerable<string> allVersionJsonPaths = FindVersionJsonPaths(paths).ToList();
+            var allVersionJsonDirs = new HashSet<string>(
+                allVersionJsonPaths.Select(p => Path.GetDirectoryName(p)!),
+                StringComparer.OrdinalIgnoreCase);
+
+            foreach (string versionJsonPath in allVersionJsonPaths)
+            {
+                anyFound = true;
+                string versionJsonDir = Path.GetDirectoryName(versionJsonPath)!;
+
+                using GitContext context = GitContext.Create(versionJsonDir, engine: GetEffectiveGitEngine(preferReadWrite: true));
+                if (!context.IsRepository)
+                {
+                    Console.Error.WriteLine($"No git repository found for version.json at: {versionJsonPath}");
+                    continue;
+                }
+
+                try
+                {
+                    IReadOnlyList<FilterPath> computed = ComputePathFilters(versionJsonDir, context.WorkingTreePath, projectExtensions, allVersionJsonDirs, context);
+
+                    // Skip version.json files that have no associated projects
+                    if (computed.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    VersionOptions? versionOptions = context.VersionFile.GetWorkingCopyVersion(
+                        VersionFileRequirements.NonMergedResult | VersionFileRequirements.AcceptInheritingFile);
+
+                    if (versionOptions is null)
+                    {
+                        Console.Error.WriteLine($"Could not load version.json at: {versionJsonPath}");
+                        continue;
+                    }
+
+                    if (updateMode)
+                    {
+                        versionOptions.PathFilters = computed.Count > 0 ? computed : null;
+                        context.VersionFile.SetVersion(versionJsonDir, versionOptions);
+                        Console.WriteLine($"Updated pathFilters in: {versionJsonPath}");
+                    }
+                    else
+                    {
+                        // Check mode: compare computed with existing
+                        IReadOnlyList<FilterPath> existing = versionOptions.PathFilters ?? [];
+                        var computedPaths = new SortedSet<string>(
+                            computed.Select(f => f.RepoRelativePath),
+                            StringComparer.OrdinalIgnoreCase);
+                        var existingPaths = new SortedSet<string>(
+                            existing.Select(f => f.RepoRelativePath),
+                            StringComparer.OrdinalIgnoreCase);
+
+                        if (!computedPaths.SetEquals(existingPaths))
+                        {
+                            anyMismatch = true;
+                            Console.Error.WriteLine($"pathFilters mismatch in: {versionJsonPath}");
+
+                            foreach (string m in computedPaths.Except(existingPaths, StringComparer.OrdinalIgnoreCase))
+                            {
+                                Console.Error.WriteLine($"  + missing: :/{m}");
+                            }
+
+                            foreach (string e in existingPaths.Except(computedPaths, StringComparer.OrdinalIgnoreCase))
+                            {
+                                Console.Error.WriteLine($"  - extra:   :/{e}");
+                            }
+
+                            Console.Error.WriteLine("Use the 'nbgv path-filters update' command to update the pathFilters.");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"Error processing {versionJsonPath}: {ex.Message}");
+                }
+            }
+
+            if (!anyFound)
+            {
+                Console.Error.WriteLine("No version.json files found.");
+                return Task.FromResult((int)ExitCodes.NoVersionJsonFound);
+            }
+
+            return Task.FromResult(anyMismatch ? (int)ExitCodes.PathFiltersMismatch : (int)ExitCodes.OK);
+        }
+
+        /// <summary>
+        /// Computes the <see cref="FilterPath"/> list for a given version.json directory
+        /// by using the MSBuild project graph API to find the transitive closure of project references
+        /// and the MSBuild evaluation model to find all imported files within the repository.
+        /// </summary>
+        /// <param name="versionJsonDir">The directory containing the version.json file.</param>
+        /// <param name="repoRoot">The absolute path to the root of the git repository.</param>
+        /// <param name="projectExtensions">The MSBuild project file extensions to search for.</param>
+        /// <param name="versionJsonDirs">Set of all other version.json directories (for boundary checking).</param>
+        /// <param name="gitContext">The git context for accessing ignore rules.</param>
+        /// <returns>A sorted, deduplicated list of repo-root-relative <see cref="FilterPath"/> objects, or empty if no projects found.</returns>
+        private static IReadOnlyList<FilterPath> ComputePathFilters(
+            string versionJsonDir,
+            string repoRoot,
+            IReadOnlyList<string> projectExtensions,
+            ISet<string> versionJsonDirs,
+            GitContext gitContext)
+        {
+            // Find all project files under the version.json directory, but stop at other version.json directories.
+            List<string> projectFiles = new();
+            foreach (string ext in projectExtensions)
+            {
+                projectFiles.AddRange(FindProjectFilesRespectingBoundaries(versionJsonDir, ext, versionJsonDir, versionJsonDirs));
+            }
+
+            projectFiles = projectFiles
+                .Select(Path.GetFullPath)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (projectFiles.Count == 0)
+            {
+                // No projects under this version.json, return empty to signal it should be skipped
+                return [];
+            }
+
+            var globalProperties = new Dictionary<string, string>
+            {
+                ["BuildingProject"] = "false",
+            };
+
+            // Use ProjectGraph to find the transitive closure of all project references.
+            IEnumerable<ProjectGraphEntryPoint> entryPoints = projectFiles.Select(f => new ProjectGraphEntryPoint(f, globalProperties));
+            ProjectGraph graph = new ProjectGraph(entryPoints);
+
+            List<string> allProjectFiles = graph.ProjectNodes
+                .Select(n => Path.GetFullPath(n.ProjectInstance.FullPath))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            // For each project in the transitive closure, add its directory to the results.
+            // We include entire project directories rather than individual files.
+            var results = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (string projectFile in allProjectFiles)
+            {
+                if (IsWithinRepo(projectFile, repoRoot))
+                {
+                    // Add the project directory, not the individual .csproj file
+                    string projectDir = Path.GetDirectoryName(projectFile)!;
+                    results.Add(projectDir);
+                }
+            }
+
+            // For MSBuild imports, we add specific imported files (not their directories)
+            // since these are typically shared build files like Directory.Build.props
+            using var collection = new ProjectCollection(globalProperties);
+            foreach (string projectFile in allProjectFiles)
+            {
+                try
+                {
+                    Project project = collection.LoadProject(projectFile, globalProperties, toolsVersion: null);
+                    foreach (ResolvedImport import in project.Imports)
+                    {
+                        string importPath = Path.GetFullPath(import.ImportedProject.FullPath);
+                        if (IsWithinRepo(importPath, repoRoot))
+                        {
+                            // Skip files that git would ignore (e.g., bin/, obj/ directories, per .gitignore)
+                            if (gitContext.IsIgnored(importPath))
+                            {
+                                continue;
+                            }
+
+                            results.Add(importPath);
+                        }
+                    }
+
+                    collection.UnloadProject(project);
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"Warning: Could not load imports for {projectFile}: {ex.Message}");
+                }
+            }
+
+            // Convert absolute paths to repo-root-relative FilterPath objects.
+            return results
+                .Select(p =>
+                {
+                    string repoRelative = Path.GetRelativePath(repoRoot, p).Replace('\\', '/');
+                    return new FilterPath(":/" + repoRelative, string.Empty);
+                })
+                .ToList();
+        }
+
+        /// <summary>
+        /// Recursively finds project files starting from searchDir, but stops descending into
+        /// directories that contain their own version.json files (except for the root startDir).
+        /// </summary>
+        private static IEnumerable<string> FindProjectFilesRespectingBoundaries(
+            string searchDir,
+            string projectExtension,
+            string startDir,
+            ISet<string> versionJsonDirs)
+        {
+            // Find all projects in the current directory
+            foreach (string file in Directory.EnumerateFiles(searchDir, "*" + projectExtension))
+            {
+                yield return file;
+            }
+
+            // Recursively search subdirectories, but skip those with their own version.json
+            foreach (string subDir in Directory.EnumerateDirectories(searchDir))
+            {
+                // Skip if this subdirectory (or any ancestor) has a version.json (except the start directory)
+                if (subDir != startDir && versionJsonDirs.Contains(subDir))
+                {
+                    continue;
+                }
+
+                foreach (string file in FindProjectFilesRespectingBoundaries(subDir, projectExtension, startDir, versionJsonDirs))
+                {
+                    yield return file;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Returns a sequence of version.json file paths found by interpreting each of the given
+        /// input paths. Directories are searched recursively; a path directly to a version.json file
+        /// is used as-is without recursive search.
+        /// </summary>
+        private static IEnumerable<string> FindVersionJsonPaths(string[]? paths)
+        {
+            IEnumerable<string> searchRoots = paths is { Length: > 0 }
+                ? paths
+                : [Directory.GetCurrentDirectory()];
+
+            foreach (string path in searchRoots)
+            {
+                string fullPath = Path.GetFullPath(path);
+
+                if (string.Equals(Path.GetFileName(fullPath), VersionFile.JsonFileName, StringComparison.OrdinalIgnoreCase))
+                {
+                    // Direct path to a version.json file – use it without recursive search.
+                    if (File.Exists(fullPath))
+                    {
+                        yield return fullPath;
+                    }
+                    else
+                    {
+                        Console.Error.WriteLine($"File not found: {fullPath}");
+                    }
+                }
+                else if (Directory.Exists(fullPath))
+                {
+                    // Directory – recursively find all version.json files.
+                    foreach (string versionJson in Directory.EnumerateFiles(fullPath, VersionFile.JsonFileName, SearchOption.AllDirectories))
+                    {
+                        yield return versionJson;
+                    }
+                }
+                else
+                {
+                    Console.Error.WriteLine($"Path not found: {fullPath}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets the default project file extensions plus any extras provided on the command line.
+        /// </summary>
+        private static IReadOnlyList<string> GetProjectExtensions(string[]? extraExtensions)
+        {
+            var extensions = new List<string> { ".csproj", ".vbproj", ".fsproj", ".vcxproj" };
+            if (extraExtensions is { Length: > 0 })
+            {
+                foreach (string ext in extraExtensions)
+                {
+                    string normalized = ext.StartsWith('.') ? ext : "." + ext;
+                    if (!extensions.Contains(normalized, StringComparer.OrdinalIgnoreCase))
+                    {
+                        extensions.Add(normalized);
+                    }
+                }
+            }
+
+            return extensions;
+        }
+
+        /// <summary>
+        /// Determines whether <paramref name="absolutePath"/> is located within the repository root.
+        /// </summary>
+        private static bool IsWithinRepo(string absolutePath, string repoRoot)
+        {
+            string normalizedPath = Path.GetFullPath(absolutePath);
+            string normalizedRoot = Path.GetFullPath(repoRoot).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                + Path.DirectorySeparatorChar;
+
+            StringComparison comparison = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? StringComparison.OrdinalIgnoreCase
+                : StringComparison.Ordinal;
+
+            return normalizedPath.StartsWith(normalizedRoot, comparison);
+        }
+
+#nullable restore
         private static async Task<string> GetLatestPackageVersionAsync(string packageId, string root, IReadOnlyList<string> sources, CancellationToken cancellationToken = default)
         {
             ISettings settings = Settings.LoadDefaultSettings(root);
@@ -1441,25 +1458,19 @@ namespace Nerdbank.GitVersioning.Tool
                 packageSources.AddRange(availableSources);
             }
 
-            SourceRepository[] sourceRepositories = packageSources.Select(sourceRepositoryProvider.CreateRepository).ToArray();
-            var resolutionContext = new ResolutionContext(
-                DependencyBehavior.Highest,
-                includePrelease: false,
-                includeUnlisted: false,
-                VersionConstraints.None);
+            using var cacheContext = new SourceCacheContext();
+            var versions = new List<NuGet.Versioning.NuGetVersion>();
+            foreach (SourceRepository sourceRepository in packageSources.Select(sourceRepositoryProvider.CreateRepository))
+            {
+                FindPackageByIdResource resource = await sourceRepository.GetResourceAsync<FindPackageByIdResource>(cancellationToken);
+                versions.AddRange(await resource.GetAllVersionsAsync(packageId, cacheContext, NullLogger.Instance, cancellationToken));
+            }
 
-            // The target framework doesn't matter, since our package doesn't depend on this for its target projects.
-            var framework = new NuGet.Frameworks.NuGetFramework("net45");
-
-            ResolvedPackage pkg = await NuGetPackageManager.GetLatestVersionAsync(
-                packageId,
-                framework,
-                resolutionContext,
-                sourceRepositories,
-                NullLogger.Instance,
-                cancellationToken);
-
-            return pkg.LatestVersion?.ToNormalizedString();
+            return versions
+                .Where(version => !version.IsPrerelease)
+                .OrderByDescending(version => version)
+                .FirstOrDefault()
+                ?.ToNormalizedString();
         }
 
         private static bool IsCentralPackageManagementEnabled(string path)

@@ -1,6 +1,6 @@
 {
 	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
-	"extends": ["config:best-practices"],
+	"extends": ["config:best-practices","helpers:pinGitHubActionDigestsToSemver"],
 	"labels": ["dependencies"],
 	"packageRules": [
 		{
@@ -10,6 +10,10 @@
 		{
 			"matchPackageNames": ["xunit*"],
 			"groupName": "xunit"
+		},
+		{
+			"matchPackageNames": ["Microsoft.Testing.Extensions.*"],
+			"groupName": "Microsoft Testing Platform"
 		},
 		{
 			"matchDatasources": ["dotnet-version", "docker"],
@@ -23,6 +27,11 @@
 		{
 			"matchPackageNames": ["LibGit2Sharp.NativeBinaries", "LibGit2Sharp"],
 			"groupName": "LibGit2Sharp"
+		},
+		{
+			"matchPackageNames": ["Microsoft.Build.Framework", "Microsoft.Build.Tasks.Core", "Microsoft.Build.Utilities.Core", "Microsoft.Build"],
+			"matchUpdateTypes": ["major", "minor"],
+			"enabled": false
 		}
 	]
 }

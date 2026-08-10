@@ -2,7 +2,7 @@
 
 'use strict';
 
-import { getNbgvCommand } from "./core";
+import { getNbgvCommand } from "./core.js";
 
 const { spawn } = require('child_process');
 const { argv, exit } = require('process');

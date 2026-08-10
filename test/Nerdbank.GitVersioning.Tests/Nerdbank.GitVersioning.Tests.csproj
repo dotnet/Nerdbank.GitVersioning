@@ -1,16 +1,19 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net9.0</TargetFrameworks>
+    <TargetFrameworks>net10.0</TargetFrameworks>
     <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows'))">$(TargetFrameworks);net472</TargetFrameworks>
+    <OutputType>exe</OutputType>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
     <DebugType>full</DebugType>
     <SignAssembly>false</SignAssembly>
     <IsPackable>false</IsPackable>
-    <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\..\src\Shared\**\*.cs" LinkBase="Shared" />
+    <!-- Linked in (rather than reached via InternalsVisibleTo, which a strong-named assembly cannot grant
+         to this unsigned test assembly) so that its internal members can be tested directly. -->
+    <Compile Include="..\..\src\NerdBank.GitVersioning\CloudBuildServices\GitHubActions.cs" LinkBase="CloudBuildServices" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="..\..\src\Nerdbank.GitVersioning.Tasks\build\*.targets;..\..\src\Nerdbank.GitVersioning.Tasks\build\*.props;..\..\src\Nerdbank.GitVersioning.Tasks\build\*.proj">
@@ -31,6 +34,13 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Nerdbank.GitVersioning.Tasks\Nerdbank.GitVersioning.Tasks.csproj" />
     <ProjectReference Include="..\..\src\NerdBank.GitVersioning\Nerdbank.GitVersioning.csproj" />
+    <ProjectReference Include="..\..\src\nbgv\nbgv.csproj" ReferenceOutputAssembly="false" Condition="'$(TargetFramework)' == 'net10.0'" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>NbgvToolPath</_Parameter1>
+      <_Parameter2>$(RepoRootPath)bin\nbgv\$(Configuration)\net10.0\nbgv.dll</_Parameter2>
+    </AssemblyAttribute>
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Build.Locator" />
@@ -38,14 +48,10 @@
     <PackageReference Include="Microsoft.Build.Utilities.Core" ExcludeAssets="runtime" />
     <PackageReference Include="Microsoft.Build" ExcludeAssets="runtime" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="Nerdbank.GitVersioning.LKG" />
     <PackageReference Include="Newtonsoft.Json.Schema" />
-    <PackageReference Include="System.Memory" />
-    <PackageReference Include="System.Threading.Tasks.Dataflow" />
+    <PackageReference Include="System.Memory" Condition="'$(TargetFramework)' == 'net472'" />
     <PackageReference Include="Xunit.Combinatorial" />
-    <PackageReference Include="Xunit.SkippableFact" />
-    <PackageReference Include="xunit.runner.visualstudio" />
-    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.v3.mtp-v2" />
   </ItemGroup>
 </Project>

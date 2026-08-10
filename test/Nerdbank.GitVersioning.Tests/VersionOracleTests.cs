@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using LibGit2Sharp;
 using Nerdbank.GitVersioning;
+using Nerdbank.GitVersioning.LibGit2;
 using Nerdbank.GitVersioning.ManagedGit;
 using Xunit;
 using Version = System.Version;
@@ -217,6 +218,63 @@ public abstract class VersionOracleTests : RepoTestBase
 
         Assert.Equal(1, oracle.VersionHeight);
         Assert.Equal(2, oracle.VersionHeightOffset);
+    }
+
+    [Fact]
+    public void VersionHeightOffsetAppliesTo_Matching()
+    {
+        // When VersionHeightOffsetAppliesTo matches the current version, the offset should be applied
+        VersionOptions workingCopyVersion = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("7.8.9-beta"),
+            VersionHeightOffset = 5,
+            VersionHeightOffsetAppliesTo = SemanticVersion.Parse("7.8.9-beta"),
+        };
+        this.WriteVersionFile(workingCopyVersion);
+        this.InitializeSourceControl();
+        var oracle = new VersionOracle(this.Context);
+
+        // The offset should be applied because the version matches
+        Assert.Equal(5, oracle.VersionHeightOffset);
+        Assert.Equal(1, oracle.VersionHeight);
+    }
+
+    [Fact]
+    public void VersionHeightOffsetAppliesTo_NotMatching()
+    {
+        // When VersionHeightOffsetAppliesTo doesn't match the current version, the offset should NOT be applied
+        VersionOptions workingCopyVersion = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("7.9-beta"),
+            VersionHeightOffset = 5,
+            VersionHeightOffsetAppliesTo = SemanticVersion.Parse("7.8-beta"),
+        };
+        this.WriteVersionFile(workingCopyVersion);
+        this.InitializeSourceControl();
+        var oracle = new VersionOracle(this.Context);
+
+        // The offset should NOT be applied because the version changed (7.8 -> 7.9)
+        Assert.Equal(0, oracle.VersionHeightOffset);
+        Assert.Equal(1, oracle.VersionHeight);
+    }
+
+    [Fact]
+    public void VersionHeightOffsetAppliesTo_BuildNumberChange()
+    {
+        // When VersionHeightOffsetAppliesTo has a different build number, the offset should NOT be applied
+        VersionOptions workingCopyVersion = new VersionOptions
+        {
+            Version = SemanticVersion.Parse("7.9-beta"),
+            VersionHeightOffset = 5,
+            VersionHeightOffsetAppliesTo = SemanticVersion.Parse("7.8-beta"),
+        };
+        this.WriteVersionFile(workingCopyVersion);
+        this.InitializeSourceControl();
+        var oracle = new VersionOracle(this.Context);
+
+        // The offset should NOT be applied because the minor version changed (7.8 -> 7.9)
+        Assert.Equal(0, oracle.VersionHeightOffset);
+        Assert.Equal(1, oracle.VersionHeight);
     }
 
     [Theory]
@@ -731,6 +789,179 @@ public abstract class VersionOracleTests : RepoTestBase
     }
 
     [Fact]
+    public void GetIdAsVersion_ReadsMajorMinorFromVersionTxt()
+    {
+        this.InitializeSourceControl();
+        this.WriteVersionFile("4.8");
+        Commit firstCommit = this.LibGit2Repository.Commits.First();
+
+        Version v1 = this.GetVersion(committish: firstCommit.Sha);
+        Assert.Equal(4, v1.Major);
+        Assert.Equal(8, v1.Minor);
+    }
+
+    [Fact]
+    public void GetIdAsVersion_ReadsMajorMinorFromVersionTxtInSubdirectory()
+    {
+        this.InitializeSourceControl();
+        this.WriteVersionFile("4.8", relativeDirectory: "foo/bar");
+        Commit firstCommit = this.LibGit2Repository.Commits.First();
+
+        Version v1 = this.GetVersion("foo/bar", firstCommit.Sha);
+        Assert.Equal(4, v1.Major);
+        Assert.Equal(8, v1.Minor);
+    }
+
+    [Fact]
+    public void GetIdAsVersion_MissingVersionTxt()
+    {
+        this.InitializeSourceControl();
+        this.AddCommits();
+        Commit firstCommit = this.LibGit2Repository.Commits.First();
+
+        Version v1 = this.GetVersion(committish: firstCommit.Sha);
+        Assert.Equal(0, v1.Major);
+        Assert.Equal(0, v1.Minor);
+    }
+
+    [Fact]
+    public void GetIdAsVersion_VersionFileNeverCheckedIn_3Ints()
+    {
+        this.InitializeSourceControl();
+        this.AddCommits();
+        var expectedVersion = new Version(1, 1, 0);
+        var unstagedVersionData = VersionOptions.FromVersion(expectedVersion);
+        this.Context.VersionFile.SetVersion(this.RepoPath, unstagedVersionData);
+        Version actualVersion = this.GetVersion();
+        Assert.Equal(expectedVersion.Major, actualVersion.Major);
+        Assert.Equal(expectedVersion.Minor, actualVersion.Minor);
+        Assert.Equal(expectedVersion.Build, actualVersion.Build);
+
+        // Height is expressed in the 4th integer since 3 were specified in version.json.
+        // height is 0 since the change hasn't been committed.
+        Assert.Equal(0, actualVersion.Revision);
+    }
+
+    [Fact]
+    public void GetIdAsVersion_VersionFileNeverCheckedIn_2Ints()
+    {
+        this.InitializeSourceControl();
+        this.AddCommits();
+        var expectedVersion = new Version(1, 1);
+        var unstagedVersionData = VersionOptions.FromVersion(expectedVersion);
+        this.Context.VersionFile.SetVersion(this.RepoPath, unstagedVersionData);
+        Version actualVersion = this.GetVersion();
+        Assert.Equal(expectedVersion.Major, actualVersion.Major);
+        Assert.Equal(expectedVersion.Minor, actualVersion.Minor);
+        Assert.Equal(0, actualVersion.Build); // height is 0 since the change hasn't been committed.
+        Assert.Equal(this.LibGit2Repository.Head.Commits.First().GetTruncatedCommitIdAsUInt16(), actualVersion.Revision);
+    }
+
+    [Fact]
+    public void GetIdAsVersion_VersionFileChangedOnDisk()
+    {
+        this.InitializeSourceControl();
+        this.WriteVersionFile();
+        this.AddCommits();
+
+        // Verify that we're seeing the original version.
+        Version actualVersion = this.GetVersion();
+        Assert.Equal(1, actualVersion.Major);
+        Assert.Equal(2, actualVersion.Minor);
+        Assert.Equal(2, actualVersion.Build);
+        Assert.Equal(this.LibGit2Repository.Head.Commits.First().GetTruncatedCommitIdAsUInt16(), actualVersion.Revision);
+
+        // Now make a change on disk that isn't committed yet.
+        string versionFile = this.Context.VersionFile.SetVersion(this.RepoPath, new Version("1.3"));
+
+        // Verify that HEAD reports whatever is on disk at the time.
+        actualVersion = this.GetVersion();
+        Assert.Equal(1, actualVersion.Major);
+        Assert.Equal(3, actualVersion.Minor);
+        Assert.Equal(0, actualVersion.Build);
+        Assert.Equal(this.LibGit2Repository.Head.Commits.First().GetTruncatedCommitIdAsUInt16(), actualVersion.Revision);
+
+        // Now commit it and verify the height advances 0->1
+        this.CommitVersionFile(versionFile, "1.3");
+        actualVersion = this.GetVersion();
+        Assert.Equal(1, actualVersion.Major);
+        Assert.Equal(3, actualVersion.Minor);
+        Assert.Equal(1, actualVersion.Build);
+        Assert.Equal(this.LibGit2Repository.Head.Commits.First().GetTruncatedCommitIdAsUInt16(), actualVersion.Revision);
+    }
+
+    [Fact]
+    public void GetIdAsVersion_FitsInsideCompilerConstraints()
+    {
+        this.InitializeSourceControl();
+        this.WriteVersionFile("2.5");
+        Commit firstCommit = this.LibGit2Repository.Commits.First();
+
+        Version version = this.GetVersion(committish: firstCommit.Sha);
+        this.Logger.WriteLine(version.ToString());
+
+        // The C# compiler produces a build warning and truncates the version number if it exceeds 0xfffe,
+        // even though a System.Version is made up of four 32-bit integers.
+        Assert.True(version.Build < 0xfffe, $"{nameof(Version.Build)} component exceeds maximum allowed by the compiler as an argument for AssemblyVersionAttribute and AssemblyFileVersionAttribute.");
+        Assert.True(version.Revision < 0xfffe, $"{nameof(Version.Revision)} component exceeds maximum allowed by the compiler as an argument for AssemblyVersionAttribute and AssemblyFileVersionAttribute.");
+    }
+
+    [Fact]
+    public void GetIdAsVersion_MigrationFromVersionTxtToJson()
+    {
+        this.InitializeSourceControl();
+        Commit txtCommit = this.WriteVersionTxtFile("4.8");
+
+        // Delete the version.txt file so the system writes the version.json file.
+        File.Delete(Path.Combine(this.RepoPath, "version.txt"));
+        Commit jsonCommit = this.WriteVersionFile("4.8");
+        Assert.True(File.Exists(Path.Combine(this.RepoPath, "version.json")));
+
+        Version v1 = this.GetVersion(committish: txtCommit.Sha);
+        Assert.Equal(4, v1.Major);
+        Assert.Equal(8, v1.Minor);
+        Assert.Equal(1, v1.Build);
+
+        Version v2 = this.GetVersion(committish: jsonCommit.Sha);
+        Assert.Equal(4, v2.Major);
+        Assert.Equal(8, v2.Minor);
+        Assert.Equal(2, v2.Build);
+    }
+
+    [Theory]
+    [InlineData("2.2", "2.2-alpha.{height}", 1, 1, true)]
+    [InlineData("2.2", "2.3", 1, 1, true)]
+    [InlineData("2.2", "2.3-alpha", 1, 1, true)]
+    [InlineData("2.2-alpha", "2.2-rc", 1, 2, false)]
+    [InlineData("2.2-alpha.{height}", "2.2", 1, 1, true)]
+    [InlineData("2.2-alpha.{height}", "2.2-rc.{height}", 1, 1, true)]
+    [InlineData("2.2-alpha.{height}", "2.3-rc.{height}", 1, 1, true)]
+    [InlineData("2.2-rc", "2.2", 1, 2, false)]
+    [InlineData("2.2-rc", "2.3", 1, 1, true)]
+    public void GetVersionHeight_ProgressAndReset(string version1, string version2, int expectedHeight1, int expectedHeight2, bool versionHeightReset)
+    {
+        const string repoRelativeSubDirectory = "subdir";
+
+        this.InitializeSourceControl();
+        this.WriteVersionFile(
+            new VersionOptions { Version = SemanticVersion.Parse(version1) },
+            repoRelativeSubDirectory);
+        this.WriteVersionFile(
+            new VersionOptions { Version = SemanticVersion.Parse(version2) },
+            repoRelativeSubDirectory);
+
+        int height2 = this.GetVersionHeight(repoRelativeSubDirectory);
+        int height1 = this.GetVersionHeight(this.LibGit2Repository.Head.Commits.Skip(1).First().Sha, repoRelativeSubDirectory);
+
+        this.Logger.WriteLine("Height 1: {0}", height1);
+        this.Logger.WriteLine("Height 2: {0}", height2);
+
+        Assert.Equal(expectedHeight1, height1);
+        Assert.Equal(expectedHeight2, height2);
+        Assert.Equal(!versionHeightReset, height2 > height1);
+    }
+
+    [Fact]
     public void GetVersionHeight_Test()
     {
         this.InitializeSourceControl();
@@ -835,6 +1066,92 @@ public abstract class VersionOracleTests : RepoTestBase
         Commands.Stage(this.LibGit2Repository, containedFilePath);
         this.LibGit2Repository.Commit("Add file within project root", this.Signer, this.Signer);
         Assert.Equal(2, this.GetVersionHeight(relativeDirectory));
+    }
+
+    [Fact]
+    public void GetVersionHeight_WildcardIncludeFilter()
+    {
+        this.InitializeSourceControl();
+
+        var versionData = VersionOptions.FromVersion(new Version("1.2"));
+        versionData.PathFilters = new[]
+        {
+            new FilterPath(":/loc/*/MyProduct.*", string.Empty),
+            new FilterPath(":^/loc/ignored/**", string.Empty),
+        };
+        this.WriteVersionFile(versionData);
+        int initialHeight = this.GetVersionHeight();
+
+        string nonMatchingFilePath = Path.Combine(this.RepoPath, "loc", "en", "subdir", "MyProduct.resx");
+        Directory.CreateDirectory(Path.GetDirectoryName(nonMatchingFilePath));
+        File.WriteAllText(nonMatchingFilePath, "hello");
+        Commands.Stage(this.LibGit2Repository, nonMatchingFilePath);
+        this.LibGit2Repository.Commit("Add non-matching localization file", this.Signer, this.Signer);
+        Assert.Equal(initialHeight, this.GetVersionHeight());
+
+        string excludedFilePath = Path.Combine(this.RepoPath, "loc", "ignored", "MyProduct.resx");
+        Directory.CreateDirectory(Path.GetDirectoryName(excludedFilePath));
+        File.WriteAllText(excludedFilePath, "hello");
+        Commands.Stage(this.LibGit2Repository, excludedFilePath);
+        this.LibGit2Repository.Commit("Add excluded localization file", this.Signer, this.Signer);
+        Assert.Equal(initialHeight, this.GetVersionHeight());
+
+        string matchingFilePath = Path.Combine(this.RepoPath, "loc", "en", "MyProduct.resx");
+        File.WriteAllText(matchingFilePath, "hello");
+        Commands.Stage(this.LibGit2Repository, matchingFilePath);
+        this.LibGit2Repository.Commit("Add matching localization file", this.Signer, this.Signer);
+        Assert.Equal(initialHeight + 1, this.GetVersionHeight());
+
+        File.Delete(matchingFilePath);
+        Commands.Stage(this.LibGit2Repository, matchingFilePath);
+        this.LibGit2Repository.Commit("Delete matching localization file", this.Signer, this.Signer);
+        Assert.Equal(initialHeight + 2, this.GetVersionHeight());
+    }
+
+    [Fact]
+    public void GetVersionHeight_DeletingDirectoryWithLiteralDescendantInclude()
+    {
+        this.InitializeSourceControl();
+
+        var versionData = VersionOptions.FromVersion(new Version("1.2"));
+        versionData.PathFilters = new[] { new FilterPath(":/included/tracked.txt", string.Empty) };
+        this.WriteVersionFile(versionData);
+        int initialHeight = this.GetVersionHeight();
+
+        string includedFilePath = Path.Combine(this.RepoPath, "included", "tracked.txt");
+        Directory.CreateDirectory(Path.GetDirectoryName(includedFilePath));
+        File.WriteAllText(includedFilePath, "hello");
+        Commands.Stage(this.LibGit2Repository, includedFilePath);
+        this.LibGit2Repository.Commit("Add included directory", this.Signer, this.Signer);
+        Assert.Equal(initialHeight + 1, this.GetVersionHeight());
+
+        Directory.Delete(Path.GetDirectoryName(includedFilePath), recursive: true);
+        Commands.Stage(this.LibGit2Repository, includedFilePath);
+        this.LibGit2Repository.Commit("Delete included directory", this.Signer, this.Signer);
+        Assert.Equal(initialHeight + 2, this.GetVersionHeight());
+    }
+
+    [Fact]
+    public void GetVersionHeight_DeletingDirectoryWithExcludeOnlyFilter()
+    {
+        this.InitializeSourceControl();
+
+        var versionData = VersionOptions.FromVersion(new Version("1.2"));
+        versionData.PathFilters = new[] { new FilterPath(":^/excluded", string.Empty) };
+        this.WriteVersionFile(versionData);
+        int initialHeight = this.GetVersionHeight();
+
+        string includedFilePath = Path.Combine(this.RepoPath, "included", "tracked.txt");
+        Directory.CreateDirectory(Path.GetDirectoryName(includedFilePath));
+        File.WriteAllText(includedFilePath, "hello");
+        Commands.Stage(this.LibGit2Repository, includedFilePath);
+        this.LibGit2Repository.Commit("Add included directory", this.Signer, this.Signer);
+        Assert.Equal(initialHeight + 1, this.GetVersionHeight());
+
+        Directory.Delete(Path.GetDirectoryName(includedFilePath), recursive: true);
+        Commands.Stage(this.LibGit2Repository, includedFilePath);
+        this.LibGit2Repository.Commit("Delete included directory", this.Signer, this.Signer);
+        Assert.Equal(initialHeight + 2, this.GetVersionHeight());
     }
 
     [Fact]

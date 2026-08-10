@@ -22,7 +22,7 @@
   <ItemGroup>
     <NBGV_CachingProjectReference Include="$(NBGV_CachingProjectReference)">
       <Targets>GetBuildVersion_Properties;GetBuildVersion_CloudBuildVersionVars</Targets>
-      <Properties>$(NBGV_InnerGlobalProperties)BuildMetadata=@(BuildMetadata, ',');PrereleaseIdentifiers=@(PrereleaseIdentifier, ',')</Properties>
+      <Properties>$(NBGV_InnerGlobalProperties)BuildMetadata=@(BuildMetadata, ',');PrereleaseIdentifiers=@(PrereleaseIdentifier, ',');Configuration=Release;Platform=AnyCPU</Properties>
       <SetConfiguration>Configuration=Release</SetConfiguration>
       <SetPlatform>Platform=AnyCPU</SetPlatform>
       <GlobalPropertiesToRemove>@(NBGV_GlobalPropertiesToRemove)</GlobalPropertiesToRemove>
@@ -50,18 +50,14 @@
     <!-- Calculate version by invoking another "project" with global properties that will serve as a key
          into an msbuild cache to ensure we only invoke the GetBuildVersion task as many times as will produce a unique value. -->
     <MSBuild Projects="@(NBGV_CachingProjectReference)"
-             Properties="%(NBGV_CachingProjectReference.Properties)"
              RemoveProperties="%(NBGV_CachingProjectReference.GlobalPropertiesToRemove)"
-             Targets="GetBuildVersion_Properties">
-      <Output TaskParameter="TargetOutputs" ItemName="NBGV_PropertyItems" />
+             Targets="GetBuildVersion_Properties;GetBuildVersion_CloudBuildVersionVars">
+      <Output TaskParameter="TargetOutputs" ItemName="_NBGV_PropertiesAndVersionVars" />
     </MSBuild>
 
-    <!-- Also get other items. -->
-    <MSBuild Projects="@(NBGV_CachingProjectReference)"
-             Properties="%(NBGV_CachingProjectReference.Properties)"
-             RemoveProperties="%(NBGV_CachingProjectReference.GlobalPropertiesToRemove)"
-             Targets="GetBuildVersion_CloudBuildVersionVars">
-      <Output TaskParameter="TargetOutputs" ItemName="CloudBuildVersionVars" />
-    </MSBuild>
+    <ItemGroup>
+      <NBGV_PropertyItems Include="@(_NBGV_PropertiesAndVersionVars)" Condition="'%(MSBuildSourceTargetName)'=='GetBuildVersion_Properties'" />
+      <CloudBuildVersionVars Include="@(_NBGV_PropertiesAndVersionVars)" Condition="'%(MSBuildSourceTargetName)'=='GetBuildVersion_CloudBuildVersionVars'" />
+    </ItemGroup>
   </Target>
 </Project>

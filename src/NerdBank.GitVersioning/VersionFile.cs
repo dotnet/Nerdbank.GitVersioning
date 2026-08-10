@@ -38,20 +38,27 @@ public abstract class VersionFile
     protected GitContext Context { get; }
 
     /// <summary>
+    /// Gets a value indicating whether merging paths with <see cref="MergeLocations(ref VersionFileLocations, VersionFileLocations)"/> and <see cref="ApplyLocations(VersionOptions?, string, ref VersionFileLocations)"/>
+    /// prefer the new locations over the old ones.
+    /// </summary>
+    protected virtual bool VersionSearchRootToBranch => false;
+
+    /// <summary>
     /// Checks whether a version file is defined.
     /// </summary>
     /// <returns><see langword="true"/> if the version file is found; otherwise <see langword="false"/>.</returns>
     public bool IsVersionDefined() => this.GetVersion() is object;
 
-    /// <inheritdoc cref="GetWorkingCopyVersion(out string?)"/>
-    public VersionOptions? GetWorkingCopyVersion() => this.GetWorkingCopyVersion(out _);
+    /// <inheritdoc cref="GetWorkingCopyVersion(VersionFileRequirements, out VersionFileLocations)"/>
+    public VersionOptions? GetWorkingCopyVersion(VersionFileRequirements requirements) => this.GetWorkingCopyVersion(requirements, out _);
 
     /// <summary>
     /// Reads the version file from the working tree and returns the <see cref="VersionOptions"/> deserialized from it.
     /// </summary>
-    /// <param name="actualDirectory">Set to the actual directory that the version file was found in, which may be <see cref="GitContext.WorkingTreePath"/> or one of its ancestors.</param>
+    /// <param name="requirements"><inheritdoc cref="GetVersionCore(VersionFileRequirements, out VersionFileLocations)" path="/param[@name='requirements']" /></param>
+    /// <param name="locations"><inheritdoc cref="GetVersionCore(VersionFileRequirements, out VersionFileLocations)" path="/param[@name='locations']" /></param>
     /// <returns>The version information read from the file, or <see langword="null"/> if the file wasn't found.</returns>
-    public VersionOptions? GetWorkingCopyVersion(out string? actualDirectory) => this.GetWorkingCopyVersion(this.Context.AbsoluteProjectDirectory, out actualDirectory);
+    public VersionOptions? GetWorkingCopyVersion(VersionFileRequirements requirements, out VersionFileLocations locations) => this.GetWorkingCopyVersion(this.Context.AbsoluteProjectDirectory, requirements, out locations);
 
     /// <inheritdoc cref="SetVersion(string, VersionOptions, bool)"/>
     /// <param name="unstableTag">The optional unstable tag to include in the file.</param>
@@ -107,19 +114,18 @@ public abstract class VersionFile
         return versionJsonPath;
     }
 
-    /// <inheritdoc cref="GetVersion(out string?)"/>
-    public VersionOptions? GetVersion() => this.GetVersion(out string? actualDirectory);
+    /// <inheritdoc cref="GetVersion(VersionFileRequirements, out VersionFileLocations)"/>
+    public VersionOptions? GetVersion() => this.GetVersion(VersionFileRequirements.Default, out _);
 
     /// <summary>
     /// Reads the version file from the selected git commit (or working copy if no commit is selected) and returns the <see cref="VersionOptions"/> deserialized from it.
     /// </summary>
-    /// <param name="actualDirectory">Receives the absolute path to the directory where the version file was found, if any.</param>
+    /// <param name="requirements"><inheritdoc cref="GetVersionCore(VersionFileRequirements, out VersionFileLocations)" path="/param[@name='requirements']" /></param>
+    /// <param name="locations"><inheritdoc cref="GetVersionCore(VersionFileRequirements, out VersionFileLocations)" path="/param[@name='locations']" /></param>
     /// <returns>The version information read from the file, or <see langword="null"/> if the file wasn't found.</returns>
-    public VersionOptions? GetVersion(out string? actualDirectory)
+    public VersionOptions? GetVersion(VersionFileRequirements requirements, out VersionFileLocations locations)
     {
-        return this.Context.GitCommitId is null
-           ? this.GetWorkingCopyVersion(out actualDirectory)
-           : this.GetVersionCore(out actualDirectory);
+        return this.Context.GitCommitId is null ? this.GetWorkingCopyVersion(requirements, out locations) : this.GetVersionCore(requirements, out locations);
     }
 
     /// <summary>
@@ -166,22 +172,172 @@ public abstract class VersionFile
         };
     }
 
+    protected static bool VersionOptionsSatisfyRequirements(VersionOptions? options, VersionFileRequirements requirements)
+    {
+        Requires.Argument(
+            !requirements.HasFlag(VersionFileRequirements.AcceptInheritingFile) || requirements.HasFlag(VersionFileRequirements.NonMergedResult),
+            nameof(requirements),
+            "Clients that accept an inheriting file must not want a merged result.");
+
+        if (options is null)
+        {
+            return false;
+        }
+
+        if (options.Version is null && requirements.HasFlag(VersionFileRequirements.VersionSpecified))
+        {
+            return false;
+        }
+
+        if (options.Inherit && !requirements.HasFlag(VersionFileRequirements.AcceptInheritingFile))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Applies the standalone <see cref="VersionOptions.Prerelease"/> property to the <see cref="VersionOptions.Version"/> property.
+    /// </summary>
+    /// <param name="options">The version options to modify.</param>
+    /// <remarks>
+    /// This method should be called after merging a child version.json with a parent version.json.
+    /// If the child specified a <see cref="VersionOptions.Prerelease"/> property, this method will apply it to the version.
+    /// </remarks>
+    protected static void ApplyPrereleaseProperty(VersionOptions options)
+    {
+        Requires.NotNull(options, nameof(options));
+
+        // Only apply if the Prerelease property was explicitly set
+        if (options.Prerelease is null)
+        {
+            return;
+        }
+
+        // The version must exist to apply a prerelease tag
+        if (options.Version is null)
+        {
+            throw new InvalidOperationException("The 'prerelease' property cannot be used without a 'version' property.");
+        }
+
+        // If prerelease is an empty string, it suppresses any inherited prerelease tag
+        if (options.Prerelease == string.Empty)
+        {
+            // Remove any existing prerelease tag
+            if (!string.IsNullOrEmpty(options.Version.Prerelease))
+            {
+                options.Version = new SemanticVersion(
+                    options.Version.Version,
+                    null,
+                    options.Version.BuildMetadata);
+            }
+
+            options.Prerelease = null;
+            return;
+        }
+
+        // Validate that the version doesn't already have a prerelease tag (non-empty prerelease being applied)
+        if (!string.IsNullOrEmpty(options.Version.Prerelease))
+        {
+            throw new InvalidOperationException("The 'prerelease' property cannot be used when the 'version' property already includes a prerelease tag.");
+        }
+
+        // Apply the prerelease tag to the version
+        string prereleaseTag = options.Prerelease;
+        if (!prereleaseTag.StartsWith("-", StringComparison.Ordinal))
+        {
+            // Add the hyphen prefix if not present
+            prereleaseTag = "-" + prereleaseTag;
+        }
+
+        // Create a new SemanticVersion with the prerelease tag applied
+        options.Version = new SemanticVersion(
+            options.Version.Version,
+            prereleaseTag,
+            options.Version.BuildMetadata);
+
+        // Clear the Prerelease property since it has been applied
+        options.Prerelease = null;
+    }
+
+    protected static string TrimTrailingPathSeparator(string path)
+        => path.Length > 0 && (path[^1] == Path.DirectorySeparatorChar || path[^1] == Path.AltDirectorySeparatorChar) ? path[..^1] : path;
+
+    protected void MergeLocations(ref VersionFileLocations target, VersionFileLocations input)
+    {
+        if (this.VersionSearchRootToBranch && input.VersionSpecifyingVersionDirectory is not null)
+        {
+            target.VersionSpecifyingVersionDirectory = input.VersionSpecifyingVersionDirectory;
+        }
+        else
+        {
+            target.VersionSpecifyingVersionDirectory ??= input.VersionSpecifyingVersionDirectory;
+        }
+
+        if (this.VersionSearchRootToBranch && input.NonInheritingVersionDirectory is not null)
+        {
+            target.NonInheritingVersionDirectory = input.NonInheritingVersionDirectory;
+        }
+        else
+        {
+            target.NonInheritingVersionDirectory ??= input.NonInheritingVersionDirectory;
+        }
+    }
+
+    protected void ApplyLocations(VersionOptions? options, string currentLocation, ref VersionFileLocations locations)
+    {
+        if (options is null)
+        {
+            return;
+        }
+
+        if (options.Version is not null)
+        {
+            if (this.VersionSearchRootToBranch)
+            {
+                locations.VersionSpecifyingVersionDirectory = currentLocation;
+            }
+            else
+            {
+                locations.VersionSpecifyingVersionDirectory ??= currentLocation;
+            }
+        }
+
+        if (!options.Inherit)
+        {
+            if (this.VersionSearchRootToBranch)
+            {
+                locations.NonInheritingVersionDirectory = currentLocation;
+            }
+            else
+            {
+                locations.NonInheritingVersionDirectory ??= currentLocation;
+            }
+        }
+    }
+
     /// <summary>
     /// Reads the version file from <see cref="GitContext.GitCommitId"/> in the <see cref="Context"/> and returns the <see cref="VersionOptions"/> deserialized from it.
     /// </summary>
-    /// <param name="actualDirectory">Receives the absolute path to the directory where the version file was found, if any.</param>
+    /// <param name="requirements"><inheritdoc cref="GetVersionCore(VersionFileRequirements, out VersionFileLocations)" path="/param[@name='requirements']" /></param>
+    /// <param name="locations"><inheritdoc cref="GetVersionCore(VersionFileRequirements, out VersionFileLocations)" path="/param[@name='locations']" /></param>
     /// <returns>The version information read from the file, or <see langword="null"/> if the file wasn't found.</returns>
     /// <remarks>This method is only called if <see cref="GitContext.GitCommitId"/> is not null.</remarks>
-    protected abstract VersionOptions? GetVersionCore(out string? actualDirectory);
+    protected abstract VersionOptions? GetVersionCore(VersionFileRequirements requirements, out VersionFileLocations locations);
 
     /// <summary>
     /// Reads a version file from the working tree, without any regard to a git repo.
     /// </summary>
     /// <param name="startingDirectory">The path to start the search from.</param>
-    /// <param name="actualDirectory">Receives the directory where the version file was found.</param>
+    /// <param name="requirements"><inheritdoc cref="GetVersionCore(VersionFileRequirements, out VersionFileLocations)" path="/param[@name='requirements']" /></param>
+    /// <param name="locations"><inheritdoc cref="GetVersionCore(VersionFileRequirements, out VersionFileLocations)" path="/param[@name='locations']" /></param>
     /// <returns>The version options, if found.</returns>
-    protected VersionOptions? GetWorkingCopyVersion(string startingDirectory, out string? actualDirectory)
+    protected VersionOptions? GetWorkingCopyVersion(string startingDirectory, VersionFileRequirements requirements, out VersionFileLocations locations)
     {
+        startingDirectory = TrimTrailingPathSeparator(startingDirectory);
+        locations = default;
+
         string? searchDirectory = startingDirectory;
         while (searchDirectory is object)
         {
@@ -196,8 +352,8 @@ public abstract class VersionFile
                 VersionOptions? result = TryReadVersionFile(sr);
                 if (result is object)
                 {
-                    actualDirectory = searchDirectory;
-                    return result;
+                    this.ApplyLocations(result, searchDirectory, ref locations);
+                    return VersionOptionsSatisfyRequirements(result, requirements) ? result : null;
                 }
             }
 
@@ -207,38 +363,46 @@ public abstract class VersionFile
                 string versionJsonContent = File.ReadAllText(versionJsonPath);
 
                 string? repoRelativeBaseDirectory = this.Context.GetRepoRelativePath(searchDirectory);
-                VersionOptions? result =
-                    TryReadVersionJsonContent(versionJsonContent, repoRelativeBaseDirectory);
-                if (result?.Inherit ?? false)
+                VersionOptions? result = TryReadVersionJsonContent(versionJsonContent, repoRelativeBaseDirectory);
+
+                this.ApplyLocations(result, searchDirectory, ref locations);
+                if (VersionOptionsSatisfyRequirements(result, requirements))
+                {
+                    return result;
+                }
+
+                if (result?.Inherit is true)
                 {
                     if (parentDirectory is object)
                     {
-                        result = this.GetWorkingCopyVersion(parentDirectory, out _);
-                        if (result is object)
+                        result = this.GetWorkingCopyVersion(parentDirectory, requirements, out VersionFileLocations parentLocations);
+                        this.MergeLocations(ref locations, parentLocations);
+                        if (!requirements.HasFlag(VersionFileRequirements.NonMergedResult) && result is not null)
                         {
                             JsonConvert.PopulateObject(
                                 versionJsonContent,
                                 result,
                                 VersionOptions.GetJsonSettings(repoRelativeBaseDirectory: repoRelativeBaseDirectory));
-                            actualDirectory = searchDirectory;
-                            return result;
+                            ApplyPrereleaseProperty(result);
+                            result.Inherit = false;
                         }
                     }
+                    else
+                    {
+                        throw new InvalidOperationException($"\"{searchDirectory}\" inherits from a parent directory version.json file but none exists.");
+                    }
 
-                    throw new InvalidOperationException(
-                        $"\"{versionJsonPath}\" inherits from a parent directory version.json file but none exists.");
+                    return VersionOptionsSatisfyRequirements(result, requirements) ? result : null;
                 }
                 else if (result is object)
                 {
-                    actualDirectory = searchDirectory;
-                    return result;
+                    return VersionOptionsSatisfyRequirements(result, requirements) ? result : null;
                 }
             }
 
             searchDirectory = parentDirectory;
         }
 
-        actualDirectory = null;
         return null;
     }
 }

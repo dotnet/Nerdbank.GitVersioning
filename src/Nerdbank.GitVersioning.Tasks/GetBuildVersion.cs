@@ -11,6 +11,12 @@ namespace Nerdbank.GitVersioning.Tasks
 {
     public class GetBuildVersion : ContextAwareTask
     {
+        private const string UnavailableGitValue = "Unavailable from a shallow git clone";
+        private const string UnavailableGitWarningCode = "NBGV1001";
+
+        // October 26, 1985 at 1:21 AM UTC, when the DeLorean first traveled through time.
+        private const string UnavailableGitDateTicks = "626347344600000000";
+
         /// <summary>
         /// Initializes a new instance of the <see cref="GetBuildVersion"/> class.
         /// </summary>
@@ -226,9 +232,10 @@ namespace Nerdbank.GitVersioning.Tasks
                     Requires.Argument(!containsDotDotSlash, nameof(this.ProjectPathRelativeToGitRepoRoot), "Path must not use ..\\");
                 }
 
-                GitContext.Engine engine = GitContext.Engine.ReadOnly;
+                GitContext.Engine engine;
                 if (!string.IsNullOrWhiteSpace(this.GitEngine))
                 {
+                    // MSBuild property GitEngine takes precedence over environment variables
                     engine = this.GitEngine switch
                     {
                         "Managed" => GitContext.Engine.ReadOnly,
@@ -236,6 +243,11 @@ namespace Nerdbank.GitVersioning.Tasks
                         "Disabled" => GitContext.Engine.Disabled,
                         _ => throw new ArgumentException("GitEngine property must be set to either \"Disabled\", \"Managed\" or \"LibGit2\" or left empty."),
                     };
+                }
+                else
+                {
+                    // Use environment variable logic (NBGV_GitEngine and DEPENDABOT)
+                    engine = GitContext.GetEffectiveGitEngine();
                 }
 
                 ICloudBuild cloudBuild = CloudBuild.Active;
@@ -280,6 +292,24 @@ namespace Nerdbank.GitVersioning.Tasks
                 this.GitCommitIdShort = oracle.GitCommitIdShort;
                 this.GitCommitDateTicks = oracle.GitCommitDate is not null ? oracle.GitCommitDate.Value.UtcTicks.ToString(CultureInfo.InvariantCulture) : null;
                 this.GitCommitAuthorDateTicks = oracle.GitCommitAuthorDate is not null ? oracle.GitCommitAuthorDate.Value.UtcTicks.ToString(CultureInfo.InvariantCulture) : null;
+                if (engine == GitContext.Engine.Disabled)
+                {
+                    this.GitCommitId = UnavailableGitValue;
+                    this.GitCommitIdShort = UnavailableGitValue;
+                    this.GitCommitDateTicks = UnavailableGitDateTicks;
+                    this.GitCommitAuthorDateTicks = UnavailableGitDateTicks;
+                    this.Log.LogWarning(
+                        subcategory: null,
+                        warningCode: UnavailableGitWarningCode,
+                        helpKeyword: null,
+                        file: null,
+                        lineNumber: 0,
+                        columnNumber: 0,
+                        endLineNumber: 0,
+                        endColumnNumber: 0,
+                        message: "Git information is unavailable because the git engine is disabled. Git-related MSBuild properties and ThisAssembly members contain placeholder values.");
+                }
+
                 this.GitVersionHeight = oracle.VersionHeight;
                 this.BuildMetadataFragment = oracle.BuildMetadataFragment;
                 this.CloudBuildNumber = oracle.CloudBuildNumberEnabled ? oracle.CloudBuildNumber : null;

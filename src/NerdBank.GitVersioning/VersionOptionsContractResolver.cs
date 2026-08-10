@@ -86,6 +86,11 @@ internal class VersionOptionsContractResolver : CamelCasePropertyNamesContractRe
                 property.ShouldSerialize = instance => ((VersionOptions)instance).VersionHeightOffsetOrDefault != 0;
             }
 
+            if (property.DeclaringType == typeof(VersionOptions) && member.Name == nameof(VersionOptions.VersionHeightOffsetAppliesTo))
+            {
+                property.ShouldSerialize = instance => ((VersionOptions)instance).VersionHeightOffsetAppliesTo is not null;
+            }
+
             if (property.DeclaringType == typeof(VersionOptions) && member.Name == nameof(VersionOptions.NuGetPackageVersion))
             {
                 property.ShouldSerialize = instance => !((VersionOptions)instance).NuGetPackageVersionOrDefault.IsDefault;

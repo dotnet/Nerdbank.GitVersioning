@@ -15,7 +15,7 @@ Param(
     [string]$MsBuildVerbosity = 'minimal'
 )
 
-$msbuildCommandLine = "dotnet build `"$PSScriptRoot\Nerdbank.GitVersioning.sln`" /m /verbosity:$MsBuildVerbosity /nologo /p:Platform=`"Any CPU`" /t:build,pack"
+$msbuildCommandLine = "dotnet build `"$PSScriptRoot\Nerdbank.GitVersioning.slnx`" /m /verbosity:$MsBuildVerbosity /nologo /p:Platform=`"Any CPU`" /t:build,pack"
 
 if ($Configuration) {
     $msbuildCommandLine += " /p:Configuration=$Configuration"
@@ -23,7 +23,7 @@ if ($Configuration) {
 
 Push-Location .
 try {
-    if ($PSCmdlet.ShouldProcess("$PSScriptRoot\Nerdbank.GitVersioning.sln", "msbuild")) {
+    if ($PSCmdlet.ShouldProcess("$PSScriptRoot\Nerdbank.GitVersioning.slnx", "msbuild")) {
         Invoke-Expression $msbuildCommandLine
         if ($LASTEXITCODE -ne 0) {
             throw "dotnet build failed"
@@ -31,7 +31,17 @@ try {
     }
 
     if ($PSCmdlet.ShouldProcess('src/nbgv', 'dotnet publish')) {
-        dotnet publish src/nbgv -c $Configuration -o src/nerdbank-gitversioning.npm/out/nbgv.cli/tools/net8.0/any
+        dotnet publish src/nbgv -f net8.0 -c $Configuration -o src/nerdbank-gitversioning.npm/out/nbgv.cli/tools/net8.0/any
+        if ($LASTEXITCODE -ne 0) {
+            throw "dotnet publish failed"
+        }
+
+        dotnet publish src/nbgv -f net9.0 -c $Configuration -o src/nerdbank-gitversioning.npm/out/nbgv.cli/tools/net9.0/any
+        if ($LASTEXITCODE -ne 0) {
+            throw "dotnet publish failed"
+        }
+
+        dotnet publish src/nbgv -f net10.0 -c $Configuration -o src/nerdbank-gitversioning.npm/out/nbgv.cli/tools/net10.0/any
         if ($LASTEXITCODE -ne 0) {
             throw "dotnet publish failed"
         }

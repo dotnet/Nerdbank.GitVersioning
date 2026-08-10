@@ -59,18 +59,22 @@ $runtimeVersions = @()
 $windowsDesktopRuntimeVersions = @()
 $aspnetRuntimeVersions = @()
 if (!$SdkOnly) {
-    Get-ChildItem "$PSScriptRoot\..\src\*.*proj", "$PSScriptRoot\..\test\*.*proj", "$PSScriptRoot\..\Directory.Build.props" -Recurse | % {
+    $projFiles = Get-ChildItem "$PSScriptRoot\..\src\*.*proj", "$PSScriptRoot\..\test\*.*proj" -Recurse
+    $projFiles += Get-ChildItem "$PSScriptRoot\..\src\Directory.Build.props", "$PSScriptRoot\..\test\Directory.Build.props" -Recurse
+    $projFiles += Get-Item -LiteralPath "$PSScriptRoot\..\Directory.Build.props"
+    $projFiles | % {
         $projXml = [xml](Get-Content -LiteralPath $_)
-        $pg = $projXml.Project.PropertyGroup
-        if ($pg) {
-            $targetFrameworks = @()
-            $tf = $pg.TargetFramework
-            $targetFrameworks += $tf
-            $tfs = $pg.TargetFrameworks
-            if ($tfs) {
-                $targetFrameworks = $tfs -Split ';'
+        $targetFrameworks = @()
+        foreach ($pg in @($projXml.Project.PropertyGroup)) {
+            if ($pg.TargetFramework) {
+                $targetFrameworks += $pg.TargetFramework
+            }
+
+            if ($pg.TargetFrameworks) {
+                $targetFrameworks += $pg.TargetFrameworks -Split ';'
             }
         }
+
         $targetFrameworks |? { $_ -match 'net(?:coreapp)?(\d+\.\d+)' } |% {
             $v = $Matches[1]
             $runtimeVersions += $v
@@ -125,14 +129,14 @@ Function Get-InstallerExe(
     }
 
     if ($TypedVersion.Build -eq -1) {
-        $versionInfo = -Split (Invoke-WebRequest -Uri "https://dotnetcli.blob.core.windows.net/dotnet/$sku/$Version/latest.version" -UseBasicParsing)
+        $versionInfo = -Split (Invoke-WebRequest -Uri "https://builds.dotnet.microsoft.com/dotnet/$sku/$Version/latest.version" -UseBasicParsing)
         $Version = $versionInfo[-1]
     }
 
     $majorMinor = "$($TypedVersion.Major).$($TypedVersion.Minor)"
     $ReleasesFile = Join-Path $DotNetInstallScriptRoot "$majorMinor\releases.json"
     if (!(Test-Path $ReleasesFile)) {
-        Get-FileFromWeb -Uri "https://dotnetcli.blob.core.windows.net/dotnet/release-metadata/$majorMinor/releases.json" -OutDir (Split-Path $ReleasesFile) | Out-Null
+        Get-FileFromWeb -Uri "https://builds.dotnet.microsoft.com/dotnet/release-metadata/$majorMinor/releases.json" -OutDir (Split-Path $ReleasesFile) | Out-Null
     }
 
     $releases = Get-Content $ReleasesFile | ConvertFrom-Json
@@ -197,7 +201,7 @@ if ($InstallLocality -eq 'machine') {
         $restartRequired = $false
         $sdks |% {
             if ($_.Version) { $version = $_.Version } else { $version = $_.Channel }
-            if ($PSCmdlet.ShouldProcess(".NET SDK $_", "Install")) {
+            if ($PSCmdlet.ShouldProcess(".NET SDK $version ($arch)", "Install")) {
                 Install-DotNet -Version $version -Architecture $arch
                 $restartRequired = $restartRequired -or ($LASTEXITCODE -eq 3010)
 
@@ -281,18 +285,15 @@ if ($IncludeX86) {
 }
 
 if ($IsMacOS -or $IsLinux) {
-    $DownloadUri = "https://raw.githubusercontent.com/dotnet/install-scripts/0b09de9bc136cacb5f849a6957ebd4062173c148/src/dotnet-install.sh"
-    $DotNetInstallScriptPath = "$DotNetInstallScriptRoot/dotnet-install.sh"
+    $DotNetInstallScriptPath = "$PSScriptRoot/dotnet-install.sh"
 } else {
-    $DownloadUri = "https://raw.githubusercontent.com/dotnet/install-scripts/0b09de9bc136cacb5f849a6957ebd4062173c148/src/dotnet-install.ps1"
-    $DotNetInstallScriptPath = "$DotNetInstallScriptRoot/dotnet-install.ps1"
+    $DotNetInstallScriptPath = "$PSScriptRoot/dotnet-install.ps1"
 }
 
+# Verify the cached script exists
 if (-not (Test-Path $DotNetInstallScriptPath)) {
-    Invoke-WebRequest -Uri $DownloadUri -OutFile $DotNetInstallScriptPath -UseBasicParsing
-    if ($IsMacOS -or $IsLinux) {
-        chmod +x $DotNetInstallScriptPath
-    }
+    Write-Error "Cached dotnet-install script not found at $DotNetInstallScriptPath. Run tools/Update-DotNetInstallScript.ps1 to download it."
+    exit 1
 }
 
 # In case the script we invoke is in a directory with spaces, wrap it with single quotes.
@@ -306,7 +307,7 @@ $global:LASTEXITCODE = 0
 $sdks |% {
     if ($_.Version) { $parameters = '-Version', $_.Version } else { $parameters = '-Channel', $_.Channel }
 
-    if ($PSCmdlet.ShouldProcess(".NET SDK $_", "Install")) {
+    if ($PSCmdlet.ShouldProcess(".NET SDK $_ ($arch)", "Install")) {
         $anythingInstalled = $true
         Invoke-Expression -Command "$DotNetInstallScriptPathExpression $parameters -Architecture $arch -InstallDir $DotNetInstallDir $switches"
 

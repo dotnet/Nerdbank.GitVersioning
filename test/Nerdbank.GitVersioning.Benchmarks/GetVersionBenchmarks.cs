@@ -5,12 +5,9 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Jobs;
 
 namespace Nerdbank.GitVersioning.Benchmarks
 {
-    [SimpleJob(RuntimeMoniker.Net90)]
-    [SimpleJob(RuntimeMoniker.Net472, baseline: true)]
     public class GetVersionBenchmarks
     {
         // You must manually clone these repositories:

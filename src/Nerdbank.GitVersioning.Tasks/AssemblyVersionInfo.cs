@@ -53,7 +53,7 @@ namespace Nerdbank.GitVersioning.Tasks
         public string CodeLanguage { get; set; }
 
         [Required]
-        public string OutputFile { get; set; }
+        public ITaskItem OutputFile { get; set; }
 
         public bool EmitNonVersionCustomAttributes { get; set; }
 
@@ -69,7 +69,7 @@ namespace Nerdbank.GitVersioning.Tasks
 
         public string ThisAssemblyNamespace { get; set; }
 
-        public string AssemblyOriginatorKeyFile { get; set; }
+        public ITaskItem AssemblyOriginatorKeyFile { get; set; }
 
         public string AssemblyKeyContainerName { get; set; }
 
@@ -146,8 +146,9 @@ namespace Nerdbank.GitVersioning.Tasks
             string fileContent = this.BuildCode();
             if (fileContent is object)
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(this.OutputFile));
-                Utilities.FileOperationWithRetry(() => File.WriteAllText(this.OutputFile, fileContent));
+                string outputFile = this.OutputFile.GetMetadata("FullPath");
+                Directory.CreateDirectory(Path.GetDirectoryName(outputFile));
+                Utilities.FileOperationWithRetry(() => File.WriteAllText(outputFile, fileContent));
             }
             else if (CodeDomProvider.IsDefinedLanguage(this.CodeLanguage))
             {
@@ -164,9 +165,10 @@ namespace Nerdbank.GitVersioning.Tasks
                         ns.Types.Add(this.CreateThisAssemblyClass());
                     }
 
-                    Directory.CreateDirectory(Path.GetDirectoryName(this.OutputFile));
+                    string outputFile = this.OutputFile.GetMetadata("FullPath");
+                    Directory.CreateDirectory(Path.GetDirectoryName(outputFile));
                     FileStream file = null;
-                    Utilities.FileOperationWithRetry(() => file = File.OpenWrite(this.OutputFile));
+                    Utilities.FileOperationWithRetry(() => file = File.OpenWrite(outputFile));
                     using (file)
                     {
                         using (var fileWriter = new StreamWriter(file, new UTF8Encoding(true), 4096, leaveOpen: true))
@@ -195,8 +197,9 @@ namespace Nerdbank.GitVersioning.Tasks
             string fileContent = this.BuildCode();
             if (fileContent is object)
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(this.OutputFile));
-                Utilities.FileOperationWithRetry(() => File.WriteAllText(this.OutputFile, fileContent));
+                string outputFile = this.OutputFile.GetMetadata("FullPath");
+                Directory.CreateDirectory(Path.GetDirectoryName(outputFile));
+                Utilities.FileOperationWithRetry(() => File.WriteAllText(outputFile, fileContent));
             }
             else
             {
@@ -590,6 +593,11 @@ namespace Nerdbank.GitVersioning.Tasks
                 case "f#":
                     // The F# generator must emit a namespace, so it respects both ThisAssemblyNamespace and RootNamespace.
                     return new FSharpCodeGenerator(userNs ?? (!string.IsNullOrEmpty(rootNamespace) ? rootNamespace : "AssemblyInfo"));
+                case "g#":
+                case "gs":
+                case "gsharp":
+                    // The G# generator must emit a package (namespace), so it respects both ThisAssemblyNamespace and RootNamespace.
+                    return new GSharpCodeGenerator(userNs ?? (!string.IsNullOrEmpty(rootNamespace) ? rootNamespace : "AssemblyInfo"));
                 default:
                     return null;
             }
@@ -600,11 +608,14 @@ namespace Nerdbank.GitVersioning.Tasks
             try
             {
                 byte[] publicKeyBytes = null;
-                if (!string.IsNullOrEmpty(this.AssemblyOriginatorKeyFile) && File.Exists(this.AssemblyOriginatorKeyFile))
+                FileInfo keyFile = this.AssemblyOriginatorKeyFile is object
+                    ? new FileInfo(this.AssemblyOriginatorKeyFile.GetMetadata("FullPath"))
+                    : null;
+                if (keyFile is object && keyFile.Exists)
                 {
-                    if (Path.GetExtension(this.AssemblyOriginatorKeyFile).Equals(".snk", StringComparison.OrdinalIgnoreCase))
+                    if (keyFile.Extension.Equals(".snk", StringComparison.OrdinalIgnoreCase))
                     {
-                        byte[] keyBytes = File.ReadAllBytes(this.AssemblyOriginatorKeyFile);
+                        byte[] keyBytes = File.ReadAllBytes(keyFile.FullName);
                         bool publicKeyOnly = keyBytes[0] != 0x07;
                         publicKeyBytes = publicKeyOnly ? keyBytes : GetPublicKeyFromKeyPair(keyBytes);
                     }
@@ -736,7 +747,7 @@ namespace Nerdbank.GitVersioning.Tasks
 
             internal override void AddThisAssemblyMember(string name, DateTime value)
             {
-                this.CodeBuilder.AppendLine($"  static member internal {name} = new global.System.DateTime({value.Ticks}L, global.System.DateTimeKind.Utc)");
+                this.CodeBuilder.AppendLine($"  static member internal {name} = global.System.DateTime({value.Ticks}L, global.System.DateTimeKind.Utc)");
             }
 
             internal override void StartAssemblyAttributes()
@@ -768,6 +779,65 @@ namespace Nerdbank.GitVersioning.Tasks
                 this.CodeBuilder.AppendLine("[<global.System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage>]");
                 this.CodeBuilder.AppendLine("#endif");
                 this.CodeBuilder.AppendLine("type internal ThisAssembly() =");
+            }
+        }
+
+        private class GSharpCodeGenerator : CodeGenerator
+        {
+            public GSharpCodeGenerator(string ns)
+                : base(ns)
+            {
+            }
+
+            // G# has no in-source pragmas; diagnostics are suppressed via MSBuild <NoWarn>.
+            protected override IEnumerable<string> WarningCodesToSuppress { get; } = [];
+
+            internal override void AddAnalysisSuppressions()
+            {
+            }
+
+            internal override void AddComment(string comment)
+            {
+                this.AddCodeComment(comment, "//");
+            }
+
+            internal override void StartAssemblyAttributes()
+            {
+                this.CodeBuilder.AppendLine($"package {this.Namespace}");
+            }
+
+            internal override void DeclareAttribute(Type type, string arg)
+            {
+                this.CodeBuilder.AppendLine($"@assembly: {type.FullName}(\"{arg}\")");
+            }
+
+            internal override void StartThisAssemblyClass()
+            {
+                this.CodeBuilder.AppendLine($"@System.CodeDom.Compiler.GeneratedCode(\"{GeneratorName}\",\"{GeneratorVersion}\")");
+                this.CodeBuilder.AppendLine("@System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage");
+                this.CodeBuilder.AppendLine("internal class ThisAssembly {");
+                this.CodeBuilder.AppendLine("  shared {");
+            }
+
+            internal override void AddThisAssemblyMember(string name, string value)
+            {
+                this.CodeBuilder.AppendLine($"    internal let {name} string = \"{value}\"");
+            }
+
+            internal override void AddThisAssemblyMember(string name, bool value)
+            {
+                this.CodeBuilder.AppendLine($"    internal let {name} bool = {(value ? "true" : "false")}");
+            }
+
+            internal override void AddThisAssemblyMember(string name, DateTime value)
+            {
+                this.CodeBuilder.AppendLine($"    internal let {name} System.DateTime = System.DateTime({value.Ticks}L, System.DateTimeKind.Utc)");
+            }
+
+            internal override void EndThisAssemblyClass()
+            {
+                this.CodeBuilder.AppendLine("  }");
+                this.CodeBuilder.AppendLine("}");
             }
         }
 

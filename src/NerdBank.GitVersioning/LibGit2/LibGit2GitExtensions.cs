@@ -231,7 +231,7 @@ public static class LibGit2GitExtensions
         // and forbids 0xffff as a value.
         if (versionHeightPosition.HasValue)
         {
-            int adjustedVersionHeight = versionHeight == 0 ? 0 : versionHeight + (versionOptions?.VersionHeightOffset ?? 0);
+            int adjustedVersionHeight = versionHeight == 0 ? 0 : versionHeight + (versionOptions?.EffectiveVersionHeightOffset ?? 0);
             Verify.Operation(adjustedVersionHeight <= MaximumBuildNumberOrRevisionComponent, "Git height is {0}, which is greater than the maximum allowed {0}.", adjustedVersionHeight, MaximumBuildNumberOrRevisionComponent);
             switch (versionHeightPosition.Value)
             {
@@ -344,7 +344,7 @@ public static class LibGit2GitExtensions
         {
             int expectedVersionHeight = SemanticVersion.ReadVersionPosition(version, position.Value);
 
-            int actualVersionOffset = versionOptions.VersionHeightOffsetOrDefault;
+            int actualVersionOffset = versionOptions.EffectiveVersionHeightOffset;
             int actualVersionHeight = GetCommitHeight(commit, tracker, c => CommitMatchesVersion(c, version, position.Value - 1, tracker));
             return expectedVersionHeight != actualVersionHeight + actualVersionOffset;
         }
@@ -473,22 +473,24 @@ public static class LibGit2GitExtensions
             VersionOptions? versionOptions = tracker.GetVersion(commit);
             IReadOnlyList<FilterPath>? pathFilters = versionOptions?.PathFilters;
 
-            var includePaths =
-                pathFilters
-                    ?.Where(filter => !filter.IsExclude)
-                    .Select(filter => filter.RepoRelativePath)
-                    .ToList();
+            List<string>? includePaths = null;
+            bool hasWildcardIncludes = false;
+            if (pathFilters is not null)
+            {
+                includePaths = new List<string>();
+                foreach (FilterPath filter in pathFilters)
+                {
+                    if (filter.IsInclude)
+                    {
+                        includePaths.Add(filter.RepoRelativePath);
+                        hasWildcardIncludes |= filter.HasWildcard;
+                    }
+                }
+            }
 
             var excludePaths = pathFilters?.Where(filter => filter.IsExclude).ToList();
 
             bool ignoreCase = commit.GetRepository().Config.Get<bool>("core.ignorecase")?.Value ?? false;
-            bool ContainsRelevantChanges(IEnumerable<TreeEntryChanges> changes) =>
-                excludePaths?.Count == 0
-                    ? changes.Any()
-                    //// If there is a single change that isn't excluded,
-                    //// then this commit is relevant.
-                    : changes.Any(change => !excludePaths!.Any(exclude => exclude.Excludes(change.Path, ignoreCase)));
-
             int height = 1;
 
             if (includePaths is not null)
@@ -497,7 +499,7 @@ public static class LibGit2GitExtensions
                 // paths refer to the root of the repository, then do not
                 // filter the diff at all.
                 List<string>? diffInclude =
-                    includePaths.Count == 0 || pathFilters!.Any(filter => filter.IsRoot)
+                    includePaths.Count == 0 || hasWildcardIncludes || pathFilters!.Any(filter => filter.IsRoot)
                         ? null
                         : includePaths;
 
@@ -506,10 +508,18 @@ public static class LibGit2GitExtensions
                 // A no-parent commit is relevant if it introduces anything in the filtered path.
                 bool relevantCommit =
                     commit.Parents.Any()
-                        ? commit.Parents.Any(parent => ContainsRelevantChanges(commit.GetRepository().Diff
-                            .Compare<TreeChanges>(parent.Tree, commit.Tree, diffInclude, DiffOptions)))
-                        : ContainsRelevantChanges(commit.GetRepository().Diff
-                            .Compare<TreeChanges>(null, commit.Tree, diffInclude, DiffOptions));
+                        ? commit.Parents.Any(parent => ContainsRelevantChanges(
+                            commit.GetRepository().Diff.Compare<TreeChanges>(parent.Tree, commit.Tree, diffInclude, DiffOptions),
+                            hasWildcardIncludes,
+                            pathFilters!,
+                            excludePaths!,
+                            ignoreCase))
+                        : ContainsRelevantChanges(
+                            commit.GetRepository().Diff.Compare<TreeChanges>(null, commit.Tree, diffInclude, DiffOptions),
+                            hasWildcardIncludes,
+                            pathFilters!,
+                            excludePaths!,
+                            ignoreCase);
 
                 if (!relevantCommit)
                 {
@@ -533,6 +543,25 @@ public static class LibGit2GitExtensions
 
         Assumes.True(tracker.TryGetVersionHeight(startingCommit, out int result));
         return result;
+    }
+
+    private static bool ContainsRelevantChanges(
+        TreeChanges changes,
+        bool hasWildcardIncludes,
+        IReadOnlyList<FilterPath> pathFilters,
+        IReadOnlyList<FilterPath> excludePaths,
+        bool ignoreCase)
+    {
+        using (changes)
+        {
+            return !hasWildcardIncludes && excludePaths.Count == 0
+                ? changes.Any()
+                //// If there is a single change that isn't excluded,
+                //// then this commit is relevant.
+                : changes.Any(change =>
+                    (!hasWildcardIncludes || pathFilters.Any(include => include.Includes(change.Path, ignoreCase))) &&
+                    !excludePaths.Any(exclude => exclude.Excludes(change.Path, ignoreCase)));
+        }
     }
 
     /// <summary>
@@ -594,7 +623,7 @@ public static class LibGit2GitExtensions
             {
                 try
                 {
-                    options = ((LibGit2VersionFile)this.context.VersionFile).GetVersion(commit, this.context.RepoRelativeProjectDirectory, this.blobVersionCache, out string? actualDirectory);
+                    options = ((LibGit2VersionFile)this.context.VersionFile).GetVersion(commit, this.context.RepoRelativeProjectDirectory, this.blobVersionCache, VersionFileRequirements.Default, out _);
                 }
                 catch (Exception ex)
                 {

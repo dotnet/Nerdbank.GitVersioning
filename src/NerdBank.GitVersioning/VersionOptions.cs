@@ -74,6 +74,12 @@ public class VersionOptions : IEquatable<VersionOptions>
     private int? buildNumberOffset;
 
     /// <summary>
+    /// Backing field for the <see cref="VersionHeightOffsetAppliesTo"/> property.
+    /// </summary>
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private SemanticVersion? versionHeightOffsetAppliesTo;
+
+    /// <summary>
     /// Backing field for the <see cref="SemVer1NumericIdentifierPadding"/> property.
     /// </summary>
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -128,6 +134,12 @@ public class VersionOptions : IEquatable<VersionOptions>
     private bool inherit;
 
     /// <summary>
+    /// Backing field for the <see cref="Prerelease"/> property.
+    /// </summary>
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private string? prerelease;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="VersionOptions"/> class.
     /// </summary>
     public VersionOptions()
@@ -146,6 +158,7 @@ public class VersionOptions : IEquatable<VersionOptions>
         this.version = copyFrom.version;
         this.assemblyVersion = copyFrom.assemblyVersion is object ? new AssemblyVersionOptions(copyFrom.assemblyVersion) : null;
         this.buildNumberOffset = copyFrom.buildNumberOffset;
+        this.versionHeightOffsetAppliesTo = copyFrom.versionHeightOffsetAppliesTo;
         this.semVer1NumericIdentifierPadding = copyFrom.semVer1NumericIdentifierPadding;
         this.gitCommitIdShortFixedLength = copyFrom.gitCommitIdShortFixedLength;
         this.gitCommitIdShortAutoMinimum = copyFrom.gitCommitIdShortAutoMinimum;
@@ -154,6 +167,7 @@ public class VersionOptions : IEquatable<VersionOptions>
         this.cloudBuild = copyFrom.cloudBuild is object ? new CloudBuildOptions(copyFrom.cloudBuild) : null;
         this.release = copyFrom.release is object ? new ReleaseOptions(copyFrom.release) : null;
         this.pathFilters = copyFrom.pathFilters?.ToList();
+        this.prerelease = copyFrom.prerelease;
     }
 
     /// <summary>
@@ -215,6 +229,7 @@ public class VersionOptions : IEquatable<VersionOptions>
 
         /// <summary>
         /// The commit ID appears as the 4th integer in the version (e.g. 1.2.3.23523).
+        /// Specifically, the first 15 bits of the commit hash are used as the 4th integer.
         /// </summary>
         FourthVersionComponent,
     }
@@ -368,6 +383,57 @@ public class VersionOptions : IEquatable<VersionOptions>
     }
 
     /// <summary>
+    /// Gets the effective version height offset, taking into account the <see cref="VersionHeightOffsetAppliesTo"/> property.
+    /// </summary>
+    /// <returns>
+    /// The version height offset if it applies to the current version, or 0 if the version has changed
+    /// such that the offset should no longer be applied.
+    /// </returns>
+    [JsonIgnore]
+    public int EffectiveVersionHeightOffset
+    {
+        get
+        {
+            // Check if the offset applies to the current version
+            if (this.VersionHeightOffsetAppliesTo is object &&
+                this.Version is object &&
+                this.VersionHeightPosition.HasValue)
+            {
+                // If the version would be reset by a change from VersionHeightOffsetAppliesTo to Version,
+                // then the offset does not apply.
+                if (SemanticVersion.WillVersionChangeResetVersionHeight(
+                    this.VersionHeightOffsetAppliesTo,
+                    this.Version,
+                    this.VersionHeightPosition.Value))
+                {
+                    return 0;
+                }
+            }
+
+            return this.VersionHeightOffsetOrDefault;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the version to which the <see cref="VersionHeightOffset"/> applies.
+    /// When the <see cref="Version"/> property changes such that the version height would be reset,
+    /// and this property does not match the new version, the <see cref="VersionHeightOffset"/> will be ignored.
+    /// </summary>
+    /// <value>A semantic version, or <see langword="null"/> to indicate no constraint.</value>
+    /// <remarks>
+    /// This property is typically used in conjunction with <see cref="VersionHeightOffset"/> to ensure
+    /// that the offset is only applied when the version matches the expected version. When the version
+    /// changes such that the version height would reset, this property can be used to automatically
+    /// stop applying the offset without needing to manually remove it from all version.json files.
+    /// </remarks>
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+    public SemanticVersion? VersionHeightOffsetAppliesTo
+    {
+        get => this.versionHeightOffsetAppliesTo;
+        set => this.SetIfNotReadOnly(ref this.versionHeightOffsetAppliesTo, value);
+    }
+
+    /// <summary>
     /// Gets or sets the minimum number of digits to use for numeric identifiers in SemVer 1.
     /// </summary>
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
@@ -495,6 +561,27 @@ public class VersionOptions : IEquatable<VersionOptions>
     {
         get => this.inherit;
         set => this.SetIfNotReadOnly(ref this.inherit, value);
+    }
+
+    /// <summary>
+    /// Gets or sets a prerelease tag to append to an inherited version.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This property is only valid when <see cref="Inherit"/> is <see langword="true"/> and the <see cref="Version"/> property
+    /// does not already include a prerelease tag. When set, this prerelease tag will be appended to the version number
+    /// inherited from the parent version.json file.
+    /// </para>
+    /// <para>
+    /// Setting this to an empty string explicitly suppresses any prerelease tag that might be inherited.
+    /// Omitting this property (leaving it as <see langword="null"/>) means the prerelease tag will be inherited as-is from the parent.
+    /// </para>
+    /// </remarks>
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+    public string? Prerelease
+    {
+        get => this.prerelease;
+        set => this.SetIfNotReadOnly(ref this.prerelease, value);
     }
 
     /// <summary>
@@ -1666,7 +1753,8 @@ public class VersionOptions : IEquatable<VersionOptions>
                 && NuGetPackageVersionOptions.EqualWithDefaultsComparer.Singleton.Equals(x.NuGetPackageVersionOrDefault, y.NuGetPackageVersionOrDefault)
                 && CloudBuildOptions.EqualWithDefaultsComparer.Singleton.Equals(x.CloudBuildOrDefault, y.CloudBuildOrDefault)
                 && ReleaseOptions.EqualWithDefaultsComparer.Singleton.Equals(x.ReleaseOrDefault, y.ReleaseOrDefault)
-                && x.VersionHeightOffset == y.VersionHeightOffset;
+                && x.VersionHeightOffset == y.VersionHeightOffset
+                && EqualityComparer<SemanticVersion?>.Default.Equals(x.VersionHeightOffsetAppliesTo, y.VersionHeightOffsetAppliesTo);
         }
 
         /// <inheritdoc />

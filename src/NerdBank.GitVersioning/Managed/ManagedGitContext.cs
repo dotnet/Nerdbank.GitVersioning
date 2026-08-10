@@ -146,6 +146,18 @@ public class ManagedGitContext : GitContext
         base.Dispose(disposing);
     }
 
+    /// <inheritdoc />
+    private protected override IReadOnlyCollection<string> GetRemoteNames() => this.Repository.GetRemoteNames();
+
+    /// <inheritdoc />
+    private protected override string? GetRemoteDefaultBranch(string remoteName) => this.Repository.GetRemoteDefaultBranch(remoteName);
+
+    /// <inheritdoc />
+    private protected override IReadOnlyCollection<string> GetLocalBranchNames() => this.Repository.GetLocalBranchNames();
+
+    /// <inheritdoc />
+    private protected override string? GetConfiguredDefaultBranch() => this.Repository.GetConfigurationValue("init", "defaultBranch");
+
     /// <summary>
     /// Encodes a commit from history in a <see cref="Version"/>
     /// so that the original commit can be found later.
@@ -176,7 +188,7 @@ public class ManagedGitContext : GitContext
         // and forbids 0xffff as a value.
         if (versionHeightPosition.HasValue)
         {
-            int adjustedVersionHeight = versionHeight == 0 ? 0 : versionHeight + (versionOptions?.VersionHeightOffset ?? 0);
+            int adjustedVersionHeight = versionHeight == 0 ? 0 : versionHeight + (versionOptions?.EffectiveVersionHeightOffset ?? 0);
             Verify.Operation(adjustedVersionHeight <= MaximumBuildNumberOrRevisionComponent, "Git height is {0}, which is greater than the maximum allowed {0}.", adjustedVersionHeight, MaximumBuildNumberOrRevisionComponent);
             switch (versionHeightPosition.Value)
             {

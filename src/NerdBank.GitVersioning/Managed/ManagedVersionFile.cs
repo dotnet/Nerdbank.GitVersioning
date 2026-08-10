@@ -36,16 +36,22 @@ internal class ManagedVersionFile : VersionFile
 
     protected new ManagedGitContext Context => (ManagedGitContext)base.Context;
 
+    protected override bool VersionSearchRootToBranch => true;
+
     /// <summary>
     /// Reads the version.json file and returns the <see cref="VersionOptions"/> deserialized from it.
     /// </summary>
     /// <param name="commit">The commit to read from.</param>
     /// <param name="repoRelativeProjectDirectory">The directory to consider when searching for the version.txt file.</param>
     /// <param name="blobVersionCache">An optional blob cache for storing the raw parse results of a version.txt or version.json file (before any inherit merge operations are applied).</param>
-    /// <param name="actualDirectory">Receives the full path to the directory in which the version file was found.</param>
+    /// <param name="requirements"><inheritdoc cref="GetVersionCore(VersionFileRequirements, out VersionFileLocations)" path="/param[@name='requirements']" /></param>
+    /// <param name="locations"><inheritdoc cref="GetVersionCore(VersionFileRequirements, out VersionFileLocations)" path="/param[@name='locations']" /></param>
     /// <returns>The version information read from the file.</returns>
-    internal VersionOptions? GetVersion(GitCommit commit, string repoRelativeProjectDirectory, Dictionary<GitObjectId, VersionOptions?>? blobVersionCache, out string? actualDirectory)
+    internal VersionOptions? GetVersion(GitCommit commit, string repoRelativeProjectDirectory, Dictionary<GitObjectId, VersionOptions?>? blobVersionCache, VersionFileRequirements requirements, out VersionFileLocations locations)
     {
+        repoRelativeProjectDirectory = TrimTrailingPathSeparator(repoRelativeProjectDirectory);
+        locations = default;
+
         var directories = new Stack<string>();
 
         string? currentDirectory = repoRelativeProjectDirectory;
@@ -61,8 +67,6 @@ internal class ManagedVersionFile : VersionFile
         string? parentDirectory = null;
 
         VersionOptions? finalResult = null;
-        actualDirectory = null;
-
         while (tree != GitObjectId.Empty)
         {
             GitObjectId versionTxtBlob = this.Context.Repository.GetTreeEntry(tree, TxtFileNameBytes);
@@ -81,7 +85,7 @@ internal class ManagedVersionFile : VersionFile
                 if (result is object)
                 {
                     finalResult = result;
-                    actualDirectory = Path.Combine(this.Context.WorkingTreePath, searchDirectory);
+                    this.ApplyLocations(result, Path.Combine(this.Context.WorkingTreePath, searchDirectory), ref locations);
                 }
             }
 
@@ -116,12 +120,13 @@ internal class ManagedVersionFile : VersionFile
                     }
                 }
 
-                if (result?.Inherit ?? false)
+                if (result?.Inherit is true)
                 {
                     if (parentDirectory is object)
                     {
-                        result = this.GetVersion(commit, parentDirectory, blobVersionCache, out string? resultingDirectory);
-                        if (result is object)
+                        result = this.GetVersion(commit, parentDirectory, blobVersionCache, requirements, out VersionFileLocations parentLocations);
+                        this.MergeLocations(ref locations, parentLocations);
+                        if (!requirements.HasFlag(VersionFileRequirements.NonMergedResult) && result is not null)
                         {
                             if (versionJsonContent is null)
                             {
@@ -136,7 +141,8 @@ internal class ManagedVersionFile : VersionFile
                             }
 
                             JsonConvert.PopulateObject(versionJsonContent, result, VersionOptions.GetJsonSettings(repoRelativeBaseDirectory: searchDirectory));
-                            finalResult = result;
+                            ApplyPrereleaseProperty(result);
+                            result.Inherit = false;
                         }
                         else
                         {
@@ -153,8 +159,8 @@ internal class ManagedVersionFile : VersionFile
 
                 if (result is object)
                 {
-                    actualDirectory = Path.Combine(this.Context.WorkingTreePath, searchDirectory);
                     finalResult = result;
+                    this.ApplyLocations(result, Path.Combine(this.Context.WorkingTreePath, searchDirectory), ref locations);
                 }
             }
 
@@ -174,9 +180,10 @@ internal class ManagedVersionFile : VersionFile
             }
         }
 
-        return finalResult;
+        return VersionOptionsSatisfyRequirements(finalResult, requirements) ? finalResult : null;
     }
 
     /// <inheritdoc/>
-    protected override VersionOptions? GetVersionCore(out string? actualDirectory) => this.GetVersion(this.Context.Commit!.Value, this.Context.RepoRelativeProjectDirectory, null, out actualDirectory);
+    protected override VersionOptions? GetVersionCore(VersionFileRequirements requirements, out VersionFileLocations locations)
+        => this.GetVersion(this.Context.Commit!.Value, this.Context.RepoRelativeProjectDirectory, null, requirements, out locations);
 }

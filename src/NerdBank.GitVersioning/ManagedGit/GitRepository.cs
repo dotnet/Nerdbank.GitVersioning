@@ -95,9 +95,10 @@ public class GitRepository : IDisposable
         this.objectPathBuffer[pathLengthInChars - 1] = '\0'; // Make sure to initialize with zeros
 
         this.packs = new Lazy<ReadOnlyMemory<GitPack>>(this.LoadPacks);
-    }
 
-    // TODO: read from Git settings
+        // Read git configuration to determine case sensitivity
+        this.IgnoreCase = this.ReadIgnoreCaseFromConfig();
+    }
 
     /// <summary>
     /// Gets the encoding used by this Git repository.
@@ -339,10 +340,55 @@ public class GitRepository : IDisposable
     /// <summary>
     /// Parses any committish to an object id.
     /// </summary>
-    /// <param name="objectish">Any "objectish" string (e.g. commit ID (partial or full), branch name, tag name, or "HEAD").</param>
+    /// <param name="objectish">Any "objectish" string (e.g. commit ID (partial or full), branch name, tag name, "HEAD", or a first-parent ancestor).</param>
     /// <returns>The object ID referenced by <paramref name="objectish"/> if found; otherwise <see langword="null"/>.</returns>
     public GitObjectId? Lookup(string objectish)
     {
+        int ancestorOperatorIndex = objectish.IndexOf('~');
+        if (ancestorOperatorIndex > 0)
+        {
+            GitObjectId? objectId = this.Lookup(objectish.Substring(0, ancestorOperatorIndex));
+            if (objectId is null)
+            {
+                return null;
+            }
+
+            int position = ancestorOperatorIndex;
+            while (position < objectish.Length)
+            {
+                if (objectish[position++] != '~')
+                {
+                    return null;
+                }
+
+                int generationStart = position;
+                while (position < objectish.Length && objectish[position] >= '0' && objectish[position] <= '9')
+                {
+                    position++;
+                }
+
+                int generations = 1;
+                if (position > generationStart
+                    && !int.TryParse(objectish.Substring(generationStart, position - generationStart), NumberStyles.None, CultureInfo.InvariantCulture, out generations))
+                {
+                    return null;
+                }
+
+                for (int i = 0; i < generations; i++)
+                {
+                    GitObjectId? parent = this.GetCommit(objectId.Value).FirstParent;
+                    if (parent is null)
+                    {
+                        return null;
+                    }
+
+                    objectId = parent;
+                }
+            }
+
+            return objectId;
+        }
+
         bool skipObjectIdLookup = false;
 
         if (objectish == "HEAD")
@@ -518,7 +564,21 @@ public class GitRepository : IDisposable
             throw new GitException($"The tree {treeId} was not found in this repository.") { ErrorCode = GitException.ErrorCodes.ObjectNotFound };
         }
 
-        return GitTreeStreamingReader.FindNode(treeStream, nodeName);
+        // Try case-sensitive search first
+        GitObjectId result = GitTreeStreamingReader.FindNode(treeStream, nodeName, ignoreCase: false);
+
+        // If not found and repository is configured for case-insensitive matching, try case-insensitive search
+        if (result == GitObjectId.Empty && this.IgnoreCase)
+        {
+            // Get a fresh stream for the second search since we can't reset position on ZLibStream
+            using Stream? treeStream2 = this.GetObjectBySha(treeId, "tree");
+            if (treeStream2 is not null)
+            {
+                result = GitTreeStreamingReader.FindNode(treeStream2, nodeName, ignoreCase: true);
+            }
+        }
+
+        return result;
     }
 
     /// <summary>
@@ -716,6 +776,98 @@ public class GitRepository : IDisposable
         }
     }
 
+    /// <summary>
+    /// Gets the names of the configured remotes that have remote-tracking references.
+    /// </summary>
+    /// <returns>The remote names.</returns>
+    internal IReadOnlyCollection<string> GetRemoteNames()
+    {
+        string remotesDirectory = Path.Combine(this.CommonDirectory, "refs", "remotes");
+        return Directory.Exists(remotesDirectory)
+            ? Directory.EnumerateDirectories(remotesDirectory).Select(path => Path.GetFileName(path)!).ToArray()
+            : Array.Empty<string>();
+    }
+
+    /// <summary>
+    /// Gets the default branch advertised by a remote.
+    /// </summary>
+    /// <param name="remoteName">The remote name.</param>
+    /// <returns>The default branch name, or <see langword="null"/> if the remote does not advertise one.</returns>
+    internal string? GetRemoteDefaultBranch(string remoteName)
+    {
+        string remoteHeadPath = Path.Combine(this.CommonDirectory, "refs", "remotes", remoteName, HeadFileName);
+        if (!File.Exists(remoteHeadPath))
+        {
+            return null;
+        }
+
+        using FileStream stream = File.OpenRead(remoteHeadPath);
+        string targetPrefix = $"refs/remotes/{remoteName}/";
+        return GitReferenceReader.ReadReference(stream) is string targetIdentifier
+            && targetIdentifier.StartsWith(targetPrefix, StringComparison.Ordinal)
+            ? targetIdentifier.Substring(targetPrefix.Length)
+            : null;
+    }
+
+    /// <summary>
+    /// Gets the names of the local branches, including packed references.
+    /// </summary>
+    /// <returns>The local branch names.</returns>
+    internal IReadOnlyCollection<string> GetLocalBranchNames()
+    {
+        const string LocalBranchPrefix = "refs/heads/";
+        var branchNames = new HashSet<string>(StringComparer.Ordinal);
+        string headsDirectory = Path.Combine(this.CommonDirectory, "refs", "heads");
+        if (Directory.Exists(headsDirectory))
+        {
+            foreach (string branchFile in Directory.EnumerateFiles(headsDirectory, "*", SearchOption.AllDirectories))
+            {
+                branchNames.Add(branchFile.Substring(headsDirectory.Length + 1).Replace('\\', '/'));
+            }
+        }
+
+        foreach ((string record, string? _) in this.EnumeratePackedRefsWithPeelLines(out bool _))
+        {
+            string referenceName = record.Substring(41);
+            if (referenceName.StartsWith(LocalBranchPrefix, StringComparison.Ordinal))
+            {
+                branchNames.Add(referenceName.Substring(LocalBranchPrefix.Length));
+            }
+        }
+
+        return branchNames.ToArray();
+    }
+
+    /// <summary>
+    /// Gets a value from Git configuration.
+    /// </summary>
+    /// <param name="section">The configuration section.</param>
+    /// <param name="name">The configuration value name.</param>
+    /// <returns>The configured value, or <see langword="null"/> when it is not set.</returns>
+    internal string? GetConfigurationValue(string section, string name)
+    {
+        if (this.GitDirectory != this.CommonDirectory)
+        {
+            string worktreeConfigPath = Path.Combine(this.GitDirectory, "config.worktree");
+            if (File.Exists(worktreeConfigPath) && TryReadConfigurationValue(worktreeConfigPath, section, name, out string? value))
+            {
+                return value;
+            }
+        }
+
+        string repositoryConfigPath = Path.Combine(this.CommonDirectory, "config");
+        if (File.Exists(repositoryConfigPath) && TryReadConfigurationValue(repositoryConfigPath, section, name, out string? repositoryValue))
+        {
+            return repositoryValue;
+        }
+
+        string? globalConfigPath = GetGlobalConfigPath();
+        return globalConfigPath is not null
+            && TryReadConfigurationValue(globalConfigPath, section, name, out string? globalValue)
+            ? globalValue
+            : null;
+    }
+
     private static string TrimEndingDirectorySeparator(string path)
     {
 #if NETFRAMEWORK
@@ -765,6 +917,159 @@ public class GitRepository : IDisposable
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Attempts to read a value from a git config file.
+    /// </summary>
+    /// <param name="configPath">The path to the git config file.</param>
+    /// <param name="section">The configuration section.</param>
+    /// <param name="name">The configuration value name.</param>
+    /// <param name="value">Receives the configuration value when found.</param>
+    /// <returns><see langword="true"/> if the setting was found; otherwise <see langword="false"/>.</returns>
+    private static bool TryReadConfigurationValue(string configPath, string section, string name, [NotNullWhen(true)] out string? value)
+    {
+        value = null;
+        bool inRequestedSection = false;
+
+        foreach (string line in File.ReadLines(configPath))
+        {
+            string trimmedLine = line.Trim();
+            if (trimmedLine.StartsWith("[", StringComparison.Ordinal) && trimmedLine.EndsWith("]", StringComparison.Ordinal))
+            {
+                string sectionName = trimmedLine.Substring(1, trimmedLine.Length - 2).Trim();
+                inRequestedSection = string.Equals(sectionName, section, StringComparison.OrdinalIgnoreCase);
+                continue;
+            }
+
+            int equalIndex = trimmedLine.IndexOf('=');
+            if (inRequestedSection && equalIndex >= 0 && string.Equals(trimmedLine.Substring(0, equalIndex).Trim(), name, StringComparison.OrdinalIgnoreCase))
+            {
+                value = trimmedLine.Substring(equalIndex + 1).Trim().Trim('"');
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Attempts to read the core.ignorecase setting from a git config file.
+    /// </summary>
+    /// <param name="configPath">Path to the git config file.</param>
+    /// <param name="ignoreCase">The value of core.ignorecase if found.</param>
+    /// <returns>True if the setting was found and parsed successfully.</returns>
+    private static bool TryReadIgnoreCaseFromConfigFile(string configPath, out bool ignoreCase)
+    {
+        ignoreCase = false;
+        try
+        {
+            string[] lines = File.ReadAllLines(configPath);
+            bool inCoreSection = false;
+
+            foreach (string line in lines)
+            {
+                string trimmedLine = line.Trim();
+
+                // Check for section headers
+                if (trimmedLine.StartsWith("[") && trimmedLine.EndsWith("]"))
+                {
+                    string sectionName = trimmedLine.Substring(1, trimmedLine.Length - 2).Trim();
+                    inCoreSection = string.Equals(sectionName, "core", StringComparison.OrdinalIgnoreCase);
+                    continue;
+                }
+
+                // If we're in the [core] section, look for ignorecase setting
+                if (inCoreSection && trimmedLine.Contains("="))
+                {
+                    int equalIndex = trimmedLine.IndexOf('=');
+                    string key = trimmedLine.Substring(0, equalIndex).Trim();
+                    string value = trimmedLine.Substring(equalIndex + 1).Trim();
+
+                    if (string.Equals(key, "ignorecase", StringComparison.OrdinalIgnoreCase))
+                    {
+                        ignoreCase = string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
+                        return true;
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // Ignore errors and return false
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Gets the path to the global git config file.
+    /// </summary>
+    /// <returns>The path to the global config file, or null if not found.</returns>
+    private static string? GetGlobalConfigPath()
+    {
+        try
+        {
+            // Try common locations for global git config
+            string? homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            if (!string.IsNullOrEmpty(homeDir))
+            {
+                string gitConfigPath = Path.Combine(homeDir, ".gitconfig");
+                if (File.Exists(gitConfigPath))
+                {
+                    return gitConfigPath;
+                }
+            }
+        }
+        catch
+        {
+            // Ignore errors
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Reads the core.ignorecase setting from git configuration.
+    /// </summary>
+    /// <returns>True if case should be ignored, false otherwise.</returns>
+    private bool ReadIgnoreCaseFromConfig()
+    {
+        try
+        {
+            string[] configPaths = this.GitDirectory == this.CommonDirectory
+                ? new[] { Path.Combine(this.CommonDirectory, "config") }
+                : new[]
+                {
+                    Path.Combine(this.CommonDirectory, "config"),
+                    Path.Combine(this.GitDirectory, "config"),
+                };
+
+            foreach (string repoConfigPath in configPaths)
+            {
+                if (File.Exists(repoConfigPath) && TryReadIgnoreCaseFromConfigFile(repoConfigPath, out bool ignoreCase))
+                {
+                    return ignoreCase;
+                }
+            }
+
+            // Fall back to global config if repo config doesn't have the setting
+            string? globalConfigPath = GetGlobalConfigPath();
+            if (globalConfigPath is object && File.Exists(globalConfigPath))
+            {
+                if (TryReadIgnoreCaseFromConfigFile(globalConfigPath, out bool ignoreCase))
+                {
+                    return ignoreCase;
+                }
+            }
+        }
+        catch
+        {
+            // If we can't read config, default to case-sensitive
+        }
+
+        // Default to case-sensitive (false) if no config found or error occurred
+        return false;
     }
 
     private bool TryGetObjectByPath(GitObjectId sha, string objectType, [NotNullWhen(true)] out Stream? value)

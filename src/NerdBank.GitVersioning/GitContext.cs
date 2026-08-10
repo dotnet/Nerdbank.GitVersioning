@@ -134,6 +134,61 @@ public abstract class GitContext : IDisposable
     protected string? DotGitPath { get; }
 
     /// <summary>
+    /// Gets the effective git engine to use, taking into account automatic disabling for Dependabot and GitHub Copilot.
+    /// This overload checks the NBGV_GitEngine environment variable and parses it automatically.
+    /// </summary>
+    /// <param name="defaultEngine">The engine to use if no environment variables dictate otherwise.</param>
+    /// <returns>The engine to use.</returns>
+    /// <remarks>
+    /// If the NBGV_GitEngine environment variable is set, it takes precedence.
+    /// Valid values are "LibGit2", "Managed", and "Disabled" (case-sensitive).
+    /// Unrecognized values are treated as if the variable was not set, maintaining backward compatibility.
+    /// Otherwise, if the DEPENDABOT environment variable is set to "true" (case-insensitive), returns <see cref="Engine.Disabled"/>.
+    /// Otherwise, if the GITHUB_ACTOR environment variable is set to "copilot-swe-agent[bot]", returns <see cref="Engine.Disabled"/>.
+    /// Otherwise, returns <paramref name="defaultEngine"/>.
+    /// </remarks>
+    public static Engine GetEffectiveGitEngine(Engine defaultEngine = Engine.ReadOnly)
+    {
+        // If NBGV_GitEngine is set, respect that setting regardless of Dependabot or GitHub Copilot
+        string? nbgvGitEngine = Environment.GetEnvironmentVariable("NBGV_GitEngine");
+        if (!string.IsNullOrEmpty(nbgvGitEngine))
+        {
+            // Parse the NBGV_GitEngine value
+            if (string.Equals(nbgvGitEngine, "LibGit2", StringComparison.Ordinal))
+            {
+                return Engine.ReadWrite;
+            }
+            else if (string.Equals(nbgvGitEngine, "Disabled", StringComparison.Ordinal))
+            {
+                return Engine.Disabled;
+            }
+            else if (string.Equals(nbgvGitEngine, "Managed", StringComparison.Ordinal))
+            {
+                return Engine.ReadOnly;
+            }
+
+            // If unrecognized value, fall through to default logic.
+            // This maintains backward compatibility where invalid environment variable values
+            // are silently ignored rather than causing build failures.
+        }
+
+        // If we're in a Dependabot environment and NBGV_GitEngine is not set, automatically disable the git engine
+        if (IsDependabotEnvironment())
+        {
+            return Engine.Disabled;
+        }
+
+        // If we're in a GitHub Copilot environment and NBGV_GitEngine is not set, automatically disable the git engine
+        if (IsGitHubCopilotEnvironment())
+        {
+            return Engine.Disabled;
+        }
+
+        // Otherwise, use the default engine
+        return defaultEngine;
+    }
+
+    /// <summary>
     /// Creates a context for reading/writing version information at a given path and committish.
     /// </summary>
     /// <param name="path">The path to a directory for which version information is required.</param>
@@ -172,6 +227,53 @@ public abstract class GitContext : IDisposable
             };
         }
     }
+
+    /// <summary>
+    /// Gets the repository's default branch name.
+    /// </summary>
+    /// <returns>The detected default branch name, or <c>master</c> when it cannot be determined.</returns>
+    public string GetDefaultBranch()
+    {
+        IReadOnlyCollection<string> remoteNames = this.GetRemoteNames();
+        string[] preferredRemoteNames = new[] { "upstream", "origin" };
+        foreach (string remoteName in preferredRemoteNames)
+        {
+            if (remoteNames.Contains(remoteName, StringComparer.Ordinal) && this.GetRemoteDefaultBranch(remoteName) is string defaultBranch)
+            {
+                return defaultBranch;
+            }
+        }
+
+        foreach (string remoteName in remoteNames)
+        {
+            if (!preferredRemoteNames.Contains(remoteName, StringComparer.Ordinal) && this.GetRemoteDefaultBranch(remoteName) is string defaultBranch)
+            {
+                return defaultBranch;
+            }
+        }
+
+        IReadOnlyCollection<string> localBranchNames = this.GetLocalBranchNames();
+        if (localBranchNames.Count == 1)
+        {
+            return localBranchNames.Single();
+        }
+
+        string? configuredDefaultBranch = this.GetConfiguredDefaultBranch();
+        if (configuredDefaultBranch is not null && localBranchNames.Contains(configuredDefaultBranch, StringComparer.Ordinal))
+        {
+            return configuredDefaultBranch;
+        }
+
+        string[] conventionalDefaultBranchNames = new[] { "master", "main", "develop" };
+        return conventionalDefaultBranchNames.FirstOrDefault(branchName => localBranchNames.Contains(branchName, StringComparer.Ordinal)) ?? "master";
+    }
+
+    /// <summary>
+    /// Determines whether a file would be ignored by git based on common .gitignore patterns.
+    /// </summary>
+    /// <param name="path">The absolute file path to check.</param>
+    /// <returns>True if the file is ignored by git; false otherwise.</returns>
+    public virtual bool IsIgnored(string path) => false;
 
     /// <inheritdoc />
     public void Dispose()
@@ -239,7 +341,7 @@ public abstract class GitContext : IDisposable
 
     internal abstract Version GetIdAsVersion(VersionOptions? committedVersion, VersionOptions? workingVersion, int versionHeight);
 
-    internal string GetRepoRelativePath(string absolutePath)
+    internal string GetRepoRelativePath(string absolutePath, bool replaceBackslashes = false)
     {
         string? repoRoot = this.WorkingTreePath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
@@ -248,8 +350,9 @@ public abstract class GitContext : IDisposable
             throw new ArgumentException($"Path '{absolutePath}' is not within repository '{repoRoot}'", nameof(absolutePath));
         }
 
-        return absolutePath.Substring(repoRoot.Length)
+        string result = absolutePath.Substring(repoRoot.Length)
             .TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return replaceBackslashes ? result.Replace('\\', '/') : result;
     }
 
     /// <summary>
@@ -296,6 +399,31 @@ public abstract class GitContext : IDisposable
     }
 
     /// <summary>
+    /// Gets the names of the repository's remotes.
+    /// </summary>
+    /// <returns>The remote names.</returns>
+    private protected virtual IReadOnlyCollection<string> GetRemoteNames() => Array.Empty<string>();
+
+    /// <summary>
+    /// Gets the default branch advertised by a remote.
+    /// </summary>
+    /// <param name="remoteName">The remote name.</param>
+    /// <returns>The default branch name, or <see langword="null"/> if the remote does not advertise one.</returns>
+    private protected virtual string? GetRemoteDefaultBranch(string remoteName) => null;
+
+    /// <summary>
+    /// Gets the names of the repository's local branches.
+    /// </summary>
+    /// <returns>The local branch names.</returns>
+    private protected virtual IReadOnlyCollection<string> GetLocalBranchNames() => Array.Empty<string>();
+
+    /// <summary>
+    /// Gets the default branch configured for new repositories.
+    /// </summary>
+    /// <returns>The configured branch name, or <see langword="null"/> when none is configured.</returns>
+    private protected virtual string? GetConfiguredDefaultBranch() => null;
+
+    /// <summary>
     /// Searches a path and its ancestors for a directory with a .git subdirectory.
     /// </summary>
     /// <param name="path">The absolute path to start the search from.</param>
@@ -339,5 +467,25 @@ public abstract class GitContext : IDisposable
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Determines whether the current environment is running under Dependabot.
+    /// </summary>
+    /// <returns><see langword="true"/> if DEPENDABOT environment variable is set to "true" (case-insensitive); otherwise, <see langword="false"/>.</returns>
+    private static bool IsDependabotEnvironment()
+    {
+        string? dependabotEnvVar = Environment.GetEnvironmentVariable("DEPENDABOT");
+        return string.Equals(dependabotEnvVar, "true", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Determines whether the current environment is running under GitHub Copilot.
+    /// </summary>
+    /// <returns><see langword="true"/> if GITHUB_ACTOR environment variable is set to "copilot-swe-agent[bot]"; otherwise, <see langword="false"/>.</returns>
+    private static bool IsGitHubCopilotEnvironment()
+    {
+        string? githubActorEnvVar = Environment.GetEnvironmentVariable("GITHUB_ACTOR");
+        return string.Equals(githubActorEnvVar, "copilot-swe-agent[bot]", StringComparison.Ordinal);
     }
 }

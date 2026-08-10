@@ -8,34 +8,29 @@ on:
       ship_run_id:
         description: ID of the GitHub workflow run to ship
         required: true
+      publish_nuget:
+        description: Push NuGet packages
+        required: false
+        default: true
+        type: boolean
+      publish_npm:
+        description: Push NPM packages
+        required: false
+        default: true
+        type: boolean
 
 run-name: ${{ github.ref_name }}
-
-permissions:
-  actions: read
-  contents: write
 
 jobs:
   release:
     runs-on: windows-latest
     environment: Signing
     permissions:
-      id-token: write # Required for Azure CLI Login
+      actions: read # Required to download artifacts
+      contents: write # Upload artifacts to Release
+      id-token: write # Required for OIDC-based package publishing
     steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-
-    - name: ⚙️ Initialization
-      shell: pwsh
-      run: |
-        if ('${{ secrets.NUGET_API_KEY }}') {
-          Write-Host "NUGET_API_KEY secret detected. NuGet packages will be pushed."
-          echo "NUGET_API_KEY_DEFINED=true" >> $env:GITHUB_ENV
-        }
-
-        if ('${{ secrets.NPM_API_KEY }}') {
-          Write-Host "NPM_API_KEY secret detected. NPM packages will be pushed."
-          echo "NPM_API_KEY_DEFINED=true" >> $env:GITHUB_ENV
-        }
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
     - name: 🔎 Search for build of ${{ github.ref }}
       shell: pwsh
@@ -58,16 +53,30 @@ jobs:
 
           Write-Host "Resolved ${{ github.ref_name }} to $commitSha"
 
-          $releases = gh run list -R ${{ github.repository }} -c $commitSha -w .github/workflows/build.yml -s success --json databaseId,startedAt `
+          $releases = gh run list -R ${{ github.repository }} -c $commitSha -w .github/workflows/build.yml -s success --json databaseId,startedAt,event,headBranch `
             | ConvertFrom-Json | Sort-Object startedAt -Descending
+
+          $preferredReleases = $releases | Where-Object {
+            $_.event -eq 'push' -and ($_.headBranch -eq 'main' -or $_.headBranch -eq 'develop' -or $_.headBranch -match '^v\d+(?:\.\d+)?$')
+          }
 
           if ($releases.length -eq 0) {
             Write-Error "No successful builds found for ${{ github.ref }}."
-          } elseif ($releases.length -gt 1) {
-            Write-Warning "More than one successful run found for ${{ github.ref }}. Artifacts from the most recent successful run will ship."
-          }
+          } else {
+            if ($preferredReleases.length -gt 0) {
+              $selectedReleases = $preferredReleases
+              $multipleRunsWarning = "More than one successful run found for ${{ github.ref }}. Preferring the most recent push build from a public-release branch."
+            } else {
+              $selectedReleases = $releases
+              $multipleRunsWarning = "More than one successful run found for ${{ github.ref }} and none were from a public-release branch. Artifacts from the most recent successful run will ship."
+            }
 
-          $runid = $releases[0].databaseId
+            if ($releases.length -gt 1) {
+              Write-Warning $multipleRunsWarning
+            }
+
+            $runid = $selectedReleases[0].databaseId
+          }
         }
 
         Write-Host "Using artifacts from run-id: $runid"
@@ -75,7 +84,7 @@ jobs:
         Echo "runid=$runid" >> $env:GITHUB_OUTPUT
 
     - name: 🔻 Download deployables artifacts
-      uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
       with:
         name: deployables-Windows
         path: ${{ runner.temp }}/deployables
@@ -84,7 +93,7 @@ jobs:
 
 # Login to Azure using a ServicePrincipal configured to authenticate agaist a GitHub Action
     - name: 🪪 Authorize signing
-      uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
+      uses: azure/login@f5d393ae46f8fde4be8b75f32e3fc50e654ad0ca # v3.0.1
       with:
         client-id: ${{ vars.AZURE_CLIENT_ID }}
         tenant-id: ${{ vars.AZURE_TENANT_ID }}
@@ -105,9 +114,50 @@ jobs:
         --azure-credential-type azure-cli
       shell: pwsh
 
+    - name: 🪪 Authorize NuGet package push
+      uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+      id: nuget-login
+      if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish_nuget }}
+      with:
+        user: ${{ secrets.NUGET_USER }}
+
+    - name: 🚀 Push NuGet packages
+      if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish_nuget }}
+      run: dotnet nuget push ${{ runner.temp }}\deployables\*.nupkg --source https://api.nuget.org/v3/index.json -k '${{ steps.nuget-login.outputs.NUGET_API_KEY }}'
+
+    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish_npm }}
+      with:
+        node-version: 24
+        registry-url: https://registry.npmjs.org
+
+    - name: 🚀 Push NPM packages
+      if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish_npm }}
+      shell: pwsh
+      run: |
+        Get-ChildItem '${{ runner.temp }}/deployables/*.tgz' |% {
+          $packageMetadata = tar -xOf $_.FullName package/package.json | ConvertFrom-Json
+          Write-Host "Publishing NPM package $($packageMetadata.name)@$($packageMetadata.version) from $($_.Name)..."
+
+          if ($packageMetadata.version -match '(^|[.-])g[0-9a-f]{7,}$') {
+            throw "Refusing to publish non-public package version '$($packageMetadata.version)'. Release publishes must use a public-release build artifact."
+          }
+
+          $publishArgs = @($_.FullName, '--registry=https://registry.npmjs.org/')
+
+          if ($packageMetadata.version -match '-(?<prerelease>[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)') {
+            $publishTag = $Matches.prerelease.Split('.')[0]
+            Write-Host "Detected prerelease version $($packageMetadata.version). Publishing with dist-tag '$publishTag'."
+            $publishArgs += "--tag=$publishTag"
+          }
+
+          npm publish @publishArgs
+        }
+
     - name: 💽 Upload artifacts to release
       shell: pwsh
       if: ${{ github.event_name == 'release' && github.event.release.assets_url != '' }}
+      continue-on-error: true # until we get this to work, be willing to skip it
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
@@ -115,16 +165,3 @@ jobs:
           Write-Host "Uploading $($_.Name) to release..."
           gh release -R ${{ github.repository }} upload "${{ github.ref_name }}" $_.FullName
         }
-
-    - name: 🚀 Push NuGet packages
-      run: dotnet nuget push ${{ runner.temp }}\deployables\*.nupkg --source https://api.nuget.org/v3/index.json -k '${{ secrets.NUGET_API_KEY }}'
-      if: ${{ env.NUGET_API_KEY_DEFINED == 'true' }}
-
-    - name: 🚀 Push NPM packages
-      shell: pwsh
-      run: |
-        npm set //registry.npmjs.org/:_authToken=${{ secrets.NPM_API_KEY }}
-        Get-ChildItem '${{ runner.temp }}/deployables/*.tgz' |% {
-          npm publish $_ --registry=https://registry.npmjs.org/
-        }
-      if: ${{ env.NPM_API_KEY_DEFINED == 'true' }}

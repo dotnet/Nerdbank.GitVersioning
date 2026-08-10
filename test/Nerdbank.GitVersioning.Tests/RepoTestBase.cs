@@ -83,6 +83,7 @@ public abstract partial class RepoTestBase : IDisposable
         {
             this.LibGit2Repository?.Dispose();
             this.Context?.Dispose();
+
             foreach (string dir in this.repoDirectories)
             {
                 try
@@ -99,6 +100,8 @@ public abstract partial class RepoTestBase : IDisposable
 
     protected virtual void InitializeSourceControl(bool withInitialCommit = true)
     {
+        this.LibGit2Repository?.Dispose();
+        this.LibGit2Repository = null;
         this.Context?.Dispose();
         this.Context = this.InitializeSourceControl(this.RepoPath, withInitialCommit);
         this.LibGit2Repository = new Repository(this.RepoPath);

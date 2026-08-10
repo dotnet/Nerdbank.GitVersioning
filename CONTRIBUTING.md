@@ -31,23 +31,11 @@ and you are running Windows PowerShell, the command is:
 
     ./init.ps1
 
-Most of the repo may be built via building the solution file from Visual Studio 2019,
-but for a complete build, build from the VS2019 Developer Command Prompt:
-
-    ./build.ps1
-
-This repo is structured such that it builds the NuGet package first, using MSBuild.
-It then builds an NPM package that includes some of the outputs of MSBuild, along with
-some javascript, for our NPM consumers who want a reasonable versioning story for their
-NPM packages too.
-
 ## Testing
 
-`dotnet test` will run all tests.
+You can use `dotnet test` to build and/or test the repo.
 
-The Visual Studio 2022 Test Explorer will list and execute all tests.
-
-A few tests will fail without a certain VC++ toolset installed.
+There may be tests that are known to be unstable or have special requirements. These can be avoided by running tests using the [dotnet-test-cloud.ps1](tools/dotnet-test-cloud.ps1) script *after* running `dotnet build`.
 
 ## Releases
 
@@ -74,7 +62,7 @@ Trigger the pipeline by adding the `auto-release` tag on a run of your main `azu
 
 ## Tutorial and API documentation
 
-API and hand-written docs are found under the `docfx/` directory. and are built by [docfx](https://dotnet.github.io/docfx/).
+API and hand-written docs are found under the `docfx/` directory and are built by [docfx](https://dotnet.github.io/docfx/).
 
 You can make changes and host the site locally to preview them by switching to that directory and running the `dotnet docfx --serve` command.
 After making a change, you can rebuild the docs site while the localhost server is running by running `dotnet docfx` again from a separate terminal.
@@ -110,7 +98,7 @@ If Renovate is not creating pull requests when you expect it to, check that the 
 ### Maintaining your repo based on this template
 
 The best way to keep your repo in sync with Library.Template's evolving features and best practices is to periodically merge the template into your repo:
-`
+
 ```ps1
 git fetch
 git checkout origin/main
@@ -118,3 +106,5 @@ git checkout origin/main
 # resolve any conflicts, then commit the merge commit.
 git push origin -u HEAD
 ```
+
+[pwsh]: https://learn.microsoft.com/powershell/scripting/install/installing-powershell
