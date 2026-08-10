@@ -125,6 +125,15 @@ jobs:
       shell: pwsh
       timeout-minutes: 3
 
+  required_status_checks:
+    name: Required status checks pass
+    needs: build
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+    - name: Verify required jobs succeeded
+      run: test '${{ needs.build.result }}' = success
+
   functional_testing:
     name: 🧪 Functional testing
     needs: build

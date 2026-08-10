@@ -41,3 +41,12 @@ jobs:
         tools/dotnet-test-cloud.ps1 -Configuration ${{ env.BUILDCONFIGURATION }} -Agent ${{ runner.os }} -PublishResults
       shell: pwsh
       timeout-minutes: 15
+
+  required_status_checks:
+    name: Required status checks pass
+    needs: build
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+    - name: Verify required jobs succeeded
+      run: test '${{ needs.build.result }}' = success
