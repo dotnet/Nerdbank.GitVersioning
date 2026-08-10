@@ -23,19 +23,28 @@ public class LibGit2Context : GitContext
         : base(workingTreeDirectory, dotGitPath)
     {
         // LibGit2Sharp config search paths are process-global, so do not reset them while other contexts may be active.
-        this.Repository = new Repository(workingTreeDirectory);
-        if (this.Repository.Info.WorkingDirectory is null)
+        Repository repository = new(workingTreeDirectory);
+        try
         {
-            throw new ArgumentException("Bare repositories not supported.", nameof(workingTreeDirectory));
-        }
+            if (repository.Info.WorkingDirectory is null)
+            {
+                throw new ArgumentException("Bare repositories not supported.", nameof(workingTreeDirectory));
+            }
 
-        this.Commit = committish is null ? this.Repository.Head.Tip : this.Repository.Lookup<Commit>(committish);
-        if (this.Commit is null && committish is object)
+            this.Repository = repository;
+            this.Commit = committish is null ? repository.Head.Tip : repository.Lookup<Commit>(committish);
+            if (this.Commit is null && committish is object)
+            {
+                throw new ArgumentException("No matching commit found.", nameof(committish));
+            }
+
+            this.VersionFile = new LibGit2VersionFile(this);
+        }
+        catch
         {
-            throw new ArgumentException("No matching commit found.", nameof(committish));
+            repository.Dispose();
+            throw;
         }
-
-        this.VersionFile = new LibGit2VersionFile(this);
     }
 
     /// <inheritdoc />

@@ -66,6 +66,7 @@ public class NbgvInstallTests : RepoTestBase
         listener.Stop();
         await serverTask;
 
+        this.Logger.WriteLine("nbgv standard error:{0}{1}", Environment.NewLine, standardError);
         Assert.NotEqual(0, process.ExitCode);
         Assert.Contains($"Failed to query NuGet package sources: Unable to load the service index for source {source}.", standardError);
         Assert.Contains("Use the '--source' option", standardError);

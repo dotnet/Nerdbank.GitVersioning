@@ -232,12 +232,12 @@ public class GitRepositoryTests : RepoTestBase
 
         string alternate1Path = this.CreateDirectoryForNewRepo();
         this.InitializeSourceControl(alternate1Path).Dispose();
-        var alternate1 = new Repository(alternate1Path);
+        using var alternate1 = new Repository(alternate1Path);
         Commit alternate1Commit = alternate1.Commit("Alternate 1", this.Signer, this.Signer, new CommitOptions() { AllowEmptyCommit = true });
 
         string alternate2Path = this.CreateDirectoryForNewRepo();
         this.InitializeSourceControl(alternate2Path).Dispose();
-        var alternate2 = new Repository(alternate2Path);
+        using var alternate2 = new Repository(alternate2Path);
         Commit alternate2Commit = alternate2.Commit("Alternate 2", this.Signer, this.Signer, new CommitOptions() { AllowEmptyCommit = true });
 
         string objectDatabasePath = Path.Combine(this.RepoPath, ".git", "objects");
