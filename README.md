@@ -33,7 +33,7 @@ What sets this package apart from other git-based versioning projects is:
 4. The computed version information is based on an author-defined major.minor version and an optional unstable tag, plus a shortened git commit ID.
 5. This project is supported by the [.NET Foundation](https://dotnetfoundation.org).
 
-Check out our [getting started documentation](https://dotnet.github.io/Nerdbank.GitVersioning/docs/getting-started.html).
+Check out our [getting started documentation](https://dotnet.github.io/Nerdbank.GitVersioning/docs/getting-started.html), then follow the [recommended versioning workflow](https://dotnet.github.io/Nerdbank.GitVersioning/docs/versioning-workflow.html) for releases and servicing.
 
 ## Code of Conduct
 

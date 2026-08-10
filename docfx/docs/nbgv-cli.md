@@ -40,6 +40,8 @@ At this point you can launch the tool using `./nbgv` in your build script.
 
 The `prepare-release` command automates the task of branching off the main development branch to stabilize for an upcoming release. It is optimized for the following workflow:
 
+See the [recommended versioning workflow](versioning-workflow.md) for an end-to-end example that includes development, CI, tagging, and servicing.
+
 - There is a branch (typically `master` ) where main development happens.
   This branch typically builds with some `-prerelease` tag.
   It *may* be a "public release" for early prereleases.
