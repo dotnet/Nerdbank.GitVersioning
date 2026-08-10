@@ -5,6 +5,7 @@ It is common to define it in the root of your git repo.
 
 **Important**: Some changes to version.json are not effective until you *commit* the change.
 Pushing your commit to a remote is not necessary.
+See the [recommended versioning workflow](versioning-workflow.md) for when and how to update this file around releases.
 
 Here is the content of a sample version.json file you may start with:
 
