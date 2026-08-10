@@ -29,20 +29,6 @@ public unsafe struct GitObjectId : IEquatable<GitObjectId>
     /// </summary>
     public static GitObjectId Empty => default(GitObjectId);
 
-    /// <summary>
-    /// Gets the 20 byte ID of this object as a span from the <see cref="value"/> field.
-    /// </summary>
-    private Span<byte> Value
-    {
-        get
-        {
-            fixed (byte* value = this.value)
-            {
-                return new Span<byte>(value, NativeSize);
-            }
-        }
-    }
-
     public static bool operator ==(GitObjectId left, GitObjectId right) => Equals(left, right);
 
     public static bool operator !=(GitObjectId left, GitObjectId right) => !Equals(left, right);
@@ -62,7 +48,8 @@ public unsafe struct GitObjectId : IEquatable<GitObjectId>
         Debug.Assert(value.Length == 20);
 
         var objectId = default(GitObjectId);
-        value.CopyTo(objectId.Value);
+        byte* bytes = objectId.value;
+        value.CopyTo(new Span<byte>(bytes, NativeSize));
         return objectId;
     }
 
@@ -82,8 +69,7 @@ public unsafe struct GitObjectId : IEquatable<GitObjectId>
         Debug.Assert(value.Length == 40);
 
         var objectId = default(GitObjectId);
-        Span<byte> bytes = objectId.Value;
-
+        byte* bytes = objectId.value;
         for (int i = 0; i < value.Length; i++)
         {
             int c1 = ReverseHexDigits[value[i++] - '0'] << 4;
@@ -132,8 +118,7 @@ public unsafe struct GitObjectId : IEquatable<GitObjectId>
         }
 
         var objectId = default(GitObjectId);
-        Span<byte> bytes = objectId.Value;
-
+        byte* bytes = objectId.value;
         for (int i = 0; i < value.Length; i++)
         {
             int c1 = ReverseHexDigits[value[i++] - '0'] << 4;
@@ -157,10 +142,23 @@ public unsafe struct GitObjectId : IEquatable<GitObjectId>
     }
 
     /// <inheritdoc/>
-    public bool Equals(GitObjectId other) => this.Value.SequenceEqual(other.Value);
+    public bool Equals(GitObjectId other)
+    {
+        fixed (byte* left = this.value)
+        {
+            byte* right = other.value;
+            return new ReadOnlySpan<byte>(left, NativeSize).SequenceEqual(new ReadOnlySpan<byte>(right, NativeSize));
+        }
+    }
 
     /// <inheritdoc/>
-    public override int GetHashCode() => BinaryPrimitives.ReadInt32LittleEndian(this.Value.Slice(0, 4));
+    public override int GetHashCode()
+    {
+        fixed (byte* bytes = this.value)
+        {
+            return BinaryPrimitives.ReadInt32LittleEndian(new ReadOnlySpan<byte>(bytes, sizeof(int)));
+        }
+    }
 
     /// <summary>
     /// Gets a <see cref="ushort"/> which represents the first two bytes of this <see cref="GitObjectId"/>.
@@ -168,7 +166,13 @@ public unsafe struct GitObjectId : IEquatable<GitObjectId>
     /// <returns>
     /// A <see cref="ushort"/> which represents the first two bytes of this <see cref="GitObjectId"/>.
     /// </returns>
-    public ushort AsUInt16() => BinaryPrimitives.ReadUInt16BigEndian(this.Value.Slice(0, 2));
+    public ushort AsUInt16()
+    {
+        fixed (byte* bytes = this.value)
+        {
+            return BinaryPrimitives.ReadUInt16BigEndian(new ReadOnlySpan<byte>(bytes, sizeof(ushort)));
+        }
+    }
 
     /// <summary>
     /// Returns the SHA1 hash of this object.
@@ -205,16 +209,19 @@ public unsafe struct GitObjectId : IEquatable<GitObjectId>
         // Inspired by http://stackoverflow.com/questions/623104/c-byte-to-hex-string/3974535#3974535
         int lengthInNibbles = length * 2;
 
-        for (int i = 0; i < (lengthInNibbles & -2); i++)
+        fixed (byte* value = this.value)
         {
-            int index0 = +i >> 1;
-            byte b = (byte)(this.value[start + index0] >> 4);
-            bytes[(2 * i) + 1] = 0;
-            bytes[2 * i++] = HexBytes[b];
+            for (int i = 0; i < (lengthInNibbles & -2); i++)
+            {
+                int index0 = +i >> 1;
+                byte b = (byte)(value[start + index0] >> 4);
+                bytes[(2 * i) + 1] = 0;
+                bytes[2 * i++] = HexBytes[b];
 
-            b = (byte)(this.value[start + index0] & 0x0F);
-            bytes[(2 * i) + 1] = 0;
-            bytes[2 * i] = HexBytes[b];
+                b = (byte)(value[start + index0] & 0x0F);
+                bytes[(2 * i) + 1] = 0;
+                bytes[2 * i] = HexBytes[b];
+            }
         }
     }
 
@@ -224,7 +231,13 @@ public unsafe struct GitObjectId : IEquatable<GitObjectId>
     /// <param name="value">
     /// The memory to which to copy this <see cref="GitObjectId"/>.
     /// </param>
-    public void CopyTo(Span<byte> value) => this.Value.CopyTo(value);
+    public void CopyTo(Span<byte> value)
+    {
+        fixed (byte* bytes = this.value)
+        {
+            new ReadOnlySpan<byte>(bytes, NativeSize).CopyTo(value);
+        }
+    }
 
     private static byte[] BuildReverseHexDigits()
     {
@@ -250,14 +263,17 @@ public unsafe struct GitObjectId : IEquatable<GitObjectId>
         int lengthInNibbles = length * 2;
         char[]? c = new char[lengthInNibbles];
 
-        for (int i = 0; i < (lengthInNibbles & -2); i++)
+        fixed (byte* value = this.value)
         {
-            int index0 = +i >> 1;
-            byte b = (byte)(this.value[start + index0] >> 4);
-            c[i++] = HexDigits[b];
+            for (int i = 0; i < (lengthInNibbles & -2); i++)
+            {
+                int index0 = +i >> 1;
+                byte b = (byte)(value[start + index0] >> 4);
+                c[i++] = HexDigits[b];
 
-            b = (byte)(this.value[start + index0] & 0x0F);
-            c[i] = HexDigits[b];
+                b = (byte)(value[start + index0] & 0x0F);
+                c[i] = HexDigits[b];
+            }
         }
 
         return new string(c);

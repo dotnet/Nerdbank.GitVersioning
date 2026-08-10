@@ -7,7 +7,6 @@ on:
     - 'v*.*'
     - validate/*
   pull_request:
-  merge_group:
   workflow_dispatch:
 
 env:
@@ -89,7 +88,12 @@ jobs:
         git config --global user.email me@ci.com
 
         Write-Host "🧪 Run tests"
-        tools/dotnet-test-cloud.ps1 -Configuration ${{ env.BUILDCONFIGURATION }} -Agent ${{ runner.os }} -PublishResults
+        # Code coverage instrumentation is disabled on Linux because the coverage engine's
+        # shared-memory probe buffers are unmapped while instrumented code is still writing to
+        # them, crashing the test host with an AccessViolationException.
+        # The Windows leg still uploads coverage to codecov.io.
+        $noCoverage = '${{ runner.os }}' -eq 'Linux'
+        tools/dotnet-test-cloud.ps1 -Configuration ${{ env.BUILDCONFIGURATION }} -Agent ${{ runner.os }} -PublishResults -NoCoverage:$noCoverage
       shell: pwsh
       timeout-minutes: 15
     - name: 🧪 test x86
@@ -124,7 +128,21 @@ jobs:
           ./tools/publish-CodeCov.ps1 -CodeCovToken '${{ secrets.CODECOV_TOKEN }}' -PathToCodeCoverage "${{ runner.temp }}/_artifacts/coverageResults" -Name "${{ runner.os }} Coverage Results" -Flags "${{ runner.os }}"
         }
       shell: pwsh
+      if: runner.os != 'Linux'
       timeout-minutes: 3
+
+  required_status_checks:
+    name: Required status checks pass
+    needs:
+    - build
+    - functional_testing
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+    - name: Verify required jobs succeeded
+      run: |
+        test '${{ needs.build.result }}' = success
+        test '${{ needs.functional_testing.result }}' = success
 
   functional_testing:
     name: 🧪 Functional testing

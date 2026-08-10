@@ -272,9 +272,9 @@ public class GitPack : IDisposable
             this.indexReader.Value.Dispose();
         }
 
+        this.cache.Dispose();
         this.accessor?.Dispose();
         this.packFile?.Dispose();
-        this.cache.Dispose();
     }
 
     private long? GetOffset(GitObjectId objectId)

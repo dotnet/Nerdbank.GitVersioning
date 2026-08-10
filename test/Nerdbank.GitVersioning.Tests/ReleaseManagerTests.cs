@@ -2,6 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using LibGit2Sharp;
@@ -489,6 +491,30 @@ public abstract class ReleaseManagerTests : RepoTestBase
         Assert.Equal(tipBeforePrepareRelease.Id, releaseTip.Parents.Single().Id);
     }
 
+    [Fact(SkipExceptions = [typeof(Win32Exception)])]
+    public void PrepareRelease_SignsCommitsWhenConfigured()
+    {
+        this.InitializeSourceControl();
+        this.WriteVersionFile(new VersionOptions() { Version = SemanticVersion.Parse("1.0-beta") });
+
+        string keyDirectory = this.CreateDirectoryForNewRepo();
+        string privateKeyPath = Path.Combine(keyDirectory, "signing-key");
+        this.RunProcess(keyDirectory, "ssh-keygen", "-q", "-t", "ed25519", "-N", string.Empty, "-f", privateKeyPath);
+
+        this.LibGit2Repository.Config.Set("gpg.format", "ssh", ConfigurationLevel.Local);
+        this.LibGit2Repository.Config.Set("user.signingKey", privateKeyPath, ConfigurationLevel.Local);
+        this.LibGit2Repository.Config.Set("commit.gpgSign", true, ConfigurationLevel.Local);
+
+        new ReleaseManager().PrepareRelease(this.RepoPath);
+
+        Commit mergeCommit = this.LibGit2Repository.Head.Tip;
+        Commit developmentCommit = mergeCommit.Parents.First();
+        Commit releaseCommit = this.LibGit2Repository.Branches["v1.0"].Tip;
+        this.AssertCommitSigned(this.RepoPath, releaseCommit);
+        this.AssertCommitSigned(this.RepoPath, developmentCommit);
+        this.AssertCommitSigned(this.RepoPath, mergeCommit);
+    }
+
     [Fact]
     public void PrepareRelease_JsonOutput()
     {
@@ -934,5 +960,39 @@ public abstract class ReleaseManagerTests : RepoTestBase
     {
         ReleasePreparationException ex = Assert.Throws<ReleasePreparationException>(testCode);
         Assert.Equal(expectedError, ex.Error);
+    }
+
+    private void AssertCommitSigned(string repositoryPath, Commit commit)
+    {
+        string commitContents = this.RunProcess(repositoryPath, "git", "cat-file", "commit", commit.Sha);
+        Assert.Contains("gpgsig -----BEGIN SSH SIGNATURE-----", commitContents);
+    }
+
+    private string RunProcess(string workingDirectory, string fileName, params string[] arguments)
+    {
+        var startInfo = new ProcessStartInfo(fileName)
+        {
+            CreateNoWindow = true,
+            RedirectStandardError = true,
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            WorkingDirectory = workingDirectory,
+        };
+
+#if NET
+        foreach (string argument in arguments)
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
+#else
+        startInfo.Arguments = string.Join(" ", arguments.Select(argument => $"\"{argument.Replace("\"", "\\\"")}\""));
+#endif
+
+        using Process process = Process.Start(startInfo);
+        string standardOutput = process.StandardOutput.ReadToEnd();
+        string standardError = process.StandardError.ReadToEnd();
+        process.WaitForExit();
+        Assert.True(process.ExitCode == 0, string.IsNullOrWhiteSpace(standardError) ? standardOutput : standardError);
+        return standardOutput;
     }
 }
