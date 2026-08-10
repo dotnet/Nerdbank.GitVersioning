@@ -1,6 +1,8 @@
 ﻿// Copyright (c) .NET Foundation and Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using LibGit2Sharp;
 using Nerdbank.GitVersioning.LibGit2;
@@ -14,7 +16,8 @@ namespace Nerdbank.GitVersioning;
 /// Methods for creating releases.
 /// </summary>
 /// <remarks>
-/// This class authors git commits, branches, etc. and thus must use libgit2 rather than our internal managed implementation which is read-only.
+/// This class authors git commits, branches, etc. and thus uses libgit2 rather than our internal managed implementation which is read-only.
+/// When commit signing is enabled, it uses the Git CLI to create signed commits.
 /// </remarks>
 public class ReleaseManager
 {
@@ -86,6 +89,11 @@ public class ReleaseManager
         /// The versionIncrement setting cannot be applied to the current version.
         /// </summary>
         InvalidVersionIncrementSetting,
+
+        /// <summary>
+        /// A Git command required to sign a commit failed.
+        /// </summary>
+        GitCommandFailed,
     }
 
     /// <summary>
@@ -319,12 +327,26 @@ public class ReleaseManager
         if (mergeReleaseBranch)
         {
             // Merge the release branch now to resolve the version.json conflict in favor of the development branch.
-            var mergeOptions = new MergeOptions()
+            if (this.ShouldSignCommits(repository))
             {
-                CommitOnSuccess = true,
-                MergeFileFavor = MergeFileFavor.Ours,
-            };
-            repository.Merge(releaseBranch, this.GetSignature(repository), mergeOptions);
+                this.RunGit(
+                    repository,
+                    "merge",
+                    "--gpg-sign",
+                    "--no-edit",
+                    "--no-verify",
+                    "--strategy-option=ours",
+                    releaseBranch.CanonicalName);
+            }
+            else
+            {
+                var mergeOptions = new MergeOptions()
+                {
+                    CommitOnSuccess = true,
+                    MergeFileFavor = MergeFileFavor.Ours,
+                };
+                repository.Merge(releaseBranch, this.GetSignature(repository), mergeOptions);
+            }
         }
 
         if (outputMode == ReleaseManagerOutputMode.Json)
@@ -395,10 +417,97 @@ public class ReleaseManager
                 }
 
                 string commitMessage = string.Format(CultureInfo.CurrentCulture, unformattedCommitMessage, versionOptions.Version);
-                context.Repository.Commit(commitMessage, signature, signature, new CommitOptions() { AllowEmptyCommit = false });
+                if (this.ShouldSignCommits(context.Repository))
+                {
+                    this.RunGit(context.Repository, "commit", "--gpg-sign", "--no-verify", "--message", commitMessage);
+                }
+                else
+                {
+                    context.Repository.Commit(commitMessage, signature, signature, new CommitOptions() { AllowEmptyCommit = false });
+                }
             }
         }
     }
+
+    private bool ShouldSignCommits(Repository repository)
+        => repository.Config.Get<bool>("commit.gpgSign")?.Value ?? false;
+
+    private void RunGit(Repository repository, params string[] arguments)
+    {
+        var startInfo = new ProcessStartInfo("git")
+        {
+            RedirectStandardError = true,
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            WorkingDirectory = repository.Info.WorkingDirectory,
+        };
+
+#if NET
+        foreach (string argument in arguments)
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
+#else
+        startInfo.Arguments = string.Join(" ", arguments.Select(this.QuoteArgument));
+#endif
+
+        try
+        {
+            using Process process = Process.Start(startInfo);
+            Task<string> standardOutputTask = process.StandardOutput.ReadToEndAsync();
+            Task<string> standardErrorTask = process.StandardError.ReadToEndAsync();
+            process.WaitForExit();
+            string standardOutput = standardOutputTask.GetAwaiter().GetResult();
+            string standardError = standardErrorTask.GetAwaiter().GetResult();
+            if (process.ExitCode != 0)
+            {
+                string error = string.IsNullOrWhiteSpace(standardError) ? standardOutput : standardError;
+                this.stderr.WriteLine($"Git {arguments[0]} failed while creating a signed commit: {error.Trim()}");
+                throw new ReleasePreparationException(ReleasePreparationError.GitCommandFailed);
+            }
+        }
+        catch (Win32Exception ex)
+        {
+            this.stderr.WriteLine($"Commit signing is enabled, but Git could not be started: {ex.Message}");
+            throw new ReleasePreparationException(ReleasePreparationError.GitCommandFailed, ex);
+        }
+    }
+
+#if !NET
+    private string QuoteArgument(string argument)
+    {
+        if (argument.Length > 0 && !argument.Any(char.IsWhiteSpace) && !argument.Contains('"'))
+        {
+            return argument;
+        }
+
+        var result = new System.Text.StringBuilder("\"");
+        int backslashes = 0;
+        foreach (char character in argument)
+        {
+            if (character == '\\')
+            {
+                backslashes++;
+            }
+            else if (character == '"')
+            {
+                result.Append('\\', (backslashes * 2) + 1);
+                result.Append(character);
+                backslashes = 0;
+            }
+            else
+            {
+                result.Append('\\', backslashes);
+                result.Append(character);
+                backslashes = 0;
+            }
+        }
+
+        result.Append('\\', backslashes * 2);
+        result.Append('"');
+        return result.ToString();
+    }
+#endif
 
     private Signature GetSignature(Repository repository)
     {
