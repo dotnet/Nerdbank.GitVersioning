@@ -13,6 +13,8 @@
     A switch to run the tests in an x86 process.
 .PARAMETER dotnet32
     The path to a 32-bit dotnet executable to use.
+.PARAMETER NoCoverage
+    A switch to skip code coverage collection.
 #>
 [CmdletBinding()]
 Param(
@@ -20,7 +22,8 @@ Param(
     [string]$Agent='Local',
     [switch]$PublishResults,
     [switch]$x86,
-    [string]$dotnet32
+    [string]$dotnet32,
+    [switch]$NoCoverage
 )
 
 $RepoRoot = (Resolve-Path "$PSScriptRoot/..").Path
@@ -75,13 +78,19 @@ if ($isMTP) {
         )
     }
     $mtpArgs = @(
-        ,'--coverage'
-        ,'--coverage-output-format','cobertura'
         ,'--diagnostic'
         ,'--diagnostic-output-directory',$testLogs
         ,'--diagnostic-verbosity','Information'
         ,'--results-directory',$testLogs
     )
+
+    if (-not $NoCoverage) {
+        $mtpArgs += @(
+            ,'--coverage'
+            ,'--coverage-output-format','cobertura'
+            ,'--coverage-settings',"$PSScriptRoot/test.runsettings"
+        )
+    }
 
     if ($publishTrx) {
        $mtpArgs += '--report-trx'
@@ -92,7 +101,6 @@ if ($isMTP) {
         -c $Configuration `
         -bl:"$testBinLog" `
         --filter-not-trait 'TestCategory=FailsInCloudTest' `
-        --coverage-settings "$PSScriptRoot/test.runsettings" `
         @mtpArgs `
         @dumpSwitches `
         @extraArgs
@@ -102,13 +110,17 @@ if ($isMTP) {
 } else {
     $testDiagLog = Join-Path $ArtifactStagingFolder (Join-Path test_logs diag.log)
     $vstestArgs = @(
-        '--collect', 'Code Coverage;Format=cobertura',
-        '--settings', "$PSScriptRoot/test.runsettings",
         '--blame-hang-timeout', '60s',
         '--blame-crash',
         '-bl:"$testBinLog"',
         '--diag', "$testDiagLog;TraceLevel=info"
     )
+    if (-not $NoCoverage) {
+        $vstestArgs += @(
+            '--collect', 'Code Coverage;Format=cobertura',
+            '--settings', "$PSScriptRoot/test.runsettings"
+        )
+    }
     if ($publishTrx) {
         $vstestArgs += '--logger'
         $vstestArgs += 'trx'

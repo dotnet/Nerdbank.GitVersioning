@@ -89,7 +89,12 @@ jobs:
         git config --global user.email me@ci.com
 
         Write-Host "🧪 Run tests"
-        tools/dotnet-test-cloud.ps1 -Configuration ${{ env.BUILDCONFIGURATION }} -Agent ${{ runner.os }} -PublishResults
+        # Code coverage instrumentation is disabled on Linux because the coverage engine's
+        # shared-memory probe buffers are unmapped while instrumented code is still writing to
+        # them, crashing the test host with an AccessViolationException.
+        # Windows and macOS legs still upload coverage to codecov.io.
+        $noCoverage = '${{ runner.os }}' -eq 'Linux'
+        tools/dotnet-test-cloud.ps1 -Configuration ${{ env.BUILDCONFIGURATION }} -Agent ${{ runner.os }} -PublishResults -NoCoverage:$noCoverage
       shell: pwsh
       timeout-minutes: 15
     - name: 🧪 test x86
@@ -124,6 +129,7 @@ jobs:
           ./tools/publish-CodeCov.ps1 -CodeCovToken '${{ secrets.CODECOV_TOKEN }}' -PathToCodeCoverage "${{ runner.temp }}/_artifacts/coverageResults" -Name "${{ runner.os }} Coverage Results" -Flags "${{ runner.os }}"
         }
       shell: pwsh
+      if: runner.os != 'Linux'
       timeout-minutes: 3
 
   functional_testing:
