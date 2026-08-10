@@ -127,12 +127,16 @@ jobs:
 
   required_status_checks:
     name: Required status checks pass
-    needs: build
+    needs:
+    - build
+    - functional_testing
     if: always()
     runs-on: ubuntu-latest
     steps:
     - name: Verify required jobs succeeded
-      run: test '${{ needs.build.result }}' = success
+      run: |
+        test '${{ needs.build.result }}' = success
+        test '${{ needs.functional_testing.result }}' = success
 
   functional_testing:
     name: 🧪 Functional testing
