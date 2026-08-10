@@ -5,12 +5,14 @@
 #nullable enable
 
 using System.Diagnostics;
+using System.IO.Compression;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
 using System.Xml.Linq;
 using Nerdbank.GitVersioning;
+using Newtonsoft.Json.Linq;
 using Xunit;
 
 public class NbgvInstallTests : RepoTestBase
@@ -75,8 +77,73 @@ public class NbgvInstallTests : RepoTestBase
         Assert.False(File.Exists(Path.Combine(this.RepoPath, "Directory.Build.props")));
     }
 
+    [Fact]
+    public async Task UsesDefaultBranchInVersionJson()
+    {
+        this.InitializeSourceControl();
+        this.AddCommits();
+        this.LibGit2Repository!.Refs.Rename("refs/heads/master", "refs/heads/release/v1.0");
+        this.LibGit2Repository.Refs.UpdateTarget("HEAD", "refs/heads/release/v1.0");
+
+        string packageSource = this.CreateDirectoryForNewRepo();
+        CreatePackage(packageSource, "Nerdbank.GitVersioning", "1.2.3");
+        var nugetConfig = new XDocument(
+            new XElement(
+                "configuration",
+                new XElement(
+                    "packageSources",
+                    new XElement("clear"),
+                    new XElement("add", new XAttribute("key", "local"), new XAttribute("value", packageSource)))));
+        nugetConfig.Save(Path.Combine(this.RepoPath, "NuGet.Config"));
+
+        string nbgvToolPath = typeof(NbgvInstallTests).Assembly
+            .GetCustomAttributes<AssemblyMetadataAttribute>()
+            .Single(attribute => attribute.Key == "NbgvToolPath")
+            .Value!;
+        var startInfo = new ProcessStartInfo("dotnet")
+        {
+            RedirectStandardError = true,
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+        };
+        startInfo.ArgumentList.Add(nbgvToolPath);
+        startInfo.ArgumentList.Add("install");
+        startInfo.ArgumentList.Add("--path");
+        startInfo.ArgumentList.Add(this.RepoPath);
+
+        using Process process = Process.Start(startInfo)!;
+        Task<string> standardOutputTask = process.StandardOutput.ReadToEndAsync(TestContext.Current.CancellationToken);
+        Task<string> standardErrorTask = process.StandardError.ReadToEndAsync(TestContext.Current.CancellationToken);
+        await Task.WhenAll(standardOutputTask, standardErrorTask, process.WaitForExitAsync(TestContext.Current.CancellationToken));
+        this.Logger.WriteLine("nbgv standard output:{0}{1}", Environment.NewLine, await standardOutputTask);
+        this.Logger.WriteLine("nbgv standard error:{0}{1}", Environment.NewLine, await standardErrorTask);
+
+        Assert.Equal(0, process.ExitCode);
+        JObject versionOptions = JObject.Parse(File.ReadAllText(Path.Combine(this.RepoPath, VersionFile.JsonFileName)));
+        Assert.Equal("^refs/heads/release/v1\\.0$", (string?)versionOptions["publicReleaseRefSpec"]?[0]);
+    }
+
     protected override GitContext CreateGitContext(string path, string? committish = null)
         => GitContext.Create(path, committish, engine: GitContext.Engine.ReadWrite);
+
+    private static void CreatePackage(string packageSource, string packageId, string packageVersion)
+    {
+        string packagePath = Path.Combine(packageSource, $"{packageId}.{packageVersion}.nupkg");
+        using ZipArchive package = ZipFile.Open(packagePath, ZipArchiveMode.Create);
+        using StreamWriter writer = new(package.CreateEntry($"{packageId}.nuspec").Open());
+        writer.Write(
+            $"""
+            <?xml version="1.0" encoding="utf-8"?>
+            <package>
+              <metadata>
+                <id>{packageId}</id>
+                <version>{packageVersion}</version>
+                <authors>Test</authors>
+                <description>Test package</description>
+              </metadata>
+            </package>
+            """);
+    }
 
     private static async Task ServeUnauthorizedResponsesAsync(TcpListener listener, CancellationToken cancellationToken)
     {

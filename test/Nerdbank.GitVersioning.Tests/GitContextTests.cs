@@ -71,6 +71,55 @@ public abstract class GitContextTests : RepoTestBase
     }
 
     [Fact]
+    public void DefaultBranchUsesOnlyLocalBranch()
+    {
+        this.LibGit2Repository.Refs.Rename("refs/heads/master", "refs/heads/release/v1.0");
+        this.LibGit2Repository.Refs.UpdateTarget("HEAD", "refs/heads/release/v1.0");
+        this.RecreateContext();
+
+        Assert.Equal("release/v1.0", this.Context.GetDefaultBranch());
+    }
+
+    [Fact]
+    public void DefaultBranchPrefersUpstreamRemote()
+    {
+        this.AddRemoteDefaultBranch("origin", "main");
+        this.AddRemoteDefaultBranch("upstream", "develop");
+        this.RecreateContext();
+
+        Assert.Equal("develop", this.Context.GetDefaultBranch());
+    }
+
+    [Fact]
+    public void DefaultBranchUsesArbitraryRemote()
+    {
+        this.AddRemoteDefaultBranch("fork", "trunk");
+        this.RecreateContext();
+
+        Assert.Equal("trunk", this.Context.GetDefaultBranch());
+    }
+
+    [Fact]
+    public void DefaultBranchUsesConfiguredBranch()
+    {
+        this.LibGit2Repository.Branches.Add("configured", this.LibGit2Repository.Head.Tip);
+        this.LibGit2Repository.Config.Set("init.defaultBranch", "configured", LibGit2Sharp.ConfigurationLevel.Local);
+        this.RecreateContext();
+
+        Assert.Equal("configured", this.Context.GetDefaultBranch());
+    }
+
+    [Fact]
+    public void DefaultBranchUsesConventionalBranchOrder()
+    {
+        this.LibGit2Repository.Branches.Add("develop", this.LibGit2Repository.Head.Tip);
+        this.LibGit2Repository.Branches.Add("main", this.LibGit2Repository.Head.Tip);
+        this.RecreateContext();
+
+        Assert.Equal("master", this.Context.GetDefaultBranch());
+    }
+
+    [Fact]
     public void SelectHead()
     {
         Assert.True(this.Context.TrySelectCommit("HEAD"));
@@ -405,5 +454,21 @@ public abstract class GitContextTests : RepoTestBase
             Environment.SetEnvironmentVariable("GITHUB_ACTOR", originalGitHubActor);
             Environment.SetEnvironmentVariable("NBGV_GitEngine", originalNbgvGitEngine);
         }
+    }
+
+    private void AddRemoteDefaultBranch(string remoteName, string branchName)
+    {
+        this.LibGit2Repository.Network.Remotes.Add(remoteName, $"https://example.com/{remoteName}.git");
+        string remoteDirectory = Path.Combine(this.RepoPath, ".git", "refs", "remotes", remoteName);
+        string branchPath = Path.Combine(remoteDirectory, branchName.Replace('/', Path.DirectorySeparatorChar));
+        Directory.CreateDirectory(Path.GetDirectoryName(branchPath));
+        File.WriteAllText(branchPath, $"{this.LibGit2Repository.Head.Tip.Sha}\n");
+        File.WriteAllText(Path.Combine(remoteDirectory, "HEAD"), $"ref: refs/remotes/{remoteName}/{branchName}\n");
+    }
+
+    private void RecreateContext()
+    {
+        this.Context.Dispose();
+        this.Context = this.CreateGitContext(this.RepoPath);
     }
 }

@@ -5,6 +5,7 @@ using System.CommandLine;
 using System.Globalization;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Graph;
@@ -511,22 +512,6 @@ namespace Nerdbank.GitVersioning.Tool
                 return (int)ExitCodes.InvalidVersionSpec;
             }
 
-            var options = new VersionOptions
-            {
-                Version = semver,
-                PublicReleaseRefSpec = new string[]
-                {
-                    @"^refs/heads/master$",
-                    @"^refs/heads/v\d+(?:\.\d+)?$",
-                },
-                CloudBuild = new VersionOptions.CloudBuildOptions
-                {
-                    BuildNumber = new VersionOptions.CloudBuildNumberOptions
-                    {
-                        Enabled = true,
-                    },
-                },
-            };
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(path);
             if (!Directory.Exists(searchPath))
             {
@@ -592,6 +577,22 @@ namespace Nerdbank.GitVersioning.Tool
             }
             else
             {
+                var options = new VersionOptions
+                {
+                    Version = semver,
+                    PublicReleaseRefSpec = new string[]
+                    {
+                        $@"^refs/heads/{Regex.Escape(context.GetDefaultBranch())}$",
+                        @"^refs/heads/v\d+(?:\.\d+)?$",
+                    },
+                    CloudBuild = new VersionOptions.CloudBuildOptions
+                    {
+                        BuildNumber = new VersionOptions.CloudBuildNumberOptions
+                        {
+                            Enabled = true,
+                        },
+                    },
+                };
                 string versionJsonPath = context.VersionFile.SetVersion(path, options);
                 context.Stage(versionJsonPath);
             }

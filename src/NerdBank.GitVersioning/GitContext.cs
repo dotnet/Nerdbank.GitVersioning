@@ -229,6 +229,46 @@ public abstract class GitContext : IDisposable
     }
 
     /// <summary>
+    /// Gets the repository's default branch name.
+    /// </summary>
+    /// <returns>The detected default branch name, or <c>master</c> when it cannot be determined.</returns>
+    public string GetDefaultBranch()
+    {
+        IReadOnlyCollection<string> remoteNames = this.GetRemoteNames();
+        string[] preferredRemoteNames = new[] { "upstream", "origin" };
+        foreach (string remoteName in preferredRemoteNames)
+        {
+            if (remoteNames.Contains(remoteName, StringComparer.Ordinal) && this.GetRemoteDefaultBranch(remoteName) is string defaultBranch)
+            {
+                return defaultBranch;
+            }
+        }
+
+        foreach (string remoteName in remoteNames)
+        {
+            if (!preferredRemoteNames.Contains(remoteName, StringComparer.Ordinal) && this.GetRemoteDefaultBranch(remoteName) is string defaultBranch)
+            {
+                return defaultBranch;
+            }
+        }
+
+        IReadOnlyCollection<string> localBranchNames = this.GetLocalBranchNames();
+        if (localBranchNames.Count == 1)
+        {
+            return localBranchNames.Single();
+        }
+
+        string? configuredDefaultBranch = this.GetConfiguredDefaultBranch();
+        if (configuredDefaultBranch is not null && localBranchNames.Contains(configuredDefaultBranch, StringComparer.Ordinal))
+        {
+            return configuredDefaultBranch;
+        }
+
+        string[] conventionalDefaultBranchNames = new[] { "master", "main", "develop" };
+        return conventionalDefaultBranchNames.FirstOrDefault(branchName => localBranchNames.Contains(branchName, StringComparer.Ordinal)) ?? "master";
+    }
+
+    /// <summary>
     /// Determines whether a file would be ignored by git based on common .gitignore patterns.
     /// </summary>
     /// <param name="path">The absolute file path to check.</param>
@@ -357,6 +397,31 @@ public abstract class GitContext : IDisposable
             throw new ArgumentException("Path is not within a git directory.", nameof(path));
         }
     }
+
+    /// <summary>
+    /// Gets the names of the repository's remotes.
+    /// </summary>
+    /// <returns>The remote names.</returns>
+    private protected virtual IReadOnlyCollection<string> GetRemoteNames() => Array.Empty<string>();
+
+    /// <summary>
+    /// Gets the default branch advertised by a remote.
+    /// </summary>
+    /// <param name="remoteName">The remote name.</param>
+    /// <returns>The default branch name, or <see langword="null"/> if the remote does not advertise one.</returns>
+    private protected virtual string? GetRemoteDefaultBranch(string remoteName) => null;
+
+    /// <summary>
+    /// Gets the names of the repository's local branches.
+    /// </summary>
+    /// <returns>The local branch names.</returns>
+    private protected virtual IReadOnlyCollection<string> GetLocalBranchNames() => Array.Empty<string>();
+
+    /// <summary>
+    /// Gets the default branch configured for new repositories.
+    /// </summary>
+    /// <returns>The configured branch name, or <see langword="null"/> when none is configured.</returns>
+    private protected virtual string? GetConfiguredDefaultBranch() => null;
 
     /// <summary>
     /// Searches a path and its ancestors for a directory with a .git subdirectory.

@@ -776,6 +776,98 @@ public class GitRepository : IDisposable
         }
     }
 
+    /// <summary>
+    /// Gets the names of the configured remotes that have remote-tracking references.
+    /// </summary>
+    /// <returns>The remote names.</returns>
+    internal IReadOnlyCollection<string> GetRemoteNames()
+    {
+        string remotesDirectory = Path.Combine(this.CommonDirectory, "refs", "remotes");
+        return Directory.Exists(remotesDirectory)
+            ? Directory.EnumerateDirectories(remotesDirectory).Select(path => Path.GetFileName(path)!).ToArray()
+            : Array.Empty<string>();
+    }
+
+    /// <summary>
+    /// Gets the default branch advertised by a remote.
+    /// </summary>
+    /// <param name="remoteName">The remote name.</param>
+    /// <returns>The default branch name, or <see langword="null"/> if the remote does not advertise one.</returns>
+    internal string? GetRemoteDefaultBranch(string remoteName)
+    {
+        string remoteHeadPath = Path.Combine(this.CommonDirectory, "refs", "remotes", remoteName, HeadFileName);
+        if (!File.Exists(remoteHeadPath))
+        {
+            return null;
+        }
+
+        using FileStream stream = File.OpenRead(remoteHeadPath);
+        string targetPrefix = $"refs/remotes/{remoteName}/";
+        return GitReferenceReader.ReadReference(stream) is string targetIdentifier
+            && targetIdentifier.StartsWith(targetPrefix, StringComparison.Ordinal)
+            ? targetIdentifier.Substring(targetPrefix.Length)
+            : null;
+    }
+
+    /// <summary>
+    /// Gets the names of the local branches, including packed references.
+    /// </summary>
+    /// <returns>The local branch names.</returns>
+    internal IReadOnlyCollection<string> GetLocalBranchNames()
+    {
+        const string LocalBranchPrefix = "refs/heads/";
+        var branchNames = new HashSet<string>(StringComparer.Ordinal);
+        string headsDirectory = Path.Combine(this.CommonDirectory, "refs", "heads");
+        if (Directory.Exists(headsDirectory))
+        {
+            foreach (string branchFile in Directory.EnumerateFiles(headsDirectory, "*", SearchOption.AllDirectories))
+            {
+                branchNames.Add(branchFile.Substring(headsDirectory.Length + 1).Replace('\\', '/'));
+            }
+        }
+
+        foreach ((string record, string? _) in this.EnumeratePackedRefsWithPeelLines(out bool _))
+        {
+            string referenceName = record.Substring(41);
+            if (referenceName.StartsWith(LocalBranchPrefix, StringComparison.Ordinal))
+            {
+                branchNames.Add(referenceName.Substring(LocalBranchPrefix.Length));
+            }
+        }
+
+        return branchNames.ToArray();
+    }
+
+    /// <summary>
+    /// Gets a value from Git configuration.
+    /// </summary>
+    /// <param name="section">The configuration section.</param>
+    /// <param name="name">The configuration value name.</param>
+    /// <returns>The configured value, or <see langword="null"/> when it is not set.</returns>
+    internal string? GetConfigurationValue(string section, string name)
+    {
+        if (this.GitDirectory != this.CommonDirectory)
+        {
+            string worktreeConfigPath = Path.Combine(this.GitDirectory, "config.worktree");
+            if (File.Exists(worktreeConfigPath) && TryReadConfigurationValue(worktreeConfigPath, section, name, out string? value))
+            {
+                return value;
+            }
+        }
+
+        string repositoryConfigPath = Path.Combine(this.CommonDirectory, "config");
+        if (File.Exists(repositoryConfigPath) && TryReadConfigurationValue(repositoryConfigPath, section, name, out string? repositoryValue))
+        {
+            return repositoryValue;
+        }
+
+        string? globalConfigPath = GetGlobalConfigPath();
+        return globalConfigPath is not null
+            && TryReadConfigurationValue(globalConfigPath, section, name, out string? globalValue)
+            ? globalValue
+            : null;
+    }
+
     private static string TrimEndingDirectorySeparator(string path)
     {
 #if NETFRAMEWORK
@@ -825,6 +917,40 @@ public class GitRepository : IDisposable
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Attempts to read a value from a git config file.
+    /// </summary>
+    /// <param name="configPath">The path to the git config file.</param>
+    /// <param name="section">The configuration section.</param>
+    /// <param name="name">The configuration value name.</param>
+    /// <param name="value">Receives the configuration value when found.</param>
+    /// <returns><see langword="true"/> if the setting was found; otherwise <see langword="false"/>.</returns>
+    private static bool TryReadConfigurationValue(string configPath, string section, string name, [NotNullWhen(true)] out string? value)
+    {
+        value = null;
+        bool inRequestedSection = false;
+
+        foreach (string line in File.ReadLines(configPath))
+        {
+            string trimmedLine = line.Trim();
+            if (trimmedLine.StartsWith("[", StringComparison.Ordinal) && trimmedLine.EndsWith("]", StringComparison.Ordinal))
+            {
+                string sectionName = trimmedLine.Substring(1, trimmedLine.Length - 2).Trim();
+                inRequestedSection = string.Equals(sectionName, section, StringComparison.OrdinalIgnoreCase);
+                continue;
+            }
+
+            int equalIndex = trimmedLine.IndexOf('=');
+            if (inRequestedSection && equalIndex >= 0 && string.Equals(trimmedLine.Substring(0, equalIndex).Trim(), name, StringComparison.OrdinalIgnoreCase))
+            {
+                value = trimmedLine.Substring(equalIndex + 1).Trim().Trim('"');
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>

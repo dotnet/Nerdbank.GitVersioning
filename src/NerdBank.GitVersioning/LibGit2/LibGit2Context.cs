@@ -167,4 +167,26 @@ public class LibGit2Context : GitContext
 
         base.Dispose(disposing);
     }
+
+    /// <inheritdoc />
+    private protected override IReadOnlyCollection<string> GetRemoteNames()
+        => this.Repository.Network.Remotes.Select(remote => remote.Name).ToArray();
+
+    /// <inheritdoc />
+    private protected override string? GetRemoteDefaultBranch(string remoteName)
+    {
+        string targetPrefix = $"refs/remotes/{remoteName}/";
+        return this.Repository.Refs[$"refs/remotes/{remoteName}/HEAD"]?.TargetIdentifier is string targetIdentifier
+            && targetIdentifier.StartsWith(targetPrefix, StringComparison.Ordinal)
+            ? targetIdentifier.Substring(targetPrefix.Length)
+            : null;
+    }
+
+    /// <inheritdoc />
+    private protected override IReadOnlyCollection<string> GetLocalBranchNames()
+        => this.Repository.Branches.Where(branch => !branch.IsRemote).Select(branch => branch.FriendlyName).ToArray();
+
+    /// <inheritdoc />
+    private protected override string? GetConfiguredDefaultBranch()
+        => this.Repository.Config.Get<string>("init.defaultBranch")?.Value;
 }
