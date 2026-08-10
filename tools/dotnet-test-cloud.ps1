@@ -58,11 +58,20 @@ if ($isMTP) {
     if ($OnCI) { $extraArgs += '--no-progress' }
 
     $dumpSwitches = @()
+    if ($OnCI) {
+        # Collect crash diagnostics on every CI OS. Test hosts have been crashing with
+        # AccessViolationException on Linux, and without a dump and the native crash report
+        # that accompanies it, those failures cannot be diagnosed.
+        $dumpSwitches += @(
+            ,'--crashdump'
+            ,'--crashdump-type','Heap'
+            ,'--crash-report-if-supported'
+        )
+    }
     if ($IsWindows -and $env:TF_BUILD) {
-        $dumpSwitches = @(
+        $dumpSwitches += @(
             ,'--hangdump'
             ,'--hangdump-timeout','120s'
-            ,'--crashdump'
         )
     }
     $mtpArgs = @(
