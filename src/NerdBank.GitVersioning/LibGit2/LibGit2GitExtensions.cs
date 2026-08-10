@@ -461,7 +461,8 @@ public static class LibGit2GitExtensions
                 }
                 else
                 {
-                    if (parentCalculation.Height > maxHeightAmongParents)
+                    if (parentCalculation.Height > maxHeightAmongParents
+                        || (parentCalculation.Height == maxHeightAmongParents && versionCommitId is null && parentCalculation.CommitId is not null))
                     {
                         maxHeightAmongParents = parentCalculation.Height;
                         versionCommitId = parentCalculation.CommitId;
