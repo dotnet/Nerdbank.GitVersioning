@@ -40,6 +40,10 @@ if ($x86) {
     $dotnet32Matches = $dotnet32Possibilities |? { Test-Path $_ }
     if ($dotnet32Matches) {
       $dotnet = Resolve-Path @($dotnet32Matches)[0]
+      $dotnetRoot = Split-Path $dotnet
+      $env:DOTNET_ROOT_X86 = $dotnetRoot
+      $env:DOTNET_HOST_PATH = $dotnet
+      $env:PATH = "$dotnetRoot$([IO.Path]::PathSeparator)$env:PATH"
       Write-Host "Running tests using `"$dotnet`"" -ForegroundColor DarkGray
     } else {
       Write-Error "Unable to find 32-bit dotnet.exe"
@@ -96,15 +100,31 @@ if ($isMTP) {
        $mtpArgs += '--report-trx'
     }
 
-    & $dotnet test --solution $RepoRoot `
-       --no-build `
-        -c $Configuration `
-        -bl:"$testBinLog" `
-        --filter-not-trait 'TestCategory=FailsInCloudTest' `
-        @mtpArgs `
-        @dumpSwitches `
-        @extraArgs
-    if ($LASTEXITCODE -ne 0) { $failedTests += 1 }
+    if ($x86) {
+        # MTP test projects are executables, so each one must be built for x86 before it can run as an x86 process.
+        Get-ChildItem -Path "$RepoRoot\test" -Filter *.Tests.csproj -Recurse |% {
+            $projectBinLog = Join-Path $ArtifactStagingFolder (Join-Path build_logs "$($_.BaseName).x86.binlog")
+            & $dotnet test --project $_.FullName `
+                --arch x86 `
+                -c $Configuration `
+                -bl:"$projectBinLog" `
+                --filter-not-trait 'TestCategory=FailsInCloudTest' `
+                @mtpArgs `
+                @dumpSwitches `
+                @extraArgs
+            if ($LASTEXITCODE -ne 0) { $failedTests += 1 }
+        }
+    } else {
+        & $dotnet test --solution $RepoRoot `
+            --no-build `
+            -c $Configuration `
+            -bl:"$testBinLog" `
+            --filter-not-trait 'TestCategory=FailsInCloudTest' `
+            @mtpArgs `
+            @dumpSwitches `
+            @extraArgs
+        if ($LASTEXITCODE -ne 0) { $failedTests += 1 }
+    }
 
     $trxFiles = @(Get-ChildItem -Recurse -Path $testLogs\*.trx -ErrorAction Ignore)
 } else {
