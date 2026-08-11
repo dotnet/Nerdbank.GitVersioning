@@ -12,3 +12,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0.302@sha256:72dd743782f2ae7e5476fd64f6a460
 # See https://github.com/dotnet/dotnet-docker/issues/2790 for a discussion on this, where the prioritized use case
 # was *not* devcontainers, sadly.
 ENV NUGET_XMLDOC_MODE=
+
+# Install the same Node.js major version used in CI.
+RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
+RUN apt-get install -y nodejs
