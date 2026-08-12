@@ -99,9 +99,9 @@ if (!$IncludeAspNetCore) {
     $aspnetRuntimeVersions = @()
 }
 
-Function Get-FileFromWeb([Uri]$Uri, $OutDir) {
+Function Get-FileFromWeb([Uri]$Uri, $OutDir, [switch]$Force) {
     $OutFile = Join-Path $OutDir $Uri.Segments[-1]
-    if (!(Test-Path $OutFile)) {
+    if ($Force -or !(Test-Path $OutFile)) {
         Write-Verbose "Downloading $Uri..."
         if (!(Test-Path $OutDir)) { New-Item -ItemType Directory -Path $OutDir | Out-Null }
         try {
@@ -134,38 +134,49 @@ Function Get-InstallerExe(
 
     $majorMinor = "$($TypedVersion.Major).$($TypedVersion.Minor)"
     $ReleasesFile = Join-Path $DotNetInstallScriptRoot "$majorMinor\releases.json"
-    if (!(Test-Path $ReleasesFile)) {
-        Get-FileFromWeb -Uri "https://builds.dotnet.microsoft.com/dotnet/release-metadata/$majorMinor/releases.json" -OutDir (Split-Path $ReleasesFile) | Out-Null
+    $ReleasesFileWasCached = Test-Path $ReleasesFile
+    $ReleasesUri = "https://builds.dotnet.microsoft.com/dotnet/release-metadata/$majorMinor/releases.json"
+    if (!$ReleasesFileWasCached) {
+        Get-FileFromWeb -Uri $ReleasesUri -OutDir (Split-Path $ReleasesFile) | Out-Null
     }
 
-    $releases = Get-Content $ReleasesFile | ConvertFrom-Json
     $url = $null
-    foreach ($release in $releases.releases) {
-        $filesElement = $null
-        if ($release.$sku.version -eq $Version) {
-            $filesElement = $release.$sku.files
-        }
-        if (!$filesElement -and ($sku -eq 'sdk') -and $release.sdks) {
-            foreach ($sdk in $release.sdks) {
-                if ($sdk.version -eq $Version) {
-                    $filesElement = $sdk.files
-                    break
+    for ($attempt = 0; $attempt -lt 2; $attempt++) {
+        $releases = Get-Content $ReleasesFile | ConvertFrom-Json
+        foreach ($release in $releases.releases) {
+            $filesElement = $null
+            if ($release.$sku.version -eq $Version) {
+                $filesElement = $release.$sku.files
+            }
+            if (!$filesElement -and ($sku -eq 'sdk') -and $release.sdks) {
+                foreach ($sdk in $release.sdks) {
+                    if ($sdk.version -eq $Version) {
+                        $filesElement = $sdk.files
+                        break
+                    }
                 }
             }
-        }
 
-        if ($filesElement) {
-            foreach ($file in $filesElement) {
-                if ($file.rid -eq "win-$Architecture") {
-                    $url = $file.url
+            if ($filesElement) {
+                foreach ($file in $filesElement) {
+                    if ($file.rid -eq "win-$Architecture") {
+                        $url = $file.url
+                        Break
+                    }
+                }
+
+                if ($url) {
                     Break
                 }
             }
-
-            if ($url) {
-                Break
-            }
         }
+
+        if ($url -or !$ReleasesFileWasCached -or $attempt -gt 0) {
+            break
+        }
+
+        Write-Verbose "Release not found in cached metadata. Refreshing $ReleasesUri..."
+        Get-FileFromWeb -Uri $ReleasesUri -OutDir (Split-Path $ReleasesFile) -Force | Out-Null
     }
 
     if ($url) {
