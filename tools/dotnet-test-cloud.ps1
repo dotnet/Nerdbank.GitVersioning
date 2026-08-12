@@ -43,7 +43,7 @@ if ($x86) {
       Write-Host "Running tests using `"$dotnet`"" -ForegroundColor DarkGray
     } else {
       Write-Error "Unable to find 32-bit dotnet.exe"
-      return 1
+      exit 1
     }
   }
 }
@@ -61,7 +61,7 @@ if ($isMTP) {
 
     $dumpSwitches = @(
         ,'--hangdump'
-        ,'--hangdump-timeout','120s'
+        ,'--hangdump-timeout','5m'
         ,'--crashdump'
         ,'--crashdump-type','Heap'
         # The native crash report accompanies the dump and is often the only way to identify the
@@ -84,10 +84,17 @@ if ($isMTP) {
         )
     }
 
-    & $dotnet test --solution $RepoRoot `
+    $solutionFiles = @(Get-ChildItem -LiteralPath $RepoRoot -File | Where-Object { $_.Extension -in '.sln', '.slnx' })
+    if ($solutionFiles.Count -ne 1) {
+        throw "Expected exactly one solution file in $RepoRoot, but found $($solutionFiles.Count)."
+    }
+
+    $solutionPath = $solutionFiles[0].FullName
+    & $dotnet test $solutionPath `
         --no-build `
         -c $Configuration `
         -bl:"$testBinLog" `
+        -- `
         --filter-not-trait 'TestCategory=FailsInCloudTest' `
         @mtpArgs `
         @dumpSwitches `
