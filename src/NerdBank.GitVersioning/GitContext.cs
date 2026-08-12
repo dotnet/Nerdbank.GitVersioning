@@ -129,6 +129,11 @@ public abstract class GitContext : IDisposable
     public abstract IReadOnlyCollection<string>? HeadTags { get; }
 
     /// <summary>
+    /// Gets a value indicating whether the working tree has uncommitted changes.
+    /// </summary>
+    internal virtual bool IsWorkingTreeDirty => false;
+
+    /// <summary>
     /// Gets the path to the .git folder.
     /// </summary>
     protected string? DotGitPath { get; }

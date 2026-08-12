@@ -112,6 +112,65 @@ public abstract class VersionOracleTests : RepoTestBase
     }
 
     [Fact]
+    public void DirtyCommitIdDisabledByDefault()
+    {
+        this.WriteVersionFile(new VersionOptions { Version = SemanticVersion.Parse("1.2") });
+        File.WriteAllText(Path.Combine(this.RepoPath, "tracked.txt"), "original");
+        this.InitializeSourceControl();
+        File.WriteAllText(Path.Combine(this.RepoPath, "tracked.txt"), "changed");
+
+        var oracle = new VersionOracle(this.Context);
+
+        Assert.Equal(this.Context.GitCommitId, oracle.GitCommitId);
+        Assert.Equal(this.CommitIdShort, oracle.GitCommitIdShort);
+        Assert.DoesNotContain("dirty", oracle.AssemblyInformationalVersion);
+    }
+
+    [Fact]
+    public void DirtyTrackedFileMarkedInCommitIds()
+    {
+        this.WriteVersionFile(new VersionOptions { Version = SemanticVersion.Parse("1.2"), GitCommitIdIncludeDirty = true });
+        File.WriteAllText(Path.Combine(this.RepoPath, "tracked.txt"), "original");
+        this.InitializeSourceControl();
+        File.WriteAllText(Path.Combine(this.RepoPath, "tracked.txt"), "changed");
+
+        var oracle = new VersionOracle(this.Context);
+
+        Assert.Equal(this.Context.GitCommitId + "-dirty", oracle.GitCommitId);
+        Assert.Equal(this.CommitIdShort + "-dirty", oracle.GitCommitIdShort);
+        Assert.EndsWith("+" + this.CommitIdShort + "-dirty", oracle.AssemblyInformationalVersion);
+    }
+
+    [Fact]
+    public void DirtyUntrackedFileMarkedInCommitIds()
+    {
+        this.WriteVersionFile(new VersionOptions { Version = SemanticVersion.Parse("1.2"), GitCommitIdIncludeDirty = true });
+        this.InitializeSourceControl();
+        File.WriteAllText(Path.Combine(this.RepoPath, "untracked.txt"), "content");
+
+        var oracle = new VersionOracle(this.Context);
+
+        Assert.Equal(this.Context.GitCommitId + "-dirty", oracle.GitCommitId);
+        Assert.Equal(this.CommitIdShort + "-dirty", oracle.GitCommitIdShort);
+        Assert.EndsWith("+" + this.CommitIdShort + "-dirty", oracle.AssemblyInformationalVersion);
+    }
+
+    [Fact]
+    public void IgnoredFileDoesNotMarkCommitIdsDirty()
+    {
+        this.WriteVersionFile(new VersionOptions { Version = SemanticVersion.Parse("1.2"), GitCommitIdIncludeDirty = true });
+        File.WriteAllText(Path.Combine(this.RepoPath, ".gitignore"), "ignored.txt");
+        this.InitializeSourceControl();
+        File.WriteAllText(Path.Combine(this.RepoPath, "ignored.txt"), "content");
+
+        var oracle = new VersionOracle(this.Context);
+
+        Assert.Equal(this.Context.GitCommitId, oracle.GitCommitId);
+        Assert.Equal(this.CommitIdShort, oracle.GitCommitIdShort);
+        Assert.EndsWith("+" + this.CommitIdShort, oracle.AssemblyInformationalVersion);
+    }
+
+    [Fact]
     public void MajorMinorPrereleaseBuildMetadata()
     {
         VersionOptions workingCopyVersion = new VersionOptions

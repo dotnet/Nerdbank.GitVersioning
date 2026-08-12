@@ -83,6 +83,9 @@ public class LibGit2Context : GitContext
         }
     }
 
+    /// <inheritdoc />
+    internal override bool IsWorkingTreeDirty => this.Repository.RetrieveStatus().IsDirty;
+
     private string DebuggerDisplay => $"\"{this.WorkingTreePath}\" (libgit2)";
 
     /// <summary>Initializes a new instance of the <see cref="LibGit2Context"/> class.</summary>
