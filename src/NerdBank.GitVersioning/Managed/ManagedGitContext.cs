@@ -67,6 +67,9 @@ public class ManagedGitContext : GitContext
         get => this.headTags ??= this.Repository.Lookup("HEAD") is GitObjectId head ? this.Repository.LookupTags(head) : null;
     }
 
+    /// <inheritdoc />
+    internal override bool IsWorkingTreeDirty => this.Repository.IsWorkingTreeDirty();
+
     private string DebuggerDisplay => $"\"{this.WorkingTreePath}\" (managed)";
 
     /// <summary>Initializes a new instance of the <see cref="ManagedGitContext"/> class.</summary>

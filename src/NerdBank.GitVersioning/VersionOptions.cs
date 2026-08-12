@@ -98,6 +98,12 @@ public class VersionOptions : IEquatable<VersionOptions>
     private int? gitCommitIdShortAutoMinimum;
 
     /// <summary>
+    /// Backing field for the <see cref="GitCommitIdIncludeDirty"/> property.
+    /// </summary>
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private bool? gitCommitIdIncludeDirty;
+
+    /// <summary>
     /// Backing field for the <see cref="NuGetPackageVersion"/> property.
     /// </summary>
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -162,6 +168,7 @@ public class VersionOptions : IEquatable<VersionOptions>
         this.semVer1NumericIdentifierPadding = copyFrom.semVer1NumericIdentifierPadding;
         this.gitCommitIdShortFixedLength = copyFrom.gitCommitIdShortFixedLength;
         this.gitCommitIdShortAutoMinimum = copyFrom.gitCommitIdShortAutoMinimum;
+        this.gitCommitIdIncludeDirty = copyFrom.gitCommitIdIncludeDirty;
         this.nuGetPackageVersion = copyFrom.nuGetPackageVersion is object ? new NuGetPackageVersionOptions(copyFrom.nuGetPackageVersion) : null;
         this.publicReleaseRefSpec = copyFrom.publicReleaseRefSpec?.ToList();
         this.cloudBuild = copyFrom.cloudBuild is object ? new CloudBuildOptions(copyFrom.cloudBuild) : null;
@@ -471,6 +478,23 @@ public class VersionOptions : IEquatable<VersionOptions>
         get => this.gitCommitIdShortAutoMinimum;
         set => this.SetIfNotReadOnly(ref this.gitCommitIdShortAutoMinimum, value);
     }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether Git commit IDs should be suffixed with <c>-dirty</c>
+    /// when the working tree has uncommitted changes.
+    /// </summary>
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+    public bool? GitCommitIdIncludeDirty
+    {
+        get => this.gitCommitIdIncludeDirty;
+        set => this.SetIfNotReadOnly(ref this.gitCommitIdIncludeDirty, value);
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether Git commit IDs should indicate a dirty working tree.
+    /// </summary>
+    [JsonIgnore]
+    public bool GitCommitIdIncludeDirtyOrDefault => this.GitCommitIdIncludeDirty ?? false;
 
     /// <summary>
     /// Gets or sets the options around NuGet version strings.

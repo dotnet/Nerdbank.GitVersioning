@@ -25,6 +25,8 @@ public class VersionOracle
 
     private readonly string? gitCommitId;
 
+    private readonly bool isWorkingTreeDirty;
+
     private readonly string? versionGitCommitId;
 
     private readonly string? versionGitCommitIdShort;
@@ -45,8 +47,8 @@ public class VersionOracle
     public VersionOracle(GitContext context, ICloudBuild? cloudBuild = null, int? overrideVersionHeightOffset = null)
     {
         this.context = context;
-        this.gitCommitId = context.GitCommitId ?? cloudBuild?.GitCommitId;
-
+        string? rawGitCommitId = context.GitCommitId ?? cloudBuild?.GitCommitId;
+        this.gitCommitId = rawGitCommitId;
         this.CommittedVersion = context.VersionFile.GetVersion();
 
         // Consider the working version only if the commit being inspected is HEAD.
@@ -89,6 +91,8 @@ public class VersionOracle
         static Exception ThrowShallowClone(Exception inner) => throw new GitException("Shallow clone lacks the objects required to calculate version height. Use full clones or clones with a history at least as deep as the last version height resetting change.", inner) { IsShallowClone = true, ErrorCode = GitException.ErrorCodes.ObjectNotFound };
 
         this.VersionOptions = this.CommittedVersion ?? this.WorkingVersion;
+        this.isWorkingTreeDirty = context.IsHead && this.VersionOptions?.GitCommitIdIncludeDirtyOrDefault == true && context.IsWorkingTreeDirty;
+        this.gitCommitId = this.isWorkingTreeDirty && !string.IsNullOrEmpty(rawGitCommitId) ? rawGitCommitId + "-dirty" : rawGitCommitId;
         this.Version = this.VersionOptions?.Version?.Version ?? Version0;
         this.assemblyInformationalVersionComponentCount = this.VersionOptions?.VersionHeightPosition == SemanticVersion.Position.Revision ? 4 : 3;
 
@@ -113,9 +117,10 @@ public class VersionOracle
             int gitCommitIdShortAutoMinimum = this.VersionOptions?.GitCommitIdShortAutoMinimum ?? 0;
 
             // Get it from the git repository if there is a repository present and it is enabled.
-            this.GitCommitIdShort = gitCommitIdShortAutoMinimum > 0
+            string gitCommitIdShort = gitCommitIdShortAutoMinimum > 0
                 ? this.context.GetShortUniqueCommitId(gitCommitIdShortAutoMinimum)
-                : this.GitCommitId!.Substring(0, gitCommitIdShortFixedLength);
+                : rawGitCommitId!.Substring(0, gitCommitIdShortFixedLength);
+            this.GitCommitIdShort = this.isWorkingTreeDirty ? gitCommitIdShort + "-dirty" : gitCommitIdShort;
         }
 
         if (!string.IsNullOrEmpty(this.versionGitCommitId))

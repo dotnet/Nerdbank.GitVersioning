@@ -3,6 +3,7 @@
 
 #nullable enable
 
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.InteropServices;
@@ -774,6 +775,36 @@ public class GitRepository : IDisposable
                 pack.Dispose();
             }
         }
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether the index or working tree has uncommitted changes.
+    /// </summary>
+    /// <returns><see langword="true"/> when the repository is dirty; otherwise, <see langword="false"/>.</returns>
+    internal bool IsWorkingTreeDirty()
+    {
+        var startInfo = new ProcessStartInfo("git")
+        {
+            Arguments = "status --porcelain=v1 --untracked-files=normal",
+            CreateNoWindow = true,
+            RedirectStandardError = true,
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            WorkingDirectory = this.WorkingDirectory,
+        };
+
+        using Process process = Process.Start(startInfo) ?? throw new GitException("Failed to start Git while checking the working tree status.");
+        Task<string> standardOutputTask = process.StandardOutput.ReadToEndAsync();
+        Task<string> standardErrorTask = process.StandardError.ReadToEndAsync();
+        process.WaitForExit();
+        string standardOutput = standardOutputTask.GetAwaiter().GetResult();
+        string standardError = standardErrorTask.GetAwaiter().GetResult();
+        if (process.ExitCode != 0)
+        {
+            throw new GitException($"Git failed while checking the working tree status: {standardError.Trim()}");
+        }
+
+        return standardOutput.Length > 0;
     }
 
     /// <summary>
