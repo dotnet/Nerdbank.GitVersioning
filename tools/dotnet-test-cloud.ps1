@@ -93,7 +93,7 @@ if ($isMTP) {
     }
 
     if ($publishTrx) {
-       $mtpArgs += '--report-trx'
+        $mtpArgs += '--report-trx'
     }
 
     & $dotnet test --solution $RepoRoot `
