@@ -704,6 +704,7 @@ namespace Nerdbank.GitVersioning.Tool
             }
 
             var oracle = new VersionOracle(context, CloudBuild.Active);
+            WarnIfVersionJsonIsDirty(context);
             if (metadata is not null)
             {
                 oracle.BuildMetadata.AddRange(metadata);
@@ -767,6 +768,67 @@ namespace Nerdbank.GitVersioning.Tool
             }
 
             return Task.FromResult((int)ExitCodes.OK);
+        }
+
+        private static void WarnIfVersionJsonIsDirty(GitContext context)
+        {
+            if (!context.IsHead)
+            {
+                return;
+            }
+
+            context.VersionFile.GetVersion(VersionFileRequirements.Default, out VersionFileLocations committedLocations);
+            context.VersionFile.GetWorkingCopyVersion(VersionFileRequirements.Default, out VersionFileLocations workingLocations);
+
+            using var repository = new LibGit2Sharp.Repository(context.WorkingTreePath);
+            var versionJsonPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            AddVersionJsonPaths(committedLocations, fromWorkingTree: false);
+            AddVersionJsonPaths(workingLocations, fromWorkingTree: true);
+
+            if (versionJsonPaths.Count > 0
+                && repository.RetrieveStatus(
+                    new LibGit2Sharp.StatusOptions
+                    {
+                        IncludeUntracked = true,
+                        RecurseUntrackedDirs = true,
+                        PathSpec = versionJsonPaths.ToArray(),
+                    }).Any())
+            {
+                Console.Error.WriteLine("Warning: Dirty version.json files must be committed before their changes will be applied.");
+            }
+
+            void AddVersionJsonPaths(VersionFileLocations locations, bool fromWorkingTree)
+            {
+                string lastDirectory = locations.NonInheritingVersionDirectory ?? locations.VersionSpecifyingVersionDirectory;
+                if (lastDirectory is null)
+                {
+                    return;
+                }
+
+                for (string directory = context.AbsoluteProjectDirectory; directory is not null; directory = Path.GetDirectoryName(directory))
+                {
+                    string repoRelativeDirectory = Path.GetRelativePath(context.WorkingTreePath, directory).Replace('\\', '/');
+                    if (repoRelativeDirectory == ".")
+                    {
+                        repoRelativeDirectory = string.Empty;
+                    }
+
+                    string versionJsonPath = Path.Combine(repoRelativeDirectory, VersionFile.JsonFileName).Replace('\\', '/');
+                    string versionTxtPath = Path.Combine(repoRelativeDirectory, VersionFile.TxtFileName).Replace('\\', '/');
+                    bool versionJsonWasRead = fromWorkingTree
+                        ? File.Exists(Path.Combine(directory, VersionFile.JsonFileName)) && !File.Exists(Path.Combine(directory, VersionFile.TxtFileName))
+                        : repository.Head.Tip.Tree[versionJsonPath] is not null && repository.Head.Tip.Tree[versionTxtPath] is null;
+                    if (versionJsonWasRead)
+                    {
+                        versionJsonPaths.Add(versionJsonPath);
+                    }
+
+                    if (string.Equals(directory, lastDirectory, StringComparison.OrdinalIgnoreCase))
+                    {
+                        break;
+                    }
+                }
+            }
         }
 
         private static Task<int> OnSetVersionCommand(string project, string version)
