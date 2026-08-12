@@ -43,7 +43,7 @@ Get-ChildItem -Recurse -LiteralPath $PathToCodeCoverage -Filter "*.cobertura.xml
         $arguments += @("-n", $Name)
     }
 
-    & $codeCovTool $arguments
+    & $codeCovTool @arguments
     if ($LASTEXITCODE -ne 0) {
         Write-Error "Codecov CLI failed with exit code $LASTEXITCODE."
         exit $LASTEXITCODE
