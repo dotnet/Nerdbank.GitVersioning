@@ -123,6 +123,54 @@ public class NbgvInstallTests : RepoTestBase
         Assert.Equal("^refs/heads/release/v1\\.0$", (string?)versionOptions["publicReleaseRefSpec"]?[0]);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task GetVersionWarnsWhenVersionJsonIsDirty(bool staged)
+    {
+        this.WriteVersionFile();
+        this.InitializeSourceControl();
+        string versionJsonPath = Path.Combine(this.RepoPath, VersionFile.JsonFileName);
+        File.WriteAllText(versionJsonPath, """{"version":"2.0"}""");
+        if (staged)
+        {
+            LibGit2Sharp.Commands.Stage(this.LibGit2Repository, VersionFile.JsonFileName);
+        }
+
+        (int exitCode, string standardError) = await this.RunNbgvGetVersionAsync(this.RepoPath);
+
+        Assert.Equal(0, exitCode);
+        Assert.Contains("Dirty version.json files must be committed before their changes will be applied.", standardError);
+    }
+
+    [Fact]
+    public async Task GetVersionWarnsWhenInheritedVersionJsonIsDirty()
+    {
+        this.WriteVersionFile();
+        this.WriteVersionFile(new VersionOptions { Inherit = true }, "src");
+        this.InitializeSourceControl();
+        File.WriteAllText(Path.Combine(this.RepoPath, VersionFile.JsonFileName), """{"version":"2.0"}""");
+
+        (int exitCode, string standardError) = await this.RunNbgvGetVersionAsync(Path.Combine(this.RepoPath, "src"));
+
+        Assert.Equal(0, exitCode);
+        Assert.Contains("Dirty version.json files must be committed before their changes will be applied.", standardError);
+    }
+
+    [Fact]
+    public async Task GetVersionDoesNotWarnForUnreadVersionJson()
+    {
+        this.WriteVersionFile();
+        this.WriteVersionFile("2.0", relativeDirectory: "src");
+        this.InitializeSourceControl();
+        File.WriteAllText(Path.Combine(this.RepoPath, VersionFile.JsonFileName), """{"version":"3.0"}""");
+
+        (int exitCode, string standardError) = await this.RunNbgvGetVersionAsync(Path.Combine(this.RepoPath, "src"));
+
+        Assert.Equal(0, exitCode);
+        Assert.DoesNotContain("Dirty version.json files", standardError);
+    }
+
     protected override GitContext CreateGitContext(string path, string? committish = null)
         => GitContext.Create(path, committish, engine: GitContext.Engine.ReadWrite);
 
@@ -160,6 +208,34 @@ public class NbgvInstallTests : RepoTestBase
         catch (OperationCanceledException)
         {
         }
+    }
+
+    private async Task<(int ExitCode, string StandardError)> RunNbgvGetVersionAsync(string project)
+    {
+        string nbgvToolPath = typeof(NbgvInstallTests).Assembly
+            .GetCustomAttributes<AssemblyMetadataAttribute>()
+            .Single(attribute => attribute.Key == "NbgvToolPath")
+            .Value!;
+        var startInfo = new ProcessStartInfo("dotnet")
+        {
+            RedirectStandardError = true,
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+        };
+        startInfo.ArgumentList.Add(nbgvToolPath);
+        startInfo.ArgumentList.Add("get-version");
+        startInfo.ArgumentList.Add("--project");
+        startInfo.ArgumentList.Add(project);
+        startInfo.Environment["NBGV_GitEngine"] = "Managed";
+
+        using Process process = Process.Start(startInfo)!;
+        Task<string> standardOutputTask = process.StandardOutput.ReadToEndAsync(TestContext.Current.CancellationToken);
+        Task<string> standardErrorTask = process.StandardError.ReadToEndAsync(TestContext.Current.CancellationToken);
+        await Task.WhenAll(standardOutputTask, standardErrorTask, process.WaitForExitAsync(TestContext.Current.CancellationToken));
+        string standardError = await standardErrorTask;
+        this.Logger.WriteLine("nbgv standard output:{0}{1}", Environment.NewLine, await standardOutputTask);
+        this.Logger.WriteLine("nbgv standard error:{0}{1}", Environment.NewLine, standardError);
+        return (process.ExitCode, standardError);
     }
 }
 #endif
