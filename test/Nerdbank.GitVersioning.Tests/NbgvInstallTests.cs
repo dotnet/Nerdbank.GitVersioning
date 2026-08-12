@@ -171,6 +171,17 @@ public class NbgvInstallTests : RepoTestBase
         Assert.DoesNotContain("Dirty version.json files", standardError);
     }
 
+    [Fact]
+    public async Task GetVersionSupportsHeadAlias()
+    {
+        this.WriteVersionFile();
+        this.InitializeSourceControl();
+
+        (int exitCode, _) = await this.RunNbgvGetVersionAsync(this.RepoPath, "@");
+
+        Assert.Equal(0, exitCode);
+    }
+
     protected override GitContext CreateGitContext(string path, string? committish = null)
         => GitContext.Create(path, committish, engine: GitContext.Engine.ReadWrite);
 
@@ -210,7 +221,7 @@ public class NbgvInstallTests : RepoTestBase
         }
     }
 
-    private async Task<(int ExitCode, string StandardError)> RunNbgvGetVersionAsync(string project)
+    private async Task<(int ExitCode, string StandardError)> RunNbgvGetVersionAsync(string project, string? commitish = null)
     {
         string nbgvToolPath = typeof(NbgvInstallTests).Assembly
             .GetCustomAttributes<AssemblyMetadataAttribute>()
@@ -226,6 +237,11 @@ public class NbgvInstallTests : RepoTestBase
         startInfo.ArgumentList.Add("get-version");
         startInfo.ArgumentList.Add("--project");
         startInfo.ArgumentList.Add(project);
+        if (commitish is not null)
+        {
+            startInfo.ArgumentList.Add(commitish);
+        }
+
         startInfo.Environment["NBGV_GitEngine"] = "Managed";
 
         using Process process = Process.Start(startInfo)!;

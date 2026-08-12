@@ -341,10 +341,15 @@ public class GitRepository : IDisposable
     /// <summary>
     /// Parses any committish to an object id.
     /// </summary>
-    /// <param name="objectish">Any "objectish" string (e.g. commit ID (partial or full), branch name, tag name, "HEAD", or a first-parent ancestor).</param>
+    /// <param name="objectish">Any "objectish" string (e.g. commit ID (partial or full), branch name, tag name, "HEAD", "@", or a first-parent ancestor).</param>
     /// <returns>The object ID referenced by <paramref name="objectish"/> if found; otherwise <see langword="null"/>.</returns>
     public GitObjectId? Lookup(string objectish)
     {
+        if (objectish == "@" || objectish.StartsWith("@~", StringComparison.Ordinal))
+        {
+            objectish = "HEAD" + objectish.Substring(1);
+        }
+
         int ancestorOperatorIndex = objectish.IndexOf('~');
         if (ancestorOperatorIndex > 0)
         {
