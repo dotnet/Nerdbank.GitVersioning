@@ -446,18 +446,6 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
     protected override void Dispose(bool disposing)
     {
         Environment.SetEnvironmentVariable("_NBGV_UnitTest", string.Empty);
-
-        if (disposing)
-        {
-            // Release the MSBuild resources deterministically. Without this, each test leaks an in-proc
-            // build node and the assembly load contexts it created, which are only torn down later at a
-            // non-deterministic GC/finalization point while other tests are still running.
-            this.buildManager?.Dispose();
-            this.buildManager = null;
-            this.projectCollection?.Dispose();
-            this.projectCollection = null;
-        }
-
         base.Dispose(disposing);
     }
 
