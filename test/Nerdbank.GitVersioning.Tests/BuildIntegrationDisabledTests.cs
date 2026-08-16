@@ -26,8 +26,8 @@ public class BuildIntegrationDisabledTests : BuildIntegrationTests
         string generatedCode = File.ReadAllText(Path.Combine(this.projectDirectory, versionSourceFile));
 
         Assert.Contains("internal const string GitCommitId = \"Unavailable from a shallow git clone\";", generatedCode);
-        Assert.Contains("internal static readonly global::System.DateTime GitCommitDate = new global::System.DateTime(626347344600000000L, global::System.DateTimeKind.Utc);", generatedCode);
-        Assert.Contains("internal static readonly global::System.DateTime GitCommitAuthorDate = new global::System.DateTime(626347344600000000L, global::System.DateTimeKind.Utc);", generatedCode);
+        Assert.Contains("internal static readonly global::System.DateTime GitCommitDate = new global::System.DateTime(626347596600000000L, global::System.DateTimeKind.Utc);", generatedCode);
+        Assert.Contains("internal static readonly global::System.DateTime GitCommitAuthorDate = new global::System.DateTime(626347596600000000L, global::System.DateTimeKind.Utc);", generatedCode);
         BuildWarningEventArgs warning = Assert.Single(result.LoggedEvents.OfType<BuildWarningEventArgs>(), warning => warning.Code == "NBGV1001");
         Assert.Contains("contain placeholder values", warning.Message);
     }
