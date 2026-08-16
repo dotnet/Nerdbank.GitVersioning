@@ -13,11 +13,14 @@ run-name: ${{ github.ref_name }}
 
 jobs:
   release:
-    runs-on: ubuntu-24.04
+    runs-on: windows-2025
+    environment: Publishing
+    env:
+      AZURE_CORE_OUTPUT: none
     permissions:
       actions: read # Required to download artifacts
       contents: write # Upload artifacts to Release
-      id-token: write # Required for NuGet CLI Login
+      id-token: write # Required for Azure and NuGet OIDC authentication
     steps:
     - name: 🔎 Search for build of ${{ github.ref }}
       shell: pwsh
@@ -78,6 +81,38 @@ jobs:
         run-id: ${{ steps.findrunid.outputs.runid }}
         github-token: ${{ github.token }}
 
+    - name: ⚙ Install .NET SDK
+      shell: pwsh
+      run: |
+        ./tools/Install-DotNetSdk.ps1 -SdkOnly
+        if ($LASTEXITCODE -ne 0) {
+          throw "SDK installation failed."
+        }
+
+        dotnet tool restore
+        if ($LASTEXITCODE -ne 0) {
+          throw "dotnet tool restore failed."
+        }
+
+    - name: 🔐 Authenticate to Azure
+      uses: azure/login@f5d393ae46f8fde4be8b75f32e3fc50e654ad0ca # v3.0.1
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    - name: ✍️ Sign NuGet packages
+      shell: pwsh
+      run: >
+        dotnet tool run sign -- code azure-key-vault
+        '*.nupkg'
+        --base-directory '${{ runner.temp }}/deployables'
+        --file-list '${{ github.workspace }}/.github/signfiles.txt'
+        --recurse-containers
+        --azure-key-vault-url '${{ vars.AZURE_KEY_VAULT_URL }}'
+        --azure-key-vault-certificate '${{ vars.AZURE_KEY_VAULT_CERTIFICATE }}'
+        --azure-credential-type azure-cli
+
     - name: 🪪 Authorize NuGet package push
       uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
       id: nuget-login
@@ -85,7 +120,7 @@ jobs:
         user: ${{ secrets.NUGET_USER }}
 
     - name: 🚀 Push NuGet packages
-      run: dotnet nuget push ${{ runner.temp }}/deployables/*.nupkg --source https://api.nuget.org/v3/index.json -k '${{ steps.nuget-login.outputs.NUGET_API_KEY }}'
+      run: dotnet nuget push ${{ runner.temp }}\deployables\*.nupkg --source https://api.nuget.org/v3/index.json -k '${{ steps.nuget-login.outputs.NUGET_API_KEY }}'
 
     - name: 💽 Upload artifacts to release
       shell: pwsh
