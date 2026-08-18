@@ -273,11 +273,13 @@ public abstract class GitContextTests : RepoTestBase
         var originalDependabot = Environment.GetEnvironmentVariable("DEPENDABOT");
         var originalNbgvGitEngine = Environment.GetEnvironmentVariable("NBGV_GitEngine");
         var originalGitHubActor = Environment.GetEnvironmentVariable("GITHUB_ACTOR");
+        var originalGitHubWorkflowRef = Environment.GetEnvironmentVariable("GITHUB_WORKFLOW_REF");
         try
         {
             Environment.SetEnvironmentVariable("DEPENDABOT", null);
             Environment.SetEnvironmentVariable("NBGV_GitEngine", null);
             Environment.SetEnvironmentVariable("GITHUB_ACTOR", null);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", null);
 
             // Act & Assert: With no environment variables, should return default ReadOnly
             Assert.Equal(GitContext.Engine.ReadOnly, GitContext.GetEffectiveGitEngine());
@@ -288,6 +290,7 @@ public abstract class GitContextTests : RepoTestBase
             Environment.SetEnvironmentVariable("DEPENDABOT", originalDependabot);
             Environment.SetEnvironmentVariable("NBGV_GitEngine", originalNbgvGitEngine);
             Environment.SetEnvironmentVariable("GITHUB_ACTOR", originalGitHubActor);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", originalGitHubWorkflowRef);
         }
     }
 
@@ -301,11 +304,13 @@ public abstract class GitContextTests : RepoTestBase
         var originalDependabot = Environment.GetEnvironmentVariable("DEPENDABOT");
         var originalNbgvGitEngine = Environment.GetEnvironmentVariable("NBGV_GitEngine");
         var originalGitHubActor = Environment.GetEnvironmentVariable("GITHUB_ACTOR");
+        var originalGitHubWorkflowRef = Environment.GetEnvironmentVariable("GITHUB_WORKFLOW_REF");
         try
         {
             Environment.SetEnvironmentVariable("DEPENDABOT", dependabotValue);
             Environment.SetEnvironmentVariable("NBGV_GitEngine", null);
             Environment.SetEnvironmentVariable("GITHUB_ACTOR", null);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", null);
 
             // Act & Assert: Should return Disabled regardless of requested engine
             Assert.Equal(GitContext.Engine.Disabled, GitContext.GetEffectiveGitEngine());
@@ -317,6 +322,7 @@ public abstract class GitContextTests : RepoTestBase
             Environment.SetEnvironmentVariable("DEPENDABOT", originalDependabot);
             Environment.SetEnvironmentVariable("NBGV_GitEngine", originalNbgvGitEngine);
             Environment.SetEnvironmentVariable("GITHUB_ACTOR", originalGitHubActor);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", originalGitHubWorkflowRef);
         }
     }
 
@@ -331,11 +337,13 @@ public abstract class GitContextTests : RepoTestBase
         var originalDependabot = Environment.GetEnvironmentVariable("DEPENDABOT");
         var originalNbgvGitEngine = Environment.GetEnvironmentVariable("NBGV_GitEngine");
         var originalGitHubActor = Environment.GetEnvironmentVariable("GITHUB_ACTOR");
+        var originalGitHubWorkflowRef = Environment.GetEnvironmentVariable("GITHUB_WORKFLOW_REF");
         try
         {
             Environment.SetEnvironmentVariable("DEPENDABOT", dependabotValue);
             Environment.SetEnvironmentVariable("NBGV_GitEngine", null);
             Environment.SetEnvironmentVariable("GITHUB_ACTOR", null);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", null);
 
             // Act & Assert: Should use default behavior
             Assert.Equal(GitContext.Engine.ReadOnly, GitContext.GetEffectiveGitEngine());
@@ -346,6 +354,7 @@ public abstract class GitContextTests : RepoTestBase
             Environment.SetEnvironmentVariable("DEPENDABOT", originalDependabot);
             Environment.SetEnvironmentVariable("NBGV_GitEngine", originalNbgvGitEngine);
             Environment.SetEnvironmentVariable("GITHUB_ACTOR", originalGitHubActor);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", originalGitHubWorkflowRef);
         }
     }
 
@@ -359,11 +368,13 @@ public abstract class GitContextTests : RepoTestBase
         var originalDependabot = Environment.GetEnvironmentVariable("DEPENDABOT");
         var originalNbgvGitEngine = Environment.GetEnvironmentVariable("NBGV_GitEngine");
         var originalGitHubActor = Environment.GetEnvironmentVariable("GITHUB_ACTOR");
+        var originalGitHubWorkflowRef = Environment.GetEnvironmentVariable("GITHUB_WORKFLOW_REF");
         try
         {
             Environment.SetEnvironmentVariable("DEPENDABOT", "true");
             Environment.SetEnvironmentVariable("NBGV_GitEngine", nbgvValue);
             Environment.SetEnvironmentVariable("GITHUB_ACTOR", null);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", null);
 
             // Act & Assert: NBGV_GitEngine should take precedence and be parsed correctly
             Assert.Equal(expectedEngine, GitContext.GetEffectiveGitEngine());
@@ -373,6 +384,7 @@ public abstract class GitContextTests : RepoTestBase
             Environment.SetEnvironmentVariable("DEPENDABOT", originalDependabot);
             Environment.SetEnvironmentVariable("NBGV_GitEngine", originalNbgvGitEngine);
             Environment.SetEnvironmentVariable("GITHUB_ACTOR", originalGitHubActor);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", originalGitHubWorkflowRef);
         }
     }
 
@@ -383,11 +395,13 @@ public abstract class GitContextTests : RepoTestBase
         var originalGitHubActor = Environment.GetEnvironmentVariable("GITHUB_ACTOR");
         var originalNbgvGitEngine = Environment.GetEnvironmentVariable("NBGV_GitEngine");
         var originalDependabot = Environment.GetEnvironmentVariable("DEPENDABOT");
+        var originalGitHubWorkflowRef = Environment.GetEnvironmentVariable("GITHUB_WORKFLOW_REF");
         try
         {
             Environment.SetEnvironmentVariable("GITHUB_ACTOR", "copilot-swe-agent[bot]");
             Environment.SetEnvironmentVariable("NBGV_GitEngine", null);
             Environment.SetEnvironmentVariable("DEPENDABOT", null);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", null);
 
             // Act & Assert: Should return Disabled regardless of requested engine
             Assert.Equal(GitContext.Engine.Disabled, GitContext.GetEffectiveGitEngine());
@@ -399,6 +413,7 @@ public abstract class GitContextTests : RepoTestBase
             Environment.SetEnvironmentVariable("GITHUB_ACTOR", originalGitHubActor);
             Environment.SetEnvironmentVariable("NBGV_GitEngine", originalNbgvGitEngine);
             Environment.SetEnvironmentVariable("DEPENDABOT", originalDependabot);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", originalGitHubWorkflowRef);
         }
     }
 
@@ -414,11 +429,13 @@ public abstract class GitContextTests : RepoTestBase
         var originalGitHubActor = Environment.GetEnvironmentVariable("GITHUB_ACTOR");
         var originalNbgvGitEngine = Environment.GetEnvironmentVariable("NBGV_GitEngine");
         var originalDependabot = Environment.GetEnvironmentVariable("DEPENDABOT");
+        var originalGitHubWorkflowRef = Environment.GetEnvironmentVariable("GITHUB_WORKFLOW_REF");
         try
         {
             Environment.SetEnvironmentVariable("GITHUB_ACTOR", gitHubActorValue);
             Environment.SetEnvironmentVariable("NBGV_GitEngine", null);
             Environment.SetEnvironmentVariable("DEPENDABOT", null);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", null);
 
             // Act & Assert: Should use default behavior
             Assert.Equal(GitContext.Engine.ReadOnly, GitContext.GetEffectiveGitEngine());
@@ -429,6 +446,7 @@ public abstract class GitContextTests : RepoTestBase
             Environment.SetEnvironmentVariable("GITHUB_ACTOR", originalGitHubActor);
             Environment.SetEnvironmentVariable("NBGV_GitEngine", originalNbgvGitEngine);
             Environment.SetEnvironmentVariable("DEPENDABOT", originalDependabot);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", originalGitHubWorkflowRef);
         }
     }
 
@@ -441,10 +459,12 @@ public abstract class GitContextTests : RepoTestBase
         // Arrange: Set both GITHUB_ACTOR=copilot-swe-agent[bot] and NBGV_GitEngine
         var originalGitHubActor = Environment.GetEnvironmentVariable("GITHUB_ACTOR");
         var originalNbgvGitEngine = Environment.GetEnvironmentVariable("NBGV_GitEngine");
+        var originalGitHubWorkflowRef = Environment.GetEnvironmentVariable("GITHUB_WORKFLOW_REF");
         try
         {
             Environment.SetEnvironmentVariable("GITHUB_ACTOR", "copilot-swe-agent[bot]");
             Environment.SetEnvironmentVariable("NBGV_GitEngine", nbgvValue);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", null);
 
             // Act & Assert: NBGV_GitEngine should take precedence and be parsed correctly
             Assert.Equal(expectedEngine, GitContext.GetEffectiveGitEngine());
@@ -453,6 +473,95 @@ public abstract class GitContextTests : RepoTestBase
         {
             Environment.SetEnvironmentVariable("GITHUB_ACTOR", originalGitHubActor);
             Environment.SetEnvironmentVariable("NBGV_GitEngine", originalNbgvGitEngine);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", originalGitHubWorkflowRef);
+        }
+    }
+
+    [Theory]
+    [InlineData("owner/repo/.github/workflows/copilot-setup-steps.yml@refs/heads/main")]
+    [InlineData("owner/repo/.github/workflows/copilot-setup-steps.yml@refs/pull/42/merge")]
+    public void GetEffectiveGitEngine_GitHubCopilotSetupWorkflow_DisablesEngine(string gitHubWorkflowRef)
+    {
+        var originalGitHubActor = Environment.GetEnvironmentVariable("GITHUB_ACTOR");
+        var originalGitHubWorkflowRef = Environment.GetEnvironmentVariable("GITHUB_WORKFLOW_REF");
+        var originalNbgvGitEngine = Environment.GetEnvironmentVariable("NBGV_GitEngine");
+        var originalDependabot = Environment.GetEnvironmentVariable("DEPENDABOT");
+        try
+        {
+            Environment.SetEnvironmentVariable("GITHUB_ACTOR", null);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", gitHubWorkflowRef);
+            Environment.SetEnvironmentVariable("NBGV_GitEngine", null);
+            Environment.SetEnvironmentVariable("DEPENDABOT", null);
+
+            Assert.Equal(GitContext.Engine.Disabled, GitContext.GetEffectiveGitEngine());
+            Assert.Equal(GitContext.Engine.Disabled, GitContext.GetEffectiveGitEngine(GitContext.Engine.ReadOnly));
+            Assert.Equal(GitContext.Engine.Disabled, GitContext.GetEffectiveGitEngine(GitContext.Engine.ReadWrite));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("GITHUB_ACTOR", originalGitHubActor);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", originalGitHubWorkflowRef);
+            Environment.SetEnvironmentVariable("NBGV_GitEngine", originalNbgvGitEngine);
+            Environment.SetEnvironmentVariable("DEPENDABOT", originalDependabot);
+        }
+    }
+
+    [Theory]
+    [InlineData("owner/repo/.github/workflows/build.yml@refs/heads/main")]
+    [InlineData("owner/repo/.github/workflows/Copilot-Setup-Steps.yml@refs/heads/main")]
+    [InlineData("owner/repo/.github/workflows/my-copilot-setup-steps.yml@refs/heads/main")]
+    [InlineData("owner/repo/.github/workflows/copilot-setup-steps.yml.backup@refs/heads/main")]
+    [InlineData("")]
+    public void GetEffectiveGitEngine_GitHubWorkflowRefNotCopilotSetup_UsesDefault(string gitHubWorkflowRef)
+    {
+        var originalGitHubActor = Environment.GetEnvironmentVariable("GITHUB_ACTOR");
+        var originalGitHubWorkflowRef = Environment.GetEnvironmentVariable("GITHUB_WORKFLOW_REF");
+        var originalNbgvGitEngine = Environment.GetEnvironmentVariable("NBGV_GitEngine");
+        var originalDependabot = Environment.GetEnvironmentVariable("DEPENDABOT");
+        try
+        {
+            Environment.SetEnvironmentVariable("GITHUB_ACTOR", null);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", gitHubWorkflowRef);
+            Environment.SetEnvironmentVariable("NBGV_GitEngine", null);
+            Environment.SetEnvironmentVariable("DEPENDABOT", null);
+
+            Assert.Equal(GitContext.Engine.ReadOnly, GitContext.GetEffectiveGitEngine());
+            Assert.Equal(GitContext.Engine.ReadWrite, GitContext.GetEffectiveGitEngine(GitContext.Engine.ReadWrite));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("GITHUB_ACTOR", originalGitHubActor);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", originalGitHubWorkflowRef);
+            Environment.SetEnvironmentVariable("NBGV_GitEngine", originalNbgvGitEngine);
+            Environment.SetEnvironmentVariable("DEPENDABOT", originalDependabot);
+        }
+    }
+
+    [Theory]
+    [InlineData("LibGit2", GitContext.Engine.ReadWrite)]
+    [InlineData("Managed", GitContext.Engine.ReadOnly)]
+    [InlineData("Disabled", GitContext.Engine.Disabled)]
+    public void GetEffectiveGitEngine_NbgvGitEngineOverridesGitHubCopilotSetupWorkflow(string nbgvValue, GitContext.Engine expectedEngine)
+    {
+        var originalGitHubActor = Environment.GetEnvironmentVariable("GITHUB_ACTOR");
+        var originalGitHubWorkflowRef = Environment.GetEnvironmentVariable("GITHUB_WORKFLOW_REF");
+        var originalNbgvGitEngine = Environment.GetEnvironmentVariable("NBGV_GitEngine");
+        var originalDependabot = Environment.GetEnvironmentVariable("DEPENDABOT");
+        try
+        {
+            Environment.SetEnvironmentVariable("GITHUB_ACTOR", null);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", "owner/repo/.github/workflows/copilot-setup-steps.yml@refs/heads/main");
+            Environment.SetEnvironmentVariable("NBGV_GitEngine", nbgvValue);
+            Environment.SetEnvironmentVariable("DEPENDABOT", null);
+
+            Assert.Equal(expectedEngine, GitContext.GetEffectiveGitEngine());
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("GITHUB_ACTOR", originalGitHubActor);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", originalGitHubWorkflowRef);
+            Environment.SetEnvironmentVariable("NBGV_GitEngine", originalNbgvGitEngine);
+            Environment.SetEnvironmentVariable("DEPENDABOT", originalDependabot);
         }
     }
 
