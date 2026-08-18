@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use std::str;
 
 use bitflags::bitflags;
-use git2::{ObjectType, Repository, Tree};
+use git2::{Commit, ObjectType, Repository, Tree};
 
 use crate::{Error, GitContext, GitContextKind, Result, VersionOptions};
 
@@ -175,6 +175,28 @@ impl<'context> VersionFile<'context> {
             .config()?
             .get_bool("core.ignorecase")
             .unwrap_or(false);
+        self.get_version_from_tree(repository, &tree, ignore_case, requirements)
+    }
+
+    pub(crate) fn get_version_from_commit(
+        &self,
+        repository: &Repository,
+        commit: &Commit<'_>,
+        ignore_case: bool,
+        requirements: VersionFileRequirements,
+    ) -> Result<(Option<VersionOptions>, VersionFileLocations)> {
+        self.validate_requirements(requirements)?;
+        let tree = commit.tree()?;
+        self.get_version_from_tree(repository, &tree, ignore_case, requirements)
+    }
+
+    fn get_version_from_tree(
+        &self,
+        repository: &Repository,
+        tree: &Tree<'_>,
+        ignore_case: bool,
+        requirements: VersionFileRequirements,
+    ) -> Result<(Option<VersionOptions>, VersionFileLocations)> {
         let start = path_to_git(self.context.repo_relative_project_directory());
         let root = self.context.working_tree_path();
         self.read_search_chain(
@@ -182,7 +204,7 @@ impl<'context> VersionFile<'context> {
             requirements,
             |directory, filename| {
                 let path = join_git_path(directory, filename);
-                read_blob(repository, &tree, &path, ignore_case)
+                read_blob(repository, tree, &path, ignore_case)
             },
             |directory| root.join(git_path_to_native(directory)),
         )
@@ -350,7 +372,7 @@ fn read_blob(
     path: &str,
     ignore_case: bool,
 ) -> Result<Option<Vec<u8>>> {
-    let mut tree = repository.find_tree(root.id())?;
+    let mut tree = root.clone();
     let segments: Vec<_> = path
         .split('/')
         .filter(|segment| !segment.is_empty())
@@ -671,6 +693,37 @@ mod tests {
             .get_version(VersionFileRequirements::default())
             .unwrap();
         assert_eq!("1.0", actual.unwrap().version.unwrap().to_string());
+    }
+
+    #[test]
+    fn historical_lookup_can_use_existing_repository_and_commit() {
+        let test = TestRepository::new();
+        fs::write(
+            test.path.join(VERSION_JSON_FILE_NAME),
+            r#"{"version":"1.0"}"#,
+        )
+        .unwrap();
+        let first = test.commit("first");
+        fs::write(
+            test.path.join(VERSION_JSON_FILE_NAME),
+            r#"{"version":"2.0"}"#,
+        )
+        .unwrap();
+        test.commit("second");
+
+        let context = GitContext::create(&test.path, Some("HEAD"), GitEngine::ReadOnly).unwrap();
+        let repository = context.repository().unwrap();
+        let commit = repository.find_commit(first).unwrap();
+        let (actual, _) = VersionFile::new(&context)
+            .get_version_from_commit(
+                repository,
+                &commit,
+                false,
+                VersionFileRequirements::default(),
+            )
+            .unwrap();
+        assert_eq!("1.0", actual.unwrap().version.unwrap().to_string());
+        assert_ne!(Some(first), context.git_commit_id());
     }
 
     #[test]

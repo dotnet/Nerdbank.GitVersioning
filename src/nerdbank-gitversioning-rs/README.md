@@ -92,3 +92,16 @@ RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
 
 In PowerShell, set the documentation flags with
 `$env:RUSTDOCFLAGS = "-D warnings"` before running `cargo doc`.
+
+## Benchmarks
+
+Clone `xunit`, `Cuemon`, `SuperSocket`, and `Nerdbank.GitVersioning` under
+`%USERPROFILE%\Source\Repos` on Windows or `~/git` elsewhere, then run:
+
+```console
+cargo bench --bench get_version
+```
+
+Set `NBGV_BENCH_REPOSITORY_ROOT` to use another directory. Missing repositories
+produce an error. Criterion retains machine-readable results under
+`target/criterion`.

@@ -5,11 +5,11 @@
 
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use git2::{DiffOptions, Oid, Repository};
+use git2::{Commit, DiffOptions, Oid, Repository};
 
 use crate::{
-    Error, GitContext, GitEngine, Result, SemanticVersion, Version, VersionFile,
-    VersionFileRequirements, VersionOptions, VersionPosition,
+    Error, GitContext, Result, SemanticVersion, Version, VersionFile, VersionFileRequirements,
+    VersionOptions, VersionPosition,
 };
 
 /// The largest build or revision value accepted by the CLR and Windows version resources.
@@ -27,7 +27,7 @@ pub struct VersionHeightCalculation {
 /// Calculates the longest single ancestry path, including the selected commit.
 pub fn get_height(context: &GitContext) -> Result<u32> {
     let start = selected_commit_id(context)?;
-    let mut tracker = HistoryTracker::new(context);
+    let mut tracker = HistoryTracker::new(context)?;
     Ok(commit_height(&mut tracker, start, |_| Ok(true))?.height)
 }
 
@@ -45,7 +45,7 @@ pub fn get_version_height(
             commit_id: None,
         });
     };
-    let mut tracker = HistoryTracker::new(context);
+    let mut tracker = HistoryTracker::new(context)?;
     let options = tracker.version_at(start)?;
     let Some(options) = options else {
         return Ok(VersionHeightCalculation {
@@ -186,7 +186,7 @@ pub fn get_commits_from_version(context: &GitContext, version: &Version) -> Resu
     let repository = context
         .repository()
         .ok_or_else(|| Error::InvalidOperation("No repository is available.".to_owned()))?;
-    let mut tracker = HistoryTracker::new(context);
+    let mut tracker = HistoryTracker::new(context)?;
     let mut matches = Vec::new();
     for commit_id in commits_reachable_from_refs(repository)? {
         let Some(options) = tracker.version_at(commit_id)? else {
@@ -222,49 +222,83 @@ pub fn get_commit_from_version(context: &GitContext, version: &Version) -> Resul
 
 struct HistoryTracker<'context> {
     context: &'context GitContext,
+    repository: &'context Repository,
     versions: HashMap<Oid, Option<VersionOptions>>,
     heights: HashMap<Oid, VersionHeightCalculation>,
     current_commit: Oid,
+    ignore_case: Option<bool>,
 }
 
 impl<'context> HistoryTracker<'context> {
-    fn new(context: &'context GitContext) -> Self {
-        Self {
+    fn new(context: &'context GitContext) -> Result<Self> {
+        let repository = context
+            .repository()
+            .ok_or_else(|| Error::InvalidOperation("No repository is available.".to_owned()))?;
+        Ok(Self {
             context,
+            repository,
             versions: HashMap::new(),
             heights: HashMap::new(),
             current_commit: Oid::ZERO_SHA1,
-        }
+            ignore_case: None,
+        })
     }
 
-    fn repository(&self) -> Result<&Repository> {
-        self.context
-            .repository()
-            .ok_or_else(|| Error::InvalidOperation("No repository is available.".to_owned()))
+    fn ignore_case(&mut self) -> Result<bool> {
+        if let Some(ignore_case) = self.ignore_case {
+            return Ok(ignore_case);
+        }
+        let ignore_case = self
+            .repository
+            .config()?
+            .get_bool("core.ignorecase")
+            .unwrap_or(false);
+        self.ignore_case = Some(ignore_case);
+        Ok(ignore_case)
     }
 
     fn version_at(&mut self, commit_id: Oid) -> Result<Option<VersionOptions>> {
         if let Some(version) = self.versions.get(&commit_id) {
             return Ok(version.clone());
         }
-        let mut commit_context = GitContext::create(
-            self.context.working_tree_path(),
-            Some(&commit_id.to_string()),
-            GitEngine::ReadOnly,
-        )?;
-        commit_context
-            .set_repo_relative_project_directory(self.context.repo_relative_project_directory())?;
-        let version = VersionFile::new(&commit_context)
-            .get_version(VersionFileRequirements::default())
-            .map_err(|error| {
-                Error::InvalidOperation(format!(
-                    "Unable to get version from commit {commit_id}: {error}"
-                ))
-            })?
-            .0;
-        self.versions.insert(commit_id, version.clone());
-        Ok(version)
+        let ignore_case = self.ignore_case()?;
+        let commit = self.repository.find_commit(commit_id)?;
+        version_at_commit(
+            self.context,
+            self.repository,
+            &mut self.versions,
+            &commit,
+            ignore_case,
+        )
     }
+}
+
+fn version_at_commit(
+    context: &GitContext,
+    repository: &Repository,
+    versions: &mut HashMap<Oid, Option<VersionOptions>>,
+    commit: &Commit<'_>,
+    ignore_case: bool,
+) -> Result<Option<VersionOptions>> {
+    let commit_id = commit.id();
+    if let Some(version) = versions.get(&commit_id) {
+        return Ok(version.clone());
+    }
+    let version = VersionFile::new(context)
+        .get_version_from_commit(
+            repository,
+            commit,
+            ignore_case,
+            VersionFileRequirements::default(),
+        )
+        .map_err(|error| {
+            Error::InvalidOperation(format!(
+                "Unable to get version from commit {commit_id}: {error}"
+            ))
+        })?
+        .0;
+    versions.insert(commit_id, version.clone());
+    Ok(version)
 }
 
 fn selected_commit_id(context: &GitContext) -> Result<Oid> {
@@ -295,11 +329,9 @@ where
             stack.pop();
             continue;
         }
-        let parent_ids: Vec<_> = tracker
-            .repository()?
-            .find_commit(commit_id)?
-            .parent_ids()
-            .collect();
+        let ignore_case = tracker.ignore_case()?;
+        let commit = tracker.repository.find_commit(commit_id)?;
+        let parent_ids: Vec<_> = commit.parent_ids().collect();
         let mut missing_parent = false;
         for parent_id in &parent_ids {
             if tracker.heights.contains_key(parent_id) {
@@ -329,12 +361,18 @@ where
                 best = *parent;
             }
         }
-        let options = tracker.version_at(commit_id)?;
+        let options = version_at_commit(
+            tracker.context,
+            tracker.repository,
+            &mut tracker.versions,
+            &commit,
+            ignore_case,
+        )?;
         let relevant = match options
             .as_ref()
             .and_then(|options| options.path_filters.as_ref())
         {
-            Some(filters) => is_relevant_commit(tracker.repository()?, commit_id, filters)?,
+            Some(filters) => is_relevant_commit(tracker.repository, &commit, filters, ignore_case)?,
             None => true,
         };
         let height = best.height + u32::from(relevant);
@@ -375,17 +413,17 @@ fn commit_matches_version(
 
 fn is_relevant_commit(
     repository: &Repository,
-    commit_id: Oid,
+    commit: &Commit<'_>,
     filters: &[crate::FilterPath],
+    ignore_case: bool,
 ) -> Result<bool> {
-    let commit = repository.find_commit(commit_id)?;
     let tree = commit.tree()?;
     if commit.parent_count() == 0 {
-        return diff_is_relevant(repository, None, &tree, filters);
+        return diff_is_relevant(repository, None, &tree, filters, ignore_case);
     }
     for parent in commit.parents() {
         let parent_tree = parent.tree()?;
-        if diff_is_relevant(repository, Some(&parent_tree), &tree, filters)? {
+        if diff_is_relevant(repository, Some(&parent_tree), &tree, filters, ignore_case)? {
             return Ok(true);
         }
     }
@@ -397,14 +435,11 @@ fn diff_is_relevant(
     old_tree: Option<&git2::Tree<'_>>,
     new_tree: &git2::Tree<'_>,
     filters: &[crate::FilterPath],
+    ignore_case: bool,
 ) -> Result<bool> {
     let mut options = DiffOptions::new();
     options.context_lines(0);
     let diff = repository.diff_tree_to_tree(old_tree, Some(new_tree), Some(&mut options))?;
-    let ignore_case = repository
-        .config()?
-        .get_bool("core.ignorecase")
-        .unwrap_or(false);
     let has_includes = filters.iter().any(crate::FilterPath::is_include);
     for delta in diff.deltas() {
         for path in [delta.old_file().path(), delta.new_file().path()]
@@ -558,6 +593,7 @@ mod tests {
     use git2::{IndexAddOption, Signature};
 
     use super::*;
+    use crate::GitEngine;
 
     static NEXT_REPOSITORY: AtomicU64 = AtomicU64::new(0);
 
@@ -648,7 +684,7 @@ mod tests {
         let context = test.context(merge, "");
         assert_eq!(5, get_height(&context).unwrap());
 
-        let mut tracker = HistoryTracker::new(&context);
+        let mut tracker = HistoryTracker::new(&context).unwrap();
         let stopped = commit_height(&mut tracker, merge, |tracker| {
             Ok(tracker.current_commit != long1 && tracker.current_commit != short)
         })
