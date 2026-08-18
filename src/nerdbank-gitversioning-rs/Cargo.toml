@@ -28,7 +28,7 @@ serde_json = "1.0.151"
 thiserror = "2.0.20"
 
 [dev-dependencies]
-criterion = "0.8.2"
+criterion = "=0.8.2"
 
 [[bench]]
 name = "get_version"
