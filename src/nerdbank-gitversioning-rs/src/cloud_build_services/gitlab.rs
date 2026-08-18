@@ -25,11 +25,10 @@ impl CloudBuild for GitLab {
 
     fn building_branch(&self) -> Option<String> {
         env("CI_COMMIT_TAG").is_none().then(|| {
-            format!(
-                "refs/heads/{}",
-                env("CI_COMMIT_REF_NAME").unwrap_or_default()
-            )
-        })
+            env("CI_COMMIT_REF_NAME")
+                .filter(|name| !name.is_empty())
+                .map(|name| format!("refs/heads/{name}"))
+        })?
     }
 
     fn building_tag(&self) -> Option<String> {

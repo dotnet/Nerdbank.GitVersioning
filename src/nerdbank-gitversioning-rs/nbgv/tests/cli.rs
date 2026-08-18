@@ -132,6 +132,18 @@ fn get_version_supports_formats_variables_precedence_dates_and_dirty_warning() {
         .assert()
         .success()
         .stdout(predicate::str::is_match(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d[+-]\d\d:\d\d").unwrap());
+    nbgv()
+        .current_dir(repo.path())
+        .args([
+            "get-version",
+            "--format",
+            "TEXT",
+            "--variable",
+            "VersionMajor",
+        ])
+        .assert()
+        .success()
+        .stdout("1\n");
 
     fs::write(repo.path().join("version.json"), r#"{"version":"9.0"}"#).unwrap();
     nbgv()

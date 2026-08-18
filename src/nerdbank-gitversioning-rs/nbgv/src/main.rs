@@ -253,7 +253,7 @@ fn get_version(args: GetVersionArgs) -> CommandResult {
 
     let format = args.format.as_deref().unwrap_or("text");
     if let Some(variable) = args.variable {
-        if format != "text" {
+        if !format.eq_ignore_ascii_case("text") {
             eprintln!("Format must be \"text\" when querying for an individual variable's value.");
             return Ok(ExitCodes::UnsupportedFormat);
         }

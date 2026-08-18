@@ -174,6 +174,19 @@ mod tests {
             assert_eq!(GitLab.git_commit_id().as_deref(), Some("abc"));
         }
         {
+            let _environment =
+                EnvironmentGuard::set(&[("CI_COMMIT_TAG", None), ("CI_COMMIT_REF_NAME", Some(""))]);
+            assert_eq!(GitLab.building_branch(), None);
+        }
+        for event_name in ["pull_request", "pull_request_target"] {
+            let _environment = EnvironmentGuard::set(&[("GITHUB_EVENT_NAME", Some(event_name))]);
+            assert!(GitHubActions.is_pull_request());
+        }
+        {
+            let _environment = EnvironmentGuard::set(&[("GITHUB_EVENT_NAME", Some("push"))]);
+            assert!(!GitHubActions.is_pull_request());
+        }
+        {
             let _environment = EnvironmentGuard::set(&[
                 ("BITBUCKET_BRANCH", Some("main")),
                 ("BITBUCKET_TAG", Some("v1")),

@@ -128,7 +128,10 @@ impl CloudBuild for GitHubActions {
     }
 
     fn is_pull_request(&self) -> bool {
-        env("GITHUB_EVENT_NAME").as_deref() == Some("PullRequestEvent")
+        matches!(
+            env("GITHUB_EVENT_NAME").as_deref(),
+            Some("pull_request" | "pull_request_target")
+        )
     }
 
     fn building_branch(&self) -> Option<String> {
