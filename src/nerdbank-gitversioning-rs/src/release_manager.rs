@@ -845,6 +845,7 @@ fn version_file_error(
 
 #[cfg(test)]
 mod tests {
+    use std::env;
     use std::fs;
     use std::path::PathBuf;
     use std::sync::atomic::{AtomicU64, Ordering};
@@ -1123,11 +1124,8 @@ mod tests {
 
     #[test]
     fn detects_validation_failures() {
-        let outside = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .ancestors()
-            .last()
-            .unwrap()
-            .join(format!("nbgv-release-no-repository-{}", std::process::id()));
+        let outside =
+            env::temp_dir().join(format!("nbgv-release-no-repository-{}", std::process::id()));
         fs::create_dir_all(&outside).unwrap();
         let error = ReleaseManager::new()
             .prepare_release(&outside, &PrepareReleaseOptions::default())

@@ -422,7 +422,7 @@ impl GitContext {
         let working_tree_path = repository.workdir().ok_or_else(|| {
             Error::InvalidOperation("Bare repositories are not supported.".to_owned())
         })?;
-        let working_tree_path = trim_trailing_separator(working_tree_path);
+        let working_tree_path = trim_trailing_separator(&absolute_path(working_tree_path)?);
         let git_directory = trim_trailing_separator(repository.path());
         let relative = requested_path
             .strip_prefix(&working_tree_path)
@@ -497,6 +497,7 @@ impl GitContext {
 
     fn repo_relative_path(&self, path: &Path) -> Result<PathBuf> {
         if path.is_absolute() {
+            let path = absolute_path(path)?;
             path.strip_prefix(&self.working_tree_path)
                 .map(Path::to_path_buf)
                 .map_err(|_| {
@@ -604,10 +605,22 @@ fn convert_time(time: git2::Time) -> Result<DateTime<FixedOffset>> {
 }
 
 fn absolute_path(path: &Path) -> std::io::Result<PathBuf> {
-    if path.is_absolute() {
-        Ok(path.to_path_buf())
+    let absolute = if path.is_absolute() {
+        path.to_path_buf()
     } else {
-        Ok(env::current_dir()?.join(path))
+        env::current_dir()?.join(path)
+    };
+    match dunce::canonicalize(&absolute) {
+        Ok(canonical) => Ok(canonical),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            for ancestor in absolute.ancestors().skip(1) {
+                if let Ok(canonical_ancestor) = dunce::canonicalize(ancestor) {
+                    return Ok(canonical_ancestor.join(absolute.strip_prefix(ancestor).unwrap()));
+                }
+            }
+            Ok(absolute)
+        }
+        Err(error) => Err(error),
     }
 }
 
@@ -676,7 +689,10 @@ mod tests {
         let context = GitContext::create(&subdirectory, None, GitEngine::ReadOnly).unwrap();
 
         assert_eq!(context.kind(), GitContextKind::Repository);
-        assert_eq!(context.working_tree_path(), test.path);
+        assert_eq!(
+            context.working_tree_path(),
+            absolute_path(&test.path).unwrap()
+        );
         assert_eq!(context.repo_relative_project_directory(), Path::new("a/b"));
         assert_eq!(context.git_commit_id(), Some(test.head));
         assert!(context.is_head().unwrap());
@@ -698,7 +714,10 @@ mod tests {
 
         let context = GitContext::create(&linked_path, None, GitEngine::ReadOnly).unwrap();
 
-        assert_eq!(context.working_tree_path(), linked_path);
+        assert_eq!(
+            context.working_tree_path(),
+            absolute_path(&linked_path).unwrap()
+        );
         assert!(linked_path.join(".git").is_file());
         assert!(context.git_directory().unwrap().is_dir());
         assert_eq!(context.git_commit_id(), Some(test.head));
