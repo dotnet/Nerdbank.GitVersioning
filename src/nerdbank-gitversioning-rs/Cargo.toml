@@ -1,0 +1,42 @@
+[package]
+name = "nerdbank-gitversioning"
+version = "0.1.0"
+edition = "2024"
+description = "Git-based semantic version calculation compatible with Nerdbank.GitVersioning"
+license = "MIT"
+repository = "https://github.com/dotnet/Nerdbank.GitVersioning"
+homepage = "https://github.com/dotnet/Nerdbank.GitVersioning"
+documentation = "https://docs.rs/nerdbank-gitversioning"
+readme = "README.md"
+keywords = ["git", "versioning", "semver", "build"]
+categories = ["development-tools::build-utils"]
+rust-version = "1.95"
+
+[workspace]
+members = ["nbgv"]
+resolver = "3"
+
+[dependencies]
+bitflags = { version = "2.13.1", features = ["serde"] }
+chrono = { version = "0.4.45", features = ["serde"] }
+dunce = "1.0.5"
+fancy-regex = "0.19.0"
+git2 = { version = "0.21.0", default-features = false, features = ["vendored-libgit2"] }
+regex = "1.13.1"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+thiserror = "2.0.20"
+
+[dev-dependencies]
+criterion = "0.8.2"
+
+[[bench]]
+name = "get_version"
+harness = false
+
+[workspace.package]
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/dotnet/Nerdbank.GitVersioning"
+homepage = "https://github.com/dotnet/Nerdbank.GitVersioning"
+rust-version = "1.95"

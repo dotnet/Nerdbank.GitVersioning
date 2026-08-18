@@ -4,6 +4,44 @@ The `nbgv` CLI tool is useful for all repos regardless of ecosystem.
 
 The tool is distributed as a .NET CLI tool.
 
+## Rust CLI
+
+This repository also includes a native Rust implementation. Build and install
+it from a repository checkout using current stable Rust:
+
+```ps1
+cargo install --path src/nerdbank-gitversioning-rs/nbgv
+nbgv get-version
+```
+
+The Rust CLI is supported on Windows, Linux, and macOS and includes these six
+commands:
+
+| Command | Purpose |
+|---------|---------|
+| `get-version` | Calculate and print version information. |
+| `set-version` | Update the version in the applicable version file. |
+| `tag` | Create a version tag. |
+| `get-commits` | Find commits that produced a version. |
+| `cloud` | Set cloud-build numbers and variables. |
+| `prepare-release` | Create a release branch and update versions. |
+
+Ordinary repository operations use libgit2 in-process and do not launch
+`git`. If `commit.gpgSign` is enabled, `prepare-release` uses the `git`
+executable on `PATH` because libgit2 cannot create Git-compatible signed
+commits or signed merge commits.
+
+The Rust CLI intentionally does **not** include `install` or `path-filters`,
+and the Rust packages do not supply MSBuild props, targets, tasks, generated
+assembly metadata, or package installation. Continue to use the .NET CLI
+described below for those features.
+
+On Windows, Cargo installs `nbgv.exe` in `%USERPROFILE%\.cargo\bin` by
+default; ensure that directory is on `PATH`. On Linux and macOS, the default
+location is `$HOME/.cargo/bin`.
+
+## .NET CLI
+
 Perform a one-time install of the `nbgv` tool by acquiring it from the NuGet gallery.
 
 [![NuGet package](https://img.shields.io/nuget/v/nbgv?label=nbgv)](https://www.nuget.org/packages/nbgv)

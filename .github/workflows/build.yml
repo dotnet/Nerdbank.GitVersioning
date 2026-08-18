@@ -17,6 +17,39 @@ env:
 # dotnetfoundation code signing
 
 jobs:
+  rust:
+    name: 🦀 Rust (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+        - ubuntu-24.04
+        - windows-2025
+        - macos-14
+
+    defaults:
+      run:
+        working-directory: src/nerdbank-gitversioning-rs
+
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        fetch-depth: 0
+    - name: ⚙ Install current stable Rust
+      run: rustup toolchain install stable --profile minimal --component clippy,rustfmt
+    - name: 💅 Verify formatted code
+      run: cargo +stable fmt --all --check
+      if: runner.os == 'Linux'
+    - name: 📎 Lint
+      run: cargo +stable clippy --workspace --all-targets --all-features -- -D warnings
+    - name: 🧪 Test
+      run: cargo +stable test --workspace
+    - name: 📚 Verify public documentation
+      run: cargo +stable doc --workspace --no-deps
+      env:
+        RUSTDOCFLAGS: -D warnings
+
   build:
     name: 🏭 Build
 
@@ -136,6 +169,7 @@ jobs:
     needs:
     - build
     - functional_testing
+    - rust
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -143,6 +177,7 @@ jobs:
       run: |
         test '${{ needs.build.result }}' = success
         test '${{ needs.functional_testing.result }}' = success
+        test '${{ needs.rust.result }}' = success
 
   functional_testing:
     name: 🧪 Functional testing
