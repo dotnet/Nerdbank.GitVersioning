@@ -64,6 +64,7 @@ After publishing the release, the `.github/workflows/release.yml` workflow will 
 1. Any nuget packages in the `deployables-Linux` artifact will be pushed to nuget.org.
 
 The workflow is written to leverage NuGet.org Trusted Publishing.
+You should set `NUGET_USER` as a repo secret to satisfy Trusted Publishing requirements.
 
 ### Azure Pipelines
 
