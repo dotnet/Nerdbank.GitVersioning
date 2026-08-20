@@ -80,15 +80,13 @@ public class VersionOracle
         catch (GitException ex) when (context.IsShallow && ex.ErrorCode == GitException.ErrorCodes.ObjectNotFound)
         {
             // Our managed git implementation throws this on shallow clones.
-            throw ThrowShallowClone(ex);
+            throw GitException.CreateShallowCloneException(ex);
         }
         catch (InvalidOperationException ex) when (context.IsShallow && (ex.InnerException is NullReferenceException || ex.InnerException is LibGit2Sharp.NotFoundException))
         {
             // Libgit2 throws this on shallow clones.
-            throw ThrowShallowClone(ex);
+            throw GitException.CreateShallowCloneException(ex);
         }
-
-        static Exception ThrowShallowClone(Exception inner) => throw new GitException("Shallow clone lacks the objects required to calculate version height. Use full clones or clones with a history at least as deep as the last version height resetting change.", inner) { IsShallowClone = true, ErrorCode = GitException.ErrorCodes.ObjectNotFound };
 
         this.VersionOptions = this.CommittedVersion ?? this.WorkingVersion;
         this.isWorkingTreeDirty = context.IsHead && this.VersionOptions?.GitCommitIdIncludeDirtyOrDefault == true && context.IsWorkingTreeDirty;

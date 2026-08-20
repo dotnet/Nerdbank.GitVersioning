@@ -27,6 +27,23 @@ public class GitContextManagedTests : GitContextTests
         Assert.False(this.Context.TrySelectCommit(committish));
     }
 
+    [Fact]
+    public void SelectFirstParentAncestorInShallowRepository()
+    {
+        this.AddCommits();
+
+        string firstCommitSha = this.LibGit2Repository.Head.Tip.Parents.Single().Sha;
+        string firstCommitPath = Path.Combine(this.RepoPath, ".git", "objects", firstCommitSha.Substring(0, 2), firstCommitSha.Substring(2));
+        File.SetAttributes(firstCommitPath, FileAttributes.Normal);
+        File.Delete(firstCommitPath);
+        File.WriteAllText(Path.Combine(this.RepoPath, ".git", "shallow"), firstCommitSha);
+
+        GitException exception = Assert.Throws<GitException>(() => this.Context.TrySelectCommit("HEAD~1"));
+
+        Assert.True(exception.IsShallowClone);
+        Assert.Equal(GitException.ErrorCodes.ObjectNotFound, exception.ErrorCode);
+    }
+
     /// <inheritdoc/>
     protected override GitContext CreateGitContext(string path, string committish = null)
         => GitContext.Create(path, committish, engine: GitContext.Engine.ReadOnly);
