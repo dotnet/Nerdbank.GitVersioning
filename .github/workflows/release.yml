@@ -25,6 +25,9 @@ jobs:
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
+        $ErrorActionPreference = 'Stop'
+        $PSNativeCommandUseErrorActionPreference = $true
+
         if ('${{ inputs.ship_run_id }}') {
           $runid = '${{ inputs.ship_run_id }}'
         } else {
@@ -40,8 +43,8 @@ jobs:
 
           Write-Host "Resolved ${{ github.ref_name }} to $commitSha"
 
-          $releases = gh run list -R ${{ github.repository }} -c $commitSha -w .github/workflows/build.yml -s success --json databaseId,startedAt,event,headBranch `
-            | ConvertFrom-Json | Sort-Object startedAt -Descending
+          $releases = @(gh run list -R ${{ github.repository }} -c $commitSha -w .github/workflows/build.yml -s success --json databaseId,startedAt,event,headBranch `
+            | ConvertFrom-Json | Sort-Object startedAt -Descending)
 
           $preferredReleases = $releases | Where-Object {
             $_.event -eq 'push' -and ($_.headBranch -eq 'main' -or $_.headBranch -match '^v\d+(?:\.\d+)?$')
@@ -93,6 +96,9 @@ jobs:
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
+        $ErrorActionPreference = 'Stop'
+        $PSNativeCommandUseErrorActionPreference = $true
+
         Get-ChildItem '${{ runner.temp }}/deployables' -File -Recurse |% {
           Write-Host "Uploading $($_.Name) to release..."
           gh release -R ${{ github.repository }} upload "${{ github.ref_name }}" $_.FullName
