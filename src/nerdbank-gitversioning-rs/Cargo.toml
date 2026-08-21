@@ -1,6 +1,6 @@
 [package]
 name = "nerdbank-gitversioning"
-version = "0.1.0"
+version.workspace = true
 edition = "2024"
 description = "Git-based semantic version calculation compatible with Nerdbank.GitVersioning"
 license = "MIT"
@@ -15,6 +15,9 @@ rust-version = "1.95"
 [workspace]
 members = ["nbgv"]
 resolver = "3"
+
+[workspace.dependencies]
+nerdbank-gitversioning = { version = "0.1.0", path = "." }
 
 [dependencies]
 bitflags = { version = "2.13.1", features = ["serde"] }
@@ -35,6 +38,7 @@ name = "get_version"
 harness = false
 
 [workspace.package]
+version = "0.1.0"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/dotnet/Nerdbank.GitVersioning"

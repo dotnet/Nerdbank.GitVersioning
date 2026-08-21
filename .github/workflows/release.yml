@@ -38,6 +38,8 @@ jobs:
       id-token: write # Required for Azure and NuGet OIDC authentication
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        fetch-depth: 0
 
     - name: 🔎 Search for build of ${{ github.ref }}
       shell: pwsh
@@ -180,7 +182,9 @@ jobs:
       working-directory: src/nerdbank-gitversioning-rs
       env:
         CARGO_REGISTRY_TOKEN: ${{ steps.crates-io-auth.outputs.token }}
-      run: cargo publish --workspace
+      run: |
+        ../../tools/Set-CargoVersion.ps1
+        cargo publish --workspace --allow-dirty
 
     - name: 💽 Upload artifacts to release
       shell: pwsh
