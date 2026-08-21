@@ -184,7 +184,7 @@ jobs:
         CARGO_REGISTRY_TOKEN: ${{ steps.crates-io-auth.outputs.token }}
       run: |
         ../../tools/Set-CargoVersion.ps1
-        cargo publish --workspace
+        cargo publish --workspace --allow-dirty
 
     - name: 💽 Upload artifacts to release
       shell: pwsh
