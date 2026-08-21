@@ -36,17 +36,15 @@ jobs:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         fetch-depth: 0
-    - name: ⚙ Install current stable Rust
-      run: rustup toolchain install stable --profile minimal --component clippy,rustfmt
     - name: 💅 Verify formatted code
-      run: cargo +stable fmt --all --check
+      run: cargo fmt --all --check
       if: runner.os == 'Linux'
     - name: 📎 Lint
-      run: cargo +stable clippy --workspace --all-targets --all-features -- -D warnings
+      run: cargo clippy --workspace --all-targets --all-features -- -D warnings
     - name: 🧪 Test
-      run: cargo +stable test --workspace
+      run: cargo test --workspace
     - name: 📚 Verify public documentation
-      run: cargo +stable doc --workspace --no-deps
+      run: cargo doc --workspace --no-deps
       env:
         RUSTDOCFLAGS: -D warnings
 
