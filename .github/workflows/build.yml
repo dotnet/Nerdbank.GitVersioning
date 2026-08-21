@@ -36,6 +36,12 @@ jobs:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         fetch-depth: 0
+    - name: 🏷️ Stamp crate versions
+      shell: pwsh
+      run: |
+        dotnet tool restore
+        ./tools/Set-CargoVersion.ps1
+      working-directory: ${{ github.workspace }}
     - name: 💅 Verify formatted code
       run: cargo fmt --all --check
       if: runner.os == 'Linux'
