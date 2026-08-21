@@ -8,7 +8,7 @@ $repoRoot = Split-Path $PSScriptRoot -Parent
 $manifestPath = Join-Path $repoRoot 'src/nerdbank-gitversioning-rs/Cargo.toml'
 
 if (!$Version) {
-    $Version = dotnet tool run nbgv get-version -v NuGetPackageVersion
+    $Version = dotnet tool run nbgv get-version -v SemVer2
     if ($LASTEXITCODE -ne 0) {
         throw 'nbgv get-version failed.'
     }
