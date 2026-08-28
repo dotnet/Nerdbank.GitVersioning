@@ -43,6 +43,13 @@
         "dotnet-symbol"
       ],
       "rollForward": false
+    },
+    "sign": {
+      "version": "0.9.1-beta.26371.2",
+      "commands": [
+        "sign"
+      ],
+      "rollForward": false
     }
   }
 }
