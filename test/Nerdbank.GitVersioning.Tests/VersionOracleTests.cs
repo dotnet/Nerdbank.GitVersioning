@@ -977,6 +977,27 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(2, this.GetVersionHeight());
     }
 
+    [Fact]
+    public void GetVersionHeight_DeletingIncludedFileWithOnlyExcludeFilter()
+    {
+        this.InitializeSourceControl();
+
+        var versionData = VersionOptions.FromVersion(new Version("1.2"));
+        versionData.PathFilters = new[] { new FilterPath(":!README.md", ".") };
+        this.WriteVersionFile(versionData);
+
+        string includedFilePath = Path.Combine(this.RepoPath, "included.txt");
+        File.WriteAllText(includedFilePath, "hello");
+        Commands.Stage(this.LibGit2Repository, includedFilePath);
+        this.LibGit2Repository.Commit("Add included file", this.Signer, this.Signer);
+        Assert.Equal(2, this.GetVersionHeight());
+
+        File.Delete(includedFilePath);
+        Commands.Stage(this.LibGit2Repository, includedFilePath);
+        this.LibGit2Repository.Commit("Delete included file", this.Signer, this.Signer);
+        Assert.Equal(3, this.GetVersionHeight());
+    }
+
     [Theory]
     [InlineData(":^/excluded-dir")]
     [InlineData(":^../excluded-dir")]

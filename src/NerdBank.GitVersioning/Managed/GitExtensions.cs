@@ -260,14 +260,20 @@ internal static class GitExtensions
         {
             foreach (KeyValuePair<string, GitTreeEntry> child in parent.Children)
             {
-                // Determine whether the change was relevant.
-                string? fullPath = Path.Combine(relativePath, child.Key);
+                string fullPath = $"{relativePath}{child.Key}";
+                if (!child.Value.IsFile)
+                {
+                    if (IsRelevantCommit(repository, GitTree.Empty, repository.GetTree(child.Value.Sha), $"{fullPath}/", filters))
+                    {
+                        return true;
+                    }
 
-                bool isRelevant =
-                    filters.Any(f => f.Includes(fullPath, repository.IgnoreCase))
-                    && !filters.Any(f => f.Excludes(fullPath, repository.IgnoreCase));
+                    continue;
+                }
 
-                if (isRelevant)
+                // With no include filters, every path is included unless explicitly excluded.
+                if ((!filters.Any(f => f.IsInclude) || filters.Any(f => f.Includes(fullPath, repository.IgnoreCase)))
+                    && !filters.Any(f => f.Excludes(fullPath, repository.IgnoreCase)))
                 {
                     return true;
                 }
