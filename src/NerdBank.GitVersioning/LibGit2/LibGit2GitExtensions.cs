@@ -498,13 +498,11 @@ public static class LibGit2GitExtensions
             bool ignoreCase = commit.GetRepository().Config.Get<bool>("core.ignorecase")?.Value ?? false;
             int height = 1;
 
-            if (includePaths is not null)
+            if (pathFilters is not null)
             {
-                // If there are no include paths, or any of the include
-                // paths refer to the root of the repository, then do not
-                // filter the diff at all.
+                bool manuallyFilterIncludes = includePaths!.Count > 0 && (hasWildcardIncludes || ignoreCase);
                 List<string>? diffInclude =
-                    includePaths.Count == 0 || hasWildcardIncludes || pathFilters!.Any(filter => filter.IsRoot)
+                    includePaths.Count == 0 || manuallyFilterIncludes || pathFilters.Any(filter => filter.IsRoot)
                         ? null
                         : includePaths;
 
@@ -515,13 +513,13 @@ public static class LibGit2GitExtensions
                     commit.Parents.Any()
                         ? commit.Parents.Any(parent => ContainsRelevantChanges(
                             commit.GetRepository().Diff.Compare<TreeChanges>(parent.Tree, commit.Tree, diffInclude, DiffOptions),
-                            hasWildcardIncludes,
+                            manuallyFilterIncludes,
                             pathFilters!,
                             excludePaths!,
                             ignoreCase))
                         : ContainsRelevantChanges(
                             commit.GetRepository().Diff.Compare<TreeChanges>(null, commit.Tree, diffInclude, DiffOptions),
-                            hasWildcardIncludes,
+                            manuallyFilterIncludes,
                             pathFilters!,
                             excludePaths!,
                             ignoreCase);
@@ -557,19 +555,19 @@ public static class LibGit2GitExtensions
 
     private static bool ContainsRelevantChanges(
         TreeChanges changes,
-        bool hasWildcardIncludes,
+        bool manuallyFilterIncludes,
         IReadOnlyList<FilterPath> pathFilters,
         IReadOnlyList<FilterPath> excludePaths,
         bool ignoreCase)
     {
         using (changes)
         {
-            return !hasWildcardIncludes && excludePaths.Count == 0
+            return !manuallyFilterIncludes && excludePaths.Count == 0
                 ? changes.Any()
                 //// If there is a single change that isn't excluded,
                 //// then this commit is relevant.
                 : changes.Any(change =>
-                    (!hasWildcardIncludes || pathFilters.Any(include => include.Includes(change.Path, ignoreCase))) &&
+                    (!manuallyFilterIncludes || pathFilters.Any(include => include.Includes(change.Path, ignoreCase))) &&
                     !excludePaths.Any(exclude => exclude.Excludes(change.Path, ignoreCase)));
         }
     }
