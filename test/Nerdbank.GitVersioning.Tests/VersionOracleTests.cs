@@ -975,6 +975,137 @@ public abstract class VersionOracleTests : RepoTestBase
         Commands.Stage(this.LibGit2Repository, fileInExcludedDirPath);
         this.LibGit2Repository.Commit("Add file to excluded dir", this.Signer, this.Signer);
         Assert.Equal(2, this.GetVersionHeight());
+
+        Directory.Delete(Path.GetDirectoryName(fileInExcludedDirPath), recursive: true);
+        Commands.Stage(this.LibGit2Repository, Path.GetDirectoryName(fileInExcludedDirPath));
+        this.LibGit2Repository.Commit("Delete excluded dir", this.Signer, this.Signer);
+        Assert.Equal(2, this.GetVersionHeight());
+    }
+
+    [Fact]
+    public void GetVersionHeight_DeletingIncludedFileWithOnlyExcludeFilter()
+    {
+        this.InitializeSourceControl();
+
+        var versionData = VersionOptions.FromVersion(new Version("1.2"));
+        versionData.PathFilters = new[] { new FilterPath(":!README.md", ".") };
+        this.WriteVersionFile(versionData);
+
+        string includedFilePath = Path.Combine(this.RepoPath, "included.txt");
+        File.WriteAllText(includedFilePath, "hello");
+        Commands.Stage(this.LibGit2Repository, includedFilePath);
+        this.LibGit2Repository.Commit("Add included file", this.Signer, this.Signer);
+        Assert.Equal(2, this.GetVersionHeight());
+
+        File.Delete(includedFilePath);
+        Commands.Stage(this.LibGit2Repository, includedFilePath);
+        this.LibGit2Repository.Commit("Delete included file", this.Signer, this.Signer);
+        Assert.Equal(3, this.GetVersionHeight());
+    }
+
+    [Fact]
+    public void GetVersionHeight_ChangingIncludedFileMode()
+    {
+        this.InitializeSourceControl();
+
+        var versionData = VersionOptions.FromVersion(new Version("1.2"));
+        versionData.PathFilters = new[] { new FilterPath("included.txt", ".") };
+        this.WriteVersionFile(versionData);
+
+        string includedFilePath = Path.Combine(this.RepoPath, "included.txt");
+        File.WriteAllText(includedFilePath, "hello");
+        Commands.Stage(this.LibGit2Repository, includedFilePath);
+        this.LibGit2Repository.Commit("Add included file", this.Signer, this.Signer);
+        Assert.Equal(1, this.GetVersionHeight());
+
+        var includedBlob = (Blob)this.LibGit2Repository.Head.Tip["included.txt"].Target;
+        this.LibGit2Repository.Index.Add(includedBlob, "included.txt", Mode.ExecutableFile);
+        this.LibGit2Repository.Index.Write();
+        this.LibGit2Repository.Commit("Make included file executable", this.Signer, this.Signer);
+        Assert.Equal(2, this.GetVersionHeight());
+    }
+
+    [Fact]
+    public void GetVersionHeight_IncludeFilterTreatsMetacharactersLiterally()
+    {
+        this.InitializeSourceControl();
+
+        var versionData = VersionOptions.FromVersion(new Version("1.2"));
+        versionData.PathFilters = new[] { new FilterPath("dir/*.txt", ".") };
+        this.WriteVersionFile(versionData);
+
+        string directoryPath = Path.Combine(this.RepoPath, "dir");
+        Directory.CreateDirectory(directoryPath);
+        string filePath = Path.Combine(directoryPath, "value.txt");
+        File.WriteAllText(filePath, "hello");
+        Commands.Stage(this.LibGit2Repository, filePath);
+        this.LibGit2Repository.Commit("Add file outside literal filter", this.Signer, this.Signer);
+        Assert.Equal(0, this.GetVersionHeight());
+    }
+
+    [Fact]
+    public void GetVersionHeight_IncludeFilterHonorsIgnoreCase()
+    {
+        this.InitializeSourceControl();
+        this.LibGit2Repository.Config.Set("core.ignorecase", true, ConfigurationLevel.Local);
+
+        var versionData = VersionOptions.FromVersion(new Version("1.2"));
+        versionData.PathFilters = new[] { new FilterPath("SRC/INCLUDED.TXT", ".") };
+        this.WriteVersionFile(versionData);
+
+        string directoryPath = Path.Combine(this.RepoPath, "src");
+        Directory.CreateDirectory(directoryPath);
+        string filePath = Path.Combine(directoryPath, "included.txt");
+        File.WriteAllText(filePath, "hello");
+        Commands.Stage(this.LibGit2Repository, filePath);
+        this.LibGit2Repository.Commit("Add included file with different casing", this.Signer, this.Signer);
+        Assert.Equal(1, this.GetVersionHeight());
+    }
+
+    [Fact]
+    public void GetVersionHeight_ReplacingFileWithIncludedDirectory()
+    {
+        this.InitializeSourceControl();
+
+        var versionData = VersionOptions.FromVersion(new Version("1.2"));
+        versionData.PathFilters = new[] { new FilterPath("target/included.txt", ".") };
+        this.WriteVersionFile(versionData);
+
+        string targetPath = Path.Combine(this.RepoPath, "target");
+        File.WriteAllText(targetPath, "not included");
+        Commands.Stage(this.LibGit2Repository, targetPath);
+        this.LibGit2Repository.Commit("Add file outside filter", this.Signer, this.Signer);
+        Assert.Equal(0, this.GetVersionHeight());
+
+        File.Delete(targetPath);
+        Directory.CreateDirectory(targetPath);
+        File.WriteAllText(Path.Combine(targetPath, "included.txt"), "included");
+        Commands.Stage(this.LibGit2Repository, targetPath);
+        this.LibGit2Repository.Commit("Replace file with included directory", this.Signer, this.Signer);
+        Assert.Equal(1, this.GetVersionHeight());
+    }
+
+    [Fact]
+    public void GetVersionHeight_ReplacingIncludedDirectoryWithFile()
+    {
+        this.InitializeSourceControl();
+
+        var versionData = VersionOptions.FromVersion(new Version("1.2"));
+        versionData.PathFilters = new[] { new FilterPath("target/included.txt", ".") };
+        this.WriteVersionFile(versionData);
+
+        string targetPath = Path.Combine(this.RepoPath, "target");
+        Directory.CreateDirectory(targetPath);
+        File.WriteAllText(Path.Combine(targetPath, "included.txt"), "included");
+        Commands.Stage(this.LibGit2Repository, targetPath);
+        this.LibGit2Repository.Commit("Add included directory", this.Signer, this.Signer);
+        Assert.Equal(1, this.GetVersionHeight());
+
+        Directory.Delete(targetPath, recursive: true);
+        File.WriteAllText(targetPath, "not included");
+        Commands.Stage(this.LibGit2Repository, targetPath);
+        this.LibGit2Repository.Commit("Replace included directory with file", this.Signer, this.Signer);
+        Assert.Equal(2, this.GetVersionHeight());
     }
 
     [Theory]

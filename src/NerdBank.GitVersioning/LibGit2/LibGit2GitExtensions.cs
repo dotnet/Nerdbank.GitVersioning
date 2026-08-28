@@ -473,33 +473,27 @@ public static class LibGit2GitExtensions
             VersionOptions? versionOptions = tracker.GetVersion(commit);
             IReadOnlyList<FilterPath>? pathFilters = versionOptions?.PathFilters;
 
-            var includePaths =
-                pathFilters
-                    ?.Where(filter => !filter.IsExclude)
-                    .Select(filter => filter.RepoRelativePath)
-                    .ToList();
-
-            var excludePaths = pathFilters?.Where(filter => filter.IsExclude).ToList();
-
             bool ignoreCase = commit.GetRepository().Config.Get<bool>("core.ignorecase")?.Value ?? false;
             bool ContainsRelevantChanges(IEnumerable<TreeEntryChanges> changes) =>
-                excludePaths?.Count == 0
-                    ? changes.Any()
-                    //// If there is a single change that isn't excluded,
-                    //// then this commit is relevant.
-                    : changes.Any(change => !excludePaths!.Any(exclude => exclude.Excludes(change.Path, ignoreCase)));
+                changes.Any(change =>
+                    (!pathFilters!.Any(filter => filter.IsInclude) || pathFilters.Any(filter => filter.Includes(change.Path, ignoreCase)))
+                    && !pathFilters.Any(filter => filter.Excludes(change.Path, ignoreCase)));
 
             int height = 1;
 
-            if (includePaths is not null)
+            if (pathFilters is not null)
             {
-                // If there are no include paths, or any of the include
-                // paths refer to the root of the repository, then do not
-                // filter the diff at all.
+                List<FilterPath> includeFilters = pathFilters.Where(filter => filter.IsInclude).ToList();
                 List<string>? diffInclude =
-                    includePaths.Count == 0 || pathFilters!.Any(filter => filter.IsRoot)
-                        ? null
-                        : includePaths;
+                    !ignoreCase
+                    && includeFilters.Count > 0
+                    && !includeFilters.Any(filter => filter.IsRoot)
+                    && !includeFilters.Any(filter =>
+                        filter.RepoRelativePath.IndexOf('*') >= 0
+                        || filter.RepoRelativePath.IndexOf('?') >= 0
+                        || filter.RepoRelativePath.IndexOf('[') >= 0)
+                        ? includeFilters.Select(filter => filter.RepoRelativePath).ToList()
+                        : null;
 
                 // If the diff between this commit and any of its parents
                 // touches a path that we care about, bump the height.

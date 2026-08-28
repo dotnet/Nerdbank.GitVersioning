@@ -135,16 +135,6 @@ internal static class GitExtensions
             VersionOptions? versionOptions = tracker.GetVersion(commit);
             IReadOnlyList<FilterPath>? pathFilters = versionOptions?.PathFilters;
 
-            var includePaths =
-                pathFilters
-                    ?.Where(filter => !filter.IsExclude)
-                    .Select(filter => filter.RepoRelativePath)
-                    .ToList();
-
-            var excludePaths = pathFilters?.Where(filter => filter.IsExclude).ToList();
-
-            bool ignoreCase = repository.IgnoreCase;
-
             int height = 1;
 
             if (pathFilters is not null)
@@ -218,7 +208,8 @@ internal static class GitExtensions
             // if the Sha does not match, it was modified.
             if (parent is null ||
                 !parent.Children.TryGetValue(child.Key, out parentEntry) ||
-                parentEntry.Sha != child.Value.Sha)
+                parentEntry.Sha != child.Value.Sha ||
+                parentEntry.Mode != child.Value.Mode)
             {
                 // Determine whether the change was relevant.
                 string? fullPath = $"{relativePath}{entry.Name}";
@@ -236,7 +227,7 @@ internal static class GitExtensions
                     isRelevant = IsRelevantCommit(
                         repository,
                         repository.GetTree(entry.Sha),
-                        parentEntry is null ? GitTree.Empty : repository.GetTree(parentEntry.Sha),
+                        parentEntry is null || parentEntry.IsFile ? GitTree.Empty : repository.GetTree(parentEntry.Sha),
                         $"{fullPath}/",
                         filters);
                 }
@@ -248,7 +239,7 @@ internal static class GitExtensions
                 }
             }
 
-            if (parentEntry is not null)
+            if (parentEntry is not null && parentEntry.IsFile == entry.IsFile)
             {
                 Assumes.NotNull(parent);
                 parent.Children.Remove(child.Key);
@@ -260,14 +251,20 @@ internal static class GitExtensions
         {
             foreach (KeyValuePair<string, GitTreeEntry> child in parent.Children)
             {
-                // Determine whether the change was relevant.
-                string? fullPath = Path.Combine(relativePath, child.Key);
+                string fullPath = $"{relativePath}{child.Key}";
+                if (!child.Value.IsFile)
+                {
+                    if (IsRelevantCommit(repository, GitTree.Empty, repository.GetTree(child.Value.Sha), $"{fullPath}/", filters))
+                    {
+                        return true;
+                    }
 
-                bool isRelevant =
-                    filters.Any(f => f.Includes(fullPath, repository.IgnoreCase))
-                    && !filters.Any(f => f.Excludes(fullPath, repository.IgnoreCase));
+                    continue;
+                }
 
-                if (isRelevant)
+                // With no include filters, every path is included unless explicitly excluded.
+                if ((!filters.Any(f => f.IsInclude) || filters.Any(f => f.Includes(fullPath, repository.IgnoreCase)))
+                    && !filters.Any(f => f.Excludes(fullPath, repository.IgnoreCase)))
                 {
                     return true;
                 }
