@@ -218,7 +218,8 @@ internal static class GitExtensions
             // if the Sha does not match, it was modified.
             if (parent is null ||
                 !parent.Children.TryGetValue(child.Key, out parentEntry) ||
-                parentEntry.Sha != child.Value.Sha)
+                parentEntry.Sha != child.Value.Sha ||
+                parentEntry.Mode != child.Value.Mode)
             {
                 // Determine whether the change was relevant.
                 string? fullPath = $"{relativePath}{entry.Name}";
@@ -236,7 +237,7 @@ internal static class GitExtensions
                     isRelevant = IsRelevantCommit(
                         repository,
                         repository.GetTree(entry.Sha),
-                        parentEntry is null ? GitTree.Empty : repository.GetTree(parentEntry.Sha),
+                        parentEntry is null || parentEntry.IsFile ? GitTree.Empty : repository.GetTree(parentEntry.Sha),
                         $"{fullPath}/",
                         filters);
                 }
@@ -248,7 +249,7 @@ internal static class GitExtensions
                 }
             }
 
-            if (parentEntry is not null)
+            if (parentEntry is not null && parentEntry.IsFile == entry.IsFile)
             {
                 Assumes.NotNull(parent);
                 parent.Children.Remove(child.Key);
@@ -261,7 +262,7 @@ internal static class GitExtensions
             foreach (KeyValuePair<string, GitTreeEntry> child in parent.Children)
             {
                 // Determine whether the change was relevant.
-                string fullPath = Path.Combine(relativePath, child.Key);
+                string fullPath = $"{relativePath}{child.Key}";
 
                 bool isRelevant =
                     //// Either there are no include filters at all (i.e. everything is included), or there's an explicit include filter
