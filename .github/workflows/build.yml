@@ -30,13 +30,13 @@ jobs:
         - windows-2025
 
     steps:
-    - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
         submodules: true
     - name: ⚙ Install prerequisites
       run: |
-        ./init.ps1 -UpgradePrerequisites
+        ./init.ps1 -UpgradePrerequisites -NoNuGetCredProvider
         dotnet --info
 
         # Print mono version if it is present.
@@ -125,7 +125,6 @@ jobs:
         }
       shell: pwsh
       timeout-minutes: 3
-      continue-on-error: true
 
   functional_testing:
     name: 🧪 Functional testing
@@ -313,7 +312,7 @@ jobs:
     name: 📃 Docs
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - name: 🔗 Markup Link Checker (mlc)
       uses: becheran/mlc@7ec24825cefe0c9c8c6bac48430e1f69e3ec356e # v1.2.0
       with:

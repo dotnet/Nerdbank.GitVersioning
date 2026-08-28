@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
     This script translates the variables returned by the _all.ps1 script
-    into commands that instruct Azure Pipelines to actually set those variables for other pipeline tasks to consume.
+    into commands that instruct Azure Pipelines or GitHub Actions to actually set those variables for other pipeline tasks to consume.
 
     The build or release definition may have set these variables to override
     what the build would do. So only set them if they have not already been set.
@@ -11,16 +11,8 @@
 param (
 )
 
-function Add-GitHubActionsFileCommand {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Path,
-        [Parameter(Mandatory = $true)]
-        [string]$Value
-    )
-
-    $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
-    [System.IO.File]::AppendAllText($Path, "$Value`n", $utf8NoBom)
+if ($env:GITHUB_ACTIONS) {
+    . "$PSScriptRoot\..\GitHubActions.ps1"
 }
 
 (& "$PSScriptRoot\_all.ps1").GetEnumerator() |% {
@@ -36,7 +28,7 @@ function Add-GitHubActionsFileCommand {
             # and the second that works across jobs and stages but must be fully qualified when referenced.
             Write-Host "##vso[task.setvariable variable=$keyCaps;isOutput=true]$($_.Value)"
         } elseif ($env:GITHUB_ACTIONS) {
-            Add-GitHubActionsFileCommand -Path $env:GITHUB_ENV -Value "$keyCaps=$($_.Value)"
+            Add-GitHubActionsEnvVariable -Name $keyCaps -Value ([string]$_.Value)
         }
         Set-Item -LiteralPath "env:$keyCaps" -Value $_.Value
     }
