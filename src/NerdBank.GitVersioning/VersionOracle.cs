@@ -21,9 +21,13 @@ public class VersionOracle
 
     private const bool UseLibGit2 = false;
 
-    private readonly GitContext context;
-
     private readonly string? gitCommitId;
+
+    private readonly DateTimeOffset? gitCommitDate;
+
+    private readonly DateTimeOffset? gitCommitAuthorDate;
+
+    private readonly IReadOnlyCollection<string>? tags;
 
     private readonly bool isWorkingTreeDirty;
 
@@ -46,7 +50,9 @@ public class VersionOracle
     /// <param name="overrideVersionHeightOffset">An optional value to override the version height offset.</param>
     public VersionOracle(GitContext context, ICloudBuild? cloudBuild = null, int? overrideVersionHeightOffset = null)
     {
-        this.context = context;
+        this.gitCommitDate = context.GitCommitDate;
+        this.gitCommitAuthorDate = context.GitCommitAuthorDate;
+        this.tags = context.HeadTags?.ToArray();
         string? rawGitCommitId = context.GitCommitId ?? cloudBuild?.GitCommitId;
         this.gitCommitId = rawGitCommitId;
         this.CommittedVersion = context.VersionFile.GetVersion();
@@ -116,7 +122,7 @@ public class VersionOracle
 
             // Get it from the git repository if there is a repository present and it is enabled.
             string gitCommitIdShort = gitCommitIdShortAutoMinimum > 0
-                ? this.context.GetShortUniqueCommitId(gitCommitIdShortAutoMinimum)
+                ? context.GetShortUniqueCommitId(gitCommitIdShortAutoMinimum)
                 : rawGitCommitId!.Substring(0, gitCommitIdShortFixedLength);
             this.GitCommitIdShort = this.isWorkingTreeDirty ? gitCommitIdShort + "-dirty" : gitCommitIdShort;
         }
@@ -126,7 +132,7 @@ public class VersionOracle
             int gitCommitIdShortFixedLength = this.VersionOptions?.GitCommitIdShortFixedLength ?? VersionOptions.DefaultGitCommitIdShortFixedLength;
             int gitCommitIdShortAutoMinimum = this.VersionOptions?.GitCommitIdShortAutoMinimum ?? 0;
             this.versionGitCommitIdShort = gitCommitIdShortAutoMinimum > 0
-                ? this.context.GetShortUniqueCommitId(this.versionGitCommitId!, gitCommitIdShortAutoMinimum)
+                ? context.GetShortUniqueCommitId(this.versionGitCommitId!, gitCommitIdShortAutoMinimum)
                 : this.versionGitCommitId!.Substring(0, gitCommitIdShortFixedLength);
         }
 
@@ -314,12 +320,12 @@ public class VersionOracle
     /// <summary>
     /// Gets the Git revision control commit date for HEAD (the current source code version).
     /// </summary>
-    public DateTimeOffset? GitCommitDate => this.context.GitCommitDate;
+    public DateTimeOffset? GitCommitDate => this.gitCommitDate;
 
     /// <summary>
     /// Gets the Git revision control commit author date for HEAD (the current source code version).
     /// </summary>
-    public DateTimeOffset? GitCommitAuthorDate => this.context.GitCommitAuthorDate;
+    public DateTimeOffset? GitCommitAuthorDate => this.gitCommitAuthorDate;
 
     /// <summary>
     /// Gets or sets the number of commits in the longest single path between
@@ -353,7 +359,7 @@ public class VersionOracle
     /// Gets a collection of the tags that reference HEAD.
     /// </summary>
     [Ignore]
-    public IReadOnlyCollection<string>? Tags => this.context.HeadTags;
+    public IReadOnlyCollection<string>? Tags => this.tags;
 
     /// <summary>
     /// Gets or sets the version for this project, with up to 4 components.
