@@ -53,7 +53,7 @@ public abstract class VersionOracleTests : RepoTestBase
     public void NotRepo()
     {
         // Seems safe to assume a temporary path is not a Git directory.
-        GitContext context = this.CreateGitContext(Path.GetTempPath());
+        using GitContext context = this.CreateGitContext(Path.GetTempPath());
         var oracle = new VersionOracle(context);
         Assert.Equal(0, oracle.VersionHeight);
     }
@@ -75,13 +75,13 @@ public abstract class VersionOracleTests : RepoTestBase
     {
         using (TestUtilities.ExpandedRepo expandedRepo = TestUtilities.ExtractRepoArchive("submodules"))
         {
-            this.Context = this.CreateGitContext(Path.Combine(expandedRepo.RepoPath, "a"));
-            var oracleA = new VersionOracle(this.Context);
+            using GitContext contextA = this.CreateGitContext(Path.Combine(expandedRepo.RepoPath, "a"));
+            var oracleA = new VersionOracle(contextA);
             Assert.Equal("1.3.1", oracleA.SimpleVersion.ToString());
             Assert.Equal("e238b03e75", oracleA.GitCommitIdShort);
 
-            this.Context = this.CreateGitContext(Path.Combine(expandedRepo.RepoPath, "b", "projB"));
-            var oracleB = new VersionOracle(this.Context);
+            using GitContext contextB = this.CreateGitContext(Path.Combine(expandedRepo.RepoPath, "b", "projB"));
+            var oracleB = new VersionOracle(contextB);
             Assert.Equal("2.5.2", oracleB.SimpleVersion.ToString());
             Assert.Equal("3ea7f010c3", oracleB.GitCommitIdShort);
         }
@@ -851,7 +851,7 @@ public abstract class VersionOracleTests : RepoTestBase
         // Workaround for https://github.com/libgit2/libgit2sharp/issues/2037
         Commands.Checkout(worktree.WorktreeRepository, "HEAD", new CheckoutOptions { CheckoutModifiers = CheckoutModifiers.Force });
 
-        GitContext context = this.CreateGitContext(workTreePath);
+        using GitContext context = this.CreateGitContext(workTreePath);
         var oracleWorkTree = new VersionOracle(context);
         Assert.Equal(oracleOriginal.Version, oracleWorkTree.Version);
 
@@ -1668,7 +1668,7 @@ public abstract class VersionOracleTests : RepoTestBase
         this.LibGit2Repository.ApplyTag("mytag");
 
         // Refresh our context before asking again.
-        this.Context = this.CreateGitContext(this.RepoPath);
+        this.ReplaceContext(this.CreateGitContext(this.RepoPath));
         VersionOracle oracle2 = new(this.Context);
 
         // Assert that we see the tag.
@@ -1678,7 +1678,7 @@ public abstract class VersionOracleTests : RepoTestBase
         this.AddCommits(1);
 
         // Refresh our context before asking again.
-        this.Context = this.CreateGitContext(this.RepoPath);
+        this.ReplaceContext(this.CreateGitContext(this.RepoPath));
         VersionOracle oracle3 = new(this.Context);
 
         // Assert that HEAD is not pointing to the tag.
@@ -1700,7 +1700,7 @@ public abstract class VersionOracleTests : RepoTestBase
         this.LibGit2Repository.ApplyTag("mytag", this.Signer, "my tag");
 
         // Refresh our context before asking again.
-        this.Context = this.CreateGitContext(this.RepoPath);
+        this.ReplaceContext(this.CreateGitContext(this.RepoPath));
         VersionOracle oracle2 = new(this.Context);
 
         // Assert that we see the tag.
@@ -1710,7 +1710,7 @@ public abstract class VersionOracleTests : RepoTestBase
         this.AddCommits(1);
 
         // Refresh our context before asking again.
-        this.Context = this.CreateGitContext(this.RepoPath);
+        this.ReplaceContext(this.CreateGitContext(this.RepoPath));
         VersionOracle oracle3 = new(this.Context);
 
         // Assert that HEAD is not pointing to the tag.

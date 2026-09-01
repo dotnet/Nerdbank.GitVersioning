@@ -179,7 +179,7 @@ public abstract class GitContextTests : RepoTestBase
 
             // The managed git context always assumes read-only access. It won't detect a new Git pack file being
             // created on the fly, so we have to re-initialize.
-            this.Context = this.CreateGitContext(this.RepoPath, null);
+            this.RecreateContext();
         }
 
         Assert.True(this.Context.TrySelectCommit(this.Context.GitCommitId.Substring(0, oddLength ? 11 : 12)));
@@ -268,10 +268,10 @@ public abstract class GitContextTests : RepoTestBase
     public void GetVersion_PackedHead()
     {
         using TestUtilities.ExpandedRepo expandedRepo = TestUtilities.ExtractRepoArchive("PackedHeadRef");
-        this.Context = this.CreateGitContext(Path.Combine(expandedRepo.RepoPath));
-        var oracle = new VersionOracle(this.Context);
+        using GitContext context = this.CreateGitContext(Path.Combine(expandedRepo.RepoPath));
+        var oracle = new VersionOracle(context);
         Assert.Equal("1.0.1", oracle.SimpleVersion.ToString());
-        this.Context.TrySelectCommit("HEAD");
+        context.TrySelectCommit("HEAD");
         Assert.Equal("1.0.1", oracle.SimpleVersion.ToString());
     }
 
@@ -279,8 +279,8 @@ public abstract class GitContextTests : RepoTestBase
     public void HeadCanonicalName_PackedHead()
     {
         using TestUtilities.ExpandedRepo expandedRepo = TestUtilities.ExtractRepoArchive("PackedHeadRef");
-        this.Context = this.CreateGitContext(Path.Combine(expandedRepo.RepoPath));
-        Assert.Equal("refs/heads/main", this.Context.HeadCanonicalName);
+        using GitContext context = this.CreateGitContext(Path.Combine(expandedRepo.RepoPath));
+        Assert.Equal("refs/heads/main", context.HeadCanonicalName);
     }
 
     [Fact]
@@ -594,7 +594,6 @@ public abstract class GitContextTests : RepoTestBase
 
     private void RecreateContext()
     {
-        this.Context.Dispose();
-        this.Context = this.CreateGitContext(this.RepoPath);
+        this.ReplaceContext(this.CreateGitContext(this.RepoPath));
     }
 }
