@@ -619,6 +619,14 @@ mod tests {
             let mut index = repository.index().unwrap();
             index.add_all(["*"], IndexAddOption::DEFAULT, None).unwrap();
             index.write().unwrap();
+            drop(index);
+            drop(repository);
+            self.commit_index(message, parents)
+        }
+
+        fn commit_index(&self, message: &str, parents: &[Oid]) -> Oid {
+            let repository = Repository::open(&self.path).unwrap();
+            let mut index = repository.index().unwrap();
             let tree_id = index.write_tree().unwrap();
             let tree = repository.find_tree(tree_id).unwrap();
             let signature = Signature::now("Test", "test@example.com").unwrap();
@@ -737,8 +745,10 @@ mod tests {
         fs::create_dir_all(test.path.join("project/excluded")).unwrap();
         fs::write(test.path.join("project/excluded/no.txt"), "excluded").unwrap();
         let four = test.commit_head("excluded");
+        fs::remove_dir_all(test.path.join("project/excluded")).unwrap();
+        let five = test.commit_head("delete excluded directory");
         fs::remove_file(test.path.join("project/included.txt")).unwrap();
-        let five = test.commit_head("delete included");
+        let six = test.commit_head("delete included");
 
         assert_eq!(
             1,
@@ -765,8 +775,184 @@ mod tests {
                 .height
         );
         assert_eq!(
-            3,
+            2,
             get_version_height(&test.context(five, "project"), None)
+                .unwrap()
+                .height
+        );
+        assert_eq!(
+            3,
+            get_version_height(&test.context(six, "project"), None)
+                .unwrap()
+                .height
+        );
+    }
+
+    #[test]
+    fn only_exclude_filter_counts_deleting_an_included_file() {
+        let test = TestRepository::new();
+        fs::write(
+            test.path.join("version.json"),
+            r#"{"version":"1.2","pathFilters":[":!README.md"]}"#,
+        )
+        .unwrap();
+        test.commit_head("version");
+        fs::write(test.path.join("included.txt"), "included").unwrap();
+        let added = test.commit_head("add included file");
+        fs::remove_file(test.path.join("included.txt")).unwrap();
+        let deleted = test.commit_head("delete included file");
+
+        assert_eq!(
+            2,
+            get_version_height(&test.context(added, ""), None)
+                .unwrap()
+                .height
+        );
+        assert_eq!(
+            3,
+            get_version_height(&test.context(deleted, ""), None)
+                .unwrap()
+                .height
+        );
+    }
+
+    #[test]
+    fn included_file_mode_change_increases_height() {
+        let test = TestRepository::new();
+        fs::write(
+            test.path.join("version.json"),
+            r#"{"version":"1.2","pathFilters":["included.txt"]}"#,
+        )
+        .unwrap();
+        fs::write(test.path.join("included.txt"), "included").unwrap();
+        let added = test.commit_head("add included file");
+
+        let repository = Repository::open(&test.path).unwrap();
+        let mut index = repository.index().unwrap();
+        let mut entry = index
+            .get_path(std::path::Path::new("included.txt"), 0)
+            .unwrap();
+        entry.mode = 0o100755;
+        index.add(&entry).unwrap();
+        index.write().unwrap();
+        drop(index);
+        drop(repository);
+        let mode_changed = test.commit_index("make included file executable", &[added]);
+
+        assert_eq!(
+            1,
+            get_version_height(&test.context(added, ""), None)
+                .unwrap()
+                .height
+        );
+        assert_eq!(
+            2,
+            get_version_height(&test.context(mode_changed, ""), None)
+                .unwrap()
+                .height
+        );
+    }
+
+    #[test]
+    fn include_filter_honors_ignore_case() {
+        let test = TestRepository::new();
+        let repository = Repository::open(&test.path).unwrap();
+        repository
+            .config()
+            .unwrap()
+            .set_bool("core.ignorecase", true)
+            .unwrap();
+        drop(repository);
+        fs::write(
+            test.path.join("version.json"),
+            r#"{"version":"1.2","pathFilters":["SRC/INCLUDED.TXT"]}"#,
+        )
+        .unwrap();
+        fs::create_dir_all(test.path.join("src")).unwrap();
+        fs::write(test.path.join("src/included.txt"), "included").unwrap();
+        let commit = test.commit_head("add included file with different casing");
+
+        assert_eq!(
+            1,
+            get_version_height(&test.context(commit, ""), None)
+                .unwrap()
+                .height
+        );
+    }
+
+    #[test]
+    fn replacing_file_with_included_directory_increases_height() {
+        let test = TestRepository::new();
+        fs::write(
+            test.path.join("version.json"),
+            r#"{"version":"1.2","pathFilters":["target/included.txt"]}"#,
+        )
+        .unwrap();
+        fs::write(test.path.join("target"), "not included").unwrap();
+        let file = test.commit_head("add file outside filter");
+        fs::remove_file(test.path.join("target")).unwrap();
+        fs::create_dir(test.path.join("target")).unwrap();
+        fs::write(test.path.join("target/included.txt"), "included").unwrap();
+        let directory = test.commit_head("replace file with included directory");
+
+        assert_eq!(
+            0,
+            get_version_height(&test.context(file, ""), None)
+                .unwrap()
+                .height
+        );
+        assert_eq!(
+            1,
+            get_version_height(&test.context(directory, ""), None)
+                .unwrap()
+                .height
+        );
+    }
+
+    #[test]
+    fn replacing_included_directory_with_file_increases_height() {
+        let test = TestRepository::new();
+        fs::write(
+            test.path.join("version.json"),
+            r#"{"version":"1.2","pathFilters":["target/included.txt"]}"#,
+        )
+        .unwrap();
+        fs::create_dir(test.path.join("target")).unwrap();
+        fs::write(test.path.join("target/included.txt"), "included").unwrap();
+        let directory = test.commit_head("add included directory");
+        fs::remove_dir_all(test.path.join("target")).unwrap();
+        fs::write(test.path.join("target"), "not included").unwrap();
+        let file = test.commit_head("replace included directory with file");
+
+        assert_eq!(
+            1,
+            get_version_height(&test.context(directory, ""), None)
+                .unwrap()
+                .height
+        );
+        assert_eq!(
+            2,
+            get_version_height(&test.context(file, ""), None)
+                .unwrap()
+                .height
+        );
+    }
+
+    #[test]
+    fn wildcard_include_filter_counts_matching_path() {
+        let test = TestRepository::new();
+        fs::write(
+            test.path.join("version.json"),
+            r#"{"version":"1.2","pathFilters":["dir/*.txt"]}"#,
+        )
+        .unwrap();
+        fs::create_dir(test.path.join("dir")).unwrap();
+        fs::write(test.path.join("dir/value.txt"), "included").unwrap();
+        let commit = test.commit_head("add wildcard-matched file");
+
+        assert_eq!(
+            1,
+            get_version_height(&test.context(commit, ""), None)
                 .unwrap()
                 .height
         );
