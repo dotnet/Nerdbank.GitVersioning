@@ -110,7 +110,7 @@ public static class LibGit2GitExtensions
                                                where !IsVersionHeightMismatch(version, commitVersionOptions, commit, tracker)
                                                select commit;
 
-        return possibleCommits;
+        return possibleCommits.ToList();
     }
 
     /// <summary>

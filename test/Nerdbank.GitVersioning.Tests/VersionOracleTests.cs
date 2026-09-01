@@ -59,6 +59,22 @@ public abstract class VersionOracleTests : RepoTestBase
     }
 
     [Fact]
+    public void GetVersionOracle_CapturesContextDataBeforeDisposal()
+    {
+        this.WriteVersionFile();
+        this.InitializeSourceControl();
+        this.LibGit2Repository.ApplyTag("test");
+
+        VersionOracle oracle = this.GetVersionOracle();
+
+        Assert.Equal(this.LibGit2Repository.Head.Tip.Committer.When, oracle.GitCommitDate);
+        Assert.Equal(this.LibGit2Repository.Head.Tip.Author.When, oracle.GitCommitAuthorDate);
+        Assert.Equal("refs/tags/test", Assert.Single(oracle.Tags));
+        Assert.Contains("NBGV_GitCommitDate", oracle.CloudBuildAllVars.Keys);
+        Assert.Contains("NBGV_GitCommitAuthorDate", oracle.CloudBuildAllVars.Keys);
+    }
+
+    [Fact]
     public void EmptyRepoWithCloudCommitNotInRepository()
     {
         this.InitializeSourceControl(withInitialCommit: false);
