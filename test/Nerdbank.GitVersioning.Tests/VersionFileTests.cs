@@ -132,6 +132,26 @@ public abstract class VersionFileTests : RepoTestBase
     }
 
     [Theory]
+    [InlineData("true", "lf", "\n")]
+    [InlineData("true", "crlf", "\r\n")]
+    [InlineData("false", "lf", "")]
+    public void SetVersion_RespectsEditorConfigFinalNewline(string insertFinalNewline, string endOfLine, string expectedFinalNewline)
+    {
+        File.WriteAllText(
+            Path.Combine(this.RepoPath, ".editorconfig"),
+            $"root = true{Environment.NewLine}[*.json]{Environment.NewLine}insert_final_newline = {insertFinalNewline}{Environment.NewLine}end_of_line = {endOfLine}{Environment.NewLine}");
+
+        string pathWritten = this.Context.VersionFile.SetVersion(this.RepoPath, new Version(2, 3));
+        string actualFileContent = File.ReadAllText(pathWritten);
+        string actualFinalNewline = actualFileContent.EndsWith("\r\n", StringComparison.Ordinal) ? "\r\n"
+            : actualFileContent.EndsWith("\n", StringComparison.Ordinal) ? "\n"
+            : actualFileContent.EndsWith("\r", StringComparison.Ordinal) ? "\r"
+            : string.Empty;
+
+        Assert.Equal(expectedFinalNewline, actualFinalNewline);
+    }
+
+    [Theory]
     [InlineData("2.3", null, VersionOptions.VersionPrecision.Minor, 0, false, @"{""version"":""2.3""}")]
     [InlineData("2.3", null, VersionOptions.VersionPrecision.Minor, null, true, @"{""version"":""2.3"",""assemblyVersion"":{""precision"":""minor""},""inherit"":true}")]
     [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Minor, 0, false, @"{""version"":""2.3"",""assemblyVersion"":""2.2""}")]

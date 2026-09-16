@@ -159,6 +159,23 @@ public class GitRepositoryTests : RepoTestBase
     }
 
     [Fact]
+    public void LookupReturnsNullWhenAncestorCommitIsMissing()
+    {
+        this.InitializeSourceControl();
+        this.AddCommits(2);
+
+        string firstCommitSha = this.LibGit2Repository.Head.Tip.Parents.Single().Sha;
+        string firstCommitPath = Path.Combine(this.RepoPath, ".git", "objects", firstCommitSha.Substring(0, 2), firstCommitSha.Substring(2));
+        File.SetAttributes(firstCommitPath, FileAttributes.Normal);
+        File.Delete(firstCommitPath);
+
+        using (var repository = GitRepository.Create(this.RepoPath))
+        {
+            Assert.Null(repository.Lookup("HEAD~2"));
+        }
+    }
+
+    [Fact]
     public void GetTreeEntryTest()
     {
         this.InitializeSourceControl();

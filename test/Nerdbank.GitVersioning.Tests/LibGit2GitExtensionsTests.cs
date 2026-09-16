@@ -307,6 +307,22 @@ public class LibGit2GitExtensionsTests : RepoTestBase
     }
 
     [Fact]
+    public void GetCommitsFromVersion_MaterializesBeforeContextIsDisposed()
+    {
+        this.InitializeSourceControl();
+        Commit commit = this.WriteVersionFile(new VersionOptions { Version = SemanticVersion.Parse("1.2") });
+        Version version = new VersionOracle(this.Context).Version;
+        IEnumerable<Commit> matchingCommits;
+
+        using (LibGit2Context context = LibGit2Context.Create(this.RepoPath))
+        {
+            matchingCommits = LibGit2GitExtensions.GetCommitsFromVersion(context, version);
+        }
+
+        Assert.Single(matchingCommits, candidate => candidate.Sha == commit.Sha);
+    }
+
+    [Fact]
     public void GetIdAsVersion_Roundtrip_WithSubdirectoryVersionFiles()
     {
         var rootVersionExpected = VersionOptions.FromVersion(new Version(1, 0));

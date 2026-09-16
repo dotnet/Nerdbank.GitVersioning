@@ -34,6 +34,11 @@ internal static class GitTreeReader
                 int fileNameEnds = contents.IndexOf((byte)0);
                 bool isFile = contents[0] == (byte)'1';
                 int modeLength = isFile ? 7 : 6;
+                int mode = 0;
+                for (int i = 0; i < modeLength - 1; i++)
+                {
+                    mode = (mode * 8) + (contents[i] - '0');
+                }
 
                 Span<byte> currentName = contents.Slice(modeLength, fileNameEnds - modeLength);
                 var currentObjectId = GitObjectId.Parse(contents.Slice(fileNameEnds + 1, 20));
@@ -42,7 +47,7 @@ internal static class GitTreeReader
 
                 value.Children.Add(
                     name,
-                    new GitTreeEntry(name, isFile, currentObjectId));
+                    new GitTreeEntry(name, isFile, currentObjectId, mode));
 
                 contents = contents.Slice(fileNameEnds + 1 + 20);
             }

@@ -29,13 +29,13 @@ public class ManagedGitContext : GitContext
             throw new ArgumentException("No git repo found here.", nameof(workingDirectory));
         }
 
-        this.Commit = committish is null ? repo.GetHeadCommit() : (repo.Lookup(committish) is { } objectId ? (GitCommit?)repo.GetCommit(objectId) : null);
+        this.Repository = repo;
+        this.Commit = committish is null ? repo.GetHeadCommit() : this.LookupCommit(committish);
         if (this.Commit is null && committish is object)
         {
             throw new ArgumentException("No matching commit found.", nameof(committish));
         }
 
-        this.Repository = repo;
         this.VersionFile = new ManagedVersionFile(this);
     }
 
@@ -91,9 +91,9 @@ public class ManagedGitContext : GitContext
     /// <inheritdoc />
     public override bool TrySelectCommit(string committish)
     {
-        if (this.Repository.Lookup(committish) is { } objectId)
+        if (this.LookupCommit(committish) is { } commit)
         {
-            this.Commit = this.Repository.GetCommit(objectId);
+            this.Commit = commit;
             return true;
         }
 
@@ -222,5 +222,28 @@ public class ManagedGitContext : GitContext
         }
 
         return VersionExtensions.Create(baseVersion.Major, baseVersion.Minor, buildNumber, revision);
+    }
+
+    private GitCommit? LookupCommit(string committish)
+    {
+        GitObjectId? objectId = this.Repository.Lookup(committish, out GitException? missingObjectException);
+        if (missingObjectException is object && this.IsShallow)
+        {
+            throw GitException.CreateShallowCloneException(missingObjectException);
+        }
+
+        if (objectId is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            return this.Repository.GetCommit(objectId.Value);
+        }
+        catch (GitException ex) when (this.IsShallow && ex.ErrorCode == GitException.ErrorCodes.ObjectNotFound)
+        {
+            throw GitException.CreateShallowCloneException(ex);
+        }
     }
 }

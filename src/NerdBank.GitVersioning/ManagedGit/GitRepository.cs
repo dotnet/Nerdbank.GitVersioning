@@ -343,12 +343,21 @@ public class GitRepository : IDisposable
     /// </summary>
     /// <param name="objectish">Any "objectish" string (e.g. commit ID (partial or full), branch name, tag name, "HEAD", or a first-parent ancestor).</param>
     /// <returns>The object ID referenced by <paramref name="objectish"/> if found; otherwise <see langword="null"/>.</returns>
-    public GitObjectId? Lookup(string objectish)
+    public GitObjectId? Lookup(string objectish) => this.Lookup(objectish, out _);
+
+    /// <summary>
+    /// Parses any committish to an object id.
+    /// </summary>
+    /// <param name="objectish">Any "objectish" string (e.g. commit ID (partial or full), branch name, tag name, "HEAD", or a first-parent ancestor).</param>
+    /// <param name="missingObjectException">Receives the exception for an object missing while resolving an ancestor, if any.</param>
+    /// <returns>The object ID referenced by <paramref name="objectish"/> if found; otherwise <see langword="null"/>.</returns>
+    public GitObjectId? Lookup(string objectish, out GitException? missingObjectException)
     {
+        missingObjectException = null;
         int ancestorOperatorIndex = objectish.IndexOf('~');
         if (ancestorOperatorIndex > 0)
         {
-            GitObjectId? objectId = this.Lookup(objectish.Substring(0, ancestorOperatorIndex));
+            GitObjectId? objectId = this.Lookup(objectish.Substring(0, ancestorOperatorIndex), out missingObjectException);
             if (objectId is null)
             {
                 return null;
@@ -377,7 +386,17 @@ public class GitRepository : IDisposable
 
                 for (int i = 0; i < generations; i++)
                 {
-                    GitObjectId? parent = this.GetCommit(objectId.Value).FirstParent;
+                    GitObjectId? parent;
+                    try
+                    {
+                        parent = this.GetCommit(objectId.Value).FirstParent;
+                    }
+                    catch (GitException ex) when (ex.ErrorCode == GitException.ErrorCodes.ObjectNotFound)
+                    {
+                        missingObjectException = ex;
+                        return null;
+                    }
+
                     if (parent is null)
                     {
                         return null;

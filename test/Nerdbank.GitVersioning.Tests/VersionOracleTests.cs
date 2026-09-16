@@ -53,9 +53,25 @@ public abstract class VersionOracleTests : RepoTestBase
     public void NotRepo()
     {
         // Seems safe to assume a temporary path is not a Git directory.
-        GitContext context = this.CreateGitContext(Path.GetTempPath());
+        using GitContext context = this.CreateGitContext(Path.GetTempPath());
         var oracle = new VersionOracle(context);
         Assert.Equal(0, oracle.VersionHeight);
+    }
+
+    [Fact]
+    public void GetVersionOracle_CapturesContextDataBeforeDisposal()
+    {
+        this.WriteVersionFile();
+        this.InitializeSourceControl();
+        this.LibGit2Repository.ApplyTag("test");
+
+        VersionOracle oracle = this.GetVersionOracle();
+
+        Assert.Equal(this.LibGit2Repository.Head.Tip.Committer.When, oracle.GitCommitDate);
+        Assert.Equal(this.LibGit2Repository.Head.Tip.Author.When, oracle.GitCommitAuthorDate);
+        Assert.Equal("refs/tags/test", Assert.Single(oracle.Tags));
+        Assert.Contains("NBGV_GitCommitDate", oracle.CloudBuildAllVars.Keys);
+        Assert.Contains("NBGV_GitCommitAuthorDate", oracle.CloudBuildAllVars.Keys);
     }
 
     [Fact]
@@ -75,13 +91,13 @@ public abstract class VersionOracleTests : RepoTestBase
     {
         using (TestUtilities.ExpandedRepo expandedRepo = TestUtilities.ExtractRepoArchive("submodules"))
         {
-            this.Context = this.CreateGitContext(Path.Combine(expandedRepo.RepoPath, "a"));
-            var oracleA = new VersionOracle(this.Context);
+            using GitContext contextA = this.CreateGitContext(Path.Combine(expandedRepo.RepoPath, "a"));
+            var oracleA = new VersionOracle(contextA);
             Assert.Equal("1.3.1", oracleA.SimpleVersion.ToString());
             Assert.Equal("e238b03e75", oracleA.GitCommitIdShort);
 
-            this.Context = this.CreateGitContext(Path.Combine(expandedRepo.RepoPath, "b", "projB"));
-            var oracleB = new VersionOracle(this.Context);
+            using GitContext contextB = this.CreateGitContext(Path.Combine(expandedRepo.RepoPath, "b", "projB"));
+            var oracleB = new VersionOracle(contextB);
             Assert.Equal("2.5.2", oracleB.SimpleVersion.ToString());
             Assert.Equal("3ea7f010c3", oracleB.GitCommitIdShort);
         }
@@ -851,7 +867,7 @@ public abstract class VersionOracleTests : RepoTestBase
         // Workaround for https://github.com/libgit2/libgit2sharp/issues/2037
         Commands.Checkout(worktree.WorktreeRepository, "HEAD", new CheckoutOptions { CheckoutModifiers = CheckoutModifiers.Force });
 
-        GitContext context = this.CreateGitContext(workTreePath);
+        using GitContext context = this.CreateGitContext(workTreePath);
         var oracleWorkTree = new VersionOracle(context);
         Assert.Equal(oracleOriginal.Version, oracleWorkTree.Version);
 
@@ -1317,6 +1333,119 @@ public abstract class VersionOracleTests : RepoTestBase
         Commands.Stage(this.LibGit2Repository, fileInExcludedDirPath);
         this.LibGit2Repository.Commit("Add file to excluded dir", this.Signer, this.Signer);
         Assert.Equal(2, this.GetVersionHeight());
+
+        Directory.Delete(Path.GetDirectoryName(fileInExcludedDirPath), recursive: true);
+        Commands.Stage(this.LibGit2Repository, Path.GetDirectoryName(fileInExcludedDirPath));
+        this.LibGit2Repository.Commit("Delete excluded dir", this.Signer, this.Signer);
+        Assert.Equal(2, this.GetVersionHeight());
+    }
+
+    [Fact]
+    public void GetVersionHeight_DeletingIncludedFileWithOnlyExcludeFilter()
+    {
+        this.InitializeSourceControl();
+
+        var versionData = VersionOptions.FromVersion(new Version("1.2"));
+        versionData.PathFilters = new[] { new FilterPath(":!README.md", ".") };
+        this.WriteVersionFile(versionData);
+
+        string includedFilePath = Path.Combine(this.RepoPath, "included.txt");
+        File.WriteAllText(includedFilePath, "hello");
+        Commands.Stage(this.LibGit2Repository, includedFilePath);
+        this.LibGit2Repository.Commit("Add included file", this.Signer, this.Signer);
+        Assert.Equal(2, this.GetVersionHeight());
+
+        File.Delete(includedFilePath);
+        Commands.Stage(this.LibGit2Repository, includedFilePath);
+        this.LibGit2Repository.Commit("Delete included file", this.Signer, this.Signer);
+        Assert.Equal(3, this.GetVersionHeight());
+    }
+
+    [Fact]
+    public void GetVersionHeight_ChangingIncludedFileMode()
+    {
+        this.InitializeSourceControl();
+
+        var versionData = VersionOptions.FromVersion(new Version("1.2"));
+        versionData.PathFilters = new[] { new FilterPath("included.txt", ".") };
+        this.WriteVersionFile(versionData);
+
+        string includedFilePath = Path.Combine(this.RepoPath, "included.txt");
+        File.WriteAllText(includedFilePath, "hello");
+        Commands.Stage(this.LibGit2Repository, includedFilePath);
+        this.LibGit2Repository.Commit("Add included file", this.Signer, this.Signer);
+        Assert.Equal(1, this.GetVersionHeight());
+
+        var includedBlob = (Blob)this.LibGit2Repository.Head.Tip["included.txt"].Target;
+        this.LibGit2Repository.Index.Add(includedBlob, "included.txt", Mode.ExecutableFile);
+        this.LibGit2Repository.Index.Write();
+        this.LibGit2Repository.Commit("Make included file executable", this.Signer, this.Signer);
+        Assert.Equal(2, this.GetVersionHeight());
+    }
+
+    [Fact]
+    public void GetVersionHeight_IncludeFilterHonorsIgnoreCase()
+    {
+        this.InitializeSourceControl();
+        this.LibGit2Repository.Config.Set("core.ignorecase", true, ConfigurationLevel.Local);
+
+        var versionData = VersionOptions.FromVersion(new Version("1.2"));
+        versionData.PathFilters = new[] { new FilterPath("SRC/INCLUDED.TXT", ".") };
+        this.WriteVersionFile(versionData);
+
+        string directoryPath = Path.Combine(this.RepoPath, "src");
+        Directory.CreateDirectory(directoryPath);
+        string filePath = Path.Combine(directoryPath, "included.txt");
+        File.WriteAllText(filePath, "hello");
+        Commands.Stage(this.LibGit2Repository, filePath);
+        this.LibGit2Repository.Commit("Add included file with different casing", this.Signer, this.Signer);
+        Assert.Equal(1, this.GetVersionHeight());
+    }
+
+    [Fact]
+    public void GetVersionHeight_ReplacingFileWithIncludedDirectory()
+    {
+        this.InitializeSourceControl();
+
+        var versionData = VersionOptions.FromVersion(new Version("1.2"));
+        versionData.PathFilters = new[] { new FilterPath("target/included.txt", ".") };
+        this.WriteVersionFile(versionData);
+
+        string targetPath = Path.Combine(this.RepoPath, "target");
+        File.WriteAllText(targetPath, "not included");
+        Commands.Stage(this.LibGit2Repository, targetPath);
+        this.LibGit2Repository.Commit("Add file outside filter", this.Signer, this.Signer);
+        Assert.Equal(0, this.GetVersionHeight());
+
+        File.Delete(targetPath);
+        Directory.CreateDirectory(targetPath);
+        File.WriteAllText(Path.Combine(targetPath, "included.txt"), "included");
+        Commands.Stage(this.LibGit2Repository, targetPath);
+        this.LibGit2Repository.Commit("Replace file with included directory", this.Signer, this.Signer);
+        Assert.Equal(1, this.GetVersionHeight());
+    }
+
+    [Fact]
+    public void GetVersionHeight_ReplacingIncludedDirectoryWithFile()
+    {
+        this.InitializeSourceControl();
+
+        var versionData = VersionOptions.FromVersion(new Version("1.2"));
+        versionData.PathFilters = new[] { new FilterPath("target/included.txt", ".") };
+        this.WriteVersionFile(versionData);
+
+        string targetPath = Path.Combine(this.RepoPath, "target");
+        Directory.CreateDirectory(targetPath);
+        File.WriteAllText(Path.Combine(targetPath, "included.txt"), "included");
+        Commands.Stage(this.LibGit2Repository, targetPath);
+        this.LibGit2Repository.Commit("Add included directory", this.Signer, this.Signer);
+        Assert.Equal(1, this.GetVersionHeight());
+
+        Directory.Delete(targetPath, recursive: true);
+        File.WriteAllText(targetPath, "not included");
+        Commands.Stage(this.LibGit2Repository, targetPath);
+        this.LibGit2Repository.Commit("Replace included directory with file", this.Signer, this.Signer);
+        Assert.Equal(2, this.GetVersionHeight());
     }
 
     [Theory]
@@ -1555,7 +1684,7 @@ public abstract class VersionOracleTests : RepoTestBase
         this.LibGit2Repository.ApplyTag("mytag");
 
         // Refresh our context before asking again.
-        this.Context = this.CreateGitContext(this.RepoPath);
+        this.ReplaceContext(this.CreateGitContext(this.RepoPath));
         VersionOracle oracle2 = new(this.Context);
 
         // Assert that we see the tag.
@@ -1565,7 +1694,7 @@ public abstract class VersionOracleTests : RepoTestBase
         this.AddCommits(1);
 
         // Refresh our context before asking again.
-        this.Context = this.CreateGitContext(this.RepoPath);
+        this.ReplaceContext(this.CreateGitContext(this.RepoPath));
         VersionOracle oracle3 = new(this.Context);
 
         // Assert that HEAD is not pointing to the tag.
@@ -1587,7 +1716,7 @@ public abstract class VersionOracleTests : RepoTestBase
         this.LibGit2Repository.ApplyTag("mytag", this.Signer, "my tag");
 
         // Refresh our context before asking again.
-        this.Context = this.CreateGitContext(this.RepoPath);
+        this.ReplaceContext(this.CreateGitContext(this.RepoPath));
         VersionOracle oracle2 = new(this.Context);
 
         // Assert that we see the tag.
@@ -1597,7 +1726,7 @@ public abstract class VersionOracleTests : RepoTestBase
         this.AddCommits(1);
 
         // Refresh our context before asking again.
-        this.Context = this.CreateGitContext(this.RepoPath);
+        this.ReplaceContext(this.CreateGitContext(this.RepoPath));
         VersionOracle oracle3 = new(this.Context);
 
         // Assert that HEAD is not pointing to the tag.

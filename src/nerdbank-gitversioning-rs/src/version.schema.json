@@ -1,0 +1,241 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema",
+  "title": "Nerdbank.GitVersioning version.json schema",
+  "type": "object",
+  "anyOf": [
+    { "$ref": "#/definitions/baseFile" },
+    { "$ref": "#/definitions/inheritingFile" }
+  ],
+  "definitions": {
+    "baseFile": {
+      "allOf": [
+        { "$ref": "#/definitions/allProperties" },
+        { "required": [ "version" ] }
+      ]
+    },
+    "inheritingFile": {
+      "allOf": [
+        { "$ref": "#/definitions/allProperties" },
+        { "$ref": "#/definitions/inheritingProperties" },
+        { "required": [ "inherit" ] },
+        {
+          "properties": {
+            "inherit": {
+              "enum": [ true ]
+            }
+          }
+        }
+      ]
+    },
+    "allProperties": {
+      "properties": {
+        "version": {
+          "type": "string",
+          "description": "The major.minor-pre version to use as the basis for version calculations. If {height} is not used in this value and the value has fewer than the full major.minor.build.revision specified, \".{height}\" will be appended by the build.",
+          "pattern": "^v?(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:\\.(0|[1-9][0-9]*)(?:\\.(0|[1-9][0-9]*))?)?(-(?:[\\da-zA-Z\\-]+|\\{height\\})(?:\\.(?:[\\da-zA-Z\\-]+|\\{height\\}))*)?(\\+(?:[\\da-zA-Z\\-]+|\\{height\\})(?:\\.(?:[\\da-zA-Z\\-]+|\\{height\\}))*)?$"
+        },
+        "inherit": {
+          "type": "boolean",
+          "description": "A value indicating whether this file only partially describes the versioning policy, and that more information should be discovered in an ancestor directory.",
+          "default": false
+        },
+        "assemblyVersion": {
+          "description": "The a.b[.c[.d]] version to use particularly for the AssemblyVersionAttribute instead of the default. This is useful when maintaining assembly binding compatibility on the desktop .NET Framework is important even though AssemblyFileVersion may change.",
+          "oneOf": [
+            { "$ref": "#/definitions/twoToFourComponentVersion" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "version": { "$ref": "#/definitions/twoToFourComponentVersion" }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "precision": {
+                  "type": "string",
+                  "description": "Identifies the last component to be explicitly set in the version.",
+                  "enum": [ "major", "minor", "build", "revision" ],
+                  "default": "minor"
+                }
+              }
+            }
+          ]
+        },
+        "versionHeightOffset": {
+          "type": "integer",
+          "description": "A number to add to the git height when calculating the version height (which typically appears as the 3rd integer in a computed version). May be negative, but not of greater magnitude than the original git height.",
+          "default": 0
+        },
+        "versionHeightOffsetAppliesTo": {
+          "type": "string",
+          "description": "The version to which the versionHeightOffset applies. When the version property changes such that the version height would be reset, and this property does not match the new version, the versionHeightOffset will be ignored. This allows the offset to implicitly reset as intended without having to manually remove it from all version.json files.",
+          "pattern": "^v?(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:\\.(0|[1-9][0-9]*)(?:\\.(0|[1-9][0-9]*))?)?(-(?:[\\da-zA-Z\\-]+|\\{height\\})(?:\\.(?:[\\da-zA-Z\\-]+|\\{height\\}))*)?(\\+(?:[\\da-zA-Z\\-]+|\\{height\\})(?:\\.(?:[\\da-zA-Z\\-]+|\\{height\\}))*)?$"
+        },
+        "buildNumberOffset": {
+          "type": "integer",
+          "description": "OBSOLETE by v3.0. Use \"versionHeightOffset\" instead. A number to add to the git height when calculating the version height (which typically appears as the 3rd integer in a computed version). May be negative, but not of greater magnitude than the original git height.",
+          "default": 0
+        },
+        "semVer1NumericIdentifierPadding": {
+          "type": "integer",
+          "description": "The minimum number of digits to use for numeric identifiers in SemVer 1.",
+          "default": 4,
+          "minimum": 1,
+          "maximum": 6
+        },
+        "gitCommitIdShortFixedLength": {
+          "type": "integer",
+          "description": "The fixed number of characters to use for the commit ID abbreviation length. This property is ignored if the gitCommitIdShortAutoMinimum property is greater than 0.",
+          "default": 10,
+          "maximum": 40
+        },
+        "gitCommitIdPrefix": {
+          "type": "string",
+          "description": "The git commit prefix (e.g. 'g') in non-public release versions.",
+          "pattern": "^[^0-9][\\da-zA-Z\\-_\\.]*$",
+          "default": "g"
+        },
+        "gitCommitIdShortAutoMinimum": {
+          "type": "integer",
+          "description": "When greater than 0, the length of the commit ID will be either this value or the shortest unambiguous git-abbreviated commit ID possible, whichever is greater. When 0, the gitCommitIdShortFixedLength property is used instead.",
+          "default": 0,
+          "maximum": 40
+        },
+        "gitCommitIdIncludeDirty": {
+          "type": "boolean",
+          "description": "Whether to append '-dirty' to Git commit IDs and the assembly informational version when the working tree has uncommitted changes.",
+          "default": false
+        },
+        "nugetPackageVersion": {
+          "type": "object",
+          "description": "Details for how and what the generated version for NuGet packages will be.",
+          "properties": {
+            "semVer": {
+              "type": "integer",
+              "description": "The version of SemVer (e.g. 1 or 2) that should be used when generating the package version.",
+              "default": 1,
+              "minimum": 1,
+              "maximum": 2
+            },
+            "precision": {
+              "type": "string",
+              "description": "Specifies the number of components to include in the NuGet package version.",
+              "enum": [ "major", "minor", "build", "revision" ],
+              "default": "build"
+            }
+          }
+        },
+        "publicReleaseRefSpec": {
+          "type": "array",
+          "description": "An array of regular expressions that may match a ref (branch or tag) that should be built with PublicRelease=true as the default value. The ref matched against is in its canonical form (e.g. refs/heads/master).",
+          "items": {
+            "type": "string",
+            "format": "regex"
+          },
+          "uniqueItems": true
+        },
+        "cloudBuild": {
+          "type": "object",
+          "description": "Options that are applicable specifically to cloud builds (e.g. VSTS, AppVeyor, TeamCity).",
+          "properties": {
+            "setAllVariables": {
+              "type": "boolean",
+              "default": false,
+              "description": "Elevates all build properties to cloud build variables prefaced with \"NBGV_\"."
+            },
+            "setVersionVariables": {
+              "type": "boolean",
+              "default": true,
+              "description": "Elevate certain calculated version build properties to cloud build variables."
+            },
+            "buildNumber": {
+              "type": "object",
+              "description": "Override the build number preset by the cloud build with one enriched with version information.",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "description": "Whether to override the build number preset by the cloud build.",
+                  "default": false
+                },
+                "includeCommitId": {
+                  "type": "object",
+                  "description": "Describes when and where to include information about the git commit being built.",
+                  "properties": {
+                    "when": {
+                      "type": "string",
+                      "default": "nonPublicReleaseOnly",
+                      "description": "The conditions when the commit ID is included in the build number.",
+                      "enum": [ "always", "nonPublicReleaseOnly", "never" ]
+                    },
+                    "where": {
+                      "type": "string",
+                      "default": "buildMetadata",
+                      "description": "The position to include the commit ID information. If fourthVersionComponent is used, the first 15 bits of the commit hash will be used to form the 4th integer in the version number.",
+                      "enum": [ "buildMetadata", "fourthVersionComponent" ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "release": {
+          "description": "Settings for the prepare-release and tag commands.",
+          "type": "object",
+          "properties": {
+            "tagName": {
+              "description": "Defines the format of tag names. Format must include a placeholder '{version}' for the version.",
+              "type": "string",
+              "pattern": "\\{version\\}",
+              "default": "v{version}"
+            },
+            "branchName": {
+              "description": "Defines the format of release branch names. Format must include a placeholder '{version}' for the version.",
+              "type": "string",
+              "pattern": "\\{version\\}",
+              "default": "v{version}"
+            },
+            "versionIncrement": {
+              "description": "Specifies which part of the version on the current branch is incremented when preparing a release.",
+              "type": "string",
+              "enum": [ "major", "minor", "build" ],
+              "default": "minor"
+            },
+            "firstUnstableTag": {
+              "description": "Specifies the first/default prerelease tag for new versions.",
+              "type": "string",
+              "default": "alpha"
+            }
+          },
+          "additionalProperties": false
+        },
+        "pathFilters": {
+          "type": "array",
+          "description": "An array of pathspec-like strings that are used to filter commits when calculating the version height. A commit will not increment the version height if its changed files are not included by these filters.\nPaths are relative to this file. Paths relative to the root of the repository can be specified with the `:/` prefix.\nExclusions can be specified with a `:^` prefix for relative paths, or a `:^/` prefix for paths relative to the root of the repository.\n`*` matches zero or more characters within one path segment, `?` matches one character within a path segment, and a complete `**` segment matches zero or more path segments.\nAfter a path matches any non-exclude filter, it will be run through all exclude filters. If it matches, the path is ignored.",
+          "items": {
+            "type": "string",
+            "pattern": "^(:\\^|:!|:/|[^:])"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "inheritingProperties": {
+      "properties": {
+        "prerelease": {
+          "type": "string",
+          "description": "A prerelease tag to append to the version inherited from a parent version.json file. This property can only be used when 'inherit' is true and the 'version' property does not include a prerelease tag. Set to an empty string to explicitly suppress an inherited prerelease tag. Omit this property to inherit the prerelease tag as-is from the parent.",
+          "pattern": "^[\\da-zA-Z\\-]*$"
+        }
+      }
+    },
+    "twoToFourComponentVersion": {
+      "type": "string",
+      "description": "A major.minor[.build[.revision]] version (2-4 version components).",
+      "pattern": "^\\d+\\.\\d+(?:\\.\\d+(?:\\.\\d+)?)?$"
+    }
+  }
+}

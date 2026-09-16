@@ -43,7 +43,7 @@ if ($x86) {
       Write-Host "Running tests using `"$dotnet`"" -ForegroundColor DarkGray
     } else {
       Write-Error "Unable to find 32-bit dotnet.exe"
-      return 1
+      exit 1
     }
   }
 }
@@ -60,23 +60,15 @@ $publishTrx = $PublishResults -and $env:TF_BUILD
 if ($isMTP) {
     if ($OnCI) { $extraArgs += '--no-progress' }
 
-    $dumpSwitches = @()
-    if ($OnCI) {
-        # Collect crash diagnostics on every CI OS. Test hosts have been crashing with
-        # AccessViolationException on Linux, and without a dump and the native crash report
-        # that accompanies it, those failures cannot be diagnosed.
-        $dumpSwitches += @(
-            ,'--crashdump'
-            ,'--crashdump-type','Heap'
-            ,'--crash-report-if-supported'
-        )
-    }
-    if ($IsWindows -and $env:TF_BUILD) {
-        $dumpSwitches += @(
-            ,'--hangdump'
-            ,'--hangdump-timeout','120s'
-        )
-    }
+    $dumpSwitches = @(
+        ,'--hangdump'
+        ,'--hangdump-timeout','5m'
+        ,'--crashdump'
+        ,'--crashdump-type','Heap'
+        # The native crash report accompanies the dump and is often the only way to identify the
+        # faulting thread and instruction when a test host dies of an access violation on Linux.
+        ,'--crash-report-if-supported'
+    )
     $mtpArgs = @(
         ,'--diagnostic'
         ,'--diagnostic-output-directory',$testLogs
@@ -92,14 +84,17 @@ if ($isMTP) {
         )
     }
 
-    if ($publishTrx) {
-        $mtpArgs += '--report-trx'
+    $solutionFiles = @(Get-ChildItem -LiteralPath $RepoRoot -File | Where-Object { $_.Extension -in '.sln', '.slnx' })
+    if ($solutionFiles.Count -ne 1) {
+        throw "Expected exactly one solution file in $RepoRoot, but found $($solutionFiles.Count)."
     }
 
-    & $dotnet test --solution $RepoRoot `
-       --no-build `
+    $solutionPath = $solutionFiles[0].FullName
+    & $dotnet test $solutionPath `
+        --no-build `
         -c $Configuration `
         -bl:"$testBinLog" `
+        -- `
         --filter-not-trait 'TestCategory=FailsInCloudTest' `
         @mtpArgs `
         @dumpSwitches `

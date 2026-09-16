@@ -25,7 +25,7 @@ For example, suppose your last release was of version 1.2.4. When you switch to 
 }
 ```
 
-After commiting this change, the first version NB.GV will assign to your build is `1.2.5`.
+After committing this change, the first version NB.GV will assign to your build is `1.2.5`.
 
 When you later want to ship v1.3, remove the second field so that the 3rd integer resets:
 

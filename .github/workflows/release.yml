@@ -18,19 +18,28 @@ on:
         required: false
         default: true
         type: boolean
+      publish_crates:
+        description: Push Rust crates
+        required: false
+        default: true
+        type: boolean
 
 run-name: ${{ github.ref_name }}
 
 jobs:
   release:
-    runs-on: windows-latest
-    environment: Signing
+    runs-on: windows-2025
+    environment: Publishing
+    env:
+      AZURE_CORE_OUTPUT: none
     permissions:
       actions: read # Required to download artifacts
       contents: write # Upload artifacts to Release
-      id-token: write # Required for OIDC-based package publishing
+      id-token: write # Required for Azure and NuGet OIDC authentication
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        fetch-depth: 0
 
     - name: 🔎 Search for build of ${{ github.ref }}
       shell: pwsh
@@ -38,6 +47,9 @@ jobs:
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
+        $ErrorActionPreference = 'Stop'
+        $PSNativeCommandUseErrorActionPreference = $true
+
         if ('${{ inputs.ship_run_id }}') {
           $runid = '${{ inputs.ship_run_id }}'
         } else {
@@ -53,8 +65,8 @@ jobs:
 
           Write-Host "Resolved ${{ github.ref_name }} to $commitSha"
 
-          $releases = gh run list -R ${{ github.repository }} -c $commitSha -w .github/workflows/build.yml -s success --json databaseId,startedAt,event,headBranch `
-            | ConvertFrom-Json | Sort-Object startedAt -Descending
+          $releases = @(gh run list -R ${{ github.repository }} -c $commitSha -w .github/workflows/build.yml -s success --json databaseId,startedAt,event,headBranch `
+            | ConvertFrom-Json | Sort-Object startedAt -Descending)
 
           $preferredReleases = $releases | Where-Object {
             $_.event -eq 'push' -and ($_.headBranch -eq 'main' -or $_.headBranch -eq 'develop' -or $_.headBranch -match '^v\d+(?:\.\d+)?$')
@@ -91,28 +103,37 @@ jobs:
         run-id: ${{ steps.findrunid.outputs.runid }}
         github-token: ${{ github.token }}
 
-# Login to Azure using a ServicePrincipal configured to authenticate agaist a GitHub Action
-    - name: 🪪 Authorize signing
-      uses: azure/login@f5d393ae46f8fde4be8b75f32e3fc50e654ad0ca # v3.0.1
+    - name: ⚙ Install .NET SDK
+      shell: pwsh
+      run: |
+        ./tools/Install-DotNetSdk.ps1 -SdkOnly
+        if ($LASTEXITCODE -ne 0) {
+          throw "SDK installation failed."
+        }
+
+        dotnet tool restore
+        if ($LASTEXITCODE -ne 0) {
+          throw "dotnet tool restore failed."
+        }
+
+    - name: 🔐 Authenticate to Azure
+      uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
       with:
-        client-id: ${{ vars.AZURE_CLIENT_ID }}
-        tenant-id: ${{ vars.AZURE_TENANT_ID }}
-        subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-    - name: 🔏 Code sign
+    - name: ✍️ Sign NuGet packages
+      shell: pwsh
       run: >
-        rm global.json # avoid a need to install a particular SDK version
-
-        dotnet tool install --tool-path obj --prerelease sign
-
-        obj/sign code azure-key-vault
-        '**/*'
+        dotnet tool run sign -- code azure-key-vault
+        '*.nupkg'
         --base-directory '${{ runner.temp }}/deployables'
         --file-list '${{ github.workspace }}/.github/signfiles.txt'
-        --azure-key-vault-url "${{ vars.KEY_VAULT_URL }}"
-        --azure-key-vault-certificate "${{ vars.KEY_VAULT_CERTIFICATE }}"
+        --recurse-containers
+        --azure-key-vault-url '${{ vars.AZURE_KEY_VAULT_URL }}'
+        --azure-key-vault-certificate '${{ vars.AZURE_KEY_VAULT_CERTIFICATE }}'
         --azure-credential-type azure-cli
-      shell: pwsh
 
     - name: 🪪 Authorize NuGet package push
       uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
@@ -154,6 +175,20 @@ jobs:
           npm publish @publishArgs
         }
 
+    - name: 🔐 Authenticate to crates.io
+      uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1.0.5
+      id: crates-io-auth
+      if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish_crates }}
+
+    - name: 🚀 Push Rust crates
+      if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish_crates }}
+      working-directory: src/nerdbank-gitversioning-rs
+      env:
+        CARGO_REGISTRY_TOKEN: ${{ steps.crates-io-auth.outputs.token }}
+      run: |
+        ../../tools/Set-CargoVersion.ps1
+        cargo publish --workspace --allow-dirty
+
     - name: 💽 Upload artifacts to release
       shell: pwsh
       if: ${{ github.event_name == 'release' && github.event.release.assets_url != '' }}
@@ -161,6 +196,9 @@ jobs:
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
+        $ErrorActionPreference = 'Stop'
+        $PSNativeCommandUseErrorActionPreference = $true
+
         Get-ChildItem '${{ runner.temp }}/deployables' -File -Recurse |% {
           Write-Host "Uploading $($_.Name) to release..."
           gh release -R ${{ github.repository }} upload "${{ github.ref_name }}" $_.FullName

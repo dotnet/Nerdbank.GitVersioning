@@ -149,7 +149,8 @@ public abstract class GitContext : IDisposable
     /// Valid values are "LibGit2", "Managed", and "Disabled" (case-sensitive).
     /// Unrecognized values are treated as if the variable was not set, maintaining backward compatibility.
     /// Otherwise, if the DEPENDABOT environment variable is set to "true" (case-insensitive), returns <see cref="Engine.Disabled"/>.
-    /// Otherwise, if the GITHUB_ACTOR environment variable is set to "copilot-swe-agent[bot]", returns <see cref="Engine.Disabled"/>.
+    /// Otherwise, if the GITHUB_ACTOR environment variable is set to "copilot-swe-agent[bot]" or GITHUB_WORKFLOW_REF contains
+    /// "copilot-setup-steps.yml", returns <see cref="Engine.Disabled"/>.
     /// Otherwise, returns <paramref name="defaultEngine"/>.
     /// </remarks>
     public static Engine GetEffectiveGitEngine(Engine defaultEngine = Engine.ReadOnly)
@@ -495,11 +496,16 @@ public abstract class GitContext : IDisposable
     /// <summary>
     /// Determines whether the current environment is running under GitHub Copilot.
     /// </summary>
-    /// <returns><see langword="true"/> if GITHUB_ACTOR environment variable is set to "copilot-swe-agent[bot]"; otherwise, <see langword="false"/>.</returns>
+    /// <returns>
+    /// <see langword="true"/> if GITHUB_ACTOR is set to "copilot-swe-agent[bot]" or GITHUB_WORKFLOW_REF contains
+    /// "copilot-setup-steps.yml"; otherwise, <see langword="false"/>.
+    /// </returns>
     private static bool IsGitHubCopilotEnvironment()
     {
         string? githubActorEnvVar = Environment.GetEnvironmentVariable("GITHUB_ACTOR");
-        return string.Equals(githubActorEnvVar, "copilot-swe-agent[bot]", StringComparison.Ordinal);
+        string? githubWorkflowRefEnvVar = Environment.GetEnvironmentVariable("GITHUB_WORKFLOW_REF");
+        return string.Equals(githubActorEnvVar, "copilot-swe-agent[bot]", StringComparison.Ordinal)
+            || githubWorkflowRefEnvVar?.Contains("/copilot-setup-steps.yml@", StringComparison.Ordinal) is true;
     }
 
     /// <summary>

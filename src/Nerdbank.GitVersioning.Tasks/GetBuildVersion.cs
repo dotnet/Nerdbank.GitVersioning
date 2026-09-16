@@ -11,11 +11,11 @@ namespace Nerdbank.GitVersioning.Tasks
 {
     public class GetBuildVersion : ContextAwareTask
     {
-        private const string UnavailableGitValue = "Unavailable from a shallow git clone";
+        private const string UnavailableGitValue = "Unavailable";
         private const string UnavailableGitWarningCode = "NBGV1001";
 
-        // October 26, 1985 at 1:21 AM UTC, when the DeLorean first traveled through time.
-        private const string UnavailableGitDateTicks = "626347344600000000";
+        // October 26, 1985 at 1:21 AM PDT (8:21 AM UTC), when the DeLorean first traveled through time.
+        private const string UnavailableGitDateTicks = "626347596600000000";
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GetBuildVersion"/> class.
