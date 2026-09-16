@@ -3,14 +3,14 @@
   "isRoot": true,
   "tools": {
     "powershell": {
-      "version": "7.6.5",
+      "version": "7.6.6",
       "commands": [
         "pwsh"
       ],
       "rollForward": false
     },
     "dotnet-coverage": {
-      "version": "18.10.0",
+      "version": "18.11.0",
       "commands": [
         "dotnet-coverage"
       ],
@@ -38,7 +38,7 @@
       "rollForward": false
     },
     "dotnet-symbol": {
-      "version": "9.0.661903",
+      "version": "10.0.745401",
       "commands": [
         "dotnet-symbol"
       ],
