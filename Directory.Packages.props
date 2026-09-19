@@ -4,7 +4,7 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
-    <MicrosoftTestingPlatformVersion>2.4.0</MicrosoftTestingPlatformVersion>
+    <MicrosoftTestingPlatformVersion>2.4.1</MicrosoftTestingPlatformVersion>
     <BenchmarkDotNetVersion>0.15.8</BenchmarkDotNetVersion>
     <MSBuildPackageVersion>16.11.6</MSBuildPackageVersion>
     <CodeAnalysisVersion>5.9.0</CodeAnalysisVersion>
@@ -49,7 +49,7 @@
     <PackageVersion Include="Microsoft.Testing.Extensions.HangDump" Version="$(MicrosoftTestingPlatformVersion)" />
     <PackageVersion Include="Microsoft.Testing.Extensions.Telemetry" Version="$(MicrosoftTestingPlatformVersion)" />
     <PackageVersion Include="Microsoft.Testing.Extensions.TrxReport" Version="$(MicrosoftTestingPlatformVersion)" />
-    <PackageVersion Include="xunit.v3.mtp-v2" Version="4.0.0" />
+    <PackageVersion Include="xunit.v3.mtp-v2" Version="4.0.1" />
   </ItemGroup>
   <ItemGroup>
     <!-- Put repo-specific GlobalPackageReference items in this group. -->
