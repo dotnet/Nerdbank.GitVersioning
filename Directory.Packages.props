@@ -40,7 +40,7 @@
     <PackageVersion Include="System.Text.Json" Version="10.0.12" />
     <PackageVersion Include="System.Threading.Tasks.Dataflow" Version="10.0.12" />
     <PackageVersion Include="Validation" Version="2.6.68" />
-    <PackageVersion Include="Xunit.Combinatorial" Version="2.1.41" />
+    <PackageVersion Include="Xunit.Combinatorial" Version="2.1.43" />
   </ItemGroup>
   <ItemGroup Label="Library.Template">
     <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.11.2" />
