@@ -23,7 +23,7 @@ jobs:
       fail-fast: false
       matrix:
         os:
-        - ubuntu-24.04
+        - ubuntu-26.04
         - macOS-15
         - windows-2025
 
@@ -72,7 +72,7 @@ jobs:
 
   docs:
     name: 📃 Docs
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - name: 🔗 Markup Link Checker (mlc)

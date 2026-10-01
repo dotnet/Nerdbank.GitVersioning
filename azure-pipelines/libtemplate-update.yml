@@ -22,7 +22,7 @@ stages:
   jobs:
   - job: merge
     pool:
-      vmImage: ubuntu-latest
+      vmImage: ubuntu-26.04
     steps:
     - checkout: self
       fetchDepth: 0

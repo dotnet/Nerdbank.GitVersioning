@@ -15,7 +15,7 @@ variables:
 jobs:
 - job: release
   pool:
-    vmImage: ubuntu-latest
+    vmImage: ubuntu-26.04
   steps:
   - checkout: none
   - powershell: |
