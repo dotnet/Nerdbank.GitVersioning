@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.Build.Traversal">
   <ItemGroup>
     <ProjectReference Include="**\*.csproj" Publish="false" />
+    <!-- This project validates the shipping assembly by running the NativeAOT compiler, so CI must publish it. -->
+    <ProjectReference Update="AotCompatibilityTest\AotCompatibilityTest.csproj" Publish="true" />
   </ItemGroup>
 
   <Target Name="GetNativeAOTTests" Returns="@(_NativeAOTTest)">

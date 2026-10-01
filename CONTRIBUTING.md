@@ -59,6 +59,9 @@ It preserves all other runtime feature options, including invariant globalizatio
 For an existing RID-specific build, `dotnet publish test/Library.Tests/Library.Tests.csproj -f net8.0 -r <RID> -p:NativeAOT=true --no-build` publishes native tests from the managed build.
 Use the same configuration, framework, and RID for the preceding build and the publish.
 Test builds use invariant globalization and retain only English satellite resources; RID-specific builds are self-contained.
+Shipping libraries targeting .NET 8 or later opt into NativeAOT compatibility analysis with `IsAotCompatible`.
+The `test/AotCompatibilityTest` project complements those analyzers by rooting the shipping assembly and passing it through the NativeAOT compiler during every traversal publish.
+Add each shipping assembly that must be validated as a `TrimmerRootAssembly`, and keep this project publishable in `test/dirs.proj`.
 Root `Directory.Build.props` supplies project-reference defaults for both traversal and SDK projects that remove the `_IsPublishing` global property for managed dependencies, avoiding duplicate project instances that write to the same outputs during parallel publishing.
 
 ## Releases

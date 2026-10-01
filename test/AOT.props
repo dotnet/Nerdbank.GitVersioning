@@ -3,11 +3,13 @@
     <PublishAot>true</PublishAot>
     <RuntimeIdentifiers>$(AvailableRuntimeIdentifiers)</RuntimeIdentifiers>
   </PropertyGroup>
-  <PropertyGroup>
+  <PropertyGroup Condition="'$(IsTestProject)' == 'true'">
     <!-- Preserve managed coverage in the build output; native compilation overrides these at publish time. -->
     <DynamicCodeSupport>true</DynamicCodeSupport>
     <StartupHookSupport>true</StartupHookSupport>
     <EventSourceSupport>true</EventSourceSupport>
+  </PropertyGroup>
+  <PropertyGroup>
     <InvariantGlobalization>true</InvariantGlobalization>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>

@@ -42,3 +42,12 @@ Follow the [TUnit xUnit migration guide](https://tunit.dev/docs/migration/xunit)
 * Validate managed tests and coverage, then run `dotnet publish tools\dirs.proj -c Release` and `.\tools\dotnet-test-cloud.ps1 -Configuration Release -IncludeNativeAOT`.
   Test projects targeting .NET 8 or later are eligible for NativeAOT publication by default.
   If a project cannot support NativeAOT, set `<PublishNativeAOTTests>false</PublishNativeAOTTests>` in its project file; it will still run as managed tests.
+
+## NativeAOT compatibility validation
+
+Shipping projects now set `IsAotCompatible` for target frameworks compatible with .NET 8.
+Apply the same conditional property to each shipping project that is intended to support NativeAOT, then resolve all trim and AOT analyzer warnings rather than suppressing them broadly.
+
+The new `test/AotCompatibilityTest` project catches NativeAOT compiler warnings that library analyzers may not report.
+Keep it in the solution, add every NativeAOT-compatible shipping assembly as a `TrimmerRootAssembly`, and retain its publishable entry in `test/dirs.proj`.
+CI validates this project through the existing traversal publish on Windows, Linux, and macOS; it is intentionally marked `IsTestProject=false` because publishing successfully is the test.
