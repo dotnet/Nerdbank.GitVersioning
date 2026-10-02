@@ -51,3 +51,31 @@ Apply the same conditional property to each shipping project that is intended to
 The new `test/AotCompatibilityTest` project catches NativeAOT compiler warnings that library analyzers may not report.
 Keep it in the solution, add every NativeAOT-compatible shipping assembly as a `TrimmerRootAssembly`, and retain its publishable entry in `test/dirs.proj`.
 CI validates this project through the existing traversal publish on Windows, Linux, and macOS; it is intentionally marked `IsTestProject=false` because publishing successfully is the test.
+
+## NativeAOT opt-out and AI merge guidance
+
+Not every repo wants to take on NativeAOT readiness or NativeAOT-published test validation.
+If a receiving repo does not intend to support NativeAOT, opt out explicitly instead of inheriting the template's defaults.
+
+For test projects that should remain managed-only:
+
+* Set `<PublishNativeAOTTests>false</PublishNativeAOTTests>` in the project file or in a repo-level `Directory.Build.props`.
+* Leave the managed test project in the solution so usual IL-based testing continues to work.
+* Keep `dotnet test` and the managed coverage flow unchanged; only the NativeAOT publish step is disabled.
+
+For shipping libraries that do not want NativeAOT compatibility analysis:
+
+* Remove `IsAotCompatible` from the project, or set it only for specific target frameworks that truly support NativeAOT.
+* Do not add new AOT compatibility warnings to the build if the library is not intended to be AOT-compatible.
+* If the repo does not target .NET 8 or later, the property should be omitted entirely rather than applied unconditionally.
+
+For the compatibility project itself:
+
+* Remove the `test/AotCompatibilityTest` project from the solution if NativeAOT validation is out of scope.
+* Remove its entry from `test/dirs.proj` so the traversal publish no longer publishes it.
+* Keep the project only when the repo intends to validate shipping assemblies under NativeAOT in CI.
+
+When merging this template into a downstream repo, the AI assistant should ask whether NativeAOT is a relevant target for that repo before applying these changes if `IsAotCompatible` is not already set by any of the projects.
+If the answer is no, it should apply the opt-out steps above instead of blindly keeping the NativeAOT defaults.
+This is especially important for repos that are not shipping a NativeAOT-ready library or that cannot support the extra publish-time validation in CI.
+If the repo operator is unsure about NativeAOT support, you might offer to test the repo for NativeAOT readiness by attempting a NativeAOT publish of the relevant projects and observing whether any compatibility warnings or errors are produced.
