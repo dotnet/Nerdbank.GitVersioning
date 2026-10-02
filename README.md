@@ -17,6 +17,7 @@
 * Auto-versioning (via [Nerdbank.GitVersioning](https://github.com/dotnet/nerdbank.gitversioning))
 * Builds with a "pinned" .NET SDK to ensure reproducible builds across machines and across time.
 * Automatically pack the library and publish it as an artifact, and even push it to some NuGet feed for consumption.
+* Build NativeAOT-safe libraries with thorough compatibility testing
 * Testing
   * Testing on .NET Framework, multiple .NET versions
   * Testing on Windows, Linux and OSX

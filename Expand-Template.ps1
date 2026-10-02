@@ -140,6 +140,12 @@ try {
         'Library'=$LibraryName
         'COMPANY-PLACEHOLDER'=$Author
     }
+    Replace-Placeholders -Path "test/AotCompatibilityTest/AotCompatibilityTest.csproj" -Replacements @{
+        'Library'=$LibraryName
+    }
+    Replace-Placeholders -Path "test/AotCompatibilityTest/Program.cs" -Replacements @{
+        'COMPANY-PLACEHOLDER'=$Author
+    }
     Replace-Placeholders -Path "src/AssemblyInfo.cs" -Replacements @{
         'COMPANY-PLACEHOLDER'=$Author
     }

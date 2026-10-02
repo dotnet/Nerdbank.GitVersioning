@@ -22,5 +22,6 @@
     <File Path="test/Directory.Build.targets" />
   </Folder>
   <Project Path="src/Library/Library.csproj" />
+  <Project Path="test/AotCompatibilityTest/AotCompatibilityTest.csproj" />
   <Project Path="test/Library.Tests/Library.Tests.csproj" />
 </Solution>

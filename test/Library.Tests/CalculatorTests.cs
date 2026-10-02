@@ -2,15 +2,12 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Library;
+using TUnit.Core;
 using Xunit;
 
 public class CalculatorTests
 {
-    public CalculatorTests()
-    {
-    }
-
-    [Fact]
+    [Test]
     public void AddOrSubtract()
     {
         // This tests aggregation of code coverage across test runs.

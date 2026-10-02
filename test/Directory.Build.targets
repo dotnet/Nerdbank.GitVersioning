@@ -1,14 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project>
+  <Import Project="AOT.props"
+          Condition="'$(IsTestProject)' == 'true' and '$(PublishNativeAOTTests)' == 'true' and '$(TargetFramework)' != '' and $([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))" />
+
+  <PropertyGroup Condition="'$(NativeAOT)' == 'true' and '$(PublishNativeAOTTests)' == 'true'">
+    <NoWarn>$(NoWarn);IL2104;IL3053</NoWarn>
+  </PropertyGroup>
+
   <ItemGroup Condition="'$(IsTestProject)' != 'false'">
     <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
     <PackageReference Include="Microsoft.Testing.Extensions.CrashDump" />
     <PackageReference Include="Microsoft.Testing.Extensions.HangDump" />
     <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" />
   </ItemGroup>
-  <ItemGroup>
-    <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" Condition="Exists('xunit.runner.json')" />
-  </ItemGroup>
-
   <Import Project="$([MSBuild]::GetPathOfFileAbove($(MSBuildThisFile), $(MSBuildThisFileDirectory)..))" />
+
+  <Target Name="GetNativeAOTTestVariants" Returns="@(_NativeAOTTest)"
+          Condition="'$(IsTestProject)' == 'true' and '$(PublishNativeAOTTests)' == 'true'">
+    <ItemGroup Condition="'$(TargetFramework)' == ''">
+      <_TestFramework Include="$(TargetFrameworks)" />
+    </ItemGroup>
+    <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="GetNativeAOTTestVariants"
+             Properties="TargetFramework=%(_TestFramework.Identity)"
+             Condition="'$(TargetFramework)' == ''" BuildInParallel="true">
+      <Output TaskParameter="TargetOutputs" ItemName="_NativeAOTTest" />
+    </MSBuild>
+    <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="GetNativeAOTTestExecutable"
+             Properties="NativeAOT=true"
+             Condition="'$(TargetFramework)' != '' and $([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
+      <Output TaskParameter="TargetOutputs" ItemName="_NativeAOTTest" />
+    </MSBuild>
+  </Target>
+
+  <Target Name="GetNativeAOTTestExecutable" Returns="@(_NativeAOTTestExecutable)">
+    <PropertyGroup>
+      <_NativeExecutableExtension Condition="$([MSBuild]::IsOsPlatform('Windows'))">.exe</_NativeExecutableExtension>
+    </PropertyGroup>
+    <ItemGroup>
+      <_NativeAOTTestExecutable Include="$(MSBuildProjectFullPath)">
+        <ProjectName>$(MSBuildProjectName)</ProjectName>
+        <TargetFramework>$(TargetFramework)</TargetFramework>
+        <ExecutablePath>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(PublishDir)', '$(AssemblyName)$(_NativeExecutableExtension)'))</ExecutablePath>
+      </_NativeAOTTestExecutable>
+    </ItemGroup>
+  </Target>
 </Project>

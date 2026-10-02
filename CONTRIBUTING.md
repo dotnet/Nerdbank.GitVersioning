@@ -45,6 +45,25 @@ You can use `dotnet test` to build and/or test the repo.
 
 There may be tests that are known to be unstable or have special requirements. These can be avoided by running tests using the [dotnet-test-cloud.ps1](tools/dotnet-test-cloud.ps1) script *after* running `dotnet build`.
 
+To build both managed and NativeAOT tests, run `dotnet publish tools/dirs.proj -c Release`.
+Then run `./tools/dotnet-test-cloud.ps1 -Configuration Release -IncludeNativeAOT`.
+The traversal projects discover projects under `src` and `test`, and publish each eligible test framework targeting .NET 8 or later.
+Keep test projects in the solution as well: managed test runs still use the solution, while NativeAOT runs use the traversal's evaluated executable paths.
+Test projects can opt out of NativeAOT publishing with `<PublishNativeAOTTests>false</PublishNativeAOTTests>`.
+One restore includes all test target frameworks, runtime identifiers, and NativeAOT compiler dependencies.
+Managed builds are RID-neutral by default; NativeAOT builds use the SDK's runtime-specific output directories.
+For a specified RID, managed execution and native publishing can share the same build outputs.
+Test builds keep dynamic code, startup hooks, and event tracing enabled for managed code coverage.
+The `ConfigureNativeAOTTestFeatures` target disables those features only in the native compiler's publish-time inputs, without rewriting the managed runtime configuration.
+It preserves all other runtime feature options, including invariant globalization, so native compilation and linking use consistent settings.
+For an existing RID-specific build, `dotnet publish test/Library.Tests/Library.Tests.csproj -f net8.0 -r <RID> -p:NativeAOT=true --no-build` publishes native tests from the managed build.
+Use the same configuration, framework, and RID for the preceding build and the publish.
+Test builds use invariant globalization and retain only English satellite resources; RID-specific builds are self-contained.
+Shipping libraries targeting .NET 8 or later opt into NativeAOT compatibility analysis with `IsAotCompatible`.
+The `test/AotCompatibilityTest` project complements those analyzers by rooting the shipping assembly and passing it through the NativeAOT compiler during every traversal publish.
+Add each shipping assembly that must be validated as a `TrimmerRootAssembly`, and keep this project publishable in `test/dirs.proj`.
+Root `Directory.Build.props` supplies project-reference defaults for both traversal and SDK projects that remove the `_IsPublishing` global property for managed dependencies, avoiding duplicate project instances that write to the same outputs during parallel publishing.
+
 ## Releases
 
 Use `nbgv tag` to create a tag for a particular commit that you mean to release.
