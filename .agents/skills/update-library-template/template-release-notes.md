@@ -78,4 +78,7 @@ For the compatibility project itself:
 When merging this template into a downstream repo, the AI assistant should ask whether NativeAOT is a relevant target for that repo before applying these changes if `IsAotCompatible` is not already set by any of the projects.
 If the answer is no, it should apply the opt-out steps above instead of blindly keeping the NativeAOT defaults.
 This is especially important for repos that are not shipping a NativeAOT-ready library or that cannot support the extra publish-time validation in CI.
-If the repo operator is unsure about NativeAOT support, you might offer to test the repo for NativeAOT readiness by attempting a NativeAOT publish of the relevant projects and observing whether any compatibility warnings or errors are produced.
+If the repo owner is unsure about NativeAOT support, you might offer to test the repo for NativeAOT readiness by attempting a NativeAOT publish of the relevant projects and observing whether any compatibility warnings or errors are produced.
+
+In the event the user elects for NativeAOT targeting, make efforts to get tests to work under NativeAOT as well so the shipping code can confidently advertise its NativeAOT compatibility.
+If aspects of the library or tests make successful builds, publish or test runs problematic, discuss this with the repo owner before making significant changes or giving up on NativeAOT support.
