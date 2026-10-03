@@ -41,18 +41,20 @@ public class GitReftableTests : RepoTestBase
     [InlineData(4096)]
     public void ReferencesAcrossBlocksAndStackUpdates(int blockSize)
     {
-        this.InitializeReftable();
+        this.Git(this.RepoPath, "init", "--ref-format=files", "--initial-branch=main");
+        this.ConfigureGit();
         this.Git(this.RepoPath, "config", "reftable.blockSize", blockSize.ToString(System.Globalization.CultureInfo.InvariantCulture));
         string first = this.Commit();
         string second = this.Commit();
 
-        var updates = new StringBuilder();
+        // Migration lets Git produce a multi-block table without relying on redirected stdin encoding.
+        string headsDirectory = Path.Combine(this.RepoPath, ".git", "refs", "heads");
         for (int i = 0; i < 500; i++)
         {
-            updates.Append($"create refs/heads/branch-{i:D4} {first}\n");
+            File.WriteAllText(Path.Combine(headsDirectory, $"branch-{i:D4}"), first + "\n");
         }
 
-        this.GitWithInput(this.RepoPath, updates.ToString(), "update-ref", "--stdin");
+        this.Git(this.RepoPath, "refs", "migrate", "--ref-format=reftable");
         Assert.Contains(
             File.ReadAllLines(Path.Combine(this.RepoPath, ".git", "reftable", "tables.list")),
             name =>
@@ -461,16 +463,15 @@ public class GitReftableTests : RepoTestBase
         Assert.Null(repository.Lookup("refs/heads/missing"));
     }
 
-    private string Git(string workingDirectory, params string[] arguments) => this.GitWithInput(workingDirectory, null, arguments);
-
-    private string GitWithInput(string workingDirectory, string? input, params string[] arguments)
+    private string Git(string workingDirectory, params string[] arguments)
     {
         var startInfo = new ProcessStartInfo("git")
         {
             CreateNoWindow = true,
-            RedirectStandardInput = input is not null,
             RedirectStandardError = true,
             RedirectStandardOutput = true,
+            StandardErrorEncoding = Encoding.UTF8,
+            StandardOutputEncoding = Encoding.UTF8,
             UseShellExecute = false,
             WorkingDirectory = workingDirectory,
         };
@@ -488,12 +489,6 @@ public class GitReftableTests : RepoTestBase
         using Process process = Process.Start(startInfo)!;
         Task<string> output = process.StandardOutput.ReadToEndAsync();
         Task<string> error = process.StandardError.ReadToEndAsync();
-        if (input is not null)
-        {
-            process.StandardInput.Write(input);
-            process.StandardInput.Close();
-        }
-
         process.WaitForExit();
         string standardOutput = output.GetAwaiter().GetResult();
         string standardError = error.GetAwaiter().GetResult();
