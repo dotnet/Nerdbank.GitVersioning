@@ -72,4 +72,4 @@ dotnet run --no-build -c Release --framework net8.0 -- --list-tests
 
 * Honor StyleCop rules and fix any reported build warnings *after* getting tests to pass.
 * In C# files, use namespace *statements* instead of namespace *blocks* for all new files.
-* Add API doc comments to all new public and internal members.
+* Add API doc comments to all new public and internal members in shipping code under `src`. Tests and samples do not require XML API documentation; do not add XML docs to test or sample members solely to satisfy this rule.
