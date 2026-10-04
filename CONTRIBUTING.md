@@ -35,6 +35,9 @@ and you are running Windows PowerShell, the command is:
 
 You can use `dotnet test` to build and/or test the repo.
 
+The managed reftable interoperability tests invoke Git to create local repositories,
+clones, and worktrees. They require Git 2.51 or newer on PATH and do not use the network.
+
 There may be tests that are known to be unstable or have special requirements. These can be avoided by running tests using the [dotnet-test-cloud.ps1](tools/dotnet-test-cloud.ps1) script *after* running `dotnet build`.
 
 ## Releases

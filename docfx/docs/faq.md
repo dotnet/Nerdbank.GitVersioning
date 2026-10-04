@@ -67,3 +67,12 @@ Adding the feed source URL to your nuget.config file will allow you to consume p
 ## How do I temporarily disable Nerdbank.GitVersioning so I can build with a shallow clone?
 
 Set the `NBGV_GitEngine` environment variable to `Disabled`.
+
+## Does Nerdbank.GitVersioning support Git's reftable reference format?
+
+The managed Git engine supports reading SHA-1 repositories that use reftable, including
+clones and linked worktrees. Version calculation, branch lookup, and tag detection work
+with either the traditional files reference backend or reftable.
+
+Operations that use LibGit2Sharp to write to a repository still depend on its native
+libgit2 support and do not support reftable repositories.
