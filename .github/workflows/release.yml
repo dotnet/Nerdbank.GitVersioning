@@ -28,7 +28,7 @@ run-name: ${{ github.ref_name }}
 
 jobs:
   release:
-    runs-on: ubuntu-26.04
+    runs-on: windows-2025
     environment: Publishing
     env:
       AZURE_CORE_OUTPUT: none
