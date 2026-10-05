@@ -144,12 +144,7 @@ jobs:
 
     - name: 🚀 Push NuGet packages
       if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish_nuget }}
-      shell: pwsh
-      env:
-        NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
-      run: |
-        $packages = Join-Path $env:RUNNER_TEMP 'deployables\*.nupkg'
-        dotnet nuget push $packages --source https://api.nuget.org/v3/index.json --api-key $env:NUGET_API_KEY
+      run: dotnet nuget push ${{ runner.temp }}\deployables\*.nupkg --source https://api.nuget.org/v3/index.json -k '${{ steps.nuget-login.outputs.NUGET_API_KEY }}'
 
     - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
       if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish_npm }}
