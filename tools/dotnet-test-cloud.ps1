@@ -75,11 +75,14 @@ if ($isMTP) {
         # faulting thread and instruction when a test host dies of an access violation on Linux.
         ,'--crash-report-if-supported'
     )
+    # Directory-valued options use the --option=value form. 'dotnet test' rejects a separate argument naming an existing directory
+    # ("Specifying a directory for 'dotnet test' should be via '--project' or '--solution'"), even after '--',
+    # and $testLogs exists once the first test project below has run.
     $mtpArgs = @(
         ,'--diagnostic'
-        ,'--diagnostic-output-directory',$testLogs
+        ,"--diagnostic-output-directory=$testLogs"
         ,'--diagnostic-verbosity','Information'
-        ,'--results-directory',$testLogs
+        ,"--results-directory=$testLogs"
     )
 
     if (-not $NoCoverage) {
@@ -96,16 +99,33 @@ if ($isMTP) {
     }
 
     $solutionPath = $solutionFiles[0].FullName
-    & $dotnet test $solutionPath `
-        --no-build `
-        -c $Configuration `
-        -bl:"$testBinLog" `
-        -- `
-        --treenode-filter '/**[Category!=FailsInCloudTest]' `
-        @mtpArgs `
-        @dumpSwitches `
-        @extraArgs
-    if ($LASTEXITCODE -ne 0) { $failedTests += 1 }
+
+    # This repo's test projects use different test frameworks (TUnit, plus xunit for the tests that need Xunit.Combinatorial),
+    # which take different filter syntax. Each test project declares its FailsInCloudTest filter in its CloudTestFilterOption and
+    # CloudTestFilterValue MSBuild properties (see test/Directory.Build.props), so each test project is run separately.
+    $projectPaths = @(& dotnet sln $solutionPath list | Where-Object { $_ -match '\.(cs|vb|fs)proj$' } |% { Join-Path $RepoRoot $_.Trim() })
+    foreach ($projectPath in $projectPaths) {
+        $projectProperties = (& dotnet msbuild $projectPath -getProperty:IsTestingPlatformApplication -getProperty:CloudTestFilterOption -getProperty:CloudTestFilterValue | ConvertFrom-Json).Properties
+        if ($projectProperties.IsTestingPlatformApplication -ne 'true') { continue }
+
+        $projectName = [IO.Path]::GetFileNameWithoutExtension($projectPath)
+        $projectBinLog = Join-Path (Split-Path $testBinLog) "test_$projectName.binlog"
+        $filterOption = $projectProperties.CloudTestFilterOption
+        $filterValue = $projectProperties.CloudTestFilterValue
+
+        # The filter is passed as quoted scalars: on Linux and macOS, PowerShell expands wildcards in array (splatted) arguments as file paths.
+        & $dotnet test --project $projectPath `
+            --no-build `
+            -c $Configuration `
+            -bl:"$projectBinLog" `
+            -- `
+            "$filterOption" `
+            "$filterValue" `
+            @mtpArgs `
+            @dumpSwitches `
+            @extraArgs
+        if ($LASTEXITCODE -ne 0) { $failedTests += 1 }
+    }
 
     if ($IncludeNativeAOT) {
         $nativeAotTests = @(& "$PSScriptRoot/Get-NativeAOTTestProjects.ps1" -Configuration $Configuration)

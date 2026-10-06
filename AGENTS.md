@@ -18,9 +18,10 @@
 * The build process first creates NuGet packages, then builds NPM packages
 
 ### Testing
-* Run all tests: `dotnet test -- --treenode-filter "/**[Category!=FailsInCloudTest]"`
-* The filter excludes unstable tests that are known to fail in cloud environments
-* Tests use the TUnit testing framework, with xUnit assertions (`xunit.v3.assert`)
+* Run all tests the way CI does: `tools/dotnet-test-cloud.ps1 -Configuration Release` (after building)
+* That script excludes unstable tests that are known to fail in cloud environments, using each test project's filter syntax
+* Tests use the TUnit testing framework, with xUnit assertions (`xunit.v3.assert`).
+  The exception is `test/Nerdbank.GitVersioning.Combinatorial.Tests`, which uses xunit v3 because its tests use Xunit.Combinatorial's `[PairwiseData]`.
 * All tests should pass when `NBGV_GitEngine=Disabled` is set
 
 ## Software Design
@@ -33,9 +34,13 @@
 
 **IMPORTANT**: This repository uses TUnit with Microsoft.Testing.Platform (MTP v2). Traditional `--filter` syntax does NOT work. Use the options below instead.
 
+The one exception is `test/Nerdbank.GitVersioning.Combinatorial.Tests`, an xunit v3 (MTP v2) project for the build integration tests that use Xunit.Combinatorial's `[PairwiseData]`. TUnit has no pairwise data source, so those tests stay on xunit for now.
+It links the shared test infrastructure (`BuildIntegrationTests.cs`, `RepoTestBase.cs`, etc.) from `test/Nerdbank.GitVersioning.Tests`, so keep that infrastructure free of TUnit-specific code. TUnit tests declared on `BuildIntegrationTests` go in `BuildIntegrationTests.Tests.cs`.
+Because TUnit and xunit take different filter options, don't pass `--treenode-filter` to `dotnet test` for the whole solution: the xunit project rejects it. Run that project with xunit's options instead (e.g. `--filter-method`, `--filter-class`, `--filter-not-trait`).
+
 * There should generally be one test project (under the `test` directory) per shipping project (under the `src` directory). Test projects are named after the project being tested with a `.Tests` suffix.
 * Tests use TUnit with Microsoft.Testing.Platform (MTP v2), while retaining xUnit assertions. Traditional VSTest `--filter` syntax does NOT work.
-* Some tests are known to be unstable. Mark them with `[Category("FailsInCloudTest")]`, and skip them when running tests by using `-- --treenode-filter "/**[Category!=FailsInCloudTest]"`.
+* Some tests are known to be unstable. Mark them with `[Category("FailsInCloudTest")]` (or `[Trait("Category", "FailsInCloudTest")]` in the xunit project), and skip them when running tests by using `-- --treenode-filter "/**[Category!=FailsInCloudTest]"` (or `-- --filter-not-trait "Category=FailsInCloudTest"` in the xunit project). `tools/dotnet-test-cloud.ps1` reads each test project's filter from its `CloudTestFilterOption` and `CloudTestFilterValue` MSBuild properties.
 * Write tests that cover both happy path and edge cases.
 * Ensure all new functionality is covered by tests.
 
@@ -44,6 +49,11 @@
 **Run all tests**:
 ```bash
 dotnet test --no-build -c Release
+```
+
+**Run the xunit (Xunit.Combinatorial) tests**:
+```bash
+dotnet test --project test/Nerdbank.GitVersioning.Combinatorial.Tests/Nerdbank.GitVersioning.Combinatorial.Tests.csproj --no-build -c Release -- --filter-method "*BuildNumber_VariousOptions"
 ```
 
 **Run tests for a specific test project**:

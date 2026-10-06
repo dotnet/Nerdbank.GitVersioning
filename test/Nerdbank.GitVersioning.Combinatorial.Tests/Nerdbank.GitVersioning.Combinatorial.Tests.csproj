@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The build integration tests that use Xunit.Combinatorial's [PairwiseData].
+    These stay on xunit until TUnit offers a pairwise data source; all other tests are in Nerdbank.GitVersioning.Tests (TUnit).
+    The test infrastructure is linked in from Nerdbank.GitVersioning.Tests.
+  -->
+  <PropertyGroup>
+    <TargetFrameworks>net10.0</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows'))">$(TargetFrameworks);net472</TargetFrameworks>
+    <OutputType>exe</OutputType>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+    <DebugType>full</DebugType>
+    <SignAssembly>false</SignAssembly>
+    <IsPackable>false</IsPackable>
+    <!-- The filter dotnet-test-cloud.ps1 uses to exclude FailsInCloudTest tests (xunit's syntax rather than TUnit's). -->
+    <CloudTestFilterOption>--filter-not-trait</CloudTestFilterOption>
+    <CloudTestFilterValue>Category=FailsInCloudTest</CloudTestFilterValue>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\src\Shared\**\*.cs" LinkBase="Shared" />
+    <Compile Include="..\Nerdbank.GitVersioning.Tests\BuildIntegrationTests.cs" Link="Shared\BuildIntegrationTests.cs" />
+    <Compile Include="..\Nerdbank.GitVersioning.Tests\ITestOutputHelper.cs" Link="Shared\ITestOutputHelper.cs" />
+    <Compile Include="..\Nerdbank.GitVersioning.Tests\MSBuildExtensions.cs" Link="Shared\MSBuildExtensions.cs" />
+    <Compile Include="..\Nerdbank.GitVersioning.Tests\RepoTestBase.cs" Link="Shared\RepoTestBase.cs" />
+    <Compile Include="..\Nerdbank.GitVersioning.Tests\RepoTestBase.Helpers.cs" Link="Shared\RepoTestBase.Helpers.cs" />
+    <Compile Include="..\Nerdbank.GitVersioning.Tests\TestUtilities.cs" Link="Shared\TestUtilities.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\src\Nerdbank.GitVersioning.Tasks\build\*.targets;..\..\src\Nerdbank.GitVersioning.Tasks\build\*.props;..\..\src\Nerdbank.GitVersioning.Tasks\build\*.proj">
+      <Visible>false</Visible>
+      <Link>Targets\%(FileName)%(Extension)</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Nerdbank.GitVersioning.Tests\test.vcprj" Link="test.vcprj" />
+    <EmbeddedResource Include="..\Nerdbank.GitVersioning.Tests\test.prj" Link="test.prj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Nerdbank.GitVersioning.Tasks\Nerdbank.GitVersioning.Tasks.csproj" />
+    <ProjectReference Include="..\..\src\NerdBank.GitVersioning\Nerdbank.GitVersioning.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Build.Locator" />
+    <PackageReference Include="Microsoft.Build.Framework" ExcludeAssets="runtime" />
+    <PackageReference Include="Microsoft.Build.Utilities.Core" ExcludeAssets="runtime" />
+    <PackageReference Include="Microsoft.Build" ExcludeAssets="runtime" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    <PackageReference Include="Nerdbank.GitVersioning.LKG" />
+    <PackageReference Include="System.Memory" Condition="'$(TargetFramework)' == 'net472'" />
+    <PackageReference Include="Xunit.Combinatorial" />
+    <PackageReference Include="xunit.v3.mtp-v2" />
+  </ItemGroup>
+</Project>
