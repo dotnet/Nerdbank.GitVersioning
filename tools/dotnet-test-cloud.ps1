@@ -33,9 +33,17 @@ $RepoRoot = (Resolve-Path "$PSScriptRoot/..").Path
 $ArtifactStagingFolder = & "$PSScriptRoot/Get-ArtifactsStagingDirectory.ps1"
 $OnCI = ($env:CI -or $env:TF_BUILD)
 
+$globalJson = Get-Content $PSScriptRoot/../global.json | ConvertFrom-Json
+$isMTP = $globalJson.test.runner -eq 'Microsoft.Testing.Platform'
+
 $dotnet = 'dotnet'
 if ($x86) {
   $x86RunTitleSuffix = ", x86"
+}
+
+# A Microsoft.Testing.Platform test project is a self-hosted executable, so a 32-bit dotnet.exe does not make its tests run in a 32-bit process.
+# For MTP, x86 test runs instead rebuild the .NET Framework test apps for x86 (see TestArchitecture in test/Directory.Build.targets).
+if ($x86 -and -not $isMTP) {
   if ($dotnet32) {
     $dotnet = $dotnet32
   } else {
@@ -57,8 +65,6 @@ if (Test-Path -LiteralPath $testLogs) {
     Remove-Item -LiteralPath $testLogs -Recurse -Force
 }
 
-$globalJson = Get-Content $PSScriptRoot/../global.json | ConvertFrom-Json
-$isMTP = $globalJson.test.runner -eq 'Microsoft.Testing.Platform'
 $extraArgs = @()
 $failedTests = 0
 $publishTrx = $PublishResults -and $env:TF_BUILD
@@ -120,6 +126,29 @@ if ($isMTP) {
                 throw "$projectPath targets more than one .NET Framework version ($($netfxTargetFrameworks -join ', ')), but x86 test runs support only one."
             }
             $frameworkArgs = '--framework', $netfxTargetFrameworks[0]
+
+            # Rebuild the .NET Framework test app as x86 so its tests run in a real 32-bit (WOW64) process.
+            $x86BinLog = Join-Path (Split-Path $testBinLog) "build_x86_$([IO.Path]::GetFileNameWithoutExtension($projectPath)).binlog"
+            & dotnet build $projectPath --no-restore -c $Configuration @frameworkArgs -p:TestArchitecture=x86 -p:BuildProjectReferences=false -bl:"$x86BinLog"
+            if ($LASTEXITCODE -ne 0) {
+                Write-Error "Failed to build $projectPath for x86."
+                $failedTests += 1
+                continue
+            }
+
+            $targetPath = & dotnet msbuild $projectPath -getProperty:TargetPath -p:Configuration=$Configuration -p:TargetFramework=$($netfxTargetFrameworks[0]) -p:TestArchitecture=x86
+            $peReader = [System.Reflection.PortableExecutable.PEReader]::new([IO.File]::OpenRead($targetPath))
+            try {
+                $corFlags = $peReader.PEHeaders.CorHeader.Flags
+            } finally {
+                $peReader.Dispose()
+            }
+            Write-Host "$targetPath CorFlags: $corFlags"
+            if (-not ($corFlags -band [System.Reflection.PortableExecutable.CorFlags]::Requires32Bit)) {
+                Write-Error "$targetPath was not built as a 32-bit executable."
+                $failedTests += 1
+                continue
+            }
         }
 
         $projectName = [IO.Path]::GetFileNameWithoutExtension($projectPath)
