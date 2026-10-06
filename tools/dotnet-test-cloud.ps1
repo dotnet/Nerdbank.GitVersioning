@@ -105,8 +105,22 @@ if ($isMTP) {
     # CloudTestFilterValue MSBuild properties (see test/Directory.Build.props), so each test project is run separately.
     $projectPaths = @(& dotnet sln $solutionPath list | Where-Object { $_ -match '\.(cs|vb|fs)proj$' } |% { Join-Path $RepoRoot $_.Trim() })
     foreach ($projectPath in $projectPaths) {
-        $projectProperties = (& dotnet msbuild $projectPath -getProperty:IsTestingPlatformApplication -getProperty:CloudTestFilterOption -getProperty:CloudTestFilterValue | ConvertFrom-Json).Properties
+        $projectProperties = (& dotnet msbuild $projectPath -getProperty:IsTestingPlatformApplication -getProperty:CloudTestFilterOption -getProperty:CloudTestFilterValue -getProperty:TargetFramework -getProperty:TargetFrameworks | ConvertFrom-Json).Properties
         if ($projectProperties.IsTestingPlatformApplication -ne 'true') { continue }
+
+        # x86 test runs cover .NET Framework only (e.g. net472). Projects without a .NET Framework target are skipped.
+        $frameworkArgs = @()
+        if ($x86) {
+            $netfxTargetFrameworks = @("$($projectProperties.TargetFrameworks);$($projectProperties.TargetFramework)" -split ';' |? { $_ -match '^net\d{2,3}$' } | Select-Object -Unique)
+            if ($netfxTargetFrameworks.Count -eq 0) {
+                Write-Host "Skipping $projectPath for x86 because it has no .NET Framework target." -ForegroundColor DarkGray
+                continue
+            }
+            if ($netfxTargetFrameworks.Count -gt 1) {
+                throw "$projectPath targets more than one .NET Framework version ($($netfxTargetFrameworks -join ', ')), but x86 test runs support only one."
+            }
+            $frameworkArgs = '--framework', $netfxTargetFrameworks[0]
+        }
 
         $projectName = [IO.Path]::GetFileNameWithoutExtension($projectPath)
         $projectBinLog = Join-Path (Split-Path $testBinLog) "test_$projectName.binlog"
@@ -117,6 +131,7 @@ if ($isMTP) {
         & $dotnet test --project $projectPath `
             --no-build `
             -c $Configuration `
+            @frameworkArgs `
             -bl:"$projectBinLog" `
             -- `
             "$filterOption" `

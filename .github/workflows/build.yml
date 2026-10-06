@@ -132,7 +132,7 @@ jobs:
         tools/dotnet-test-cloud.ps1 -Configuration ${{ env.BUILDCONFIGURATION }} -Agent ${{ runner.os }} -PublishResults
       shell: pwsh
       timeout-minutes: 15
-    - name: 🧪 test x86
+    - name: 🧪 test x86 (.NET Framework only)
       run: tools/dotnet-test-cloud.ps1 -Configuration ${{ env.BUILDCONFIGURATION }} -Agent ${{ runner.os }} -PublishResults -X86
       if: success() && runner.os == 'Windows'
     - name: 💅🏻 Verify formatted code
