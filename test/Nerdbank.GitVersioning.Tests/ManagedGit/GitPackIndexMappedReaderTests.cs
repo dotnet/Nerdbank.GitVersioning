@@ -10,13 +10,13 @@ namespace ManagedGit;
 
 public class GitPackIndexMappedReaderTests
 {
-    [Fact]
+    [Test]
     public void ConstructorNullTest()
     {
         Assert.Throws<ArgumentNullException>(() => new GitPackIndexMappedReader(null));
     }
 
-    [Fact]
+    [Test]
     public void GetOffsetTest()
     {
         string indexFile = Path.GetTempFileName();
@@ -47,7 +47,7 @@ public class GitPackIndexMappedReaderTests
         }
     }
 
-    [Fact]
+    [Test]
     public void GetOffsetFromPartialTest()
     {
         string indexFile = Path.GetTempFileName();

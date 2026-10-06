@@ -1,20 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project>
+  <Import Project="AOT.props"
+          Condition="'$(IsTestProject)' == 'true' and '$(PublishNativeAOTTests)' == 'true' and '$(TargetFramework)' != '' and $([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))" />
+
+  <PropertyGroup Condition="'$(NativeAOT)' == 'true' and '$(PublishNativeAOTTests)' == 'true'">
+    <NoWarn>$(NoWarn);IL2104;IL3053</NoWarn>
+  </PropertyGroup>
+
   <ItemGroup Condition="'$(IsTestProject)' != 'false'">
     <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
     <PackageReference Include="Microsoft.Testing.Extensions.CrashDump" />
     <PackageReference Include="Microsoft.Testing.Extensions.HangDump" />
     <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" />
   </ItemGroup>
-  <ItemGroup>
-    <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" Condition="Exists('xunit.runner.json')" />
-  </ItemGroup>
+  <!-- Microsoft.Testing.Platform test projects are self-hosted executables, so the bitness of the dotnet.exe that runs 'dotnet test' does not
+       determine the bitness of the test process. A .NET Framework AnyCPU test app always runs as 64-bit on a 64-bit OS.
+       The x86 CI test leg (tools/dotnet-test-cloud.ps1 -X86) rebuilds the .NET Framework test apps with TestArchitecture=x86
+       so they run in a real 32-bit (WOW64) process, as the net472 MSBuild task does in 32-bit MSBuild.exe hosts.
+       TEST_X86 lets the tests assert that they really run in a 32-bit process. -->
+  <PropertyGroup Condition="'$(TestArchitecture)' == 'x86' and '$(TargetFrameworkIdentifier)' == '.NETFramework'">
+    <PlatformTarget>x86</PlatformTarget>
+    <!-- Keep the SDK's AdjustDefaultPlatformTargetForNetFrameworkExeWithNoNativeCopyLocalItems target from resetting PlatformTarget to AnyCPU on Windows. -->
+    <_UsingDefaultPlatformTarget>false</_UsingDefaultPlatformTarget>
+    <DefineConstants>$(DefineConstants);TEST_X86</DefineConstants>
+  </PropertyGroup>
 
   <Target Name="CopyLibGit2SharpNativeBinaryCompatibilityName" AfterTargets="Build" Condition="'$(TargetFramework)' != ''">
     <PropertyGroup>
       <LibGit2SharpNativeBinaries>$([System.IO.Path]::Combine('$(NuGetPackageRoot)', 'libgit2sharp.nativebinaries\$(LibGit2SharpNativeVersion)\'))</LibGit2SharpNativeBinaries>
+      <_LibGit2SharpNetFxArchitecture Condition="'$(PlatformTarget)' == 'x86'">x86</_LibGit2SharpNetFxArchitecture>
+      <_LibGit2SharpNetFxArchitecture Condition="'$(_LibGit2SharpNetFxArchitecture)' == ''">x64</_LibGit2SharpNetFxArchitecture>
     </PropertyGroup>
     <ItemGroup>
+      <LibGit2SharpNetFxNativeBinary Include="$(LibGit2SharpNativeBinaries)runtimes\win-$(_LibGit2SharpNetFxArchitecture)\native\*.dll" />
       <LibGit2SharpWinNativeBinary Include="$(LibGit2SharpNativeBinaries)runtimes\win-x64\native\*.dll" />
       <LibGit2SharpLinuxNativeBinary Include="$(LibGit2SharpNativeBinaries)runtimes\linux-x64\native\*.so" />
       <LibGit2SharpOsxX64NativeBinary Include="$(LibGit2SharpNativeBinaries)runtimes\osx-x64\native\*.dylib" />
@@ -22,7 +40,7 @@
     </ItemGroup>
     <MakeDir Directories="$(OutDir)runtimes\win-x64\native;$(OutDir)runtimes\linux-x64\native;$(OutDir)runtimes\osx-x64\native;$(OutDir)runtimes\osx-arm64\native" />
     <!-- Destination names must match libgit2_filename from LibGit2Sharp.NativeBinaries (git2-5853918 for 2.0.324). -->
-    <Copy SourceFiles="@(LibGit2SharpWinNativeBinary)" DestinationFiles="$(OutDir)git2-5853918.dll" Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'" />
+    <Copy SourceFiles="@(LibGit2SharpNetFxNativeBinary)" DestinationFiles="$(OutDir)git2-5853918.dll" Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'" />
     <Copy SourceFiles="@(LibGit2SharpWinNativeBinary)" DestinationFiles="$(OutDir)runtimes\win-x64\native\git2-5853918.dll" />
     <Copy SourceFiles="@(LibGit2SharpLinuxNativeBinary)" DestinationFiles="$(OutDir)runtimes\linux-x64\native\libgit2-5853918.so" />
     <Copy SourceFiles="@(LibGit2SharpOsxX64NativeBinary)" DestinationFiles="$(OutDir)runtimes\osx-x64\native\libgit2-5853918.dylib" />
@@ -30,4 +48,34 @@
   </Target>
 
   <Import Project="$([MSBuild]::GetPathOfFileAbove($(MSBuildThisFile), $(MSBuildThisFileDirectory)..))" />
+
+  <Target Name="GetNativeAOTTestVariants" Returns="@(_NativeAOTTest)"
+          Condition="'$(IsTestProject)' == 'true' and '$(PublishNativeAOTTests)' == 'true'">
+    <ItemGroup Condition="'$(TargetFramework)' == ''">
+      <_TestFramework Include="$(TargetFrameworks)" />
+    </ItemGroup>
+    <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="GetNativeAOTTestVariants"
+             Properties="TargetFramework=%(_TestFramework.Identity)"
+             Condition="'$(TargetFramework)' == ''" BuildInParallel="true">
+      <Output TaskParameter="TargetOutputs" ItemName="_NativeAOTTest" />
+    </MSBuild>
+    <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="GetNativeAOTTestExecutable"
+             Properties="NativeAOT=true"
+             Condition="'$(TargetFramework)' != '' and $([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
+      <Output TaskParameter="TargetOutputs" ItemName="_NativeAOTTest" />
+    </MSBuild>
+  </Target>
+
+  <Target Name="GetNativeAOTTestExecutable" Returns="@(_NativeAOTTestExecutable)">
+    <PropertyGroup>
+      <_NativeExecutableExtension Condition="$([MSBuild]::IsOsPlatform('Windows'))">.exe</_NativeExecutableExtension>
+    </PropertyGroup>
+    <ItemGroup>
+      <_NativeAOTTestExecutable Include="$(MSBuildProjectFullPath)">
+        <ProjectName>$(MSBuildProjectName)</ProjectName>
+        <TargetFramework>$(TargetFramework)</TargetFramework>
+        <ExecutablePath>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(PublishDir)', '$(AssemblyName)$(_NativeExecutableExtension)'))</ExecutablePath>
+      </_NativeAOTTestExecutable>
+    </ItemGroup>
+  </Target>
 </Project>

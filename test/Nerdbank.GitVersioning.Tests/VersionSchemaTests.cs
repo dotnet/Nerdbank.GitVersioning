@@ -8,6 +8,8 @@ using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Schema;
 using Xunit;
 
+// TUnit creates a new instance of this class for each test, so tests may safely assign the json field.
+#pragma warning disable TUnit0018 // Test methods should not assign instance data
 public class VersionSchemaTests
 {
     private readonly ITestOutputHelper logger;
@@ -16,16 +18,16 @@ public class VersionSchemaTests
 
     private JObject json;
 
-    public VersionSchemaTests(ITestOutputHelper logger)
+    public VersionSchemaTests()
     {
-        this.logger = logger;
+        this.logger = TestOutputHelper.Instance;
         using (var schemaStream = new StreamReader(Assembly.GetExecutingAssembly().GetManifestResourceStream($"{ThisAssembly.RootNamespace}.version.schema.json")))
         {
             this.schema = JSchema.Load(new JsonTextReader(schemaStream));
         }
     }
 
-    [Fact]
+    [Test]
     public void VersionField_BasicScenarios()
     {
         this.json = JObject.Parse(@"{ ""version"": ""2.3"" }");
@@ -51,7 +53,7 @@ public class VersionSchemaTests
         Assert.False(this.json.IsValid(this.schema));
     }
 
-    [Fact]
+    [Test]
     public void VersionField_HeightMacroPlacement()
     {
         // Valid uses
@@ -73,7 +75,7 @@ public class VersionSchemaTests
         Assert.False(this.json.IsValid(this.schema));
     }
 
-    [Fact]
+    [Test]
     public void Inherit_AllowsOmissionOfVersion()
     {
         this.json = JObject.Parse(@"{ ""inherit"": false, ""version"": ""1.2"" }");
@@ -87,33 +89,33 @@ public class VersionSchemaTests
         Assert.True(this.json.IsValid(this.schema));
     }
 
-    [Theory]
-    [InlineData(@"{ ""version"": ""2.3"", ""release"":  { } }")]
-    [InlineData(@"{ ""version"": ""2.3"", ""release"":  { ""branchName"" : ""{version}"" } }")]
-    [InlineData(@"{ ""version"": ""2.3"", ""release"":  { ""branchName"" : ""release/v{version}"" } }")]
-    [InlineData(@"{ ""version"": ""2.3"", ""release"":  { ""branchName"" : ""prefix{version}suffix"" } }")]
-    [InlineData(@"{ ""version"": ""2.3"", ""release"":  { ""branchName"" : ""{version}"", ""versionIncrement"" : ""major"" } }")]
-    [InlineData(@"{ ""version"": ""2.3"", ""release"":  { ""branchName"" : ""{version}"", ""versionIncrement"" : ""minor"" } }")]
-    [InlineData(@"{ ""version"": ""2.3"", ""release"":  { ""branchName"" : ""{version}"", ""versionIncrement"" : ""build"" } }")]
-    [InlineData(@"{ ""version"": ""2.3"", ""release"":  { ""firstUnstableTag"" : ""pre"" } }")]
+    [Test]
+    [Arguments(@"{ ""version"": ""2.3"", ""release"":  { } }")]
+    [Arguments(@"{ ""version"": ""2.3"", ""release"":  { ""branchName"" : ""{version}"" } }")]
+    [Arguments(@"{ ""version"": ""2.3"", ""release"":  { ""branchName"" : ""release/v{version}"" } }")]
+    [Arguments(@"{ ""version"": ""2.3"", ""release"":  { ""branchName"" : ""prefix{version}suffix"" } }")]
+    [Arguments(@"{ ""version"": ""2.3"", ""release"":  { ""branchName"" : ""{version}"", ""versionIncrement"" : ""major"" } }")]
+    [Arguments(@"{ ""version"": ""2.3"", ""release"":  { ""branchName"" : ""{version}"", ""versionIncrement"" : ""minor"" } }")]
+    [Arguments(@"{ ""version"": ""2.3"", ""release"":  { ""branchName"" : ""{version}"", ""versionIncrement"" : ""build"" } }")]
+    [Arguments(@"{ ""version"": ""2.3"", ""release"":  { ""firstUnstableTag"" : ""pre"" } }")]
     public void ReleaseProperty_ValidJson(string json)
     {
         this.json = JObject.Parse(json);
         Assert.True(this.json.IsValid(this.schema));
     }
 
-    [Theory]
-    [InlineData(@"{ ""version"": ""2.3"", ""release"":  { ""versionIncrement"" : ""revision"" } }")]
-    [InlineData(@"{ ""version"": ""2.3"", ""release"":  { ""branchName"" : ""formatWithoutPlaceholder"" } }")]
-    [InlineData(@"{ ""version"": ""2.3"", ""release"":  { ""branchName"" : ""formatWithoutPlaceholder{0}"" } }")]
-    [InlineData(@"{ ""version"": ""2.3"", ""release"":  { ""unknownProperty"" : ""value"" } }")]
+    [Test]
+    [Arguments(@"{ ""version"": ""2.3"", ""release"":  { ""versionIncrement"" : ""revision"" } }")]
+    [Arguments(@"{ ""version"": ""2.3"", ""release"":  { ""branchName"" : ""formatWithoutPlaceholder"" } }")]
+    [Arguments(@"{ ""version"": ""2.3"", ""release"":  { ""branchName"" : ""formatWithoutPlaceholder{0}"" } }")]
+    [Arguments(@"{ ""version"": ""2.3"", ""release"":  { ""unknownProperty"" : ""value"" } }")]
     public void ReleaseProperty_InvalidJson(string json)
     {
         this.json = JObject.Parse(json);
         Assert.False(this.json.IsValid(this.schema));
     }
 
-    [Fact]
+    [Test]
     public void VersionField_SupportsUppercaseLettersInPreRelease()
     {
         // Test uppercase letters in pre-release identifiers

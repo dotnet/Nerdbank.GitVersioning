@@ -11,7 +11,7 @@ namespace ManagedGit;
 
 public class GitCommitReaderTests
 {
-    [Fact]
+    [Test]
     public void ReadTest()
     {
         using (Stream stream = TestUtilities.GetEmbeddedResource(@"ManagedGit\commit-d56dc3ed179053abef2097d1120b4507769bcf1a"))
@@ -40,7 +40,7 @@ public class GitCommitReaderTests
         }
     }
 
-    [Fact]
+    [Test]
     public void ReadCommitWithThreeParents()
     {
         using (Stream stream = TestUtilities.GetEmbeddedResource(@"ManagedGit\commit-ab39e8acac105fa0db88514f259341c9f0201b22"))

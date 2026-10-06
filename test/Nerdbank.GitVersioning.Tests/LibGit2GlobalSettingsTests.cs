@@ -7,10 +7,9 @@ using LibGit2Sharp;
 using Nerdbank.GitVersioning;
 using Xunit;
 
-[Collection("LibGit2 global settings")]
 public class LibGit2GlobalSettingsTests
 {
-    [Fact]
+    [Test]
     public void CreatingContextDoesNotAlterConfigSearchPaths()
     {
         string[] originalGlobalPaths = GlobalSettings.GetConfigSearchPaths(ConfigurationLevel.Global).ToArray();

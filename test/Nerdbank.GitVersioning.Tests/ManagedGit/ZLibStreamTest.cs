@@ -14,7 +14,7 @@ namespace ManagedGit
 {
     public class ZLibStreamTest
     {
-        [Fact]
+        [Test]
         public void ReadTest()
         {
             using (Stream rawStream = TestUtilities.GetEmbeddedResource(@"ManagedGit\3596ffe59898103a2675547d4597e742e1f2389c.gz"))
@@ -32,7 +32,7 @@ namespace ManagedGit
             }
         }
 
-        [Fact]
+        [Test]
         public void SeekTest()
         {
             using (Stream rawStream = TestUtilities.GetEmbeddedResource(@"ManagedGit\3596ffe59898103a2675547d4597e742e1f2389c.gz"))

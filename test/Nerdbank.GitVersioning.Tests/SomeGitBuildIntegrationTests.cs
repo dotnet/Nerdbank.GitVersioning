@@ -19,6 +19,7 @@ using Version = System.Version;
 /// The base class for tests that require some actual git implementation behind it.
 /// In other words, NOT the disabled engine implementation.
 /// </summary>
+[InheritsTests]
 public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
 {
     protected SomeGitBuildIntegrationTests(ITestOutputHelper logger)
@@ -26,7 +27,7 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
     {
     }
 
-    [Fact]
+    [Test]
     public async Task GetBuildVersion_WithThreeVersionIntegers()
     {
         VersionOptions workingCopyVersion = new VersionOptions
@@ -40,7 +41,7 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
         this.AssertStandardProperties(workingCopyVersion, buildResult);
     }
 
-    [Fact]
+    [Test]
     public async Task GetBuildVersion_OutsideGit_PointingToGit()
     {
         // Write a version file to the 'virtualized' repo.
@@ -67,7 +68,7 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
         this.AssertStandardProperties(workingCopyVersion, buildResult);
     }
 
-    [Fact]
+    [Test]
     public async Task GetBuildVersion_In_Git_But_Without_Commits()
     {
         Repository.Init(this.RepoPath);
@@ -79,7 +80,7 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
         Assert.Equal("3.4.0", buildResult.AssemblyInformationalVersion);
     }
 
-    [Fact]
+    [Test]
     public async Task GetBuildVersion_In_Git_But_Head_Lacks_VersionFile()
     {
         Repository.Init(this.RepoPath);
@@ -92,7 +93,7 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
         Assert.Equal("3.4.0+" + repo.Head.Tip.Id.Sha.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength), buildResult.AssemblyInformationalVersion);
     }
 
-    [Fact]
+    [Test]
     public async Task GetBuildVersion_In_Git_But_WorkingCopy_Has_Changes()
     {
         const string majorMinorVersion = "5.8";
@@ -106,7 +107,7 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
         this.AssertStandardProperties(workingCopyVersion, buildResult);
     }
 
-    [Fact]
+    [Test]
     public async Task GetBuildVersion_In_Git_No_VersionFile_At_All()
     {
         Repository.Init(this.RepoPath);
@@ -117,7 +118,7 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
         Assert.Equal("0.0.0+" + repo.Head.Tip.Id.Sha.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength), buildResult.AssemblyInformationalVersion);
     }
 
-    [Fact]
+    [Test]
     public async Task GetBuildVersion_In_Git_With_Version_File_In_Subdirectory_Works()
     {
         const string majorMinorVersion = "5.8";
@@ -131,7 +132,7 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
         this.AssertStandardProperties(VersionOptions.FromVersion(new Version(majorMinorVersion)), buildResult, subdirectory);
     }
 
-    [Fact]
+    [Test]
     public async Task GetBuildVersion_In_Git_With_Version_File_In_Root_And_Subdirectory_Works()
     {
         var rootVersionSpec = new VersionOptions
@@ -150,7 +151,7 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
         this.AssertStandardProperties(subdirVersionSpec, buildResult, subdirectory);
     }
 
-    [Fact]
+    [Test]
     public async Task GetBuildVersion_In_Git_With_Version_File_In_Root_And_Project_In_Root_Works()
     {
         var rootVersionSpec = new VersionOptions
@@ -167,7 +168,7 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
         this.AssertStandardProperties(rootVersionSpec, buildResult);
     }
 
-    [Fact]
+    [Test]
     public async Task GetBuildVersion_StablePreRelease()
     {
         const string majorMinorVersion = "5.8";
@@ -180,7 +181,7 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
         this.AssertStandardProperties(VersionOptions.FromVersion(new Version(majorMinorVersion)), buildResult);
     }
 
-    [Fact]
+    [Test]
     public async Task GetBuildVersion_StableRelease()
     {
         const string majorMinorVersion = "5.8";
@@ -197,7 +198,7 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
         Assert.Equal($"{version.Major}.{version.Minor}.{buildResult.GitVersionHeight}", buildResult.NuGetPackageVersion);
     }
 
-    [Fact]
+    [Test]
     public async Task GetBuildVersion_UnstablePreRelease()
     {
         const string majorMinorVersion = "5.8";
@@ -210,7 +211,7 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
         this.AssertStandardProperties(VersionOptions.FromVersion(new Version(majorMinorVersion), prerelease), buildResult);
     }
 
-    [Fact]
+    [Test]
     public async Task GetBuildVersion_UnstableRelease()
     {
         const string majorMinorVersion = "5.8";
@@ -224,7 +225,7 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
         this.AssertStandardProperties(VersionOptions.FromVersion(new Version(majorMinorVersion), prerelease), buildResult);
     }
 
-    [Fact]
+    [Test]
     public async Task GetBuildVersion_CustomAssemblyVersion()
     {
         this.WriteVersionFile("14.0");
@@ -239,10 +240,10 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
         this.AssertStandardProperties(versionOptions, buildResult);
     }
 
-    [Theory]
-    [InlineData(VersionOptions.VersionPrecision.Major)]
-    [InlineData(VersionOptions.VersionPrecision.Build)]
-    [InlineData(VersionOptions.VersionPrecision.Revision)]
+    [Test]
+    [Arguments(VersionOptions.VersionPrecision.Major)]
+    [Arguments(VersionOptions.VersionPrecision.Build)]
+    [Arguments(VersionOptions.VersionPrecision.Revision)]
     public async Task GetBuildVersion_CustomAssemblyVersionWithPrecision(VersionOptions.VersionPrecision precision)
     {
         var versionOptions = new VersionOptions
@@ -260,10 +261,10 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
         this.AssertStandardProperties(versionOptions, buildResult);
     }
 
-    [Theory]
-    [InlineData(VersionOptions.VersionPrecision.Major)]
-    [InlineData(VersionOptions.VersionPrecision.Build)]
-    [InlineData(VersionOptions.VersionPrecision.Revision)]
+    [Test]
+    [Arguments(VersionOptions.VersionPrecision.Major)]
+    [Arguments(VersionOptions.VersionPrecision.Build)]
+    [Arguments(VersionOptions.VersionPrecision.Revision)]
     public async Task GetBuildVersion_CustomAssemblyVersionPrecision(VersionOptions.VersionPrecision precision)
     {
         var versionOptions = new VersionOptions
@@ -280,7 +281,7 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
         this.AssertStandardProperties(versionOptions, buildResult);
     }
 
-    [Fact]
+    [Test]
     public async Task GetBuildVersion_CustomBuildNumberOffset()
     {
         this.WriteVersionFile("14.0");
@@ -295,7 +296,7 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
         this.AssertStandardProperties(versionOptions, buildResult);
     }
 
-    [Fact]
+    [Test]
     public async Task GetBuildVersion_OverrideBuildNumberOffset()
     {
         this.WriteVersionFile("14.0");
@@ -310,7 +311,7 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
         Assert.StartsWith("14.1.11.", buildResult.AssemblyFileVersion);
     }
 
-    [Fact]
+    [Test]
     public async Task GetBuildVersion_Minus1BuildOffset_NotYetCommitted()
     {
         this.WriteVersionFile("14.0");
@@ -325,9 +326,9 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
         this.AssertStandardProperties(versionOptions, buildResult);
     }
 
-    [Theory]
-    [InlineData(0)]
-    [InlineData(21)]
+    [Test]
+    [Arguments(0)]
+    [Arguments(21)]
     public async Task GetBuildVersion_BuildNumberSpecifiedInVersionJson(int buildNumber)
     {
         var versionOptions = new VersionOptions
@@ -340,7 +341,7 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
         this.AssertStandardProperties(versionOptions, buildResult);
     }
 
-    [Fact]
+    [Test]
     public async Task PublicRelease_RegEx_Unsatisfied()
     {
         var versionOptions = new VersionOptions
@@ -357,8 +358,8 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
         this.AssertStandardProperties(versionOptions, buildResult);
     }
 
-    [Theory]
-    [MemberData(nameof(CloudBuildOfBranch), "release")]
+    [Test]
+    [MethodDataSource(nameof(CloudBuildOfBranch), Arguments = ["release"])]
     public async Task PublicRelease_RegEx_SatisfiedByCI(IReadOnlyDictionary<string, string> serverProperties)
     {
         var versionOptions = new VersionOptions
@@ -384,9 +385,9 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
         }
     }
 
-    [Theory]
-    [Trait("TestCategory", "FailsInCloudTest")]
-    [MemberData(nameof(CloudBuildVariablesData))]
+    [Test]
+    [Category("FailsInCloudTest")]
+    [MethodDataSource(nameof(CloudBuildVariablesData))]
     public async Task CloudBuildVariables_SetInCI(IReadOnlyDictionary<string, string> properties, string expectedMessage, bool setAllVariables)
     {
         using (ApplyEnvironmentVariables(properties))
@@ -471,8 +472,8 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
         }
     }
 
-    [Theory]
-    [MemberData(nameof(BuildNumberData))]
+    [Test]
+    [MethodDataSource(nameof(BuildNumberData))]
     public async Task BuildNumber_SetInCI(VersionOptions versionOptions, IReadOnlyDictionary<string, string> properties, string expectedBuildNumberMessage)
     {
         this.WriteVersionFile(versionOptions);
@@ -496,31 +497,7 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
         }
     }
 
-    [Theory]
-    [PairwiseData]
-    public async Task BuildNumber_VariousOptions(bool isPublic, VersionOptions.CloudBuildNumberCommitWhere where, VersionOptions.CloudBuildNumberCommitWhen when, [CombinatorialValues(0, 1, 2)] int extraBuildMetadataCount, [CombinatorialValues(1, 2)] int semVer)
-    {
-        VersionOptions versionOptions = BuildNumberVersionOptionsBasis;
-        versionOptions.CloudBuild.BuildNumber.IncludeCommitId.Where = where;
-        versionOptions.CloudBuild.BuildNumber.IncludeCommitId.When = when;
-        versionOptions.NuGetPackageVersion = new VersionOptions.NuGetPackageVersionOptions
-        {
-            SemVer = semVer,
-        };
-        this.WriteVersionFile(versionOptions);
-        this.InitializeSourceControl();
-
-        this.globalProperties["PublicRelease"] = isPublic.ToString();
-        for (int i = 0; i < extraBuildMetadataCount; i++)
-        {
-            this.testProject.AddItem("BuildMetadata", $"A{i}");
-        }
-
-        BuildResults buildResult = await this.BuildAsync();
-        this.AssertStandardProperties(versionOptions, buildResult);
-    }
-
-    [Fact]
+    [Test]
     public void GitLab_BuildTag()
     {
         // Based on the values defined in https://docs.gitlab.com/ee/ci/variables/#syntax-of-environment-variables-in-job-scripts
@@ -544,7 +521,7 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
         }
     }
 
-    [Fact]
+    [Test]
     public void GitLab_BuildBranch()
     {
         // Based on the values defined in https://docs.gitlab.com/ee/ci/variables/#syntax-of-environment-variables-in-job-scripts
@@ -567,7 +544,7 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
         }
     }
 
-    [Fact]
+    [Test]
     public async Task PublicRelease_RegEx_SatisfiedByCheckedOutBranch()
     {
         var versionOptions = new VersionOptions
@@ -589,98 +566,8 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
         }
     }
 
-    // This test builds projects using 'classic' MSBuild projects, which target net45.
-    // This is not supported on Linux.
-    [WindowsTheory]
-    [PairwiseData]
-    public async Task AssemblyInfo(bool isVB, bool includeNonVersionAttributes, bool gitRepo, bool isPrerelease, bool isPublicRelease)
-    {
-        this.WriteVersionFile(prerelease: isPrerelease ? "-beta" : string.Empty);
-        if (gitRepo)
-        {
-            this.InitializeSourceControl();
-        }
-
-        if (isVB)
-        {
-            this.MakeItAVBProject();
-        }
-
-        if (includeNonVersionAttributes)
-        {
-            this.testProject.AddProperty("NBGV_EmitNonVersionCustomAttributes", "true");
-        }
-
-        this.globalProperties["PublicRelease"] = isPublicRelease ? "true" : "false";
-
-        BuildResults result = await this.BuildAsync("Build", logVerbosity: LoggerVerbosity.Minimal);
-        string assemblyPath = result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("TargetPath");
-        string versionFileContent = File.ReadAllText(Path.Combine(this.projectDirectory, result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile")));
-        this.Logger.WriteLine(versionFileContent);
-
-        var assembly = Assembly.LoadFile(assemblyPath);
-
-        AssemblyFileVersionAttribute assemblyFileVersion = assembly.GetCustomAttribute<AssemblyFileVersionAttribute>();
-        AssemblyInformationalVersionAttribute assemblyInformationalVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
-        AssemblyTitleAttribute assemblyTitle = assembly.GetCustomAttribute<AssemblyTitleAttribute>();
-        AssemblyProductAttribute assemblyProduct = assembly.GetCustomAttribute<AssemblyProductAttribute>();
-        AssemblyCompanyAttribute assemblyCompany = assembly.GetCustomAttribute<AssemblyCompanyAttribute>();
-        AssemblyCopyrightAttribute assemblyCopyright = assembly.GetCustomAttribute<AssemblyCopyrightAttribute>();
-        Type thisAssemblyClass = assembly.GetType("ThisAssembly") ?? assembly.GetType("TestNamespace.ThisAssembly");
-        Assert.NotNull(thisAssemblyClass);
-
-        Assert.Equal(new Version(result.AssemblyVersion), assembly.GetName().Version);
-        Assert.Equal(result.AssemblyFileVersion, assemblyFileVersion.Version);
-        Assert.Equal(result.AssemblyInformationalVersion, assemblyInformationalVersion.InformationalVersion);
-        if (includeNonVersionAttributes)
-        {
-            Assert.Equal(result.AssemblyTitle, assemblyTitle.Title);
-            Assert.Equal(result.AssemblyProduct, assemblyProduct.Product);
-            Assert.Equal(result.AssemblyCompany, assemblyCompany.Company);
-            Assert.Equal(result.AssemblyCopyright, assemblyCopyright.Copyright);
-        }
-        else
-        {
-            Assert.Null(assemblyTitle);
-            Assert.Null(assemblyProduct);
-            Assert.Null(assemblyCompany);
-            Assert.Null(assemblyCopyright);
-        }
-
-        const BindingFlags fieldFlags = BindingFlags.Static | BindingFlags.NonPublic;
-        Assert.Equal(result.AssemblyVersion, thisAssemblyClass.GetField("AssemblyVersion", fieldFlags).GetValue(null));
-        Assert.Equal(result.AssemblyFileVersion, thisAssemblyClass.GetField("AssemblyFileVersion", fieldFlags).GetValue(null));
-        Assert.Equal(result.AssemblyInformationalVersion, thisAssemblyClass.GetField("AssemblyInformationalVersion", fieldFlags).GetValue(null));
-        Assert.Equal(result.AssemblyName, thisAssemblyClass.GetField("AssemblyName", fieldFlags).GetValue(null));
-        Assert.Equal(result.RootNamespace, thisAssemblyClass.GetField("RootNamespace", fieldFlags).GetValue(null));
-        Assert.Equal(result.AssemblyConfiguration, thisAssemblyClass.GetField("AssemblyConfiguration", fieldFlags).GetValue(null));
-        Assert.Equal(result.AssemblyTitle, thisAssemblyClass.GetField("AssemblyTitle", fieldFlags)?.GetValue(null));
-        Assert.Equal(result.AssemblyProduct, thisAssemblyClass.GetField("AssemblyProduct", fieldFlags)?.GetValue(null));
-        Assert.Equal(result.AssemblyCompany, thisAssemblyClass.GetField("AssemblyCompany", fieldFlags)?.GetValue(null));
-        Assert.Equal(result.AssemblyCopyright, thisAssemblyClass.GetField("AssemblyCopyright", fieldFlags)?.GetValue(null));
-        Assert.Equal(result.GitCommitId, thisAssemblyClass.GetField("GitCommitId", fieldFlags)?.GetValue(null) ?? string.Empty);
-        Assert.Equal(result.PublicRelease, thisAssemblyClass.GetField("IsPublicRelease", fieldFlags)?.GetValue(null));
-        Assert.Equal(!string.IsNullOrEmpty(result.PrereleaseVersion), thisAssemblyClass.GetField("IsPrerelease", fieldFlags)?.GetValue(null));
-
-        if (gitRepo)
-        {
-            Assert.True(long.TryParse(result.GitCommitDateTicks, out _), $"Invalid value for GitCommitDateTicks: '{result.GitCommitDateTicks}'");
-            var gitCommitDate = new DateTime(long.Parse(result.GitCommitDateTicks), DateTimeKind.Utc);
-            Assert.Equal(gitCommitDate, thisAssemblyClass.GetProperty("GitCommitDate", fieldFlags)?.GetValue(null) ?? thisAssemblyClass.GetField("GitCommitDate", fieldFlags)?.GetValue(null) ?? string.Empty);
-        }
-        else
-        {
-            Assert.Empty(result.GitCommitDateTicks);
-            Assert.Null(thisAssemblyClass.GetProperty("GitCommitDate", fieldFlags));
-        }
-
-        // Verify that it doesn't have key fields
-        Assert.Null(thisAssemblyClass.GetField("PublicKey", fieldFlags));
-        Assert.Null(thisAssemblyClass.GetField("PublicKeyToken", fieldFlags));
-    }
-
-    [Fact]
-    [Trait("TestCategory", "FailsInCloudTest")]
+    [Test]
+    [Category("FailsInCloudTest")]
     public async Task AssemblyInfo_IncrementalBuild()
     {
         this.WriteVersionFile(prerelease: "-beta");
@@ -694,7 +581,7 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
     /// Create a native resource .dll and verify that its version
     ///  information is set correctly.
     /// </summary>
-    [Fact]
+    [Test]
     public async Task NativeVersionInfo_CreateNativeResourceDll()
     {
         this.testProject = this.CreateNativeProjectRootElement(this.projectDirectory, "test.vcxproj");
@@ -714,9 +601,9 @@ public abstract class SomeGitBuildIntegrationTests : BuildIntegrationTests
     }
 #endif
 
-    [Theory]
-    [Trait("TestCategory", "FailsInCloudTest")]
-    [MemberData(nameof(CloudBuildVariablesData))]
+    [Test]
+    [Category("FailsInCloudTest")]
+    [MethodDataSource(nameof(CloudBuildVariablesData))]
     public async Task SetCloudBuildVersionVars_CanBeDisabled(IReadOnlyDictionary<string, string> properties, string expectedMessage, bool setAllVariables)
     {
         using (ApplyEnvironmentVariables(properties))

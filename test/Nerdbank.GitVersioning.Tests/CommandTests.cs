@@ -7,12 +7,12 @@ using Xunit;
 
 public class CommandTests : RepoTestBase
 {
-    public CommandTests(ITestOutputHelper logger)
-        : base(logger)
+    public CommandTests()
+        : base(TestOutputHelper.Instance)
     {
     }
 
-    [Theory, CombinatorialData]
+    [Test, MatrixDataSource]
     public void CloudCommand_CloudBuildNumber(bool setCloudBuildNumber)
     {
         const string ciSystem = "VisualStudioTeamServices";

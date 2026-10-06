@@ -9,11 +9,12 @@ using Version = System.Version;
 #pragma warning disable SA1402 // File may only contain a single type
 #pragma warning disable SA1649 // File name should match first type name
 
-[Trait("Engine", "Managed")]
+[Property("Engine", "Managed")]
+[InheritsTests]
 public class VersionFileManagedTests : VersionFileTests
 {
-    public VersionFileManagedTests(ITestOutputHelper logger)
-        : base(logger)
+    public VersionFileManagedTests()
+        : base(TestOutputHelper.Instance)
     {
     }
 
@@ -22,11 +23,12 @@ public class VersionFileManagedTests : VersionFileTests
         => GitContext.Create(path, committish, engine: GitContext.Engine.ReadOnly);
 }
 
-[Trait("Engine", "LibGit2")]
+[Property("Engine", "LibGit2")]
+[InheritsTests]
 public class VersionFileLibGit2Tests : VersionFileTests
 {
-    public VersionFileLibGit2Tests(ITestOutputHelper logger)
-        : base(logger)
+    public VersionFileLibGit2Tests()
+        : base(TestOutputHelper.Instance)
     {
     }
 
@@ -47,7 +49,7 @@ public abstract class VersionFileTests : RepoTestBase
         this.versionJsonPath = Path.Combine(this.RepoPath, VersionFile.JsonFileName);
     }
 
-    [Fact]
+    [Test]
     public void IsVersionDefined_Commit()
     {
         this.InitializeSourceControl();
@@ -64,7 +66,7 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.False(initialContext.VersionFile.IsVersionDefined());
     }
 
-    [Fact]
+    [Test]
     public void IsVersionDefined_String_ConsiderAncestorFolders()
     {
         // Construct a repo where versions are defined like this:
@@ -89,15 +91,15 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.True(this.Context.VersionFile.IsVersionDefined());
     }
 
-    [Theory]
-    [InlineData("2.3", null, null, 0, null, @"{""version"":""2.3""}")]
-    [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Minor, 0, null, @"{""version"":""2.3"",""assemblyVersion"":""2.2""}")]
-    [InlineData("2.3", "1.2.3", VersionOptions.VersionPrecision.Minor, 0, null, @"{""version"":""2.3"",""assemblyVersion"":{""version"":""1.2.3""}}")]
-    [InlineData("2.3", "1.2.3.4", VersionOptions.VersionPrecision.Minor, 0, null, @"{""version"":""2.3"",""assemblyVersion"":{""version"":""1.2.3.4""}}")]
-    [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Minor, -1, new[] { "refs/heads/master" }, @"{""version"":""2.3"",""assemblyVersion"":""2.2"",""versionHeightOffset"":-1,""publicReleaseRefSpec"":[""refs/heads/master""]}")]
-    [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Minor, -1, new[] { "refs/heads/master" }, @"{""version"":""2.3"",""assemblyVersion"":""2.2"",""buildNumberOffset"":-1,""publicReleaseRefSpec"":[""refs/heads/master""]}")]
-    [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Minor, 0, null, @"{""version"":""2.3"",""assemblyVersion"":{""version"":""2.2""}}")]
-    [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Revision, 0, null, @"{""version"":""2.3"",""assemblyVersion"":{""version"":""2.2"", ""precision"":""revision""}}")]
+    [Test]
+    [Arguments("2.3", null, null, 0, null, @"{""version"":""2.3""}")]
+    [Arguments("2.3", "2.2", VersionOptions.VersionPrecision.Minor, 0, null, @"{""version"":""2.3"",""assemblyVersion"":""2.2""}")]
+    [Arguments("2.3", "1.2.3", VersionOptions.VersionPrecision.Minor, 0, null, @"{""version"":""2.3"",""assemblyVersion"":{""version"":""1.2.3""}}")]
+    [Arguments("2.3", "1.2.3.4", VersionOptions.VersionPrecision.Minor, 0, null, @"{""version"":""2.3"",""assemblyVersion"":{""version"":""1.2.3.4""}}")]
+    [Arguments("2.3", "2.2", VersionOptions.VersionPrecision.Minor, -1, new[] { "refs/heads/master" }, @"{""version"":""2.3"",""assemblyVersion"":""2.2"",""versionHeightOffset"":-1,""publicReleaseRefSpec"":[""refs/heads/master""]}")]
+    [Arguments("2.3", "2.2", VersionOptions.VersionPrecision.Minor, -1, new[] { "refs/heads/master" }, @"{""version"":""2.3"",""assemblyVersion"":""2.2"",""buildNumberOffset"":-1,""publicReleaseRefSpec"":[""refs/heads/master""]}")]
+    [Arguments("2.3", "2.2", VersionOptions.VersionPrecision.Minor, 0, null, @"{""version"":""2.3"",""assemblyVersion"":{""version"":""2.2""}}")]
+    [Arguments("2.3", "2.2", VersionOptions.VersionPrecision.Revision, 0, null, @"{""version"":""2.3"",""assemblyVersion"":{""version"":""2.2"", ""precision"":""revision""}}")]
     public void GetVersion_JsonCompatibility(string version, string assemblyVersion, object precision, int versionHeightOffset, string[] publicReleaseRefSpec, string json)
     {
         File.WriteAllText(Path.Combine(this.RepoPath, VersionFile.JsonFileName), json);
@@ -111,12 +113,12 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.Equal(publicReleaseRefSpec, options.PublicReleaseRefSpec);
     }
 
-    [Theory]
-    [InlineData("2.3", "")]
-    [InlineData("2.3", null)]
-    [InlineData("2.3", "-beta")]
-    [InlineData("2.3.0", "")]
-    [InlineData("2.3.0", "-rc")]
+    [Test]
+    [Arguments("2.3", "")]
+    [Arguments("2.3", null)]
+    [Arguments("2.3", "-beta")]
+    [Arguments("2.3.0", "")]
+    [Arguments("2.3.0", "-rc")]
     public void SetVersion_GetVersionFromFile(string expectedVersion, string expectedPrerelease)
     {
         string pathWritten = this.Context.VersionFile.SetVersion(this.RepoPath, new Version(expectedVersion), expectedPrerelease);
@@ -131,10 +133,10 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.Equal(expectedPrerelease ?? string.Empty, actualVersion.Version.Prerelease);
     }
 
-    [Theory]
-    [InlineData("true", "lf", "\n")]
-    [InlineData("true", "crlf", "\r\n")]
-    [InlineData("false", "lf", "")]
+    [Test]
+    [Arguments("true", "lf", "\n")]
+    [Arguments("true", "crlf", "\r\n")]
+    [Arguments("false", "lf", "")]
     public void SetVersion_RespectsEditorConfigFinalNewline(string insertFinalNewline, string endOfLine, string expectedFinalNewline)
     {
         File.WriteAllText(
@@ -151,12 +153,12 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.Equal(expectedFinalNewline, actualFinalNewline);
     }
 
-    [Theory]
-    [InlineData("2.3", null, VersionOptions.VersionPrecision.Minor, 0, false, @"{""version"":""2.3""}")]
-    [InlineData("2.3", null, VersionOptions.VersionPrecision.Minor, null, true, @"{""version"":""2.3"",""assemblyVersion"":{""precision"":""minor""},""inherit"":true}")]
-    [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Minor, 0, false, @"{""version"":""2.3"",""assemblyVersion"":""2.2""}")]
-    [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Minor, -1, false, @"{""version"":""2.3"",""assemblyVersion"":""2.2"",""versionHeightOffset"":-1}")]
-    [InlineData("2.3", "2.2", VersionOptions.VersionPrecision.Revision, -1, false, @"{""version"":""2.3"",""assemblyVersion"":{""version"":""2.2"",""precision"":""revision""},""versionHeightOffset"":-1}")]
+    [Test]
+    [Arguments("2.3", null, VersionOptions.VersionPrecision.Minor, 0, false, @"{""version"":""2.3""}")]
+    [Arguments("2.3", null, VersionOptions.VersionPrecision.Minor, null, true, @"{""version"":""2.3"",""assemblyVersion"":{""precision"":""minor""},""inherit"":true}")]
+    [Arguments("2.3", "2.2", VersionOptions.VersionPrecision.Minor, 0, false, @"{""version"":""2.3"",""assemblyVersion"":""2.2""}")]
+    [Arguments("2.3", "2.2", VersionOptions.VersionPrecision.Minor, -1, false, @"{""version"":""2.3"",""assemblyVersion"":""2.2"",""versionHeightOffset"":-1}")]
+    [Arguments("2.3", "2.2", VersionOptions.VersionPrecision.Revision, -1, false, @"{""version"":""2.3"",""assemblyVersion"":{""version"":""2.2"",""precision"":""revision""},""versionHeightOffset"":-1}")]
     public void SetVersion_WritesSimplestFile(string version, string assemblyVersion, VersionOptions.VersionPrecision? precision, int? versionHeightOffset, bool inherit, string expectedJson)
     {
         var versionOptions = new VersionOptions
@@ -174,7 +176,7 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.Equal(expectedJson, normalizedFileContent);
     }
 
-    [Fact]
+    [Test]
     public void SetVersion_PathFilters_OutsideGitRepo()
     {
         var versionOptions = new VersionOptions
@@ -189,7 +191,7 @@ public abstract class VersionFileTests : RepoTestBase
         this.Context.VersionFile.SetVersion(this.RepoPath, versionOptions);
     }
 
-    [Fact]
+    [Test]
     public void SetVersion_PathFilters_DifferentRelativePaths()
     {
         this.InitializeSourceControl();
@@ -214,7 +216,7 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.Equal(expected, actual);
     }
 
-    [Fact]
+    [Test]
     public void SetVersion_PathFilters_InheritRelativePaths()
     {
         this.InitializeSourceControl();
@@ -246,7 +248,7 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.Equal(expected, actual);
     }
 
-    [Fact]
+    [Test]
     public void SetVersion_PathFilters_InheritOverride()
     {
         this.InitializeSourceControl();
@@ -283,24 +285,24 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.Equal(expected, actual);
     }
 
-    [Theory]
-    [InlineData(@"{""cloudBuild"":{""buildNumber"":{""enabled"":false,""includeCommitId"":{""when"":""nonPublicReleaseOnly"",""where"":""buildMetadata""}}}}", @"{}")]
-    [InlineData(@"{""cloudBuild"":{""buildNumber"":{""enabled"":true,""includeCommitId"":{""when"":""nonPublicReleaseOnly"",""where"":""buildMetadata""}}}}", @"{""cloudBuild"":{""buildNumber"":{""enabled"":true}}}")]
-    [InlineData(@"{""cloudBuild"":{""buildNumber"":{""enabled"":true,""includeCommitId"":{""when"":""always"",""where"":""buildMetadata""}}}}", @"{""cloudBuild"":{""buildNumber"":{""enabled"":true,""includeCommitId"":{""when"":""always""}}}}")]
-    [InlineData(@"{""cloudBuild"":{""buildNumber"":{""enabled"":true,""includeCommitId"":{""when"":""nonPublicReleaseOnly"",""where"":""fourthVersionComponent""}}}}", @"{""cloudBuild"":{""buildNumber"":{""enabled"":true,""includeCommitId"":{""where"":""fourthVersionComponent""}}}}")]
-    [InlineData(@"{""cloudBuild"":{""setVersionVariables"":true}}", @"{}")]
-    [InlineData(@"{""cloudBuild"":{""setAllVariables"":false}}", @"{}")]
-    [InlineData(@"{""release"":{""increment"":""minor""}}", @"{}")]
-    [InlineData(@"{""release"":{""branchName"":""v{version}""}}", @"{}")]
-    [InlineData(@"{""release"":{""firstUnstableTag"":""alpha""}}", @"{}")]
-    [InlineData(@"{""release"":{""gitCommitIdPrefix"":""g""}}", @"{}")]
-    [InlineData(@"{""release"":{""firstUnstableTag"":""tag""}}", @"{""release"":{""firstUnstableTag"":""tag""}}")]
-    [InlineData(@"{""release"":{""branchName"":""v{version}"",""versionIncrement"":""minor"",""firstUnstableTag"":""alpha""}}", @"{}")]
-    [InlineData(@"{""release"":{""versionIncrement"":""major""}}", @"{""release"":{""versionIncrement"":""major""}}")]
-    [InlineData(@"{""release"":{""branchName"":""someName""}}", @"{""release"":{""branchName"":""someName""}}")]
-    [InlineData(@"{""release"":{""branchName"":""someName"",""versionIncrement"":""major""}}", @"{""release"":{""branchName"":""someName"",""versionIncrement"":""major""}}")]
-    [InlineData(@"{""release"":{""branchName"":""someName"",""versionIncrement"":""major"",""firstUnstableTag"":""alpha""}}", @"{""release"":{""branchName"":""someName"",""versionIncrement"":""major""}}")]
-    [InlineData(@"{""release"":{""branchName"":""someName"",""versionIncrement"":""major"",""firstUnstableTag"":""pre""}}", @"{""release"":{""branchName"":""someName"",""versionIncrement"":""major"",""firstUnstableTag"":""pre""}}")]
+    [Test]
+    [Arguments(@"{""cloudBuild"":{""buildNumber"":{""enabled"":false,""includeCommitId"":{""when"":""nonPublicReleaseOnly"",""where"":""buildMetadata""}}}}", @"{}")]
+    [Arguments(@"{""cloudBuild"":{""buildNumber"":{""enabled"":true,""includeCommitId"":{""when"":""nonPublicReleaseOnly"",""where"":""buildMetadata""}}}}", @"{""cloudBuild"":{""buildNumber"":{""enabled"":true}}}")]
+    [Arguments(@"{""cloudBuild"":{""buildNumber"":{""enabled"":true,""includeCommitId"":{""when"":""always"",""where"":""buildMetadata""}}}}", @"{""cloudBuild"":{""buildNumber"":{""enabled"":true,""includeCommitId"":{""when"":""always""}}}}")]
+    [Arguments(@"{""cloudBuild"":{""buildNumber"":{""enabled"":true,""includeCommitId"":{""when"":""nonPublicReleaseOnly"",""where"":""fourthVersionComponent""}}}}", @"{""cloudBuild"":{""buildNumber"":{""enabled"":true,""includeCommitId"":{""where"":""fourthVersionComponent""}}}}")]
+    [Arguments(@"{""cloudBuild"":{""setVersionVariables"":true}}", @"{}")]
+    [Arguments(@"{""cloudBuild"":{""setAllVariables"":false}}", @"{}")]
+    [Arguments(@"{""release"":{""increment"":""minor""}}", @"{}")]
+    [Arguments(@"{""release"":{""branchName"":""v{version}""}}", @"{}")]
+    [Arguments(@"{""release"":{""firstUnstableTag"":""alpha""}}", @"{}")]
+    [Arguments(@"{""release"":{""gitCommitIdPrefix"":""g""}}", @"{}")]
+    [Arguments(@"{""release"":{""firstUnstableTag"":""tag""}}", @"{""release"":{""firstUnstableTag"":""tag""}}")]
+    [Arguments(@"{""release"":{""branchName"":""v{version}"",""versionIncrement"":""minor"",""firstUnstableTag"":""alpha""}}", @"{}")]
+    [Arguments(@"{""release"":{""versionIncrement"":""major""}}", @"{""release"":{""versionIncrement"":""major""}}")]
+    [Arguments(@"{""release"":{""branchName"":""someName""}}", @"{""release"":{""branchName"":""someName""}}")]
+    [Arguments(@"{""release"":{""branchName"":""someName"",""versionIncrement"":""major""}}", @"{""release"":{""branchName"":""someName"",""versionIncrement"":""major""}}")]
+    [Arguments(@"{""release"":{""branchName"":""someName"",""versionIncrement"":""major"",""firstUnstableTag"":""alpha""}}", @"{""release"":{""branchName"":""someName"",""versionIncrement"":""major""}}")]
+    [Arguments(@"{""release"":{""branchName"":""someName"",""versionIncrement"":""major"",""firstUnstableTag"":""pre""}}", @"{""release"":{""branchName"":""someName"",""versionIncrement"":""major"",""firstUnstableTag"":""pre""}}")]
     public void JsonMinification(string full, string minimal)
     {
         JsonSerializerSettings settings = VersionOptions.GetJsonSettings();
@@ -315,7 +317,7 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.Equal(minimal, fullVersionSerialized);
     }
 
-    [Fact]
+    [Test]
     public void GetVersion_CanReadSpecConformantJsonFile()
     {
         File.WriteAllText(Path.Combine(this.RepoPath, VersionFile.JsonFileName), "{ version: \"1.2-pre\" }");
@@ -325,7 +327,7 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.Equal("-pre", actualVersion.Version.Prerelease);
     }
 
-    [Fact]
+    [Test]
     public void GetVersion_CanReadSpecConformantTxtFile_SingleLine()
     {
         File.WriteAllText(Path.Combine(this.RepoPath, VersionFile.TxtFileName), "1.2-pre");
@@ -335,7 +337,7 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.Equal("-pre", actualVersion.Version.Prerelease);
     }
 
-    [Fact]
+    [Test]
     public void GetVersion_CanReadSpecConformantTxtFile_MultiLine()
     {
         File.WriteAllText(Path.Combine(this.RepoPath, VersionFile.TxtFileName), "1.2\n-pre");
@@ -345,7 +347,7 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.Equal("-pre", actualVersion.Version.Prerelease);
     }
 
-    [Fact]
+    [Test]
     public void GetVersion_CanReadSpecConformantTxtFile_MultiLineNoHyphen()
     {
         File.WriteAllText(Path.Combine(this.RepoPath, VersionFile.TxtFileName), "1.2\npre");
@@ -355,7 +357,7 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.Equal("-pre", actualVersion.Version.Prerelease);
     }
 
-    [Fact]
+    [Test]
     public void GetVersion_Commit()
     {
         Assert.Null(this.Context.VersionFile.GetVersion());
@@ -369,7 +371,7 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.Equal(fromFile, fromCommit);
     }
 
-    [Fact]
+    [Test]
     public void GetVersion_String_FindsNearestFileInAncestorDirectories()
     {
         // Construct a repo where versions are defined like this:
@@ -396,7 +398,7 @@ public abstract class VersionFileTests : RepoTestBase
         this.AssertPathHasVersion(commit, this.RepoPath, rootVersionSpec);
     }
 
-    [Fact]
+    [Test]
     public void GetVersion_String_FindsNearestFileInAncestorDirectories_WithAssemblyVersion()
     {
         // Construct a repo where versions are defined like this:
@@ -427,7 +429,7 @@ public abstract class VersionFileTests : RepoTestBase
         this.AssertPathHasVersion(commit, this.RepoPath, rootVersionSpec);
     }
 
-    [Fact]
+    [Test]
     public void GetVersion_ReadReleaseSettings_VersionIncrement()
     {
         string json = @"{ ""version"" : ""1.2"", ""release"" : { ""versionIncrement"" : ""major""  } }";
@@ -441,7 +443,7 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.Equal(VersionOptions.ReleaseVersionIncrement.Major, versionOptions.Release.VersionIncrement);
     }
 
-    [Fact]
+    [Test]
     public void GetVersion_ReadReleaseSettings_FirstUnstableTag()
     {
         string json = @"{ ""version"" : ""1.2"", ""release"" : { ""firstUnstableTag"" : ""preview""  } }";
@@ -455,7 +457,7 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.Equal("preview", versionOptions.Release.FirstUnstableTag);
     }
 
-    [Fact]
+    [Test]
     public void GetVersion_ReadReleaseSettings_BranchName()
     {
         string json = @"{ ""version"" : ""1.2"", ""release"" : { ""branchName"" : ""someValue{version}""  } }";
@@ -469,7 +471,7 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.Equal("someValue{version}", versionOptions.Release.BranchName);
     }
 
-    [Fact]
+    [Test]
     public void GetVersion_ReadPathFilters()
     {
         this.InitializeSourceControl();
@@ -485,7 +487,7 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.Equal(new[] { "/root.txt", "./hello" }, versionOptions.PathFilters.Select(fp => fp.ToPathSpec(repoRelativeBaseDirectory)));
     }
 
-    [Fact]
+    [Test]
     public void GetVersion_WithPathFiltersOutsideOfGitRepo()
     {
         string json = @"{ ""version"" : ""1.2"", ""pathFilters"" : [ ""."" ] }";
@@ -495,13 +497,13 @@ public abstract class VersionFileTests : RepoTestBase
         this.Context.VersionFile.GetVersion();
     }
 
-    [Fact]
+    [Test]
     public void GetVersion_String_MissingFile()
     {
         Assert.Null(this.Context.VersionFile.GetVersion());
     }
 
-    [Fact]
+    [Test]
     public void VersionJson_InheritButNoParentFileFound()
     {
         this.InitializeSourceControl();
@@ -514,7 +516,7 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.Throws<InvalidOperationException>(() => this.Context.VersionFile.GetVersion());
     }
 
-    [Fact]
+    [Test]
     public void VersionJson_DoNotInheritButNoVersionSpecified()
     {
         this.InitializeSourceControl();
@@ -525,9 +527,9 @@ public abstract class VersionFileTests : RepoTestBase
             }));
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
     public void VersionJson_Inheritance(bool commitInSourceControl)
     {
         if (commitInSourceControl)
@@ -615,7 +617,7 @@ public abstract class VersionFileTests : RepoTestBase
         }
     }
 
-    [Fact]
+    [Test]
     public void GetVersion_ProducesAbsolutePath()
     {
         this.InitializeSourceControl();
@@ -625,9 +627,9 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.True(Path.IsPathRooted(locations.VersionSpecifyingVersionDirectory));
     }
 
-    [Theory]
-    [InlineData(1)]
-    [InlineData(2)]
+    [Test]
+    [Arguments(1)]
+    [Arguments(2)]
     public void GetVersion_ReadNuGetPackageVersionSettings_SemVer(int semVer)
     {
         string json = $@"{{ ""version"" : ""1.0"", ""nugetPackageVersion"" : {{ ""semVer"" : {semVer}  }} }}";
@@ -641,8 +643,8 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.Equal(semVer, versionOptions.NuGetPackageVersion.SemVer);
     }
 
-    [Theory]
-    [CombinatorialData]
+    [Test]
+    [MatrixDataSource]
     public void GetVersion_ReadNuGetPackageVersionSettings_Precision(VersionOptions.VersionPrecision precision)
     {
         string json = $@"{{ ""version"" : ""1.0"", ""nugetPackageVersion"" : {{ ""precision"" : ""{precision}""  }} }}";
@@ -656,7 +658,7 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.Equal(precision, versionOptions.NuGetPackageVersion.Precision);
     }
 
-    [Fact]
+    [Test]
     public void GetVersion_CaseInsensitivePathMatching_Simple()
     {
         // Simple test to debug the issue
@@ -671,7 +673,7 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.Equal("1.0.0", actualVersionOptions.Version.ToString());
     }
 
-    [Fact]
+    [Test]
     public void GetVersion_CaseInsensitivePathMatching()
     {
         // This test verifies that when a project's repo-relative path case doesn't match
@@ -722,7 +724,7 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.Equal(10, actualVersionOptionsWithDifferentCase.VersionHeightOffset);
     }
 
-    [Fact]
+    [Test]
     public void Prerelease_AddedToInheritedVersion()
     {
         // Arrange: Create a parent version.json with a stable version
@@ -752,7 +754,7 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.Null(childOptions.Prerelease); // Prerelease should be null after being applied
     }
 
-    [Fact]
+    [Test]
     public void Prerelease_SuppressesInheritedPrerelease()
     {
         // Arrange: Create a parent version.json with a prerelease version
@@ -782,7 +784,7 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.Null(childOptions.Prerelease);
     }
 
-    [Fact]
+    [Test]
     public void Prerelease_InheritsAsIs_WhenNotSpecified()
     {
         // Arrange: Create a parent version.json with a prerelease version
@@ -810,7 +812,7 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.False(childOptions.Inherit);
     }
 
-    [Fact]
+    [Test]
     public void Prerelease_ThrowsWhen_VersionAlreadyHasPrerelease()
     {
         // Arrange: Create a parent version.json with a stable version
@@ -835,7 +837,7 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.Throws<InvalidOperationException>(() => context.VersionFile.GetVersion());
     }
 
-    [Fact]
+    [Test]
     public void Prerelease_ThrowsWhen_InheritedVersionHasPrereleaseAndChildSpecifiesPrerelease()
     {
         // Arrange: Create a parent version.json with a prerelease version
@@ -860,7 +862,7 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.Throws<InvalidOperationException>(() => context.VersionFile.GetVersion());
     }
 
-    [Fact]
+    [Test]
     public void Prerelease_MultiLevel_Inheritance()
     {
         // Arrange: Create a three-level hierarchy
@@ -902,7 +904,7 @@ public abstract class VersionFileTests : RepoTestBase
         Assert.Equal("1.2-beta", level3Options.Version.ToString());
     }
 
-    [Fact]
+    [Test]
     public void Prerelease_WithoutHyphen_IsHandledCorrectly()
     {
         // Arrange: Create a parent version.json with a stable version

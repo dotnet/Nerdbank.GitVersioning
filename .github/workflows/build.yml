@@ -66,7 +66,7 @@ jobs:
       fail-fast: false
       matrix:
         os:
-        - ubuntu-24.04
+        - ubuntu-26.04
         - windows-2025
 
     steps:
@@ -84,13 +84,6 @@ jobs:
           mono --version
         }
       shell: pwsh
-    - name: ⚙ Install 32-bit .NET SDK and runtimes
-      shell: pwsh
-      run: |
-        $globalJson = Get-Content global.json | ConvertFrom-Json
-        Invoke-WebRequest -Uri "https://dot.net/v1/dotnet-install.ps1" -OutFile dotnet-install.ps1
-        & .\dotnet-install.ps1 -Architecture x86 -Version $globalJson.sdk.version -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose
-      if: runner.os == 'Windows'
     - name: ⚙ Install node.js
       uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
       with:
@@ -132,7 +125,7 @@ jobs:
         tools/dotnet-test-cloud.ps1 -Configuration ${{ env.BUILDCONFIGURATION }} -Agent ${{ runner.os }} -PublishResults
       shell: pwsh
       timeout-minutes: 15
-    - name: 🧪 test x86
+    - name: 🧪 test x86 (.NET Framework, 32-bit process)
       run: tools/dotnet-test-cloud.ps1 -Configuration ${{ env.BUILDCONFIGURATION }} -Agent ${{ runner.os }} -PublishResults -X86
       if: success() && runner.os == 'Windows'
     - name: 💅🏻 Verify formatted code
@@ -365,10 +358,10 @@ jobs:
 
   docs:
     name: 📃 Docs
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - name: 🔗 Markup Link Checker (mlc)
-      uses: becheran/mlc@7ec24825cefe0c9c8c6bac48430e1f69e3ec356e # v1.2.0
+      uses: becheran/mlc@b0d0d353e04fcbcfd1d86716103d78a61e5b25dd # v1.2.2
       with:
         args: --do-not-warn-for-redirect-to https://learn.microsoft.com*,https://dotnet.microsoft.com/*,https://dev.azure.com/*,https://app.codecov.io/* -p docfx -i https://www.npmjs.com/package/*,https://get.dot.net/

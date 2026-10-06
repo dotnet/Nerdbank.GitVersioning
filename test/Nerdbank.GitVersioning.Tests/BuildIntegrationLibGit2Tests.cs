@@ -4,14 +4,14 @@
 using Nerdbank.GitVersioning;
 using Xunit;
 
-[Trait("Engine", EngineString)]
-[Collection("Build")] // msbuild sets current directory in the process, so we can't have it be concurrent with other build tests.
+[Property("Engine", EngineString)]
+[InheritsTests]
 public class BuildIntegrationLibGit2Tests : SomeGitBuildIntegrationTests
 {
     private const string EngineString = "LibGit2";
 
-    public BuildIntegrationLibGit2Tests(ITestOutputHelper logger)
-        : base(logger)
+    public BuildIntegrationLibGit2Tests()
+        : base(TestOutputHelper.Instance)
     {
     }
 

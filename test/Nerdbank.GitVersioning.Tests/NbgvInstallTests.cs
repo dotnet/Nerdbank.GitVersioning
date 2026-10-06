@@ -17,12 +17,12 @@ using Xunit;
 
 public class NbgvInstallTests : RepoTestBase
 {
-    public NbgvInstallTests(ITestOutputHelper logger)
-        : base(logger)
+    public NbgvInstallTests()
+        : base(TestOutputHelper.Instance)
     {
     }
 
-    [Fact]
+    [Test]
     public async Task UnauthorizedNuGetSourceDoesNotModifyRepository()
     {
         this.InitializeSourceControl(withInitialCommit: false);
@@ -59,9 +59,9 @@ public class NbgvInstallTests : RepoTestBase
         startInfo.ArgumentList.Add(this.RepoPath);
 
         using Process process = Process.Start(startInfo)!;
-        Task<string> standardOutputTask = process.StandardOutput.ReadToEndAsync(TestContext.Current.CancellationToken);
-        Task<string> standardErrorTask = process.StandardError.ReadToEndAsync(TestContext.Current.CancellationToken);
-        await Task.WhenAll(standardOutputTask, standardErrorTask, process.WaitForExitAsync(TestContext.Current.CancellationToken));
+        Task<string> standardOutputTask = process.StandardOutput.ReadToEndAsync(TestContext.Current!.Execution.CancellationToken);
+        Task<string> standardErrorTask = process.StandardError.ReadToEndAsync(TestContext.Current!.Execution.CancellationToken);
+        await Task.WhenAll(standardOutputTask, standardErrorTask, process.WaitForExitAsync(TestContext.Current!.Execution.CancellationToken));
         string standardError = await standardErrorTask;
 
         await cancellationSource.CancelAsync();
@@ -77,7 +77,7 @@ public class NbgvInstallTests : RepoTestBase
         Assert.False(File.Exists(Path.Combine(this.RepoPath, "Directory.Build.props")));
     }
 
-    [Fact]
+    [Test]
     public async Task UsesDefaultBranchInVersionJson()
     {
         this.InitializeSourceControl();
@@ -112,9 +112,9 @@ public class NbgvInstallTests : RepoTestBase
         startInfo.ArgumentList.Add(this.RepoPath);
 
         using Process process = Process.Start(startInfo)!;
-        Task<string> standardOutputTask = process.StandardOutput.ReadToEndAsync(TestContext.Current.CancellationToken);
-        Task<string> standardErrorTask = process.StandardError.ReadToEndAsync(TestContext.Current.CancellationToken);
-        await Task.WhenAll(standardOutputTask, standardErrorTask, process.WaitForExitAsync(TestContext.Current.CancellationToken));
+        Task<string> standardOutputTask = process.StandardOutput.ReadToEndAsync(TestContext.Current!.Execution.CancellationToken);
+        Task<string> standardErrorTask = process.StandardError.ReadToEndAsync(TestContext.Current!.Execution.CancellationToken);
+        await Task.WhenAll(standardOutputTask, standardErrorTask, process.WaitForExitAsync(TestContext.Current!.Execution.CancellationToken));
         this.Logger.WriteLine("nbgv standard output:{0}{1}", Environment.NewLine, await standardOutputTask);
         this.Logger.WriteLine("nbgv standard error:{0}{1}", Environment.NewLine, await standardErrorTask);
 
@@ -123,9 +123,9 @@ public class NbgvInstallTests : RepoTestBase
         Assert.Equal("^refs/heads/release/v1\\.0$", (string?)versionOptions["publicReleaseRefSpec"]?[0]);
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
     public async Task GetVersionWarnsWhenVersionJsonIsDirty(bool staged)
     {
         this.WriteVersionFile();
@@ -143,7 +143,7 @@ public class NbgvInstallTests : RepoTestBase
         Assert.Contains("Dirty version.json files must be committed before their changes will be applied.", standardError);
     }
 
-    [Fact]
+    [Test]
     public async Task GetVersionWarnsWhenInheritedVersionJsonIsDirty()
     {
         this.WriteVersionFile();
@@ -157,7 +157,7 @@ public class NbgvInstallTests : RepoTestBase
         Assert.Contains("Dirty version.json files must be committed before their changes will be applied.", standardError);
     }
 
-    [Fact]
+    [Test]
     public async Task GetVersionDoesNotWarnForUnreadVersionJson()
     {
         this.WriteVersionFile();
@@ -229,9 +229,9 @@ public class NbgvInstallTests : RepoTestBase
         startInfo.Environment["NBGV_GitEngine"] = "Managed";
 
         using Process process = Process.Start(startInfo)!;
-        Task<string> standardOutputTask = process.StandardOutput.ReadToEndAsync(TestContext.Current.CancellationToken);
-        Task<string> standardErrorTask = process.StandardError.ReadToEndAsync(TestContext.Current.CancellationToken);
-        await Task.WhenAll(standardOutputTask, standardErrorTask, process.WaitForExitAsync(TestContext.Current.CancellationToken));
+        Task<string> standardOutputTask = process.StandardOutput.ReadToEndAsync(TestContext.Current!.Execution.CancellationToken);
+        Task<string> standardErrorTask = process.StandardError.ReadToEndAsync(TestContext.Current!.Execution.CancellationToken);
+        await Task.WhenAll(standardOutputTask, standardErrorTask, process.WaitForExitAsync(TestContext.Current!.Execution.CancellationToken));
         string standardError = await standardErrorTask;
         this.Logger.WriteLine("nbgv standard output:{0}{1}", Environment.NewLine, await standardOutputTask);
         this.Logger.WriteLine("nbgv standard error:{0}{1}", Environment.NewLine, standardError);

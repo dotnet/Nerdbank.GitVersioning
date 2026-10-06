@@ -40,6 +40,9 @@ clones, and worktrees. They require Git 2.51 or newer on PATH and do not use the
 
 There may be tests that are known to be unstable or have special requirements. These can be avoided by running tests using the [dotnet-test-cloud.ps1](tools/dotnet-test-cloud.ps1) script *after* running `dotnet build`.
 
+This repo opts out of the template's NativeAOT test publishing (`PublishNativeAOTTests` is `false` in [test/Directory.Build.props](test/Directory.Build.props)) and has no `test/AotCompatibilityTest` project,
+because the shipping packages (the library, MSBuild task, `nbgv` tool and Cake addin) depend on MSBuild, NuGet, LibGit2Sharp and reflection-based JSON serialization, which are not NativeAOT-compatible.
+
 ## Releases
 
 Use `nbgv tag` to create a tag for a particular commit that you mean to release.
