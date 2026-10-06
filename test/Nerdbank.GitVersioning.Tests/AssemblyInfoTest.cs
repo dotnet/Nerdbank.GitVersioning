@@ -11,12 +11,18 @@ using Nerdbank.GitVersioning.Tasks;
 using Xunit;
 using Xunit.Sdk;
 
-public class AssemblyInfoTest : IClassFixture<MSBuildFixture> // The MSBuildFixture throws PlatformNotSupportedException when run on mono.
+public class AssemblyInfoTest
 {
-    [Theory(SkipExceptions = [typeof(PlatformNotSupportedException)])]
-    [InlineData(false)]
-    [InlineData(true)]
-    [InlineData(null)]
+    static AssemblyInfoTest()
+    {
+        // Load MSBuild before any test touches its types. This throws PlatformNotSupportedException when run on mono.
+        MSBuildExtensions.LoadMSBuild();
+    }
+
+    [Test, TestExecutor<SkipOnPlatformNotSupportedExceptionExecutor>]
+    [Arguments(false)]
+    [Arguments(true)]
+    [Arguments(null)]
     public void FSharpGenerator(bool? thisAssemblyClass)
     {
         var info = new AssemblyVersionInfo();
@@ -90,12 +96,12 @@ do()
         Assert.Equal(expected, built);
     }
 
-    [Theory(SkipExceptions = [typeof(PlatformNotSupportedException)])]
-    [InlineData(null, "MyRootNamespace")]
-    [InlineData("", "MyRootNamespace")]
-    [InlineData("MyCustomNamespace", null)]
-    [InlineData("MyCustomNamespace", "")]
-    [InlineData("MyCustomNamespace", "MyRootNamespace")]
+    [Test, TestExecutor<SkipOnPlatformNotSupportedExceptionExecutor>]
+    [Arguments(null, "MyRootNamespace")]
+    [Arguments("", "MyRootNamespace")]
+    [Arguments("MyCustomNamespace", null)]
+    [Arguments("MyCustomNamespace", "")]
+    [Arguments("MyCustomNamespace", "MyRootNamespace")]
     public void FSharpGeneratorWithNamespace(string thisAssemblyNamespace, string rootNamespace)
     {
         var info = new AssemblyVersionInfo
@@ -150,10 +156,10 @@ do()
         Assert.Equal(expected, built);
     }
 
-    [Theory(SkipExceptions = [typeof(PlatformNotSupportedException)])]
-    [InlineData(false)]
-    [InlineData(true)]
-    [InlineData(null)]
+    [Test, TestExecutor<SkipOnPlatformNotSupportedExceptionExecutor>]
+    [Arguments(false)]
+    [Arguments(true)]
+    [Arguments(null)]
     public void GSharpGenerator(bool? thisAssemblyClass)
     {
         var info = new AssemblyVersionInfo();
@@ -224,12 +230,12 @@ internal class ThisAssembly {{
         Assert.Equal(expected, built);
     }
 
-    [Theory(SkipExceptions = [typeof(PlatformNotSupportedException)])]
-    [InlineData(null, "MyRootNamespace")]
-    [InlineData("", "MyRootNamespace")]
-    [InlineData("MyCustomNamespace", null)]
-    [InlineData("MyCustomNamespace", "")]
-    [InlineData("MyCustomNamespace", "MyRootNamespace")]
+    [Test, TestExecutor<SkipOnPlatformNotSupportedExceptionExecutor>]
+    [Arguments(null, "MyRootNamespace")]
+    [Arguments("", "MyRootNamespace")]
+    [Arguments("MyCustomNamespace", null)]
+    [Arguments("MyCustomNamespace", "")]
+    [Arguments("MyCustomNamespace", "MyRootNamespace")]
     public void GSharpGeneratorWithNamespace(string thisAssemblyNamespace, string rootNamespace)
     {
         var info = new AssemblyVersionInfo
@@ -281,10 +287,10 @@ internal class ThisAssembly {{
         Assert.Equal(expected, built);
     }
 
-    [Theory(SkipExceptions = [typeof(PlatformNotSupportedException)])]
-    [InlineData(false)]
-    [InlineData(true)]
-    [InlineData(null)]
+    [Test, TestExecutor<SkipOnPlatformNotSupportedExceptionExecutor>]
+    [Arguments(false)]
+    [Arguments(true)]
+    [Arguments(null)]
     public void CSharpGenerator(bool? thisAssemblyClass)
     {
         var info = new AssemblyVersionInfo();
@@ -357,12 +363,12 @@ internal static partial class ThisAssembly {{
         Assert.Equal(expected, built);
     }
 
-    [Theory(SkipExceptions = [typeof(PlatformNotSupportedException)])]
-    [InlineData(null, "MyRootNamespace")]
-    [InlineData("", "MyRootNamespace")]
-    [InlineData("MyCustomNamespace", null)]
-    [InlineData("MyCustomNamespace", "")]
-    [InlineData("MyCustomNamespace", "MyRootNamespace")]
+    [Test, TestExecutor<SkipOnPlatformNotSupportedExceptionExecutor>]
+    [Arguments(null, "MyRootNamespace")]
+    [Arguments("", "MyRootNamespace")]
+    [Arguments("MyCustomNamespace", null)]
+    [Arguments("MyCustomNamespace", "")]
+    [Arguments("MyCustomNamespace", "MyRootNamespace")]
     public void CSharpGeneratorWithNamespace(string thisAssemblyNamespace, string rootNamespace)
     {
         var info = new AssemblyVersionInfo
@@ -415,10 +421,10 @@ internal static partial class ThisAssembly {{
         Assert.Equal(expected, built);
     }
 
-    [Theory(SkipExceptions = [typeof(PlatformNotSupportedException)])]
-    [InlineData(false)]
-    [InlineData(true)]
-    [InlineData(null)]
+    [Test, TestExecutor<SkipOnPlatformNotSupportedExceptionExecutor>]
+    [Arguments(false)]
+    [Arguments(true)]
+    [Arguments(null)]
     public void VisualBasicGenerator(bool? thisAssemblyClass)
     {
         var info = new AssemblyVersionInfo();
@@ -471,12 +477,12 @@ End Class
         Assert.Equal(expected, built);
     }
 
-    [Theory(SkipExceptions = [typeof(PlatformNotSupportedException)])]
-    [InlineData(null, "MyRootNamespace")]
-    [InlineData("", "MyRootNamespace")]
-    [InlineData("MyCustomNamespace", null)]
-    [InlineData("MyCustomNamespace", "")]
-    [InlineData("MyCustomNamespace", "MyRootNamespace")]
+    [Test, TestExecutor<SkipOnPlatformNotSupportedExceptionExecutor>]
+    [Arguments(null, "MyRootNamespace")]
+    [Arguments("", "MyRootNamespace")]
+    [Arguments("MyCustomNamespace", null)]
+    [Arguments("MyCustomNamespace", "")]
+    [Arguments("MyCustomNamespace", "MyRootNamespace")]
     public void VisualBasicGeneratorWithNamespace(string thisAssemblyNamespace, string rootNamespace)
     {
         var info = new AssemblyVersionInfo

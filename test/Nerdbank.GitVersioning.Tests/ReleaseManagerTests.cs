@@ -21,11 +21,12 @@ using Version = System.Version;
 #pragma warning disable SA1402 // File may only contain a single type
 #pragma warning disable SA1649 // File name should match first type name
 
-[Trait("Engine", "Managed")]
+[Property("Engine", "Managed")]
+[InheritsTests]
 public class ReleaseManagerManagedTests : ReleaseManagerTests
 {
-    public ReleaseManagerManagedTests(ITestOutputHelper logger)
-        : base(logger)
+    public ReleaseManagerManagedTests()
+        : base(TestOutputHelper.Instance)
     {
     }
 
@@ -34,11 +35,12 @@ public class ReleaseManagerManagedTests : ReleaseManagerTests
         => GitContext.Create(path, committish, engine: GitContext.Engine.ReadOnly);
 }
 
-[Trait("Engine", "LibGit2")]
+[Property("Engine", "LibGit2")]
+[InheritsTests]
 public class ReleaseManagerLibGit2Tests : ReleaseManagerTests
 {
-    public ReleaseManagerLibGit2Tests(ITestOutputHelper logger)
-        : base(logger)
+    public ReleaseManagerLibGit2Tests()
+        : base(TestOutputHelper.Instance)
     {
     }
 
@@ -54,7 +56,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
     {
     }
 
-    [Fact]
+    [Test]
     public void PrepareRelease_NoGitRepo()
     {
         // running PrepareRelease should result in an error
@@ -62,7 +64,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         this.AssertError(() => new ReleaseManager().PrepareRelease(this.RepoPath), ReleasePreparationError.NoGitRepo);
     }
 
-    [Fact]
+    [Test]
     public void PrepareRelease_DirtyWorkingDirecotory()
     {
         this.InitializeSourceControl();
@@ -75,7 +77,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         this.AssertError(() => new ReleaseManager().PrepareRelease(this.RepoPath), ReleasePreparationError.UncommittedChanges);
     }
 
-    [Fact]
+    [Test]
     public void PrepareRelease_DirtyIndex()
     {
         this.InitializeSourceControl();
@@ -90,7 +92,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         this.AssertError(() => new ReleaseManager().PrepareRelease(this.RepoPath), ReleasePreparationError.UncommittedChanges);
     }
 
-    [Fact]
+    [Test]
     public void PrepareRelease_NoVersionFile()
     {
         this.InitializeSourceControl();
@@ -100,7 +102,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         this.AssertError(() => new ReleaseManager().PrepareRelease(this.RepoPath), ReleasePreparationError.NoVersionFile);
     }
 
-    [Fact]
+    [Test]
     public void PrepareRelease_InvalidBranchNameSetting()
     {
         this.InitializeSourceControl();
@@ -121,7 +123,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         this.AssertError(() => new ReleaseManager().PrepareRelease(this.RepoPath), ReleasePreparationError.InvalidBranchNameSetting);
     }
 
-    [Fact]
+    [Test]
     public void PrepareRelease_ReleaseBranchAlreadyExists()
     {
         this.InitializeSourceControl();
@@ -145,17 +147,17 @@ public abstract class ReleaseManagerTests : RepoTestBase
         this.AssertError(() => new ReleaseManager().PrepareRelease(this.RepoPath), ReleasePreparationError.BranchAlreadyExists);
     }
 
-    [Theory]
+    [Test]
     // base test cases
-    [InlineData("1.2-beta", null, null, "v1.2", "1.2")]
-    [InlineData("1.2-beta.{height}", null, null, "v1.2", "1.2")]
-    [InlineData("1.2-beta", null, "rc", "v1.2", "1.2-rc")]
-    [InlineData("1.2-beta.{height}", null, "rc", "v1.2", "1.2-rc.{height}")]
+    [Arguments("1.2-beta", null, null, "v1.2", "1.2")]
+    [Arguments("1.2-beta.{height}", null, null, "v1.2", "1.2")]
+    [Arguments("1.2-beta", null, "rc", "v1.2", "1.2-rc")]
+    [Arguments("1.2-beta.{height}", null, "rc", "v1.2", "1.2-rc.{height}")]
     // modify release.branchName
-    [InlineData("1.2-beta", "v{version}release", null, "v1.2release", "1.2")]
-    [InlineData("1.2-beta.{height}", "v{version}release", null, "v1.2release", "1.2")]
-    [InlineData("1.2-beta", "v{version}release", "rc", "v1.2release", "1.2-rc")]
-    [InlineData("1.2-beta.{height}", "v{version}release", "rc", "v1.2release", "1.2-rc.{height}")]
+    [Arguments("1.2-beta", "v{version}release", null, "v1.2release", "1.2")]
+    [Arguments("1.2-beta.{height}", "v{version}release", null, "v1.2release", "1.2")]
+    [Arguments("1.2-beta", "v{version}release", "rc", "v1.2release", "1.2-rc")]
+    [Arguments("1.2-beta.{height}", "v{version}release", "rc", "v1.2release", "1.2-rc.{height}")]
     public void PrepareRelease_ReleaseBranch(string initialVersion, string releaseOptionsBranchName, string releaseUnstableTag, string releaseBranchName, string resultingVersion)
     {
         releaseOptionsBranchName = releaseOptionsBranchName ?? new ReleaseOptions().BranchNameOrDefault;
@@ -209,9 +211,9 @@ public abstract class ReleaseManagerTests : RepoTestBase
         }
     }
 
-    [Theory]
-    [InlineData("1.2", "rc", "release/v1.2")]
-    [InlineData("1.2+metadata", "rc", "release/v1.2")]
+    [Test]
+    [Arguments("1.2", "rc", "release/v1.2")]
+    [Arguments("1.2+metadata", "rc", "release/v1.2")]
     public void PrepeareRelease_ReleaseBranchWithVersionDecrement(string initialVersion, string releaseUnstableTag, string branchName)
     {
         // create and configure repository
@@ -230,47 +232,47 @@ public abstract class ReleaseManagerTests : RepoTestBase
     }
 
 #pragma warning disable SA1114 // Parameter list should follow declaration
-    [Theory]
+    [Test]
     // base test cases
-    [InlineData("1.2-beta", null, null, null, null, null, null, "v1.2", "1.2", "1.3-alpha")]
-    [InlineData("1.2-beta", null, null, null, "rc", null, null, "v1.2", "1.2-rc", "1.3-alpha")]
-    [InlineData("1.2-beta.{height}", null, null, null, null, null, null, "v1.2", "1.2", "1.3-alpha.{height}")]
-    [InlineData("1.2-beta.{height}", null, null, null, "rc", null, null, "v1.2", "1.2-rc.{height}", "1.3-alpha.{height}")]
+    [Arguments("1.2-beta", null, null, null, null, null, null, "v1.2", "1.2", "1.3-alpha")]
+    [Arguments("1.2-beta", null, null, null, "rc", null, null, "v1.2", "1.2-rc", "1.3-alpha")]
+    [Arguments("1.2-beta.{height}", null, null, null, null, null, null, "v1.2", "1.2", "1.3-alpha.{height}")]
+    [Arguments("1.2-beta.{height}", null, null, null, "rc", null, null, "v1.2", "1.2-rc.{height}", "1.3-alpha.{height}")]
     // modify release.branchName
-    [InlineData("1.2-beta", "v{version}release", ReleaseVersionIncrement.Minor, "alpha", null, null, null, "v1.2release", "1.2", "1.3-alpha")]
-    [InlineData("1.2-beta", "v{version}release", ReleaseVersionIncrement.Minor, "alpha", "rc", null, null, "v1.2release", "1.2-rc", "1.3-alpha")]
-    [InlineData("1.2-beta.{height}", "v{version}release", ReleaseVersionIncrement.Minor, "alpha", null, null, null, "v1.2release", "1.2", "1.3-alpha.{height}")]
-    [InlineData("1.2-beta.{height}", "v{version}release", ReleaseVersionIncrement.Minor, "alpha", "rc", null, null, "v1.2release", "1.2-rc.{height}", "1.3-alpha.{height}")]
+    [Arguments("1.2-beta", "v{version}release", ReleaseVersionIncrement.Minor, "alpha", null, null, null, "v1.2release", "1.2", "1.3-alpha")]
+    [Arguments("1.2-beta", "v{version}release", ReleaseVersionIncrement.Minor, "alpha", "rc", null, null, "v1.2release", "1.2-rc", "1.3-alpha")]
+    [Arguments("1.2-beta.{height}", "v{version}release", ReleaseVersionIncrement.Minor, "alpha", null, null, null, "v1.2release", "1.2", "1.3-alpha.{height}")]
+    [Arguments("1.2-beta.{height}", "v{version}release", ReleaseVersionIncrement.Minor, "alpha", "rc", null, null, "v1.2release", "1.2-rc.{height}", "1.3-alpha.{height}")]
     // modify release.versionIncrement: "Major"
-    [InlineData("1.2-beta", null, ReleaseVersionIncrement.Major, "alpha", null, null, null, "v1.2", "1.2", "2.0-alpha")]
-    [InlineData("1.2-beta", null, ReleaseVersionIncrement.Major, "alpha", "rc", null, null, "v1.2", "1.2-rc", "2.0-alpha")]
-    [InlineData("1.2-beta.{height}", null, ReleaseVersionIncrement.Major, "alpha", null, null, null, "v1.2", "1.2", "2.0-alpha.{height}")]
-    [InlineData("1.2-beta.{height}", null, ReleaseVersionIncrement.Major, "alpha", "rc", null, null, "v1.2", "1.2-rc.{height}", "2.0-alpha.{height}")]
+    [Arguments("1.2-beta", null, ReleaseVersionIncrement.Major, "alpha", null, null, null, "v1.2", "1.2", "2.0-alpha")]
+    [Arguments("1.2-beta", null, ReleaseVersionIncrement.Major, "alpha", "rc", null, null, "v1.2", "1.2-rc", "2.0-alpha")]
+    [Arguments("1.2-beta.{height}", null, ReleaseVersionIncrement.Major, "alpha", null, null, null, "v1.2", "1.2", "2.0-alpha.{height}")]
+    [Arguments("1.2-beta.{height}", null, ReleaseVersionIncrement.Major, "alpha", "rc", null, null, "v1.2", "1.2-rc.{height}", "2.0-alpha.{height}")]
     // modify release.versionIncrement: "Build"
-    [InlineData("1.2.3-beta", null, ReleaseVersionIncrement.Build, "alpha", null, null, null, "v1.2.3", "1.2.3", "1.2.4-alpha")]
-    [InlineData("1.2.3-beta", null, ReleaseVersionIncrement.Build, "alpha", "rc", null, null, "v1.2.3", "1.2.3-rc", "1.2.4-alpha")]
-    [InlineData("1.2.3-beta.{height}", null, ReleaseVersionIncrement.Build, "alpha", null, null, null, "v1.2.3", "1.2.3", "1.2.4-alpha.{height}")]
-    [InlineData("1.2.3-beta.{height}", null, ReleaseVersionIncrement.Build, "alpha", "rc", null, null, "v1.2.3", "1.2.3-rc.{height}", "1.2.4-alpha.{height}")]
+    [Arguments("1.2.3-beta", null, ReleaseVersionIncrement.Build, "alpha", null, null, null, "v1.2.3", "1.2.3", "1.2.4-alpha")]
+    [Arguments("1.2.3-beta", null, ReleaseVersionIncrement.Build, "alpha", "rc", null, null, "v1.2.3", "1.2.3-rc", "1.2.4-alpha")]
+    [Arguments("1.2.3-beta.{height}", null, ReleaseVersionIncrement.Build, "alpha", null, null, null, "v1.2.3", "1.2.3", "1.2.4-alpha.{height}")]
+    [Arguments("1.2.3-beta.{height}", null, ReleaseVersionIncrement.Build, "alpha", "rc", null, null, "v1.2.3", "1.2.3-rc.{height}", "1.2.4-alpha.{height}")]
     // modify release.firstUnstableTag
-    [InlineData("1.2-beta", null, ReleaseVersionIncrement.Minor, "preview", null, null, null, "v1.2", "1.2", "1.3-preview")]
-    [InlineData("1.2-beta", null, ReleaseVersionIncrement.Minor, "preview", "rc", null, null, "v1.2", "1.2-rc", "1.3-preview")]
-    [InlineData("1.2-beta.{height}", null, ReleaseVersionIncrement.Minor, "preview", null, null, null, "v1.2", "1.2", "1.3-preview.{height}")]
-    [InlineData("1.2-beta.{height}", null, ReleaseVersionIncrement.Minor, "preview", "rc", null, null, "v1.2", "1.2-rc.{height}", "1.3-preview.{height}")]
+    [Arguments("1.2-beta", null, ReleaseVersionIncrement.Minor, "preview", null, null, null, "v1.2", "1.2", "1.3-preview")]
+    [Arguments("1.2-beta", null, ReleaseVersionIncrement.Minor, "preview", "rc", null, null, "v1.2", "1.2-rc", "1.3-preview")]
+    [Arguments("1.2-beta.{height}", null, ReleaseVersionIncrement.Minor, "preview", null, null, null, "v1.2", "1.2", "1.3-preview.{height}")]
+    [Arguments("1.2-beta.{height}", null, ReleaseVersionIncrement.Minor, "preview", "rc", null, null, "v1.2", "1.2-rc.{height}", "1.3-preview.{height}")]
     // include build metadata in version
-    [InlineData("1.2-beta+metadata", null, ReleaseVersionIncrement.Minor, "alpha", null, null, null, "v1.2", "1.2+metadata", "1.3-alpha+metadata")]
-    [InlineData("1.2-beta+metadata", null, ReleaseVersionIncrement.Minor, "alpha", "rc", null, null, "v1.2", "1.2-rc+metadata", "1.3-alpha+metadata")]
-    [InlineData("1.2-beta.{height}+metadata", null, ReleaseVersionIncrement.Minor, "alpha", null, null, null, "v1.2", "1.2+metadata", "1.3-alpha.{height}+metadata")]
-    [InlineData("1.2-beta.{height}+metadata", null, ReleaseVersionIncrement.Minor, "alpha", "rc", null, null, "v1.2", "1.2-rc.{height}+metadata", "1.3-alpha.{height}+metadata")]
+    [Arguments("1.2-beta+metadata", null, ReleaseVersionIncrement.Minor, "alpha", null, null, null, "v1.2", "1.2+metadata", "1.3-alpha+metadata")]
+    [Arguments("1.2-beta+metadata", null, ReleaseVersionIncrement.Minor, "alpha", "rc", null, null, "v1.2", "1.2-rc+metadata", "1.3-alpha+metadata")]
+    [Arguments("1.2-beta.{height}+metadata", null, ReleaseVersionIncrement.Minor, "alpha", null, null, null, "v1.2", "1.2+metadata", "1.3-alpha.{height}+metadata")]
+    [Arguments("1.2-beta.{height}+metadata", null, ReleaseVersionIncrement.Minor, "alpha", "rc", null, null, "v1.2", "1.2-rc.{height}+metadata", "1.3-alpha.{height}+metadata")]
     // versions without prerelease tags
-    [InlineData("1.2", null, ReleaseVersionIncrement.Minor, "alpha", null, null, null, "v1.2", "1.2", "1.3-alpha")]
-    [InlineData("1.2", null, ReleaseVersionIncrement.Major, "alpha", null, null, null, "v1.2", "1.2", "2.0-alpha")]
+    [Arguments("1.2", null, ReleaseVersionIncrement.Minor, "alpha", null, null, null, "v1.2", "1.2", "1.3-alpha")]
+    [Arguments("1.2", null, ReleaseVersionIncrement.Major, "alpha", null, null, null, "v1.2", "1.2", "2.0-alpha")]
     // explicitly set next version
-    [InlineData("1.2-beta", null, null, null, null, "4.5", null, "v1.2", "1.2", "4.5-alpha")]
-    [InlineData("1.2-beta.{height}", null, null, null, null, "4.5", null, "v1.2", "1.2", "4.5-alpha.{height}")]
-    [InlineData("1.2-beta.{height}", null, null, "pre", null, "4.5.6", null, "v1.2", "1.2", "4.5.6-pre.{height}")]
+    [Arguments("1.2-beta", null, null, null, null, "4.5", null, "v1.2", "1.2", "4.5-alpha")]
+    [Arguments("1.2-beta.{height}", null, null, null, null, "4.5", null, "v1.2", "1.2", "4.5-alpha.{height}")]
+    [Arguments("1.2-beta.{height}", null, null, "pre", null, "4.5.6", null, "v1.2", "1.2", "4.5.6-pre.{height}")]
     // explicitly set version increment overriding the setting from ReleaseOptions
-    [InlineData("1.2-beta", null, ReleaseVersionIncrement.Minor, null, null, null, ReleaseVersionIncrement.Major, "v1.2", "1.2", "2.0-alpha")]
-    [InlineData("1.2.3-beta", null, ReleaseVersionIncrement.Minor, null, null, null, ReleaseVersionIncrement.Build, "v1.2.3", "1.2.3", "1.2.4-alpha")]
+    [Arguments("1.2-beta", null, ReleaseVersionIncrement.Minor, null, null, null, ReleaseVersionIncrement.Major, "v1.2", "1.2", "2.0-alpha")]
+    [Arguments("1.2.3-beta", null, ReleaseVersionIncrement.Minor, null, null, null, ReleaseVersionIncrement.Build, "v1.2.3", "1.2.3", "1.2.4-alpha")]
     public void PrepareRelease_Master(
         // data for initial setup (version and release options configured in version.json)
         string initialVersion,
@@ -388,10 +390,10 @@ public abstract class ReleaseManagerTests : RepoTestBase
         }
     }
 
-    [Theory]
-    [InlineData("1.2", "rc", null)]
-    [InlineData("1.2+metadata", "rc", null)]
-    [InlineData("1.2+metadata", null, "0.9")]
+    [Test]
+    [Arguments("1.2", "rc", null)]
+    [Arguments("1.2+metadata", "rc", null)]
+    [Arguments("1.2+metadata", null, "0.9")]
     public void PrepareRelease_MasterWithVersionDecrement(string initialVersion, string releaseUnstableTag, string nextVersion)
     {
         // create and configure repository
@@ -408,8 +410,8 @@ public abstract class ReleaseManagerTests : RepoTestBase
             ReleasePreparationError.VersionDecrement);
     }
 
-    [Theory]
-    [InlineData("1.2", "1.2")]
+    [Test]
+    [Arguments("1.2", "1.2")]
     public void PrepareRelease_MasterWithoutVersionIncrement(string initialVersion, string nextVersion)
     {
         // create and configure repository
@@ -426,7 +428,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
             ReleasePreparationError.NoVersionIncrement);
     }
 
-    [Fact]
+    [Test]
     public void PrepareRelease_DetachedHead()
     {
         this.InitializeSourceControl();
@@ -436,7 +438,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         Assert.Equal(ReleasePreparationError.DetachedHead, ex.Error);
     }
 
-    [Fact]
+    [Test]
     public void PrepareRelease_InvalidVersionIncrement()
     {
         // create and configure repository
@@ -455,7 +457,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         this.AssertError(() => new ReleaseManager().PrepareRelease(this.RepoPath), ReleasePreparationError.InvalidVersionIncrementSetting);
     }
 
-    [Fact]
+    [Test]
     public void PrepareRelease_TextOutput()
     {
         // create and configure repository
@@ -473,7 +475,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         Assert.ThrowsAny<JsonException>(() => JsonConvert.DeserializeObject(stdout.ToString()));
     }
 
-    [Fact]
+    [Test]
     public void PrepareRelease_DoesNotMergeReleaseBranchWhenDisabled()
     {
         this.InitializeSourceControl();
@@ -491,7 +493,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         Assert.Equal(tipBeforePrepareRelease.Id, releaseTip.Parents.Single().Id);
     }
 
-    [Fact(SkipExceptions = [typeof(Win32Exception)])]
+    [Test, TestExecutor<SkipOnWin32ExceptionExecutor>]
     public void PrepareRelease_SignsCommitsWhenConfigured()
     {
         this.InitializeSourceControl();
@@ -515,7 +517,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         this.AssertCommitSigned(this.RepoPath, mergeCommit);
     }
 
-    [Fact]
+    [Test]
     public void PrepareRelease_JsonOutput()
     {
         // create and configure repository
@@ -583,7 +585,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         }
     }
 
-    [Fact]
+    [Test]
     public void PrepareRelease_JsonOutputWhenUpdatingReleaseBranch()
     {
         // create and configure repository
@@ -642,7 +644,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         }
     }
 
-    [Fact]
+    [Test]
     public void PrepareRelease_ResetsVersionHeightOffset()
     {
         // create and configure repository
@@ -681,7 +683,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         Assert.Equal(expectedReleaseVersionOptions, releaseVersion);
     }
 
-    [Fact]
+    [Test]
     public void PrepareRelease_DoesNotResetNegativeVersionHeightOffset()
     {
         // create and configure repository
@@ -719,11 +721,11 @@ public abstract class ReleaseManagerTests : RepoTestBase
         Assert.Equal(expectedReleaseVersionOptions, releaseVersion);
     }
 
-    [Theory]
-    [InlineData("1.0-beta", "{0} Custom commit message pattern", "1.0 Custom commit message pattern")]
-    [InlineData("1.0-beta", "Custom commit message pattern - {0} custom message", "Custom commit message pattern - 1.0 custom message")]
-    [InlineData("1.0-beta", "Custom commit message pattern - {0}", "Custom commit message pattern - 1.0")]
-    [InlineData("1.0-beta", "{0}", "1.0")]
+    [Test]
+    [Arguments("1.0-beta", "{0} Custom commit message pattern", "1.0 Custom commit message pattern")]
+    [Arguments("1.0-beta", "Custom commit message pattern - {0} custom message", "Custom commit message pattern - 1.0 custom message")]
+    [Arguments("1.0-beta", "Custom commit message pattern - {0}", "Custom commit message pattern - 1.0")]
+    [Arguments("1.0-beta", "{0}", "1.0")]
     public void PrepareRelease_WithCustomCommitMessagePattern(string initialVersion, string commitMessagePattern, string expectedCommitMessage)
     {
         // Create and configure the repository
@@ -747,7 +749,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         Assert.Equal(expectedCommitMessage, releaseBranchCommit.MessageShort);
     }
 
-    [Fact]
+    [Test]
     public void SimulatePrepareRelease_BasicScenario()
     {
         this.InitializeSourceControl();
@@ -773,7 +775,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         Assert.Equal("1.3-alpha", result.CurrentBranch.Version.ToString());
     }
 
-    [Fact]
+    [Test]
     public void SimulatePrepareRelease_WithPrereleaseTag()
     {
         this.InitializeSourceControl();
@@ -799,7 +801,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         Assert.Equal("1.3-alpha", result.CurrentBranch.Version.ToString());
     }
 
-    [Fact]
+    [Test]
     public void SimulatePrepareRelease_WithVersionIncrement()
     {
         this.InitializeSourceControl();
@@ -825,7 +827,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         Assert.Equal("2.0-alpha", result.CurrentBranch.Version.ToString());
     }
 
-    [Fact]
+    [Test]
     public void SimulatePrepareRelease_WithNextVersion()
     {
         this.InitializeSourceControl();
@@ -853,7 +855,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
 
     // Note: SameVersionError test removed because it requires very specific conditions
     // that are difficult to reproduce in simulation mode
-    [Fact]
+    [Test]
     public void SimulatePrepareRelease_BranchAlreadyExists()
     {
         this.InitializeSourceControl();
@@ -879,7 +881,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         this.AssertError(() => releaseManager.PrepareRelease(this.RepoPath, whatIf: true), ReleasePreparationError.BranchAlreadyExists);
     }
 
-    [Fact]
+    [Test]
     public void SimulatePrepareRelease_OnReleaseBranch()
     {
         this.InitializeSourceControl();
@@ -908,7 +910,7 @@ public abstract class ReleaseManagerTests : RepoTestBase
         Assert.Null(result.NewBranch);
     }
 
-    [Fact]
+    [Test]
     public void PrepareRelease_ResetsVersionHeightOffsetAppliesTo()
     {
         // create and configure repository

@@ -12,7 +12,7 @@ namespace ManagedGit;
 /// </summary>
 public class GitPackMemoryCacheTests
 {
-    [Fact]
+    [Test]
     public void StreamsAreIndependent()
     {
         using (MemoryStream stream = new MemoryStream(

@@ -11,7 +11,7 @@ using Xunit;
 
 public class VersionOptionsTests
 {
-    [Fact]
+    [Test]
     public void FromVersion()
     {
         var vo = VersionOptions.FromVersion(new Version(1, 2), "-pre");
@@ -21,7 +21,7 @@ public class VersionOptionsTests
         Assert.Equal(0, vo.VersionHeightOffsetOrDefault);
     }
 
-    [Fact]
+    [Test]
     public void Equality()
     {
         var vo1a = new VersionOptions
@@ -60,7 +60,7 @@ public class VersionOptionsTests
         Assert.NotEqual(vo2VaryO, vo1a);
     }
 
-    [Fact]
+    [Test]
     public void AssemblyVersionOptions_Equality()
     {
         var avo1a = new VersionOptions.AssemblyVersionOptions { };
@@ -94,7 +94,7 @@ public class VersionOptionsTests
         Assert.NotEqual(avo4, avo5);
     }
 
-    [Fact]
+    [Test]
     public void CloudBuildOptions_Equality()
     {
         var cbo1a = new VersionOptions.CloudBuildOptions { };
@@ -123,7 +123,7 @@ public class VersionOptionsTests
         Assert.NotEqual(cbo4a, cbo1a);
     }
 
-    [Fact]
+    [Test]
     public void CloudBuildNumberOptions_Equality()
     {
         var bno1a = new VersionOptions.CloudBuildNumberOptions { };
@@ -149,7 +149,7 @@ public class VersionOptionsTests
         Assert.NotEqual(bno1a, bno4a);
     }
 
-    [Fact]
+    [Test]
     public void CloudBuildNumberCommitIdOptions_Equality()
     {
         var cio1a = new VersionOptions.CloudBuildNumberCommitIdOptions();
@@ -171,7 +171,7 @@ public class VersionOptionsTests
         Assert.NotEqual(cio1a, cio3a);
     }
 
-    [Fact]
+    [Test]
     public void CannotWriteToDefaultInstances()
     {
         var options = new VersionOptions();
@@ -187,7 +187,7 @@ public class VersionOptionsTests
         Assert.Throws<InvalidOperationException>(() => options.ReleaseOrDefault.FirstUnstableTag = "-tag");
     }
 
-    [Fact]
+    [Test]
     public void ReleaseOptions_Equality()
     {
         var ro1 = new VersionOptions.ReleaseOptions() { };
@@ -230,7 +230,7 @@ public class VersionOptionsTests
         Assert.NotEqual(ro5, ro6);
     }
 
-    [Fact]
+    [Test]
     public void NuGetPackageVersionOptions_Equality()
     {
         var npvo1a = new VersionOptions.NuGetPackageVersionOptions { };

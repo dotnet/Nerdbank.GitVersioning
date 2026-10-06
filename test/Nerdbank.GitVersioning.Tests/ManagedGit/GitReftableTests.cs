@@ -20,12 +20,12 @@ public class GitReftableTests : RepoTestBase
 {
     private const string ObjectId = "0123456789012345678901234567890123456789";
 
-    public GitReftableTests(ITestOutputHelper logger)
-        : base(logger)
+    public GitReftableTests()
+        : base(TestOutputHelper.Instance)
     {
     }
 
-    [Fact]
+    [Test]
     public void UnbornHead()
     {
         this.InitializeReftable();
@@ -36,9 +36,9 @@ public class GitReftableTests : RepoTestBase
         Assert.Null(repository.Lookup("main"));
     }
 
-    [Theory]
-    [InlineData(256)]
-    [InlineData(4096)]
+    [Test]
+    [Arguments(256)]
+    [Arguments(4096)]
     public void ReferencesAcrossBlocksAndStackUpdates(int blockSize)
     {
         this.Git(this.RepoPath, "init", "--ref-format=files", "--initial-branch=main");
@@ -91,7 +91,7 @@ public class GitReftableTests : RepoTestBase
         Assert.Equal(GitObjectId.Parse(first), repository.GetHeadCommitSha());
     }
 
-    [Fact]
+    [Test]
     public void CloneCalculatesSameVersionAsFilesBackend()
     {
         this.Git(this.RepoPath, "init", "--ref-format=files", "--initial-branch=main");
@@ -120,9 +120,9 @@ public class GitReftableTests : RepoTestBase
         Assert.Equal(expected.GitCommitId, actual.GitCommitId);
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
     public void WorktreeUsesPrivateHeadAndSharedReferences(bool detached)
     {
         this.InitializeReftable();
@@ -160,7 +160,7 @@ public class GitReftableTests : RepoTestBase
         Assert.Equal(first, context.GitCommitId);
     }
 
-    [Fact]
+    [Test]
     public void DefaultBranchReadsRemoteSymbolicReference()
     {
         this.InitializeReftable();
@@ -171,7 +171,7 @@ public class GitReftableTests : RepoTestBase
         Assert.Equal("trunk", context.GetDefaultBranch());
     }
 
-    [Fact]
+    [Test]
     public void DefaultBranchReadsLocalBranches()
     {
         this.InitializeReftable();
@@ -181,7 +181,7 @@ public class GitReftableTests : RepoTestBase
         Assert.Equal("release/v1.0", context.GetDefaultBranch());
     }
 
-    [Fact]
+    [Test]
     public void SymbolicReferenceCycleThrows()
     {
         this.InitializeReftable();
@@ -191,9 +191,9 @@ public class GitReftableTests : RepoTestBase
         Assert.Contains("cycle", Assert.Throws<GitException>(() => repository.Lookup("refs/heads/a")).Message);
     }
 
-    [Theory]
-    [InlineData(1)]
-    [InlineData(2)]
+    [Test]
+    [Arguments(1)]
+    [Arguments(2)]
     public void UnalignedTableVersions(int version)
     {
         this.WriteTable(CreateTable((byte)version));
@@ -203,17 +203,17 @@ public class GitReftableTests : RepoTestBase
         Assert.Equal(GitObjectId.Parse(ObjectId), repository.GetHeadCommitSha());
     }
 
-    [Theory]
-    [InlineData("header")]
-    [InlineData("version")]
-    [InlineData("footer")]
-    [InlineData("crc")]
-    [InlineData("block-length")]
-    [InlineData("prefix")]
-    [InlineData("varint")]
-    [InlineData("value-type")]
-    [InlineData("restart")]
-    [InlineData("truncated")]
+    [Test]
+    [Arguments("header")]
+    [Arguments("version")]
+    [Arguments("footer")]
+    [Arguments("crc")]
+    [Arguments("block-length")]
+    [Arguments("prefix")]
+    [Arguments("varint")]
+    [Arguments("value-type")]
+    [Arguments("restart")]
+    [Arguments("truncated")]
     public void InvalidTableThrows(string corruption)
     {
         byte[] table = CreateTable(1);
@@ -242,7 +242,7 @@ public class GitReftableTests : RepoTestBase
         Assert.Throws<GitException>(() => repository.GetHeadCommitSha());
     }
 
-    [Fact]
+    [Test]
     public void Sha256TableIsRejected()
     {
         this.WriteTable(CreateTable(2, "s256"));
@@ -250,7 +250,7 @@ public class GitReftableTests : RepoTestBase
         Assert.Contains("Only SHA-1", Assert.Throws<GitException>(() => repository.GetHeadCommitSha()).Message);
     }
 
-    [Fact]
+    [Test]
     public void EmptyTableDoesNotHideOlderReferences()
     {
         this.WriteTable(CreateTable(1));
@@ -260,7 +260,7 @@ public class GitReftableTests : RepoTestBase
         Assert.Equal(GitObjectId.Parse(ObjectId), repository.GetHeadCommitSha());
     }
 
-    [Fact]
+    [Test]
     public void LogOnlyTableDoesNotHideOlderReferences()
     {
         this.InitializeReftable();
@@ -273,7 +273,7 @@ public class GitReftableTests : RepoTestBase
         Assert.Equal(GitObjectId.Parse(head), repository.GetHeadCommitSha());
     }
 
-    [Fact]
+    [Test]
     public void UnlistedTableIsIgnored()
     {
         this.WriteTable(CreateTable(1));
@@ -282,7 +282,7 @@ public class GitReftableTests : RepoTestBase
         Assert.Equal(GitObjectId.Parse(ObjectId), repository.GetHeadCommitSha());
     }
 
-    [Fact]
+    [Test]
     public void MissingTableThrows()
     {
         this.WriteTable(CreateTable(1));
@@ -291,7 +291,7 @@ public class GitReftableTests : RepoTestBase
         Assert.Throws<FileNotFoundException>(() => repository.GetHeadCommitSha());
     }
 
-    [Fact]
+    [Test]
     public void MissingHeadThrows()
     {
         this.WriteTable(CreateTable(1, empty: true));
@@ -300,10 +300,10 @@ public class GitReftableTests : RepoTestBase
         Assert.Throws<GitException>(() => repository.GetHeadCommitSha());
     }
 
-    [Theory]
-    [InlineData("../outside.ref")]
-    [InlineData("..\\outside.ref")]
-    [InlineData("")]
+    [Test]
+    [Arguments("../outside.ref")]
+    [Arguments("..\\outside.ref")]
+    [Arguments("")]
     public void InvalidTableFilenameThrows(string filename)
     {
         this.WriteTable(CreateTable(1));
@@ -312,9 +312,9 @@ public class GitReftableTests : RepoTestBase
         Assert.Throws<GitException>(() => repository.GetHeadCommitSha());
     }
 
-    [Theory]
-    [InlineData(1)]
-    [InlineData(2)]
+    [Test]
+    [Arguments(1)]
+    [Arguments(2)]
     public void UnalignedMultipleBlocks(int version)
     {
         this.WriteTable(CreateTable((byte)version, multipleBlocks: true));

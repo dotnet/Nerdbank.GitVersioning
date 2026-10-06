@@ -11,7 +11,7 @@ using Xunit;
 
 public class VersionExtensionsTests
 {
-    [Fact]
+    [Test]
     public void EnsureNonNegativeComponents_NoValues()
     {
         Version version = new Version().EnsureNonNegativeComponents();
@@ -21,7 +21,7 @@ public class VersionExtensionsTests
         Assert.Equal(0, version.Revision);
     }
 
-    [Fact]
+    [Test]
     public void EnsureNonNegativeComponents_2Values()
     {
         Version version = new Version(1, 2).EnsureNonNegativeComponents();
@@ -31,7 +31,7 @@ public class VersionExtensionsTests
         Assert.Equal(0, version.Revision);
     }
 
-    [Fact]
+    [Test]
     public void EnsureNonNegativeComponents_3Values()
     {
         Version version = new Version(1, 2, 3).EnsureNonNegativeComponents();
@@ -41,7 +41,7 @@ public class VersionExtensionsTests
         Assert.Equal(0, version.Revision);
     }
 
-    [Fact]
+    [Test]
     public void EnsureNonNegativeComponents_4Values()
     {
         var original = new Version(1, 2, 3, 4);
@@ -49,7 +49,7 @@ public class VersionExtensionsTests
         Assert.Same(original, version);
     }
 
-    [Fact]
+    [Test]
     public void ToStringSafe()
     {
         Assert.Equal("1.2.3.4", new Version(1, 2, 3, 4).ToStringSafe(4));

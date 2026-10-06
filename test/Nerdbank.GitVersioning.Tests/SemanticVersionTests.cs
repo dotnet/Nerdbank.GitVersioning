@@ -11,7 +11,7 @@ using Xunit;
 
 public class SemanticVersionTests
 {
-    [Fact]
+    [Test]
     public void Ctor_Version()
     {
         var sv = new SemanticVersion(new Version(1, 2), "-pre", "+mybuild");
@@ -20,7 +20,7 @@ public class SemanticVersionTests
         Assert.Equal("+mybuild", sv.BuildMetadata);
     }
 
-    [Fact]
+    [Test]
     public void Ctor_String()
     {
         var sv = new SemanticVersion("1.2", "-pre", "+mybuild");
@@ -29,14 +29,14 @@ public class SemanticVersionTests
         Assert.Equal("+mybuild", sv.BuildMetadata);
     }
 
-    [Fact]
+    [Test]
     public void Ctor_ValidatesInputs()
     {
         Assert.Throws<ArgumentNullException>(() => new SemanticVersion((Version)null));
         Assert.Throws<ArgumentNullException>(() => new SemanticVersion((string)null));
     }
 
-    [Fact]
+    [Test]
     public void Ctor_NormalizesNullPreleaseAndBuildMetadata()
     {
         var sv = new SemanticVersion(new Version(1, 2));
@@ -44,7 +44,7 @@ public class SemanticVersionTests
         Assert.Equal(string.Empty, sv.BuildMetadata);
     }
 
-    [Fact]
+    [Test]
     public void TryParse()
     {
         SemanticVersion result;
@@ -55,7 +55,7 @@ public class SemanticVersionTests
         Assert.Equal("+build-metadata.id1.2", result.BuildMetadata);
     }
 
-    [Fact]
+    [Test]
     public void PrereleaseIdentifiers_InvalidCases()
     {
         SemanticVersion result;
@@ -65,7 +65,7 @@ public class SemanticVersionTests
         Assert.Null(result);
     }
 
-    [Fact]
+    [Test]
     public void BuildMetadata_InvalidCases()
     {
         SemanticVersion result;
@@ -75,7 +75,7 @@ public class SemanticVersionTests
         Assert.Null(result);
     }
 
-    [Fact]
+    [Test]
     public void TryParse_WithPatch()
     {
         SemanticVersion result;
@@ -87,7 +87,7 @@ public class SemanticVersionTests
         Assert.Equal("+build", result.BuildMetadata);
     }
 
-    [Fact]
+    [Test]
     public void TryParse_WithRevision()
     {
         SemanticVersion result;
@@ -100,7 +100,7 @@ public class SemanticVersionTests
         Assert.Equal("+build", result.BuildMetadata);
     }
 
-    [Fact]
+    [Test]
     public void Parse()
     {
         SemanticVersion result = SemanticVersion.Parse("1.2-pre+build");
@@ -112,7 +112,7 @@ public class SemanticVersionTests
         Assert.Throws<ArgumentException>(() => SemanticVersion.Parse("1.2-$"));
     }
 
-    [Fact]
+    [Test]
     public void Equality()
     {
         var sv12a = new SemanticVersion(new Version(1, 2), null);
@@ -136,7 +136,7 @@ public class SemanticVersionTests
         Assert.False(sv12a.Equals(null));
     }
 
-    [Fact]
+    [Test]
     public void HashCodes()
     {
         var sv12a = new SemanticVersion(new Version(1, 2), null);
@@ -147,7 +147,7 @@ public class SemanticVersionTests
         Assert.NotEqual(sv12a.GetHashCode(), sv13.GetHashCode());
     }
 
-    [Fact]
+    [Test]
     public void ToStringTests()
     {
         var v = new SemanticVersion(new Version(1, 2), null);

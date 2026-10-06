@@ -13,9 +13,9 @@ public class GitPackDeltafiedStreamTests
     // You can create delta representations of an object by running the
     // test tool which is located in the t/helper/ folder of the Git source repository.
     // Use with the delta -d [base file,in] [updated file,in] [delta file,out] arguments.
-    [Theory]
-    [InlineData(@"ManagedGit\commit-4497b0eaaa89abf0e6d70961ad5f04fd3a49cbc6", @"ManagedGit\commit.delta", @"ManagedGit\commit-d56dc3ed179053abef2097d1120b4507769bcf1a")]
-    [InlineData(@"ManagedGit\tree-bb36cf0ca445ccc8e5ce9cc88f7cf74128e96dc9", @"ManagedGit\tree.delta", @"ManagedGit\tree-f914b48023c7c804a4f3be780d451f31aef74ac1")]
+    [Test]
+    [Arguments(@"ManagedGit\commit-4497b0eaaa89abf0e6d70961ad5f04fd3a49cbc6", @"ManagedGit\commit.delta", @"ManagedGit\commit-d56dc3ed179053abef2097d1120b4507769bcf1a")]
+    [Arguments(@"ManagedGit\tree-bb36cf0ca445ccc8e5ce9cc88f7cf74128e96dc9", @"ManagedGit\tree.delta", @"ManagedGit\tree-f914b48023c7c804a4f3be780d451f31aef74ac1")]
     public void TestDeltaStream(string basePath, string deltaPath, string expectedPath)
     {
         byte[] expected = null;

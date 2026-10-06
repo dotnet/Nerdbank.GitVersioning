@@ -7,18 +7,18 @@ using Microsoft.Build.Framework;
 using Nerdbank.GitVersioning;
 using Xunit;
 
-[Trait("Engine", EngineString)]
-[Collection("Build")] // msbuild sets current directory in the process, so we can't have it be concurrent with other build tests.
+[Property("Engine", EngineString)]
+[InheritsTests]
 public class BuildIntegrationDisabledTests : BuildIntegrationTests
 {
     private const string EngineString = "Disabled";
 
-    public BuildIntegrationDisabledTests(ITestOutputHelper logger)
-        : base(logger)
+    public BuildIntegrationDisabledTests()
+        : base(TestOutputHelper.Instance)
     {
     }
 
-    [Fact]
+    [Test]
     public async Task ThisAssemblyGitPropertiesHavePlaceholders()
     {
         this.WriteVersionFile();
@@ -34,7 +34,7 @@ public class BuildIntegrationDisabledTests : BuildIntegrationTests
         Assert.Contains("contain placeholder values", warning.Message);
     }
 
-    [Fact]
+    [Test]
     public async Task PlaceholderWarningCanBeSuppressed()
     {
         this.WriteVersionFile();
@@ -45,7 +45,7 @@ public class BuildIntegrationDisabledTests : BuildIntegrationTests
         Assert.DoesNotContain(result.LoggedEvents.OfType<BuildWarningEventArgs>(), warning => warning.Code == "NBGV1001");
     }
 
-    [Fact]
+    [Test]
     public async Task GetPackageVersionWithEmptyTargetFrameworkGlobalProperty()
     {
         this.WriteVersionFile("3.4");

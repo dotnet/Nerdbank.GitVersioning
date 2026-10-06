@@ -17,15 +17,15 @@ using Version = System.Version;
 
 public class LibGit2GitExtensionsTests : RepoTestBase
 {
-    public LibGit2GitExtensionsTests(ITestOutputHelper logger)
-        : base(logger)
+    public LibGit2GitExtensionsTests()
+        : base(TestOutputHelper.Instance)
     {
         this.InitializeSourceControl();
     }
 
     protected new LibGit2Context Context => (LibGit2Context)base.Context;
 
-    [Fact]
+    [Test]
     public void GetHeight_EmptyRepo()
     {
         this.InitializeSourceControl();
@@ -35,7 +35,7 @@ public class LibGit2GitExtensionsTests : RepoTestBase
         Assert.Throws<InvalidOperationException>(() => LibGit2GitExtensions.GetHeight(this.Context, c => true));
     }
 
-    [Fact]
+    [Test]
     public void GetHeight_SinglePath()
     {
         Commit first = this.LibGit2Repository.Commit("First", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
@@ -49,7 +49,7 @@ public class LibGit2GitExtensionsTests : RepoTestBase
         Assert.Equal(1, LibGit2GitExtensions.GetHeight(this.Context, c => c != second));
     }
 
-    [Fact]
+    [Test]
     public void GetHeight_Merge()
     {
         Commit firstCommit = this.LibGit2Repository.Commit("First", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
@@ -75,9 +75,9 @@ public class LibGit2GitExtensionsTests : RepoTestBase
         Assert.Equal(3, LibGit2GitExtensions.GetHeight(this.Context, c => c != secondCommit && c != branchCommits[2]));
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
     public void ContainsRelevantChangesDisposesTreeChanges(bool hasChanges)
     {
         Commit parent = this.LibGit2Repository.Commit("Parent", this.Signer, this.Signer, new CommitOptions { AllowEmptyCommit = true });
@@ -120,7 +120,7 @@ public class LibGit2GitExtensionsTests : RepoTestBase
         }
     }
 
-    [Fact]
+    [Test]
     public void GetCommitsFromVersion_WithPathFilters()
     {
         string relativeDirectory = "some-sub-dir";
@@ -176,7 +176,7 @@ public class LibGit2GitExtensionsTests : RepoTestBase
             LibGit2GitExtensions.GetCommitsFromVersion(this.Context, new Version(1, 2, 3)).OrderBy(c => c.Sha));
     }
 
-    [Fact]
+    [Test]
     public void GetCommitsFromVersion_WithMajorMinorChecks()
     {
         Commit v1_0_50 = this.WriteVersionFile(new VersionOptions { Version = SemanticVersion.Parse("1.0.50-preview.{height}") });
@@ -188,7 +188,7 @@ public class LibGit2GitExtensionsTests : RepoTestBase
         Assert.Equal(v1_1_50, Assert.Single(LibGit2GitExtensions.GetCommitsFromVersion(this.Context, new Version(1, 1, 50))));
     }
 
-    [Fact]
+    [Test]
     public void GetIdAsVersion_ResetsBuildNumberForEachMajorMinorVersion()
     {
         Commit[] v48Commits = this.CommitsWithVersion("4.8");
@@ -200,14 +200,14 @@ public class LibGit2GitExtensionsTests : RepoTestBase
         this.VerifyCommitsWithVersion(v59Commits);
     }
 
-    [Theory]
-    [InlineData("2.5", "2.5", 0)]
-    [InlineData("2.5.1", "2.5", 0)]
-    [InlineData("2.5", "2.5", 5)]
-    [InlineData("2.5", "2.5", -1)]
-    [InlineData("2.5", "2.0", 0)]
-    [InlineData("2.5", "2.0", 5)]
-    [InlineData("2.5", "2.0", -1)]
+    [Test]
+    [Arguments("2.5", "2.5", 0)]
+    [Arguments("2.5.1", "2.5", 0)]
+    [Arguments("2.5", "2.5", 5)]
+    [Arguments("2.5", "2.5", -1)]
+    [Arguments("2.5", "2.0", 0)]
+    [Arguments("2.5", "2.0", 5)]
+    [Arguments("2.5", "2.0", -1)]
     public void GetIdAsVersion_Roundtrip(string version, string assemblyVersion, int versionHeightOffset)
     {
         var semanticVersion = SemanticVersion.Parse(version);
@@ -246,10 +246,10 @@ public class LibGit2GitExtensionsTests : RepoTestBase
         }
     }
 
-    [Theory]
-    [InlineData(0, 2, false)]
-    [InlineData(50, -4, false)] // go backwards, but don't overlap
-    [InlineData(50, -2, true)] // force many build number collisions. generally revision will still make them unique, but it *might* collide on occasion.
+    [Test]
+    [Arguments(0, 2, false)]
+    [Arguments(50, -4, false)] // go backwards, but don't overlap
+    [Arguments(50, -2, true)] // force many build number collisions. generally revision will still make them unique, but it *might* collide on occasion.
     public void GetIdAsVersion_Roundtrip_UnstableOffset(int startingOffset, int offsetStepChange, bool allowCollisions)
     {
         var versionOptions = new VersionOptions
@@ -293,7 +293,7 @@ public class LibGit2GitExtensionsTests : RepoTestBase
         }
     }
 
-    [Fact]
+    [Test]
     public void GetCommitsFromVersion_MatchesOnEitherEndian()
     {
         this.InitializeSourceControl();
@@ -306,7 +306,7 @@ public class LibGit2GitExtensionsTests : RepoTestBase
         Assert.Contains(commit, LibGit2GitExtensions.GetCommitsFromVersion(this.Context, swappedEndian));
     }
 
-    [Fact]
+    [Test]
     public void GetCommitsFromVersion_MaterializesBeforeContextIsDisposed()
     {
         this.InitializeSourceControl();
@@ -322,7 +322,7 @@ public class LibGit2GitExtensionsTests : RepoTestBase
         Assert.Single(matchingCommits, candidate => candidate.Sha == commit.Sha);
     }
 
-    [Fact]
+    [Test]
     public void GetIdAsVersion_Roundtrip_WithSubdirectoryVersionFiles()
     {
         var rootVersionExpected = VersionOptions.FromVersion(new Version(1, 0));
@@ -355,11 +355,11 @@ public class LibGit2GitExtensionsTests : RepoTestBase
         Assert.Null(LibGit2GitExtensions.GetCommitFromVersion(this.Context, subPathVersionActual));
     }
 
-    [Fact(Skip = "It fails already.")] // Skippable, only run test on specific machine
+    [Test, Skip("It fails already.")] // Skippable, only run test on specific machine
     public void TestBiggerRepo()
     {
         string testBiggerRepoPath = @"D:\git\Nerdbank.GitVersioning";
-        Assert.SkipWhen(!Directory.Exists(testBiggerRepoPath), $"{testBiggerRepoPath} does not exist.");
+        Skip.When(!Directory.Exists(testBiggerRepoPath), $"{testBiggerRepoPath} does not exist.");
 
         using var largeRepo = new Repository(testBiggerRepoPath);
         foreach (Commit commit in largeRepo.Head.Commits)

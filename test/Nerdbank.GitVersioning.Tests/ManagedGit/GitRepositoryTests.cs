@@ -14,12 +14,12 @@ namespace ManagedGit;
 
 public class GitRepositoryTests : RepoTestBase
 {
-    public GitRepositoryTests(ITestOutputHelper logger)
-        : base(logger)
+    public GitRepositoryTests()
+        : base(TestOutputHelper.Instance)
     {
     }
 
-    [Fact]
+    [Test]
     public void CreateTest()
     {
         this.InitializeSourceControl();
@@ -34,7 +34,7 @@ public class GitRepositoryTests : RepoTestBase
         }
     }
 
-    [Fact]
+    [Test]
     public void CreateWorkTreeTest()
     {
         this.InitializeSourceControl();
@@ -53,7 +53,7 @@ public class GitRepositoryTests : RepoTestBase
         }
     }
 
-    [Fact]
+    [Test]
     public void CreateNotARepoTest()
     {
         Assert.Null(GitRepository.Create(null));
@@ -63,7 +63,7 @@ public class GitRepositoryTests : RepoTestBase
     }
 
     // A "normal" repository, where a branch is currently checked out.
-    [Fact]
+    [Test]
     public void GetHeadAsReferenceTest()
     {
         this.InitializeSourceControl();
@@ -86,7 +86,7 @@ public class GitRepositoryTests : RepoTestBase
     }
 
     // A repository with a detached HEAD.
-    [Fact]
+    [Test]
     public void GetHeadAsShaTest()
     {
         this.InitializeSourceControl();
@@ -111,7 +111,7 @@ public class GitRepositoryTests : RepoTestBase
     }
 
     // A fresh repository with no commits yet.
-    [Fact]
+    [Test]
     public void GetHeadMissingTest()
     {
         this.InitializeSourceControl(withInitialCommit: false);
@@ -129,7 +129,7 @@ public class GitRepositoryTests : RepoTestBase
     }
 
     // Fetch a commit from the object store
-    [Fact]
+    [Test]
     public void GetCommitTest()
     {
         this.InitializeSourceControl();
@@ -144,7 +144,7 @@ public class GitRepositoryTests : RepoTestBase
         }
     }
 
-    [Fact]
+    [Test]
     public void GetInvalidCommitTest()
     {
         this.InitializeSourceControl();
@@ -158,7 +158,7 @@ public class GitRepositoryTests : RepoTestBase
         }
     }
 
-    [Fact]
+    [Test]
     public void LookupReturnsNullWhenAncestorCommitIsMissing()
     {
         this.InitializeSourceControl();
@@ -175,7 +175,7 @@ public class GitRepositoryTests : RepoTestBase
         }
     }
 
-    [Fact]
+    [Test]
     public void GetTreeEntryTest()
     {
         this.InitializeSourceControl();
@@ -193,7 +193,7 @@ public class GitRepositoryTests : RepoTestBase
         }
     }
 
-    [Fact]
+    [Test]
     public void GetInvalidTreeEntryTest()
     {
         this.InitializeSourceControl();
@@ -210,7 +210,7 @@ public class GitRepositoryTests : RepoTestBase
         }
     }
 
-    [Fact]
+    [Test]
     public void GetObjectByShaTest()
     {
         this.InitializeSourceControl();
@@ -231,7 +231,7 @@ public class GitRepositoryTests : RepoTestBase
 
     // This test runs on netcoreapp only; netstandard/netfx don't support Path.GetRelativePath
 #if NETCOREAPP
-    [Fact]
+    [Test]
     public void GetObjectFromAlternateTest()
     {
         // Add 2 alternates for this repository, each with their own commit.
@@ -273,7 +273,7 @@ public class GitRepositoryTests : RepoTestBase
     }
 #endif
 
-    [Fact]
+    [Test]
     public void GetObjectByShaAndWrongTypeTest()
     {
         this.InitializeSourceControl();
@@ -287,7 +287,7 @@ public class GitRepositoryTests : RepoTestBase
         }
     }
 
-    [Fact]
+    [Test]
     public void TryGetObjectByShaAndWrongTypeTest()
     {
         this.InitializeSourceControl();
@@ -302,7 +302,7 @@ public class GitRepositoryTests : RepoTestBase
         }
     }
 
-    [Fact]
+    [Test]
     public void GetMissingObjectByShaTest()
     {
         this.InitializeSourceControl();
@@ -317,7 +317,7 @@ public class GitRepositoryTests : RepoTestBase
         }
     }
 
-    [Fact]
+    [Test]
     public void ParseAlternates_SingleValue_Test()
     {
         List<string> alternates = GitRepository.ParseAlternates(Encoding.UTF8.GetBytes("/home/git/nbgv/.git/objects\n"));
@@ -326,7 +326,7 @@ public class GitRepositoryTests : RepoTestBase
             a => Assert.Equal("/home/git/nbgv/.git/objects", a));
     }
 
-    [Fact]
+    [Test]
     public void ParseAlternates_SingleValue_NoTrailingNewline_Test()
     {
         List<string> alternates = GitRepository.ParseAlternates(Encoding.UTF8.GetBytes("../repo/.git/objects"));
@@ -335,7 +335,7 @@ public class GitRepositoryTests : RepoTestBase
             a => Assert.Equal("../repo/.git/objects", a));
     }
 
-    [Fact]
+    [Test]
     public void ParseAlternates_TwoValues_Test()
     {
         List<string> alternates = GitRepository.ParseAlternates(Encoding.UTF8.GetBytes("/home/git/nbgv/.git/objects:../../clone/.git/objects\n"));
@@ -345,7 +345,7 @@ public class GitRepositoryTests : RepoTestBase
             a => Assert.Equal("../../clone/.git/objects", a));
     }
 
-    [Fact]
+    [Test]
     public void ParseAlternates_PathWithColon_Test()
     {
         List<string> alternates = GitRepository.ParseAlternates(

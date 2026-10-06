@@ -8,6 +8,8 @@
     <DebugType>full</DebugType>
     <SignAssembly>false</SignAssembly>
     <IsPackable>false</IsPackable>
+    <!-- TUnit's implicit `using static TUnit.Core.HookType` makes `Assembly` ambiguous with System.Reflection.Assembly. Usings.cs imports TUnit.Core instead. -->
+    <TUnitImplicitUsings>false</TUnitImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\..\src\Shared\**\*.cs" LinkBase="Shared" />
@@ -51,7 +53,7 @@
     <PackageReference Include="Nerdbank.GitVersioning.LKG" />
     <PackageReference Include="Newtonsoft.Json.Schema" />
     <PackageReference Include="System.Memory" Condition="'$(TargetFramework)' == 'net472'" />
-    <PackageReference Include="Xunit.Combinatorial" />
-    <PackageReference Include="xunit.v3.mtp-v2" />
+    <PackageReference Include="TUnit.Engine" />
+    <PackageReference Include="xunit.v3.assert" />
   </ItemGroup>
 </Project>

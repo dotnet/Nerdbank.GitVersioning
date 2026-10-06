@@ -54,7 +54,7 @@ public class GitPackTests : IDisposable
         }
     }
 
-    [Fact]
+    [Test]
     public void GetPackedObject()
     {
         using (var gitPack = new GitPack(
@@ -83,7 +83,7 @@ public class GitPackTests : IDisposable
         }
     }
 
-    [Fact]
+    [Test]
     public void GetDeltafiedObject()
     {
         using (var gitPack = new GitPack(
@@ -113,7 +113,7 @@ public class GitPackTests : IDisposable
         }
     }
 
-    [Fact]
+    [Test]
     public void GetInvalidObject()
     {
         using (var gitPack = new GitPack(
@@ -130,7 +130,7 @@ public class GitPackTests : IDisposable
         }
     }
 
-    [Fact]
+    [Test]
     public void TryGetObjectTest()
     {
         using (var gitPack = new GitPack(
@@ -162,7 +162,7 @@ public class GitPackTests : IDisposable
         }
     }
 
-    [Fact]
+    [Test]
     public void TryGetMissingObjectTest()
     {
         using (var gitPack = new GitPack(
@@ -181,7 +181,7 @@ public class GitPackTests : IDisposable
     /// double-call <see cref="MemoryMappedStream"/>'s ReleasePointer and crash the process with
     /// free(): invalid pointer (glibc) — the Ubuntu CI host-crash pattern.
     /// </summary>
-    [Fact]
+    [Test]
     public void FullyReadCachedObjects_DoesNotDoubleFreeNativeMemory()
     {
         // Use the default GitPackMemoryCache (not NullCache) so DisposeStreamIfRead is exercised.
@@ -211,7 +211,7 @@ public class GitPackTests : IDisposable
         gitPack.Dispose();
     }
 
-    [Fact]
+    [Test]
     public void PartiallyReadCachedObject_ReleasesPointerBeforeDisposingView()
     {
         using var gitPack = new GitPack(

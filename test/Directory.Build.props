@@ -3,9 +3,17 @@
   <Import Project="$([MSBuild]::GetPathOfFileAbove($(MSBuildThisFile), $(MSBuildThisFileDirectory)..))" />
 
   <PropertyGroup>
+    <IsTestProject>true</IsTestProject>
+    <!-- NativeAOT is out of scope for this repo: the shipping packages depend on MSBuild, NuGet, LibGit2Sharp and reflection-based serialization. -->
+    <PublishNativeAOTTests>false</PublishNativeAOTTests>
     <IsPackable>false</IsPackable>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+    <UseAppHost Condition="'$(RuntimeIdentifier)' == '' and '$(NativeAOT)' != 'true'">false</UseAppHost>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(NativeAOT)' == 'true' and '$(PublishNativeAOTTests)' == 'true'">
+    <RuntimeIdentifier>$(DefaultRuntimeIdentifier)</RuntimeIdentifier>
   </PropertyGroup>
 
 </Project>

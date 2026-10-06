@@ -18,7 +18,7 @@ using Validation;
 using Xunit;
 using Version = System.Version;
 
-public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuildFixture>
+public abstract class BuildIntegrationTests : RepoTestBase
 {
     protected const string GitVersioningPropsFileName = "Nerdbank.GitVersioning.props";
     protected const string GitVersioningTargetsFileName = "Nerdbank.GitVersioning.targets";
@@ -45,11 +45,15 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
 
     protected Random random;
 
+    static BuildIntegrationTests()
+    {
+        MSBuildExtensions.LoadMSBuild();
+    }
+
     public BuildIntegrationTests(ITestOutputHelper logger)
         : base(logger)
     {
-        // MSBuildExtensions.LoadMSBuild will be called as part of the base constructor, because this class
-        // implements the IClassFixture<MSBuildFixture> interface. LoadMSBuild will load the MSBuild assemblies.
+        // MSBuildExtensions.LoadMSBuild has already been called by the static constructor, which loads the MSBuild assemblies.
         // This must happen _before_ any method that directly references types in the Microsoft.Build namespace has been called.
         // Net, don't init MSBuild-related fields in the constructor, but in a method that is called by the constructor.
         this.Init();
@@ -111,7 +115,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         };
     }
 
-    [Fact]
+    [Test]
     public async Task GetBuildVersion_Returns_BuildVersion_Property()
     {
         this.WriteVersionFile();
@@ -122,7 +126,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
             buildResult.BuildResult.ResultsByTarget[Targets.GetBuildVersion].Items.Single().ItemSpec);
     }
 
-    [Fact]
+    [Test]
     public async Task GetBuildVersion_Without_Git()
     {
         this.WriteVersionFile("3.4");
@@ -131,7 +135,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         Assert.Equal("3.4.0", buildResult.AssemblyInformationalVersion);
     }
 
-    [Fact]
+    [Test]
     public async Task GetBuildVersion_Hooks_Clean()
     {
         this.WriteVersionFile("1.2");
@@ -139,7 +143,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         Assert.Equal("1.2", buildResult.BuildVersion);
     }
 
-    [Fact]
+    [Test]
     public async Task GetBuildVersion_Without_Git_HighPrecisionAssemblyVersion()
     {
         this.WriteVersionFile(new VersionOptions
@@ -155,7 +159,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
         Assert.Equal("3.4.0", buildResult.AssemblyInformationalVersion);
     }
 
-    [Fact]
+    [Test]
     public async Task WithExtraPrereleaseIdentifiers()
     {
         this.WriteVersionFile(new VersionOptions
@@ -171,10 +175,10 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
     }
 
     // TODO: add key container test.
-    [Theory]
-    [InlineData("keypair.snk", false)]
-    [InlineData("public.snk", true)]
-    [InlineData("protectedPair.pfx", true)]
+    [Test]
+    [Arguments("keypair.snk", false)]
+    [Arguments("public.snk", true)]
+    [Arguments("protectedPair.pfx", true)]
     public async Task AssemblyInfo_HasKeyData(string keyFile, bool delaySigned)
     {
         TestUtilities.ExtractEmbeddedResource($@"Keys\{keyFile}", Path.Combine(this.projectDirectory, keyFile));
@@ -191,8 +195,8 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
                     result.BuildResult.ProjectStateAfterBuild.GetPropertyValue("VersionSourceFile"))));
         this.Logger.WriteLine(versionCsContent);
 
-        SyntaxTree sourceFile = CSharpSyntaxTree.ParseText(versionCsContent, cancellationToken: TestContext.Current.CancellationToken);
-        SyntaxNode syntaxTree = await sourceFile.GetRootAsync(TestContext.Current.CancellationToken);
+        SyntaxTree sourceFile = CSharpSyntaxTree.ParseText(versionCsContent, cancellationToken: TestContext.Current!.Execution.CancellationToken);
+        SyntaxNode syntaxTree = await sourceFile.GetRootAsync(TestContext.Current!.Execution.CancellationToken);
         IEnumerable<VariableDeclaratorSyntax> fields = syntaxTree.DescendantNodes().OfType<VariableDeclaratorSyntax>();
 
         var publicKeyField = (LiteralExpressionSyntax)fields.SingleOrDefault(f => f.Identifier.ValueText == "PublicKey")?.Initializer.Value;
@@ -219,7 +223,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
     /// Emulate a project with an unsupported language, and verify that
     /// no errors are emitted because the target is skipped.
     /// </summary>
-    [Fact]
+    [Test]
     public async Task AssemblyInfo_Suppressed()
     {
         ProjectPropertyGroupElement propertyGroup = this.testProject.CreatePropertyGroupElement();
@@ -239,7 +243,7 @@ public abstract class BuildIntegrationTests : RepoTestBase, IClassFixture<MSBuil
     /// Emulate a project with an unsupported language, and verify that
     /// no errors are emitted because the target is skipped.
     /// </summary>
-    [Fact]
+    [Test]
     public async Task AssemblyInfo_SuppressedImplicitlyByTargetExt()
     {
         ProjectPropertyGroupElement propertyGroup = this.testProject.CreatePropertyGroupElement();

@@ -8,132 +8,132 @@ using Xunit;
 
 public class FilterPathTests
 {
-    [Theory]
-    [InlineData("./", "foo", "foo")]
-    [InlineData("../relative-dir", "foo", "relative-dir")]
-    [InlineData("relative-dir", "some/dir/../zany", "some/zany/relative-dir")]
-    [InlineData("relative-dir", "some/dir/..", "some/relative-dir")]
-    [InlineData("relative-dir", "some/../subdir", "subdir/relative-dir")]
-    [InlineData("../../some/dir/here", "foo/multi/wow", "foo/some/dir/here")]
-    [InlineData("relativepath.txt", "foo", "foo/relativepath.txt")]
-    [InlineData("./relativepath.txt", "foo", "foo/relativepath.txt")]
-    [InlineData(":^relativepath.txt", "foo", "foo/relativepath.txt")]
-    [InlineData(":!relativepath.txt", "foo", "foo/relativepath.txt")]
-    [InlineData(":!/absolutepath.txt", "foo", "absolutepath.txt")]
-    [InlineData("../bar/relativepath.txt", "foo", "bar/relativepath.txt")]
-    [InlineData("/", "foo", "")]
-    [InlineData("/absolute/file.txt", "foo", "absolute/file.txt")]
-    [InlineData(":/", "foo", "")]
-    [InlineData(":/absolutepath.txt", "foo", "absolutepath.txt")]
-    [InlineData(":/bar/absolutepath.txt", "foo", "bar/absolutepath.txt")]
-    [InlineData(":/loc/*/MyProduct.*", "foo", "loc/*/MyProduct.*")]
-    [InlineData("../**/generated?.cs", "foo/bar", "foo/**/generated?.cs")]
+    [Test]
+    [Arguments("./", "foo", "foo")]
+    [Arguments("../relative-dir", "foo", "relative-dir")]
+    [Arguments("relative-dir", "some/dir/../zany", "some/zany/relative-dir")]
+    [Arguments("relative-dir", "some/dir/..", "some/relative-dir")]
+    [Arguments("relative-dir", "some/../subdir", "subdir/relative-dir")]
+    [Arguments("../../some/dir/here", "foo/multi/wow", "foo/some/dir/here")]
+    [Arguments("relativepath.txt", "foo", "foo/relativepath.txt")]
+    [Arguments("./relativepath.txt", "foo", "foo/relativepath.txt")]
+    [Arguments(":^relativepath.txt", "foo", "foo/relativepath.txt")]
+    [Arguments(":!relativepath.txt", "foo", "foo/relativepath.txt")]
+    [Arguments(":!/absolutepath.txt", "foo", "absolutepath.txt")]
+    [Arguments("../bar/relativepath.txt", "foo", "bar/relativepath.txt")]
+    [Arguments("/", "foo", "")]
+    [Arguments("/absolute/file.txt", "foo", "absolute/file.txt")]
+    [Arguments(":/", "foo", "")]
+    [Arguments(":/absolutepath.txt", "foo", "absolutepath.txt")]
+    [Arguments(":/bar/absolutepath.txt", "foo", "bar/absolutepath.txt")]
+    [Arguments(":/loc/*/MyProduct.*", "foo", "loc/*/MyProduct.*")]
+    [Arguments("../**/generated?.cs", "foo/bar", "foo/**/generated?.cs")]
     public void CanBeParsedToRepoRelativePath(string pathSpec, string relativeTo, string expected)
     {
         Assert.Equal(expected, new FilterPath(pathSpec, relativeTo).RepoRelativePath);
     }
 
-    [WindowsTheory]
-    [InlineData("./dir\\hi/relativepath.txt", "foo", "foo/dir/hi/relativepath.txt")]
-    [InlineData(".\\relativepath.txt", "foo", "foo/relativepath.txt")]
-    [InlineData(":!\\absolutepath.txt", "foo", "absolutepath.txt")]
-    [InlineData(":\\bar\\absolutepath.txt", "foo", "bar/absolutepath.txt")]
+    [Test, RunOn(TUnit.Core.Enums.OS.Windows)]
+    [Arguments("./dir\\hi/relativepath.txt", "foo", "foo/dir/hi/relativepath.txt")]
+    [Arguments(".\\relativepath.txt", "foo", "foo/relativepath.txt")]
+    [Arguments(":!\\absolutepath.txt", "foo", "absolutepath.txt")]
+    [Arguments(":\\bar\\absolutepath.txt", "foo", "bar/absolutepath.txt")]
     public void CanBeParsedToRepoRelativePath_WindowsOnly(string pathSpec, string relativeTo, string expected)
     {
         Assert.Equal(expected, new FilterPath(pathSpec, relativeTo).RepoRelativePath);
     }
 
-    [Theory]
-    [InlineData(":!.", "foo", "foo")]
-    [InlineData(":!.", "foo", "foo/")]
-    [InlineData(":!.", "foo", "foo/relativepath.txt")]
-    [InlineData(":!relativepath.txt", "foo", "foo/relativepath.txt")]
-    [InlineData(":^relativepath.txt", "foo", "foo/relativepath.txt")]
-    [InlineData(":^./relativepath.txt", "foo", "foo/relativepath.txt")]
-    [InlineData(":^../bar", "foo", "bar")]
-    [InlineData(":^../bar", "foo", "bar/")]
-    [InlineData(":^../bar", "foo", "bar/somefile.txt")]
-    [InlineData(":^/absolute.txt", "foo", "absolute.txt")]
+    [Test]
+    [Arguments(":!.", "foo", "foo")]
+    [Arguments(":!.", "foo", "foo/")]
+    [Arguments(":!.", "foo", "foo/relativepath.txt")]
+    [Arguments(":!relativepath.txt", "foo", "foo/relativepath.txt")]
+    [Arguments(":^relativepath.txt", "foo", "foo/relativepath.txt")]
+    [Arguments(":^./relativepath.txt", "foo", "foo/relativepath.txt")]
+    [Arguments(":^../bar", "foo", "bar")]
+    [Arguments(":^../bar", "foo", "bar/")]
+    [Arguments(":^../bar", "foo", "bar/somefile.txt")]
+    [Arguments(":^/absolute.txt", "foo", "absolute.txt")]
     public void PathsCanBeExcluded(string pathSpec, string relativeTo, string repoRelativePath)
     {
         Assert.True(new FilterPath(pathSpec, relativeTo).Excludes(repoRelativePath, true));
         Assert.True(new FilterPath(pathSpec, relativeTo).Excludes(repoRelativePath, false));
     }
 
-    [Theory]
-    [InlineData(":!.", "foo", "foo.txt")]
-    [InlineData(":^relativepath.txt", "foo", "foo2/relativepath.txt")]
-    [InlineData(":^/absolute.txt", "foo", "absolute.txt.bak")]
-    [InlineData(":^/absolute.txt", "foo", "absolute")]
+    [Test]
+    [Arguments(":!.", "foo", "foo.txt")]
+    [Arguments(":^relativepath.txt", "foo", "foo2/relativepath.txt")]
+    [Arguments(":^/absolute.txt", "foo", "absolute.txt.bak")]
+    [Arguments(":^/absolute.txt", "foo", "absolute")]
 
     // Not exclude paths
-    [InlineData(":/absolute.txt", "foo", "absolute.txt")]
-    [InlineData("/absolute.txt", "foo", "absolute.txt")]
-    [InlineData("../root.txt", "foo", "root.txt")]
-    [InlineData("relativepath.txt", "foo", "foo/relativepath.txt")]
+    [Arguments(":/absolute.txt", "foo", "absolute.txt")]
+    [Arguments("/absolute.txt", "foo", "absolute.txt")]
+    [Arguments("../root.txt", "foo", "root.txt")]
+    [Arguments("relativepath.txt", "foo", "foo/relativepath.txt")]
     public void NonMatchingPathsAreNotExcluded(string pathSpec, string relativeTo, string repoRelativePath)
     {
         Assert.False(new FilterPath(pathSpec, relativeTo).Excludes(repoRelativePath, true));
         Assert.False(new FilterPath(pathSpec, relativeTo).Excludes(repoRelativePath, false));
     }
 
-    [Theory]
-    [InlineData(":!.", "foo", "Foo")]
-    [InlineData(":!.", "foo", "Foo/")]
-    [InlineData(":!.", "foo", "Foo/relativepath.txt")]
-    [InlineData(":!RelativePath.txt", "foo", "foo/relativepath.txt")]
-    [InlineData(":^relativepath.txt", "foo", "Foo/RelativePath.txt")]
-    [InlineData(":^./relativepath.txt", "Foo", "foo/RelativePath.txt")]
-    [InlineData(":^../bar", "foo", "Bar")]
-    [InlineData(":^../bar", "foo", "Bar/")]
-    [InlineData(":^../bar", "foo", "Bar/SomeFile.txt")]
-    [InlineData(":^/absOLUte.txt", "foo", "Absolute.TXT")]
+    [Test]
+    [Arguments(":!.", "foo", "Foo")]
+    [Arguments(":!.", "foo", "Foo/")]
+    [Arguments(":!.", "foo", "Foo/relativepath.txt")]
+    [Arguments(":!RelativePath.txt", "foo", "foo/relativepath.txt")]
+    [Arguments(":^relativepath.txt", "foo", "Foo/RelativePath.txt")]
+    [Arguments(":^./relativepath.txt", "Foo", "foo/RelativePath.txt")]
+    [Arguments(":^../bar", "foo", "Bar")]
+    [Arguments(":^../bar", "foo", "Bar/")]
+    [Arguments(":^../bar", "foo", "Bar/SomeFile.txt")]
+    [Arguments(":^/absOLUte.txt", "foo", "Absolute.TXT")]
     public void PathsCanBeExcludedCaseInsensitive(string pathSpec, string relativeTo, string repoRelativePath)
     {
         Assert.True(new FilterPath(pathSpec, relativeTo).Excludes(repoRelativePath, true));
     }
 
-    [Theory]
-    [InlineData(":!.", "foo", "Foo")]
-    [InlineData(":!.", "foo", "Foo/")]
-    [InlineData(":!.", "foo", "Foo/relativepath.txt")]
-    [InlineData(":!RelativePath.txt", "foo", "foo/relativepath.txt")]
-    [InlineData(":^relativepath.txt", "foo", "Foo/RelativePath.txt")]
-    [InlineData(":^./relativepath.txt", "Foo", "foo/RelativePath.txt")]
-    [InlineData(":^../bar", "foo", "Bar")]
-    [InlineData(":^../bar", "foo", "Bar/")]
-    [InlineData(":^../bar", "foo", "Bar/SomeFile.txt")]
-    [InlineData(":^/absOLUte.txt", "foo", "Absolute.TXT")]
+    [Test]
+    [Arguments(":!.", "foo", "Foo")]
+    [Arguments(":!.", "foo", "Foo/")]
+    [Arguments(":!.", "foo", "Foo/relativepath.txt")]
+    [Arguments(":!RelativePath.txt", "foo", "foo/relativepath.txt")]
+    [Arguments(":^relativepath.txt", "foo", "Foo/RelativePath.txt")]
+    [Arguments(":^./relativepath.txt", "Foo", "foo/RelativePath.txt")]
+    [Arguments(":^../bar", "foo", "Bar")]
+    [Arguments(":^../bar", "foo", "Bar/")]
+    [Arguments(":^../bar", "foo", "Bar/SomeFile.txt")]
+    [Arguments(":^/absOLUte.txt", "foo", "Absolute.TXT")]
     public void NonMatchingPathsAreNotExcludedCaseSensitive(string pathSpec, string relativeTo, string repoRelativePath)
     {
         Assert.False(new FilterPath(pathSpec, relativeTo).Excludes(repoRelativePath, false));
     }
 
-    [Theory]
-    [InlineData(":/loc/*/MyProduct.*", "loc/en/MyProduct.resx")]
-    [InlineData(":/loc/*/MyProduct.*", "loc/en/MyProduct.")]
-    [InlineData(":/loc/?/MyProduct.*", "loc/e/MyProduct.resx")]
-    [InlineData(":/loc/**/MyProduct.*", "loc/MyProduct.resx")]
-    [InlineData(":/loc/**/MyProduct.*", "loc/en/subdir/MyProduct.resx")]
-    [InlineData(":/**/MyProduct.*", "MyProduct.resx")]
-    [InlineData("localization/*/messages.json", "src/localization/en/messages.json")]
-    [InlineData(":/eng/*", "eng/product/src/file.cs")]
+    [Test]
+    [Arguments(":/loc/*/MyProduct.*", "loc/en/MyProduct.resx")]
+    [Arguments(":/loc/*/MyProduct.*", "loc/en/MyProduct.")]
+    [Arguments(":/loc/?/MyProduct.*", "loc/e/MyProduct.resx")]
+    [Arguments(":/loc/**/MyProduct.*", "loc/MyProduct.resx")]
+    [Arguments(":/loc/**/MyProduct.*", "loc/en/subdir/MyProduct.resx")]
+    [Arguments(":/**/MyProduct.*", "MyProduct.resx")]
+    [Arguments("localization/*/messages.json", "src/localization/en/messages.json")]
+    [Arguments(":/eng/*", "eng/product/src/file.cs")]
     public void PathsCanBeIncludedWithWildcards(string pathSpec, string repoRelativePath)
     {
         Assert.True(new FilterPath(pathSpec, "src").Includes(repoRelativePath, false));
     }
 
-    [Theory]
-    [InlineData(":/loc/*/MyProduct.*", "loc/en/subdir/MyProduct.resx")]
-    [InlineData(":/loc/?/MyProduct.*", "loc/en/MyProduct.resx")]
-    [InlineData(":/loc/*/MyProduct.*", "loc/en/OtherProduct.resx")]
-    [InlineData(":/loc/*/MyProduct.*", "loc/EN/myproduct.resx")]
+    [Test]
+    [Arguments(":/loc/*/MyProduct.*", "loc/en/subdir/MyProduct.resx")]
+    [Arguments(":/loc/?/MyProduct.*", "loc/en/MyProduct.resx")]
+    [Arguments(":/loc/*/MyProduct.*", "loc/en/OtherProduct.resx")]
+    [Arguments(":/loc/*/MyProduct.*", "loc/EN/myproduct.resx")]
     public void PathsDoNotMatchWildcards(string pathSpec, string repoRelativePath)
     {
         Assert.False(new FilterPath(pathSpec, string.Empty).Includes(repoRelativePath, false));
     }
 
-    [Fact]
+    [Test]
     public void WildcardMatchingCanIgnoreCase()
     {
         var filter = new FilterPath(":/loc/*/MyProduct.*", string.Empty);
@@ -142,7 +142,7 @@ public class FilterPathTests
         Assert.False(filter.Includes("LOC/en/myproduct.resx", false));
     }
 
-    [Fact]
+    [Test]
     public void PathsCanBeExcludedWithWildcards()
     {
         var filter = new FilterPath(":^/loc/**/generated?.cs", string.Empty);
@@ -152,10 +152,10 @@ public class FilterPathTests
         Assert.False(filter.Excludes("loc/en/generated.cs", false));
     }
 
-    [Theory]
-    [InlineData("loc")]
-    [InlineData("loc/en")]
-    [InlineData("loc/en/MyProduct.resources")]
+    [Test]
+    [Arguments("loc")]
+    [Arguments("loc/en")]
+    [Arguments("loc/en/MyProduct.resources")]
     public void WildcardFilterMayIncludeChildren(string repoRelativePath)
     {
         var filter = new FilterPath(":/loc/*/MyProduct.*", string.Empty);
@@ -163,9 +163,9 @@ public class FilterPathTests
         Assert.True(filter.IncludesChildren(repoRelativePath, false));
     }
 
-    [Theory]
-    [InlineData("localization")]
-    [InlineData("docs")]
+    [Test]
+    [Arguments("localization")]
+    [Arguments("docs")]
     public void WildcardFilterCannotIncludeChildren(string repoRelativePath)
     {
         var filter = new FilterPath(":/loc/*/MyProduct.*", string.Empty);
@@ -173,7 +173,7 @@ public class FilterPathTests
         Assert.False(filter.IncludesChildren(repoRelativePath, false));
     }
 
-    [Fact]
+    [Test]
     public void InvalidPathspecsThrow()
     {
         Assert.Throws<ArgumentNullException>(() => new FilterPath(null, string.Empty));
@@ -183,28 +183,28 @@ public class FilterPathTests
         Assert.Throws<FormatException>(() => new FilterPath(".././a/../../foo.txt", "foo"));
     }
 
-    [Theory]
-    [InlineData(":/abc/def", "", "/abc/def")]
-    [InlineData(":/abc/def", ".", "/abc/def")]
-    [InlineData("abc", ".", "./abc")]
-    [InlineData(".", ".", "./")]
-    [InlineData("./", ".", "./")]
-    [InlineData("./", "", "./")]
-    [InlineData("abc/def", ".", "./abc/def")]
-    [InlineData("abc/def", "./foo", "./abc/def")]
-    [InlineData("../Directory.Build.props", "./foo", "../Directory.Build.props")]
-    [InlineData(":!/Directory.Build.props", "./foo", ":!/Directory.Build.props")]
-    [InlineData(":!relative.txt", "./foo", ":!relative.txt")]
-    [InlineData(":/loc/*/MyProduct.*", "./foo", "/loc/*/MyProduct.*")]
-    [InlineData("../**/generated?.cs", "./foo", "../**/generated?.cs")]
+    [Test]
+    [Arguments(":/abc/def", "", "/abc/def")]
+    [Arguments(":/abc/def", ".", "/abc/def")]
+    [Arguments("abc", ".", "./abc")]
+    [Arguments(".", ".", "./")]
+    [Arguments("./", ".", "./")]
+    [Arguments("./", "", "./")]
+    [Arguments("abc/def", ".", "./abc/def")]
+    [Arguments("abc/def", "./foo", "./abc/def")]
+    [Arguments("../Directory.Build.props", "./foo", "../Directory.Build.props")]
+    [Arguments(":!/Directory.Build.props", "./foo", ":!/Directory.Build.props")]
+    [Arguments(":!relative.txt", "./foo", ":!relative.txt")]
+    [Arguments(":/loc/*/MyProduct.*", "./foo", "/loc/*/MyProduct.*")]
+    [Arguments("../**/generated?.cs", "./foo", "../**/generated?.cs")]
     public void ToPathSpec(string pathSpec, string relativeTo, string expectedPathSpec)
     {
         Assert.Equal(expectedPathSpec, new FilterPath(pathSpec, relativeTo).ToPathSpec(relativeTo));
     }
 
-    [Theory]
-    [InlineData("foo/bar", "foo", "./bar")]
-    [InlineData("foo/bar", "FOO", "./bar")]
+    [Test]
+    [Arguments("foo/bar", "foo", "./bar")]
+    [Arguments("foo/bar", "FOO", "./bar")]
     public void ToPathSpecTest(string pathSpec, string relativeTo, string expectedPathSpec)
     {
         Assert.Equal(expectedPathSpec, new FilterPath(pathSpec, ".").ToPathSpec(relativeTo));
