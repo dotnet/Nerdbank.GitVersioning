@@ -20,6 +20,8 @@
        TEST_X86 lets the tests assert that they really run in a 32-bit process. -->
   <PropertyGroup Condition="'$(TestArchitecture)' == 'x86' and '$(TargetFrameworkIdentifier)' == '.NETFramework'">
     <PlatformTarget>x86</PlatformTarget>
+    <!-- Keep the SDK's AdjustDefaultPlatformTargetForNetFrameworkExeWithNoNativeCopyLocalItems target from resetting PlatformTarget to AnyCPU on Windows. -->
+    <_UsingDefaultPlatformTarget>false</_UsingDefaultPlatformTarget>
     <DefineConstants>$(DefineConstants);TEST_X86</DefineConstants>
   </PropertyGroup>
 

@@ -131,7 +131,7 @@ if ($isMTP) {
             $x86BinLog = Join-Path (Split-Path $testBinLog) "build_x86_$([IO.Path]::GetFileNameWithoutExtension($projectPath)).binlog"
             & dotnet build $projectPath --no-restore -c $Configuration @frameworkArgs -p:TestArchitecture=x86 -p:BuildProjectReferences=false -bl:"$x86BinLog"
             if ($LASTEXITCODE -ne 0) {
-                Write-Error "Failed to build $projectPath for x86."
+                Write-Host "Failed to build $projectPath for x86." -ForegroundColor Red
                 $failedTests += 1
                 continue
             }
@@ -145,7 +145,7 @@ if ($isMTP) {
             }
             Write-Host "$targetPath CorFlags: $corFlags"
             if (-not ($corFlags -band [System.Reflection.PortableExecutable.CorFlags]::Requires32Bit)) {
-                Write-Error "$targetPath was not built as a 32-bit executable."
+                Write-Host "$targetPath was not built as a 32-bit executable." -ForegroundColor Red
                 $failedTests += 1
                 continue
             }
