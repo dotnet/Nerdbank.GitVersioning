@@ -46,6 +46,66 @@ public class BuildIntegrationDisabledTests : BuildIntegrationTests
     }
 
     [Test]
+    [Arguments("MSBuildTargetCaching", "NoWarn", false)]
+    [Arguments("InProject", "NoWarn", false)]
+    [Arguments("MSBuildTargetCaching", "MSBuildWarningsAsMessages", false)]
+    [Arguments("InProject", "MSBuildWarningsAsMessages", false)]
+    [Arguments("MSBuildTargetCaching", "MSBuildWarningsAsErrors", false)]
+    [Arguments("InProject", "MSBuildWarningsAsErrors", false)]
+    [Arguments("MSBuildTargetCaching", "NoWarn", true)]
+    [Arguments("InProject", "NoWarn", true)]
+    [Arguments("MSBuildTargetCaching", "MSBuildWarningsAsMessages", true)]
+    [Arguments("InProject", "MSBuildWarningsAsMessages", true)]
+    [Arguments("MSBuildTargetCaching", "MSBuildWarningsAsErrors", true)]
+    [Arguments("InProject", "MSBuildWarningsAsErrors", true)]
+    public async Task PlaceholderWarningHonorsProjectSeverity(string cacheMode, string severityProperty, bool designTimeBuild)
+    {
+        this.WriteVersionFile();
+        this.testProject.AddProperty("NBGV_CacheMode", cacheMode);
+        this.testProject.AddProperty(severityProperty, "OTHER0001;NBGV1001;OTHER0002");
+        this.globalProperties["DesignTimeBuild"] = designTimeBuild.ToString();
+
+        bool expectError = severityProperty == "MSBuildWarningsAsErrors";
+        BuildResults result = await this.BuildAsync(Targets.GenerateAssemblyNBGVVersionInfo, assertSuccessfulBuild: !expectError);
+
+        Assert.DoesNotContain(result.LoggedEvents.OfType<BuildWarningEventArgs>(), warning => warning.Code == "NBGV1001");
+        if (expectError)
+        {
+            Assert.Equal(BuildResultCode.Failure, result.BuildResult.OverallResult);
+            Assert.Single(result.LoggedEvents.OfType<BuildErrorEventArgs>(), error => error.Code == "NBGV1001");
+        }
+        else
+        {
+            Assert.DoesNotContain(result.LoggedEvents.OfType<BuildErrorEventArgs>(), error => error.Code == "NBGV1001");
+            Assert.Equal("Unavailable", result.GitCommitId);
+            if (severityProperty == "MSBuildWarningsAsMessages")
+            {
+                Assert.Contains(result.LoggedEvents.OfType<BuildMessageEventArgs>(), message => message.Message.Contains("contain placeholder values"));
+            }
+            else
+            {
+                Assert.DoesNotContain(result.LoggedEvents.OfType<BuildMessageEventArgs>(), message => message.Message.Contains("contain placeholder values"));
+            }
+        }
+    }
+
+    [Test]
+    [Arguments("MSBuildTargetCaching", "OTHER0001;NBGV10010", false)]
+    [Arguments("InProject", "OTHER0001;NBGV10010", false)]
+    [Arguments("MSBuildTargetCaching", "OTHER0001;nbgv1001", true)]
+    [Arguments("InProject", "OTHER0001;nbgv1001", true)]
+    public async Task PlaceholderWarningNoWarnMatchesCode(string cacheMode, string noWarn, bool suppressed)
+    {
+        this.WriteVersionFile();
+        this.testProject.AddProperty("NBGV_CacheMode", cacheMode);
+        this.testProject.AddProperty("NoWarn", noWarn);
+
+        BuildResults result = await this.BuildAsync();
+
+        Assert.Equal(suppressed ? 0 : 1, result.LoggedEvents.OfType<BuildWarningEventArgs>().Count(warning => warning.Code == "NBGV1001"));
+    }
+
+    [Test]
     public async Task GetPackageVersionWithEmptyTargetFrameworkGlobalProperty()
     {
         this.WriteVersionFile("3.4");

@@ -24,6 +24,7 @@
       ProjectPathRelativeToGitRepoRoot="$(ProjectPathRelativeToGitRepoRoot)"
       OverrideBuildNumberOffset="$(OverrideBuildNumberOffset)"
       TargetsPath="$(MSBuildThisFileDirectory)"
+      NoWarn="$(NoWarn)"
       GitEngine="$(NBGV_GitEngine)">
       
       <!-- All properties and items are to be exported to the calling project through items. -->
