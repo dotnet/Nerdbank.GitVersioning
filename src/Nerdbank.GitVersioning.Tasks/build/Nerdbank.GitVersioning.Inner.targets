@@ -14,6 +14,10 @@
           Returns="@(CloudBuildVersionVars)" />
   
   <Target Name="GetBuildVersionCore">
+    <PropertyGroup>
+      <_NBGV_NoWarn></_NBGV_NoWarn>
+      <_NBGV_NoWarn Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(NoWarn)', '(?i)(^|[;,])\s*NBGV1001\s*([;,]|$)'))">NBGV1001</_NBGV_NoWarn>
+    </PropertyGroup>
     <Nerdbank.GitVersioning.Tasks.GetBuildVersion
       BuildingRef="$(_NBGV_BuildingRef)"
       BuildMetadata="$(BuildMetadata.Replace(',',';'))"
@@ -24,6 +28,7 @@
       ProjectPathRelativeToGitRepoRoot="$(ProjectPathRelativeToGitRepoRoot)"
       OverrideBuildNumberOffset="$(OverrideBuildNumberOffset)"
       TargetsPath="$(MSBuildThisFileDirectory)"
+      NoWarn="$(_NBGV_NoWarn)"
       GitEngine="$(NBGV_GitEngine)">
       
       <!-- All properties and items are to be exported to the calling project through items. -->
