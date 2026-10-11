@@ -11,14 +11,18 @@ user-invocable: false
 
 ## Running Tests
 
-To run a specific test project, change to that project's directory first; the commands below then target it without hard-coding its path.
+There *may* be unstable tests that are attributed as such.
+Running the [dotnet-test-cloud.ps1](../../../tools/dotnet-test-cloud.ps1) script will execute all previously built tests except the unstable ones.
+The commands below will *not* automatically exclude unstable tests, but you may do so by adding a parameter to filter out those that set their `TestCategory` property to `FailsInCloudTest`.
 
-**Run all tests**:
+**Run all tests** (from the root of the repository):
 ```bash
 dotnet test --no-build -c Release
 ```
 
-**Run tests for a specific test project**:
+To run a specific test project, change to that project's directory first; the commands below then target it without hard-coding its path.
+
+**Run tests for a specific test project** (within that test project's directory):
 ```bash
 dotnet test --no-build -c Release
 ```
