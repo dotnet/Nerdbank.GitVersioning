@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project>
+  <PropertyGroup>
+    <!-- Test projects don't need an app host unless they're RID-specific or NativeAOT.
+         This lives here rather than in Directory.Build.props so that a RuntimeIdentifier set in the project file itself is seen.
+         Otherwise a self-contained, RID-specific test project would get UseAppHost=false and fail with NETSDK1067. -->
+    <UseAppHost Condition="'$(RuntimeIdentifier)' == '' and '$(NativeAOT)' != 'true'">false</UseAppHost>
+  </PropertyGroup>
+
   <Import Project="AOT.props"
           Condition="'$(IsTestProject)' == 'true' and '$(PublishNativeAOTTests)' == 'true' and '$(TargetFramework)' != '' and $([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))" />
 

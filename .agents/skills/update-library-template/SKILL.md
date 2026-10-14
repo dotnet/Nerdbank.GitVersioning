@@ -30,6 +30,28 @@ Conflicts in the following files should always be resolved by keeping the curren
 
 * README.md
 
+### Test framework docs, scripts, and packages
+
+Library.Template's `AGENTS.md`, test docs, and `tools/dotnet-test-cloud.ps1` assume **TUnit** on Microsoft.Testing.Platform.
+Many consumers still use **xunit v3 + MTP**, classic **VSTest xunit**, or hybrid setups (including xunit *extension* libraries such as Xunit.StaFact / Xunit.SkippableFact / Xunit.Combinatorial, whose own tests must stay on xunit).
+
+When merging:
+
+* Prefer the template only where the consumer's prior content was **equivalent**. Do not overwrite repo-specific behavior with template placeholders or TUnit-only defaults.
+* Keep framework-specific **AGENTS.md** (and similar agent/contributor docs): filter syntax (`--filter-method` / `--filter-not-trait` vs `--treenode-filter`), FailsInCloudTest / FailureExpected exclusions, real test project paths, and `--framework` TFMs that match the repo's test projects.
+* Keep bespoke **`tools/dotnet-test-cloud.ps1`** logic when it is not equivalent to the template (per-project loops, NonTUnit vs TUnit splits, MultiRID/NativeAOT discovery, hang/blame timeouts, coverage naming, custom filters). Graft genuine template improvements (for example `IncludeNativeAOT` + `Get-NativeAOTTestProjects.ps1`) onto the repo script only when they fit.
+* Do not add unused template **PackageVersion** entries (`TUnit.Engine`, `xunit.v3.assert.aot`, etc.) to `Directory.Packages.props` unless a project in the repo actually references them (or Central Package Management truly requires them).
+* Preserve repo-specific Azure Pipelines / GitHub Actions build steps that the template lacks equivalents for (for example full **MSBuild@1** on Windows for `net35`, `IncompleteBuild` as `warnNotAsError`).
+
+### Traversal coverage, placeholders, and non-test projects
+
+* `GitVersionBaseDirectory` in the template's `Directory.Build.props` assumes the repo has exactly one `version.json`. If the repo has nested `version.json` files (typically for analyzer or source generator projects that need `assemblyVersion` precision `revision`), the repo has deliberately removed or must not have that property. Never re-add it during a merge; keep the repo's first-parent state.
+* `init.ps1` and CI restore and build only `tools/dirs.proj`. If the solution contains projects outside `src` and `test` (for example `samples/` or `benchmark/`), add them to `tools/dirs.proj` (with `Pack="false"` and/or `Publish="false"` as appropriate) so they are still restored and compiled. Otherwise `dotnet format --no-restore` and sample regressions go unnoticed.
+* `test/Directory.Build.props` marks every project under `test` as a test project. Set `<IsTestProject>false</IsTestProject>` on non-test executables there (for example BenchmarkDotNet projects) so they are not run by `dotnet test` or picked up by NativeAOT test discovery.
+* After the merge, search `CONTRIBUTING.md`, `AGENTS.md`, and source headers for template placeholders such as `test/Library.Tests/Library.Tests.csproj`, the company-name placeholder token that `Expand-Template.ps1` replaces with the author, and the template's `net8.0` examples, and replace them with the repo's real project paths, metadata, and NativeAOT-enabled frameworks.
+* If the repo already publishes NativeAOT tests through its own mechanism (for example `MultiRIDProjectReference` items in `test/dirs.proj`), either keep that mechanism and disable the template's discovery (`PublishNativeAOTTests=false`, and drop or don't wire up `Get-NativeAOTTestProjects.ps1`), or replace it fully. Don't leave both half-wired, and update `CONTRIBUTING.md` to describe whichever one the repo actually uses.
+
+
 ### Deleted files
 
 Very typically, when the incoming change is to a file that was deleted locally, the correct resolution is to re-delete the file.

@@ -12,7 +12,6 @@
     <!-- The filter dotnet-test-cloud.ps1 passes to exclude FailsInCloudTest tests. This is TUnit's syntax; xunit test projects override it. -->
     <CloudTestFilterOption>--treenode-filter</CloudTestFilterOption>
     <CloudTestFilterValue>/**[Category!=FailsInCloudTest]</CloudTestFilterValue>
-    <UseAppHost Condition="'$(RuntimeIdentifier)' == '' and '$(NativeAOT)' != 'true'">false</UseAppHost>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(NativeAOT)' == 'true' and '$(PublishNativeAOTTests)' == 'true'">

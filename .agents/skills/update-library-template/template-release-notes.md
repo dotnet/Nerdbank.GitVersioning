@@ -43,6 +43,14 @@ Follow the [TUnit xUnit migration guide](https://tunit.dev/docs/migration/xunit)
   Test projects targeting .NET 8 or later are eligible for NativeAOT publication by default.
   If a project cannot support NativeAOT, set `<PublishNativeAOTTests>false</PublishNativeAOTTests>` in its project file; it will still run as managed tests.
 
+## Template expansion validation
+
+The `tools/Validate-TemplateExpansion.ps1` script and the template-expansion validation steps in Azure Pipelines and GitHub Actions exist only to test Library.Template itself.
+They clean the working tree, run `Expand-Template.ps1`, and build the expanded result after the normal build and test sequence has completed.
+
+Do not bring `tools/Validate-TemplateExpansion.ps1`, `azure-pipelines/expand-template.yml`, or the block marked `TEMPLATE EXPANSION VALIDATION` in `.github/workflows/build.yml` into an existing repository.
+These files and steps are removed automatically when creating a repository through `Expand-Template.ps1`, and should likewise be discarded while merging template updates into an already-expanded repository.
+
 ## NativeAOT compatibility validation
 
 Shipping projects now set `IsAotCompatible` for target frameworks compatible with .NET 8.
