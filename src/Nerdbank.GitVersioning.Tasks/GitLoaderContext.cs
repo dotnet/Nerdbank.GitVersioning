@@ -23,7 +23,7 @@ namespace Nerdbank.GitVersioning
         private readonly string nativeDependencyBasePath;
         private readonly string? managedDependencyBasePath;
 
-        private (string?, IntPtr) lastLoadedLibrary;
+        private (string?, nint) lastLoadedLibrary;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GitLoaderContext"/> class.
@@ -57,19 +57,19 @@ namespace Nerdbank.GitVersioning
             return Default.LoadFromAssemblyName(assemblyName);
         }
 
-        protected override IntPtr LoadUnmanagedDll(string unmanagedDllName)
+        protected override nint LoadUnmanagedDll(string unmanagedDllName)
         {
             // Only intercept loads for libgit2 native libraries. Returning a handle from the
             // libgit2 runtimes directory for other libraries (e.g. hostfxr, KERNEL32) causes
             // EntryPointNotFoundException when P/Invokes hit the wrong module.
             if (!IsLibGit2LibraryName(unmanagedDllName))
             {
-                return IntPtr.Zero;
+                return nint.Zero;
             }
 
-            IntPtr p = base.LoadUnmanagedDll(unmanagedDllName);
+            nint p = base.LoadUnmanagedDll(unmanagedDllName);
 
-            if (p == IntPtr.Zero)
+            if (p == nint.Zero)
             {
                 if (unmanagedDllName == this.lastLoadedLibrary.Item1)
                 {
@@ -101,7 +101,7 @@ namespace Nerdbank.GitVersioning
                         }
                     }
 
-                    if (p != IntPtr.Zero)
+                    if (p != nint.Zero)
                     {
                         // Cache this to make us a little faster next time.
                         this.lastLoadedLibrary = (unmanagedDllName, p);

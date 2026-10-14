@@ -307,7 +307,7 @@ public class VersionOptions : IEquatable<VersionOptions>
                 throw new ArgumentNullException(nameof(value), $"{nameof(this.GitCommitIdPrefix)} can't be empty");
             }
 
-            char first = value![0];
+            char first = (value!)[0];
             if (first < 'A' || (first > 'Z' && first < 'a' && first != '_') || first > 'z')
             {
                 throw new ArgumentException(nameof(value), $"{nameof(this.GitCommitIdPrefix)} must lead with a [A-z_] character (not a number)");

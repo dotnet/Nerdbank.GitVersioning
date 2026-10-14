@@ -11,13 +11,14 @@ public class ProcessArchitectureTests
     [Test]
     public void TestProcessBitnessMatchesBuild()
     {
-        string description = $"Is64BitProcess={Environment.Is64BitProcess}, ProcessArchitecture={RuntimeInformation.ProcessArchitecture}, IntPtr.Size={IntPtr.Size}, Framework={RuntimeInformation.FrameworkDescription}";
+        int pointerSize = Marshal.SizeOf<nint>();
+        string description = $"Is64BitProcess={Environment.Is64BitProcess}, ProcessArchitecture={RuntimeInformation.ProcessArchitecture}, IntPtr.Size={pointerSize}, Framework={RuntimeInformation.FrameworkDescription}";
         Console.WriteLine(description);
 #if TEST_X86
         Assert.False(Environment.Is64BitProcess, $"This test assembly was built for x86, but is running in a 64-bit process. {description}");
-        Assert.Equal(4, IntPtr.Size);
+        Assert.Equal(4, pointerSize);
 #else
-        Assert.Equal(Environment.Is64BitProcess, IntPtr.Size == 8);
+        Assert.Equal(Environment.Is64BitProcess, pointerSize == 8);
 #endif
     }
 }
