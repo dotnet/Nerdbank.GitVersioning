@@ -69,7 +69,7 @@ public class GitPackTests : IDisposable
             ZLibStream zlibStream = Assert.IsType<ZLibStream>(commitStream);
             DeflateStream deflateStream = Assert.IsType<DeflateStream>(zlibStream.BaseStream);
 
-            if (IntPtr.Size > 4)
+            if (Environment.Is64BitProcess)
             {
                 MemoryMappedStream pooledStream = Assert.IsType<MemoryMappedStream>(deflateStream.BaseStream);
             }
@@ -99,7 +99,7 @@ public class GitPackTests : IDisposable
             ZLibStream zlibStream = Assert.IsType<ZLibStream>(deltaStream.BaseStream);
             DeflateStream deflateStream = Assert.IsType<DeflateStream>(zlibStream.BaseStream);
 
-            if (IntPtr.Size > 4)
+            if (Environment.Is64BitProcess)
             {
                 MemoryMappedStream pooledStream = Assert.IsType<MemoryMappedStream>(deflateStream.BaseStream);
             }
@@ -147,7 +147,7 @@ public class GitPackTests : IDisposable
                 ZLibStream zlibStream = Assert.IsType<ZLibStream>(commitStream);
                 DeflateStream deflateStream = Assert.IsType<DeflateStream>(zlibStream.BaseStream);
 
-                if (IntPtr.Size > 4)
+                if (Environment.Is64BitProcess)
                 {
                     MemoryMappedStream pooledStream = Assert.IsType<MemoryMappedStream>(deflateStream.BaseStream);
                 }

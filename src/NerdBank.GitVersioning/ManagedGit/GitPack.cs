@@ -84,7 +84,7 @@ public class GitPack : IDisposable
         this.indexStream = indexStream ?? throw new ArgumentNullException(nameof(indexStream));
         this.cache = cache ?? new GitPackMemoryCache();
 
-        if (IntPtr.Size > 4)
+        if (Environment.Is64BitProcess)
         {
             this.packFile = MemoryMappedFile.CreateFromFile(this.packStream(), mapName: null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None, leaveOpen: false);
             this.accessor = this.packFile.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
@@ -300,7 +300,7 @@ public class GitPack : IDisposable
         // On 64-bit processes, we can use Memory Mapped Streams (the address space
         // will be large enough to map the entire packfile). On 32-bit processes,
         // we directly access the underlying stream.
-        if (IntPtr.Size > 4)
+        if (Environment.Is64BitProcess)
         {
             return new MemoryMappedStream(this.accessor);
         }

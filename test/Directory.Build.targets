@@ -3,8 +3,9 @@
   <PropertyGroup>
     <!-- Test projects don't need an app host unless they're RID-specific or NativeAOT.
          This lives here rather than in Directory.Build.props so that a RuntimeIdentifier set in the project file itself is seen.
-         Otherwise a self-contained, RID-specific test project would get UseAppHost=false and fail with NETSDK1067. -->
-    <UseAppHost Condition="'$(RuntimeIdentifier)' == '' and '$(NativeAOT)' != 'true'">false</UseAppHost>
+         Otherwise a self-contained, RID-specific test project would get UseAppHost=false and fail with NETSDK1067.
+         xunit v3 requires an app host even for RID-neutral managed tests. -->
+    <UseAppHost Condition="'$(RuntimeIdentifier)' == '' and '$(NativeAOT)' != 'true' and '$(XunitTestProject)' != 'true'">false</UseAppHost>
   </PropertyGroup>
 
   <Import Project="AOT.props"
