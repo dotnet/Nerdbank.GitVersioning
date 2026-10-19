@@ -86,9 +86,9 @@ public class ZLibStream : Stream
     public override bool CanWrite => false;
 
     /// <inheritdoc/>
-    public override int Read(byte[] array, int offset, int count)
+    public override int Read(byte[] buffer, int offset, int count)
     {
-        int read = this.stream.Read(array, offset, count);
+        int read = this.stream.Read(buffer, offset, count);
         this.position += read;
         return read;
     }
@@ -104,9 +104,9 @@ public class ZLibStream : Stream
 #endif
 
     /// <inheritdoc/>
-    public override async Task<int> ReadAsync(byte[] array, int offset, int count, CancellationToken cancellationToken)
+    public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
     {
-        int read = await this.stream.ReadAsync(array, offset, count, cancellationToken);
+        int read = await this.stream.ReadAsync(buffer, offset, count, cancellationToken);
         this.position += read;
         return read;
     }

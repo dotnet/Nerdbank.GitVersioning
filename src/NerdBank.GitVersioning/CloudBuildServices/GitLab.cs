@@ -13,15 +13,17 @@ internal class GitLab : ICloudBuild
 {
     /// <inheritdoc/>
     public string BuildingBranch =>
-        Environment.GetEnvironmentVariable("CI_COMMIT_TAG") is null ?
-            $"refs/heads/{Environment.GetEnvironmentVariable("CI_COMMIT_REF_NAME")}" : null;
+        Environment.GetEnvironmentVariable("CI_COMMIT_TAG") is null
+            ? $"refs/heads/{Environment.GetEnvironmentVariable("CI_COMMIT_REF_NAME")}"
+            : null;
 
     public string BuildingRef => this.BuildingBranch ?? this.BuildingTag;
 
     /// <inheritdoc/>
     public string BuildingTag =>
-        !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CI_COMMIT_TAG")) ?
-            $"refs/tags/{Environment.GetEnvironmentVariable("CI_COMMIT_TAG")}" : null;
+        !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CI_COMMIT_TAG"))
+            ? $"refs/tags/{Environment.GetEnvironmentVariable("CI_COMMIT_TAG")}"
+            : null;
 
     /// <inheritdoc/>
     public string GitCommitId => Environment.GetEnvironmentVariable("CI_COMMIT_SHA");

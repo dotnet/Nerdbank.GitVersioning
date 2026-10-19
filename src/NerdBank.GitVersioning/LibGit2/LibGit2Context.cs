@@ -183,8 +183,7 @@ public class LibGit2Context : GitContext
     private protected override string? GetRemoteDefaultBranch(string remoteName)
     {
         string targetPrefix = $"refs/remotes/{remoteName}/";
-        return this.Repository.Refs[$"refs/remotes/{remoteName}/HEAD"]?.TargetIdentifier is string targetIdentifier
-            && targetIdentifier.StartsWith(targetPrefix, StringComparison.Ordinal)
+        return this.Repository.Refs[$"refs/remotes/{remoteName}/HEAD"]?.TargetIdentifier is string targetIdentifier && targetIdentifier.StartsWith(targetPrefix, StringComparison.Ordinal)
             ? targetIdentifier.Substring(targetPrefix.Length)
             : null;
     }

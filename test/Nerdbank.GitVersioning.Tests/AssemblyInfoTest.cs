@@ -73,7 +73,8 @@ namespace AssemblyInfo
 [<assembly: global.System.Reflection.AssemblyFileVersionAttribute(""1.3.1.0"")>]
 [<assembly: global.System.Reflection.AssemblyInformationalVersionAttribute("""")>]
 do()
-{(thisAssemblyClass.GetValueOrDefault(true) ? $@"#if NETSTANDARD || NETFRAMEWORK || NETCOREAPP
+{(thisAssemblyClass.GetValueOrDefault(true)
+    ? $@"#if NETSTANDARD || NETFRAMEWORK || NETCOREAPP
 [<global.System.CodeDom.Compiler.GeneratedCode(""{AssemblyVersionInfo.GeneratorName}"",""{AssemblyVersionInfo.GeneratorVersion}"")>]
 #endif
 #if NET40_OR_GREATER || NETCOREAPP2_0_OR_GREATER || NETSTANDARD2_0_OR_GREATER
@@ -91,7 +92,8 @@ type internal ThisAssembly() =
   static member internal IsPublicRelease = false
   static member internal RootNamespace = """"
 do()
-" : string.Empty)}";
+"
+    : string.Empty)}";
 
         Assert.Equal(expected, built);
     }
@@ -209,7 +211,8 @@ package AssemblyInfo
 @assembly: System.Reflection.AssemblyVersionAttribute(""1.3.0.0"")
 @assembly: System.Reflection.AssemblyFileVersionAttribute(""1.3.1.0"")
 @assembly: System.Reflection.AssemblyInformationalVersionAttribute("""")
-{(thisAssemblyClass.GetValueOrDefault(true) ? $@"@System.CodeDom.Compiler.GeneratedCode(""{AssemblyVersionInfo.GeneratorName}"",""{AssemblyVersionInfo.GeneratorVersion}"")
+{(thisAssemblyClass.GetValueOrDefault(true)
+    ? $@"@System.CodeDom.Compiler.GeneratedCode(""{AssemblyVersionInfo.GeneratorName}"",""{AssemblyVersionInfo.GeneratorVersion}"")
 @System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage
 internal class ThisAssembly {{
   shared {{
@@ -225,7 +228,8 @@ internal class ThisAssembly {{
     internal let RootNamespace string = """"
   }}
 }}
-" : string.Empty)}";
+"
+    : string.Empty)}";
 
         Assert.Equal(expected, built);
     }
@@ -340,7 +344,8 @@ internal class ThisAssembly {{
 [assembly: global::System.Reflection.AssemblyVersionAttribute(""1.3.0.0"")]
 [assembly: global::System.Reflection.AssemblyFileVersionAttribute(""1.3.1.0"")]
 [assembly: global::System.Reflection.AssemblyInformationalVersionAttribute("""")]
-{(thisAssemblyClass.GetValueOrDefault(true) ? $@"#if NETSTANDARD || NETFRAMEWORK || NETCOREAPP
+{(thisAssemblyClass.GetValueOrDefault(true)
+    ? $@"#if NETSTANDARD || NETFRAMEWORK || NETCOREAPP
 [global::System.CodeDom.Compiler.GeneratedCode(""{AssemblyVersionInfo.GeneratorName}"",""{AssemblyVersionInfo.GeneratorVersion}"")]
 #endif
 #if NET40_OR_GREATER || NETCOREAPP2_0_OR_GREATER || NETSTANDARD2_0_OR_GREATER
@@ -358,7 +363,8 @@ internal static partial class ThisAssembly {{
     internal const bool IsPublicRelease = false;
     internal const string RootNamespace = """";
 }}
-" : string.Empty)}";
+"
+    : string.Empty)}";
 
         Assert.Equal(expected, built);
     }
@@ -455,7 +461,8 @@ internal static partial class ThisAssembly {{
 <Assembly: Global.System.Reflection.AssemblyVersionAttribute(""1.3.0.0"")>
 <Assembly: Global.System.Reflection.AssemblyFileVersionAttribute(""1.3.1.0"")>
 <Assembly: Global.System.Reflection.AssemblyInformationalVersionAttribute("""")>
-{(thisAssemblyClass.GetValueOrDefault(true) ? $@"#If NET40_OR_GREATER  Or  NETCOREAPP2_0_OR_GREATER  Or  NETSTANDARD2_0_OR_GREATER Then
+{(thisAssemblyClass.GetValueOrDefault(true)
+    ? $@"#If NET40_OR_GREATER  Or  NETCOREAPP2_0_OR_GREATER  Or  NETSTANDARD2_0_OR_GREATER Then
 <Global.System.CodeDom.Compiler.GeneratedCode(""{AssemblyVersionInfo.GeneratorName}"",""{AssemblyVersionInfo.GeneratorVersion}"")>
 <Global.System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage>
 Partial Friend NotInheritable Class ThisAssembly
@@ -472,7 +479,8 @@ Partial Friend NotInheritable Class ThisAssembly
     Friend Const IsPublicRelease As Boolean = False
     Friend Const RootNamespace As String = """"
 End Class
-" : string.Empty)}";
+"
+    : string.Empty)}";
 
         Assert.Equal(expected, built);
     }

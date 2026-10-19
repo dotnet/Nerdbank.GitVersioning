@@ -76,9 +76,7 @@ namespace Nerdbank.GitVersioning
                     return this.lastLoadedLibrary.Item2;
                 }
 
-                string prefix =
-                    RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? string.Empty :
-                    "lib";
+                string prefix = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? string.Empty : "lib";
 
                 string? extension =
                     RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".dll" :

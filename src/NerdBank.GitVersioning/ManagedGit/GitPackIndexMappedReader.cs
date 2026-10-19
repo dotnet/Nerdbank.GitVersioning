@@ -46,12 +46,12 @@ public unsafe class GitPackIndexMappedReader : GitPackIndexReader
     }
 
     /// <inheritdoc/>
-    public override (long? Offset, GitObjectId? ObjectId) GetOffset(Span<byte> objectName, bool endsWithHalfByte = false)
+    public override (long? Offset, GitObjectId? ObjectId) GetOffset(Span<byte> objectId, bool endsWithHalfByte = false)
     {
         this.Initialize();
 
-        int packStart = this.fanoutTable[objectName[0]];
-        int packEnd = this.fanoutTable[objectName[0] + 1];
+        int packStart = this.fanoutTable[objectId[0]];
+        int packEnd = this.fanoutTable[objectId[0] + 1];
         int objectCount = this.fanoutTable[256];
 
         // The fanout table is followed by a table of sorted 20-byte SHA-1 object names.
@@ -75,18 +75,18 @@ public unsafe class GitPackIndexMappedReader : GitPackIndexReader
         {
             i = (packStart + packEnd) / 2;
 
-            ReadOnlySpan<byte> comparand = table.Slice(20 * i, objectName.Length);
+            ReadOnlySpan<byte> comparand = table.Slice(20 * i, objectId.Length);
             if (endsWithHalfByte)
             {
                 // Copy out the value to be checked so we can zero out the last four bits,
                 // so that it matches the last 4 bits of the objectName that isn't supposed to be compared.
                 comparand.CopyTo(buffer);
-                buffer[objectName.Length - 1] &= 0xf0;
-                order = buffer.Slice(0, objectName.Length).SequenceCompareTo(objectName);
+                buffer[objectId.Length - 1] &= 0xf0;
+                order = buffer.Slice(0, objectId.Length).SequenceCompareTo(objectId);
             }
             else
             {
-                order = comparand.SequenceCompareTo(objectName);
+                order = comparand.SequenceCompareTo(objectId);
             }
 
             if (order < 0)
