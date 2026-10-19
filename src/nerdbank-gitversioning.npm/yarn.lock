@@ -493,9 +493,9 @@ glob-parent@^6.0.2:
     is-glob "^4.0.3"
 
 glob-stream@^8.0.3:
-  version "8.0.3"
-  resolved "https://registry.yarnpkg.com/glob-stream/-/glob-stream-8.0.3.tgz#87e63153aadf05bd0207cde1a253ee39d91458b9"
-  integrity sha512-fqZVj22LtFJkHODT+M4N1RJQ3TjnnQhfE9GwZI8qXscYarnhpip70poMldRnP8ipQ/w0B621kOhfc53/J9bd/A==
+  version "8.0.4"
+  resolved "https://registry.yarnpkg.com/glob-stream/-/glob-stream-8.0.4.tgz#32f8c8c07903f755e4946c05cc3ca8e2a10f04b3"
+  integrity sha512-7uzFVQ1ZUBr0nYexxubOvocZXQ4HcHv6WO3TOiYUPaCda7BASuKgOw/NB4Pc9gHM3tK0Jrekq7el8pKhb8kx5w==
   dependencies:
     "@gulpjs/to-absolute-glob" "^4.0.0"
     anymatch "^3.1.3"
