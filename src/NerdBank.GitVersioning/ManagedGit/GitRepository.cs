@@ -913,9 +913,7 @@ public class GitRepository : IDisposable
         if (this.usesReftable)
         {
             string prefix = $"refs/remotes/{remoteName}/";
-            return this.ReadReftableReferences().TryGetValue(prefix + HeadFileName, out (object Value, GitObjectId? Peeled) reference)
-                && reference.Value is string target
-                && target.StartsWith(prefix, StringComparison.Ordinal)
+            return this.ReadReftableReferences().TryGetValue(prefix + HeadFileName, out (object Value, GitObjectId? Peeled) reference) && reference.Value is string target && target.StartsWith(prefix, StringComparison.Ordinal)
                 ? target.Substring(prefix.Length)
                 : null;
         }
@@ -928,8 +926,7 @@ public class GitRepository : IDisposable
 
         using FileStream stream = File.OpenRead(remoteHeadPath);
         string targetPrefix = $"refs/remotes/{remoteName}/";
-        return GitReferenceReader.ReadReference(stream) is string targetIdentifier
-            && targetIdentifier.StartsWith(targetPrefix, StringComparison.Ordinal)
+        return GitReferenceReader.ReadReference(stream) is string targetIdentifier && targetIdentifier.StartsWith(targetPrefix, StringComparison.Ordinal)
             ? targetIdentifier.Substring(targetPrefix.Length)
             : null;
     }
@@ -994,8 +991,7 @@ public class GitRepository : IDisposable
         }
 
         string? globalConfigPath = GetGlobalConfigPath();
-        return globalConfigPath is not null
-            && TryReadConfigurationValue(globalConfigPath, section, name, out string? globalValue)
+        return globalConfigPath is not null && TryReadConfigurationValue(globalConfigPath, section, name, out string? globalValue)
             ? globalValue
             : null;
     }

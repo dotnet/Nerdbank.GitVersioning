@@ -71,7 +71,7 @@ public class GitPackDeltafiedStream : Stream
     /// Reads a sequence of bytes from the current <see cref="GitPackDeltafiedStream"/> and advances the position
     /// within the stream by the number of bytes read.
     /// </summary>
-    /// <param name="span">
+    /// <param name="buffer">
     /// A region of memory. When this method returns, the contents of this region are replaced by the bytes
     /// read from the current source.
     /// </param>
@@ -80,24 +80,24 @@ public class GitPackDeltafiedStream : Stream
     /// in the buffer if that many bytes are not currently available, or zero (0) if the end of the stream
     /// has been reached.
     /// </returns>
-    public int Read(Span<byte> span)
+    public int Read(Span<byte> buffer)
 #else
     /// <inheritdoc/>
-    public override int Read(Span<byte> span)
+    public override int Read(Span<byte> buffer)
 #endif
     {
         int read = 0;
         int canRead;
         int didRead;
 
-        while (read < span.Length && this.TryGetInstruction(out DeltaInstruction instruction))
+        while (read < buffer.Length && this.TryGetInstruction(out DeltaInstruction instruction))
         {
             Stream? source = instruction.InstructionType == DeltaInstructionType.Copy ? this.baseStream : this.deltaStream;
 
             Debug.Assert(instruction.Size > this.offset);
             Debug.Assert(source.Position + instruction.Size - this.offset <= source.Length);
-            canRead = Math.Min(span.Length - read, instruction.Size - this.offset);
-            didRead = source.Read(span.Slice(read, canRead));
+            canRead = Math.Min(buffer.Length - read, instruction.Size - this.offset);
+            didRead = source.Read(buffer.Slice(read, canRead));
 
             Debug.Assert(didRead != 0);
             read += didRead;
@@ -105,7 +105,7 @@ public class GitPackDeltafiedStream : Stream
         }
 
         this.position += read;
-        Debug.Assert(read <= span.Length);
+        Debug.Assert(read <= buffer.Length);
         return read;
     }
 

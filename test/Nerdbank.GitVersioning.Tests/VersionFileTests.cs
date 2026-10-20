@@ -145,10 +145,10 @@ public abstract class VersionFileTests : RepoTestBase
 
         string pathWritten = this.Context.VersionFile.SetVersion(this.RepoPath, new Version(2, 3));
         string actualFileContent = File.ReadAllText(pathWritten);
-        string actualFinalNewline = actualFileContent.EndsWith("\r\n", StringComparison.Ordinal) ? "\r\n"
-            : actualFileContent.EndsWith("\n", StringComparison.Ordinal) ? "\n"
-            : actualFileContent.EndsWith("\r", StringComparison.Ordinal) ? "\r"
-            : string.Empty;
+        string actualFinalNewline = actualFileContent.EndsWith("\r\n", StringComparison.Ordinal) ? "\r\n" :
+                                    actualFileContent.EndsWith("\n", StringComparison.Ordinal) ? "\n" :
+                                    actualFileContent.EndsWith("\r", StringComparison.Ordinal) ? "\r" :
+                                    string.Empty;
 
         Assert.Equal(expectedFinalNewline, actualFinalNewline);
     }

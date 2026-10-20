@@ -187,8 +187,9 @@ public static class LibGit2GitExtensions
         }
 
         SemanticVersion? baseSemVer =
-            baseVersion is not null ? SemanticVersion.Parse(baseVersion.ToString()) :
-            versionOptions.Version ?? SemVer0;
+            baseVersion is not null
+                ? SemanticVersion.Parse(baseVersion.ToString())
+                : versionOptions.Version ?? SemVer0;
 
         SemanticVersion.Position? versionHeightPosition = versionOptions.VersionHeightPosition;
         if (versionHeightPosition.HasValue)

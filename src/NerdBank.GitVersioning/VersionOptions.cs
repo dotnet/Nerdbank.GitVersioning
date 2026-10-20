@@ -1400,8 +1400,9 @@ public class VersionOptions : IEquatable<VersionOptions>
                     return 0;
                 }
 
-                return obj.EnabledOrDefault ? 1 : 0
-                    + obj.IncludeCommitIdOrDefault.GetHashCode();
+                return obj.EnabledOrDefault
+                    ? 1
+                    : 0 + obj.IncludeCommitIdOrDefault.GetHashCode();
             }
         }
     }

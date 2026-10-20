@@ -229,7 +229,7 @@ END
                     { "NGBV_PRODUCT", DefaultIfEmpty(this.AssemblyProduct, this.AssemblyName) },
                     { "NBGV_COPYRIGHT", DefaultIfEmpty(this.AssemblyCopyright, $"Copyright (c) {DateTime.Now.Year}. All rights reserved.") },
                     { "NGBV_COMPANY", DefaultIfEmpty(this.AssemblyCompany, this.AssemblyName) },
-                    { "NBGV_VERSION_BLOCK", (lcid << 16 | codepage).ToString("X8") },
+                    { "NBGV_VERSION_BLOCK", ((lcid << 16) | codepage).ToString("X8") },
                 };
 
             foreach (KeyValuePair<string, int> pair in numericFields)
