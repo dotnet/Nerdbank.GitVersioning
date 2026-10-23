@@ -46,6 +46,154 @@ public class BuildIntegrationDisabledTests : BuildIntegrationTests
     }
 
     [Test]
+    [Arguments("MSBuildTargetCaching", "NoWarn", false)]
+    [Arguments("InProject", "NoWarn", false)]
+    [Arguments("MSBuildTargetCaching", "MSBuildWarningsAsMessages", false)]
+    [Arguments("InProject", "MSBuildWarningsAsMessages", false)]
+    [Arguments("MSBuildTargetCaching", "MSBuildWarningsAsErrors", false)]
+    [Arguments("InProject", "MSBuildWarningsAsErrors", false)]
+    [Arguments("MSBuildTargetCaching", "NoWarn", true)]
+    [Arguments("InProject", "NoWarn", true)]
+    [Arguments("MSBuildTargetCaching", "MSBuildWarningsAsMessages", true)]
+    [Arguments("InProject", "MSBuildWarningsAsMessages", true)]
+    [Arguments("MSBuildTargetCaching", "MSBuildWarningsAsErrors", true)]
+    [Arguments("InProject", "MSBuildWarningsAsErrors", true)]
+    public async Task PlaceholderWarningHonorsProjectSeverity(string cacheMode, string severityProperty, bool designTimeBuild)
+    {
+        this.WriteVersionFile();
+        this.testProject.AddProperty("NBGV_CacheMode", cacheMode);
+        this.testProject.AddProperty(severityProperty, "OTHER0001;NBGV1001;OTHER0002");
+        this.globalProperties["DesignTimeBuild"] = designTimeBuild.ToString();
+
+        bool expectError = severityProperty == "MSBuildWarningsAsErrors";
+        BuildResults result = await this.BuildAsync(Targets.GenerateAssemblyNBGVVersionInfo, assertSuccessfulBuild: !expectError);
+
+        Assert.DoesNotContain(result.LoggedEvents.OfType<BuildWarningEventArgs>(), warning => warning.Code == "NBGV1001");
+        if (expectError)
+        {
+            Assert.Equal(BuildResultCode.Failure, result.BuildResult.OverallResult);
+            Assert.Single(result.LoggedEvents.OfType<BuildErrorEventArgs>(), error => error.Code == "NBGV1001");
+        }
+        else
+        {
+            Assert.DoesNotContain(result.LoggedEvents.OfType<BuildErrorEventArgs>(), error => error.Code == "NBGV1001");
+            Assert.Equal("Unavailable", result.GitCommitId);
+            if (severityProperty == "MSBuildWarningsAsMessages")
+            {
+                Assert.Contains(result.LoggedEvents.OfType<BuildMessageEventArgs>(), message => message.Message.Contains("contain placeholder values"));
+            }
+            else
+            {
+                Assert.DoesNotContain(result.LoggedEvents.OfType<BuildMessageEventArgs>(), message => message.Message.Contains("contain placeholder values"));
+            }
+        }
+    }
+
+    [Test]
+    [Arguments("MSBuildTargetCaching", "OTHER0001;NBGV10010", false)]
+    [Arguments("InProject", "OTHER0001;NBGV10010", false)]
+    [Arguments("MSBuildTargetCaching", "OTHER0001;nbgv1001", true)]
+    [Arguments("InProject", "OTHER0001;nbgv1001", true)]
+    [Arguments("MSBuildTargetCaching", "OTHER0001, NBGV1001, OTHER0002", true)]
+    [Arguments("InProject", "OTHER0001, NBGV1001, OTHER0002", true)]
+    [Arguments("MSBuildTargetCaching", "OTHER0001, nbgv1001;OTHER0002", true)]
+    [Arguments("InProject", "OTHER0001, nbgv1001;OTHER0002", true)]
+    [Arguments("MSBuildTargetCaching", "OTHER0001,NBGV10010", false)]
+    [Arguments("InProject", "OTHER0001,NBGV10010", false)]
+    public async Task PlaceholderWarningNoWarnMatchesCode(string cacheMode, string noWarn, bool suppressed)
+    {
+        this.WriteVersionFile();
+        this.testProject.AddProperty("NBGV_CacheMode", cacheMode);
+        this.testProject.AddProperty("NoWarn", noWarn);
+
+        BuildResults result = await this.BuildAsync();
+
+        Assert.Equal(suppressed ? 0 : 1, result.LoggedEvents.OfType<BuildWarningEventArgs>().Count(warning => warning.Code == "NBGV1001"));
+    }
+
+    [Test]
+    [Arguments("OTHER0001, NBGV1001, OTHER0002", true)]
+    [Arguments("OTHER0001, nbgv1001;OTHER0002", true)]
+    [Arguments("OTHER0001,NBGV10010", false)]
+    public async Task NoWarnDelimitersWithoutCSharpTargets(string noWarn, bool suppressed)
+    {
+        this.WriteVersionFile();
+        this.testProject = ProjectRootElement.Create(this.projectCollection);
+        this.testProject.FullPath = Path.Combine(this.projectDirectory, "bare.prj");
+        this.testProject.AddProperty("GitVersionBaseDirectory", this.projectDirectory);
+        this.testProject.AddProperty("NoWarn", noWarn);
+        this.testProject.AddImport(Path.Combine(this.RepoPath, "Nerdbank.GitVersioning.Inner.targets"));
+
+        BuildResults result = await this.BuildAsync("GetBuildVersionCore");
+
+        Assert.Equal(suppressed ? 0 : 1, result.LoggedEvents.OfType<BuildWarningEventArgs>().Count(warning => warning.Code == "NBGV1001"));
+    }
+
+    [Test]
+    [Arguments("NoWarn", false)]
+    [Arguments("NoWarn", true)]
+    [Arguments("MSBuildWarningsAsMessages", false)]
+    [Arguments("MSBuildWarningsAsMessages", true)]
+    [Arguments("MSBuildWarningsAsErrors", false)]
+    [Arguments("MSBuildWarningsAsErrors", true)]
+    [Arguments("MSBuildWarningsNotAsErrors", false)]
+    [Arguments("MSBuildWarningsNotAsErrors", true)]
+    public void DiagnosticCacheKeyIgnoresUnrelatedCodes(string severityProperty, bool globalProperty)
+    {
+        this.testProject.AddProperty("NBGV_CacheMode", "MSBuildTargetCaching");
+        ProjectPropertyElement property = this.testProject.AddProperty(severityProperty, string.Empty);
+        foreach (bool includeNbgvCode in new[] { false, true })
+        {
+            string expectedProperties = null;
+            foreach (string codes in new[] { "OTHER0001", "OTHER0002;NBGV10010", "OTHER0003,OTHER0004" })
+            {
+                string value = includeNbgvCode ? $"{codes}, nbgv1001;NBGV1001" : codes;
+                property.Value = globalProperty ? string.Empty : value;
+                var globalProperties = new Dictionary<string, string>(this.globalProperties);
+                if (globalProperty)
+                {
+                    globalProperties[severityProperty] = value;
+                }
+
+                var project = new ProjectInstance(this.testProject, globalProperties, null, this.projectCollection);
+                string properties = Assert.Single(project.GetItems("NBGV_CachingProjectReference")).GetMetadataValue("Properties");
+                Assert.Contains($"{severityProperty}={(includeNbgvCode ? "NBGV1001" : string.Empty)};", properties);
+                Assert.Equal(expectedProperties ?? properties, properties);
+                expectedProperties = properties;
+            }
+        }
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task VersionComputationIsSharedWithDifferentDiagnosticLists(bool suppressWarning)
+    {
+        this.WriteVersionFile();
+        var projects = new List<string>();
+        foreach (string projectName in new[] { "first", "second" })
+        {
+            ProjectRootElement project = this.CreateProjectRootElement(this.projectDirectory, $"{projectName}.prj");
+            project.AddProperty("NBGV_CacheMode", "MSBuildTargetCaching");
+            project.AddProperty("NoWarn", suppressWarning ? $"{projectName}, NBGV1001" : projectName);
+            project.AddProperty("MSBuildWarningsAsMessages", projectName);
+            project.AddProperty("MSBuildWarningsAsErrors", projectName);
+            project.AddProperty("MSBuildWarningsNotAsErrors", projectName);
+            project.Save();
+            projects.Add(project.FullPath);
+        }
+
+        ProjectTaskElement task = this.testProject.AddTarget("BuildProjects").AddTask("MSBuild");
+        task.SetParameter("Projects", string.Join(";", projects));
+        task.SetParameter("Targets", Targets.GetBuildVersion);
+
+        BuildResults result = await this.BuildAsync("BuildProjects");
+
+        Assert.Single(result.LoggedEvents.OfType<TaskStartedEventArgs>(), started => started.TaskName == "Nerdbank.GitVersioning.Tasks.GetBuildVersion");
+        Assert.Equal(suppressWarning ? 0 : 1, result.LoggedEvents.OfType<BuildWarningEventArgs>().Count(warning => warning.Code == "NBGV1001"));
+    }
+
+    [Test]
     public async Task GetPackageVersionWithEmptyTargetFrameworkGlobalProperty()
     {
         this.WriteVersionFile("3.4");
