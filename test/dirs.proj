@@ -11,7 +11,7 @@
     </MSBuild>
     <ItemGroup>
       <!-- MSBuild copies reference metadata to returned items; native publishes must retain _IsPublishing. -->
-      <_NativeAOTTest Update="@(_NativeAOTTest)" UndefineProperties=""
+      <_NativeAOTTest UndefineProperties=""
                       AdditionalProperties="TargetFramework=%(_NativeAOTTest.TargetFramework)" />
     </ItemGroup>
   </Target>
