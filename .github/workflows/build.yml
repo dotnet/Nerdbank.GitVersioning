@@ -26,7 +26,7 @@ jobs:
         os:
         - ubuntu-24.04
         - windows-2025
-        - macos-14
+        - macos-15
 
     defaults:
       run:
@@ -191,7 +191,7 @@ jobs:
             container: mcr.microsoft.com/dotnet/sdk:8.0
           - os: ubuntu-22.04
             container: mcr.microsoft.com/dotnet/sdk:9.0
-          - os: macos-14
+          - os: macos-15
             container: ""
 
     # This uses a matrix value for the container; macOS will have an empty string, which means no container.
@@ -297,7 +297,7 @@ jobs:
           repoDir: '~/git'
         - os: windows-2025
           repoDir: '${USERPROFILE}/source/repos'
-        - os: macos-14
+        - os: macos-15
           repoDir: '~/git'
 
     steps:
