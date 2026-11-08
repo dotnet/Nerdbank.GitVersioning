@@ -14,6 +14,8 @@ import org.apache.maven.cli.MavenCli;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class MavenReactorFunctionalTest {
     @TempDir
@@ -25,8 +27,9 @@ class MavenReactorFunctionalTest {
         System.clearProperty("maven.multiModuleProjectDirectory");
     }
 
-    @Test
-    void mavenThreeIndexesStampedReactorCoordinatesBeforeSorting() throws IOException {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void mavenThreeIndexesStampedReactorCoordinatesBeforeSorting(boolean literalVersion) throws IOException {
         Files.write(projectDirectory.resolve("version.json"), Arrays.asList("{}"), StandardCharsets.UTF_8);
         System.setProperty("nbgv.executable", createFakeNbgv().toString());
         System.setProperty("maven.multiModuleProjectDirectory", projectDirectory.toString());
@@ -44,18 +47,52 @@ class MavenReactorFunctionalTest {
                 projectDirectory.resolve("app/pom.xml"),
                 parent() + "<artifactId>app</artifactId><dependencies><dependency>"
                         + "<groupId>example</groupId><artifactId>library</artifactId>"
-                        + "<version>${revision}</version></dependency></dependencies>");
+                        + "<version>" + (literalVersion ? "0.0.0" : "${revision}")
+                        + "</version></dependency></dependencies>");
 
+        assertReactorBuild();
+    }
+
+    @Test
+    void discoversOnlyActiveProfileModulesAndInterpolatesInheritedProperties() throws IOException {
+        Files.write(projectDirectory.resolve("version.json"), Arrays.asList("{}"), StandardCharsets.UTF_8);
+        System.setProperty("nbgv.executable", createFakeNbgv().toString());
+        System.setProperty("maven.multiModuleProjectDirectory", projectDirectory.toString());
+        Files.createDirectories(projectDirectory.resolve("app"));
+        Files.createDirectories(projectDirectory.resolve("library"));
+        writePom(
+                projectDirectory.resolve("pom.xml"),
+                "<groupId>example</groupId><artifactId>reactor</artifactId><version>0.0.0</version>"
+                        + "<packaging>pom</packaging><properties><library.dir>overridden</library.dir>"
+                        + "<reactor.group>example</reactor.group></properties>"
+                        + "<modules><module>app</module></modules><profiles>"
+                        + "<profile><id>library</id><modules><module>${library.dir}</module></modules></profile>"
+                        + "<profile><id>inactive</id><modules><module>missing</module></modules></profile>"
+                        + "</profiles>");
+        writePom(
+                projectDirectory.resolve("library/pom.xml"),
+                parent() + "<groupId>${reactor.group}</groupId><artifactId>library</artifactId>");
+        writePom(
+                projectDirectory.resolve("app/pom.xml"),
+                parent() + "<artifactId>app</artifactId><profiles><profile><id>dependency</id>"
+                        + "<activation><activeByDefault>true</activeByDefault></activation>"
+                        + "<dependencies><dependency><groupId>${project.groupId}</groupId><artifactId>library</artifactId>"
+                        + "<version>0.0.0</version></dependency></dependencies></profile></profiles>");
+        assertReactorBuild("-Plibrary", "-Dlibrary.dir=library");
+    }
+
+    private void assertReactorBuild(String... arguments) throws IOException {
         ByteArrayOutputStream stdout = new ByteArrayOutputStream();
         ByteArrayOutputStream stderr = new ByteArrayOutputStream();
         int result;
         try (PrintStream out = new PrintStream(stdout, true, "UTF-8");
                 PrintStream err = new PrintStream(stderr, true, "UTF-8")) {
-            result = new MavenCli().doMain(
-                    new String[] {"validate", "--batch-mode", "--errors"},
-                    projectDirectory.toString(),
-                    out,
-                    err);
+            String[] command = new String[arguments.length + 3];
+            command[0] = "validate";
+            command[1] = "--batch-mode";
+            command[2] = "--errors";
+            System.arraycopy(arguments, 0, command, 3, arguments.length);
+            result = new MavenCli().doMain(command, projectDirectory.toString(), out, err);
         }
 
         String output = stdout.toString("UTF-8") + stderr.toString("UTF-8");

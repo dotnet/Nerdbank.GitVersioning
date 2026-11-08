@@ -116,7 +116,7 @@ jobs:
         run-id: ${{ steps.findrunid.outputs.runid }}
         github-token: ${{ github.token }}
 
-    - name: Validate Java publication prerequisites
+    - name: Plan Java publication and validate prerequisites
       if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish_java }}
       shell: pwsh
       env:
@@ -130,11 +130,6 @@ jobs:
       run: |
         $ErrorActionPreference = 'Stop'
         $PSNativeCommandUseErrorActionPreference = $true
-        foreach ($name in @('MAVEN_CENTRAL_USERNAME', 'MAVEN_CENTRAL_PASSWORD', 'MAVEN_SIGNING_KEY', 'MAVEN_SIGNING_PASSWORD', 'GRADLE_PUBLISH_KEY', 'GRADLE_PUBLISH_SECRET')) {
-          if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
-            throw "Configure $name in the Publishing environment before publishing Java packages."
-          }
-        }
         $buildSha = gh run view '${{ steps.findrunid.outputs.runid }}' --repo '${{ github.repository }}' --json headSha --jq .headSha
         $checkoutSha = git rev-parse HEAD
         if ($buildSha -ne $checkoutSha) {
@@ -145,6 +140,28 @@ jobs:
           throw "Refusing to publish Java integration version '$($packages.version)'."
         }
         "JAVA_INTEGRATION_VERSION=$($packages.version)" >> $env:GITHUB_ENV
+        $submitted = git tag --list "java/v$($packages.version)"
+        if ($submitted) {
+          'PUBLISH_JAVA_CENTRAL=false' >> $env:GITHUB_ENV
+          'PUBLISH_JAVA_PLUGIN=false' >> $env:GITHUB_ENV
+          'RECORD_JAVA_SUBMISSION=false' >> $env:GITHUB_ENV
+          Write-Host "Java $($packages.version) was already submitted; skipping both registries."
+        } else {
+          $plan = ./tools/Get-JavaPublicationPlan.ps1 -Version $packages.version -ArtifactDirectory '${{ runner.temp }}/deployables/ecosystems/java'
+          "JAVA_CENTRAL_TASKS=$($plan.CentralTasks -join ' ')" >> $env:GITHUB_ENV
+          "PUBLISH_JAVA_CENTRAL=$($plan.CentralTasks.Count -gt 0)" >> $env:GITHUB_ENV
+          "PUBLISH_JAVA_PLUGIN=$($plan.PublishPlugin)" >> $env:GITHUB_ENV
+          'RECORD_JAVA_SUBMISSION=true' >> $env:GITHUB_ENV
+          $required = @()
+          if ($plan.CentralTasks.Count -gt 0) { $required += @('MAVEN_CENTRAL_USERNAME', 'MAVEN_CENTRAL_PASSWORD') }
+          if ($plan.PublishPlugin) { $required += @('GRADLE_PUBLISH_KEY', 'GRADLE_PUBLISH_SECRET') }
+          if ($plan.CentralTasks.Count -gt 0 -or $plan.PublishPlugin) { $required += @('MAVEN_SIGNING_KEY', 'MAVEN_SIGNING_PASSWORD') }
+          foreach ($name in $required) {
+            if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
+              throw "Configure $name in the Publishing environment before publishing Java packages."
+            }
+          }
+        }
 
     - name: ⚙ Install .NET SDK
       shell: pwsh
@@ -263,21 +280,21 @@ jobs:
         cargo publish --workspace --allow-dirty
 
     - name: Install Java for publication
-      if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish_java }}
+      if: ${{ env.PUBLISH_JAVA_CENTRAL == 'True' || env.PUBLISH_JAVA_PLUGIN == 'True' }}
       uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
       with:
         distribution: temurin
         java-version: '17'
 
     - name: Install Gradle for publication
-      if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish_java }}
+      if: ${{ env.PUBLISH_JAVA_CENTRAL == 'True' || env.PUBLISH_JAVA_PLUGIN == 'True' }}
       uses: gradle/actions/setup-gradle@da187c8e6ffbd3802e00f2477aa5a822b25f2dda # v4.4.4
       with:
         gradle-version: '8.14.3'
         cache-disabled: true
 
     - name: Publish signed Java artifacts to Maven Central
-      if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish_java }}
+      if: ${{ env.PUBLISH_JAVA_CENTRAL == 'True' }}
       working-directory: java
       shell: pwsh
       env:
@@ -288,10 +305,11 @@ jobs:
       run: |
         $ErrorActionPreference = 'Stop'
         $PSNativeCommandUseErrorActionPreference = $true
-        gradle publishAndReleaseToMavenCentral "-PintegrationVersion=$env:JAVA_INTEGRATION_VERSION" -PreleaseJava=true --no-daemon --no-configuration-cache --console=plain
+        $tasks = $env:JAVA_CENTRAL_TASKS -split ' '
+        gradle @tasks "-PintegrationVersion=$env:JAVA_INTEGRATION_VERSION" -PreleaseJava=true --no-daemon --no-configuration-cache --console=plain
 
     - name: Publish Gradle plugin to Plugin Portal
-      if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish_java }}
+      if: ${{ env.PUBLISH_JAVA_PLUGIN == 'True' }}
       working-directory: java
       shell: pwsh
       env:
@@ -303,6 +321,17 @@ jobs:
         $ErrorActionPreference = 'Stop'
         $PSNativeCommandUseErrorActionPreference = $true
         gradle :gradle-plugin:publishPlugins "-PintegrationVersion=$env:JAVA_INTEGRATION_VERSION" -PreleaseJava=true --no-daemon --no-configuration-cache --console=plain
+
+    - name: Record successful Java publication submission
+      if: ${{ env.RECORD_JAVA_SUBMISSION == 'true' }}
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $PSNativeCommandUseErrorActionPreference = $true
+        $sha = git rev-parse HEAD
+        gh api --method POST 'repos/${{ github.repository }}/git/refs' -f "ref=refs/tags/java/v$env:JAVA_INTEGRATION_VERSION" -f "sha=$sha"
 
     - name: 💽 Upload artifacts to release
       shell: pwsh

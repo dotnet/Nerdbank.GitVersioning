@@ -141,6 +141,15 @@ fn cargo_package(root: &Path) {
 }
 
 fn cargo_build(root: &Path, target: &Path, fresh: bool) -> String {
+    cargo_build_with_engine(root, target, fresh, None)
+}
+
+fn cargo_build_with_engine(
+    root: &Path,
+    target: &Path,
+    fresh: bool,
+    engine: Option<&str>,
+) -> String {
     let mut command = Command::new(env!("CARGO"));
     command
         .args(["build", "--offline", "--verbose"])
@@ -149,6 +158,9 @@ fn cargo_build(root: &Path, target: &Path, fresh: bool) -> String {
         .env("GIT_CEILING_DIRECTORIES", root.parent().unwrap());
     for name in DETECTION_VARIABLES {
         command.env_remove(name);
+    }
+    if let Some(engine) = engine {
+        command.env("NBGV_GitEngine", engine);
     }
     let output = command.output().unwrap();
     let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
@@ -183,7 +195,7 @@ fn version_snapshot(version: &Version) -> String {
 }
 
 #[test]
-fn real_cargo_builds_are_fresh_and_invalidate_version_inputs() {
+fn real_cargo_builds_recalculate_checkouts_and_cache_archives() {
     let directory = repository(r#"{"version":"1.0"}"#);
     fs::write(directory.path().join(".gitignore"), "target/\n").unwrap();
     let package = directory.path().join("package");
@@ -193,49 +205,79 @@ fn real_cargo_builds_are_fresh_and_invalidate_version_inputs() {
     let target = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("target")
         .join("cargo-build-regression");
-    let check = |fresh| {
-        let actual = cargo_build(&package, &target, fresh);
+    let check = || {
+        let actual = cargo_build(&package, &target, false);
         let expected = version_from(&success(worker_command(&package, "get").output().unwrap()));
         assert_eq!(actual, version_snapshot(&expected));
     };
-    check(false);
-    check(true);
+    check();
+    check();
 
     fs::write(directory.path().join("committed.txt"), "new commit").unwrap();
     commit(directory.path());
-    check(false);
-    check(true);
+    check();
+    check();
 
     fs::write(
         directory.path().join("version.json"),
         r#"{"version":"2.0"}"#,
     )
     .unwrap();
-    check(false);
-    check(true);
+    check();
+    check();
 
-    // Creation is detected through the Git index without watching package/target.
     let nearer = package.join("version.json");
     fs::write(&nearer, r#"{"version":"3.0"}"#).unwrap();
-    let repo = Repository::open(directory.path()).unwrap();
-    let mut index = repo.index().unwrap();
-    index.add_path(Path::new("package/version.json")).unwrap();
-    index.write().unwrap();
-    check(false);
-    check(true);
+    check();
+    check();
 
     fs::remove_file(nearer).unwrap();
-    check(false);
-    check(true);
+    check();
+    check();
+
+    let legacy = package.join("version.txt");
+    fs::write(&legacy, "4.5\nbeta").unwrap();
+    check();
+    fs::remove_file(legacy).unwrap();
+    check();
+
+    fs::write(
+        directory.path().join("version.json"),
+        r#"{"version":"2.0","gitCommitIdIncludeDirty":true}"#,
+    )
+    .unwrap();
+    commit(directory.path());
+    check();
+    fs::write(directory.path().join("committed.txt"), "dirty edit").unwrap();
+    check();
+    fs::write(directory.path().join("committed.txt"), "new commit").unwrap();
+    check();
 
     let optional_metadata = directory.path().join(".git").join("config.worktree");
     assert!(!optional_metadata.exists());
     fs::write(&optional_metadata, "[nbgvtest]\nvalue = 1\n").unwrap();
-    check(false);
-    check(true);
+    check();
+    check();
     fs::remove_file(optional_metadata).unwrap();
-    check(false);
-    check(true);
+    check();
+    check();
+
+    for version_file in [None, Some(r#"{"version":"6.7"}"#), None] {
+        let nearer = package.join("version.json");
+        if let Some(contents) = version_file {
+            fs::write(&nearer, contents).unwrap();
+        } else if nearer.exists() {
+            fs::remove_file(&nearer).unwrap();
+        }
+        let actual = cargo_build_with_engine(&package, &target, false, Some("Disabled"));
+        let expected = version_from(&success(
+            worker_command(&package, "get")
+                .env("NBGV_GitEngine", "Disabled")
+                .output()
+                .unwrap(),
+        ));
+        assert_eq!(actual, version_snapshot(&expected));
+    }
 
     let archive = archive_fixture();
     cargo_package(archive.path());
@@ -289,6 +331,11 @@ fn build_worker() {
         "missing_out" => {
             let error = config.emit_and_write_module().unwrap_err();
             assert!(matches!(error, Error::MissingEnvironment("OUT_DIR")));
+            println!("ERROR:{error}");
+            return;
+        }
+        "emit_error" => {
+            let error = config.emit().unwrap_err();
             println!("ERROR:{error}");
             return;
         }
@@ -390,7 +437,7 @@ fn shared_git_fixture_matches_dotnet_oracle_byte_for_byte() {
 }
 
 #[test]
-fn tracks_version_txt_and_json_through_canonical_repository_root() {
+fn recalculates_checkout_without_recursive_or_ancestor_watches() {
     let directory = repository(r#"{"version":"1.0"}"#);
     fs::write(directory.path().join("version.txt"), "4.5\nbeta").unwrap();
     let child = directory.path().join("child");
@@ -403,15 +450,17 @@ fn tracks_version_txt_and_json_through_canonical_repository_root() {
             .unwrap(),
     );
     assert!(version_from(&output).sem_ver2.starts_with("4.5.1-beta"));
-    for ancestor in [&nested, &child, &directory.path().to_owned()] {
-        for name in ["version.json", "version.txt"] {
-            let path = ancestor.join(name);
-            assert_eq!(
-                output.contains(&format!("cargo::rerun-if-changed={}", path.display())),
-                path.exists()
-            );
-        }
-    }
+    assert!(output.contains(&format!(
+        "cargo::rerun-if-changed={}",
+        nested.join(".nbgv-always-recalculate").display()
+    )));
+    assert_eq!(
+        output
+            .lines()
+            .filter(|line| line.starts_with("cargo::rerun-if-changed="))
+            .count(),
+        1
+    );
     assert!(
         !output
             .lines()
@@ -425,38 +474,21 @@ fn tracks_version_txt_and_json_through_canonical_repository_root() {
 }
 
 #[test]
-fn tracks_worktree_and_common_git_metadata() {
+fn recalculates_linked_worktrees_without_recursive_git_watches() {
     let directory = repository(r#"{"version":"1.2"}"#);
     let linked = directory.path().join("linked");
     let root_repo = Repository::open(directory.path()).unwrap();
     root_repo.worktree("linked", &linked, None).unwrap();
-    let context = GitContext::create(&linked, None, GitEngine::ReadOnly).unwrap();
-    let git_dir = context.git_directory().unwrap();
     let output = success(worker_command(&linked, "emit").output().unwrap());
-    let common = fs::canonicalize(directory.path().join(".git")).unwrap();
-    for path in [
-        linked.join(".git"),
-        git_dir.join("HEAD"),
-        git_dir.join("index"),
-        git_dir.join("commondir"),
-        git_dir.to_owned(),
-        common.clone(),
-        common.join("config"),
-        common.join("refs"),
-        common.join("refs").join("heads"),
-        common.join("refs").join("tags"),
-    ] {
-        assert!(
-            output.contains(&format!("cargo::rerun-if-changed={}", path.display())),
-            "{}",
-            path.display()
-        );
-    }
+    assert!(output.contains(&format!(
+        "cargo::rerun-if-changed={}",
+        linked.join(".nbgv-always-recalculate").display()
+    )));
     for line in output
         .lines()
         .filter_map(|line| line.strip_prefix("cargo::rerun-if-changed="))
     {
-        assert!(Path::new(line).exists(), "{line}");
+        assert!(!Path::new(line).exists(), "{line}");
     }
     assert_eq!(version_from(&output).version_height, 1);
 }
@@ -651,8 +683,20 @@ fn ignores_archive_stamp_in_repositories_or_with_git_disabled() {
     )));
     assert!(output.contains(&format!(
         "cargo::rerun-if-changed={}",
-        archive.path().join("version.txt").display()
+        archive.path().join(".nbgv-always-recalculate").display()
     )));
+}
+
+#[test]
+fn refuses_an_existing_always_recalculate_sentinel() {
+    let directory = repository(r#"{"version":"1.2"}"#);
+    fs::write(directory.path().join(".nbgv-always-recalculate"), "").unwrap();
+    let output = success(
+        worker_command(directory.path(), "emit_error")
+            .output()
+            .unwrap(),
+    );
+    assert!(output.contains("reserved for Cargo change detection"));
 }
 
 #[test]
@@ -699,6 +743,13 @@ fn generated_module_and_both_macros_compile_without_runtime_dependencies() {
         let mut command = worker_command(directory.path(), mode);
         command.env("OUT_DIR", &out_dir);
         assert_eq!(version_from(&success(command.output().unwrap())), expected);
+        let generated = out_dir.join("nbgv.rs");
+        let modified = fs::metadata(&generated).unwrap().modified().unwrap();
+        assert_eq!(version_from(&success(command.output().unwrap())), expected);
+        assert_eq!(
+            fs::metadata(&generated).unwrap().modified().unwrap(),
+            modified
+        );
         let source = out_dir.join("main.rs");
         fs::write(&source, format!(
             "include!(\"nbgv.rs\");\nfn main() {{ assert_eq!(NBGV_VERSION.sem_ver2, {:?}); assert_eq!(NBGV_VERSION.git_commit_id_short, Some({:?})); assert_eq!(NBGV_VERSION.version_height, 42u32); }}",

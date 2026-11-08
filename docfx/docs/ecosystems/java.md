@@ -55,6 +55,7 @@ Add the extension to `.mvn/extensions.xml`:
 ```
 
 The extension stamps project models before Maven indexes the reactor.
+It discovers the active reactor's modules first, using Maven's profile activation and property interpolation, so literal dependency versions are updated before effective models are constructed regardless of module order.
 Maven 3 publishing should use CI-friendly `${revision}` plus `flatten-maven-plugin`; detailed configuration and Maven 4 notes are in the
 [Java README][java-readme].
 

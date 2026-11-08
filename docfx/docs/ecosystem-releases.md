@@ -54,11 +54,21 @@ Set these secrets in the protected `Publishing` environment:
 | `GRADLE_PUBLISH_KEY` | Plugin Portal API key. |
 | `GRADLE_PUBLISH_SECRET` | Plugin Portal API secret. |
 
-The workflow checks credentials and verifies that the checkout matches the selected successful build before registry publication begins.
+The workflow verifies that the checkout matches the selected successful build before registry publication begins.
 It reads the integration version from that build's `packages.json`, rather than substituting the .NET release version.
+For each version, it checks Maven Central and the Plugin Portal independently and requires credentials only for uploads that remain necessary.
+Already-published Central projects are skipped, allowing a retry to finish a failed Portal upload without trying to overwrite immutable Maven artifacts.
+An incomplete publication within a Central project is reported as an error requiring deployment recovery or a new Java version.
 The Vanniktech Maven publishing base plugin uses the existing publications, signs with an in-memory PGP key, and uploads through the Central Portal API.
 Normal pull-request builds continue to stage unsigned packages without credentials.
 
+After both registry steps succeed, the workflow creates an immutable `java/v<VERSION>` Git tag recording successful submission.
+Later .NET releases with that Java version skip Java publishing entirely.
+The tag records submission, not consumer availability: the first Plugin Portal submission still needs manual approval.
+Do not create this tag manually before both registry submissions succeed, and do not run overlapping Java publication jobs.
+Registry lookup failures stop publication rather than being treated as missing packages.
+
 For a manual workflow dispatch, `publish_java` controls both Java registry steps.
-Disable it when intentionally shipping other ecosystems only, or when Java's independently versioned packages have already been published.
+Disable it when intentionally shipping other ecosystems only.
+To publish an updated Java integration, deliberately advance its version in `java/build.gradle`; an existing version is never overwritten.
 Registry failures fail the workflow; configuring these steps does not create accounts, claim namespaces, or bypass first-publication approval.

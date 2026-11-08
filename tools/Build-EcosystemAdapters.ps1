@@ -42,6 +42,7 @@ if ((Get-Content -Raw $javaManifest) -notmatch "getOrElse\('(?<version>[^']+)'\)
     throw "Could not read the integration version from $javaManifest."
 }
 $integrationVersion = $Matches.version
+& (Join-Path $repositoryRoot 'test\JavaPublicationPlan.Tests.ps1')
 
 function Invoke-Native {
     param(

@@ -69,6 +69,8 @@ JSON formats remain available unchanged.
 Use `nerdbank_gitversioning_build::emit!()` in `build.rs` to emit compile-time `NBGV_*` variables and a typed module in `OUT_DIR`.
 The helper follows version files and Git metadata, including worktrees, and honors native cloud-build and release overrides.
 It does not launch `nbgv` or require .NET.
+In live checkouts it recalculates on every Cargo build so unstaged configuration creation and dirty-tree changes cannot leave stale versions.
+This intentionally reruns the build script and may recompile the package even when the stamp is unchanged; published archives retain incremental builds.
 
 `cargo nbgv package` and `cargo nbgv publish` let Cargo normalize the package before stamping the staged manifest and lockfile.
 They preserve Cargo's dirty-source and lockfile checks and store the full calculated stamp in `.nbgv-version.json` for builds without Git.

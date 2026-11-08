@@ -73,6 +73,8 @@ relative-parent, dependency, and dependency-management coordinates therefore par
 sorting and resolution under their final versions. It exposes `nbgv.semVer2`, `nbgv.version`,
 `nbgv.versionHeight`, `nbgv.publicRelease`, and available Git values as model properties. External
 parent and dependency POMs without a nearby `version.json` are left unchanged.
+The extension discovers active modules before returning the first stamped model, using Maven's profile selection and property interpolation.
+Consumer-before-library ordering is supported for literal dependency versions, including references in profiles and dependency management.
 
 ### Maven 3 CI-friendly versions and flatten
 

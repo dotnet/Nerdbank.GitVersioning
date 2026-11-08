@@ -34,7 +34,8 @@ class NbgvModelProcessorTest {
         Path parentPom = writePom(
                 temporaryDirectory.resolve("pom.xml"),
                 "<groupId>example</groupId><artifactId>parent</artifactId><version>${revision}</version>"
-                        + "<packaging>pom</packaging><properties><revision>0.0.0</revision></properties>");
+                        + "<packaging>pom</packaging><properties><revision>0.0.0</revision></properties>"
+                        + "<modules><module>app</module><module>library</module></modules>");
         Path libraryDirectory = Files.createDirectory(temporaryDirectory.resolve("library"));
         Path libraryPom = writePom(
                 libraryDirectory.resolve("pom.xml"),
@@ -46,11 +47,12 @@ class NbgvModelProcessorTest {
                 "<parent><groupId>example</groupId><artifactId>parent</artifactId>"
                         + "<version>${revision}</version></parent><artifactId>app</artifactId>"
                         + "<dependencies><dependency><groupId>example</groupId><artifactId>library</artifactId>"
-                        + "<version>${revision}</version></dependency></dependencies>");
+                        + "<version>0.0.0</version></dependency></dependencies>");
 
         NbgvModelProcessor processor = processor();
         Model parent = processor.read(parentPom.toFile(), Collections.<String, Object>emptyMap());
         Model app = processor.read(appPom.toFile(), Collections.<String, Object>emptyMap());
+        assertEquals("2.3.4-beta.5+build.7", app.getDependencies().get(0).getVersion());
         Model library = processor.read(libraryPom.toFile(), Collections.<String, Object>emptyMap());
 
         assertEquals("2.3.4-beta.5+build.7", parent.getVersion());

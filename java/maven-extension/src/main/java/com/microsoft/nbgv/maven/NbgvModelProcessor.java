@@ -11,19 +11,32 @@ import java.io.Reader;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+import javax.inject.Inject;
 import javax.inject.Named;
+import javax.inject.Provider;
 import javax.inject.Singleton;
+import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
+import org.apache.maven.model.Profile;
+import org.apache.maven.model.building.DefaultModelBuildingRequest;
 import org.apache.maven.model.building.FileModelSource;
+import org.apache.maven.model.building.ModelProblem;
+import org.apache.maven.model.building.ModelProblemCollector;
 import org.apache.maven.model.building.ModelProcessor;
+import org.apache.maven.model.interpolation.ModelInterpolator;
 import org.apache.maven.model.io.ModelReader;
 import org.apache.maven.model.locator.ModelLocator;
+import org.apache.maven.model.profile.DefaultProfileActivationContext;
+import org.apache.maven.model.profile.ProfileSelector;
+import org.slf4j.LoggerFactory;
 
 /**
  * Stamps raw Maven models before reactor projects and Maven 3's reactor GAV index are built.
@@ -33,9 +46,15 @@ import org.apache.maven.model.locator.ModelLocator;
 public final class NbgvModelProcessor implements ModelProcessor {
     private final AdapterCalculator calculator = new AdapterCalculator();
     private final Map<String, String> reactorVersions = new HashMap<String, String>();
-    private final List<Model> reactorModels = new ArrayList<Model>();
+    private boolean reactorDiscovered;
     private ModelLocator locator;
     private ModelReader reader;
+    @Inject
+    private Provider<MavenSession> sessionProvider;
+    @Inject
+    private ProfileSelector profileSelector;
+    @Inject
+    private ModelInterpolator interpolator;
 
     /**
      * Sets the standard Maven model locator used by this decorating processor.
@@ -91,6 +110,12 @@ public final class NbgvModelProcessor implements ModelProcessor {
         }
 
         try {
+            MavenSession session = sessionProvider == null ? null : sessionProvider.get();
+            if (!reactorDiscovered) {
+                File root = session == null ? pomFile.toFile() : session.getRequest().getPom();
+                discoverReactor(root == null ? pomFile : root.toPath(), new HashSet<Path>(), session);
+                reactorDiscovered = true;
+            }
             try {
                 VersionFileResolver.findNearest(projectDirectory);
             } catch (AdapterException noVersionConfiguration) {
@@ -102,11 +127,7 @@ public final class NbgvModelProcessor implements ModelProcessor {
                     calculator.calculate(projectDirectory, System.getProperty("nbgv.executable"));
             applyVersion(model, adapter);
             stampRelativeParent(model, projectDirectory);
-            reactorVersions.put(coordinates(groupId(model), model.getArtifactId()), adapter.getSemVer2());
-            reactorModels.add(model);
-            for (Model reactorModel : reactorModels) {
-                updateReactorReferences(reactorModel);
-            }
+            updateReactorReferences(model, prepareModel(model, projectDirectory, session));
 
             return model;
         } catch (AdapterException e) {
@@ -115,57 +136,175 @@ public final class NbgvModelProcessor implements ModelProcessor {
         }
     }
 
-    private void stampRelativeParent(Model model, Path projectDirectory) {
-        Parent parent = model.getParent();
-        if (parent == null) {
+    private void discoverReactor(Path pom, Set<Path> visited, MavenSession session) throws IOException {
+        pom = pom.toRealPath();
+        if (!visited.add(pom)) {
             return;
         }
 
-        String relativePath = parent.getRelativePath();
-        if (relativePath == null) {
-            relativePath = "../pom.xml";
-        } else if (relativePath.isEmpty()) {
+        Path directory = pom.getParent();
+        Model model = prepareModel(requireReader().read(pom.toFile(), null), directory, session);
+        model.setPomFile(pom.toFile());
+
+        boolean configured;
+        try {
+            VersionFileResolver.findNearest(directory);
+            configured = true;
+        } catch (AdapterException noVersionConfiguration) {
+            configured = false;
+        }
+        if (configured) {
+            AdapterVersion version = calculator.calculate(directory, System.getProperty("nbgv.executable"));
+            reactorVersions.put(coordinates(groupId(model), model.getArtifactId()), version.getSemVer2());
+        }
+        if (session != null && !session.getRequest().isRecursive()) {
             return;
         }
-
-        Path parentPath = projectDirectory.resolve(relativePath).normalize();
-        if (parentPath.toFile().isDirectory()) {
-            parentPath = parentPath.resolve("pom.xml");
-        }
-
-        if (parentPath.toFile().isFile()) {
-            try {
-                VersionFileResolver.findNearest(parentPath.getParent());
-            } catch (AdapterException noParentVersionConfiguration) {
-                return;
+        for (String module : model.getModules()) {
+            File modulePath = directory.resolve(module).toFile();
+            File modulePom = modulePath.isFile() ? modulePath : requireLocator().locatePom(modulePath);
+            if (modulePom == null || !modulePom.isFile()) {
+                throw new IOException("Cannot locate reactor module '" + module + "' in " + pom + ".");
             }
-
-            AdapterVersion parentVersion =
-                    calculator.calculate(parentPath.getParent(), System.getProperty("nbgv.executable"));
-            parent.setVersion(parentVersion.getSemVer2());
+            discoverReactor(modulePom.toPath(), visited, session);
         }
     }
 
-    private void updateReactorReferences(Model model) {
+    private Model prepareModel(Model raw, Path directory, MavenSession session) throws IOException {
+        Model model = raw.clone();
+        Properties properties = inheritedProperties(model, directory, new HashSet<Path>(), session);
+        properties.putAll(model.getProperties());
+        model.setProperties(properties);
+        List<Profile> activeProfiles = activeProfiles(model, directory, session);
+        for (Profile profile : activeProfiles) {
+            properties.putAll(profile.getProperties());
+            model.getModules().addAll(profile.getModules());
+        }
+
+        if (model.getGroupId() == null && model.getParent() != null) {
+            model.setGroupId(model.getParent().getGroupId());
+        }
+        if (interpolator != null) {
+            DefaultModelBuildingRequest request = new DefaultModelBuildingRequest()
+                    .setSystemProperties(session == null ? System.getProperties() : session.getSystemProperties())
+                    .setUserProperties(session == null ? new Properties() : session.getUserProperties());
+            model = interpolator.interpolateModel(model, directory.toFile(), request, problems());
+        }
+
+        return model;
+    }
+
+    private Properties inheritedProperties(
+            Model model, Path directory, Set<Path> visited, MavenSession session) throws IOException {
+        Properties properties = new Properties();
+        Path parentPom = relativeParent(model, directory);
+        if (parentPom != null && visited.add(parentPom.toRealPath())) {
+            Model parent = requireReader().read(parentPom.toFile(), null);
+            properties.putAll(inheritedProperties(parent, parentPom.getParent(), visited, session));
+            properties.putAll(parent.getProperties());
+            parent.setProperties(properties);
+            for (Profile profile : activeProfiles(parent, parentPom.getParent(), session)) {
+                properties.putAll(profile.getProperties());
+            }
+        }
+        return properties;
+    }
+
+    private List<Profile> activeProfiles(Model model, Path directory, MavenSession session) {
+        if (profileSelector == null) {
+            return java.util.Collections.emptyList();
+        }
+        DefaultProfileActivationContext context = new DefaultProfileActivationContext()
+                .setProjectDirectory(directory.toFile())
+                .setProjectProperties(model.getProperties())
+                .setSystemProperties(session == null ? System.getProperties() : session.getSystemProperties());
+        if (session != null) {
+            context.setUserProperties(session.getUserProperties())
+                    .setActiveProfileIds(session.getRequest().getActiveProfiles())
+                    .setInactiveProfileIds(session.getRequest().getInactiveProfiles());
+        }
+        List<Profile> profiles = new ArrayList<Profile>(
+                profileSelector.getActiveProfiles(model.getProfiles(), context, problems()));
+        if (session != null) {
+            profiles.addAll(profileSelector.getActiveProfiles(session.getRequest().getProfiles(), context, problems()));
+        }
+        return profiles;
+    }
+
+    private static ModelProblemCollector problems() {
+        return problem -> {
+            if (problem.getSeverity() == ModelProblem.Severity.ERROR
+                    || problem.getSeverity() == ModelProblem.Severity.FATAL) {
+                throw new AdapterException(problem.getMessage(), problem.getException());
+            }
+            LoggerFactory.getLogger(NbgvModelProcessor.class).warn(problem.getMessage());
+        };
+    }
+
+    private static Path relativeParent(Model model, Path projectDirectory) {
+        Parent parent = model.getParent();
+        if (parent == null || "".equals(parent.getRelativePath())) {
+            return null;
+        }
+        String relativePath = parent.getRelativePath() == null ? "../pom.xml" : parent.getRelativePath();
+        Path path = projectDirectory.resolve(relativePath).normalize();
+        if (path.toFile().isDirectory()) {
+            path = path.resolve("pom.xml");
+        }
+        return path.toFile().isFile() ? path : null;
+    }
+
+    private void stampRelativeParent(Model model, Path projectDirectory) {
+        Parent parent = model.getParent();
+        Path parentPath = relativeParent(model, projectDirectory);
+        if (parentPath == null) {
+            return;
+        }
+
+        try {
+            VersionFileResolver.findNearest(parentPath.getParent());
+        } catch (AdapterException noParentVersionConfiguration) {
+            return;
+        }
+
+        AdapterVersion parentVersion =
+                calculator.calculate(parentPath.getParent(), System.getProperty("nbgv.executable"));
+        parent.setVersion(parentVersion.getSemVer2());
+    }
+
+    private void updateReactorReferences(Model model, Model resolved) {
         Parent parent = model.getParent();
         if (parent != null) {
-            String version = reactorVersions.get(coordinates(parent.getGroupId(), parent.getArtifactId()));
+            String version = reactorVersions.get(
+                    coordinates(resolved.getParent().getGroupId(), resolved.getParent().getArtifactId()));
             if (version != null) {
                 parent.setVersion(version);
             }
         }
 
-        updateDependencies(model.getDependencies());
+        updateDependencies(model.getDependencies(), resolved.getDependencies());
         DependencyManagement management = model.getDependencyManagement();
         if (management != null) {
-            updateDependencies(management.getDependencies());
+            updateDependencies(management.getDependencies(), resolved.getDependencyManagement().getDependencies());
+        }
+        for (int index = 0; index < model.getProfiles().size(); index++) {
+            Profile profile = model.getProfiles().get(index);
+            Profile resolvedProfile = resolved.getProfiles().get(index);
+            updateDependencies(profile.getDependencies(), resolvedProfile.getDependencies());
+            if (profile.getDependencyManagement() != null) {
+                updateDependencies(
+                        profile.getDependencyManagement().getDependencies(),
+                        resolvedProfile.getDependencyManagement().getDependencies());
+            }
         }
     }
 
-    private void updateDependencies(List<Dependency> dependencies) {
-        for (Dependency dependency : dependencies) {
+    private void updateDependencies(List<Dependency> dependencies, List<Dependency> resolved) {
+        for (int index = 0; index < dependencies.size(); index++) {
+            Dependency dependency = dependencies.get(index);
+            Dependency identity = resolved.get(index);
             String version =
-                    reactorVersions.get(coordinates(dependency.getGroupId(), dependency.getArtifactId()));
+                    reactorVersions.get(coordinates(identity.getGroupId(), identity.getArtifactId()));
             if (version != null) {
                 dependency.setVersion(version);
             }

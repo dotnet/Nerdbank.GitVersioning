@@ -95,27 +95,27 @@ impl Config {
     /// fallback to a version without history. Explicitly disabled Git bypasses
     /// the stamp and uses native disabled-Git behavior.
     pub fn get_version(&self) -> Result<Version, Error> {
-        self.version_with_context().map(|(version, _, _)| version)
+        self.version_with_context().map(|(version, _)| version)
     }
 
     /// Calculates the version and emits Cargo environment and rebuild instructions.
     ///
-    /// Tracks existing version files and Git metadata. After creating a new,
-    /// nearer version file, stage it in Git or touch `build.rs` to recalculate.
-    /// Cargo cannot watch absent files without rerunning every build, and watching
-    /// project directories recursively would also watch Cargo's build outputs.
-    /// With Git disabled, newly created version files require touching `build.rs`.
+    /// Recalculates on every build in a live checkout, including with Git disabled,
+    /// so new unstaged version files and dirty-tree changes cannot leave stale stamps.
+    /// This intentionally reruns the build script and may recompile its package.
+    /// Published archives watch only their precomputed stamp and remain incremental.
     pub fn emit(&self) -> Result<Version, Error> {
-        let (version, context, include_dirty) = self.version_with_context()?;
+        let (version, context) = self.version_with_context()?;
         for name in ENVIRONMENT_INPUTS {
             println!("cargo::rerun-if-env-changed={name}");
         }
         if self.project_dir.is_none() {
             println!("cargo::rerun-if-env-changed=CARGO_MANIFEST_DIR");
         }
-        for path in rerun_inputs(&context, include_dirty)? {
-            println!("cargo::rerun-if-changed={}", path.display());
-        }
+        println!(
+            "cargo::rerun-if-changed={}",
+            rerun_input(&context)?.display()
+        );
         emit_environment(&version);
         Ok(version)
     }
@@ -131,7 +131,7 @@ impl Config {
         Ok(version)
     }
 
-    fn version_with_context(&self) -> Result<(Version, GitContext, bool), Error> {
+    fn version_with_context(&self) -> Result<(Version, GitContext), Error> {
         let path = self.effective_project_dir()?;
         // Require an existing directory, rather than silently discovering its parent.
         fs::read_dir(&path)?;
@@ -160,7 +160,7 @@ impl Config {
                 ))
                 .into());
             }
-            return Ok((version, context, false));
+            return Ok((version, context));
         }
 
         let mut oracle =
@@ -172,10 +172,7 @@ impl Config {
                 oracle.public_release = false;
             }
         }
-        let include_dirty = oracle
-            .version_options()
-            .is_some_and(|options| options.git_commit_id_include_dirty_or_default());
-        Ok((Version::from(&oracle), context, include_dirty))
+        Ok((Version::from(&oracle), context))
     }
 
     fn effective_project_dir(&self) -> Result<PathBuf, Error> {
@@ -333,6 +330,12 @@ pub const NBGV_VERSION: NbgvVersion = NbgvVersion {{
         git_commit_date = option_literal(version.git_commit_date.as_deref()),
         public_release = version.public_release,
     );
+    match fs::read(path) {
+        Ok(existing) if existing == contents.as_bytes() => return Ok(()),
+        Ok(_) => {}
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+        Err(error) => return Err(error.into()),
+    }
     fs::write(path, contents)?;
     Ok(())
 }
@@ -341,81 +344,21 @@ fn option_literal(value: Option<&str>) -> String {
     value.map_or_else(|| "None".to_owned(), |value| format!("Some({value:?})"))
 }
 
-fn rerun_inputs(context: &GitContext, include_dirty: bool) -> Result<Vec<PathBuf>, Error> {
+fn rerun_input(context: &GitContext) -> Result<PathBuf, Error> {
     let project = context.absolute_project_directory();
-    let mut paths = Vec::new();
     if !context.is_repository() && context.engine() != GitEngine::Disabled {
-        return Ok(vec![project.join(STAMP_FILE)]);
+        return Ok(project.join(STAMP_FILE));
     }
-    for directory in project.ancestors() {
-        for name in ["version.json", "version.txt"] {
-            let path = directory.join(name);
-            if path.exists() {
-                paths.push(path);
-            }
-        }
-        if directory == context.working_tree_path() {
-            break;
-        }
+    // Cargo has no always-run directive. A deliberately absent input requests
+    // recalculation without recursively watching the checkout and its outputs.
+    let sentinel = project.join(".nbgv-always-recalculate");
+    match fs::symlink_metadata(&sentinel) {
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(sentinel),
+        Err(error) => Err(error.into()),
+        Ok(_) => Err(nerdbank_gitversioning::Error::InvalidOperation(format!(
+            "{} is reserved for Cargo change detection and must not exist.",
+            sentinel.display()
+        ))
+        .into()),
     }
-    if let Some(git_dir) = context.git_directory() {
-        paths.push(context.working_tree_path().join(".git"));
-        let common_file = git_dir.join("commondir");
-        if common_file.exists() {
-            paths.push(common_file.clone());
-        }
-        let common_dir = match fs::read_to_string(&common_file) {
-            Ok(relative) => fs::canonicalize(git_dir.join(relative.trim()))?,
-            Err(error) if error.kind() == io::ErrorKind::NotFound => git_dir.to_owned(),
-            Err(error) => return Err(error.into()),
-        };
-        for directory in [git_dir, common_dir.as_path()] {
-            // Directory watches detect creation/deletion of optional metadata,
-            // including loose refs, without watching project build outputs.
-            paths.push(directory.to_owned());
-            for name in [
-                "HEAD",
-                "index",
-                "config",
-                "config.worktree",
-                "shallow",
-                "packed-refs",
-                "refs",
-                "reftable",
-            ] {
-                let path = directory.join(name);
-                if !path.exists() {
-                    continue;
-                }
-                paths.push(path.clone());
-                if matches!(name, "refs" | "reftable") {
-                    collect_files(&path, &mut paths)?;
-                }
-            }
-        }
-        // Dirty IDs also depend on worktree files, not just the index.
-        if include_dirty && context.engine() != GitEngine::Disabled {
-            paths.push(context.working_tree_path().to_owned());
-        }
-    }
-    paths.sort();
-    paths.dedup();
-    Ok(paths)
-}
-
-fn collect_files(directory: &Path, paths: &mut Vec<PathBuf>) -> Result<(), Error> {
-    let entries = match fs::read_dir(directory) {
-        Ok(entries) => entries,
-        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(()),
-        Err(error) => return Err(error.into()),
-    };
-    for entry in entries {
-        let entry = entry?;
-        let path = entry.path();
-        paths.push(path.clone());
-        if entry.file_type()?.is_dir() {
-            collect_files(&path, paths)?;
-        }
-    }
-    Ok(())
 }
