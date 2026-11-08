@@ -1,10 +1,28 @@
 # Rust and Cargo
 
+## Revised integration plan
+
+The repository now includes an in-process Rust version calculation library, `nerdbank-gitversioning`, and the native `nbgv` CLI in [`src/nerdbank-gitversioning-rs`][native-readme].
+Automatic Cargo stamping should build on that implementation, not launch .NET or introduce another Rust engine.
+
+The planned consolidation is:
+
+1. Move the Cargo build-script helper into the native workspace as `nerdbank-gitversioning-build`, using its `GitContext` and `VersionOracle` directly to emit compile-time values and generated constants.
+2. Move `cargo-nbgv` into that workspace and retain its normalized staging, workspace inheritance, dirty-source protection, and locked-package behavior.
+3. Reserve the `nbgv` crate name for the existing native CLI and remove the separate `rust/` prototype once migrated.
+4. Add the [adapter JSON contract](../adapter-json.md) to the native CLI before allowing Go or Java adapters to select it.
+   Its current `json` output is not the versioned adapter format.
+5. Compare the native engine with the .NET oracle in the shared Git fixtures, then reuse the native workspace's toolchain, cross-platform CI, crate version stamping, and Trusted Publishing release flow for the new packages.
+
+The native library and CLI already exist; this consolidation and the build helper API are planned, not yet implemented.
+The remaining sections describe the current CLI-backed prototype.
+
+## Current prototype
+
 > [!IMPORTANT]
-> The Rust crates are currently a source preview. The intended crate names,
-> `nbgv` and `cargo-nbgv`, are not claimed by this documentation to be available
-> from crates.io. Until a release announcement says otherwise, build them from
-> this repository.
+> The separate `rust/` workspace is a source preview.
+> Do not publish its build helper as `nbgv`: that name is used by the native CLI.
+> Build the prototype from this repository until it is consolidated.
 
 Both integrations launch the first-party `nbgv` executable and consume the
 versioned [adapter JSON contract](../adapter-json.md). Install `nbgv` as a .NET
@@ -25,19 +43,8 @@ Install the Cargo subcommand from that checkout:
 cargo install --path Nerdbank.GitVersioning/rust/cargo-nbgv
 ```
 
-After the first crates.io release, the equivalent intended commands will be:
-
-```toml
-[build-dependencies]
-nbgv = "0.1"
-```
-
-```console
-cargo install cargo-nbgv --version 0.1.0
-```
-
-Check the release notes before using these registry commands. Both crates
-require Rust 1.78 or newer.
+These source-only examples do not establish the final registry package names or versions.
+The prototype requires Rust 1.78; the consolidated integration will follow the native workspace's toolchain and minimum supported Rust policy.
 
 ## Stamp a build
 
@@ -88,3 +95,4 @@ workspace inheritance through Cargo. Coordinated multi-crate publishing is not
 silently rewritten.
 
 [crate-readme]: https://github.com/dotnet/Nerdbank.GitVersioning/blob/main/rust/nbgv/README.md
+[native-readme]: https://github.com/dotnet/Nerdbank.GitVersioning/blob/main/src/nerdbank-gitversioning-rs/README.md
