@@ -1,0 +1,21 @@
+[package]
+name = "nerdbank-gitversioning-build"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+rust-version.workspace = true
+description = "Native Cargo build-script version stamping for Nerdbank.GitVersioning"
+readme = "../README.md"
+documentation = "https://docs.rs/nerdbank-gitversioning-build"
+keywords = ["cargo", "git", "semver", "versioning"]
+categories = ["development-tools::build-utils"]
+
+[dependencies]
+nerdbank-gitversioning.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+git2 = { version = "0.21.0", default-features = false }

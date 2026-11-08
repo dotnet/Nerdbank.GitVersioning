@@ -1,0 +1,40 @@
+plugins {
+    id 'java-gradle-plugin'
+    id 'maven-publish'
+    id 'com.gradle.plugin-publish' version '2.1.1'
+}
+
+base {
+    archivesName = 'nbgv-gradle-plugin'
+}
+
+dependencies {
+    implementation project(':adapter-core')
+
+    testImplementation gradleTestKit()
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.12.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+gradlePlugin {
+    website = 'https://dotnet.github.io/Nerdbank.GitVersioning/docs/ecosystems/java.html'
+    vcsUrl = 'https://github.com/dotnet/Nerdbank.GitVersioning'
+
+    plugins {
+        nbgv {
+            id = 'com.microsoft.nerdbank-gitversioning'
+            implementationClass = 'com.microsoft.nbgv.gradle.NbgvPlugin'
+            displayName = 'Nerdbank.GitVersioning'
+            description = project.description
+            tags.set(['git', 'semver', 'versioning', 'build'])
+        }
+    }
+}
+
+publishing {
+    publications.withType(MavenPublication).configureEach {
+        if (name == 'pluginMaven') {
+            artifactId = 'nbgv-gradle-plugin'
+        }
+    }
+}

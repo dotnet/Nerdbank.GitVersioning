@@ -22,6 +22,9 @@ but installing this software will facilitate an enhanced developer experience in
 
 All other dependencies are acquired via NuGet or NPM.
 
+The ecosystem adapters additionally use the pinned `rust-toolchain.toml`, Go 1.22,
+Java 17, and Gradle 8.8 or newer when they are built locally.
+
 ## Building
 
 To build this repository from the command line, you must first execute our init.ps1 script,
@@ -39,6 +42,13 @@ The managed reftable interoperability tests invoke Git to create local repositor
 clones, and worktrees. They require Git 2.51 or newer on PATH and do not use the network.
 
 There may be tests that are known to be unstable or have special requirements. These can be avoided by running tests using the [dotnet-test-cloud.ps1](tools/dotnet-test-cloud.ps1) script *after* running `dotnet build`.
+
+After the normal restore and build, run the cross-ecosystem parity tests and
+create the same packages as CI:
+
+```powershell
+tools/Build-EcosystemAdapters.ps1 -Configuration Release
+```
 
 This repo opts out of the template's NativeAOT test publishing (`PublishNativeAOTTests` is `false` in [test/Directory.Build.props](test/Directory.Build.props)) and has no `test/AotCompatibilityTest` project,
 because the shipping packages (the library, MSBuild task, `nbgv` tool and Cake addin) depend on MSBuild, NuGet, LibGit2Sharp and reflection-based JSON serialization, which are not NativeAOT-compatible.
@@ -64,6 +74,15 @@ After publishing the release, the `.github/workflows/release.yml` workflow will 
 
 The workflow is written to leverage NuGet.org Trusted Publishing.
 You should set `NUGET_USER` as a repo secret to satisfy Trusted Publishing requirements.
+
+The workflow also attaches the verified `ecosystem-deployables` files.
+The native Rust workspace, including its Cargo integrations, uses the existing Trusted Publishing flow.
+Java artifacts are signed and published to Maven Central, then the Gradle plugin is uploaded to the Plugin Portal.
+Configure registry ownership and the publishing/signing secrets before the first Java release.
+Go publication consists of creating its immutable module tag.
+Follow the
+[ecosystem first-publication checklist](docfx/docs/ecosystem-releases.md)
+instead of adding registry secrets to pull-request builds.
 
 ### Azure Pipelines
 

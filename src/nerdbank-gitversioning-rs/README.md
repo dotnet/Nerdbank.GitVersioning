@@ -5,6 +5,8 @@ This workspace contains:
 - `nerdbank-gitversioning`, a Rust library for calculating versions from
   `version.json`, `version.txt`, and Git history.
 - `nbgv`, a command-line tool built on the library.
+- `nerdbank-gitversioning-build`, an in-process Cargo build-script helper.
+- `cargo-nbgv`, a packaging command that stamps a staged manifest without editing the source.
 
 It supports Windows, Linux, and macOS and builds with current stable Rust
 (Rust 1.95 or later).
@@ -16,11 +18,10 @@ normal repository operations. If Git commit signing is enabled,
 
 ## Library usage
 
-Add the library from this checkout:
+Add the library to your crate:
 
-```toml
-[dependencies]
-nerdbank-gitversioning = { path = "src/nerdbank-gitversioning-rs" }
+```console
+cargo add nerdbank-gitversioning
 ```
 
 Calculate a version from the repository containing the current directory:
@@ -38,10 +39,10 @@ fn main() -> Result<(), nerdbank_gitversioning::Error> {
 
 ## CLI usage
 
-Install the native CLI from this checkout:
+Install the native CLI from crates.io:
 
 ```console
-cargo install --path src/nerdbank-gitversioning-rs/nbgv
+cargo install --locked nbgv
 nbgv get-version
 ```
 
@@ -59,6 +60,24 @@ The Rust CLI includes exactly the six commands that do not require MSBuild:
 - `prepare-release` creates a release branch and updates versions.
 
 Run `nbgv --help` or `nbgv <command> --help` for all options.
+`nbgv get-version --format adapter` emits the versioned adapter JSON contract
+(schema version 1), including nullable Git information. The existing text and
+JSON formats remain available unchanged.
+
+## Cargo integrations
+
+Use `nerdbank_gitversioning_build::emit!()` in `build.rs` to emit compile-time `NBGV_*` variables and a typed module in `OUT_DIR`.
+The helper follows version files and Git metadata, including worktrees, and honors native cloud-build and release overrides.
+It does not launch `nbgv` or require .NET.
+In live checkouts it recalculates on every Cargo build so unstaged configuration creation and dirty-tree changes cannot leave stale versions.
+This intentionally reruns the build script and may recompile the package even when the stamp is unchanged; published archives retain incremental builds.
+
+`cargo nbgv package` and `cargo nbgv publish` let Cargo normalize the package before stamping the staged manifest and lockfile.
+They preserve Cargo's dirty-source and lockfile checks and store the full calculated stamp in `.nbgv-version.json` for builds without Git.
+See the [Cargo integration guide](../../docfx/docs/ecosystems/rust.md) for acquisition, migration, and publication details.
+
+All four crates share the native workspace version, CI, and release publishing.
+Acquire the helper with `cargo add --build nerdbank-gitversioning-build` and the packaging command with `cargo install --locked cargo-nbgv`.
 
 ## Preparing a release
 

@@ -20,7 +20,13 @@ items:
     - href: npm-acquisition.md
   - href: ecosystems/python.md
   - href: ecosystems/vsix.md
+  - href: ecosystems/rust.md
+  - href: ecosystems/go.md
+  - href: ecosystems/java.md
+  - href: ecosystem-releases.md
 - href: nbgv-cli.md
+  items:
+  - href: adapter-json.md
 - href: path-filters.md
 - href: public-vs-stable.md
 - href: versionJson.md

@@ -10,10 +10,10 @@ use std::process::ExitCode;
 use clap::{ArgAction, Args, Parser, Subcommand};
 use git2::{ErrorCode, Status};
 use nerdbank_gitversioning::{
-    CloudCommand, CloudCommandError, CloudCommandOptions, GitContext, GitEngine,
-    PrepareReleaseOptions, ReleaseManager, ReleaseManagerOutputMode, ReleasePreparationError,
-    SemanticVersion, Version, VersionFile, VersionFileRequirements, VersionOptions, VersionOracle,
-    format_release_tag_name, get_commits_from_version,
+    AdapterVersionInfo, CloudCommand, CloudCommandError, CloudCommandOptions, GitContext,
+    GitEngine, PrepareReleaseOptions, ReleaseManager, ReleaseManagerOutputMode,
+    ReleasePreparationError, SemanticVersion, Version, VersionFile, VersionFileRequirements,
+    VersionOptions, VersionOracle, format_release_tag_name, get_commits_from_version,
 };
 
 const DEFAULT_REF: &str = "HEAD";
@@ -86,7 +86,7 @@ struct GetVersionArgs {
     /// Adds identifiers to the build metadata.
     #[arg(long, num_args = 1.., action = ArgAction::Append)]
     metadata: Vec<String>,
-    /// Output format: text or json.
+    /// Output format: text, json, or adapter.
     #[arg(short, long)]
     format: Option<String>,
     /// Print one version property as raw text.
@@ -217,7 +217,12 @@ fn search_path(project: Option<&Path>) -> Result<PathBuf, io::Error> {
 
 fn get_version(args: GetVersionArgs) -> CommandResult {
     let path = search_path(args.project.as_deref())?;
-    let mut context = GitContext::create(&path, None, GitEngine::ReadOnly)?;
+    let format = args.format.as_deref().unwrap_or("text");
+    let mut context = if format.eq_ignore_ascii_case("adapter") {
+        GitContext::create_with_environment(&path, None, GitEngine::ReadOnly)?
+    } else {
+        GitContext::create(&path, None, GitEngine::ReadOnly)?
+    };
     if !context.is_repository() {
         eprintln!("No git repo found at or above: \"{}\"", path.display());
         return Ok(ExitCodes::NoGitRepo);
@@ -239,7 +244,9 @@ fn get_version(args: GetVersionArgs) -> CommandResult {
         }
         Err(error) => return Err(error.into()),
     };
-    warn_if_version_json_is_dirty(&context)?;
+    if context.repository().is_some() {
+        warn_if_version_json_is_dirty(&context)?;
+    }
     oracle.build_metadata.extend(args.metadata);
     if let Some(value) = args.public_release {
         oracle.public_release = value;
@@ -251,7 +258,6 @@ fn get_version(args: GetVersionArgs) -> CommandResult {
         }
     }
 
-    let format = args.format.as_deref().unwrap_or("text");
     if let Some(variable) = args.variable {
         if !format.eq_ignore_ascii_case("text") {
             eprintln!("Format must be \"text\" when querying for an individual variable's value.");
@@ -282,6 +288,11 @@ fn get_version(args: GetVersionArgs) -> CommandResult {
         );
     } else if format.eq_ignore_ascii_case("json") {
         println!("{}", serde_json::to_string_pretty(&oracle)?);
+    } else if format.eq_ignore_ascii_case("adapter") {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&AdapterVersionInfo::from(&oracle))?
+        );
     } else {
         eprintln!("Unsupported format: {format}");
         return Ok(ExitCodes::UnsupportedFormat);

@@ -1,0 +1,110 @@
+plugins {
+    id 'base'
+    id 'com.vanniktech.maven.publish.base' version '0.37.0' apply false
+}
+
+def integrationVersion = providers.gradleProperty('integrationVersion').getOrElse('0.1.0')
+def publicationNames = [
+    'adapter-core': 'Nerdbank.GitVersioning Java adapter',
+    'gradle-plugin': 'Nerdbank.GitVersioning Gradle plugin',
+    'maven-extension': 'Nerdbank.GitVersioning Maven extension',
+]
+def publicationDescriptions = [
+    'adapter-core': 'Shared Java client for the versioned nbgv adapter JSON contract.',
+    'gradle-plugin': 'Sets Gradle project, publication, and JAR versions from Nerdbank.GitVersioning.',
+    'maven-extension': 'Sets Maven reactor and publication versions from Nerdbank.GitVersioning.',
+]
+
+allprojects {
+    group = 'com.microsoft.nerdbank-gitversioning'
+    version = integrationVersion
+
+    repositories {
+        mavenCentral()
+    }
+}
+
+subprojects {
+    description = publicationDescriptions[project.name]
+    apply plugin: 'com.vanniktech.maven.publish.base'
+
+    mavenPublishing {
+        publishToMavenCentral(true, com.vanniktech.maven.publish.DeploymentValidation.PUBLISHED)
+        if (providers.gradleProperty('releaseJava').getOrElse('false').toBoolean()) {
+            signAllPublications()
+        }
+    }
+
+    plugins.withId('java') {
+        java {
+            withJavadocJar()
+            withSourcesJar()
+        }
+
+        tasks.withType(JavaCompile).configureEach {
+            options.encoding = 'UTF-8'
+            options.release = 8
+        }
+
+        tasks.withType(Test).configureEach {
+            useJUnitPlatform()
+        }
+
+        tasks.withType(Jar).configureEach {
+            from(rootProject.file('../LICENSE')) {
+                into 'META-INF'
+                rename { 'LICENSE.txt' }
+            }
+            from(rootProject.file('../NOTICE.md')) {
+                into 'META-INF'
+            }
+        }
+    }
+
+    plugins.withId('maven-publish') {
+        publishing {
+            repositories {
+                maven {
+                    name = 'staging'
+                    url = rootProject.layout.buildDirectory.dir('maven-repository')
+                }
+            }
+
+            publications.withType(MavenPublication).configureEach {
+                pom {
+                    name = publicationNames[project.name]
+                    description = project.description
+                    url = 'https://github.com/dotnet/Nerdbank.GitVersioning'
+                    inceptionYear = '2016'
+
+                    licenses {
+                        license {
+                            name = 'MIT License'
+                            url = 'https://opensource.org/license/mit/'
+                            distribution = 'repo'
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            name = '.NET Foundation and Contributors'
+                            organization = '.NET Foundation'
+                            organizationUrl = 'https://dotnetfoundation.org/'
+                        }
+                    }
+
+                    scm {
+                        connection = 'scm:git:https://github.com/dotnet/Nerdbank.GitVersioning.git'
+                        developerConnection = 'scm:git:ssh://git@github.com/dotnet/Nerdbank.GitVersioning.git'
+                        url = 'https://github.com/dotnet/Nerdbank.GitVersioning'
+                    }
+
+                    issueManagement {
+                        system = 'GitHub'
+                        url = 'https://github.com/dotnet/Nerdbank.GitVersioning/issues'
+                    }
+                }
+            }
+        }
+    }
+}

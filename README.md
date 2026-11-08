@@ -16,11 +16,14 @@ Stamp your assemblies, packages and more with a unique version generated from a 
 * Gives you control over the base version number, placement for the git 'height' incrementing integer, and the prerelease label identifiers via a version.json file.
 * Update cloud build names with version number for easy correlation.
 * Cross platform. Runs everywhere .NET runs.
+* Source-preview adapters bring the same version calculation to Rust/Cargo, Go,
+  Maven, and Gradle builds.
 
 ## Overview
 
 This package adds precise, semver-compatible git commit information
-to every assembly, VSIX, NuGet and NPM package, and more.
+to assemblies, VSIX, NuGet and NPM packages, and source-preview Rust, Go,
+Maven, and Gradle integrations.
 It implicitly supports all cloud build services and CI server software
 because it simply uses git itself and integrates naturally in MSBuild, gulp
 and other build scripts.
@@ -34,6 +37,7 @@ What sets this package apart from other git-based versioning projects is:
 5. This project is supported by the [.NET Foundation](https://dotnetfoundation.org).
 
 Check out our [getting started documentation](https://dotnet.github.io/Nerdbank.GitVersioning/docs/getting-started.html), then follow the [recommended versioning workflow](https://dotnet.github.io/Nerdbank.GitVersioning/docs/versioning-workflow.html) for releases and servicing.
+The [ecosystem documentation](docfx/docs/ecosystems/rust.md) describes the Rust, Go, and Java integrations.
 
 ## Rust library and CLI
 

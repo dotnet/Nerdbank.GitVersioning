@@ -1,4 +1,5 @@
 **/Cake.GitVersioning.dll
 **/Nerdbank*.dll
 **/nbgv.dll
+**/nbgv-go-*.exe
 **/*.ps1

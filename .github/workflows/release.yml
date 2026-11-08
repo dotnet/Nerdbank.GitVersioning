@@ -23,6 +23,11 @@ on:
         required: false
         default: true
         type: boolean
+      publish_java:
+        description: Push Maven Central artifacts and Gradle plugin
+        required: false
+        default: true
+        type: boolean
 
 run-name: ${{ github.ref_name }}
 
@@ -103,6 +108,64 @@ jobs:
         run-id: ${{ steps.findrunid.outputs.runid }}
         github-token: ${{ github.token }}
 
+    - name: 🔻 Download ecosystem packages
+      uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+      with:
+        name: ecosystem-deployables
+        path: ${{ runner.temp }}/deployables/ecosystems
+        run-id: ${{ steps.findrunid.outputs.runid }}
+        github-token: ${{ github.token }}
+
+    - name: Plan Java publication and validate prerequisites
+      if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish_java }}
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ github.token }}
+        MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+        MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+        MAVEN_SIGNING_KEY: ${{ secrets.MAVEN_SIGNING_KEY }}
+        MAVEN_SIGNING_PASSWORD: ${{ secrets.MAVEN_SIGNING_PASSWORD }}
+        GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
+        GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $PSNativeCommandUseErrorActionPreference = $true
+        $buildSha = gh run view '${{ steps.findrunid.outputs.runid }}' --repo '${{ github.repository }}' --json headSha --jq .headSha
+        $checkoutSha = git rev-parse HEAD
+        if ($buildSha -ne $checkoutSha) {
+          throw 'Java publication must use the same commit as the selected verified build. Dispatch this workflow on that commit or release tag.'
+        }
+        $packages = Get-Content '${{ runner.temp }}/deployables/ecosystems/packages.json' -Raw | ConvertFrom-Json
+        if ($packages.version -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$' -or $packages.version -match '(?i)SNAPSHOT|(?:^|[.-])g[0-9a-f]{7,}$') {
+          throw "Refusing to publish Java integration version '$($packages.version)'."
+        }
+        "JAVA_INTEGRATION_VERSION=$($packages.version)" >> $env:GITHUB_ENV
+        $submitted = git tag --list "java/v$($packages.version)"
+        if ($submitted) {
+          'PUBLISH_JAVA_CENTRAL=false' >> $env:GITHUB_ENV
+          'PUBLISH_JAVA_PLUGIN=false' >> $env:GITHUB_ENV
+          'RECORD_JAVA_SUBMISSION=false' >> $env:GITHUB_ENV
+          Write-Host "Java $($packages.version) was already submitted; skipping both registries."
+        } else {
+          $javaArchive = Join-Path '${{ runner.temp }}/deployables/ecosystems/java' "nbgv-java-maven-repository-$($packages.version).zip"
+          $javaRepository = Join-Path '${{ runner.temp }}' 'nbgv-java-maven-repository'
+          Expand-Archive -LiteralPath $javaArchive -DestinationPath $javaRepository
+          $plan = ./tools/Get-JavaPublicationPlan.ps1 -Version $packages.version -ArtifactDirectory $javaRepository
+          "JAVA_CENTRAL_TASKS=$($plan.CentralTasks -join ' ')" >> $env:GITHUB_ENV
+          "PUBLISH_JAVA_CENTRAL=$($plan.CentralTasks.Count -gt 0)" >> $env:GITHUB_ENV
+          "PUBLISH_JAVA_PLUGIN=$($plan.PublishPlugin)" >> $env:GITHUB_ENV
+          'RECORD_JAVA_SUBMISSION=true' >> $env:GITHUB_ENV
+          $required = @()
+          if ($plan.CentralTasks.Count -gt 0) { $required += @('MAVEN_CENTRAL_USERNAME', 'MAVEN_CENTRAL_PASSWORD') }
+          if ($plan.PublishPlugin) { $required += @('GRADLE_PUBLISH_KEY', 'GRADLE_PUBLISH_SECRET') }
+          if ($plan.CentralTasks.Count -gt 0 -or $plan.PublishPlugin) { $required += @('MAVEN_SIGNING_KEY', 'MAVEN_SIGNING_PASSWORD') }
+          foreach ($name in $required) {
+            if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
+              throw "Configure $name in the Publishing environment before publishing Java packages."
+            }
+          }
+        }
+
     - name: ⚙ Install .NET SDK
       shell: pwsh
       run: |
@@ -134,6 +197,36 @@ jobs:
         --azure-key-vault-url '${{ vars.AZURE_KEY_VAULT_URL }}'
         --azure-key-vault-certificate '${{ vars.AZURE_KEY_VAULT_CERTIFICATE }}'
         --azure-credential-type azure-cli
+
+    - name: Sign Windows Go executables
+      shell: pwsh
+      run: >
+        dotnet tool run sign -- code azure-key-vault
+        '*.exe'
+        --base-directory '${{ runner.temp }}/deployables/ecosystems/go'
+        --file-list '${{ github.workspace }}/.github/signfiles.txt'
+        --azure-key-vault-url '${{ vars.AZURE_KEY_VAULT_URL }}'
+        --azure-key-vault-certificate '${{ vars.AZURE_KEY_VAULT_CERTIFICATE }}'
+        --azure-credential-type azure-cli
+
+    - name: 🔎 Refresh ecosystem checksums
+      shell: pwsh
+      run: |
+        $ecosystemPath = '${{ runner.temp }}/deployables/ecosystems'
+        $checksumPath = Join-Path $ecosystemPath 'ecosystem-SHA256SUMS.txt'
+        $files = Get-ChildItem $ecosystemPath -Recurse -File | Where-Object FullName -ne $checksumPath
+        $duplicateNames = $files | Group-Object Name | Where-Object Count -gt 1
+        if ($duplicateNames) {
+         throw "Release asset names must be unique: $($duplicateNames.Name -join ', ')."
+        }
+
+        $files |
+         Sort-Object Name |
+         ForEach-Object {
+           $hash = (Get-FileHash -Algorithm SHA256 $_.FullName).Hash.ToLowerInvariant()
+           "$hash *$($_.Name)"
+         } |
+         Set-Content -Encoding ascii $checksumPath
 
     - name: 🪪 Authorize NuGet package push
       uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
@@ -188,6 +281,60 @@ jobs:
       run: |
         ../../tools/Set-CargoVersion.ps1
         cargo publish --workspace --allow-dirty
+
+    - name: Install Java for publication
+      if: ${{ env.PUBLISH_JAVA_CENTRAL == 'True' || env.PUBLISH_JAVA_PLUGIN == 'True' }}
+      uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
+      with:
+        distribution: temurin
+        java-version: '17'
+
+    - name: Install Gradle for publication
+      if: ${{ env.PUBLISH_JAVA_CENTRAL == 'True' || env.PUBLISH_JAVA_PLUGIN == 'True' }}
+      uses: gradle/actions/setup-gradle@da187c8e6ffbd3802e00f2477aa5a822b25f2dda # v4.4.4
+      with:
+        gradle-version: '8.14.3'
+        cache-disabled: true
+
+    - name: Publish signed Java artifacts to Maven Central
+      if: ${{ env.PUBLISH_JAVA_CENTRAL == 'True' }}
+      working-directory: java
+      shell: pwsh
+      env:
+        ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+        ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+        ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.MAVEN_SIGNING_KEY }}
+        ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.MAVEN_SIGNING_PASSWORD }}
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $PSNativeCommandUseErrorActionPreference = $true
+        $tasks = $env:JAVA_CENTRAL_TASKS -split ' '
+        gradle @tasks "-PintegrationVersion=$env:JAVA_INTEGRATION_VERSION" -PreleaseJava=true --no-daemon --no-configuration-cache --console=plain
+
+    - name: Publish Gradle plugin to Plugin Portal
+      if: ${{ env.PUBLISH_JAVA_PLUGIN == 'True' }}
+      working-directory: java
+      shell: pwsh
+      env:
+        GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
+        GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}
+        ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.MAVEN_SIGNING_KEY }}
+        ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.MAVEN_SIGNING_PASSWORD }}
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $PSNativeCommandUseErrorActionPreference = $true
+        gradle :gradle-plugin:publishPlugins "-PintegrationVersion=$env:JAVA_INTEGRATION_VERSION" -PreleaseJava=true --no-daemon --no-configuration-cache --console=plain
+
+    - name: Record successful Java publication submission
+      if: ${{ env.RECORD_JAVA_SUBMISSION == 'true' }}
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $PSNativeCommandUseErrorActionPreference = $true
+        $sha = git rev-parse HEAD
+        gh api --method POST 'repos/${{ github.repository }}/git/refs' -f "ref=refs/tags/java/v$env:JAVA_INTEGRATION_VERSION" -f "sha=$sha"
 
     - name: 💽 Upload artifacts to release
       shell: pwsh

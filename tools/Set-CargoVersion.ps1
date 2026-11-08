@@ -17,7 +17,8 @@ if (!$Version) {
 $manifest = Get-Content $manifestPath -Raw
 $patterns = @(
     '(?m)(?<=^\[workspace\.package\]\r?\n)version = "[^"]+"',
-    '(?m)(?<=^nerdbank-gitversioning = \{ version = ")[^"]+(?=", path = "\." \}\r?$)'
+    '(?m)(?<=^nerdbank-gitversioning = \{ version = ")[^"]+(?=", path = "\." \}\r?$)',
+    '(?m)(?<=^nerdbank-gitversioning-build = \{ version = ")[^"]+(?=", path = "build" \}\r?$)'
 )
 
 foreach ($pattern in $patterns) {
@@ -28,6 +29,7 @@ foreach ($pattern in $patterns) {
 
 $manifest = [regex]::Replace($manifest, $patterns[0], "version = `"$Version`"")
 $manifest = [regex]::Replace($manifest, $patterns[1], $Version)
+$manifest = [regex]::Replace($manifest, $patterns[2], $Version)
 
 if ($PSCmdlet.ShouldProcess($manifestPath, "Set Cargo package versions to $Version")) {
     [System.IO.File]::WriteAllText($manifestPath, $manifest)

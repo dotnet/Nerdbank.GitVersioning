@@ -129,7 +129,7 @@ impl VersionOracle {
         } else {
             3
         };
-        let (version, assembly_informational_version) = if context.is_repository() {
+        let (version, assembly_informational_version) = if context.repository().is_some() {
             let version = get_id_as_version(
                 context,
                 committed_version.as_ref(),
@@ -935,6 +935,17 @@ mod tests {
             oracle.git_commit_date().unwrap().to_rfc3339(),
             "2023-11-14T15:13:20-07:00"
         );
+        let adapter = crate::AdapterVersionInfo::from(&oracle);
+        assert_eq!(
+            adapter.git_commit_date.as_deref(),
+            Some("2023-11-14T22:13:20Z")
+        );
+        let mut partial_oracle = oracle.clone();
+        partial_oracle.git_commit_id = None;
+        let partial = crate::AdapterVersionInfo::from(&partial_oracle);
+        assert!(partial.git_commit_id.is_none());
+        assert!(partial.git_commit_id_short.is_some());
+        assert!(partial.git_commit_date.is_some());
         assert!(
             oracle
                 .assembly_informational_version()
@@ -1153,16 +1164,31 @@ mod tests {
 
     #[test]
     fn no_repository_still_produces_zero_versions() {
-        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("target")
-            .join("not-a-repository");
-        let _ = fs::remove_dir_all(&path);
-        fs::create_dir_all(&path).unwrap();
-        let context = GitContext::create(&path, None, GitEngine::Disabled).unwrap();
+        let directory = tempfile::tempdir().unwrap();
+        let context = GitContext::create(directory.path(), None, GitEngine::Disabled).unwrap();
         let oracle = VersionOracle::new(&context, None).unwrap();
+        let adapter = crate::AdapterVersionInfo::from(&oracle);
+        let adapter_json = serde_json::to_value(adapter).unwrap();
+        assert!(adapter_json["gitCommitId"].is_null());
+        assert!(adapter_json["gitCommitIdShort"].is_null());
+        assert!(adapter_json["gitCommitDate"].is_null());
         assert_eq!(oracle.version_height, 0);
         assert_eq!(oracle.version.major, 0);
         assert_eq!(oracle.version.minor, 0);
-        let _ = fs::remove_dir_all(path);
+    }
+
+    #[test]
+    fn disabled_git_reads_working_version_without_commit_identity() {
+        let repository = TestRepository::new(r#"{"version":"1.2-beta"}"#);
+        let context = GitContext::create(&repository.path, None, GitEngine::Disabled).unwrap();
+        let oracle = VersionOracle::new(&context, None).unwrap();
+        assert!(oracle.version_file_found());
+        assert_eq!(oracle.version.to_string(), "1.2");
+        assert_eq!(oracle.sem_ver2(), "1.2.0-beta.g");
+        assert_eq!(oracle.version_height, 0);
+        assert!(!oracle.public_release);
+        assert!(oracle.git_commit_id.is_none());
+        assert!(oracle.git_commit_id_short.is_none());
+        assert!(oracle.git_commit_date().is_none());
     }
 }
