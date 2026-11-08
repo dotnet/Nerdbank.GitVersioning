@@ -327,18 +327,21 @@ fn packaged_crate_builds_from_stamp_without_repository() {
         ),
     )
     .unwrap();
-    let original = r#"[package]
+    let original = format!(
+        r#"[package]
 name = "nbgv-archive-consumer"
 version = "0.0.1"
 edition = "2021"
 include = ["src/**", "build.rs"]
 
 [build-dependencies]
-nerdbank-gitversioning-build = "0.1.0"
+nerdbank-gitversioning-build = "{}"
 
 [workspace]
-"#;
-    let manifest = create_package(root, original);
+"#,
+        env!("CARGO_PKG_VERSION")
+    );
+    let manifest = create_package(root, &original);
     fs::remove_file(root.join("src").join("lib.rs")).unwrap();
     fs::write(
         root.join("build.rs"),

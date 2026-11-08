@@ -147,7 +147,10 @@ jobs:
           'RECORD_JAVA_SUBMISSION=false' >> $env:GITHUB_ENV
           Write-Host "Java $($packages.version) was already submitted; skipping both registries."
         } else {
-          $plan = ./tools/Get-JavaPublicationPlan.ps1 -Version $packages.version -ArtifactDirectory '${{ runner.temp }}/deployables/ecosystems/java'
+          $javaArchive = Join-Path '${{ runner.temp }}/deployables/ecosystems/java' "nbgv-java-maven-repository-$($packages.version).zip"
+          $javaRepository = Join-Path '${{ runner.temp }}' 'nbgv-java-maven-repository'
+          Expand-Archive -LiteralPath $javaArchive -DestinationPath $javaRepository
+          $plan = ./tools/Get-JavaPublicationPlan.ps1 -Version $packages.version -ArtifactDirectory $javaRepository
           "JAVA_CENTRAL_TASKS=$($plan.CentralTasks -join ' ')" >> $env:GITHUB_ENV
           "PUBLISH_JAVA_CENTRAL=$($plan.CentralTasks.Count -gt 0)" >> $env:GITHUB_ENV
           "PUBLISH_JAVA_PLUGIN=$($plan.PublishPlugin)" >> $env:GITHUB_ENV

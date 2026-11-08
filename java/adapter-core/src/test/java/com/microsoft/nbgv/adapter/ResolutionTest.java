@@ -35,4 +35,22 @@ class ResolutionTest {
         Path nearer = Files.createFile(temporaryDirectory.resolve("a").resolve("version.json"));
         assertEquals(nearer, VersionFileResolver.findNearest(child));
     }
+
+    @Test
+    void nestedRepositoriesAndWorktreesDoNotInheritOuterVersion() throws IOException {
+        Files.createFile(temporaryDirectory.resolve("version.json"));
+        for (String markerType : new String[] {"directory", "file"}) {
+            Path root = Files.createDirectory(temporaryDirectory.resolve(markerType));
+            Path marker = root.resolve(".git");
+            if (markerType.equals("directory")) {
+                Files.createDirectory(marker);
+            } else {
+                Files.write(marker, Collections.singletonList("gitdir: ../other"));
+            }
+            Path child = Files.createDirectory(root.resolve("child"));
+            assertThrows(AdapterException.class, () -> VersionFileResolver.findNearest(child));
+            Path local = Files.createFile(root.resolve("version.json"));
+            assertEquals(local, VersionFileResolver.findNearest(child));
+        }
+    }
 }

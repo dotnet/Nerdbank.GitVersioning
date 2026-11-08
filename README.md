@@ -37,9 +37,7 @@ What sets this package apart from other git-based versioning projects is:
 5. This project is supported by the [.NET Foundation](https://dotnetfoundation.org).
 
 Check out our [getting started documentation](https://dotnet.github.io/Nerdbank.GitVersioning/docs/getting-started.html), then follow the [recommended versioning workflow](https://dotnet.github.io/Nerdbank.GitVersioning/docs/versioning-workflow.html) for releases and servicing.
-The [ecosystem documentation](https://dotnet.github.io/Nerdbank.GitVersioning/docs/ecosystems/rust.html)
-identifies which integrations must currently be built from source; it does not
-claim unpublished registry packages are available.
+The [ecosystem documentation](docfx/docs/ecosystems/rust.md) describes the Rust, Go, and Java integrations.
 
 ## Rust library and CLI
 

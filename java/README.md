@@ -120,5 +120,5 @@ at version 0.1.0.
 See the [Java acquisition and migration guide][java-docs] and
 [release checklist][release-docs].
 
-[java-docs]: https://dotnet.github.io/Nerdbank.GitVersioning/docs/ecosystems/java.html
-[release-docs]: https://dotnet.github.io/Nerdbank.GitVersioning/docs/ecosystem-releases.html
+[java-docs]: ../docfx/docs/ecosystems/java.md
+[release-docs]: ../docfx/docs/ecosystem-releases.md

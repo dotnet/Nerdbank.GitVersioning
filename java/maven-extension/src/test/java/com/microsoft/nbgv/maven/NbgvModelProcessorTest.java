@@ -63,6 +63,24 @@ class NbgvModelProcessorTest {
         assertEquals("2.3.4-beta.5+build.7", library.getProperties().getProperty("revision"));
     }
 
+    @Test
+    void doesNotStampOrInheritFromMismatchedRelativeParent() throws IOException {
+        Files.write(temporaryDirectory.resolve("version.json"), Arrays.asList("{}"), StandardCharsets.UTF_8);
+        System.setProperty("nbgv.executable", createFakeNbgv().toString());
+        Path aggregator = writePom(temporaryDirectory.resolve("pom.xml"),
+                "<groupId>example</groupId><artifactId>aggregator</artifactId><version>1.0</version>"
+                        + "<properties><foreign.property>must-not-leak</foreign.property></properties>");
+        Path child = Files.createDirectory(temporaryDirectory.resolve("child"));
+        Path childPom = writePom(child.resolve("pom.xml"),
+                "<parent><groupId>external</groupId><artifactId>parent</artifactId>"
+                        + "<version>9.0</version></parent><artifactId>child</artifactId>");
+        NbgvModelProcessor processor = processor();
+        processor.read(aggregator.toFile(), Collections.<String, Object>emptyMap());
+        Model model = processor.read(childPom.toFile(), Collections.<String, Object>emptyMap());
+        assertEquals("9.0", model.getParent().getVersion());
+        org.junit.jupiter.api.Assertions.assertNull(model.getProperties().getProperty("foreign.property"));
+    }
+
     private NbgvModelProcessor processor() {
         NbgvModelProcessor processor = new NbgvModelProcessor();
         processor.setModelLocator(new DefaultModelLocator());

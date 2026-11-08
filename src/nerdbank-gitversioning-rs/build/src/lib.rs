@@ -90,12 +90,13 @@ impl Config {
 
     /// Calculates the version using the native library and active cloud provider.
     ///
-    /// Outside a repository, reads the package's `.nbgv-version.json` stamp
-    /// produced by `cargo nbgv`. A missing or invalid stamp is an error, not a
+    /// Reads a package-local `.nbgv-version.json` stamp produced by `cargo nbgv`
+    /// even when the package is vendored inside a repository. Outside a repository,
+    /// a missing or invalid stamp is an error, not a
     /// fallback to a version without history. Explicitly disabled Git bypasses
     /// the stamp and uses native disabled-Git behavior.
     pub fn get_version(&self) -> Result<Version, Error> {
-        self.version_with_context().map(|(version, _)| version)
+        self.version_with_context().map(|(version, _, _)| version)
     }
 
     /// Calculates the version and emits Cargo environment and rebuild instructions.
@@ -105,7 +106,7 @@ impl Config {
     /// This intentionally reruns the build script and may recompile its package.
     /// Published archives watch only their precomputed stamp and remain incremental.
     pub fn emit(&self) -> Result<Version, Error> {
-        let (version, context) = self.version_with_context()?;
+        let (version, context, uses_stamp) = self.version_with_context()?;
         for name in ENVIRONMENT_INPUTS {
             println!("cargo::rerun-if-env-changed={name}");
         }
@@ -114,7 +115,7 @@ impl Config {
         }
         println!(
             "cargo::rerun-if-changed={}",
-            rerun_input(&context)?.display()
+            rerun_input(&context, uses_stamp)?.display()
         );
         emit_environment(&version);
         Ok(version)
@@ -131,13 +132,22 @@ impl Config {
         Ok(version)
     }
 
-    fn version_with_context(&self) -> Result<(Version, GitContext), Error> {
+    fn version_with_context(&self) -> Result<(Version, GitContext, bool), Error> {
         let path = self.effective_project_dir()?;
         // Require an existing directory, rather than silently discovering its parent.
         fs::read_dir(&path)?;
         let engine = effective_git_engine(GitEngine::ReadOnly);
         let context = GitContext::create(&path, None, engine)?;
-        if !context.is_repository() && engine != GitEngine::Disabled {
+        let stamp_exists = if engine != GitEngine::Disabled {
+            match fs::symlink_metadata(context.absolute_project_directory().join(STAMP_FILE)) {
+                Ok(_) => true,
+                Err(error) if error.kind() == io::ErrorKind::NotFound => false,
+                Err(error) => return Err(error.into()),
+            }
+        } else {
+            false
+        };
+        if engine != GitEngine::Disabled && (stamp_exists || !context.is_repository()) {
             let stamp = context.absolute_project_directory().join(STAMP_FILE);
             let bytes = match fs::read(&stamp) {
                 Ok(bytes) => bytes,
@@ -160,7 +170,7 @@ impl Config {
                 ))
                 .into());
             }
-            return Ok((version, context));
+            return Ok((version, context, true));
         }
 
         let mut oracle =
@@ -172,7 +182,7 @@ impl Config {
                 oracle.public_release = false;
             }
         }
-        Ok((Version::from(&oracle), context))
+        Ok((Version::from(&oracle), context, false))
     }
 
     fn effective_project_dir(&self) -> Result<PathBuf, Error> {
@@ -344,9 +354,9 @@ fn option_literal(value: Option<&str>) -> String {
     value.map_or_else(|| "None".to_owned(), |value| format!("Some({value:?})"))
 }
 
-fn rerun_input(context: &GitContext) -> Result<PathBuf, Error> {
+fn rerun_input(context: &GitContext, uses_stamp: bool) -> Result<PathBuf, Error> {
     let project = context.absolute_project_directory();
-    if !context.is_repository() && context.engine() != GitEngine::Disabled {
+    if uses_stamp {
         return Ok(project.join(STAMP_FILE));
     }
     // Cargo has no always-run directive. A deliberately absent input requests

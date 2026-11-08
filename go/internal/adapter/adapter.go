@@ -214,6 +214,9 @@ func validSemVer(value string) bool {
 		return false
 	}
 
+	if metadataStart := strings.IndexByte(value, '+'); metadataStart >= 0 {
+		value = value[:metadataStart]
+	}
 	prereleaseStart := strings.IndexByte(value, '-')
 	if prereleaseStart < 0 {
 		return true

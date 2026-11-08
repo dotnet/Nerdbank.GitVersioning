@@ -55,7 +55,7 @@ Normalized contents retain external README/license files, workspace-inherited pa
 Forwarded `--locked`, `--frozen`, and `--offline` constraints also apply during preparation.
 
 The staged package contains `.nbgv-version.json` with the complete calculated stamp.
-The build helper reads that stamp when rebuilding a published archive without a Git repository, preserving its version and commit identity.
+The build helper reads that package-local stamp when rebuilding a published archive, including when it is vendored inside another Git repository, preserving its original version and commit identity.
 Malformed or unsupported stamps fail the build instead of silently assigning a public version.
 Explicit disabled-Git behavior remains distinct from rebuilding a stamped archive.
 

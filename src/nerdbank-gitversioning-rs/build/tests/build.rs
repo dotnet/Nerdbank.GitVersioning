@@ -656,11 +656,22 @@ fn archive_does_not_search_ancestor_stamps() {
 }
 
 #[test]
-fn ignores_archive_stamp_in_repositories_or_with_git_disabled() {
+fn uses_local_stamp_in_repository_but_not_with_git_disabled() {
     let directory = repository(r#"{"version":"3.4"}"#);
+    let package = directory.path().join("vendor").join("package");
+    fs::create_dir_all(&package).unwrap();
+    fs::write(
+        package.join(".nbgv-version.json"),
+        serde_json::to_vec(&stamp()).unwrap(),
+    )
+    .unwrap();
+    let output = success(worker_command(&package, "emit").output().unwrap());
+    assert_eq!(version_from(&output), stamp());
+    assert!(output.contains(&format!(
+        "cargo::rerun-if-changed={}",
+        package.join(".nbgv-version.json").display()
+    )));
     fs::write(directory.path().join(".nbgv-version.json"), "invalid JSON").unwrap();
-    let output = success(worker_command(directory.path(), "get").output().unwrap());
-    assert!(version_from(&output).sem_ver2.starts_with("3.4.1"));
     let mut command = worker_command(directory.path(), "get");
     command.env("NBGV_GitEngine", "Disabled");
     assert_eq!(

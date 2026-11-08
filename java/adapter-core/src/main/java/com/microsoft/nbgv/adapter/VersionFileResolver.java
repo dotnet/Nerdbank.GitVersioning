@@ -26,6 +26,9 @@ public final class VersionFileResolver {
                 return candidate;
             }
 
+            if (Files.exists(current.resolve(".git"))) {
+                break;
+            }
             current = current.getParent();
         }
 

@@ -2,7 +2,7 @@
 param(
     [ValidateSet('Debug', 'Release')]
     [string]$Configuration = 'Release',
-    [string]$Framework = 'net8.0',
+    [string]$Framework = 'net10.0',
     [string]$GoCommand = 'go',
     [string]$GradleCommand = 'gradle',
     [switch]$PrepareOnly

@@ -129,6 +129,15 @@ func TestParseRejectsInvalidContracts(t *testing.T) {
 	}
 }
 
+func TestSemVerBuildMetadataHyphen(t *testing.T) {
+	for _, version := range []string{"1.2.3+build-01", "1.2.3-beta+build-01", "1.2.3+01"} {
+		input := strings.Replace(validJSON, "1.2.3-beta.g0123456789+build.4", version, 1)
+		if _, err := Parse([]byte(input)); err != nil {
+			t.Fatalf("%s: %v", version, err)
+		}
+	}
+}
+
 type parityManifest struct {
 	Executable string           `json:"executable"`
 	Scenarios  []parityScenario `json:"scenarios"`

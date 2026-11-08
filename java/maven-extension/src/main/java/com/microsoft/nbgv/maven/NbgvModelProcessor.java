@@ -126,7 +126,7 @@ public final class NbgvModelProcessor implements ModelProcessor {
             AdapterVersion adapter =
                     calculator.calculate(projectDirectory, System.getProperty("nbgv.executable"));
             applyVersion(model, adapter);
-            stampRelativeParent(model, projectDirectory);
+            stampRelativeParent(model, projectDirectory, session);
             updateReactorReferences(model, prepareModel(model, projectDirectory, session));
 
             return model;
@@ -197,7 +197,7 @@ public final class NbgvModelProcessor implements ModelProcessor {
     private Properties inheritedProperties(
             Model model, Path directory, Set<Path> visited, MavenSession session) throws IOException {
         Properties properties = new Properties();
-        Path parentPom = relativeParent(model, directory);
+        Path parentPom = relativeParent(model, directory, session);
         if (parentPom != null && visited.add(parentPom.toRealPath())) {
             Model parent = requireReader().read(parentPom.toFile(), null);
             properties.putAll(inheritedProperties(parent, parentPom.getParent(), visited, session));
@@ -241,7 +241,7 @@ public final class NbgvModelProcessor implements ModelProcessor {
         };
     }
 
-    private static Path relativeParent(Model model, Path projectDirectory) {
+    private Path relativeParent(Model model, Path projectDirectory, MavenSession session) throws IOException {
         Parent parent = model.getParent();
         if (parent == null || "".equals(parent.getRelativePath())) {
             return null;
@@ -251,12 +251,31 @@ public final class NbgvModelProcessor implements ModelProcessor {
         if (path.toFile().isDirectory()) {
             path = path.resolve("pom.xml");
         }
-        return path.toFile().isFile() ? path : null;
+        if (!path.toFile().isFile()) {
+            return null;
+        }
+        Model local = requireReader().read(path.toFile(), null);
+        Model child = model.clone();
+        if (interpolator != null) {
+            Properties properties = new Properties();
+            properties.putAll(local.getProperties());
+            properties.putAll(child.getProperties());
+            child.setProperties(properties);
+            DefaultModelBuildingRequest request = new DefaultModelBuildingRequest()
+                    .setSystemProperties(session == null ? System.getProperties() : session.getSystemProperties())
+                    .setUserProperties(session == null ? new Properties() : session.getUserProperties());
+            child = interpolator.interpolateModel(child, projectDirectory.toFile(), request, problems());
+            local = interpolator.interpolateModel(local, path.getParent().toFile(), request, problems());
+        }
+        Parent declared = child.getParent();
+        return java.util.Objects.equals(declared.getGroupId(), groupId(local))
+                        && java.util.Objects.equals(declared.getArtifactId(), local.getArtifactId())
+                ? path : null;
     }
 
-    private void stampRelativeParent(Model model, Path projectDirectory) {
+    private void stampRelativeParent(Model model, Path projectDirectory, MavenSession session) throws IOException {
         Parent parent = model.getParent();
-        Path parentPath = relativeParent(model, projectDirectory);
+        Path parentPath = relativeParent(model, projectDirectory, session);
         if (parentPath == null) {
             return;
         }

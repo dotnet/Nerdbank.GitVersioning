@@ -69,9 +69,14 @@ try {
     $run = [regex]::Replace($run, '(?m)^        ', '')
     $packageFile = Join-Path $directory 'packages.json'
     Set-Content -LiteralPath $packageFile '{"version":"0.1.0"}'
+    $javaDirectory = Join-Path $directory 'java'
+    New-Item -ItemType Directory -Path $javaDirectory | Out-Null
+    Compress-Archive -Path (Join-Path $directory '*.pom') -DestinationPath (Join-Path $javaDirectory 'nbgv-java-maven-repository-0.1.0.zip')
+    $extracted = Join-Path $directory 'nbgv-java-maven-repository'
     $outputFile = Join-Path $directory 'workflow-output.txt'
-    $run = $run.Replace('${{ runner.temp }}/deployables/ecosystems/java', $directory.Replace("'", "''"))
+    $run = $run.Replace('${{ runner.temp }}/deployables/ecosystems/java', $javaDirectory.Replace("'", "''"))
     $run = $run.Replace('${{ runner.temp }}/deployables/ecosystems/packages.json', $packageFile.Replace("'", "''"))
+    $run = $run.Replace('${{ runner.temp }}', $directory.Replace("'", "''"))
     $run = $run.Replace('$env:GITHUB_ENV', '$outputFile')
     $run = $run.Replace('[Environment]::GetEnvironmentVariable($name)', '$credentials[$name]')
     $credentials = @{
@@ -90,6 +95,10 @@ try {
             [pscustomobject]@{ StatusCode = 200; Content = '{"id":"com.microsoft.nerdbank-gitversioning","version":"0.1.0"}' }
         }
         $requests.Clear()
+        if (Test-Path -LiteralPath $extracted) {
+            Get-ChildItem -LiteralPath $extracted -File | Remove-Item
+            Remove-Item -LiteralPath $extracted
+        }
         Set-Content -LiteralPath $outputFile ''
         Invoke-Expression $run
         $output = Get-Content -LiteralPath $outputFile -Raw
@@ -111,6 +120,14 @@ try {
     foreach ($name in @('packages.json', 'workflow-output.txt')) {
         $path = Join-Path $directory $name
         if (Test-Path -LiteralPath $path) { Remove-Item -LiteralPath $path }
+    }
+    if (Test-Path -LiteralPath $extracted) {
+        Get-ChildItem -LiteralPath $extracted -File | Remove-Item
+        Remove-Item -LiteralPath $extracted
+    }
+    if (Test-Path -LiteralPath $javaDirectory) {
+        Remove-Item -LiteralPath (Join-Path $javaDirectory 'nbgv-java-maven-repository-0.1.0.zip')
+        Remove-Item -LiteralPath $javaDirectory
     }
     Remove-Item -LiteralPath $directory
 }
