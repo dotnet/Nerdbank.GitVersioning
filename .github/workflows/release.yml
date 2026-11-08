@@ -178,6 +178,17 @@ jobs:
         --azure-key-vault-certificate '${{ vars.AZURE_KEY_VAULT_CERTIFICATE }}'
         --azure-credential-type azure-cli
 
+    - name: Sign Windows Go executables
+      shell: pwsh
+      run: >
+        dotnet tool run sign -- code azure-key-vault
+        '*.exe'
+        --base-directory '${{ runner.temp }}/deployables/ecosystems/go'
+        --file-list '${{ github.workspace }}/.github/signfiles.txt'
+        --azure-key-vault-url '${{ vars.AZURE_KEY_VAULT_URL }}'
+        --azure-key-vault-certificate '${{ vars.AZURE_KEY_VAULT_CERTIFICATE }}'
+        --azure-credential-type azure-cli
+
     - name: 🔎 Refresh ecosystem checksums
       shell: pwsh
       run: |

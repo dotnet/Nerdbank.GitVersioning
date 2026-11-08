@@ -10,6 +10,25 @@ param(
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $OutputPath = [System.IO.Path]::GetFullPath($OutputPath, $repositoryRoot)
+$outputRoot = $OutputPath.TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+$pathComparison = if ($IsWindows) { [StringComparison]::OrdinalIgnoreCase } else { [StringComparison]::Ordinal }
+if ($repositoryRoot.Equals($outputRoot, $pathComparison) -or
+    $repositoryRoot.StartsWith($outputRoot + [System.IO.Path]::DirectorySeparatorChar, $pathComparison)) {
+    throw 'The ecosystem output directory must not be the repository root or one of its ancestors.'
+}
+if (Test-Path $OutputPath) {
+    if ((Get-Item -LiteralPath $OutputPath -Force).Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
+        throw 'The ecosystem output directory must not be a symbolic link or junction.'
+    }
+    $entries = @(Get-ChildItem -LiteralPath $OutputPath -Force)
+    if ($entries | Where-Object { $_.Name -notin @('rust', 'go', 'java', 'packages.json', 'ecosystem-SHA256SUMS.txt') }) {
+        throw "Refusing to clear $OutputPath because it contains files not owned by ecosystem packaging."
+    }
+    if (Get-ChildItem -LiteralPath $OutputPath -Force -Recurse |
+        Where-Object { $_.Attributes -band [System.IO.FileAttributes]::ReparsePoint }) {
+        throw 'The ecosystem output directory must not contain symbolic links or junctions.'
+    }
+}
 $rustWorkspace = Join-Path $repositoryRoot 'src\nerdbank-gitversioning-rs'
 $rustManifest = Join-Path $rustWorkspace 'Cargo.toml'
 $manifestText = Get-Content -Raw $rustManifest

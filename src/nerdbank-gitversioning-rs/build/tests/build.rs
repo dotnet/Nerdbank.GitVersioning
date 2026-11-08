@@ -30,22 +30,20 @@ const DETECTION_VARIABLES: &[&str] = &[
 ];
 
 fn fixture() -> TempDir {
-    let directory = PathBuf::from(env!("CARGO_TARGET_TMPDIR"));
+    let directory = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("target")
+        .join("test-repositories");
     fs::create_dir_all(&directory).unwrap();
     tempfile::tempdir_in(directory).unwrap()
 }
 
 fn archive_fixture() -> TempDir {
-    let directory = tempfile::Builder::new()
-        .prefix("nbgv-build-fixture-")
-        .tempdir()
-        .unwrap();
+    let directory = fixture();
+    // A dangling gitdir stops discovery of the enclosing checkout. Libgit2
+    // reports NotFound, the same no-repository context as an extracted archive.
+    fs::write(directory.path().join(".git"), "gitdir: missing.git\n").unwrap();
     let context = GitContext::create(directory.path(), None, GitEngine::ReadOnly).unwrap();
-    assert!(
-        !context.is_repository(),
-        "Archive fixture must not be nested in a Git repository: {}",
-        directory.path().display()
-    );
+    assert!(!context.is_repository());
     directory
 }
 
@@ -115,6 +113,153 @@ fn version_from(output: &str) -> Version {
         .find_map(|line| line.strip_prefix("VERSION:"))
         .unwrap();
     serde_json::from_str(json).unwrap()
+}
+
+fn cargo_package(root: &Path) {
+    fs::create_dir_all(root.join("src")).unwrap();
+    fs::write(
+        root.join("Cargo.toml"),
+        format!(
+            "[package]\nname = \"nbgv-build-regression\"\nversion = \"0.0.0\"\nedition = \"2024\"\n\
+             [workspace]\n[build-dependencies]\nnerdbank-gitversioning-build = {{ path = {} }}\n",
+            serde_json::to_string(env!("CARGO_MANIFEST_DIR")).unwrap()
+        ),
+    )
+    .unwrap();
+    fs::write(
+        root.join("build.rs"),
+        "fn main() { nerdbank_gitversioning_build::emit!(); }\n",
+    )
+    .unwrap();
+    fs::write(
+        root.join("src").join("main.rs"),
+        "include!(concat!(env!(\"OUT_DIR\"), \"/nbgv.rs\"));\n\
+         fn main() { println!(\"{}|{}|{}\", NBGV_VERSION.sem_ver2, \
+         NBGV_VERSION.version_height, NBGV_VERSION.git_commit_id.unwrap_or(\"\")); }\n",
+    )
+    .unwrap();
+}
+
+fn cargo_build(root: &Path, target: &Path, fresh: bool) -> String {
+    let mut command = Command::new(env!("CARGO"));
+    command
+        .args(["build", "--offline", "--verbose"])
+        .current_dir(root)
+        .env("CARGO_TARGET_DIR", target)
+        .env("GIT_CEILING_DIRECTORIES", root.parent().unwrap());
+    for name in DETECTION_VARIABLES {
+        command.env_remove(name);
+    }
+    let output = command.output().unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
+    success(output);
+    let marker = if fresh {
+        "Fresh nbgv-build-regression"
+    } else {
+        "Compiling nbgv-build-regression"
+    };
+    assert!(stderr.contains(marker), "Expected {marker}:\n{stderr}");
+    if fresh {
+        assert!(
+            !stderr.contains("Compiling nbgv-build-regression"),
+            "{stderr}"
+        );
+    }
+    let executable = target.join("debug").join(if cfg!(windows) {
+        "nbgv-build-regression.exe"
+    } else {
+        "nbgv-build-regression"
+    });
+    success(Command::new(executable).output().unwrap())
+}
+
+fn version_snapshot(version: &Version) -> String {
+    format!(
+        "{}|{}|{}\n",
+        version.sem_ver2,
+        version.version_height,
+        version.git_commit_id.as_deref().unwrap_or("")
+    )
+}
+
+#[test]
+fn real_cargo_builds_are_fresh_and_invalidate_version_inputs() {
+    let directory = repository(r#"{"version":"1.0"}"#);
+    fs::write(directory.path().join(".gitignore"), "target/\n").unwrap();
+    let package = directory.path().join("package");
+    cargo_package(&package);
+    commit(directory.path());
+    // Separate from the outer Cargo invocation's target to avoid its lock.
+    let target = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("target")
+        .join("cargo-build-regression");
+    let check = |fresh| {
+        let actual = cargo_build(&package, &target, fresh);
+        let expected = version_from(&success(worker_command(&package, "get").output().unwrap()));
+        assert_eq!(actual, version_snapshot(&expected));
+    };
+    check(false);
+    check(true);
+
+    fs::write(directory.path().join("committed.txt"), "new commit").unwrap();
+    commit(directory.path());
+    check(false);
+    check(true);
+
+    fs::write(
+        directory.path().join("version.json"),
+        r#"{"version":"2.0"}"#,
+    )
+    .unwrap();
+    check(false);
+    check(true);
+
+    // Creation is detected through the Git index without watching package/target.
+    let nearer = package.join("version.json");
+    fs::write(&nearer, r#"{"version":"3.0"}"#).unwrap();
+    let repo = Repository::open(directory.path()).unwrap();
+    let mut index = repo.index().unwrap();
+    index.add_path(Path::new("package/version.json")).unwrap();
+    index.write().unwrap();
+    check(false);
+    check(true);
+
+    fs::remove_file(nearer).unwrap();
+    check(false);
+    check(true);
+
+    let optional_metadata = directory.path().join(".git").join("config.worktree");
+    assert!(!optional_metadata.exists());
+    fs::write(&optional_metadata, "[nbgvtest]\nvalue = 1\n").unwrap();
+    check(false);
+    check(true);
+    fs::remove_file(optional_metadata).unwrap();
+    check(false);
+    check(true);
+
+    let archive = archive_fixture();
+    cargo_package(archive.path());
+    let stamp_path = archive.path().join(".nbgv-version.json");
+    let mut version = stamp();
+    fs::write(&stamp_path, serde_json::to_vec(&version).unwrap()).unwrap();
+    assert_eq!(
+        cargo_build(archive.path(), &target, false),
+        version_snapshot(&version)
+    );
+    assert_eq!(
+        cargo_build(archive.path(), &target, true),
+        version_snapshot(&version)
+    );
+    version.sem_ver2 = "7.8.10".to_owned();
+    fs::write(stamp_path, serde_json::to_vec(&version).unwrap()).unwrap();
+    assert_eq!(
+        cargo_build(archive.path(), &target, false),
+        version_snapshot(&version)
+    );
+    assert_eq!(
+        cargo_build(archive.path(), &target, true),
+        version_snapshot(&version)
+    );
 }
 
 #[test]
@@ -260,10 +405,11 @@ fn tracks_version_txt_and_json_through_canonical_repository_root() {
     assert!(version_from(&output).sem_ver2.starts_with("4.5.1-beta"));
     for ancestor in [&nested, &child, &directory.path().to_owned()] {
         for name in ["version.json", "version.txt"] {
-            assert!(output.contains(&format!(
-                "cargo::rerun-if-changed={}",
-                ancestor.join(name).display()
-            )));
+            let path = ancestor.join(name);
+            assert_eq!(
+                output.contains(&format!("cargo::rerun-if-changed={}", path.display())),
+                path.exists()
+            );
         }
     }
     assert!(
@@ -293,17 +439,24 @@ fn tracks_worktree_and_common_git_metadata() {
         git_dir.join("HEAD"),
         git_dir.join("index"),
         git_dir.join("commondir"),
-        common.join("packed-refs"),
+        git_dir.to_owned(),
+        common.clone(),
+        common.join("config"),
         common.join("refs"),
         common.join("refs").join("heads"),
         common.join("refs").join("tags"),
-        common.join("reftable"),
     ] {
         assert!(
             output.contains(&format!("cargo::rerun-if-changed={}", path.display())),
             "{}",
             path.display()
         );
+    }
+    for line in output
+        .lines()
+        .filter_map(|line| line.strip_prefix("cargo::rerun-if-changed="))
+    {
+        assert!(Path::new(line).exists(), "{line}");
     }
     assert_eq!(version_from(&output).version_height, 1);
 }
@@ -392,6 +545,13 @@ fn archive_reads_the_shared_serialized_dto_and_tracks_only_package_inputs() {
                 .display()
         )));
     assert!(!output.contains("packed-refs"));
+    assert_eq!(
+        output
+            .lines()
+            .filter(|line| line.starts_with("cargo::rerun-if-changed="))
+            .count(),
+        1
+    );
 }
 
 #[test]
@@ -479,11 +639,20 @@ fn ignores_archive_stamp_in_repositories_or_with_git_disabled() {
     let archive = archive_fixture();
     fs::write(archive.path().join("version.txt"), "5.6\nbeta").unwrap();
     fs::write(archive.path().join(".nbgv-version.json"), "invalid JSON").unwrap();
-    let mut command = worker_command(archive.path(), "get");
+    let mut command = worker_command(archive.path(), "emit");
     command.env("NBGV_GitEngine", "Disabled");
-    let actual = version_from(&success(command.output().unwrap()));
+    let output = success(command.output().unwrap());
+    let actual = version_from(&output);
     assert_eq!(actual.version_height, 0);
     assert!(actual.sem_ver2.starts_with("5.6"));
+    assert!(!output.contains(&format!(
+        "cargo::rerun-if-changed={}",
+        archive.path().join(".nbgv-version.json").display()
+    )));
+    assert!(output.contains(&format!(
+        "cargo::rerun-if-changed={}",
+        archive.path().join("version.txt").display()
+    )));
 }
 
 #[test]

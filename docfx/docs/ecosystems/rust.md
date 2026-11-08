@@ -32,7 +32,9 @@ Call `nerdbank_gitversioning_build::emit!()` from `build.rs`.
 The helper emits `NBGV_*` compile-time environment variables and writes a typed `nbgv.rs` module under `OUT_DIR`.
 Use `env!("NBGV_SEMVER2")` in application code, or include the generated module to read typed version height, release state, and optional commit information.
 The version is calculated from the crate directory using the same version files, Git engine policy, and cloud provider logic as the native CLI.
-Build inputs include version files, Git metadata, and release/environment overrides so commits and configuration changes invalidate the stamp.
+Build inputs include existing version files, Git metadata, and release/environment overrides so commits and edits to existing configuration files invalidate the stamp.
+After creating a nearer `version.json` or `version.txt`, stage it with Git or touch `build.rs` before rebuilding so Cargo recalculates the stamp.
+Absent version files are not watched because Cargo would otherwise rerun the build script on every unchanged build.
 
 ## Package with the calculated version
 

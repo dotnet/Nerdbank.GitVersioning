@@ -99,6 +99,12 @@ impl Config {
     }
 
     /// Calculates the version and emits Cargo environment and rebuild instructions.
+    ///
+    /// Tracks existing version files and Git metadata. After creating a new,
+    /// nearer version file, stage it in Git or touch `build.rs` to recalculate.
+    /// Cargo cannot watch absent files without rerunning every build, and watching
+    /// project directories recursively would also watch Cargo's build outputs.
+    /// With Git disabled, newly created version files require touching `build.rs`.
     pub fn emit(&self) -> Result<Version, Error> {
         let (version, context, include_dirty) = self.version_with_context()?;
         for name in ENVIRONMENT_INPUTS {
@@ -338,30 +344,35 @@ fn option_literal(value: Option<&str>) -> String {
 fn rerun_inputs(context: &GitContext, include_dirty: bool) -> Result<Vec<PathBuf>, Error> {
     let project = context.absolute_project_directory();
     let mut paths = Vec::new();
-    if !context.is_repository() {
-        paths.push(project.join(STAMP_FILE));
+    if !context.is_repository() && context.engine() != GitEngine::Disabled {
+        return Ok(vec![project.join(STAMP_FILE)]);
     }
     for directory in project.ancestors() {
-        paths.push(directory.join("version.json"));
-        paths.push(directory.join("version.txt"));
-        if directory == context.working_tree_path() {
-            break;
+        for name in ["version.json", "version.txt"] {
+            let path = directory.join(name);
+            if path.exists() {
+                paths.push(path);
+            }
         }
-        // An archive stamp is self-contained; do not track files outside the package.
-        if !context.is_repository() && context.engine() != GitEngine::Disabled {
+        if directory == context.working_tree_path() {
             break;
         }
     }
     if let Some(git_dir) = context.git_directory() {
         paths.push(context.working_tree_path().join(".git"));
         let common_file = git_dir.join("commondir");
-        paths.push(common_file.clone());
+        if common_file.exists() {
+            paths.push(common_file.clone());
+        }
         let common_dir = match fs::read_to_string(&common_file) {
             Ok(relative) => fs::canonicalize(git_dir.join(relative.trim()))?,
             Err(error) if error.kind() == io::ErrorKind::NotFound => git_dir.to_owned(),
             Err(error) => return Err(error.into()),
         };
         for directory in [git_dir, common_dir.as_path()] {
+            // Directory watches detect creation/deletion of optional metadata,
+            // including loose refs, without watching project build outputs.
+            paths.push(directory.to_owned());
             for name in [
                 "HEAD",
                 "index",
@@ -373,6 +384,9 @@ fn rerun_inputs(context: &GitContext, include_dirty: bool) -> Result<Vec<PathBuf
                 "reftable",
             ] {
                 let path = directory.join(name);
+                if !path.exists() {
+                    continue;
+                }
                 paths.push(path.clone());
                 if matches!(name, "refs" | "reftable") {
                     collect_files(&path, &mut paths)?;

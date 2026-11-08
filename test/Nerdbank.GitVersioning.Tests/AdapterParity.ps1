@@ -123,8 +123,21 @@ function Write-Oracle {
     }
 }
 
+$originalEnvironment = @{}
+$cloudProviderVariables = @(
+    'APPVEYOR', 'SYSTEM_TEAMPROJECTID', 'GITHUB_ACTIONS', 'BUILD_VCS_NUMBER',
+    'bamboo.buildKey', 'JENKINS_URL', 'GITLAB_CI', 'TRAVIS',
+    'JB_SPACE_GIT_REVISION', 'BITBUCKET_PIPELINE_UUID'
+)
+foreach ($name in (@('NBGV_PARITY_MANIFEST', 'NBGV_EXECUTABLE', 'NBGV_GitEngine', 'PublicRelease') + $cloudProviderVariables)) {
+    $originalEnvironment[$name] = [Environment]::GetEnvironmentVariable($name)
+}
 Push-Location $repositoryRoot
 try {
+    $env:PublicRelease = $null
+    foreach ($name in $cloudProviderVariables) {
+        Remove-Item -LiteralPath "Env:$name" -ErrorAction SilentlyContinue
+    }
     & '.\.github\Prime-ForCopilot.ps1'
     $previousGitEngine = $env:NBGV_GitEngine
     try {
@@ -305,5 +318,12 @@ try {
     }
     Invoke-Native $gradleTool.Source @('test', '--no-daemon') (Join-Path $repositoryRoot 'java')
 } finally {
+    foreach ($name in $originalEnvironment.Keys) {
+        if ($null -eq $originalEnvironment[$name]) {
+            Remove-Item -LiteralPath "Env:$name" -ErrorAction SilentlyContinue
+        } else {
+            [Environment]::SetEnvironmentVariable($name, $originalEnvironment[$name])
+        }
+    }
     Pop-Location
 }
