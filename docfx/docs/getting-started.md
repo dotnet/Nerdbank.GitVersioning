@@ -2,12 +2,20 @@
 
 ## Installation and Configuration
 
-You can install Nerdbank.GitVersioning into your projects via NuGet or NPM.
+You can install Nerdbank.GitVersioning into your projects via NuGet or NPM. Source-preview
+adapters are also available for Rust, Go, Gradle, and Maven.
 
 * Use the [nbgv .NET Core CLI tool](nbgv-cli.md) (recommended)
 * [NuGet installation instructions](nuget-acquisition.md)
 * [NPM installation instructions](npm-acquisition.md)
 * [Cake Build installation instructions](build-systems/cake.md)
+* [Rust and Cargo](ecosystems/rust.md)
+* [Go](ecosystems/go.md)
+* [Java, Maven, and Gradle](ecosystems/java.md)
+
+The non-.NET adapters are not yet claimed to be available from their ecosystem
+registries. Follow their source acquisition instructions and the
+[ecosystem release status](ecosystem-releases.md).
 
 You must also create [a `version.json` file](versionJson.md) in your repo. See [migration notes](migrating.md) if your repo already has a `version.txt` or `version.json` file from using another system.
 
@@ -19,6 +27,9 @@ See relevant documentation for any of these topics:
 * [Node](ecosystems/node.md)
 * [Python](ecosystems/python.md)
 * [VSIX](ecosystems/vsix.md)
+* [Rust](ecosystems/rust.md)
+* [Go](ecosystems/go.md)
+* [Java](ecosystems/java.md)
 
 ## Build
 

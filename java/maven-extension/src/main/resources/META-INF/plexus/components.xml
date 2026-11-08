@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component-set>
+  <components>
+    <component>
+      <role>org.apache.maven.model.building.ModelProcessor</role>
+      <role-hint>default</role-hint>
+      <implementation>com.microsoft.nbgv.maven.NbgvModelProcessor</implementation>
+      <requirements>
+        <requirement>
+          <role>org.apache.maven.model.locator.ModelLocator</role>
+          <role-hint>default</role-hint>
+          <field-name>locator</field-name>
+        </requirement>
+        <requirement>
+          <role>org.apache.maven.model.io.ModelReader</role>
+          <role-hint>default</role-hint>
+          <field-name>reader</field-name>
+        </requirement>
+      </requirements>
+    </component>
+  </components>
+</component-set>

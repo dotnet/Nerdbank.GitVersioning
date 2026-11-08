@@ -34,6 +34,7 @@ namespace Nerdbank.GitVersioning.Tool
         private const BindingFlags CaseInsensitiveFlags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.IgnoreCase;
 
         private static readonly string[] SupportedFormats = new[] { "text", "json" };
+        private static readonly string[] SupportedGetVersionFormats = new[] { "text", "json", "adapter" };
         private static ExitCodes exitCode;
 
         private enum ExitCodes
@@ -135,7 +136,7 @@ namespace Nerdbank.GitVersioning.Tool
                 };
                 var format = new Option<string>("--format", ["-f"])
                 {
-                    Description = $"The format to write the version information. Allowed values are: {string.Join(", ", SupportedFormats)}. The default is {DefaultOutputFormat}.",
+                    Description = $"The format to write the version information. Allowed values are: {string.Join(", ", SupportedGetVersionFormats)}. The default is {DefaultOutputFormat}.",
                 };
                 var variable = new Option<string>("--variable", ["-v"])
                 {
@@ -680,8 +681,13 @@ namespace Nerdbank.GitVersioning.Tool
 
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(project);
 
-            using var context = GitContext.Create(searchPath, engine: GetEffectiveGitEngine(preferReadWrite: AlwaysUseLibGit2));
-            if (!context.IsRepository)
+            GitContext.Engine gitEngine = GetEffectiveGitEngine(preferReadWrite: AlwaysUseLibGit2);
+            using var context = GitContext.Create(searchPath, engine: gitEngine);
+            bool allowDisabledAdapter = gitEngine == GitContext.Engine.Disabled
+                && string.Equals(format, "adapter", StringComparison.OrdinalIgnoreCase)
+                && (Directory.Exists(Path.Combine(context.WorkingTreePath, ".git"))
+                    || File.Exists(Path.Combine(context.WorkingTreePath, ".git")));
+            if (!context.IsRepository && !allowDisabledAdapter)
             {
                 Console.Error.WriteLine("No git repo found at or above: \"{0}\"", searchPath);
                 return Task.FromResult((int)ExitCodes.NoGitRepo);
@@ -726,6 +732,9 @@ namespace Nerdbank.GitVersioning.Tool
                         new Newtonsoft.Json.Converters.VersionConverter(),
                         };
                         Console.WriteLine(JsonConvert.SerializeObject(oracle, Formatting.Indented, converters));
+                        break;
+                    case "adapter":
+                        Console.WriteLine(JsonConvert.SerializeObject(new AdapterVersionInfo(oracle), Formatting.Indented));
                         break;
                     default:
                         Console.Error.WriteLine("Unsupported format: {0}", format);

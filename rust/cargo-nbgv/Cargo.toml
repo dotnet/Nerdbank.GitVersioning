@@ -1,0 +1,24 @@
+[package]
+name = "cargo-nbgv"
+version = "0.1.0"
+description = "Stage Cargo packages with versions from Nerdbank.GitVersioning"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+readme = "../README.md"
+documentation = "https://dotnet.github.io/Nerdbank.GitVersioning/docs/ecosystems/rust.html"
+include = ["src/**"]
+keywords = ["cargo", "git", "publish", "versioning"]
+categories = ["development-tools::cargo-plugins"]
+
+[dependencies]
+cargo_metadata = "0.19"
+flate2 = "1.0"
+indexmap = "=2.3.0" # Newer releases use Cargo manifest features above our MSRV.
+semver.workspace = true
+serde_json.workspace = true
+tar = "0.4"
+toml_edit = "0.22"

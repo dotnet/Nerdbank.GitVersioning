@@ -1,0 +1,17 @@
+[workspace]
+members = ["cargo-nbgv", "nbgv"]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/dotnet/Nerdbank.GitVersioning"
+homepage = "https://dotnet.github.io/Nerdbank.GitVersioning/"
+authors = [".NET Foundation and Contributors"]
+rust-version = "1.78"
+
+[workspace.dependencies]
+nbgv = { path = "nbgv", version = "0.1.0" }
+semver = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"

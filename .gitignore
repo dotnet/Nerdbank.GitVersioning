@@ -88,6 +88,11 @@ StyleCopReport.xml
 *.log
 *.vspscc
 *.vssscc
+
+# Ecosystem adapter build results
+/rust/target/
+/java/.gradle/
+/java/**/build/
 .builds
 *.pidb
 *.svclog

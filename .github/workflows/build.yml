@@ -57,6 +57,29 @@ jobs:
         node-version: 24.x
         cache: yarn
         cache-dependency-path: src/nerdbank-gitversioning.npm/yarn.lock
+    - name: ⚙ Install Go
+      uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
+      if: runner.os == 'Linux'
+      with:
+        go-version: '1.22.x'
+        cache: false
+    - name: ⚙ Install Java
+      uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
+      if: runner.os == 'Linux'
+      with:
+        distribution: temurin
+        java-version: '17'
+    - name: ⚙ Install Gradle
+      uses: gradle/actions/setup-gradle@da187c8e6ffbd3802e00f2477aa5a822b25f2dda # v4.4.4
+      if: runner.os == 'Linux'
+      with:
+        gradle-version: '8.14.3'
+    - name: ⚙ Install Rust MSRV
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        rustup toolchain install 1.78.0 --profile minimal
+        rustup override set 1.78.0
     - name: ⚙️ Set pipeline variables based on source
       run: tools/variables/_define.ps1
       shell: pwsh
@@ -102,6 +125,19 @@ jobs:
     - name: 📚 Verify docfx build
       run: dotnet docfx docfx/docfx.json --warningsAsErrors --disableGitFeatures
       if: runner.os == 'Linux'
+    - name: 🧪 Test and package ecosystem adapters
+      run: >
+        tools/Build-EcosystemAdapters.ps1
+        -Configuration ${{ env.BUILDCONFIGURATION }}
+        -OutputPath '${{ runner.temp }}/_artifacts/ecosystem-deployables'
+      shell: pwsh
+      if: runner.os == 'Linux'
+    - name: 📢 Upload ecosystem packages
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      if: runner.os == 'Linux' && cancelled() == false
+      with:
+        name: ecosystem-deployables
+        path: ${{ runner.temp }}/_artifacts/ecosystem-deployables
     - name: ⚙ Update pipeline variables based on build outputs
       run: tools/variables/_define.ps1
       shell: pwsh

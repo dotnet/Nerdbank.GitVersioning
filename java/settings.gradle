@@ -1,0 +1,5 @@
+rootProject.name = 'nerdbank-gitversioning-java'
+
+include 'adapter-core'
+include 'gradle-plugin'
+include 'maven-extension'

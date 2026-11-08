@@ -22,6 +22,9 @@ but installing this software will facilitate an enhanced developer experience in
 
 All other dependencies are acquired via NuGet or NPM.
 
+The source-preview ecosystem adapters additionally require Rust 1.78, Go 1.22,
+Java 17, and Gradle 8.8 or newer when they are built locally.
+
 ## Building
 
 To build this repository from the command line, you must first execute our init.ps1 script,
@@ -36,6 +39,13 @@ and you are running Windows PowerShell, the command is:
 You can use `dotnet test` to build and/or test the repo.
 
 There may be tests that are known to be unstable or have special requirements. These can be avoided by running tests using the [dotnet-test-cloud.ps1](tools/dotnet-test-cloud.ps1) script *after* running `dotnet build`.
+
+After the normal restore and build, run the cross-ecosystem parity tests and
+create the same packages as CI:
+
+```powershell
+tools/Build-EcosystemAdapters.ps1 -Configuration Release
+```
 
 ## Releases
 
@@ -54,6 +64,13 @@ After publishing the release, the `.github/workflows/release.yml` workflow will 
 1. Find the most recent `.github/workflows/build.yml` GitHub workflow run of the tagged release.
 1. Upload the `deployables` artifact from that workflow run to your GitHub Release.
 1. If you have `NUGET_API_KEY` defined as a secret variable for your repo or org, any nuget packages in the `deployables` artifact will be pushed to nuget.org.
+
+The workflow also attaches the verified `ecosystem-deployables` files. Rust,
+Go, Maven Central, and Gradle Plugin Portal publication is intentionally not
+automatic until registry ownership, signing, and protected credentials are
+configured. Follow the
+[ecosystem first-publication checklist](docfx/docs/ecosystem-releases.md)
+instead of adding registry secrets to pull-request builds.
 
 ### Azure Pipelines
 

@@ -36,3 +36,22 @@ When you later want to ship v1.3, remove the second field so that the 3rd intege
 ```
 
 This will make your first 1.3 build be versioned as 1.3.1.
+
+## Migrating non-.NET build integrations
+
+Use exactly one component to assign a package version. In particular, remove
+tag-, branch-, or date-based version plugins before enabling an NBGV adapter;
+otherwise configuration order may silently choose different versions for
+compilation and publication.
+
+The source-preview adapters include ecosystem-specific migration guidance:
+
+* [Rust and Cargo](ecosystems/rust.md#migrate-an-existing-crate)
+* [Go](ecosystems/go.md#migrate-an-existing-module)
+* [Java, Maven, and Gradle](ecosystems/java.md#migrate-an-existing-build)
+
+Before replacing an existing release process, compare packages from the same
+commit, including SemVer, embedded commit information, dependency metadata,
+source archives, and clean-cache consumption. Registry coordinates described
+in these pages are intended first-release coordinates, not a claim that the
+packages have already been published.

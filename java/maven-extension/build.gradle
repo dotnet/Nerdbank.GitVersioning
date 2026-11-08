@@ -1,0 +1,36 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+}
+
+base {
+    archivesName = 'nbgv-maven-extension'
+}
+
+dependencies {
+    implementation project(':adapter-core')
+    compileOnly 'org.apache.maven:maven-core:3.9.11'
+    compileOnly 'javax.inject:javax.inject:1'
+
+    testImplementation 'org.apache.maven:maven-core:3.9.11'
+    testImplementation 'org.apache.maven:maven-embedder:3.9.11'
+    testImplementation 'org.apache.maven:maven-compat:3.9.11'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.12.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testRuntimeOnly 'org.slf4j:slf4j-simple:1.7.36'
+}
+
+jar {
+    manifest {
+        attributes('Automatic-Module-Name': 'com.microsoft.nerdbank.gitversioning.maven')
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            artifactId = 'nbgv-maven-extension'
+        }
+    }
+}

@@ -5,7 +5,8 @@ _layout: landing
 # Overview
 
 This package adds precise, semver-compatible git commit information
-to every assembly, VSIX, NuGet and NPM package, and more.
+to assemblies, VSIX, NuGet and NPM packages, and source-preview Rust, Go, Maven,
+and Gradle integrations.
 It implicitly supports all cloud build services and CI server software
 because it simply uses git itself and integrates naturally in MSBuild, gulp
 and other build scripts.

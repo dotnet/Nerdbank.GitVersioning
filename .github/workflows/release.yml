@@ -91,6 +91,14 @@ jobs:
         run-id: ${{ steps.findrunid.outputs.runid }}
         github-token: ${{ github.token }}
 
+    - name: 🔻 Download ecosystem packages
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      with:
+        name: ecosystem-deployables
+        path: ${{ runner.temp }}/deployables/ecosystems
+        run-id: ${{ steps.findrunid.outputs.runid }}
+        github-token: ${{ github.token }}
+
 # Login to Azure using a ServicePrincipal configured to authenticate agaist a GitHub Action
     - name: 🪪 Authorize signing
       uses: azure/login@f5d393ae46f8fde4be8b75f32e3fc50e654ad0ca # v3.0.1
@@ -113,6 +121,25 @@ jobs:
         --azure-key-vault-certificate "${{ vars.KEY_VAULT_CERTIFICATE }}"
         --azure-credential-type azure-cli
       shell: pwsh
+
+    - name: 🔎 Refresh ecosystem checksums
+      shell: pwsh
+      run: |
+        $ecosystemPath = '${{ runner.temp }}/deployables/ecosystems'
+        $checksumPath = Join-Path $ecosystemPath 'ecosystem-SHA256SUMS.txt'
+        $files = Get-ChildItem $ecosystemPath -Recurse -File | Where-Object FullName -ne $checksumPath
+        $duplicateNames = $files | Group-Object Name | Where-Object Count -gt 1
+        if ($duplicateNames) {
+         throw "Release asset names must be unique: $($duplicateNames.Name -join ', ')."
+        }
+
+        $files |
+         Sort-Object Name |
+         ForEach-Object {
+           $hash = (Get-FileHash -Algorithm SHA256 $_.FullName).Hash.ToLowerInvariant()
+           "$hash *$($_.Name)"
+         } |
+         Set-Content -Encoding ascii $checksumPath
 
     - name: 🪪 Authorize NuGet package push
       uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
