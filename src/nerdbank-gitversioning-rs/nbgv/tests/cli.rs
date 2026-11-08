@@ -76,7 +76,9 @@ fn commit_all(repository: &Repository, message: &str) -> Oid {
 }
 
 fn nbgv() -> Command {
-    Command::new(assert_cmd::cargo::cargo_bin!("nbgv"))
+    let mut command = Command::new(assert_cmd::cargo::cargo_bin!("nbgv"));
+    command.env("NBGV_GitEngine", "Managed");
+    command
 }
 
 #[test]
@@ -162,6 +164,120 @@ fn get_version_supports_formats_variables_precedence_dates_and_dirty_warning() {
         .args(["get-version", "-v", "notAProperty"])
         .assert()
         .code(12);
+}
+
+#[test]
+fn adapter_format_exposes_versioned_contract_without_changing_legacy_json() {
+    let repo = TestRepository::new(r#"{"version":"1.2-beta"}"#);
+    let initial = repo.head();
+    repo.commit("next");
+
+    let output = nbgv()
+        .current_dir(repo.path())
+        .env_remove("PublicRelease")
+        .args([
+            "get-version",
+            "--format",
+            "ADAPTER",
+            "--public-release=true",
+            &initial.to_string(),
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let result: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(result.as_object().unwrap().len(), 8);
+    assert_eq!(result["schemaVersion"], 1);
+    assert_eq!(result["gitCommitId"], initial.to_string());
+    assert_eq!(result["publicRelease"], true);
+    assert!(
+        result["gitCommitIdShort"]
+            .as_str()
+            .is_some_and(|id| initial.to_string().starts_with(id))
+    );
+    assert!(
+        result["gitCommitDate"]
+            .as_str()
+            .is_some_and(|date| { date.len() == 20 && date.ends_with('Z') })
+    );
+    for (field, variable) in [
+        ("semVer2", "SemVer2"),
+        ("version", "Version"),
+        ("versionHeight", "VersionHeight"),
+    ] {
+        let output = nbgv()
+            .current_dir(repo.path())
+            .env_remove("PublicRelease")
+            .args([
+                "get-version",
+                "--public-release=true",
+                "--variable",
+                variable,
+                &initial.to_string(),
+            ])
+            .assert()
+            .success()
+            .get_output()
+            .stdout
+            .clone();
+        let actual = String::from_utf8(output).unwrap();
+        let expected = match &result[field] {
+            serde_json::Value::String(value) => value.clone(),
+            value => value.to_string(),
+        };
+        assert_eq!(actual.trim(), expected);
+    }
+
+    nbgv()
+        .current_dir(repo.path())
+        .args([
+            "get-version",
+            "--format",
+            "adapter",
+            "--variable",
+            "Version",
+        ])
+        .assert()
+        .code(6);
+    nbgv()
+        .current_dir(repo.path())
+        .args(["get-version", "--format", "json"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"PublicRelease\""))
+        .stdout(predicate::str::contains("\"schemaVersion\"").not());
+}
+
+#[test]
+fn adapter_format_honors_disabled_git_without_changing_legacy_formats() {
+    let repo = TestRepository::new(r#"{"version":"1.2-beta"}"#);
+    let output = nbgv()
+        .current_dir(repo.path())
+        .env("NBGV_GitEngine", "Disabled")
+        .env_remove("PublicRelease")
+        .args(["get-version", "--format", "adapter"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let result: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(result["semVer2"], "1.2.0-beta.g");
+    assert_eq!(result["version"], "1.2");
+    assert_eq!(result["versionHeight"], 0);
+    assert_eq!(result["publicRelease"], false);
+    for field in ["gitCommitId", "gitCommitIdShort", "gitCommitDate"] {
+        assert!(result[field].is_null());
+    }
+    nbgv()
+        .current_dir(repo.path())
+        .env("NBGV_GitEngine", "Disabled")
+        .args(["get-version", "--format", "json"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(repo.head().to_string()));
 }
 
 #[test]

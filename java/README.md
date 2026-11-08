@@ -12,6 +12,9 @@ The Java integrations consume the narrow, versioned
 2. `NBGV_EXECUTABLE`;
 3. `nbgv` on `PATH`.
 
+Either the native Rust or .NET CLI supports this contract.
+Using the native CLI does not require a .NET runtime.
+
 Each project uses the nearest `version.json` in its directory or an ancestor. Projects sharing that
 file share one calculation. Versions default to the immutable full SemVer 2 value, including
 prerelease and build metadata; these integrations do not append `-SNAPSHOT`.

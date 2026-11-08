@@ -51,6 +51,16 @@ class AdapterJsonParserTest {
     }
 
     @Test
+    void permitsDirtyCommitIds() {
+        String json = VALID_JSON.replace("\"gitCommitId\":\"0123456789abcdef\"", "\"gitCommitId\":\"0123456789abcdef-dirty\"")
+                .replace("\"gitCommitIdShort\":\"01234567\"", "\"gitCommitIdShort\":\"01234567-dirty\"");
+        AdapterVersion result = new AdapterJsonParser().parse(json);
+        assertEquals("01234567-dirty", result.getGitCommitIdShort().get());
+        result = new AdapterJsonParser().parse(json.replace("01234567-dirty", "-dirty"));
+        assertEquals("-dirty", result.getGitCommitIdShort().get());
+    }
+
+    @Test
     void rejectsUnsupportedSchemaBeforeOtherValues() {
         String json = VALID_JSON.replace("\"schemaVersion\":1", "\"schemaVersion\":2")
                 .replace("\"semVer2\":\"1.2.3-beta.4+abc\"", "\"semVer2\":false");

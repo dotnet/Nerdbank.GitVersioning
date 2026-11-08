@@ -6,7 +6,7 @@
 > Maven Central or the Gradle Plugin Portal already contains them.
 
 The integrations launch `nbgv` directly and consume the versioned
-[adapter JSON contract](../adapter-json.md). Install `nbgv` as a .NET tool and
+[adapter JSON contract](../adapter-json.md). Install the native Rust or .NET `nbgv` CLI and
 make it available on `PATH`, set `NBGV_EXECUTABLE`, or use the adapter-specific
 executable setting.
 

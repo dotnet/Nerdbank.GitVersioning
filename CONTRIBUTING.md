@@ -22,7 +22,7 @@ but installing this software will facilitate an enhanced developer experience in
 
 All other dependencies are acquired via NuGet or NPM.
 
-The source-preview ecosystem adapters additionally require Rust 1.78, Go 1.22,
+The ecosystem adapters additionally use the pinned `rust-toolchain.toml`, Go 1.22,
 Java 17, and Gradle 8.8 or newer when they are built locally.
 
 ## Building
@@ -75,10 +75,10 @@ After publishing the release, the `.github/workflows/release.yml` workflow will 
 The workflow is written to leverage NuGet.org Trusted Publishing.
 You should set `NUGET_USER` as a repo secret to satisfy Trusted Publishing requirements.
 
-The workflow also attaches the verified `ecosystem-deployables` files. Rust,
-Go, Maven Central, and Gradle Plugin Portal publication is intentionally not
-automatic until registry ownership, signing, and protected credentials are
-configured. Follow the
+The workflow also attaches the verified `ecosystem-deployables` files.
+The native Rust workspace, including its Cargo integrations, uses the existing Trusted Publishing flow.
+Go, Maven Central, and Gradle Plugin Portal publication remains manual until registry ownership, signing, and protected credentials are configured.
+Follow the
 [ecosystem first-publication checklist](docfx/docs/ecosystem-releases.md)
 instead of adding registry secrets to pull-request builds.
 

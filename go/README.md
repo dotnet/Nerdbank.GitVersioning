@@ -13,7 +13,7 @@ plain `go build`.
 
 ## Install from source
 
-Install `nbgv` separately, then install the wrapper:
+Install the native Rust or .NET `nbgv` CLI separately, then install the wrapper:
 
 ```console
 cd Nerdbank.GitVersioning/go

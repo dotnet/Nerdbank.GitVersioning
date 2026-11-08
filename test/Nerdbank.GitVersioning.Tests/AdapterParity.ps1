@@ -14,6 +14,7 @@ $fixtureRoot = Join-Path $repositoryRoot 'obj\AdapterParity'
 $fixtureRepository = Join-Path $fixtureRoot 'repository'
 $fixtureWorktree = Join-Path $fixtureRoot 'worktree'
 $fixtureShallow = Join-Path $fixtureRoot 'shallow'
+$fixtureDirty = Join-Path $fixtureRoot 'dirty'
 $manifestPath = Join-Path $fixtureRoot 'manifest.json'
 $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
 
@@ -96,6 +97,20 @@ function Write-Oracle {
         $oraclePath = Join-Path $fixtureRoot "$Name.json"
         Write-Utf8File $oraclePath $json
         $document = $json | ConvertFrom-Json
+        if ($GitEngine -in @('Managed', 'Disabled')) {
+            $nativeLines = & $script:nativeNbgvExecutable get-version --format adapter --project $Directory
+            if ($LASTEXITCODE -ne 0) {
+                throw "Native nbgv failed to create the '$Name' oracle with exit code $LASTEXITCODE."
+            }
+
+            $nativeDocument = ($nativeLines -join "`n") | ConvertFrom-Json
+            foreach ($field in @('schemaVersion', 'semVer2', 'version', 'versionHeight', 'gitCommitId', 'gitCommitIdShort', 'gitCommitDate', 'publicRelease')) {
+                if ($document.$field -cne $nativeDocument.$field) {
+                    throw "Native and .NET adapter output differ for '$Name' field '$field': $($nativeDocument.$field) vs $($document.$field)."
+                }
+            }
+        }
+
         return [pscustomobject]@{
             name = $Name
             directory = $Directory
@@ -130,6 +145,14 @@ try {
     $script:nbgvExecutable = Join-Path $repositoryRoot "bin\nbgv\$Configuration\$Framework\$nbgvFileName"
     if (-not (Test-Path $script:nbgvExecutable)) {
         throw "Built nbgv executable was not found at $script:nbgvExecutable."
+    }
+
+    $rustWorkspace = Join-Path $repositoryRoot 'src\nerdbank-gitversioning-rs'
+    $rustTarget = Join-Path $rustWorkspace 'target'
+    Invoke-Native cargo @('build', '--manifest-path', (Join-Path $rustWorkspace 'Cargo.toml'), '--target-dir', $rustTarget, '-p', 'nbgv')
+    $script:nativeNbgvExecutable = Join-Path $rustTarget "debug\$nbgvFileName"
+    if (-not (Test-Path $script:nativeNbgvExecutable)) {
+        throw "Built native nbgv executable was not found at $script:nativeNbgvExecutable."
     }
 
     if (Test-Path $fixtureRoot) {
@@ -175,6 +198,20 @@ try {
     $shallow = Write-Oracle 'shallow-clone' $fixtureShallow 'Managed'
     $disabled = Write-Oracle 'disabled-no-git-data' $fixtureRepository 'Disabled'
 
+    Invoke-Native git @('clone', '--quiet', $fixtureRepository, $fixtureDirty)
+    Invoke-Native git @('-C', $fixtureDirty, 'config', 'user.name', 'Adapter Parity')
+    Invoke-Native git @('-C', $fixtureDirty, 'config', 'user.email', 'adapter-parity@example.com')
+    Write-Utf8File (Join-Path $fixtureDirty 'version.json') (
+        '{"version":"3.4-beta","gitCommitIdIncludeDirty":true,"publicReleaseRefSpec":["^refs/heads/main$"],"pathFilters":["src"]}'
+    )
+    Invoke-Native git @('-C', $fixtureDirty, 'add', 'version.json')
+    Invoke-Native git @('-C', $fixtureDirty, 'commit', '--quiet', '-m', 'Enable dirty commit metadata')
+    Write-Utf8File (Join-Path $fixtureDirty 'src\tracked.txt') "dirty source`n"
+    $dirty = Write-Oracle 'dirty-working-tree' $fixtureDirty 'Managed'
+    if ($dirty.document.gitCommitId -notmatch '-dirty$' -or $dirty.document.gitCommitIdShort -notmatch '-dirty$') {
+        throw 'The dirty working tree fixture did not retain dirty commit metadata.'
+    }
+
     if (-not $normal.document.publicRelease -or $normal.document.semVer2 -notmatch '-beta') {
         throw 'The public prerelease fixture did not produce the intended version.'
     }
@@ -206,7 +243,7 @@ try {
         throw 'The disabled Git fixture should have null Git fields.'
     }
 
-    $scenarios = @($normal, $inherited, $worktree, $shallow, $disabled) | ForEach-Object {
+    $scenarios = @($normal, $inherited, $worktree, $shallow, $disabled, $dirty) | ForEach-Object {
         [pscustomobject]@{
             name = $_.name
             directory = $_.directory
@@ -215,7 +252,8 @@ try {
         }
     }
     $manifest = [pscustomobject]@{
-        executable = $script:nbgvExecutable
+        executable = $script:nativeNbgvExecutable
+        dotnetExecutable = $script:nbgvExecutable
         scenarios = $scenarios
     }
     Write-Utf8File $manifestPath (($manifest | ConvertTo-Json -Depth 4) + "`n")
@@ -226,7 +264,7 @@ try {
     }
 
     $env:NBGV_PARITY_MANIFEST = $manifestPath
-    $env:NBGV_EXECUTABLE = $script:nbgvExecutable
+    $env:NBGV_EXECUTABLE = $script:nativeNbgvExecutable
     $env:NBGV_GitEngine = 'Managed'
     $env:PublicRelease = $null
 
@@ -253,7 +291,7 @@ try {
         '--',
         '--treenode-filter', '/*/*/AdapterVersionInfoTests/*'
     )
-    Invoke-Native cargo @('test', '--manifest-path', 'rust\Cargo.toml', '--all-targets')
+    Invoke-Native cargo @('test', '--manifest-path', 'src\nerdbank-gitversioning-rs\Cargo.toml', '--workspace')
 
     $goTool = Get-Command $GoCommand -ErrorAction SilentlyContinue
     if (-not $goTool) {

@@ -87,6 +87,22 @@ func TestParseAllowsEmptyShortCommitID(t *testing.T) {
 	}
 }
 
+func TestParseAllowsDirtyCommitIDs(t *testing.T) {
+	input := strings.Replace(validJSON, `"gitCommitId": "0123456789abcdef"`, `"gitCommitId": "0123456789abcdef-dirty"`, 1)
+	input = strings.Replace(input, `"gitCommitIdShort": "0123456789"`, `"gitCommitIdShort": "0123456789-dirty"`, 1)
+	info, err := Parse([]byte(input))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if *info.GitCommitIDShort != "0123456789-dirty" {
+		t.Fatalf("dirty suffix was not preserved: %#v", info)
+	}
+	input = strings.Replace(input, `"gitCommitIdShort": "0123456789-dirty"`, `"gitCommitIdShort": "-dirty"`, 1)
+	if _, err := Parse([]byte(input)); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestParseRejectsInvalidContracts(t *testing.T) {
 	tests := map[string]string{
 		"unsupported schema": strings.Replace(validJSON, `"schemaVersion": 1`, `"schemaVersion": 2`, 1),

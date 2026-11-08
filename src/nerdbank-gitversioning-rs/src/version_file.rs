@@ -70,13 +70,12 @@ impl<'context> VersionFile<'context> {
     ) -> Result<(Option<VersionOptions>, VersionFileLocations)> {
         self.validate_requirements(requirements)?;
         match self.context.kind() {
-            GitContextKind::Disabled => Ok((None, VersionFileLocations::default())),
             GitContextKind::Repository if self.context.git_commit_id().is_some() => {
                 self.get_committed_version(requirements)
             }
-            GitContextKind::Repository | GitContextKind::NoRepository => {
-                self.get_working_copy_version(requirements)
-            }
+            GitContextKind::Repository
+            | GitContextKind::Disabled
+            | GitContextKind::NoRepository => self.get_working_copy_version(requirements),
         }
     }
 

@@ -20,8 +20,8 @@ public final class AdapterJsonParser {
                     + "(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$");
     private static final Pattern NUMERIC_VERSION =
             Pattern.compile("^[0-9]+\\.[0-9]+(?:\\.[0-9]+(?:\\.[0-9]+)?)?$");
-    private static final Pattern OBJECT_ID = Pattern.compile("^[0-9a-f]+$");
-    private static final Pattern SHORT_OBJECT_ID = Pattern.compile("^[0-9a-f]*$");
+    private static final Pattern OBJECT_ID = Pattern.compile("^[0-9a-f]+(?:-dirty)?$");
+    private static final Pattern SHORT_OBJECT_ID = Pattern.compile("^[0-9a-f]*(?:-dirty)?$");
     private static final Pattern UTC_WHOLE_SECONDS =
             Pattern.compile("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$");
 
@@ -70,7 +70,8 @@ public final class AdapterJsonParser {
         String gitCommitId = nullableObjectId(root, "gitCommitId", false);
         String gitCommitIdShort = nullableObjectId(root, "gitCommitIdShort", true);
         Instant gitCommitDate = nullableInstant(root, "gitCommitDate");
-        if (gitCommitId != null && gitCommitIdShort != null && !gitCommitId.startsWith(gitCommitIdShort)) {
+        if (gitCommitId != null && gitCommitIdShort != null
+                && !gitCommitId.replaceFirst("-dirty$", "").startsWith(gitCommitIdShort.replaceFirst("-dirty$", ""))) {
             throw new AdapterException("Adapter property 'gitCommitIdShort' is not a prefix of 'gitCommitId'.");
         }
 
@@ -136,7 +137,8 @@ public final class AdapterJsonParser {
         String text = value.textValue();
         Pattern pattern = allowEmpty ? SHORT_OBJECT_ID : OBJECT_ID;
         if (!pattern.matcher(text).matches()) {
-            throw new AdapterException("Adapter property '" + property + "' must be lowercase hexadecimal.");
+            throw new AdapterException(
+                    "Adapter property '" + property + "' must be lowercase hexadecimal with an optional '-dirty' suffix.");
         }
 
         return text;

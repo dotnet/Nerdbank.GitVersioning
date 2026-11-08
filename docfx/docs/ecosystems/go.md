@@ -15,6 +15,9 @@ It contains the `nbgv-go` command and the `version` runtime package. The command
 is an opt-in wrapper around `go build`, `go test`, and `go install`; it never
 intercepts a plain Go command.
 
+Install the native Rust or .NET `nbgv` CLI separately.
+Both support the [adapter JSON contract](../adapter-json.md), so the wrapper can use native `nbgv` without a .NET runtime.
+
 ## Acquire from source
 
 ```console

@@ -1,21 +1,20 @@
 # Ecosystem package release status
 
-Rust, Go, and Java integrations are built, tested, and packaged on ordinary
-pull requests without registry credentials. They are **not automatically
-published**. A successful build uploads an `ecosystem-deployables` artifact;
-the release workflow attaches the same verified files to a GitHub Release.
+Rust, Go, and Java integrations are built, tested, and packaged on ordinary pull requests without registry credentials.
+A successful build uploads an `ecosystem-deployables` artifact; the release workflow attaches the verified files to a GitHub Release.
+Rust publishing uses the existing native workspace's protected Trusted Publishing flow.
+Go and Java publication remain manual or follow-up operations.
 
-The initial integration version is `0.1.0` across Rust and Java. The Go module
-uses the corresponding `go/v0.1.0` Git tag. Integration versions are independent
-of the .NET package version and must be deliberately advanced in their package
-manifests.
+All Rust packages share the native workspace version, set by `tools/Set-CargoVersion.ps1`.
+The initial Java integration version is `0.1.0`, and the Go module uses the corresponding `go/v0.1.0` Git tag.
+Go and Java integration versions remain independent of the native/.NET version and must be deliberately advanced.
 
 ## What CI verifies
 
 `tools/Build-EcosystemAdapters.ps1`:
 
 1. runs the shared .NET/Rust/Go/Java adapter parity fixtures;
-2. builds and verifies both `.crate` files;
+2. builds and verifies the native library, CLI, Cargo build helper, and packaging command as one Cargo workspace;
 3. tests the Go module and cross-compiles `nbgv-go`;
 4. tests and validates the Gradle plugin;
 5. stages Maven POM, JAR, sources, Javadoc, module, and plugin-marker files.
@@ -27,14 +26,14 @@ the files are attached.
 
 ## First-publication checklist
 
-Registry publication remains a manual or follow-up operation until project
-owners approve namespaces, accounts, signing, and protected release secrets.
+New Rust crate names must be authorized in the existing Trusted Publishing setup before their first release.
+Go and Java registry publication remains a manual or follow-up operation until project owners approve namespaces, accounts, signing, and protected release secrets.
 Do not expose these credentials to pull-request jobs.
 
-1. Repeat collision/ownership checks for `nbgv`, `cargo-nbgv`,
+1. Repeat collision/ownership checks for `nerdbank-gitversioning-build`, `cargo-nbgv`,
    `com.microsoft.nerdbank-gitversioning`, and the matching Gradle plugin ID.
-2. Publish the `nbgv` crate before `cargo-nbgv` so the documented build
-   dependency is resolvable before its companion packaging command is offered.
+2. Use the existing `cargo publish --workspace` release step for `nerdbank-gitversioning`, `nbgv`, `nerdbank-gitversioning-build`, and `cargo-nbgv`, publishing the shared library before its dependents.
+   Do not publish a build helper under the native CLI's `nbgv` name.
 3. Create and push the signed Go tag `go/v0.1.0`; Go modules have no upload
    command.
 4. Sign Maven artifacts and publish `nbgv-adapter` and

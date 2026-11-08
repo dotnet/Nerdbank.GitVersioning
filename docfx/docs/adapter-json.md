@@ -8,6 +8,9 @@ nbgv get-version --format adapter
 
 The `adapter` format is an opt-in, narrow, versioned contract. The existing `json` format is unchanged and remains available for existing consumers; it is not an alias for the adapter contract.
 
+Both the native Rust and .NET CLIs support this format.
+Cargo build scripts use the native library directly; Go and Java adapters can launch either CLI.
+
 ## Schema version 1
 
 Property names use the exact lower camel case shown below. All properties are always present and are emitted in this order.
@@ -31,8 +34,8 @@ Property names use the exact lower camel case shown below. All properties are al
 | `semVer2` | string | The complete SemVer 2.0 version, including prerelease and build metadata. |
 | `version` | string | The calculated numeric `System.Version` representation. It has two to four dot-separated non-negative integer components. |
 | `versionHeight` | integer | The Git version height before applying `versionHeightOffset`. |
-| `gitCommitId` | string or null | The full lowercase hexadecimal Git object ID. |
-| `gitCommitIdShort` | string or null | The abbreviated Git object ID using the repository's configured length policy. |
+| `gitCommitId` | string or null | The full lowercase hexadecimal Git object ID, with `-dirty` when configured for a dirty working tree. |
+| `gitCommitIdShort` | string or null | The abbreviated Git object ID using the configured length policy (possibly empty), with the same optional `-dirty` suffix. |
 | `gitCommitDate` | string or null | The committer timestamp normalized to UTC, formatted as RFC 3339 whole seconds (`yyyy-MM-ddTHH:mm:ssZ`). |
 | `publicRelease` | boolean | Whether public release mode is active after command-line, environment, and ref rules are applied. |
 
@@ -62,4 +65,5 @@ With .NET, Rust, Go 1.22 or newer, Java 8 or newer, and Gradle 8.8 or newer inst
 pwsh test/Nerdbank.GitVersioning.Tests/AdapterParity.ps1
 ```
 
-The fixture creates one deterministic Git history plus worktree and shallow-clone variants under the ignored `obj` directory. It obtains the oracle values from the newly built `nbgv` executable, then verifies the Rust, Go, Gradle, and Maven consumers against those values.
+The fixture creates one deterministic Git history plus worktree and shallow-clone variants under the ignored `obj` directory.
+It compares the newly built native and .NET CLI adapter output, then verifies the in-process Cargo helper and native-CLI-backed Go, Gradle, and Maven consumers against those values.

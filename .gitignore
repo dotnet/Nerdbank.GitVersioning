@@ -91,7 +91,6 @@ StyleCopReport.xml
 *.vssscc
 
 # Ecosystem adapter build results
-/rust/target/
 /java/.gradle/
 /java/**/build/
 .builds

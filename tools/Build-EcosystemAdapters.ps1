@@ -10,29 +10,19 @@ param(
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $OutputPath = [System.IO.Path]::GetFullPath($OutputPath, $repositoryRoot)
-$rustManifest = Join-Path $repositoryRoot 'rust\nbgv\Cargo.toml'
+$rustWorkspace = Join-Path $repositoryRoot 'src\nerdbank-gitversioning-rs'
+$rustManifest = Join-Path $rustWorkspace 'Cargo.toml'
 $manifestText = Get-Content -Raw $rustManifest
-if ($manifestText -notmatch '(?m)^version = "(?<version>[^"]+)"\r?$') {
+if ($manifestText -notmatch '(?m)^\[workspace\.package\]\r?\nversion = "(?<version>[^"]+)"\r?$') {
     throw "Could not read the integration version from $rustManifest."
 }
 
-$integrationVersion = $Matches.version
-$versionSources = @(
-    @{
-        Path = Join-Path $repositoryRoot 'rust\cargo-nbgv\Cargo.toml'
-        Pattern = '(?m)^version = "(?<version>[^"]+)"\r?$'
-    },
-    @{
-        Path = Join-Path $repositoryRoot 'java\build.gradle'
-        Pattern = "getOrElse\('(?<version>[^']+)'\)"
-    }
-)
-foreach ($versionSource in $versionSources) {
-    $versionText = Get-Content -Raw $versionSource.Path
-    if ($versionText -notmatch $versionSource.Pattern -or $Matches.version -ne $integrationVersion) {
-        throw "$($versionSource.Path) does not use integration version $integrationVersion."
-    }
+$rustVersion = $Matches.version
+$javaManifest = Join-Path $repositoryRoot 'java\build.gradle'
+if ((Get-Content -Raw $javaManifest) -notmatch "getOrElse\('(?<version>[^']+)'\)") {
+    throw "Could not read the integration version from $javaManifest."
 }
+$integrationVersion = $Matches.version
 
 function Invoke-Native {
     param(
@@ -68,16 +58,11 @@ if (-not $?) {
     throw "$parityScript failed."
 }
 
-foreach ($crate in @('nbgv', 'cargo-nbgv')) {
-    $manifest = Join-Path $repositoryRoot "rust\$crate\Cargo.toml"
-    Invoke-Native cargo @(
-        'package',
-        '--manifest-path', $manifest,
-        '--locked',
-        '--allow-dirty'
-    )
+$rustCrates = @('nerdbank-gitversioning', 'nbgv', 'nerdbank-gitversioning-build', 'cargo-nbgv')
+Invoke-Native cargo @('package', '--workspace', '--manifest-path', $rustManifest, '--allow-dirty')
 
-    $cratePath = Join-Path $repositoryRoot "rust\target\package\$crate-$integrationVersion.crate"
+foreach ($crate in $rustCrates) {
+    $cratePath = Join-Path $rustWorkspace "target\package\$crate-$rustVersion.crate"
     if (-not (Test-Path $cratePath)) {
         throw "Cargo did not produce $cratePath."
     }
@@ -163,7 +148,8 @@ Copy-Item (Join-Path $repositoryRoot 'LICENSE') (Join-Path $javaOutput.FullName 
 
 @{
     version = $integrationVersion
-    rustCrates = @('nbgv', 'cargo-nbgv')
+    rustVersion = $rustVersion
+    rustCrates = $rustCrates
     goModule = 'github.com/dotnet/Nerdbank.GitVersioning/go'
     mavenGroup = 'com.microsoft.nerdbank-gitversioning'
     mavenArtifacts = @('nbgv-adapter', 'nbgv-maven-extension', 'nbgv-gradle-plugin')

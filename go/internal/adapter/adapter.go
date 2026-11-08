@@ -19,7 +19,7 @@ const schemaVersion = 1
 var (
 	semVerPattern  = regexp.MustCompile(`^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$`)
 	versionPattern = regexp.MustCompile(`^[0-9]+(?:\.[0-9]+){1,3}$`)
-	commitPattern  = regexp.MustCompile(`^[0-9a-f]+$`)
+	commitPattern  = regexp.MustCompile(`^[0-9a-f]+(?:-dirty)?$`)
 )
 
 // Info is the validated schema version 1 adapter value.
@@ -170,18 +170,18 @@ func Parse(data []byte) (Info, error) {
 
 	if gitCommitID != nil {
 		if !commitPattern.MatchString(*gitCommitID) {
-			return Info{}, errors.New(`property "gitCommitId" must be lowercase hexadecimal`)
+			return Info{}, errors.New(`property "gitCommitId" must be lowercase hexadecimal with an optional "-dirty" suffix`)
 		}
 	}
 
 	if gitCommitIDShort != nil {
-		if *gitCommitIDShort != "" && !commitPattern.MatchString(*gitCommitIDShort) {
-			return Info{}, errors.New(`property "gitCommitIdShort" must be lowercase hexadecimal`)
+		if *gitCommitIDShort != "" && *gitCommitIDShort != "-dirty" && !commitPattern.MatchString(*gitCommitIDShort) {
+			return Info{}, errors.New(`property "gitCommitIdShort" must be lowercase hexadecimal with an optional "-dirty" suffix`)
 		}
 	}
 
 	if gitCommitID != nil && gitCommitIDShort != nil {
-		if !strings.HasPrefix(*gitCommitID, *gitCommitIDShort) {
+		if !strings.HasPrefix(strings.TrimSuffix(*gitCommitID, "-dirty"), strings.TrimSuffix(*gitCommitIDShort, "-dirty")) {
 			return Info{}, errors.New(`property "gitCommitIdShort" must be a prefix of "gitCommitId"`)
 		}
 	}

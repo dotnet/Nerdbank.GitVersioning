@@ -19,6 +19,7 @@
 
 #![warn(missing_docs)]
 
+mod adapter_version_info;
 pub mod cloud;
 pub mod cloud_build_services;
 mod cloud_command;
@@ -33,6 +34,7 @@ mod version_file;
 mod version_options;
 mod version_oracle;
 
+pub use adapter_version_info::AdapterVersionInfo;
 pub use cloud_command::{
     CloudCommand, CloudCommandError, CloudCommandException, CloudCommandOptions,
 };

@@ -72,6 +72,7 @@ class SharedParityTest {
 
     public static final class ParityManifest {
         public String executable;
+        public String dotnetExecutable;
         public ParityScenario[] scenarios;
     }
 
