@@ -9,7 +9,7 @@ namespace ManagedGit;
 
 public class StreamExtensionsTests
 {
-    [Fact]
+    [Test]
     public void ReadTest()
     {
         byte[] data = new byte[] { 0b10010001, 0b00101110 };

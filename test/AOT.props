@@ -1,0 +1,41 @@
+<Project>
+  <PropertyGroup>
+    <PublishAot>true</PublishAot>
+    <RuntimeIdentifiers>$(AvailableRuntimeIdentifiers)</RuntimeIdentifiers>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(IsTestProject)' == 'true'">
+    <!-- Preserve managed coverage in the build output; native compilation overrides these at publish time. -->
+    <DynamicCodeSupport>true</DynamicCodeSupport>
+    <StartupHookSupport>true</StartupHookSupport>
+    <EventSourceSupport>true</EventSourceSupport>
+  </PropertyGroup>
+  <PropertyGroup>
+    <!-- AOT.props is imported from Directory.Build.targets, after the project body, so only supply defaults. -->
+    <InvariantGlobalization Condition="'$(InvariantGlobalization)' == ''">true</InvariantGlobalization>
+    <SatelliteResourceLanguages Condition="'$(SatelliteResourceLanguages)' == ''">en</SatelliteResourceLanguages>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' != ''">
+    <SelfContained>true</SelfContained>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ProjectReference>
+      <GlobalPropertiesToRemove>%(ProjectReference.GlobalPropertiesToRemove);RuntimeIdentifier;NativeAOT</GlobalPropertiesToRemove>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+
+  <Target Name="ConfigureNativeAOTTestFeatures"
+          BeforeTargets="_ComputeAssembliesToCompileToNative"
+          Condition="'$(NativeAOT)' == 'true'">
+    <PropertyGroup>
+      <DynamicCodeSupport>false</DynamicCodeSupport>
+      <StartupHookSupport>false</StartupHookSupport>
+      <EventSourceSupport>false</EventSourceSupport>
+    </PropertyGroup>
+    <ItemGroup>
+      <!-- Inside targets, select items with metadata conditions, not Update. ILC reads these without rewriting the managed runtimeconfig. -->
+      <RuntimeHostConfigurationOption>
+        <Value Condition="'%(RuntimeHostConfigurationOption.Identity)' == 'System.Runtime.CompilerServices.RuntimeFeature.IsDynamicCodeSupported' or '%(RuntimeHostConfigurationOption.Identity)' == 'System.StartupHookProvider.IsSupported' or '%(RuntimeHostConfigurationOption.Identity)' == 'System.Diagnostics.Tracing.EventSource.IsSupported'">false</Value>
+      </RuntimeHostConfigurationOption>
+    </ItemGroup>
+  </Target>
+</Project>

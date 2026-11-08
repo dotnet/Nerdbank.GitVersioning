@@ -29,13 +29,13 @@ public class ManagedGitContext : GitContext
             throw new ArgumentException("No git repo found here.", nameof(workingDirectory));
         }
 
-        this.Commit = committish is null ? repo.GetHeadCommit() : (repo.Lookup(committish) is { } objectId ? (GitCommit?)repo.GetCommit(objectId) : null);
+        this.Repository = repo;
+        this.Commit = committish is null ? repo.GetHeadCommit() : this.LookupCommit(committish);
         if (this.Commit is null && committish is object)
         {
             throw new ArgumentException("No matching commit found.", nameof(committish));
         }
 
-        this.Repository = repo;
         this.VersionFile = new ManagedVersionFile(this);
     }
 
@@ -67,6 +67,9 @@ public class ManagedGitContext : GitContext
         get => this.headTags ??= this.Repository.Lookup("HEAD") is GitObjectId head ? this.Repository.LookupTags(head) : null;
     }
 
+    /// <inheritdoc />
+    internal override bool IsWorkingTreeDirty => this.Repository.IsWorkingTreeDirty();
+
     private string DebuggerDisplay => $"\"{this.WorkingTreePath}\" (managed)";
 
     /// <summary>Initializes a new instance of the <see cref="ManagedGitContext"/> class.</summary>
@@ -88,9 +91,9 @@ public class ManagedGitContext : GitContext
     /// <inheritdoc />
     public override bool TrySelectCommit(string committish)
     {
-        if (this.Repository.Lookup(committish) is { } objectId)
+        if (this.LookupCommit(committish) is { } commit)
         {
-            this.Commit = this.Repository.GetCommit(objectId);
+            this.Commit = commit;
             return true;
         }
 
@@ -108,7 +111,10 @@ public class ManagedGitContext : GitContext
     }
 
     /// <inheritdoc/>
-    internal override int CalculateVersionHeight(VersionOptions? committedVersion, VersionOptions? workingVersion)
+    internal override string GetShortUniqueCommitId(string commitId, int minLength) => this.Repository.ShortenObjectId(GitObjectId.Parse(commitId), minLength);
+
+    /// <inheritdoc/>
+    internal override VersionHeightCalculation CalculateVersionHeight(VersionOptions? committedVersion, VersionOptions? workingVersion)
     {
         SemanticVersion? headCommitVersion = committedVersion?.Version ?? SemVer0;
 
@@ -120,7 +126,7 @@ public class ManagedGitContext : GitContext
             {
                 // The working copy has changed the major.minor version.
                 // So by definition the version height is 0, since no commit represents it yet.
-                return 0;
+                return new VersionHeightCalculation(0, this.GitCommitId);
             }
         }
 
@@ -128,11 +134,12 @@ public class ManagedGitContext : GitContext
     }
 
     /// <inheritdoc/>
-    internal override Version GetIdAsVersion(VersionOptions? committedVersion, VersionOptions? workingVersion, int versionHeight)
+    internal override Version GetIdAsVersion(VersionOptions? committedVersion, VersionOptions? workingVersion, VersionHeightCalculation versionHeight)
     {
         VersionOptions? version = IsVersionFileChangedInWorkingTree(committedVersion, workingVersion) ? workingVersion : committedVersion;
 
-        return this.GetIdAsVersionHelper(version, versionHeight);
+        GitCommit? versionCommit = versionHeight.CommitId is not null ? this.Repository.GetCommit(GitObjectId.Parse(versionHeight.CommitId)) : this.Commit;
+        return GetIdAsVersionHelper(versionCommit, version, versionHeight.Height);
     }
 
     /// <inheritdoc/>
@@ -146,10 +153,23 @@ public class ManagedGitContext : GitContext
         base.Dispose(disposing);
     }
 
+    /// <inheritdoc />
+    private protected override IReadOnlyCollection<string> GetRemoteNames() => this.Repository.GetRemoteNames();
+
+    /// <inheritdoc />
+    private protected override string? GetRemoteDefaultBranch(string remoteName) => this.Repository.GetRemoteDefaultBranch(remoteName);
+
+    /// <inheritdoc />
+    private protected override IReadOnlyCollection<string> GetLocalBranchNames() => this.Repository.GetLocalBranchNames();
+
+    /// <inheritdoc />
+    private protected override string? GetConfiguredDefaultBranch() => this.Repository.GetConfigurationValue("init", "defaultBranch");
+
     /// <summary>
     /// Encodes a commit from history in a <see cref="Version"/>
     /// so that the original commit can be found later.
     /// </summary>
+    /// <param name="commit">The commit whose ID should be encoded.</param>
     /// <param name="versionOptions">The version options applicable at this point (either from commit or working copy).</param>
     /// <param name="versionHeight">The version height, previously calculated.</param>
     /// <returns>
@@ -161,7 +181,7 @@ public class ManagedGitContext : GitContext
     /// the height of the git commit while the <see cref="Version.Revision"/>
     /// component is the first four bytes of the git commit id (forced to be a positive integer).
     /// </remarks>
-    private Version GetIdAsVersionHelper(VersionOptions? versionOptions, int versionHeight)
+    private static Version GetIdAsVersionHelper(GitCommit? commit, VersionOptions? versionOptions, int versionHeight)
     {
         Version? baseVersion = versionOptions?.Version?.Version ?? Version0;
         int buildNumber = baseVersion.Build;
@@ -194,13 +214,36 @@ public class ManagedGitContext : GitContext
             switch (commitIdPosition.Value)
             {
                 case SemanticVersion.Position.Revision:
-                    revision = this.Commit.HasValue
-                        ? Math.Min(MaximumBuildNumberOrRevisionComponent, this.Commit.Value.GetTruncatedCommitIdAsUInt16())
+                    revision = commit.HasValue
+                        ? Math.Min(MaximumBuildNumberOrRevisionComponent, commit.Value.GetTruncatedCommitIdAsUInt16())
                         : 0;
                     break;
             }
         }
 
         return VersionExtensions.Create(baseVersion.Major, baseVersion.Minor, buildNumber, revision);
+    }
+
+    private GitCommit? LookupCommit(string committish)
+    {
+        GitObjectId? objectId = this.Repository.Lookup(committish, out GitException? missingObjectException);
+        if (missingObjectException is object && this.IsShallow)
+        {
+            throw GitException.CreateShallowCloneException(missingObjectException);
+        }
+
+        if (objectId is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            return this.Repository.GetCommit(objectId.Value);
+        }
+        catch (GitException ex) when (this.IsShallow && ex.ErrorCode == GitException.ErrorCodes.ObjectNotFound)
+        {
+            throw GitException.CreateShallowCloneException(ex);
+        }
     }
 }

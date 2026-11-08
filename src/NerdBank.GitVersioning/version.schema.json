@@ -104,6 +104,11 @@
           "default": 0,
           "maximum": 40
         },
+        "gitCommitIdIncludeDirty": {
+          "type": "boolean",
+          "description": "Whether to append '-dirty' to Git commit IDs and the assembly informational version when the working tree has uncommitted changes.",
+          "default": false
+        },
         "nugetPackageVersion": {
           "type": "object",
           "description": "Details for how and what the generated version for NuGet packages will be.",

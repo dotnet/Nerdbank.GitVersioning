@@ -7,7 +7,6 @@ on:
     - 'v*.*'
     - validate/*
   pull_request:
-  merge_group:
   workflow_dispatch:
 
 env:
@@ -18,6 +17,47 @@ env:
 # dotnetfoundation code signing
 
 jobs:
+  rust:
+    name: 🦀 Rust (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+        - ubuntu-24.04
+        - windows-2025
+        - macos-15
+
+    defaults:
+      run:
+        working-directory: src/nerdbank-gitversioning-rs
+
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        fetch-depth: 0
+    - name: Install .NET SDK
+      uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+      with:
+        global-json-file: global.json
+    - name: 🏷️ Stamp crate versions
+      shell: pwsh
+      run: |
+        dotnet tool restore
+        ./tools/Set-CargoVersion.ps1
+      working-directory: ${{ github.workspace }}
+    - name: 💅 Verify formatted code
+      run: cargo fmt --all --check
+      if: runner.os == 'Linux'
+    - name: 📎 Lint
+      run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+    - name: 🧪 Test
+      run: cargo test --workspace
+    - name: 📚 Verify public documentation
+      run: cargo doc --workspace --no-deps
+      env:
+        RUSTDOCFLAGS: -D warnings
+
   build:
     name: 🏭 Build
 
@@ -26,7 +66,7 @@ jobs:
       fail-fast: false
       matrix:
         os:
-        - ubuntu-24.04
+        - ubuntu-26.04
         - windows-2025
 
     steps:
@@ -44,17 +84,10 @@ jobs:
           mono --version
         }
       shell: pwsh
-    - name: ⚙ Install 32-bit .NET SDK and runtimes
-      shell: pwsh
-      run: |
-        $globalJson = Get-Content global.json | ConvertFrom-Json
-        Invoke-WebRequest -Uri "https://dot.net/v1/dotnet-install.ps1" -OutFile dotnet-install.ps1
-        & .\dotnet-install.ps1 -Architecture x86 -Version $globalJson.sdk.version -InstallDir "C:\Program Files (x86)\dotnet\" -NoPath -Verbose
-      if: runner.os == 'Windows'
     - name: ⚙ Install node.js
-      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
       with:
-        node-version: 24.x
+        node-version: 26.x
         cache: yarn
         cache-dependency-path: src/nerdbank-gitversioning.npm/yarn.lock
     - name: ⚙ Install Go
@@ -115,7 +148,7 @@ jobs:
         tools/dotnet-test-cloud.ps1 -Configuration ${{ env.BUILDCONFIGURATION }} -Agent ${{ runner.os }} -PublishResults
       shell: pwsh
       timeout-minutes: 15
-    - name: 🧪 test x86
+    - name: 🧪 test x86 (.NET Framework, 32-bit process)
       run: tools/dotnet-test-cloud.ps1 -Configuration ${{ env.BUILDCONFIGURATION }} -Agent ${{ runner.os }} -PublishResults -X86
       if: success() && runner.os == 'Windows'
     - name: 💅🏻 Verify formatted code
@@ -162,6 +195,21 @@ jobs:
       shell: pwsh
       timeout-minutes: 3
 
+  required_status_checks:
+    name: Required status checks pass
+    needs:
+    - build
+    - functional_testing
+    - rust
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+    - name: Verify required jobs succeeded
+      run: |
+        test '${{ needs.build.result }}' = success
+        test '${{ needs.functional_testing.result }}' = success
+        test '${{ needs.rust.result }}' = success
+
   functional_testing:
     name: 🧪 Functional testing
     needs: build
@@ -179,7 +227,7 @@ jobs:
             container: mcr.microsoft.com/dotnet/sdk:8.0
           - os: ubuntu-22.04
             container: mcr.microsoft.com/dotnet/sdk:9.0
-          - os: macos-14
+          - os: macos-15
             container: ""
 
     # This uses a matrix value for the container; macOS will have an empty string, which means no container.
@@ -193,7 +241,7 @@ jobs:
       run: dotnet --info
 
     - name: Download Build Artifacts
-      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
       with:
         name: deployables-Windows
         path: deployables
@@ -285,7 +333,7 @@ jobs:
           repoDir: '~/git'
         - os: windows-2025
           repoDir: '${USERPROFILE}/source/repos'
-        - os: macos-14
+        - os: macos-15
           repoDir: '~/git'
 
     steps:
@@ -295,7 +343,7 @@ jobs:
         submodules: true
 
     - name: Install .NET SDK
-      uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
       with:
         global-json-file: global.json
 
@@ -339,17 +387,15 @@ jobs:
       working-directory: test/Nerdbank.GitVersioning.Benchmarks
 
     - name: Publish benchmarks artifacts
-      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: benchmarks-${{ matrix.os }}
         path: ${{ runner.temp }}/_artifacts/benchmarks
 
   docs:
     name: 📃 Docs
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - name: 🔗 Markup Link Checker (mlc)
-      uses: becheran/mlc@7ec24825cefe0c9c8c6bac48430e1f69e3ec356e # v1.2.0
-      with:
-        args: --do-not-warn-for-redirect-to https://learn.microsoft.com*,https://dotnet.microsoft.com/*,https://dev.azure.com/*,https://app.codecov.io/* -p docfx -i https://www.npmjs.com/package/*,https://get.dot.net/
+      uses: becheran/mlc@d791bd6ae91ea883f02172e21f453ba8da45dfcd # v1.3.0

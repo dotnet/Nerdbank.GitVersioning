@@ -8,6 +8,17 @@
     <NBGV_InnerGlobalProperties Condition=" '$(OverrideBuildNumberOffset)' != '' ">$(NBGV_InnerGlobalProperties)OverrideBuildNumberOffset=$(OverrideBuildNumberOffset);</NBGV_InnerGlobalProperties>
     <NBGV_InnerGlobalProperties Condition=" '$(NBGV_PrivateP2PAuxTargets)' != '' ">$(NBGV_InnerGlobalProperties)NBGV_PrivateP2PAuxTargets=$(NBGV_PrivateP2PAuxTargets);</NBGV_InnerGlobalProperties>
     <NBGV_InnerGlobalProperties Condition=" '$(NBGV_GitEngine)' != '' ">$(NBGV_InnerGlobalProperties)NBGV_GitEngine=$(NBGV_GitEngine);</NBGV_InnerGlobalProperties>
+
+    <!-- Only NBGV diagnostics may affect the cache key. Canonicalize lists, including inherited global properties. -->
+    <_NBGV_NoWarn></_NBGV_NoWarn>
+    <_NBGV_NoWarn Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(NoWarn)', '(?i)(^|[;,])\s*NBGV1001\s*([;,]|$)'))">NBGV1001</_NBGV_NoWarn>
+    <_NBGV_WarningsAsMessages></_NBGV_WarningsAsMessages>
+    <_NBGV_WarningsAsMessages Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildWarningsAsMessages)', '(?i)(^|[;,])\s*NBGV1001\s*([;,]|$)'))">NBGV1001</_NBGV_WarningsAsMessages>
+    <_NBGV_WarningsAsErrors></_NBGV_WarningsAsErrors>
+    <_NBGV_WarningsAsErrors Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildWarningsAsErrors)', '(?i)(^|[;,])\s*NBGV1001\s*([;,]|$)'))">NBGV1001</_NBGV_WarningsAsErrors>
+    <_NBGV_WarningsNotAsErrors></_NBGV_WarningsNotAsErrors>
+    <_NBGV_WarningsNotAsErrors Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildWarningsNotAsErrors)', '(?i)(^|[;,])\s*NBGV1001\s*([;,]|$)'))">NBGV1001</_NBGV_WarningsNotAsErrors>
+    <NBGV_InnerGlobalProperties>$(NBGV_InnerGlobalProperties)NoWarn=$(_NBGV_NoWarn);MSBuildWarningsAsMessages=$(_NBGV_WarningsAsMessages);MSBuildWarningsAsErrors=$(_NBGV_WarningsAsErrors);MSBuildWarningsNotAsErrors=$(_NBGV_WarningsNotAsErrors);</NBGV_InnerGlobalProperties>
   </PropertyGroup>
 
   <!-- Compile a list of global properties that may vary when a project builds but that would never influence the result of the GetBuildVersion task. -->

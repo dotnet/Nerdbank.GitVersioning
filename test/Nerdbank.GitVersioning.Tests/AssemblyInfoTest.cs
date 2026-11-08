@@ -11,12 +11,18 @@ using Nerdbank.GitVersioning.Tasks;
 using Xunit;
 using Xunit.Sdk;
 
-public class AssemblyInfoTest : IClassFixture<MSBuildFixture> // The MSBuildFixture throws PlatformNotSupportedException when run on mono.
+public class AssemblyInfoTest
 {
-    [Theory(SkipExceptions = [typeof(PlatformNotSupportedException)])]
-    [InlineData(false)]
-    [InlineData(true)]
-    [InlineData(null)]
+    static AssemblyInfoTest()
+    {
+        // Load MSBuild before any test touches its types. This throws PlatformNotSupportedException when run on mono.
+        MSBuildExtensions.LoadMSBuild();
+    }
+
+    [Test, TestExecutor<SkipOnPlatformNotSupportedExceptionExecutor>]
+    [Arguments(false)]
+    [Arguments(true)]
+    [Arguments(null)]
     public void FSharpGenerator(bool? thisAssemblyClass)
     {
         var info = new AssemblyVersionInfo();
@@ -67,7 +73,8 @@ namespace AssemblyInfo
 [<assembly: global.System.Reflection.AssemblyFileVersionAttribute(""1.3.1.0"")>]
 [<assembly: global.System.Reflection.AssemblyInformationalVersionAttribute("""")>]
 do()
-{(thisAssemblyClass.GetValueOrDefault(true) ? $@"#if NETSTANDARD || NETFRAMEWORK || NETCOREAPP
+{(thisAssemblyClass.GetValueOrDefault(true)
+    ? $@"#if NETSTANDARD || NETFRAMEWORK || NETCOREAPP
 [<global.System.CodeDom.Compiler.GeneratedCode(""{AssemblyVersionInfo.GeneratorName}"",""{AssemblyVersionInfo.GeneratorVersion}"")>]
 #endif
 #if NET40_OR_GREATER || NETCOREAPP2_0_OR_GREATER || NETSTANDARD2_0_OR_GREATER
@@ -85,17 +92,18 @@ type internal ThisAssembly() =
   static member internal IsPublicRelease = false
   static member internal RootNamespace = """"
 do()
-" : string.Empty)}";
+"
+    : string.Empty)}";
 
         Assert.Equal(expected, built);
     }
 
-    [Theory(SkipExceptions = [typeof(PlatformNotSupportedException)])]
-    [InlineData(null, "MyRootNamespace")]
-    [InlineData("", "MyRootNamespace")]
-    [InlineData("MyCustomNamespace", null)]
-    [InlineData("MyCustomNamespace", "")]
-    [InlineData("MyCustomNamespace", "MyRootNamespace")]
+    [Test, TestExecutor<SkipOnPlatformNotSupportedExceptionExecutor>]
+    [Arguments(null, "MyRootNamespace")]
+    [Arguments("", "MyRootNamespace")]
+    [Arguments("MyCustomNamespace", null)]
+    [Arguments("MyCustomNamespace", "")]
+    [Arguments("MyCustomNamespace", "MyRootNamespace")]
     public void FSharpGeneratorWithNamespace(string thisAssemblyNamespace, string rootNamespace)
     {
         var info = new AssemblyVersionInfo
@@ -150,10 +158,10 @@ do()
         Assert.Equal(expected, built);
     }
 
-    [Theory(SkipExceptions = [typeof(PlatformNotSupportedException)])]
-    [InlineData(false)]
-    [InlineData(true)]
-    [InlineData(null)]
+    [Test, TestExecutor<SkipOnPlatformNotSupportedExceptionExecutor>]
+    [Arguments(false)]
+    [Arguments(true)]
+    [Arguments(null)]
     public void GSharpGenerator(bool? thisAssemblyClass)
     {
         var info = new AssemblyVersionInfo();
@@ -203,7 +211,8 @@ package AssemblyInfo
 @assembly: System.Reflection.AssemblyVersionAttribute(""1.3.0.0"")
 @assembly: System.Reflection.AssemblyFileVersionAttribute(""1.3.1.0"")
 @assembly: System.Reflection.AssemblyInformationalVersionAttribute("""")
-{(thisAssemblyClass.GetValueOrDefault(true) ? $@"@System.CodeDom.Compiler.GeneratedCode(""{AssemblyVersionInfo.GeneratorName}"",""{AssemblyVersionInfo.GeneratorVersion}"")
+{(thisAssemblyClass.GetValueOrDefault(true)
+    ? $@"@System.CodeDom.Compiler.GeneratedCode(""{AssemblyVersionInfo.GeneratorName}"",""{AssemblyVersionInfo.GeneratorVersion}"")
 @System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage
 internal class ThisAssembly {{
   shared {{
@@ -219,17 +228,18 @@ internal class ThisAssembly {{
     internal let RootNamespace string = """"
   }}
 }}
-" : string.Empty)}";
+"
+    : string.Empty)}";
 
         Assert.Equal(expected, built);
     }
 
-    [Theory(SkipExceptions = [typeof(PlatformNotSupportedException)])]
-    [InlineData(null, "MyRootNamespace")]
-    [InlineData("", "MyRootNamespace")]
-    [InlineData("MyCustomNamespace", null)]
-    [InlineData("MyCustomNamespace", "")]
-    [InlineData("MyCustomNamespace", "MyRootNamespace")]
+    [Test, TestExecutor<SkipOnPlatformNotSupportedExceptionExecutor>]
+    [Arguments(null, "MyRootNamespace")]
+    [Arguments("", "MyRootNamespace")]
+    [Arguments("MyCustomNamespace", null)]
+    [Arguments("MyCustomNamespace", "")]
+    [Arguments("MyCustomNamespace", "MyRootNamespace")]
     public void GSharpGeneratorWithNamespace(string thisAssemblyNamespace, string rootNamespace)
     {
         var info = new AssemblyVersionInfo
@@ -281,10 +291,10 @@ internal class ThisAssembly {{
         Assert.Equal(expected, built);
     }
 
-    [Theory(SkipExceptions = [typeof(PlatformNotSupportedException)])]
-    [InlineData(false)]
-    [InlineData(true)]
-    [InlineData(null)]
+    [Test, TestExecutor<SkipOnPlatformNotSupportedExceptionExecutor>]
+    [Arguments(false)]
+    [Arguments(true)]
+    [Arguments(null)]
     public void CSharpGenerator(bool? thisAssemblyClass)
     {
         var info = new AssemblyVersionInfo();
@@ -334,7 +344,8 @@ internal class ThisAssembly {{
 [assembly: global::System.Reflection.AssemblyVersionAttribute(""1.3.0.0"")]
 [assembly: global::System.Reflection.AssemblyFileVersionAttribute(""1.3.1.0"")]
 [assembly: global::System.Reflection.AssemblyInformationalVersionAttribute("""")]
-{(thisAssemblyClass.GetValueOrDefault(true) ? $@"#if NETSTANDARD || NETFRAMEWORK || NETCOREAPP
+{(thisAssemblyClass.GetValueOrDefault(true)
+    ? $@"#if NETSTANDARD || NETFRAMEWORK || NETCOREAPP
 [global::System.CodeDom.Compiler.GeneratedCode(""{AssemblyVersionInfo.GeneratorName}"",""{AssemblyVersionInfo.GeneratorVersion}"")]
 #endif
 #if NET40_OR_GREATER || NETCOREAPP2_0_OR_GREATER || NETSTANDARD2_0_OR_GREATER
@@ -352,17 +363,18 @@ internal static partial class ThisAssembly {{
     internal const bool IsPublicRelease = false;
     internal const string RootNamespace = """";
 }}
-" : string.Empty)}";
+"
+    : string.Empty)}";
 
         Assert.Equal(expected, built);
     }
 
-    [Theory(SkipExceptions = [typeof(PlatformNotSupportedException)])]
-    [InlineData(null, "MyRootNamespace")]
-    [InlineData("", "MyRootNamespace")]
-    [InlineData("MyCustomNamespace", null)]
-    [InlineData("MyCustomNamespace", "")]
-    [InlineData("MyCustomNamespace", "MyRootNamespace")]
+    [Test, TestExecutor<SkipOnPlatformNotSupportedExceptionExecutor>]
+    [Arguments(null, "MyRootNamespace")]
+    [Arguments("", "MyRootNamespace")]
+    [Arguments("MyCustomNamespace", null)]
+    [Arguments("MyCustomNamespace", "")]
+    [Arguments("MyCustomNamespace", "MyRootNamespace")]
     public void CSharpGeneratorWithNamespace(string thisAssemblyNamespace, string rootNamespace)
     {
         var info = new AssemblyVersionInfo
@@ -415,10 +427,10 @@ internal static partial class ThisAssembly {{
         Assert.Equal(expected, built);
     }
 
-    [Theory(SkipExceptions = [typeof(PlatformNotSupportedException)])]
-    [InlineData(false)]
-    [InlineData(true)]
-    [InlineData(null)]
+    [Test, TestExecutor<SkipOnPlatformNotSupportedExceptionExecutor>]
+    [Arguments(false)]
+    [Arguments(true)]
+    [Arguments(null)]
     public void VisualBasicGenerator(bool? thisAssemblyClass)
     {
         var info = new AssemblyVersionInfo();
@@ -449,7 +461,8 @@ internal static partial class ThisAssembly {{
 <Assembly: Global.System.Reflection.AssemblyVersionAttribute(""1.3.0.0"")>
 <Assembly: Global.System.Reflection.AssemblyFileVersionAttribute(""1.3.1.0"")>
 <Assembly: Global.System.Reflection.AssemblyInformationalVersionAttribute("""")>
-{(thisAssemblyClass.GetValueOrDefault(true) ? $@"#If NET40_OR_GREATER  Or  NETCOREAPP2_0_OR_GREATER  Or  NETSTANDARD2_0_OR_GREATER Then
+{(thisAssemblyClass.GetValueOrDefault(true)
+    ? $@"#If NET40_OR_GREATER  Or  NETCOREAPP2_0_OR_GREATER  Or  NETSTANDARD2_0_OR_GREATER Then
 <Global.System.CodeDom.Compiler.GeneratedCode(""{AssemblyVersionInfo.GeneratorName}"",""{AssemblyVersionInfo.GeneratorVersion}"")>
 <Global.System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage>
 Partial Friend NotInheritable Class ThisAssembly
@@ -466,17 +479,18 @@ Partial Friend NotInheritable Class ThisAssembly
     Friend Const IsPublicRelease As Boolean = False
     Friend Const RootNamespace As String = """"
 End Class
-" : string.Empty)}";
+"
+    : string.Empty)}";
 
         Assert.Equal(expected, built);
     }
 
-    [Theory(SkipExceptions = [typeof(PlatformNotSupportedException)])]
-    [InlineData(null, "MyRootNamespace")]
-    [InlineData("", "MyRootNamespace")]
-    [InlineData("MyCustomNamespace", null)]
-    [InlineData("MyCustomNamespace", "")]
-    [InlineData("MyCustomNamespace", "MyRootNamespace")]
+    [Test, TestExecutor<SkipOnPlatformNotSupportedExceptionExecutor>]
+    [Arguments(null, "MyRootNamespace")]
+    [Arguments("", "MyRootNamespace")]
+    [Arguments("MyCustomNamespace", null)]
+    [Arguments("MyCustomNamespace", "")]
+    [Arguments("MyCustomNamespace", "MyRootNamespace")]
     public void VisualBasicGeneratorWithNamespace(string thisAssemblyNamespace, string rootNamespace)
     {
         var info = new AssemblyVersionInfo

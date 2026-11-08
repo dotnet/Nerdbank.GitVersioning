@@ -10,7 +10,7 @@ public class GitCommitTests
 {
     private readonly byte[] shaAsByteArray = new byte[] { 0x4e, 0x91, 0x27, 0x36, 0xc2, 0x7e, 0x40, 0xb3, 0x89, 0x90, 0x4d, 0x04, 0x6d, 0xc6, 0x3d, 0xc9, 0xf5, 0x78, 0x11, 0x7f };
 
-    [Fact]
+    [Test]
     public void EqualsObjectTest()
     {
         var commit = new GitCommit()
@@ -43,7 +43,7 @@ public class GitCommitTests
         Assert.False(commit.Equals((object)emptyCommit));
     }
 
-    [Fact]
+    [Test]
     public void EqualsCommitTest()
     {
         var commit = new GitCommit()
@@ -69,7 +69,7 @@ public class GitCommitTests
         Assert.False(commit.Equals(emptyCommit));
     }
 
-    [Fact]
+    [Test]
     public void GetHashCodeTest()
     {
         var commit = new GitCommit()
@@ -87,7 +87,7 @@ public class GitCommitTests
         Assert.Equal(0, emptyCommit.GetHashCode());
     }
 
-    [Fact]
+    [Test]
     public void ToStringTest()
     {
         var commit = new GitCommit()

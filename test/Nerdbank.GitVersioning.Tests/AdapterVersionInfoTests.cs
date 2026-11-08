@@ -6,15 +6,16 @@ using Nerdbank.GitVersioning.LibGit2;
 using Nerdbank.GitVersioning.Tool;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Xunit;
 
 public class AdapterVersionInfoTests : RepoTestBase
 {
-    public AdapterVersionInfoTests(ITestOutputHelper logger)
-        : base(logger)
+    public AdapterVersionInfoTests()
+        : base(TestOutputHelper.Instance)
     {
     }
 
-    [Fact]
+    [Test]
     public void SerializationHasStableVersionedShape()
     {
         this.InitializeSourceControl(withInitialCommit: false);
@@ -44,7 +45,7 @@ public class AdapterVersionInfoTests : RepoTestBase
         Assert.Equal(JTokenType.Boolean, json["publicRelease"]!.Type);
     }
 
-    [Fact]
+    [Test]
     public void LegacyJsonRemainsPascalCasedAndUnversioned()
     {
         this.InitializeSourceControl(withInitialCommit: false);
@@ -67,7 +68,7 @@ public class AdapterVersionInfoTests : RepoTestBase
         Assert.Null(json["semVer2"]);
     }
 
-    [Fact]
+    [Test]
     public void DisabledGitEmitsNullGitProperties()
     {
         this.InitializeSourceControl();

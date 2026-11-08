@@ -7,21 +7,21 @@ using Microsoft.Build.Framework;
 using Nerdbank.GitVersioning;
 using Xunit;
 
-[Trait("Engine", EngineString)]
-[Collection("Build")] // msbuild sets current directory in the process, so we can't have it be concurrent with other build tests.
+[Property("Engine", EngineString)]
+[InheritsTests]
 public class BuildIntegrationManagedTests : SomeGitBuildIntegrationTests
 {
     protected const string EngineString = "Managed";
 
-    public BuildIntegrationManagedTests(ITestOutputHelper logger)
-        : base(logger)
+    public BuildIntegrationManagedTests()
+        : base(TestOutputHelper.Instance)
     {
     }
 
     /// <summary>
     /// Verifies that MCP server.json files get version stamping when PackageType=McpServer.
     /// </summary>
-    [Fact]
+    [Test]
     public async Task McpServerJson_VersionStamping()
     {
         // Create a sample server.json file based on the real MCP server template

@@ -29,29 +29,29 @@ public class GitHubActionsTests : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    [Fact]
+    [Test]
     public void FormatVariable_SingleLineValue()
     {
         Assert.Equal("Name=Value\n", GitHubActions.FormatVariable("Name", "Value"));
     }
 
-    [Fact]
+    [Test]
     public void FormatVariable_EmptyValue()
     {
         Assert.Equal("Name=\n", GitHubActions.FormatVariable("Name", string.Empty));
     }
 
-    [Fact]
+    [Test]
     public void FormatVariable_ValueContainingEqualsSign()
     {
         // Only the first '=' is a separator, so this needs no special treatment.
         Assert.Equal("Name=a=b\n", GitHubActions.FormatVariable("Name", "a=b"));
     }
 
-    [Theory]
-    [InlineData("first\nsecond")]
-    [InlineData("first\r\nsecond")]
-    [InlineData("first\rsecond")]
+    [Test]
+    [Arguments("first\nsecond")]
+    [Arguments("first\r\nsecond")]
+    [Arguments("first\rsecond")]
     public void FormatVariable_MultiLineValueUsesHeredoc(string value)
     {
         string actual = GitHubActions.FormatVariable("Name", value);
@@ -70,7 +70,7 @@ public class GitHubActionsTests : IDisposable
         Assert.DoesNotContain('\r', actual);
     }
 
-    [Fact]
+    [Test]
     public void FormatVariable_HeredocDelimiterDoesNotAppearInValue()
     {
         string actual = GitHubActions.FormatVariable("Name", "a\nb");
@@ -78,7 +78,7 @@ public class GitHubActionsTests : IDisposable
         Assert.DoesNotContain(delimiter, "a\nb");
     }
 
-    [Fact]
+    [Test]
     public void FormatVariable_HeredocDelimiterIsUniquePerCall()
     {
         // A predictable delimiter could be smuggled in by a value, so it must vary.
@@ -87,7 +87,7 @@ public class GitHubActionsTests : IDisposable
             GitHubActions.FormatVariable("Name", "a\nb"));
     }
 
-    [Fact]
+    [Test]
     public void AppendVariable_CreatesFile()
     {
         Assert.False(File.Exists(this.environmentFile));
@@ -95,7 +95,7 @@ public class GitHubActionsTests : IDisposable
         Assert.Equal("Name=Value\n", this.ReadEnvironmentFile());
     }
 
-    [Fact]
+    [Test]
     public void AppendVariable_AppendsToExistingContent()
     {
         File.WriteAllText(this.environmentFile, "Existing=1\n");
@@ -103,7 +103,7 @@ public class GitHubActionsTests : IDisposable
         Assert.Equal("Existing=1\nName=Value\n", this.ReadEnvironmentFile());
     }
 
-    [Fact]
+    [Test]
     public void AppendVariable_TerminatesAnUnterminatedLastLine()
     {
         File.WriteAllText(this.environmentFile, "Existing=1");
@@ -111,21 +111,21 @@ public class GitHubActionsTests : IDisposable
         Assert.Equal("Existing=1\nName=Value\n", this.ReadEnvironmentFile());
     }
 
-    [Fact]
+    [Test]
     public void AppendVariable_NullValueIsTreatedAsEmpty()
     {
         GitHubActions.AppendVariable(this.environmentFile, "Name", null);
         Assert.Equal("Name=\n", this.ReadEnvironmentFile());
     }
 
-    [Fact]
+    [Test]
     public void AppendVariable_WritesUtf8WithoutPreamble()
     {
         GitHubActions.AppendVariable(this.environmentFile, "Name", "\u00e9");
         Assert.Equal(new byte[] { (byte)'N', (byte)'a', (byte)'m', (byte)'e', (byte)'=', 0xC3, 0xA9, (byte)'\n' }, File.ReadAllBytes(this.environmentFile));
     }
 
-    [Fact]
+    [Test]
     public void AppendVariable_RejectsInvalidArguments()
     {
         Assert.Throws<ArgumentNullException>(() => GitHubActions.AppendVariable(null, "Name", "Value"));
@@ -144,7 +144,7 @@ public class GitHubActionsTests : IDisposable
     /// them) can build projects in parallel within a single step, and every one of them appends the
     /// version variables to the one file named by <c>GITHUB_ENV</c>.
     /// </remarks>
-    [Fact]
+    [Test]
     public async Task AppendVariable_IsSafeForConcurrentWriters()
     {
         const int writers = 16;
@@ -163,7 +163,7 @@ public class GitHubActionsTests : IDisposable
                         GitHubActions.AppendVariable(this.environmentFile, $"NBGV_{writer}_{i}", new string((char)('a' + writer), 100) + i);
                     }
                 },
-                TestContext.Current.CancellationToken);
+                TestContext.Current!.Execution.CancellationToken);
         }
 
         await Task.WhenAll(tasks);

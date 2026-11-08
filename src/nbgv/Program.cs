@@ -5,6 +5,7 @@ using System.CommandLine;
 using System.Globalization;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Graph;
@@ -14,9 +15,7 @@ using Nerdbank.GitVersioning.LibGit2;
 using Newtonsoft.Json;
 using NuGet.Common;
 using NuGet.Configuration;
-using NuGet.PackageManagement;
 using NuGet.Protocol.Core.Types;
-using NuGet.Resolver;
 using Validation;
 
 namespace Nerdbank.GitVersioning.Tool
@@ -75,9 +74,23 @@ namespace Nerdbank.GitVersioning.Tool
 
         public static int Main(string[] args)
         {
+            VisualStudioInstance msbuildInstance = null;
+            try
+            {
+                if (!MSBuildLocator.IsRegistered)
+                {
+                    msbuildInstance = MSBuildLocator.RegisterDefaults();
+                }
+            }
+            catch (InvalidOperationException ex)
+            {
+                Console.Error.WriteLine($"Failed to locate MSBuild: {ex.Message}");
+                return (int)ExitCodes.InternalError;
+            }
+
             string thisAssemblyPath = typeof(Program).GetTypeInfo().Assembly.Location;
 
-            GitLoaderContext loaderContext = new(Path.GetDirectoryName(thisAssemblyPath));
+            GitLoaderContext loaderContext = new(Path.GetDirectoryName(thisAssemblyPath), msbuildInstance?.MSBuildPath);
             Assembly inContextAssembly = loaderContext.LoadFromAssemblyPath(thisAssemblyPath);
             Type innerProgramType = inContextAssembly.GetType(typeof(Program).FullName);
             object innerProgram = Activator.CreateInstance(innerProgramType);
@@ -473,20 +486,6 @@ namespace Nerdbank.GitVersioning.Tool
 
         private static int MainInner(string[] args)
         {
-            // Register MSBuild locator to ensure SDK resolvers are available for project evaluation.
-            // This must be called before any MSBuild code is loaded.
-            if (!MSBuildLocator.IsRegistered)
-            {
-                try
-                {
-                    MSBuildLocator.RegisterDefaults();
-                }
-                catch (Exception ex)
-                {
-                    Console.Error.WriteLine($"Warning: Failed to register MSBuildLocator: {ex.Message}");
-                }
-            }
-
             try
             {
                 RootCommand rootCommand = BuildCommandLine();
@@ -514,22 +513,6 @@ namespace Nerdbank.GitVersioning.Tool
                 return (int)ExitCodes.InvalidVersionSpec;
             }
 
-            var options = new VersionOptions
-            {
-                Version = semver,
-                PublicReleaseRefSpec = new string[]
-                {
-                    @"^refs/heads/master$",
-                    @"^refs/heads/v\d+(?:\.\d+)?$",
-                },
-                CloudBuild = new VersionOptions.CloudBuildOptions
-                {
-                    BuildNumber = new VersionOptions.CloudBuildNumberOptions
-                    {
-                        Enabled = true,
-                    },
-                },
-            };
             string searchPath = GetSpecifiedOrCurrentDirectoryPath(path);
             if (!Directory.Exists(searchPath))
             {
@@ -549,6 +532,38 @@ namespace Nerdbank.GitVersioning.Tool
                 path = context.WorkingTreePath;
             }
 
+            // Validate given sources
+            foreach (string src in source)
+            {
+                // TODO: Can declare Option<Uri> to validate argument during parsing.
+                if (!Uri.TryCreate(src, UriKind.Absolute, out Uri _))
+                {
+                    Console.Error.WriteLine($"\"{src}\" is not a valid NuGet package source.");
+                    return (int)ExitCodes.InvalidNuGetPackageSource;
+                }
+            }
+
+            string packageVersion;
+            try
+            {
+                packageVersion = await GetLatestPackageVersionAsync(PackageId, path, source);
+            }
+            catch (FatalProtocolException ex)
+            {
+                Console.Error.WriteLine($"Failed to query NuGet package sources: {ex.Message}");
+                Console.Error.WriteLine("Use the '--source' option to override the sources configured in NuGet.Config files.");
+                return (int)ExitCodes.PackageIdNotFound;
+            }
+
+            if (string.IsNullOrEmpty(packageVersion))
+            {
+                string verifyPhrase = source.Any()
+                    ? "Please verify the given 'source' option(s)."
+                    : "Please verify the package sources in the NuGet.Config files.";
+                Console.Error.WriteLine($"Latest stable version of the {PackageId} package could not be determined. " + verifyPhrase);
+                return (int)ExitCodes.PackageIdNotFound;
+            }
+
             VersionOptions existingOptions = context.VersionFile.GetVersion();
             if (existingOptions is not null)
             {
@@ -563,6 +578,22 @@ namespace Nerdbank.GitVersioning.Tool
             }
             else
             {
+                var options = new VersionOptions
+                {
+                    Version = semver,
+                    PublicReleaseRefSpec = new string[]
+                    {
+                        $@"^refs/heads/{Regex.Escape(context.GetDefaultBranch())}$",
+                        @"^refs/heads/v\d+(?:\.\d+)?$",
+                    },
+                    CloudBuild = new VersionOptions.CloudBuildOptions
+                    {
+                        BuildNumber = new VersionOptions.CloudBuildNumberOptions
+                        {
+                            Enabled = true,
+                        },
+                    },
+                };
                 string versionJsonPath = context.VersionFile.SetVersion(path, options);
                 context.Stage(versionJsonPath);
             }
@@ -572,27 +603,6 @@ namespace Nerdbank.GitVersioning.Tool
             ProjectRootElement propsFile = File.Exists(directoryBuildPropsPath)
                 ? ProjectRootElement.Open(directoryBuildPropsPath)
                 : ProjectRootElement.Create(directoryBuildPropsPath);
-
-            // Validate given sources
-            foreach (string src in source)
-            {
-                // TODO: Can declare Option<Uri> to validate argument during parsing.
-                if (!Uri.TryCreate(src, UriKind.Absolute, out Uri _))
-                {
-                    Console.Error.WriteLine($"\"{src}\" is not a valid NuGet package source.");
-                    return (int)ExitCodes.InvalidNuGetPackageSource;
-                }
-            }
-
-            string packageVersion = GetLatestPackageVersionAsync(PackageId, path, source).GetAwaiter().GetResult();
-            if (string.IsNullOrEmpty(packageVersion))
-            {
-                string verifyPhrase = source.Any()
-                    ? "Please verify the given 'source' option(s)."
-                    : "Please verify the package sources in the NuGet.Config files.";
-                Console.Error.WriteLine($"Latest stable version of the {PackageId} package could not be determined. " + verifyPhrase);
-                return (int)ExitCodes.PackageIdNotFound;
-            }
 
             const string PackageReferenceItemType = "PackageReference";
             const string PrivateAssetsMetadataName = "PrivateAssets";
@@ -700,6 +710,7 @@ namespace Nerdbank.GitVersioning.Tool
             }
 
             var oracle = new VersionOracle(context, CloudBuild.Active);
+            WarnIfVersionJsonIsDirty(context);
             if (metadata is not null)
             {
                 oracle.BuildMetadata.AddRange(metadata);
@@ -766,6 +777,67 @@ namespace Nerdbank.GitVersioning.Tool
             }
 
             return Task.FromResult((int)ExitCodes.OK);
+        }
+
+        private static void WarnIfVersionJsonIsDirty(GitContext context)
+        {
+            if (!context.IsHead)
+            {
+                return;
+            }
+
+            context.VersionFile.GetVersion(VersionFileRequirements.Default, out VersionFileLocations committedLocations);
+            context.VersionFile.GetWorkingCopyVersion(VersionFileRequirements.Default, out VersionFileLocations workingLocations);
+
+            using var repository = new LibGit2Sharp.Repository(context.WorkingTreePath);
+            var versionJsonPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            AddVersionJsonPaths(committedLocations, fromWorkingTree: false);
+            AddVersionJsonPaths(workingLocations, fromWorkingTree: true);
+
+            if (versionJsonPaths.Count > 0
+                && repository.RetrieveStatus(
+                    new LibGit2Sharp.StatusOptions
+                    {
+                        IncludeUntracked = true,
+                        RecurseUntrackedDirs = true,
+                        PathSpec = versionJsonPaths.ToArray(),
+                    }).Any())
+            {
+                Console.Error.WriteLine("Warning: Dirty version.json files must be committed before their changes will be applied.");
+            }
+
+            void AddVersionJsonPaths(VersionFileLocations locations, bool fromWorkingTree)
+            {
+                string lastDirectory = locations.NonInheritingVersionDirectory ?? locations.VersionSpecifyingVersionDirectory;
+                if (lastDirectory is null)
+                {
+                    return;
+                }
+
+                for (string directory = context.AbsoluteProjectDirectory; directory is not null; directory = Path.GetDirectoryName(directory))
+                {
+                    string repoRelativeDirectory = Path.GetRelativePath(context.WorkingTreePath, directory).Replace('\\', '/');
+                    if (repoRelativeDirectory == ".")
+                    {
+                        repoRelativeDirectory = string.Empty;
+                    }
+
+                    string versionJsonPath = Path.Combine(repoRelativeDirectory, VersionFile.JsonFileName).Replace('\\', '/');
+                    string versionTxtPath = Path.Combine(repoRelativeDirectory, VersionFile.TxtFileName).Replace('\\', '/');
+                    bool versionJsonWasRead = fromWorkingTree
+                        ? File.Exists(Path.Combine(directory, VersionFile.JsonFileName)) && !File.Exists(Path.Combine(directory, VersionFile.TxtFileName))
+                        : repository.Head.Tip.Tree[versionJsonPath] is not null && repository.Head.Tip.Tree[versionTxtPath] is null;
+                    if (versionJsonWasRead)
+                    {
+                        versionJsonPaths.Add(versionJsonPath);
+                    }
+
+                    if (string.Equals(directory, lastDirectory, StringComparison.OrdinalIgnoreCase))
+                    {
+                        break;
+                    }
+                }
+            }
         }
 
         private static Task<int> OnSetVersionCommand(string project, string version)
@@ -1103,6 +1175,8 @@ namespace Nerdbank.GitVersioning.Tool
                         return Task.FromResult((int)ExitCodes.DetachedHead);
                     case ReleaseManager.ReleasePreparationError.InvalidVersionIncrementSetting:
                         return Task.FromResult((int)ExitCodes.InvalidVersionIncrementSetting);
+                    case ReleaseManager.ReleasePreparationError.GitCommandFailed:
+                        return Task.FromResult((int)ExitCodes.InternalError);
                     default:
                         Report.Fail($"{nameof(ReleaseManager.ReleasePreparationError)}: {ex.Error}");
                         return Task.FromResult(-1);
@@ -1457,25 +1531,19 @@ namespace Nerdbank.GitVersioning.Tool
                 packageSources.AddRange(availableSources);
             }
 
-            SourceRepository[] sourceRepositories = packageSources.Select(sourceRepositoryProvider.CreateRepository).ToArray();
-            var resolutionContext = new ResolutionContext(
-                DependencyBehavior.Highest,
-                includePrelease: false,
-                includeUnlisted: false,
-                VersionConstraints.None);
+            using var cacheContext = new SourceCacheContext();
+            var versions = new List<NuGet.Versioning.NuGetVersion>();
+            foreach (SourceRepository sourceRepository in packageSources.Select(sourceRepositoryProvider.CreateRepository))
+            {
+                FindPackageByIdResource resource = await sourceRepository.GetResourceAsync<FindPackageByIdResource>(cancellationToken);
+                versions.AddRange(await resource.GetAllVersionsAsync(packageId, cacheContext, NullLogger.Instance, cancellationToken));
+            }
 
-            // The target framework doesn't matter, since our package doesn't depend on this for its target projects.
-            var framework = new NuGet.Frameworks.NuGetFramework("net45");
-
-            ResolvedPackage pkg = await NuGetPackageManager.GetLatestVersionAsync(
-                packageId,
-                framework,
-                resolutionContext,
-                sourceRepositories,
-                NullLogger.Instance,
-                cancellationToken);
-
-            return pkg.LatestVersion?.ToNormalizedString();
+            return versions
+                .Where(version => !version.IsPrerelease)
+                .OrderByDescending(version => version)
+                .FirstOrDefault()
+                ?.ToNormalizedString();
         }
 
         private static bool IsCentralPackageManagementEnabled(string path)

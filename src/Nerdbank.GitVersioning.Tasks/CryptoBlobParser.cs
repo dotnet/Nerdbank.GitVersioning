@@ -87,7 +87,7 @@ namespace Nerdbank.GitVersioning.Tasks
                     return false;
                 }
 
-                Marshal.Copy((IntPtr)(blobPtr + OffsetToKeyData), modulus, 0, modulus.Length);
+                Marshal.Copy((nint)(blobPtr + OffsetToKeyData), modulus, 0, modulus.Length);
 
                 var newHeader = new BlobHeader()
                 {

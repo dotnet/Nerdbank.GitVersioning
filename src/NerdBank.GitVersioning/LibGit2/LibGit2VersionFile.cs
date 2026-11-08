@@ -51,7 +51,8 @@ internal class LibGit2VersionFile : VersionFile
             {
                 if (blobVersionCache is null || !blobVersionCache.TryGetValue(versionTxtBlob.Id, out VersionOptions? result))
                 {
-                    result = TryReadVersionFile(new StreamReader(versionTxtBlob.GetContentStream()));
+                    using var reader = new StreamReader(versionTxtBlob.GetContentStream());
+                    result = TryReadVersionFile(reader);
                     if (blobVersionCache is object)
                     {
                         result?.Freeze();

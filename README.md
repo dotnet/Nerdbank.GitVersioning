@@ -36,10 +36,45 @@ What sets this package apart from other git-based versioning projects is:
 4. The computed version information is based on an author-defined major.minor version and an optional unstable tag, plus a shortened git commit ID.
 5. This project is supported by the [.NET Foundation](https://dotnetfoundation.org).
 
-Check out our [getting started documentation](https://dotnet.github.io/Nerdbank.GitVersioning/docs/getting-started.html).
+Check out our [getting started documentation](https://dotnet.github.io/Nerdbank.GitVersioning/docs/getting-started.html), then follow the [recommended versioning workflow](https://dotnet.github.io/Nerdbank.GitVersioning/docs/versioning-workflow.html) for releases and servicing.
 The [ecosystem documentation](https://dotnet.github.io/Nerdbank.GitVersioning/docs/ecosystems/rust.html)
 identifies which integrations must currently be built from source; it does not
 claim unpublished registry packages are available.
+
+## Rust library and CLI
+
+The [Rust workspace](src/nerdbank-gitversioning-rs) provides the
+`nerdbank-gitversioning` library and a native `nbgv` command-line tool. It is
+tested with current stable Rust on Windows, Linux, and macOS. For example:
+
+```rust
+use nerdbank_gitversioning::{GitContext, GitEngine, VersionOracle};
+
+fn main() -> Result<(), nerdbank_gitversioning::Error> {
+    let context = GitContext::create(".", None, GitEngine::ReadOnly)?;
+    let version = VersionOracle::new(&context, None)?.sem_ver2();
+    println!("{version}");
+    Ok(())
+}
+```
+
+```console
+cargo install --path src/nerdbank-gitversioning-rs/nbgv
+nbgv get-version
+```
+
+The Rust CLI includes `get-version`, `set-version`, `tag`, `get-commits`,
+`cloud`, and `prepare-release`. Normal Git operations run in-process through
+libgit2, so a `git` executable is not required. When `commit.gpgSign` is
+enabled, `prepare-release` falls back to the `git` executable on `PATH` to
+create signed commits and merge commits.
+
+The Rust implementation intentionally excludes the .NET CLI's `install` and
+`path-filters` commands and does not provide MSBuild props, targets, tasks,
+generated assembly metadata, or package installation. Use the .NET packages
+and CLI for those features. See the [Rust README](src/nerdbank-gitversioning-rs/README.md)
+and [CLI documentation](https://dotnet.github.io/Nerdbank.GitVersioning/docs/nbgv-cli.html)
+for details.
 
 ## Code of Conduct
 

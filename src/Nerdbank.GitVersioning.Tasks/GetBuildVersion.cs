@@ -11,11 +11,11 @@ namespace Nerdbank.GitVersioning.Tasks
 {
     public class GetBuildVersion : ContextAwareTask
     {
-        private const string UnavailableGitValue = "Unavailable from a shallow git clone";
+        private const string UnavailableGitValue = "Unavailable";
         private const string UnavailableGitWarningCode = "NBGV1001";
 
-        // October 26, 1985 at 1:21 AM UTC, when the DeLorean first traveled through time.
-        private const string UnavailableGitDateTicks = "626347344600000000";
+        // October 26, 1985 at 1:21 AM PDT (8:21 AM UTC), when the DeLorean first traveled through time.
+        private const string UnavailableGitDateTicks = "626347596600000000";
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GetBuildVersion"/> class.
@@ -74,6 +74,11 @@ namespace Nerdbank.GitVersioning.Tasks
         /// Gets or sets the git engine to use.
         /// </summary>
         public string GitEngine { get; set; }
+
+        /// <summary>
+        /// Gets or sets the diagnostic codes whose warnings should be suppressed.
+        /// </summary>
+        public string[] NoWarn { get; set; }
 
         /// <summary>
         /// Gets or sets the path to the folder that contains the NB.GV .targets file.
@@ -298,16 +303,19 @@ namespace Nerdbank.GitVersioning.Tasks
                     this.GitCommitIdShort = UnavailableGitValue;
                     this.GitCommitDateTicks = UnavailableGitDateTicks;
                     this.GitCommitAuthorDateTicks = UnavailableGitDateTicks;
-                    this.Log.LogWarning(
-                        subcategory: null,
-                        warningCode: UnavailableGitWarningCode,
-                        helpKeyword: null,
-                        file: null,
-                        lineNumber: 0,
-                        columnNumber: 0,
-                        endLineNumber: 0,
-                        endColumnNumber: 0,
-                        message: "Git information is unavailable because the git engine is disabled. Git-related MSBuild properties and ThisAssembly members contain placeholder values.");
+                    if (this.NoWarn?.Contains(UnavailableGitWarningCode, StringComparer.OrdinalIgnoreCase) != true)
+                    {
+                        this.Log.LogWarning(
+                            subcategory: null,
+                            warningCode: UnavailableGitWarningCode,
+                            helpKeyword: null,
+                            file: null,
+                            lineNumber: 0,
+                            columnNumber: 0,
+                            endLineNumber: 0,
+                            endColumnNumber: 0,
+                            message: "Git information is unavailable because the git engine is disabled. Git-related MSBuild properties and ThisAssembly members contain placeholder values.");
+                    }
                 }
 
                 this.GitVersionHeight = oracle.VersionHeight;

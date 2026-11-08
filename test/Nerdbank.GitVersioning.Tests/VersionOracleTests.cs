@@ -14,11 +14,12 @@ using Version = System.Version;
 #pragma warning disable SA1402 // File may only contain a single type
 #pragma warning disable SA1649 // File name should match first type name
 
-[Trait("Engine", "Managed")]
+[Property("Engine", "Managed")]
+[InheritsTests]
 public class VersionOracleManagedTests : VersionOracleTests
 {
-    public VersionOracleManagedTests(ITestOutputHelper logger)
-        : base(logger)
+    public VersionOracleManagedTests()
+        : base(TestOutputHelper.Instance)
     {
     }
 
@@ -27,11 +28,12 @@ public class VersionOracleManagedTests : VersionOracleTests
         => GitContext.Create(path, committish, engine: GitContext.Engine.ReadOnly);
 }
 
-[Trait("Engine", "LibGit2")]
+[Property("Engine", "LibGit2")]
+[InheritsTests]
 public class VersionOracleLibGit2Tests : VersionOracleTests
 {
-    public VersionOracleLibGit2Tests(ITestOutputHelper logger)
-        : base(logger)
+    public VersionOracleLibGit2Tests()
+        : base(TestOutputHelper.Instance)
     {
     }
 
@@ -49,33 +51,61 @@ public abstract class VersionOracleTests : RepoTestBase
 
     private string CommitIdShort => this.Context.GitCommitId?.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength);
 
-    [Fact]
+    [Test]
     public void NotRepo()
     {
         // Seems safe to assume a temporary path is not a Git directory.
-        GitContext context = this.CreateGitContext(Path.GetTempPath());
+        using GitContext context = this.CreateGitContext(Path.GetTempPath());
         var oracle = new VersionOracle(context);
         Assert.Equal(0, oracle.VersionHeight);
     }
 
-    [Fact]
+    [Test]
+    public void GetVersionOracle_CapturesContextDataBeforeDisposal()
+    {
+        this.WriteVersionFile();
+        this.InitializeSourceControl();
+        this.LibGit2Repository.ApplyTag("test");
+
+        VersionOracle oracle = this.GetVersionOracle();
+
+        Assert.Equal(this.LibGit2Repository.Head.Tip.Committer.When, oracle.GitCommitDate);
+        Assert.Equal(this.LibGit2Repository.Head.Tip.Author.When, oracle.GitCommitAuthorDate);
+        Assert.Equal("refs/tags/test", Assert.Single(oracle.Tags));
+        Assert.Contains("NBGV_GitCommitDate", oracle.CloudBuildAllVars.Keys);
+        Assert.Contains("NBGV_GitCommitAuthorDate", oracle.CloudBuildAllVars.Keys);
+    }
+
+    [Test]
+    public void EmptyRepoWithCloudCommitNotInRepository()
+    {
+        this.InitializeSourceControl(withInitialCommit: false);
+        const string CloudCommitId = "4a89d8fdbc350fdcf20e0e839d35ddbe638a9315";
+
+        var oracle = new VersionOracle(this.Context, new FakeCloudBuild(CloudCommitId));
+
+        Assert.Equal(0, oracle.VersionHeight);
+        Assert.Equal(CloudCommitId, oracle.GitCommitId);
+    }
+
+    [Test]
     public void Submodule_RecognizedWithCorrectVersion()
     {
         using (TestUtilities.ExpandedRepo expandedRepo = TestUtilities.ExtractRepoArchive("submodules"))
         {
-            this.Context = this.CreateGitContext(Path.Combine(expandedRepo.RepoPath, "a"));
-            var oracleA = new VersionOracle(this.Context);
+            using GitContext contextA = this.CreateGitContext(Path.Combine(expandedRepo.RepoPath, "a"));
+            var oracleA = new VersionOracle(contextA);
             Assert.Equal("1.3.1", oracleA.SimpleVersion.ToString());
             Assert.Equal("e238b03e75", oracleA.GitCommitIdShort);
 
-            this.Context = this.CreateGitContext(Path.Combine(expandedRepo.RepoPath, "b", "projB"));
-            var oracleB = new VersionOracle(this.Context);
+            using GitContext contextB = this.CreateGitContext(Path.Combine(expandedRepo.RepoPath, "b", "projB"));
+            var oracleB = new VersionOracle(contextB);
             Assert.Equal("2.5.2", oracleB.SimpleVersion.ToString());
             Assert.Equal("3ea7f010c3", oracleB.GitCommitIdShort);
         }
     }
 
-    [Fact]
+    [Test]
     public void Informational_version_has_four_components_when_three_component_version_is_used()
     {
         var versionOptions = new VersionOptions { Version = SemanticVersion.Parse("1.2.3") };
@@ -87,7 +117,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.StartsWith("1.2.3.21+", oracle.AssemblyInformationalVersion);
     }
 
-    [Fact]
+    [Test]
     public void Informational_version_has_three_components_when_two_component_version_is_used()
     {
         var versionOptions = new VersionOptions { Version = SemanticVersion.Parse("1.2") };
@@ -99,7 +129,66 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.StartsWith("1.2.21+", oracle.AssemblyInformationalVersion);
     }
 
-    [Fact]
+    [Test]
+    public void DirtyCommitIdDisabledByDefault()
+    {
+        this.WriteVersionFile(new VersionOptions { Version = SemanticVersion.Parse("1.2") });
+        File.WriteAllText(Path.Combine(this.RepoPath, "tracked.txt"), "original");
+        this.InitializeSourceControl();
+        File.WriteAllText(Path.Combine(this.RepoPath, "tracked.txt"), "changed");
+
+        var oracle = new VersionOracle(this.Context);
+
+        Assert.Equal(this.Context.GitCommitId, oracle.GitCommitId);
+        Assert.Equal(this.CommitIdShort, oracle.GitCommitIdShort);
+        Assert.DoesNotContain("dirty", oracle.AssemblyInformationalVersion);
+    }
+
+    [Test]
+    public void DirtyTrackedFileMarkedInCommitIds()
+    {
+        this.WriteVersionFile(new VersionOptions { Version = SemanticVersion.Parse("1.2"), GitCommitIdIncludeDirty = true });
+        File.WriteAllText(Path.Combine(this.RepoPath, "tracked.txt"), "original");
+        this.InitializeSourceControl();
+        File.WriteAllText(Path.Combine(this.RepoPath, "tracked.txt"), "changed");
+
+        var oracle = new VersionOracle(this.Context);
+
+        Assert.Equal(this.Context.GitCommitId + "-dirty", oracle.GitCommitId);
+        Assert.Equal(this.CommitIdShort + "-dirty", oracle.GitCommitIdShort);
+        Assert.EndsWith("+" + this.CommitIdShort + "-dirty", oracle.AssemblyInformationalVersion);
+    }
+
+    [Test]
+    public void DirtyUntrackedFileMarkedInCommitIds()
+    {
+        this.WriteVersionFile(new VersionOptions { Version = SemanticVersion.Parse("1.2"), GitCommitIdIncludeDirty = true });
+        this.InitializeSourceControl();
+        File.WriteAllText(Path.Combine(this.RepoPath, "untracked.txt"), "content");
+
+        var oracle = new VersionOracle(this.Context);
+
+        Assert.Equal(this.Context.GitCommitId + "-dirty", oracle.GitCommitId);
+        Assert.Equal(this.CommitIdShort + "-dirty", oracle.GitCommitIdShort);
+        Assert.EndsWith("+" + this.CommitIdShort + "-dirty", oracle.AssemblyInformationalVersion);
+    }
+
+    [Test]
+    public void IgnoredFileDoesNotMarkCommitIdsDirty()
+    {
+        this.WriteVersionFile(new VersionOptions { Version = SemanticVersion.Parse("1.2"), GitCommitIdIncludeDirty = true });
+        File.WriteAllText(Path.Combine(this.RepoPath, ".gitignore"), "ignored.txt");
+        this.InitializeSourceControl();
+        File.WriteAllText(Path.Combine(this.RepoPath, "ignored.txt"), "content");
+
+        var oracle = new VersionOracle(this.Context);
+
+        Assert.Equal(this.Context.GitCommitId, oracle.GitCommitId);
+        Assert.Equal(this.CommitIdShort, oracle.GitCommitIdShort);
+        Assert.EndsWith("+" + this.CommitIdShort, oracle.AssemblyInformationalVersion);
+    }
+
+    [Test]
     public void MajorMinorPrereleaseBuildMetadata()
     {
         VersionOptions workingCopyVersion = new VersionOptions
@@ -119,7 +208,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(0, oracle.VersionHeightOffset);
     }
 
-    [Fact]
+    [Test]
     public void MajorMinorBuildPrereleaseBuildMetadata()
     {
         VersionOptions workingCopyVersion = new VersionOptions
@@ -140,13 +229,13 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(0, oracle.VersionHeightOffset);
     }
 
-    [Theory]
-    [InlineData("0.1", "0.2")]
-    [InlineData("0.1.0+{height}", "0.1.5+{height}")]
-    [InlineData("0.1.5-alpha0.{height}", "0.1.5-alpha1.{height}")]
-    [InlineData("0.1.5-beta.{height}", "0.1.5-beta1.{height}")]
-    [InlineData("0.1.5-alpha.{height}", "0.1.5-beta.{height}")]
-    [InlineData("0.1.5-alpha.1.{height}", "0.1.5-beta.1.{height}")]
+    [Test]
+    [Arguments("0.1", "0.2")]
+    [Arguments("0.1.0+{height}", "0.1.5+{height}")]
+    [Arguments("0.1.5-alpha0.{height}", "0.1.5-alpha1.{height}")]
+    [Arguments("0.1.5-beta.{height}", "0.1.5-beta1.{height}")]
+    [Arguments("0.1.5-alpha.{height}", "0.1.5-beta.{height}")]
+    [Arguments("0.1.5-alpha.1.{height}", "0.1.5-beta.1.{height}")]
     public void VersionHeightResetsWithVersionSpecChanges(string initial, string next)
     {
         var options = new VersionOptions
@@ -177,7 +266,7 @@ public abstract class VersionOracleTests : RepoTestBase
         }
     }
 
-    [Fact]
+    [Test]
     public void HeightInPrerelease()
     {
         VersionOptions workingCopyVersion = new VersionOptions
@@ -198,7 +287,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(2, oracle.VersionHeightOffset);
     }
 
-    [Fact(Skip = "Build metadata not yet retained from version.json")]
+    [Test, Skip("Build metadata not yet retained from version.json")]
     public void HeightInBuildMetadata()
     {
         VersionOptions workingCopyVersion = new VersionOptions
@@ -220,7 +309,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(2, oracle.VersionHeightOffset);
     }
 
-    [Fact]
+    [Test]
     public void VersionHeightOffsetAppliesTo_Matching()
     {
         // When VersionHeightOffsetAppliesTo matches the current version, the offset should be applied
@@ -239,7 +328,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(1, oracle.VersionHeight);
     }
 
-    [Fact]
+    [Test]
     public void VersionHeightOffsetAppliesTo_NotMatching()
     {
         // When VersionHeightOffsetAppliesTo doesn't match the current version, the offset should NOT be applied
@@ -258,7 +347,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(1, oracle.VersionHeight);
     }
 
-    [Fact]
+    [Test]
     public void VersionHeightOffsetAppliesTo_BuildNumberChange()
     {
         // When VersionHeightOffsetAppliesTo has a different build number, the offset should NOT be applied
@@ -277,13 +366,13 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(1, oracle.VersionHeight);
     }
 
-    [Theory]
-    [InlineData("7.8.9-foo.25", "7.8.9-foo-0025")]
-    [InlineData("7.8.9-foo.25s", "7.8.9-foo-25s")]
-    [InlineData("7.8.9-foo.s25", "7.8.9-foo-s25")]
-    [InlineData("7.8.9-foo.25.bar-24.13-11", "7.8.9-foo-0025-bar-24-13-11")]
-    [InlineData("7.8.9-25.bar.baz-25", "7.8.9-0025-bar-baz-25")]
-    [InlineData("7.8.9-foo.5.bar.1.43.baz", "7.8.9-foo-0005-bar-0001-0043-baz")]
+    [Test]
+    [Arguments("7.8.9-foo.25", "7.8.9-foo-0025")]
+    [Arguments("7.8.9-foo.25s", "7.8.9-foo-25s")]
+    [Arguments("7.8.9-foo.s25", "7.8.9-foo-s25")]
+    [Arguments("7.8.9-foo.25.bar-24.13-11", "7.8.9-foo-0025-bar-24-13-11")]
+    [Arguments("7.8.9-25.bar.baz-25", "7.8.9-0025-bar-baz-25")]
+    [Arguments("7.8.9-foo.5.bar.1.43.baz", "7.8.9-foo-0005-bar-0001-0043-baz")]
     public void SemVer1PrereleaseConversion(string semVer2, string semVer1)
     {
         VersionOptions workingCopyVersion = new VersionOptions
@@ -298,7 +387,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(semVer1, oracle.SemVer1);
     }
 
-    [Fact]
+    [Test]
     public void SemVer1PrereleaseConversionPadding()
     {
         VersionOptions workingCopyVersion = new VersionOptions
@@ -314,7 +403,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal("7.8.9-foo-025", oracle.SemVer1);
     }
 
-    [Fact]
+    [Test]
     public void SemVerStableNonPublicVersion()
     {
         var workingCopyVersion = new VersionOptions
@@ -331,7 +420,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Matches(@"^2.3.1-g[a-f0-9]{10}$", oracle.ChocolateyPackageVersion);
     }
 
-    [Fact]
+    [Test]
     public void SemVerStableNonPublicVersionShortened()
     {
         var workingCopyVersion = new VersionOptions
@@ -349,7 +438,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Matches(@"^2.3.1-g[a-f0-9]{7}$", oracle.ChocolateyPackageVersion);
     }
 
-    [Fact]
+    [Test]
     public void ExtraPrereleaseIdentifiers_StableBase_V1()
     {
         var workingCopyVersion = new VersionOptions
@@ -370,7 +459,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(@"2.3.1-i1-i2", oracle.NuGetPackageVersion);
     }
 
-    [Fact]
+    [Test]
     public void ExtraPrereleaseIdentifiers_StableBase_V2()
     {
         var workingCopyVersion = new VersionOptions
@@ -391,7 +480,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(@"2.3.1-i1.i2", oracle.NuGetPackageVersion);
     }
 
-    [Fact]
+    [Test]
     public void ExtraPrereleaseIdentifiers_StableBase_V2_NonPublic()
     {
         var workingCopyVersion = new VersionOptions
@@ -412,7 +501,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Matches(@"^2\.3\.1-i1\.i2\.g", oracle.NuGetPackageVersion);
     }
 
-    [Fact]
+    [Test]
     public void ExtraPrereleaseIdentifiers_UnstableBase_V1()
     {
         var workingCopyVersion = new VersionOptions
@@ -433,7 +522,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(@"2.3.1-abc-i1-i2", oracle.NuGetPackageVersion);
     }
 
-    [Fact]
+    [Test]
     public void ExtraPrereleaseIdentifiers_UnstableBase_V2()
     {
         var workingCopyVersion = new VersionOptions
@@ -454,15 +543,15 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(@"2.3.1-abc.i1.i2", oracle.NuGetPackageVersion);
     }
 
-    [Theory]
-    [InlineData("1.2.0.0", null, null)]
-    [InlineData("1.0.0.0", null, VersionOptions.VersionPrecision.Major)]
-    [InlineData("1.2.0.0", null, VersionOptions.VersionPrecision.Minor)]
-    [InlineData("1.2.1.0", null, VersionOptions.VersionPrecision.Build)]
-    [InlineData("2.3.4.0", "2.3.4", null)]
-    [InlineData("2.3.4.0", "2.3.4", VersionOptions.VersionPrecision.Minor)]
-    [InlineData("2.3.4.0", "2.3.4", VersionOptions.VersionPrecision.Build)]
-    [InlineData("2.3.4.0", "2.3.4.0", VersionOptions.VersionPrecision.Revision)]
+    [Test]
+    [Arguments("1.2.0.0", null, null)]
+    [Arguments("1.0.0.0", null, VersionOptions.VersionPrecision.Major)]
+    [Arguments("1.2.0.0", null, VersionOptions.VersionPrecision.Minor)]
+    [Arguments("1.2.1.0", null, VersionOptions.VersionPrecision.Build)]
+    [Arguments("2.3.4.0", "2.3.4", null)]
+    [Arguments("2.3.4.0", "2.3.4", VersionOptions.VersionPrecision.Minor)]
+    [Arguments("2.3.4.0", "2.3.4", VersionOptions.VersionPrecision.Build)]
+    [Arguments("2.3.4.0", "2.3.4.0", VersionOptions.VersionPrecision.Revision)]
     public void CustomAssemblyVersion(string expectedAssemblyVersion, string prescribedAssemblyVersion, VersionOptions.VersionPrecision? precision)
     {
         this.InitializeSourceControl(withInitialCommit: false);
@@ -480,7 +569,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(expectedAssemblyVersion, oracle.AssemblyVersion.ToString());
     }
 
-    [Fact]
+    [Test]
     public void DefaultNuGetPackageVersionIsSemVer1PublicRelease()
     {
         VersionOptions workingCopyVersion = new VersionOptions
@@ -495,7 +584,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal($"7.8.9-foo-25", oracle.NuGetPackageVersion);
     }
 
-    [Fact]
+    [Test]
     public void DefaultNuGetPackageVersionIsSemVer1NonPublicRelease()
     {
         VersionOptions workingCopyVersion = new VersionOptions
@@ -510,7 +599,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal($"7.8.9-foo-25-g{this.CommitIdShort}", oracle.NuGetPackageVersion);
     }
 
-    [Fact]
+    [Test]
     public void NpmPackageVersionIsSemVer2()
     {
         VersionOptions workingCopyVersion = new VersionOptions
@@ -525,7 +614,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal("7.8.9-foo.25", oracle.NpmPackageVersion);
     }
 
-    [Fact]
+    [Test]
     public void CanSetSemVer2ForNuGetPackageVersionPublicRelease()
     {
         VersionOptions workingCopyVersion = new VersionOptions
@@ -543,103 +632,103 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal($"7.8.9-foo.25", oracle.NuGetPackageVersion);
     }
 
-    [Theory]
+    [Test]
     ////
     //// SemVer 1
     ////
     //// 2 version fields configured in version.json
-    [InlineData(1, "1.2", VersionOptions.VersionPrecision.Major, "1.0.0")]
-    [InlineData(1, "1.2", VersionOptions.VersionPrecision.Minor, "1.2.0")]
-    [InlineData(1, "1.2", VersionOptions.VersionPrecision.Build, "1.2.1")]
-    [InlineData(1, "1.2", VersionOptions.VersionPrecision.Revision, "1.2.1.<commit>")]
+    [Arguments(1, "1.2", VersionOptions.VersionPrecision.Major, "1.0.0")]
+    [Arguments(1, "1.2", VersionOptions.VersionPrecision.Minor, "1.2.0")]
+    [Arguments(1, "1.2", VersionOptions.VersionPrecision.Build, "1.2.1")]
+    [Arguments(1, "1.2", VersionOptions.VersionPrecision.Revision, "1.2.1.<commit>")]
     //// 2 version fields and a static prerelease tag configured in version.json
-    [InlineData(1, "1.2-alpha", VersionOptions.VersionPrecision.Major, "1.0.0-alpha")]
-    [InlineData(1, "1.2-alpha", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha")]
-    [InlineData(1, "1.2-alpha", VersionOptions.VersionPrecision.Build, "1.2.1-alpha")]
-    [InlineData(1, "1.2-alpha", VersionOptions.VersionPrecision.Revision, "1.2.1.<commit>-alpha")]
+    [Arguments(1, "1.2-alpha", VersionOptions.VersionPrecision.Major, "1.0.0-alpha")]
+    [Arguments(1, "1.2-alpha", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha")]
+    [Arguments(1, "1.2-alpha", VersionOptions.VersionPrecision.Build, "1.2.1-alpha")]
+    [Arguments(1, "1.2-alpha", VersionOptions.VersionPrecision.Revision, "1.2.1.<commit>-alpha")]
     //// 2 version fields with git height in prerelease tag configured in version.json
-    [InlineData(1, "1.2-alpha.{height}", VersionOptions.VersionPrecision.Major, "1.0.0-alpha-0001")]
-    [InlineData(1, "1.2-alpha.{height}", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha-0001")]
-    [InlineData(1, "1.2-alpha.{height}", VersionOptions.VersionPrecision.Build, "1.2.0-alpha-0001")]
-    [InlineData(1, "1.2-alpha.{height}", VersionOptions.VersionPrecision.Revision, "1.2.0.0-alpha-0001")]
+    [Arguments(1, "1.2-alpha.{height}", VersionOptions.VersionPrecision.Major, "1.0.0-alpha-0001")]
+    [Arguments(1, "1.2-alpha.{height}", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha-0001")]
+    [Arguments(1, "1.2-alpha.{height}", VersionOptions.VersionPrecision.Build, "1.2.0-alpha-0001")]
+    [Arguments(1, "1.2-alpha.{height}", VersionOptions.VersionPrecision.Revision, "1.2.0.0-alpha-0001")]
     //// 3 version fields configured in version.json
-    [InlineData(1, "1.2.3", VersionOptions.VersionPrecision.Major, "1.0.0")]
-    [InlineData(1, "1.2.3", VersionOptions.VersionPrecision.Minor, "1.2.0")]
-    [InlineData(1, "1.2.3", VersionOptions.VersionPrecision.Build, "1.2.3")]
-    [InlineData(1, "1.2.3", VersionOptions.VersionPrecision.Revision, "1.2.3.1")]
+    [Arguments(1, "1.2.3", VersionOptions.VersionPrecision.Major, "1.0.0")]
+    [Arguments(1, "1.2.3", VersionOptions.VersionPrecision.Minor, "1.2.0")]
+    [Arguments(1, "1.2.3", VersionOptions.VersionPrecision.Build, "1.2.3")]
+    [Arguments(1, "1.2.3", VersionOptions.VersionPrecision.Revision, "1.2.3.1")]
     //// 3 version fields and a static prerelease tag configured in version.json
-    [InlineData(1, "1.2.3-alpha", VersionOptions.VersionPrecision.Major, "1.0.0-alpha")]
-    [InlineData(1, "1.2.3-alpha", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha")]
-    [InlineData(1, "1.2.3-alpha", VersionOptions.VersionPrecision.Build, "1.2.3-alpha")]
-    [InlineData(1, "1.2.3-alpha", VersionOptions.VersionPrecision.Revision, "1.2.3.1-alpha")]
+    [Arguments(1, "1.2.3-alpha", VersionOptions.VersionPrecision.Major, "1.0.0-alpha")]
+    [Arguments(1, "1.2.3-alpha", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha")]
+    [Arguments(1, "1.2.3-alpha", VersionOptions.VersionPrecision.Build, "1.2.3-alpha")]
+    [Arguments(1, "1.2.3-alpha", VersionOptions.VersionPrecision.Revision, "1.2.3.1-alpha")]
     //// 3 version fields with git height in prerelease tag configured in version.json
-    [InlineData(1, "1.2.3-alpha.{height}", VersionOptions.VersionPrecision.Major, "1.0.0-alpha-0001")]
-    [InlineData(1, "1.2.3-alpha.{height}", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha-0001")]
-    [InlineData(1, "1.2.3-alpha.{height}", VersionOptions.VersionPrecision.Build, "1.2.3-alpha-0001")]
-    [InlineData(1, "1.2.3-alpha.{height}", VersionOptions.VersionPrecision.Revision, "1.2.3.0-alpha-0001")]
+    [Arguments(1, "1.2.3-alpha.{height}", VersionOptions.VersionPrecision.Major, "1.0.0-alpha-0001")]
+    [Arguments(1, "1.2.3-alpha.{height}", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha-0001")]
+    [Arguments(1, "1.2.3-alpha.{height}", VersionOptions.VersionPrecision.Build, "1.2.3-alpha-0001")]
+    [Arguments(1, "1.2.3-alpha.{height}", VersionOptions.VersionPrecision.Revision, "1.2.3.0-alpha-0001")]
     //// 4 version fields configured in version.json
-    [InlineData(1, "1.2.3.4", VersionOptions.VersionPrecision.Major, "1.0.0")]
-    [InlineData(1, "1.2.3.4", VersionOptions.VersionPrecision.Minor, "1.2.0")]
-    [InlineData(1, "1.2.3.4", VersionOptions.VersionPrecision.Build, "1.2.3")]
-    [InlineData(1, "1.2.3.4", VersionOptions.VersionPrecision.Revision, "1.2.3.4")]
+    [Arguments(1, "1.2.3.4", VersionOptions.VersionPrecision.Major, "1.0.0")]
+    [Arguments(1, "1.2.3.4", VersionOptions.VersionPrecision.Minor, "1.2.0")]
+    [Arguments(1, "1.2.3.4", VersionOptions.VersionPrecision.Build, "1.2.3")]
+    [Arguments(1, "1.2.3.4", VersionOptions.VersionPrecision.Revision, "1.2.3.4")]
     //// 4 version fields and a static prerelease tag configured in version.json
-    [InlineData(1, "1.2.3.4-alpha", VersionOptions.VersionPrecision.Major, "1.0.0-alpha")]
-    [InlineData(1, "1.2.3.4-alpha", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha")]
-    [InlineData(1, "1.2.3.4-alpha", VersionOptions.VersionPrecision.Build, "1.2.3-alpha")]
-    [InlineData(1, "1.2.3.4-alpha", VersionOptions.VersionPrecision.Revision, "1.2.3.4-alpha")]
+    [Arguments(1, "1.2.3.4-alpha", VersionOptions.VersionPrecision.Major, "1.0.0-alpha")]
+    [Arguments(1, "1.2.3.4-alpha", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha")]
+    [Arguments(1, "1.2.3.4-alpha", VersionOptions.VersionPrecision.Build, "1.2.3-alpha")]
+    [Arguments(1, "1.2.3.4-alpha", VersionOptions.VersionPrecision.Revision, "1.2.3.4-alpha")]
     //// 4 version fields with git height in prerelease tag configured in version.json
-    [InlineData(1, "1.2.3.4-alpha.{height}", VersionOptions.VersionPrecision.Major, "1.0.0-alpha-0001")]
-    [InlineData(1, "1.2.3.4-alpha.{height}", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha-0001")]
-    [InlineData(1, "1.2.3.4-alpha.{height}", VersionOptions.VersionPrecision.Build, "1.2.3-alpha-0001")]
-    [InlineData(1, "1.2.3.4-alpha.{height}", VersionOptions.VersionPrecision.Revision, "1.2.3.4-alpha-0001")]
+    [Arguments(1, "1.2.3.4-alpha.{height}", VersionOptions.VersionPrecision.Major, "1.0.0-alpha-0001")]
+    [Arguments(1, "1.2.3.4-alpha.{height}", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha-0001")]
+    [Arguments(1, "1.2.3.4-alpha.{height}", VersionOptions.VersionPrecision.Build, "1.2.3-alpha-0001")]
+    [Arguments(1, "1.2.3.4-alpha.{height}", VersionOptions.VersionPrecision.Revision, "1.2.3.4-alpha-0001")]
     ////
     //// SemVer 2
     ////
     //// 2 version fields configured in version.json
-    [InlineData(2, "1.2", VersionOptions.VersionPrecision.Major, "1.0.0")]
-    [InlineData(2, "1.2", VersionOptions.VersionPrecision.Minor, "1.2.0")]
-    [InlineData(2, "1.2", VersionOptions.VersionPrecision.Build, "1.2.1")]
-    [InlineData(2, "1.2", VersionOptions.VersionPrecision.Revision, "1.2.1.<commit>")]
+    [Arguments(2, "1.2", VersionOptions.VersionPrecision.Major, "1.0.0")]
+    [Arguments(2, "1.2", VersionOptions.VersionPrecision.Minor, "1.2.0")]
+    [Arguments(2, "1.2", VersionOptions.VersionPrecision.Build, "1.2.1")]
+    [Arguments(2, "1.2", VersionOptions.VersionPrecision.Revision, "1.2.1.<commit>")]
     //// 2 version fields and a static prerelease tag configured in version.json
-    [InlineData(2, "1.2-alpha", VersionOptions.VersionPrecision.Major, "1.0.0-alpha")]
-    [InlineData(2, "1.2-alpha", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha")]
-    [InlineData(2, "1.2-alpha", VersionOptions.VersionPrecision.Build, "1.2.1-alpha")]
-    [InlineData(2, "1.2-alpha", VersionOptions.VersionPrecision.Revision, "1.2.1.<commit>-alpha")]
+    [Arguments(2, "1.2-alpha", VersionOptions.VersionPrecision.Major, "1.0.0-alpha")]
+    [Arguments(2, "1.2-alpha", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha")]
+    [Arguments(2, "1.2-alpha", VersionOptions.VersionPrecision.Build, "1.2.1-alpha")]
+    [Arguments(2, "1.2-alpha", VersionOptions.VersionPrecision.Revision, "1.2.1.<commit>-alpha")]
     //// 2 version fields with git height in prerelease tag configured in version.json
-    [InlineData(2, "1.2-alpha.{height}", VersionOptions.VersionPrecision.Major, "1.0.0-alpha.1")]
-    [InlineData(2, "1.2-alpha.{height}", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha.1")]
-    [InlineData(2, "1.2-alpha.{height}", VersionOptions.VersionPrecision.Build, "1.2.0-alpha.1")]
-    [InlineData(2, "1.2-alpha.{height}", VersionOptions.VersionPrecision.Revision, "1.2.0.0-alpha.1")]
+    [Arguments(2, "1.2-alpha.{height}", VersionOptions.VersionPrecision.Major, "1.0.0-alpha.1")]
+    [Arguments(2, "1.2-alpha.{height}", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha.1")]
+    [Arguments(2, "1.2-alpha.{height}", VersionOptions.VersionPrecision.Build, "1.2.0-alpha.1")]
+    [Arguments(2, "1.2-alpha.{height}", VersionOptions.VersionPrecision.Revision, "1.2.0.0-alpha.1")]
     //// 3 version fields configured in version.json
-    [InlineData(2, "1.2.3", VersionOptions.VersionPrecision.Major, "1.0.0")]
-    [InlineData(2, "1.2.3", VersionOptions.VersionPrecision.Minor, "1.2.0")]
-    [InlineData(2, "1.2.3", VersionOptions.VersionPrecision.Build, "1.2.3")]
-    [InlineData(2, "1.2.3", VersionOptions.VersionPrecision.Revision, "1.2.3.1")]
+    [Arguments(2, "1.2.3", VersionOptions.VersionPrecision.Major, "1.0.0")]
+    [Arguments(2, "1.2.3", VersionOptions.VersionPrecision.Minor, "1.2.0")]
+    [Arguments(2, "1.2.3", VersionOptions.VersionPrecision.Build, "1.2.3")]
+    [Arguments(2, "1.2.3", VersionOptions.VersionPrecision.Revision, "1.2.3.1")]
     //// 3 version fields and a static prerelease tag configured in version.json
-    [InlineData(2, "1.2.3-alpha", VersionOptions.VersionPrecision.Major, "1.0.0-alpha")]
-    [InlineData(2, "1.2.3-alpha", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha")]
-    [InlineData(2, "1.2.3-alpha", VersionOptions.VersionPrecision.Build, "1.2.3-alpha")]
-    [InlineData(2, "1.2.3-alpha", VersionOptions.VersionPrecision.Revision, "1.2.3.1-alpha")]
+    [Arguments(2, "1.2.3-alpha", VersionOptions.VersionPrecision.Major, "1.0.0-alpha")]
+    [Arguments(2, "1.2.3-alpha", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha")]
+    [Arguments(2, "1.2.3-alpha", VersionOptions.VersionPrecision.Build, "1.2.3-alpha")]
+    [Arguments(2, "1.2.3-alpha", VersionOptions.VersionPrecision.Revision, "1.2.3.1-alpha")]
     //// 3 version fields with git height in prerelease tag configured in version.json
-    [InlineData(2, "1.2.3-alpha.{height}", VersionOptions.VersionPrecision.Major, "1.0.0-alpha.1")]
-    [InlineData(2, "1.2.3-alpha.{height}", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha.1")]
-    [InlineData(2, "1.2.3-alpha.{height}", VersionOptions.VersionPrecision.Build, "1.2.3-alpha.1")]
-    [InlineData(2, "1.2.3-alpha.{height}", VersionOptions.VersionPrecision.Revision, "1.2.3.0-alpha.1")]
+    [Arguments(2, "1.2.3-alpha.{height}", VersionOptions.VersionPrecision.Major, "1.0.0-alpha.1")]
+    [Arguments(2, "1.2.3-alpha.{height}", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha.1")]
+    [Arguments(2, "1.2.3-alpha.{height}", VersionOptions.VersionPrecision.Build, "1.2.3-alpha.1")]
+    [Arguments(2, "1.2.3-alpha.{height}", VersionOptions.VersionPrecision.Revision, "1.2.3.0-alpha.1")]
     //// 4 version fields configured in version.json
-    [InlineData(2, "1.2.3.4", VersionOptions.VersionPrecision.Major, "1.0.0")]
-    [InlineData(2, "1.2.3.4", VersionOptions.VersionPrecision.Minor, "1.2.0")]
-    [InlineData(2, "1.2.3.4", VersionOptions.VersionPrecision.Build, "1.2.3")]
-    [InlineData(2, "1.2.3.4", VersionOptions.VersionPrecision.Revision, "1.2.3.4")]
+    [Arguments(2, "1.2.3.4", VersionOptions.VersionPrecision.Major, "1.0.0")]
+    [Arguments(2, "1.2.3.4", VersionOptions.VersionPrecision.Minor, "1.2.0")]
+    [Arguments(2, "1.2.3.4", VersionOptions.VersionPrecision.Build, "1.2.3")]
+    [Arguments(2, "1.2.3.4", VersionOptions.VersionPrecision.Revision, "1.2.3.4")]
     //// 4 version fields and a static prerelease tag configured in version.json
-    [InlineData(2, "1.2.3.4-alpha", VersionOptions.VersionPrecision.Major, "1.0.0-alpha")]
-    [InlineData(2, "1.2.3.4-alpha", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha")]
-    [InlineData(2, "1.2.3.4-alpha", VersionOptions.VersionPrecision.Build, "1.2.3-alpha")]
-    [InlineData(2, "1.2.3.4-alpha", VersionOptions.VersionPrecision.Revision, "1.2.3.4-alpha")]
+    [Arguments(2, "1.2.3.4-alpha", VersionOptions.VersionPrecision.Major, "1.0.0-alpha")]
+    [Arguments(2, "1.2.3.4-alpha", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha")]
+    [Arguments(2, "1.2.3.4-alpha", VersionOptions.VersionPrecision.Build, "1.2.3-alpha")]
+    [Arguments(2, "1.2.3.4-alpha", VersionOptions.VersionPrecision.Revision, "1.2.3.4-alpha")]
     //// 4 version fields with git height in prerelease tag configured in version.json
-    [InlineData(2, "1.2.3.4-alpha.{height}", VersionOptions.VersionPrecision.Major, "1.0.0-alpha.1")]
-    [InlineData(2, "1.2.3.4-alpha.{height}", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha.1")]
-    [InlineData(2, "1.2.3.4-alpha.{height}", VersionOptions.VersionPrecision.Build, "1.2.3-alpha.1")]
-    [InlineData(2, "1.2.3.4-alpha.{height}", VersionOptions.VersionPrecision.Revision, "1.2.3.4-alpha.1")]
+    [Arguments(2, "1.2.3.4-alpha.{height}", VersionOptions.VersionPrecision.Major, "1.0.0-alpha.1")]
+    [Arguments(2, "1.2.3.4-alpha.{height}", VersionOptions.VersionPrecision.Minor, "1.2.0-alpha.1")]
+    [Arguments(2, "1.2.3.4-alpha.{height}", VersionOptions.VersionPrecision.Build, "1.2.3-alpha.1")]
+    [Arguments(2, "1.2.3.4-alpha.{height}", VersionOptions.VersionPrecision.Revision, "1.2.3.4-alpha.1")]
     public void CanSetPrecisionForNuGetPackageVersion(int semVer, string version, VersionOptions.VersionPrecision precision, string expectedPackageVersion)
     {
         VersionOptions workingCopyVersion = new VersionOptions
@@ -659,7 +748,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(expectedPackageVersion, oracle.NuGetPackageVersion);
     }
 
-    [Fact]
+    [Test]
     public void CanSetSemVer2ForNuGetPackageVersionNonPublicRelease()
     {
         VersionOptions workingCopyVersion = new VersionOptions
@@ -677,7 +766,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal($"7.8.9-foo.25.g{this.CommitIdShort}", oracle.NuGetPackageVersion);
     }
 
-    [Fact]
+    [Test]
     public void CanSetGitCommitIdPrefixNonPublicRelease()
     {
         VersionOptions workingCopyVersion = new VersionOptions
@@ -696,7 +785,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal($"7.8.9-foo.25.git{this.CommitIdShort}", oracle.NuGetPackageVersion);
     }
 
-    [Fact]
+    [Test]
     public void CanUseGitProjectRelativePathWithGitRepoRoot()
     {
         VersionOptions rootVersion = new VersionOptions
@@ -731,7 +820,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal("1.1", oracle.MajorMinorVersion.ToString());
     }
 
-    [Fact]
+    [Test]
     public void VersionJsonWithoutVersion()
     {
         File.WriteAllText(Path.Combine(this.RepoPath, VersionFile.JsonFileName), "{}");
@@ -741,7 +830,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(0, oracle.Version.Minor);
     }
 
-    [Fact]
+    [Test]
     public void VersionJsonWithSingleIntegerForVersion()
     {
         File.WriteAllText(Path.Combine(this.RepoPath, VersionFile.JsonFileName), @"{""version"":""3""}");
@@ -752,7 +841,7 @@ public abstract class VersionOracleTests : RepoTestBase
         this.Logger.WriteLine(ex.ToString());
     }
 
-    [Theory, CombinatorialData]
+    [Test, MatrixDataSource]
     public void Worktree_Support(bool detachedHead)
     {
         var workingCopyVersion = new VersionOptions
@@ -780,7 +869,7 @@ public abstract class VersionOracleTests : RepoTestBase
         // Workaround for https://github.com/libgit2/libgit2sharp/issues/2037
         Commands.Checkout(worktree.WorktreeRepository, "HEAD", new CheckoutOptions { CheckoutModifiers = CheckoutModifiers.Force });
 
-        GitContext context = this.CreateGitContext(workTreePath);
+        using GitContext context = this.CreateGitContext(workTreePath);
         var oracleWorkTree = new VersionOracle(context);
         Assert.Equal(oracleOriginal.Version, oracleWorkTree.Version);
 
@@ -788,7 +877,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.True(context.TrySelectCommit(this.LibGit2Repository.Head.Tip.Sha));
     }
 
-    [Fact]
+    [Test]
     public void GetIdAsVersion_ReadsMajorMinorFromVersionTxt()
     {
         this.InitializeSourceControl();
@@ -800,7 +889,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(8, v1.Minor);
     }
 
-    [Fact]
+    [Test]
     public void GetIdAsVersion_ReadsMajorMinorFromVersionTxtInSubdirectory()
     {
         this.InitializeSourceControl();
@@ -812,7 +901,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(8, v1.Minor);
     }
 
-    [Fact]
+    [Test]
     public void GetIdAsVersion_MissingVersionTxt()
     {
         this.InitializeSourceControl();
@@ -824,7 +913,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(0, v1.Minor);
     }
 
-    [Fact]
+    [Test]
     public void GetIdAsVersion_VersionFileNeverCheckedIn_3Ints()
     {
         this.InitializeSourceControl();
@@ -842,7 +931,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(0, actualVersion.Revision);
     }
 
-    [Fact]
+    [Test]
     public void GetIdAsVersion_VersionFileNeverCheckedIn_2Ints()
     {
         this.InitializeSourceControl();
@@ -857,7 +946,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(this.LibGit2Repository.Head.Commits.First().GetTruncatedCommitIdAsUInt16(), actualVersion.Revision);
     }
 
-    [Fact]
+    [Test]
     public void GetIdAsVersion_VersionFileChangedOnDisk()
     {
         this.InitializeSourceControl();
@@ -890,7 +979,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(this.LibGit2Repository.Head.Commits.First().GetTruncatedCommitIdAsUInt16(), actualVersion.Revision);
     }
 
-    [Fact]
+    [Test]
     public void GetIdAsVersion_FitsInsideCompilerConstraints()
     {
         this.InitializeSourceControl();
@@ -906,7 +995,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.True(version.Revision < 0xfffe, $"{nameof(Version.Revision)} component exceeds maximum allowed by the compiler as an argument for AssemblyVersionAttribute and AssemblyFileVersionAttribute.");
     }
 
-    [Fact]
+    [Test]
     public void GetIdAsVersion_MigrationFromVersionTxtToJson()
     {
         this.InitializeSourceControl();
@@ -928,16 +1017,16 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(2, v2.Build);
     }
 
-    [Theory]
-    [InlineData("2.2", "2.2-alpha.{height}", 1, 1, true)]
-    [InlineData("2.2", "2.3", 1, 1, true)]
-    [InlineData("2.2", "2.3-alpha", 1, 1, true)]
-    [InlineData("2.2-alpha", "2.2-rc", 1, 2, false)]
-    [InlineData("2.2-alpha.{height}", "2.2", 1, 1, true)]
-    [InlineData("2.2-alpha.{height}", "2.2-rc.{height}", 1, 1, true)]
-    [InlineData("2.2-alpha.{height}", "2.3-rc.{height}", 1, 1, true)]
-    [InlineData("2.2-rc", "2.2", 1, 2, false)]
-    [InlineData("2.2-rc", "2.3", 1, 1, true)]
+    [Test]
+    [Arguments("2.2", "2.2-alpha.{height}", 1, 1, true)]
+    [Arguments("2.2", "2.3", 1, 1, true)]
+    [Arguments("2.2", "2.3-alpha", 1, 1, true)]
+    [Arguments("2.2-alpha", "2.2-rc", 1, 2, false)]
+    [Arguments("2.2-alpha.{height}", "2.2", 1, 1, true)]
+    [Arguments("2.2-alpha.{height}", "2.2-rc.{height}", 1, 1, true)]
+    [Arguments("2.2-alpha.{height}", "2.3-rc.{height}", 1, 1, true)]
+    [Arguments("2.2-rc", "2.2", 1, 2, false)]
+    [Arguments("2.2-rc", "2.3", 1, 1, true)]
     public void GetVersionHeight_ProgressAndReset(string version1, string version2, int expectedHeight1, int expectedHeight2, bool versionHeightReset)
     {
         const string repoRelativeSubDirectory = "subdir";
@@ -961,7 +1050,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(!versionHeightReset, height2 > height1);
     }
 
-    [Fact]
+    [Test]
     public void GetVersionHeight_Test()
     {
         this.InitializeSourceControl();
@@ -973,7 +1062,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(2, this.GetVersionHeight());
     }
 
-    [Fact]
+    [Test]
     public void GetVersionHeight_VersionJsonHasUnrelatedHistory()
     {
         this.InitializeSourceControl();
@@ -997,7 +1086,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(0, this.GetVersionHeight());
     }
 
-    [Fact]
+    [Test]
     public void GetVersionHeight_VersionJsonHasParsingErrorsInHistory()
     {
         this.InitializeSourceControl();
@@ -1021,7 +1110,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(0, this.GetVersionHeight());
     }
 
-    [Fact]
+    [Test]
     public void GetVersionHeight_IntroducingFiltersIncrementsHeight()
     {
         this.InitializeSourceControl();
@@ -1037,11 +1126,11 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(2, this.GetVersionHeight(relativeDirectory));
     }
 
-    [Theory]
-    [InlineData("./")]
-    [InlineData("../some-sub-dir")]
-    [InlineData("/some-sub-dir")]
-    [InlineData(":/some-sub-dir")]
+    [Test]
+    [Arguments("./")]
+    [Arguments("../some-sub-dir")]
+    [Arguments("/some-sub-dir")]
+    [Arguments(":/some-sub-dir")]
     public void GetVersionHeight_IncludeFilter(string includeFilter)
     {
         this.InitializeSourceControl();
@@ -1051,14 +1140,25 @@ public abstract class VersionOracleTests : RepoTestBase
         var versionData = VersionOptions.FromVersion(new Version("1.2"));
         versionData.PathFilters = new[] { new FilterPath(includeFilter, relativeDirectory) };
         this.WriteVersionFile(versionData, relativeDirectory);
+        string versionCommitId = this.LibGit2Repository.Head.Tip.Sha;
         Assert.Equal(1, this.GetVersionHeight(relativeDirectory));
 
         // Expect commit outside of project tree to not affect version height
         string otherFilePath = Path.Combine(this.RepoPath, "my-file.txt");
         File.WriteAllText(otherFilePath, "hello");
         Commands.Stage(this.LibGit2Repository, otherFilePath);
-        this.LibGit2Repository.Commit("Add other file outside of project root", this.Signer, this.Signer);
+        Commit headCommit = this.LibGit2Repository.Commit("Add other file outside of project root", this.Signer, this.Signer);
         Assert.Equal(1, this.GetVersionHeight(relativeDirectory));
+
+        VersionOracle oracle = this.GetVersionOracle(relativeDirectory);
+        string versionCommitIdShort = versionCommitId.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength);
+        string headCommitIdShort = headCommit.Sha.Substring(0, VersionOptions.DefaultGitCommitIdShortFixedLength);
+        Assert.Equal(headCommit.Sha, oracle.GitCommitId);
+        Assert.Equal(headCommitIdShort, oracle.GitCommitIdShort);
+        Assert.EndsWith($"-g{versionCommitIdShort}", oracle.NuGetPackageVersion);
+        Assert.Equal($"+{versionCommitIdShort}", oracle.BuildMetadataFragment);
+        Assert.Equal(GitObjectId.Parse(versionCommitId).AsUInt16(), oracle.Version.Revision);
+        Assert.EndsWith($"+{headCommitIdShort}", oracle.AssemblyInformationalVersion);
 
         // Expect commit inside project tree to affect version height
         string containedFilePath = Path.Combine(this.RepoPath, relativeDirectory, "another-file.txt");
@@ -1068,7 +1168,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(2, this.GetVersionHeight(relativeDirectory));
     }
 
-    [Fact]
+    [Test]
     public void GetVersionHeight_WildcardIncludeFilter()
     {
         this.InitializeSourceControl();
@@ -1108,7 +1208,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(initialHeight + 2, this.GetVersionHeight());
     }
 
-    [Fact]
+    [Test]
     public void GetVersionHeight_DeletingDirectoryWithLiteralDescendantInclude()
     {
         this.InitializeSourceControl();
@@ -1131,7 +1231,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(initialHeight + 2, this.GetVersionHeight());
     }
 
-    [Fact]
+    [Test]
     public void GetVersionHeight_DeletingDirectoryWithExcludeOnlyFilter()
     {
         this.InitializeSourceControl();
@@ -1154,7 +1254,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(initialHeight + 2, this.GetVersionHeight());
     }
 
-    [Fact]
+    [Test]
     public void GetVersionHeight_IncludeExcludeFilter()
     {
         this.InitializeSourceControl();
@@ -1196,7 +1296,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(2, this.GetVersionHeight(relativeDirectory));
     }
 
-    [Fact]
+    [Test]
     public void GetVersionHeight_IncludeExcludeFilter_NoProjectDirectory()
     {
         this.InitializeSourceControl();
@@ -1235,11 +1335,124 @@ public abstract class VersionOracleTests : RepoTestBase
         Commands.Stage(this.LibGit2Repository, fileInExcludedDirPath);
         this.LibGit2Repository.Commit("Add file to excluded dir", this.Signer, this.Signer);
         Assert.Equal(2, this.GetVersionHeight());
+
+        Directory.Delete(Path.GetDirectoryName(fileInExcludedDirPath), recursive: true);
+        Commands.Stage(this.LibGit2Repository, Path.GetDirectoryName(fileInExcludedDirPath));
+        this.LibGit2Repository.Commit("Delete excluded dir", this.Signer, this.Signer);
+        Assert.Equal(2, this.GetVersionHeight());
     }
 
-    [Theory]
-    [InlineData(":^/excluded-dir")]
-    [InlineData(":^../excluded-dir")]
+    [Test]
+    public void GetVersionHeight_DeletingIncludedFileWithOnlyExcludeFilter()
+    {
+        this.InitializeSourceControl();
+
+        var versionData = VersionOptions.FromVersion(new Version("1.2"));
+        versionData.PathFilters = new[] { new FilterPath(":!README.md", ".") };
+        this.WriteVersionFile(versionData);
+
+        string includedFilePath = Path.Combine(this.RepoPath, "included.txt");
+        File.WriteAllText(includedFilePath, "hello");
+        Commands.Stage(this.LibGit2Repository, includedFilePath);
+        this.LibGit2Repository.Commit("Add included file", this.Signer, this.Signer);
+        Assert.Equal(2, this.GetVersionHeight());
+
+        File.Delete(includedFilePath);
+        Commands.Stage(this.LibGit2Repository, includedFilePath);
+        this.LibGit2Repository.Commit("Delete included file", this.Signer, this.Signer);
+        Assert.Equal(3, this.GetVersionHeight());
+    }
+
+    [Test]
+    public void GetVersionHeight_ChangingIncludedFileMode()
+    {
+        this.InitializeSourceControl();
+
+        var versionData = VersionOptions.FromVersion(new Version("1.2"));
+        versionData.PathFilters = new[] { new FilterPath("included.txt", ".") };
+        this.WriteVersionFile(versionData);
+
+        string includedFilePath = Path.Combine(this.RepoPath, "included.txt");
+        File.WriteAllText(includedFilePath, "hello");
+        Commands.Stage(this.LibGit2Repository, includedFilePath);
+        this.LibGit2Repository.Commit("Add included file", this.Signer, this.Signer);
+        Assert.Equal(1, this.GetVersionHeight());
+
+        var includedBlob = (Blob)this.LibGit2Repository.Head.Tip["included.txt"].Target;
+        this.LibGit2Repository.Index.Add(includedBlob, "included.txt", Mode.ExecutableFile);
+        this.LibGit2Repository.Index.Write();
+        this.LibGit2Repository.Commit("Make included file executable", this.Signer, this.Signer);
+        Assert.Equal(2, this.GetVersionHeight());
+    }
+
+    [Test]
+    public void GetVersionHeight_IncludeFilterHonorsIgnoreCase()
+    {
+        this.InitializeSourceControl();
+        this.LibGit2Repository.Config.Set("core.ignorecase", true, ConfigurationLevel.Local);
+
+        var versionData = VersionOptions.FromVersion(new Version("1.2"));
+        versionData.PathFilters = new[] { new FilterPath("SRC/INCLUDED.TXT", ".") };
+        this.WriteVersionFile(versionData);
+
+        string directoryPath = Path.Combine(this.RepoPath, "src");
+        Directory.CreateDirectory(directoryPath);
+        string filePath = Path.Combine(directoryPath, "included.txt");
+        File.WriteAllText(filePath, "hello");
+        Commands.Stage(this.LibGit2Repository, filePath);
+        this.LibGit2Repository.Commit("Add included file with different casing", this.Signer, this.Signer);
+        Assert.Equal(1, this.GetVersionHeight());
+    }
+
+    [Test]
+    public void GetVersionHeight_ReplacingFileWithIncludedDirectory()
+    {
+        this.InitializeSourceControl();
+
+        var versionData = VersionOptions.FromVersion(new Version("1.2"));
+        versionData.PathFilters = new[] { new FilterPath("target/included.txt", ".") };
+        this.WriteVersionFile(versionData);
+
+        string targetPath = Path.Combine(this.RepoPath, "target");
+        File.WriteAllText(targetPath, "not included");
+        Commands.Stage(this.LibGit2Repository, targetPath);
+        this.LibGit2Repository.Commit("Add file outside filter", this.Signer, this.Signer);
+        Assert.Equal(0, this.GetVersionHeight());
+
+        File.Delete(targetPath);
+        Directory.CreateDirectory(targetPath);
+        File.WriteAllText(Path.Combine(targetPath, "included.txt"), "included");
+        Commands.Stage(this.LibGit2Repository, targetPath);
+        this.LibGit2Repository.Commit("Replace file with included directory", this.Signer, this.Signer);
+        Assert.Equal(1, this.GetVersionHeight());
+    }
+
+    [Test]
+    public void GetVersionHeight_ReplacingIncludedDirectoryWithFile()
+    {
+        this.InitializeSourceControl();
+
+        var versionData = VersionOptions.FromVersion(new Version("1.2"));
+        versionData.PathFilters = new[] { new FilterPath("target/included.txt", ".") };
+        this.WriteVersionFile(versionData);
+
+        string targetPath = Path.Combine(this.RepoPath, "target");
+        Directory.CreateDirectory(targetPath);
+        File.WriteAllText(Path.Combine(targetPath, "included.txt"), "included");
+        Commands.Stage(this.LibGit2Repository, targetPath);
+        this.LibGit2Repository.Commit("Add included directory", this.Signer, this.Signer);
+        Assert.Equal(1, this.GetVersionHeight());
+
+        Directory.Delete(targetPath, recursive: true);
+        File.WriteAllText(targetPath, "not included");
+        Commands.Stage(this.LibGit2Repository, targetPath);
+        this.LibGit2Repository.Commit("Replace included directory with file", this.Signer, this.Signer);
+        Assert.Equal(2, this.GetVersionHeight());
+    }
+
+    [Test]
+    [Arguments(":^/excluded-dir")]
+    [Arguments(":^../excluded-dir")]
     public void GetVersionHeight_AddingExcludeDoesNotLowerHeight(string excludePathFilter)
     {
         this.InitializeSourceControl();
@@ -1269,7 +1482,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(3, this.GetVersionHeight(relativeDirectory));
     }
 
-    [Fact]
+    [Test]
     public void GetVersionHeight_IncludeRoot()
     {
         this.InitializeSourceControl();
@@ -1296,7 +1509,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(3, this.GetVersionHeight(relativeDirectory));
     }
 
-    [Fact]
+    [Test]
     public void GetVersionHeight_IncludeRootExcludeSome()
     {
         this.InitializeSourceControl();
@@ -1329,7 +1542,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(2, this.GetVersionHeight(relativeDirectory));
     }
 
-    [Fact]
+    [Test]
     public void GetVersion_PathFilterInTwoDeepSubDirAndVersionBump()
     {
         this.InitializeSourceControl();
@@ -1351,7 +1564,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(1, this.GetVersionHeight(relativeDirectory));
     }
 
-    [Fact]
+    [Test]
     public void GetVersion_PathFilterPlusMerge()
     {
         this.InitializeSourceControl(withInitialCommit: false);
@@ -1383,7 +1596,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(3, this.GetVersionHeight());
     }
 
-    [Fact]
+    [Test]
     public void GetVersionHeight_ProjectDirectoryDifferentToVersionJsonDirectory()
     {
         this.InitializeSourceControl();
@@ -1407,7 +1620,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(2, this.GetVersionHeight(relativeDirectory));
     }
 
-    [Fact]
+    [Test]
     public void GetVersionHeight_ProjectDirectoryIsMoved()
     {
         this.InitializeSourceControl();
@@ -1458,7 +1671,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(1, this.GetVersionHeight("new-project-dir"));
     }
 
-    [Fact]
+    [Test]
     public void Tags()
     {
         this.WriteVersionFile(new VersionOptions { Version = SemanticVersion.Parse("1.2"), GitCommitIdShortAutoMinimum = 4 });
@@ -1473,7 +1686,7 @@ public abstract class VersionOracleTests : RepoTestBase
         this.LibGit2Repository.ApplyTag("mytag");
 
         // Refresh our context before asking again.
-        this.Context = this.CreateGitContext(this.RepoPath);
+        this.ReplaceContext(this.CreateGitContext(this.RepoPath));
         VersionOracle oracle2 = new(this.Context);
 
         // Assert that we see the tag.
@@ -1483,14 +1696,14 @@ public abstract class VersionOracleTests : RepoTestBase
         this.AddCommits(1);
 
         // Refresh our context before asking again.
-        this.Context = this.CreateGitContext(this.RepoPath);
+        this.ReplaceContext(this.CreateGitContext(this.RepoPath));
         VersionOracle oracle3 = new(this.Context);
 
         // Assert that HEAD is not pointing to the tag.
         Assert.Empty(oracle3.Tags);
     }
 
-    [Fact]
+    [Test]
     public void Tags_Annotated()
     {
         this.WriteVersionFile(new VersionOptions { Version = SemanticVersion.Parse("1.2"), GitCommitIdShortAutoMinimum = 4 });
@@ -1505,7 +1718,7 @@ public abstract class VersionOracleTests : RepoTestBase
         this.LibGit2Repository.ApplyTag("mytag", this.Signer, "my tag");
 
         // Refresh our context before asking again.
-        this.Context = this.CreateGitContext(this.RepoPath);
+        this.ReplaceContext(this.CreateGitContext(this.RepoPath));
         VersionOracle oracle2 = new(this.Context);
 
         // Assert that we see the tag.
@@ -1515,14 +1728,14 @@ public abstract class VersionOracleTests : RepoTestBase
         this.AddCommits(1);
 
         // Refresh our context before asking again.
-        this.Context = this.CreateGitContext(this.RepoPath);
+        this.ReplaceContext(this.CreateGitContext(this.RepoPath));
         VersionOracle oracle3 = new(this.Context);
 
         // Assert that HEAD is not pointing to the tag.
         Assert.Empty(oracle3.Tags);
     }
 
-    [Fact]
+    [Test]
     public void GitCommitIdShort()
     {
         this.WriteVersionFile(new VersionOptions { Version = SemanticVersion.Parse("1.2"), GitCommitIdShortAutoMinimum = 4 });
@@ -1541,7 +1754,7 @@ public abstract class VersionOracleTests : RepoTestBase
         }
     }
 
-    [Fact]
+    [Test]
     public void GitCommidIdLeading16BitsDecodedWithBigEndian()
     {
         this.WriteVersionFile(new VersionOptions { Version = SemanticVersion.Parse("1.2"), GitCommitIdShortAutoMinimum = 4 });
@@ -1558,7 +1771,7 @@ public abstract class VersionOracleTests : RepoTestBase
         Assert.Equal(expectedNumber, actualNumber);
     }
 
-    [Fact(Skip = "Slow test")]
+    [Test, Skip("Slow test")]
     public void GetVersionHeight_VeryLongHistory()
     {
         this.WriteVersionFile();
@@ -1569,34 +1782,34 @@ public abstract class VersionOracleTests : RepoTestBase
         this.GetVersionHeight();
     }
 
-    [Theory]
+    [Test]
     // 2 version fields configured in version.json
-    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata, "1.2", "1.2.1+<commit:string>")]
-    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent, "1.2", "1.2.1.<commit:int>")]
+    [Arguments(VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata, "1.2", "1.2.1+<commit:string>")]
+    [Arguments(VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent, "1.2", "1.2.1.<commit:int>")]
     // 2 version fields and a static prerelease tag configured in version.json
-    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata, "1.2-alpha", "1.2.1-alpha+<commit:string>")]
-    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent, "1.2-alpha", "1.2.1.<commit:int>-alpha")]
+    [Arguments(VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata, "1.2-alpha", "1.2.1-alpha+<commit:string>")]
+    [Arguments(VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent, "1.2-alpha", "1.2.1.<commit:int>-alpha")]
     // 2 version fields with git height in prerelease tag configured in version.json
-    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata, "1.2-alpha.{height}", "1.2-alpha.1+<commit:string>")]
-    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent, "1.2-alpha.{height}", "1.2-alpha.1")]
+    [Arguments(VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata, "1.2-alpha.{height}", "1.2-alpha.1+<commit:string>")]
+    [Arguments(VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent, "1.2-alpha.{height}", "1.2-alpha.1")]
     // 3 version fields configured in version.json
-    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata, "1.2.3", "1.2.3.1+<commit:string>")]
-    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent, "1.2.3", "1.2.3.1")]
+    [Arguments(VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata, "1.2.3", "1.2.3.1+<commit:string>")]
+    [Arguments(VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent, "1.2.3", "1.2.3.1")]
     // 3 version fields and a static prerelease tag configured in version.json
-    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata, "1.2.3-alpha", "1.2.3.1-alpha+<commit:string>")]
-    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent, "1.2.3-alpha", "1.2.3.1-alpha")]
+    [Arguments(VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata, "1.2.3-alpha", "1.2.3.1-alpha+<commit:string>")]
+    [Arguments(VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent, "1.2.3-alpha", "1.2.3.1-alpha")]
     // 3 version fields with git height in prerelease tag configured in version.json
-    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata, "1.2.3-alpha.{height}", "1.2.3-alpha.1+<commit:string>")]
-    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent, "1.2.3-alpha.{height}", "1.2.3-alpha.1")]
+    [Arguments(VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata, "1.2.3-alpha.{height}", "1.2.3-alpha.1+<commit:string>")]
+    [Arguments(VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent, "1.2.3-alpha.{height}", "1.2.3-alpha.1")]
     // 4 version fields configured in version.json
-    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata, "1.2.3.4", "1.2.3.4+<commit:string>")]
-    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent, "1.2.3.4", "1.2.3.4")]
+    [Arguments(VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata, "1.2.3.4", "1.2.3.4+<commit:string>")]
+    [Arguments(VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent, "1.2.3.4", "1.2.3.4")]
     // 4 version fields and a static prerelease tag configured in version.json
-    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata, "1.2.3.4-alpha", "1.2.3.4-alpha+<commit:string>")]
-    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent, "1.2.3.4-alpha", "1.2.3.4-alpha")]
+    [Arguments(VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata, "1.2.3.4-alpha", "1.2.3.4-alpha+<commit:string>")]
+    [Arguments(VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent, "1.2.3.4-alpha", "1.2.3.4-alpha")]
     // 4 version fields with git height in prerelease tag configured in version.json
-    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata, "1.2.3.4-alpha.{height}", "1.2.3.4-alpha.1+<commit:string>")]
-    [InlineData(VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent, "1.2.3.4-alpha.{height}", "1.2.3.4-alpha.1")]
+    [Arguments(VersionOptions.CloudBuildNumberCommitWhere.BuildMetadata, "1.2.3.4-alpha.{height}", "1.2.3.4-alpha.1+<commit:string>")]
+    [Arguments(VersionOptions.CloudBuildNumberCommitWhere.FourthVersionComponent, "1.2.3.4-alpha.{height}", "1.2.3.4-alpha.1")]
     public void CloudBuildNumber_4thPosition(VersionOptions.CloudBuildNumberCommitWhere where, string version, string expectedCloudBuildNumber)
     {
         VersionOptions workingCopyVersion = new VersionOptions

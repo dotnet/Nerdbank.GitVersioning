@@ -24,7 +24,9 @@
     <!-- Opt in till https://github.com/NuGet/Home/issues/9803 makes this the default. -->
     <RestoreUseStaticGraphEvaluation>true</RestoreUseStaticGraphEvaluation>
 
-    <!-- This entire repo has just one version.json file, so compute the version once and share with all projects in a large build. -->
+    <!-- This entire repo has just one version.json file, so compute the version once and share with all projects in a large build.
+         Remove this if you add a project with its own version.json (e.g. an analyzer that needs revision-level assembly versions)
+         or add this same property definition to each project that has its own version.json file. -->
     <GitVersionBaseDirectory>$(MSBuildThisFileDirectory)</GitVersionBaseDirectory>
 
     <DebugType>embedded</DebugType>
@@ -46,6 +48,18 @@
     <LangVersion Condition="'$(MSBuildProjectExtension)'=='.vbproj'">16.9</LangVersion>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <RidOsPrefix Condition="$([MSBuild]::IsOsPlatform('Windows'))">win</RidOsPrefix>
+    <RidOsPrefix Condition="$([MSBuild]::IsOsPlatform('Linux'))">linux</RidOsPrefix>
+    <RidOsPrefix Condition="$([MSBuild]::IsOsPlatform('OSX'))">osx</RidOsPrefix>
+
+    <RidOsArchitecture Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'x64'">x64</RidOsArchitecture>
+    <RidOsArchitecture Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'ARM64'">arm64</RidOsArchitecture>
+
+    <DefaultRuntimeIdentifier>$(RidOsPrefix)-$(RidOsArchitecture)</DefaultRuntimeIdentifier>
+    <AvailableRuntimeIdentifiers>$(DefaultRuntimeIdentifier)</AvailableRuntimeIdentifiers>
+  </PropertyGroup>
+
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)3rdPartyNotices.txt" Pack="true" PackagePath="" />
   </ItemGroup>
@@ -54,6 +68,11 @@
   </ItemGroup>
 
   <ItemDefinitionGroup>
+    <ProjectReference>
+      <!-- Keep referenced builds identical to the traversal's managed builds. -->
+      <GlobalPropertiesToRemove>_IsPublishing</GlobalPropertiesToRemove>
+      <UndefineProperties Condition="'$(UsingMicrosoftTraversalSdk)' == 'true'">_IsPublishing</UndefineProperties>
+    </ProjectReference>
     <!-- We always want MSBuild properties generated that point at the restored location of each package. -->
     <PackageReference GeneratePathProperty="true" />
   </ItemDefinitionGroup>

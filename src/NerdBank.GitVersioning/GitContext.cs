@@ -129,6 +129,11 @@ public abstract class GitContext : IDisposable
     public abstract IReadOnlyCollection<string>? HeadTags { get; }
 
     /// <summary>
+    /// Gets a value indicating whether the working tree has uncommitted changes.
+    /// </summary>
+    internal virtual bool IsWorkingTreeDirty => false;
+
+    /// <summary>
     /// Gets the path to the .git folder.
     /// </summary>
     protected string? DotGitPath { get; }
@@ -144,7 +149,8 @@ public abstract class GitContext : IDisposable
     /// Valid values are "LibGit2", "Managed", and "Disabled" (case-sensitive).
     /// Unrecognized values are treated as if the variable was not set, maintaining backward compatibility.
     /// Otherwise, if the DEPENDABOT environment variable is set to "true" (case-insensitive), returns <see cref="Engine.Disabled"/>.
-    /// Otherwise, if the GITHUB_ACTOR environment variable is set to "copilot-swe-agent[bot]", returns <see cref="Engine.Disabled"/>.
+    /// Otherwise, if the GITHUB_ACTOR environment variable is set to "copilot-swe-agent[bot]" or GITHUB_WORKFLOW_REF contains
+    /// "copilot-setup-steps.yml", returns <see cref="Engine.Disabled"/>.
     /// Otherwise, returns <paramref name="defaultEngine"/>.
     /// </remarks>
     public static Engine GetEffectiveGitEngine(Engine defaultEngine = Engine.ReadOnly)
@@ -229,6 +235,46 @@ public abstract class GitContext : IDisposable
     }
 
     /// <summary>
+    /// Gets the repository's default branch name.
+    /// </summary>
+    /// <returns>The detected default branch name, or <c>master</c> when it cannot be determined.</returns>
+    public string GetDefaultBranch()
+    {
+        IReadOnlyCollection<string> remoteNames = this.GetRemoteNames();
+        string[] preferredRemoteNames = new[] { "upstream", "origin" };
+        foreach (string remoteName in preferredRemoteNames)
+        {
+            if (remoteNames.Contains(remoteName, StringComparer.Ordinal) && this.GetRemoteDefaultBranch(remoteName) is string defaultBranch)
+            {
+                return defaultBranch;
+            }
+        }
+
+        foreach (string remoteName in remoteNames)
+        {
+            if (!preferredRemoteNames.Contains(remoteName, StringComparer.Ordinal) && this.GetRemoteDefaultBranch(remoteName) is string defaultBranch)
+            {
+                return defaultBranch;
+            }
+        }
+
+        IReadOnlyCollection<string> localBranchNames = this.GetLocalBranchNames();
+        if (localBranchNames.Count == 1)
+        {
+            return localBranchNames.Single();
+        }
+
+        string? configuredDefaultBranch = this.GetConfiguredDefaultBranch();
+        if (configuredDefaultBranch is not null && localBranchNames.Contains(configuredDefaultBranch, StringComparer.Ordinal))
+        {
+            return configuredDefaultBranch;
+        }
+
+        string[] conventionalDefaultBranchNames = new[] { "master", "main", "develop" };
+        return conventionalDefaultBranchNames.FirstOrDefault(branchName => localBranchNames.Contains(branchName, StringComparer.Ordinal)) ?? "master";
+    }
+
+    /// <summary>
     /// Determines whether a file would be ignored by git based on common .gitignore patterns.
     /// </summary>
     /// <param name="path">The absolute file path to check.</param>
@@ -297,9 +343,17 @@ public abstract class GitContext : IDisposable
         return true;
     }
 
-    internal abstract int CalculateVersionHeight(VersionOptions? committedVersion, VersionOptions? workingVersion);
+    /// <summary>
+    /// Gets the shortest string that uniquely identifies a specified commit.
+    /// </summary>
+    /// <param name="commitId">The commit ID to shorten.</param>
+    /// <param name="minLength">A minimum length.</param>
+    /// <returns>A string that is at least <paramref name="minLength"/> in length but may be more as required to uniquely identify the commit.</returns>
+    internal abstract string GetShortUniqueCommitId(string commitId, int minLength);
 
-    internal abstract Version GetIdAsVersion(VersionOptions? committedVersion, VersionOptions? workingVersion, int versionHeight);
+    internal abstract VersionHeightCalculation CalculateVersionHeight(VersionOptions? committedVersion, VersionOptions? workingVersion);
+
+    internal abstract Version GetIdAsVersion(VersionOptions? committedVersion, VersionOptions? workingVersion, VersionHeightCalculation versionHeight);
 
     internal string GetRepoRelativePath(string absolutePath, bool replaceBackslashes = false)
     {
@@ -357,6 +411,31 @@ public abstract class GitContext : IDisposable
             throw new ArgumentException("Path is not within a git directory.", nameof(path));
         }
     }
+
+    /// <summary>
+    /// Gets the names of the repository's remotes.
+    /// </summary>
+    /// <returns>The remote names.</returns>
+    private protected virtual IReadOnlyCollection<string> GetRemoteNames() => Array.Empty<string>();
+
+    /// <summary>
+    /// Gets the default branch advertised by a remote.
+    /// </summary>
+    /// <param name="remoteName">The remote name.</param>
+    /// <returns>The default branch name, or <see langword="null"/> if the remote does not advertise one.</returns>
+    private protected virtual string? GetRemoteDefaultBranch(string remoteName) => null;
+
+    /// <summary>
+    /// Gets the names of the repository's local branches.
+    /// </summary>
+    /// <returns>The local branch names.</returns>
+    private protected virtual IReadOnlyCollection<string> GetLocalBranchNames() => Array.Empty<string>();
+
+    /// <summary>
+    /// Gets the default branch configured for new repositories.
+    /// </summary>
+    /// <returns>The configured branch name, or <see langword="null"/> when none is configured.</returns>
+    private protected virtual string? GetConfiguredDefaultBranch() => null;
 
     /// <summary>
     /// Searches a path and its ancestors for a directory with a .git subdirectory.
@@ -417,10 +496,42 @@ public abstract class GitContext : IDisposable
     /// <summary>
     /// Determines whether the current environment is running under GitHub Copilot.
     /// </summary>
-    /// <returns><see langword="true"/> if GITHUB_ACTOR environment variable is set to "copilot-swe-agent[bot]"; otherwise, <see langword="false"/>.</returns>
+    /// <returns>
+    /// <see langword="true"/> if GITHUB_ACTOR is set to "copilot-swe-agent[bot]" or GITHUB_WORKFLOW_REF contains
+    /// "copilot-setup-steps.yml"; otherwise, <see langword="false"/>.
+    /// </returns>
     private static bool IsGitHubCopilotEnvironment()
     {
         string? githubActorEnvVar = Environment.GetEnvironmentVariable("GITHUB_ACTOR");
-        return string.Equals(githubActorEnvVar, "copilot-swe-agent[bot]", StringComparison.Ordinal);
+        string? githubWorkflowRefEnvVar = Environment.GetEnvironmentVariable("GITHUB_WORKFLOW_REF");
+        return string.Equals(githubActorEnvVar, "copilot-swe-agent[bot]", StringComparison.Ordinal)
+            || githubWorkflowRefEnvVar?.Contains("/copilot-setup-steps.yml@", StringComparison.Ordinal) is true;
+    }
+
+    /// <summary>
+    /// Describes the version height and the commit that last contributed to it.
+    /// </summary>
+    internal readonly struct VersionHeightCalculation
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="VersionHeightCalculation"/> struct.
+        /// </summary>
+        /// <param name="height">The calculated version height.</param>
+        /// <param name="commitId">The commit that last contributed to the height.</param>
+        internal VersionHeightCalculation(int height, string? commitId)
+        {
+            this.Height = height;
+            this.CommitId = commitId;
+        }
+
+        /// <summary>
+        /// Gets the calculated version height.
+        /// </summary>
+        internal int Height { get; }
+
+        /// <summary>
+        /// Gets the commit that last contributed to the height.
+        /// </summary>
+        internal string? CommitId { get; }
     }
 }

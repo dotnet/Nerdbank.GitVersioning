@@ -10,7 +10,7 @@ namespace ManagedGit;
 
 public class GitTreeStreamingReaderTests
 {
-    [Fact]
+    [Test]
     public void FindBlobTest()
     {
         using (Stream stream = TestUtilities.GetEmbeddedResource(@"ManagedGit\tree.bin"))
@@ -20,7 +20,7 @@ public class GitTreeStreamingReaderTests
         }
     }
 
-    [Fact]
+    [Test]
     public void FindTreeTest()
     {
         using (Stream stream = TestUtilities.GetEmbeddedResource(@"ManagedGit\tree.bin"))
@@ -30,7 +30,7 @@ public class GitTreeStreamingReaderTests
         }
     }
 
-    [Fact]
+    [Test]
     public void FindBlobCaseInsensitiveTest()
     {
         using (Stream stream = TestUtilities.GetEmbeddedResource(@"ManagedGit\tree.bin"))
@@ -41,7 +41,7 @@ public class GitTreeStreamingReaderTests
         }
     }
 
-    [Fact]
+    [Test]
     public void FindBlobCaseSensitiveFailsWithDifferentCasing()
     {
         using (Stream stream = TestUtilities.GetEmbeddedResource(@"ManagedGit\tree.bin"))
@@ -52,7 +52,7 @@ public class GitTreeStreamingReaderTests
         }
     }
 
-    [Fact]
+    [Test]
     public void FindTreeCaseInsensitiveTest()
     {
         using (Stream stream = TestUtilities.GetEmbeddedResource(@"ManagedGit\tree.bin"))

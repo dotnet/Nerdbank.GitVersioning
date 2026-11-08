@@ -9,22 +9,39 @@ using Xunit;
 #pragma warning disable SA1402 // File may only contain a single type
 #pragma warning disable SA1649 // File name should match first type name
 
-[Collection("Build")]
-[Trait("Engine", "Managed")]
+[Property("Engine", "Managed")]
+[InheritsTests]
 public class GitContextManagedTests : GitContextTests
 {
-    public GitContextManagedTests(ITestOutputHelper logger)
-        : base(logger)
+    public GitContextManagedTests()
+        : base(TestOutputHelper.Instance)
     {
     }
 
-    [Theory]
-    [InlineData("HEAD~999")]
-    [InlineData("HEAD~-1")]
-    [InlineData("HEAD~2147483648")]
+    [Test]
+    [Arguments("HEAD~999")]
+    [Arguments("HEAD~-1")]
+    [Arguments("HEAD~2147483648")]
     public void SelectInvalidFirstParentAncestor(string committish)
     {
         Assert.False(this.Context.TrySelectCommit(committish));
+    }
+
+    [Test]
+    public void SelectFirstParentAncestorInShallowRepository()
+    {
+        this.AddCommits();
+
+        string firstCommitSha = this.LibGit2Repository.Head.Tip.Parents.Single().Sha;
+        string firstCommitPath = Path.Combine(this.RepoPath, ".git", "objects", firstCommitSha.Substring(0, 2), firstCommitSha.Substring(2));
+        File.SetAttributes(firstCommitPath, FileAttributes.Normal);
+        File.Delete(firstCommitPath);
+        File.WriteAllText(Path.Combine(this.RepoPath, ".git", "shallow"), firstCommitSha);
+
+        GitException exception = Assert.Throws<GitException>(() => this.Context.TrySelectCommit("HEAD~1"));
+
+        Assert.True(exception.IsShallowClone);
+        Assert.Equal(GitException.ErrorCodes.ObjectNotFound, exception.ErrorCode);
     }
 
     /// <inheritdoc/>
@@ -32,12 +49,12 @@ public class GitContextManagedTests : GitContextTests
         => GitContext.Create(path, committish, engine: GitContext.Engine.ReadOnly);
 }
 
-[Collection("Build")]
-[Trait("Engine", "LibGit2")]
+[Property("Engine", "LibGit2")]
+[InheritsTests]
 public class GitContextLibGit2Tests : GitContextTests
 {
-    public GitContextLibGit2Tests(ITestOutputHelper logger)
-        : base(logger)
+    public GitContextLibGit2Tests()
+        : base(TestOutputHelper.Instance)
     {
     }
 
@@ -55,7 +72,7 @@ public abstract class GitContextTests : RepoTestBase
         this.AddCommits();
     }
 
-    [Fact]
+    [Test]
     public void InitialDefaultState()
     {
         Assert.Equal(this.LibGit2Repository.Head.Tip.Id.Sha, this.Context.GitCommitId);
@@ -70,16 +87,65 @@ public abstract class GitContextTests : RepoTestBase
         Assert.NotNull(this.Context.VersionFile);
     }
 
-    [Fact]
+    [Test]
+    public void DefaultBranchUsesOnlyLocalBranch()
+    {
+        this.LibGit2Repository.Refs.Rename("refs/heads/master", "refs/heads/release/v1.0");
+        this.LibGit2Repository.Refs.UpdateTarget("HEAD", "refs/heads/release/v1.0");
+        this.RecreateContext();
+
+        Assert.Equal("release/v1.0", this.Context.GetDefaultBranch());
+    }
+
+    [Test]
+    public void DefaultBranchPrefersUpstreamRemote()
+    {
+        this.AddRemoteDefaultBranch("origin", "main");
+        this.AddRemoteDefaultBranch("upstream", "develop");
+        this.RecreateContext();
+
+        Assert.Equal("develop", this.Context.GetDefaultBranch());
+    }
+
+    [Test]
+    public void DefaultBranchUsesArbitraryRemote()
+    {
+        this.AddRemoteDefaultBranch("fork", "trunk");
+        this.RecreateContext();
+
+        Assert.Equal("trunk", this.Context.GetDefaultBranch());
+    }
+
+    [Test]
+    public void DefaultBranchUsesConfiguredBranch()
+    {
+        this.LibGit2Repository.Branches.Add("configured", this.LibGit2Repository.Head.Tip);
+        this.LibGit2Repository.Config.Set("init.defaultBranch", "configured", LibGit2Sharp.ConfigurationLevel.Local);
+        this.RecreateContext();
+
+        Assert.Equal("configured", this.Context.GetDefaultBranch());
+    }
+
+    [Test]
+    public void DefaultBranchUsesConventionalBranchOrder()
+    {
+        this.LibGit2Repository.Branches.Add("develop", this.LibGit2Repository.Head.Tip);
+        this.LibGit2Repository.Branches.Add("main", this.LibGit2Repository.Head.Tip);
+        this.RecreateContext();
+
+        Assert.Equal("master", this.Context.GetDefaultBranch());
+    }
+
+    [Test]
     public void SelectHead()
     {
         Assert.True(this.Context.TrySelectCommit("HEAD"));
         Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
     }
 
-    [Theory]
-    [InlineData("HEAD~2", 2)]
-    [InlineData("HEAD~", 1)]
+    [Test]
+    [Arguments("HEAD~2", 2)]
+    [Arguments("HEAD~", 1)]
     public void SelectFirstParentAncestor(string committish, int generations)
     {
         this.AddCommits(2);
@@ -93,14 +159,14 @@ public abstract class GitContextTests : RepoTestBase
         Assert.Equal(expectedCommit.Sha, this.Context.GitCommitId);
     }
 
-    [Theory, CombinatorialData]
+    [Test, MatrixDataSource]
     public void SelectCommitByFullId(bool uppercase)
     {
         Assert.True(this.Context.TrySelectCommit(uppercase ? this.Context.GitCommitId.ToUpperInvariant() : this.Context.GitCommitId));
         Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
     }
 
-    [Theory, CombinatorialData]
+    [Test, MatrixDataSource]
     public void SelectCommitByPartialId(bool fromPack, bool oddLength)
     {
         if (fromPack)
@@ -113,25 +179,25 @@ public abstract class GitContextTests : RepoTestBase
 
             // The managed git context always assumes read-only access. It won't detect a new Git pack file being
             // created on the fly, so we have to re-initialize.
-            this.Context = this.CreateGitContext(this.RepoPath, null);
+            this.RecreateContext();
         }
 
         Assert.True(this.Context.TrySelectCommit(this.Context.GitCommitId.Substring(0, oddLength ? 11 : 12)));
         Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
     }
 
-    [Theory]
-    [InlineData(4)]
-    [InlineData(7)]
-    [InlineData(8)]
-    [InlineData(11)]
+    [Test]
+    [Arguments(4)]
+    [Arguments(7)]
+    [Arguments(8)]
+    [Arguments(11)]
     public void GetShortUniqueCommitId(int length)
     {
-        Assert.SkipWhen(length < 7 && this.Context is Nerdbank.GitVersioning.LibGit2.LibGit2Context, "LibGit2Sharp never returns commit IDs with fewer than 7 characters.");
+        Skip.When(length < 7 && this.Context is Nerdbank.GitVersioning.LibGit2.LibGit2Context, "LibGit2Sharp never returns commit IDs with fewer than 7 characters.");
         Assert.Equal(this.Context.GitCommitId.Substring(0, length), this.Context.GetShortUniqueCommitId(length));
     }
 
-    [Theory, CombinatorialData]
+    [Test, MatrixDataSource]
     public void SelectCommitByTag(bool packedRefs, bool canonicalName)
     {
         if (packedRefs)
@@ -147,7 +213,7 @@ public abstract class GitContextTests : RepoTestBase
         Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
     }
 
-    [Theory, CombinatorialData]
+    [Test, MatrixDataSource]
     public void SelectCommitByBranch(bool packedRefs, bool canonicalName)
     {
         if (packedRefs)
@@ -163,7 +229,7 @@ public abstract class GitContextTests : RepoTestBase
         Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
     }
 
-    [Theory, CombinatorialData]
+    [Test, MatrixDataSource]
     public void SelectCommitByRemoteBranch(bool packedRefs, bool canonicalName)
     {
         if (packedRefs)
@@ -181,14 +247,14 @@ public abstract class GitContextTests : RepoTestBase
         Assert.Equal(this.LibGit2Repository.Head.Tip.Sha, this.Context.GitCommitId);
     }
 
-    [Fact]
+    [Test]
     public void SelectDirectory_Empty()
     {
         this.Context.RepoRelativeProjectDirectory = string.Empty;
         Assert.Equal(string.Empty, this.Context.RepoRelativeProjectDirectory);
     }
 
-    [Fact]
+    [Test]
     public void SelectDirectory_SubDir()
     {
         string absolutePath = Path.Combine(this.RepoPath, "sub");
@@ -198,37 +264,39 @@ public abstract class GitContextTests : RepoTestBase
         Assert.Equal(absolutePath, this.Context.AbsoluteProjectDirectory);
     }
 
-    [Fact]
+    [Test]
     public void GetVersion_PackedHead()
     {
         using TestUtilities.ExpandedRepo expandedRepo = TestUtilities.ExtractRepoArchive("PackedHeadRef");
-        this.Context = this.CreateGitContext(Path.Combine(expandedRepo.RepoPath));
-        var oracle = new VersionOracle(this.Context);
+        using GitContext context = this.CreateGitContext(Path.Combine(expandedRepo.RepoPath));
+        var oracle = new VersionOracle(context);
         Assert.Equal("1.0.1", oracle.SimpleVersion.ToString());
-        this.Context.TrySelectCommit("HEAD");
+        context.TrySelectCommit("HEAD");
         Assert.Equal("1.0.1", oracle.SimpleVersion.ToString());
     }
 
-    [Fact]
+    [Test]
     public void HeadCanonicalName_PackedHead()
     {
         using TestUtilities.ExpandedRepo expandedRepo = TestUtilities.ExtractRepoArchive("PackedHeadRef");
-        this.Context = this.CreateGitContext(Path.Combine(expandedRepo.RepoPath));
-        Assert.Equal("refs/heads/main", this.Context.HeadCanonicalName);
+        using GitContext context = this.CreateGitContext(Path.Combine(expandedRepo.RepoPath));
+        Assert.Equal("refs/heads/main", context.HeadCanonicalName);
     }
 
-    [Fact]
+    [Test]
     public void GetEffectiveGitEngine_DefaultBehavior()
     {
         // Arrange: Clear all environment variables
         var originalDependabot = Environment.GetEnvironmentVariable("DEPENDABOT");
         var originalNbgvGitEngine = Environment.GetEnvironmentVariable("NBGV_GitEngine");
         var originalGitHubActor = Environment.GetEnvironmentVariable("GITHUB_ACTOR");
+        var originalGitHubWorkflowRef = Environment.GetEnvironmentVariable("GITHUB_WORKFLOW_REF");
         try
         {
             Environment.SetEnvironmentVariable("DEPENDABOT", null);
             Environment.SetEnvironmentVariable("NBGV_GitEngine", null);
             Environment.SetEnvironmentVariable("GITHUB_ACTOR", null);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", null);
 
             // Act & Assert: With no environment variables, should return default ReadOnly
             Assert.Equal(GitContext.Engine.ReadOnly, GitContext.GetEffectiveGitEngine());
@@ -239,24 +307,27 @@ public abstract class GitContextTests : RepoTestBase
             Environment.SetEnvironmentVariable("DEPENDABOT", originalDependabot);
             Environment.SetEnvironmentVariable("NBGV_GitEngine", originalNbgvGitEngine);
             Environment.SetEnvironmentVariable("GITHUB_ACTOR", originalGitHubActor);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", originalGitHubWorkflowRef);
         }
     }
 
-    [Theory]
-    [InlineData("true")]
-    [InlineData("TRUE")]
-    [InlineData("True")]
+    [Test]
+    [Arguments("true")]
+    [Arguments("TRUE")]
+    [Arguments("True")]
     public void GetEffectiveGitEngine_DependabotEnvironment_DisablesEngine(string dependabotValue)
     {
         // Arrange: Set DEPENDABOT=true and clear NBGV_GitEngine and GITHUB_ACTOR
         var originalDependabot = Environment.GetEnvironmentVariable("DEPENDABOT");
         var originalNbgvGitEngine = Environment.GetEnvironmentVariable("NBGV_GitEngine");
         var originalGitHubActor = Environment.GetEnvironmentVariable("GITHUB_ACTOR");
+        var originalGitHubWorkflowRef = Environment.GetEnvironmentVariable("GITHUB_WORKFLOW_REF");
         try
         {
             Environment.SetEnvironmentVariable("DEPENDABOT", dependabotValue);
             Environment.SetEnvironmentVariable("NBGV_GitEngine", null);
             Environment.SetEnvironmentVariable("GITHUB_ACTOR", null);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", null);
 
             // Act & Assert: Should return Disabled regardless of requested engine
             Assert.Equal(GitContext.Engine.Disabled, GitContext.GetEffectiveGitEngine());
@@ -268,25 +339,28 @@ public abstract class GitContextTests : RepoTestBase
             Environment.SetEnvironmentVariable("DEPENDABOT", originalDependabot);
             Environment.SetEnvironmentVariable("NBGV_GitEngine", originalNbgvGitEngine);
             Environment.SetEnvironmentVariable("GITHUB_ACTOR", originalGitHubActor);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", originalGitHubWorkflowRef);
         }
     }
 
-    [Theory]
-    [InlineData("false")]
-    [InlineData("False")]
-    [InlineData("0")]
-    [InlineData("")]
+    [Test]
+    [Arguments("false")]
+    [Arguments("False")]
+    [Arguments("0")]
+    [Arguments("")]
     public void GetEffectiveGitEngine_DependabotNotTrue_UsesDefault(string dependabotValue)
     {
         // Arrange: Set DEPENDABOT to non-true value and clear NBGV_GitEngine and GITHUB_ACTOR
         var originalDependabot = Environment.GetEnvironmentVariable("DEPENDABOT");
         var originalNbgvGitEngine = Environment.GetEnvironmentVariable("NBGV_GitEngine");
         var originalGitHubActor = Environment.GetEnvironmentVariable("GITHUB_ACTOR");
+        var originalGitHubWorkflowRef = Environment.GetEnvironmentVariable("GITHUB_WORKFLOW_REF");
         try
         {
             Environment.SetEnvironmentVariable("DEPENDABOT", dependabotValue);
             Environment.SetEnvironmentVariable("NBGV_GitEngine", null);
             Environment.SetEnvironmentVariable("GITHUB_ACTOR", null);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", null);
 
             // Act & Assert: Should use default behavior
             Assert.Equal(GitContext.Engine.ReadOnly, GitContext.GetEffectiveGitEngine());
@@ -297,24 +371,27 @@ public abstract class GitContextTests : RepoTestBase
             Environment.SetEnvironmentVariable("DEPENDABOT", originalDependabot);
             Environment.SetEnvironmentVariable("NBGV_GitEngine", originalNbgvGitEngine);
             Environment.SetEnvironmentVariable("GITHUB_ACTOR", originalGitHubActor);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", originalGitHubWorkflowRef);
         }
     }
 
-    [Theory]
-    [InlineData("LibGit2", GitContext.Engine.ReadWrite)]
-    [InlineData("Managed", GitContext.Engine.ReadOnly)]
-    [InlineData("Disabled", GitContext.Engine.Disabled)]
+    [Test]
+    [Arguments("LibGit2", GitContext.Engine.ReadWrite)]
+    [Arguments("Managed", GitContext.Engine.ReadOnly)]
+    [Arguments("Disabled", GitContext.Engine.Disabled)]
     public void GetEffectiveGitEngine_NbgvGitEngineOverridesDependabot(string nbgvValue, GitContext.Engine expectedEngine)
     {
         // Arrange: Set both DEPENDABOT and NBGV_GitEngine, clear GITHUB_ACTOR
         var originalDependabot = Environment.GetEnvironmentVariable("DEPENDABOT");
         var originalNbgvGitEngine = Environment.GetEnvironmentVariable("NBGV_GitEngine");
         var originalGitHubActor = Environment.GetEnvironmentVariable("GITHUB_ACTOR");
+        var originalGitHubWorkflowRef = Environment.GetEnvironmentVariable("GITHUB_WORKFLOW_REF");
         try
         {
             Environment.SetEnvironmentVariable("DEPENDABOT", "true");
             Environment.SetEnvironmentVariable("NBGV_GitEngine", nbgvValue);
             Environment.SetEnvironmentVariable("GITHUB_ACTOR", null);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", null);
 
             // Act & Assert: NBGV_GitEngine should take precedence and be parsed correctly
             Assert.Equal(expectedEngine, GitContext.GetEffectiveGitEngine());
@@ -324,21 +401,24 @@ public abstract class GitContextTests : RepoTestBase
             Environment.SetEnvironmentVariable("DEPENDABOT", originalDependabot);
             Environment.SetEnvironmentVariable("NBGV_GitEngine", originalNbgvGitEngine);
             Environment.SetEnvironmentVariable("GITHUB_ACTOR", originalGitHubActor);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", originalGitHubWorkflowRef);
         }
     }
 
-    [Fact]
+    [Test]
     public void GetEffectiveGitEngine_GitHubCopilotEnvironment_DisablesEngine()
     {
         // Arrange: Set GITHUB_ACTOR to copilot-swe-agent[bot] and clear NBGV_GitEngine and DEPENDABOT
         var originalGitHubActor = Environment.GetEnvironmentVariable("GITHUB_ACTOR");
         var originalNbgvGitEngine = Environment.GetEnvironmentVariable("NBGV_GitEngine");
         var originalDependabot = Environment.GetEnvironmentVariable("DEPENDABOT");
+        var originalGitHubWorkflowRef = Environment.GetEnvironmentVariable("GITHUB_WORKFLOW_REF");
         try
         {
             Environment.SetEnvironmentVariable("GITHUB_ACTOR", "copilot-swe-agent[bot]");
             Environment.SetEnvironmentVariable("NBGV_GitEngine", null);
             Environment.SetEnvironmentVariable("DEPENDABOT", null);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", null);
 
             // Act & Assert: Should return Disabled regardless of requested engine
             Assert.Equal(GitContext.Engine.Disabled, GitContext.GetEffectiveGitEngine());
@@ -350,26 +430,29 @@ public abstract class GitContextTests : RepoTestBase
             Environment.SetEnvironmentVariable("GITHUB_ACTOR", originalGitHubActor);
             Environment.SetEnvironmentVariable("NBGV_GitEngine", originalNbgvGitEngine);
             Environment.SetEnvironmentVariable("DEPENDABOT", originalDependabot);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", originalGitHubWorkflowRef);
         }
     }
 
-    [Theory]
-    [InlineData("user")]
-    [InlineData("dependabot[bot]")]
-    [InlineData("copilot-swe-agent")]
-    [InlineData("COPILOT-SWE-AGENT[BOT]")]
-    [InlineData("")]
+    [Test]
+    [Arguments("user")]
+    [Arguments("dependabot[bot]")]
+    [Arguments("copilot-swe-agent")]
+    [Arguments("COPILOT-SWE-AGENT[BOT]")]
+    [Arguments("")]
     public void GetEffectiveGitEngine_GitHubActorNotCopilot_UsesDefault(string gitHubActorValue)
     {
         // Arrange: Set GITHUB_ACTOR to non-copilot value and clear NBGV_GitEngine and DEPENDABOT
         var originalGitHubActor = Environment.GetEnvironmentVariable("GITHUB_ACTOR");
         var originalNbgvGitEngine = Environment.GetEnvironmentVariable("NBGV_GitEngine");
         var originalDependabot = Environment.GetEnvironmentVariable("DEPENDABOT");
+        var originalGitHubWorkflowRef = Environment.GetEnvironmentVariable("GITHUB_WORKFLOW_REF");
         try
         {
             Environment.SetEnvironmentVariable("GITHUB_ACTOR", gitHubActorValue);
             Environment.SetEnvironmentVariable("NBGV_GitEngine", null);
             Environment.SetEnvironmentVariable("DEPENDABOT", null);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", null);
 
             // Act & Assert: Should use default behavior
             Assert.Equal(GitContext.Engine.ReadOnly, GitContext.GetEffectiveGitEngine());
@@ -380,22 +463,25 @@ public abstract class GitContextTests : RepoTestBase
             Environment.SetEnvironmentVariable("GITHUB_ACTOR", originalGitHubActor);
             Environment.SetEnvironmentVariable("NBGV_GitEngine", originalNbgvGitEngine);
             Environment.SetEnvironmentVariable("DEPENDABOT", originalDependabot);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", originalGitHubWorkflowRef);
         }
     }
 
-    [Theory]
-    [InlineData("LibGit2", GitContext.Engine.ReadWrite)]
-    [InlineData("Managed", GitContext.Engine.ReadOnly)]
-    [InlineData("Disabled", GitContext.Engine.Disabled)]
+    [Test]
+    [Arguments("LibGit2", GitContext.Engine.ReadWrite)]
+    [Arguments("Managed", GitContext.Engine.ReadOnly)]
+    [Arguments("Disabled", GitContext.Engine.Disabled)]
     public void GetEffectiveGitEngine_NbgvGitEngineOverridesGitHubCopilot(string nbgvValue, GitContext.Engine expectedEngine)
     {
         // Arrange: Set both GITHUB_ACTOR=copilot-swe-agent[bot] and NBGV_GitEngine
         var originalGitHubActor = Environment.GetEnvironmentVariable("GITHUB_ACTOR");
         var originalNbgvGitEngine = Environment.GetEnvironmentVariable("NBGV_GitEngine");
+        var originalGitHubWorkflowRef = Environment.GetEnvironmentVariable("GITHUB_WORKFLOW_REF");
         try
         {
             Environment.SetEnvironmentVariable("GITHUB_ACTOR", "copilot-swe-agent[bot]");
             Environment.SetEnvironmentVariable("NBGV_GitEngine", nbgvValue);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", null);
 
             // Act & Assert: NBGV_GitEngine should take precedence and be parsed correctly
             Assert.Equal(expectedEngine, GitContext.GetEffectiveGitEngine());
@@ -404,6 +490,110 @@ public abstract class GitContextTests : RepoTestBase
         {
             Environment.SetEnvironmentVariable("GITHUB_ACTOR", originalGitHubActor);
             Environment.SetEnvironmentVariable("NBGV_GitEngine", originalNbgvGitEngine);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", originalGitHubWorkflowRef);
         }
+    }
+
+    [Test]
+    [Arguments("owner/repo/.github/workflows/copilot-setup-steps.yml@refs/heads/main")]
+    [Arguments("owner/repo/.github/workflows/copilot-setup-steps.yml@refs/pull/42/merge")]
+    public void GetEffectiveGitEngine_GitHubCopilotSetupWorkflow_DisablesEngine(string gitHubWorkflowRef)
+    {
+        var originalGitHubActor = Environment.GetEnvironmentVariable("GITHUB_ACTOR");
+        var originalGitHubWorkflowRef = Environment.GetEnvironmentVariable("GITHUB_WORKFLOW_REF");
+        var originalNbgvGitEngine = Environment.GetEnvironmentVariable("NBGV_GitEngine");
+        var originalDependabot = Environment.GetEnvironmentVariable("DEPENDABOT");
+        try
+        {
+            Environment.SetEnvironmentVariable("GITHUB_ACTOR", null);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", gitHubWorkflowRef);
+            Environment.SetEnvironmentVariable("NBGV_GitEngine", null);
+            Environment.SetEnvironmentVariable("DEPENDABOT", null);
+
+            Assert.Equal(GitContext.Engine.Disabled, GitContext.GetEffectiveGitEngine());
+            Assert.Equal(GitContext.Engine.Disabled, GitContext.GetEffectiveGitEngine(GitContext.Engine.ReadOnly));
+            Assert.Equal(GitContext.Engine.Disabled, GitContext.GetEffectiveGitEngine(GitContext.Engine.ReadWrite));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("GITHUB_ACTOR", originalGitHubActor);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", originalGitHubWorkflowRef);
+            Environment.SetEnvironmentVariable("NBGV_GitEngine", originalNbgvGitEngine);
+            Environment.SetEnvironmentVariable("DEPENDABOT", originalDependabot);
+        }
+    }
+
+    [Test]
+    [Arguments("owner/repo/.github/workflows/build.yml@refs/heads/main")]
+    [Arguments("owner/repo/.github/workflows/Copilot-Setup-Steps.yml@refs/heads/main")]
+    [Arguments("owner/repo/.github/workflows/my-copilot-setup-steps.yml@refs/heads/main")]
+    [Arguments("owner/repo/.github/workflows/copilot-setup-steps.yml.backup@refs/heads/main")]
+    [Arguments("")]
+    public void GetEffectiveGitEngine_GitHubWorkflowRefNotCopilotSetup_UsesDefault(string gitHubWorkflowRef)
+    {
+        var originalGitHubActor = Environment.GetEnvironmentVariable("GITHUB_ACTOR");
+        var originalGitHubWorkflowRef = Environment.GetEnvironmentVariable("GITHUB_WORKFLOW_REF");
+        var originalNbgvGitEngine = Environment.GetEnvironmentVariable("NBGV_GitEngine");
+        var originalDependabot = Environment.GetEnvironmentVariable("DEPENDABOT");
+        try
+        {
+            Environment.SetEnvironmentVariable("GITHUB_ACTOR", null);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", gitHubWorkflowRef);
+            Environment.SetEnvironmentVariable("NBGV_GitEngine", null);
+            Environment.SetEnvironmentVariable("DEPENDABOT", null);
+
+            Assert.Equal(GitContext.Engine.ReadOnly, GitContext.GetEffectiveGitEngine());
+            Assert.Equal(GitContext.Engine.ReadWrite, GitContext.GetEffectiveGitEngine(GitContext.Engine.ReadWrite));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("GITHUB_ACTOR", originalGitHubActor);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", originalGitHubWorkflowRef);
+            Environment.SetEnvironmentVariable("NBGV_GitEngine", originalNbgvGitEngine);
+            Environment.SetEnvironmentVariable("DEPENDABOT", originalDependabot);
+        }
+    }
+
+    [Test]
+    [Arguments("LibGit2", GitContext.Engine.ReadWrite)]
+    [Arguments("Managed", GitContext.Engine.ReadOnly)]
+    [Arguments("Disabled", GitContext.Engine.Disabled)]
+    public void GetEffectiveGitEngine_NbgvGitEngineOverridesGitHubCopilotSetupWorkflow(string nbgvValue, GitContext.Engine expectedEngine)
+    {
+        var originalGitHubActor = Environment.GetEnvironmentVariable("GITHUB_ACTOR");
+        var originalGitHubWorkflowRef = Environment.GetEnvironmentVariable("GITHUB_WORKFLOW_REF");
+        var originalNbgvGitEngine = Environment.GetEnvironmentVariable("NBGV_GitEngine");
+        var originalDependabot = Environment.GetEnvironmentVariable("DEPENDABOT");
+        try
+        {
+            Environment.SetEnvironmentVariable("GITHUB_ACTOR", null);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", "owner/repo/.github/workflows/copilot-setup-steps.yml@refs/heads/main");
+            Environment.SetEnvironmentVariable("NBGV_GitEngine", nbgvValue);
+            Environment.SetEnvironmentVariable("DEPENDABOT", null);
+
+            Assert.Equal(expectedEngine, GitContext.GetEffectiveGitEngine());
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("GITHUB_ACTOR", originalGitHubActor);
+            Environment.SetEnvironmentVariable("GITHUB_WORKFLOW_REF", originalGitHubWorkflowRef);
+            Environment.SetEnvironmentVariable("NBGV_GitEngine", originalNbgvGitEngine);
+            Environment.SetEnvironmentVariable("DEPENDABOT", originalDependabot);
+        }
+    }
+
+    private void AddRemoteDefaultBranch(string remoteName, string branchName)
+    {
+        this.LibGit2Repository.Network.Remotes.Add(remoteName, $"https://example.com/{remoteName}.git");
+        string remoteDirectory = Path.Combine(this.RepoPath, ".git", "refs", "remotes", remoteName);
+        string branchPath = Path.Combine(remoteDirectory, branchName.Replace('/', Path.DirectorySeparatorChar));
+        Directory.CreateDirectory(Path.GetDirectoryName(branchPath));
+        File.WriteAllText(branchPath, $"{this.LibGit2Repository.Head.Tip.Sha}\n");
+        File.WriteAllText(Path.Combine(remoteDirectory, "HEAD"), $"ref: refs/remotes/{remoteName}/{branchName}\n");
+    }
+
+    private void RecreateContext()
+    {
+        this.ReplaceContext(this.CreateGitContext(this.RepoPath));
     }
 }

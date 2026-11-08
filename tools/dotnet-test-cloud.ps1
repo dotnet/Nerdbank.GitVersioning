@@ -5,6 +5,8 @@
     Runs tests as they are run in cloud test runs.
 .PARAMETER Configuration
     The configuration within which to run tests
+.PARAMETER IncludeNativeAOT
+    Runs the NativeAOT-compiled tests and fails if the expected image is missing.
 .PARAMETER Agent
     The name of the agent. This is used in preparing test run titles.
 .PARAMETER PublishResults
@@ -13,23 +15,35 @@
     A switch to run the tests in an x86 process.
 .PARAMETER dotnet32
     The path to a 32-bit dotnet executable to use.
+.PARAMETER NoCoverage
+    A switch to skip code coverage collection.
 #>
 [CmdletBinding()]
 Param(
     [string]$Configuration='Debug',
+    [switch]$IncludeNativeAOT,
     [string]$Agent='Local',
     [switch]$PublishResults,
     [switch]$x86,
-    [string]$dotnet32
+    [string]$dotnet32,
+    [switch]$NoCoverage
 )
 
 $RepoRoot = (Resolve-Path "$PSScriptRoot/..").Path
 $ArtifactStagingFolder = & "$PSScriptRoot/Get-ArtifactsStagingDirectory.ps1"
 $OnCI = ($env:CI -or $env:TF_BUILD)
 
+$globalJson = Get-Content $PSScriptRoot/../global.json | ConvertFrom-Json
+$isMTP = $globalJson.test.runner -eq 'Microsoft.Testing.Platform'
+
 $dotnet = 'dotnet'
 if ($x86) {
   $x86RunTitleSuffix = ", x86"
+}
+
+# A Microsoft.Testing.Platform test project is a self-hosted executable, so a 32-bit dotnet.exe does not make its tests run in a 32-bit process.
+# For MTP, x86 test runs instead rebuild the .NET Framework test apps for x86 (see TestArchitecture in test/Directory.Build.targets).
+if ($x86 -and -not $isMTP) {
   if ($dotnet32) {
     $dotnet = $dotnet32
   } else {
@@ -40,16 +54,17 @@ if ($x86) {
       Write-Host "Running tests using `"$dotnet`"" -ForegroundColor DarkGray
     } else {
       Write-Error "Unable to find 32-bit dotnet.exe"
-      return 1
+      exit 1
     }
   }
 }
 
 $testBinLog = Join-Path $ArtifactStagingFolder (Join-Path build_logs test.binlog)
 $testLogs = Join-Path $ArtifactStagingFolder test_logs
+if (Test-Path -LiteralPath $testLogs) {
+    Remove-Item -LiteralPath $testLogs -Recurse -Force
+}
 
-$globalJson = Get-Content $PSScriptRoot/../global.json | ConvertFrom-Json
-$isMTP = $globalJson.test.runner -eq 'Microsoft.Testing.Platform'
 $extraArgs = @()
 $failedTests = 0
 $publishTrx = $PublishResults -and $env:TF_BUILD
@@ -57,49 +72,147 @@ $publishTrx = $PublishResults -and $env:TF_BUILD
 if ($isMTP) {
     if ($OnCI) { $extraArgs += '--no-progress' }
 
-    $dumpSwitches = @()
-    if ($IsWindows -and $env:TF_BUILD) {
-        $dumpSwitches = @(
-            ,'--hangdump'
-            ,'--hangdump-timeout','120s'
-            ,'--crashdump'
-        )
-    }
+    $dumpSwitches = @(
+        ,'--hangdump'
+        ,'--hangdump-timeout','5m'
+        ,'--crashdump'
+        ,'--crashdump-type','Heap'
+        # The native crash report accompanies the dump and is often the only way to identify the
+        # faulting thread and instruction when a test host dies of an access violation on Linux.
+        ,'--crash-report-if-supported'
+    )
+    # Directory-valued options use the --option=value form. 'dotnet test' rejects a separate argument naming an existing directory
+    # ("Specifying a directory for 'dotnet test' should be via '--project' or '--solution'"), even after '--',
+    # and $testLogs exists once the first test project below has run.
     $mtpArgs = @(
-        ,'--coverage'
-        ,'--coverage-output-format','cobertura'
         ,'--diagnostic'
-        ,'--diagnostic-output-directory',$testLogs
+        ,"--diagnostic-output-directory=$testLogs"
         ,'--diagnostic-verbosity','Information'
-        ,'--results-directory',$testLogs
+        ,"--results-directory=$testLogs"
     )
 
-    if ($publishTrx) {
-       $mtpArgs += '--report-trx'
+    if (-not $NoCoverage) {
+        $mtpArgs += @(
+            ,'--coverage'
+            ,'--coverage-output-format','cobertura'
+            ,'--coverage-settings',"$PSScriptRoot/test.runsettings"
+        )
     }
 
-    & $dotnet test --solution $RepoRoot `
-       --no-build `
-        -c $Configuration `
-        -bl:"$testBinLog" `
-        --filter-not-trait 'TestCategory=FailsInCloudTest' `
-        --coverage-settings "$PSScriptRoot/test.runsettings" `
-        @mtpArgs `
-        @dumpSwitches `
-        @extraArgs
-    if ($LASTEXITCODE -ne 0) { $failedTests += 1 }
+    $solutionFiles = @(Get-ChildItem -LiteralPath $RepoRoot -File | Where-Object { $_.Extension -in '.sln', '.slnx' })
+    if ($solutionFiles.Count -ne 1) {
+        throw "Expected exactly one solution file in $RepoRoot, but found $($solutionFiles.Count)."
+    }
+
+    $solutionPath = $solutionFiles[0].FullName
+
+    # This repo's test projects use different test frameworks (TUnit, plus xunit for the tests that need Xunit.Combinatorial),
+    # which take different filter syntax. Each test project declares its FailsInCloudTest filter in its CloudTestFilterOption and
+    # CloudTestFilterValue MSBuild properties (see test/Directory.Build.props), so each test project is run separately.
+    $projectPaths = @(& dotnet sln $solutionPath list | Where-Object { $_ -match '\.(cs|vb|fs)proj$' } |% { Join-Path $RepoRoot $_.Trim() })
+    foreach ($projectPath in $projectPaths) {
+        $projectProperties = (& dotnet msbuild $projectPath -getProperty:IsTestingPlatformApplication -getProperty:CloudTestFilterOption -getProperty:CloudTestFilterValue -getProperty:TargetFramework -getProperty:TargetFrameworks | ConvertFrom-Json).Properties
+        if ($projectProperties.IsTestingPlatformApplication -ne 'true') { continue }
+
+        # x86 test runs cover .NET Framework only (e.g. net472). Projects without a .NET Framework target are skipped.
+        $frameworkArgs = @()
+        if ($x86) {
+            $netfxTargetFrameworks = @("$($projectProperties.TargetFrameworks);$($projectProperties.TargetFramework)" -split ';' |? { $_ -match '^net\d{2,3}$' } | Select-Object -Unique)
+            if ($netfxTargetFrameworks.Count -eq 0) {
+                Write-Host "Skipping $projectPath for x86 because it has no .NET Framework target." -ForegroundColor DarkGray
+                continue
+            }
+            if ($netfxTargetFrameworks.Count -gt 1) {
+                throw "$projectPath targets more than one .NET Framework version ($($netfxTargetFrameworks -join ', ')), but x86 test runs support only one."
+            }
+            $frameworkArgs = '--framework', $netfxTargetFrameworks[0]
+
+            # Rebuild the .NET Framework test app as x86 so its tests run in a real 32-bit (WOW64) process.
+            $x86BinLog = Join-Path (Split-Path $testBinLog) "build_x86_$([IO.Path]::GetFileNameWithoutExtension($projectPath)).binlog"
+            & dotnet build $projectPath --no-restore -c $Configuration @frameworkArgs -p:TestArchitecture=x86 -p:BuildProjectReferences=false -bl:"$x86BinLog"
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host "Failed to build $projectPath for x86." -ForegroundColor Red
+                $failedTests += 1
+                continue
+            }
+
+            $targetPath = & dotnet msbuild $projectPath -getProperty:TargetPath -p:Configuration=$Configuration -p:TargetFramework=$($netfxTargetFrameworks[0]) -p:TestArchitecture=x86
+            $peReader = [System.Reflection.PortableExecutable.PEReader]::new([IO.File]::OpenRead($targetPath))
+            try {
+                $corFlags = $peReader.PEHeaders.CorHeader.Flags
+            } finally {
+                $peReader.Dispose()
+            }
+            Write-Host "$targetPath CorFlags: $corFlags"
+            if (-not ($corFlags -band [System.Reflection.PortableExecutable.CorFlags]::Requires32Bit)) {
+                Write-Host "$targetPath was not built as a 32-bit executable." -ForegroundColor Red
+                $failedTests += 1
+                continue
+            }
+        }
+
+        $projectName = [IO.Path]::GetFileNameWithoutExtension($projectPath)
+        $projectBinLog = Join-Path (Split-Path $testBinLog) "test_$projectName.binlog"
+        $filterOption = $projectProperties.CloudTestFilterOption
+        $filterValue = $projectProperties.CloudTestFilterValue
+
+        # The filter is passed as quoted scalars: on Linux and macOS, PowerShell expands wildcards in array (splatted) arguments as file paths.
+        & $dotnet test --project $projectPath `
+            --no-build `
+            -c $Configuration `
+            @frameworkArgs `
+            -bl:"$projectBinLog" `
+            -- `
+            "$filterOption" `
+            "$filterValue" `
+            @mtpArgs `
+            @dumpSwitches `
+            @extraArgs
+        if ($LASTEXITCODE -ne 0) { $failedTests += 1 }
+    }
+
+    if ($IncludeNativeAOT) {
+        $nativeAotTests = @(& "$PSScriptRoot/Get-NativeAOTTestProjects.ps1" -Configuration $Configuration)
+        foreach ($nativeAotTest in $nativeAotTests) {
+            $testExecutable = $nativeAotTest.ExecutablePath
+            if (-not (Test-Path -LiteralPath $testExecutable -PathType Leaf)) {
+                Write-Error "Expected NativeAOT TUnit test executable '$testExecutable' was not found."
+                $failedTests += 1
+                continue
+            }
+
+            $nativeAotArgs = @(
+                ,'--diagnostic'
+                ,'--diagnostic-output-directory',$testLogs
+                ,'--diagnostic-verbosity','Information'
+                ,'--results-directory',$testLogs
+                ,'--report-trx'
+                ,'--report-trx-filename',"$($nativeAotTest.ProjectName)_$($nativeAotTest.TargetFramework)_NativeAOT_{arch}.trx"
+            )
+            if ($IsWindows) {
+                $nativeAotArgs += $dumpSwitches
+            }
+            Write-Host "Running NativeAOT TUnit tests from '$testExecutable'." -ForegroundColor Cyan
+            & $testExecutable @nativeAotArgs @extraArgs
+            if ($LASTEXITCODE -ne 0) { $failedTests += 1 }
+        }
+    }
 
     $trxFiles = @(Get-ChildItem -Recurse -Path $testLogs\*.trx -ErrorAction Ignore)
 } else {
     $testDiagLog = Join-Path $ArtifactStagingFolder (Join-Path test_logs diag.log)
     $vstestArgs = @(
-        '--collect', 'Code Coverage;Format=cobertura',
-        '--settings', "$PSScriptRoot/test.runsettings",
         '--blame-hang-timeout', '60s',
         '--blame-crash',
         '-bl:"$testBinLog"',
         '--diag', "$testDiagLog;TraceLevel=info"
     )
+    if (-not $NoCoverage) {
+        $vstestArgs += @(
+            '--collect', 'Code Coverage;Format=cobertura',
+            '--settings', "$PSScriptRoot/test.runsettings"
+        )
+    }
     if ($publishTrx) {
         $vstestArgs += '--logger'
         $vstestArgs += 'trx'

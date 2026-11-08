@@ -1,6 +1,8 @@
 items:
 - name: Getting Started
   href: getting-started.md
+- name: Recommended versioning workflow
+  href: versioning-workflow.md
 - name: Build systems
   items:
   - href: build-systems/msbuild.md

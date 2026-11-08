@@ -3,6 +3,7 @@
 
 #nullable enable
 
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.InteropServices;
@@ -19,6 +20,7 @@ public class GitRepository : IDisposable
     private const string HeadFileName = "HEAD";
     private const string GitDirectoryName = ".git";
     private readonly Lazy<ReadOnlyMemory<GitPack>> packs;
+    private readonly bool usesReftable;
 
     /// <summary>
     /// UTF-16 encoded string.
@@ -98,6 +100,10 @@ public class GitRepository : IDisposable
 
         // Read git configuration to determine case sensitivity
         this.IgnoreCase = this.ReadIgnoreCaseFromConfig();
+        string configPath = Path.Combine(this.CommonDirectory, "config");
+        this.usesReftable = File.Exists(configPath)
+            && TryReadConfigurationValue(configPath, "extensions", "refStorage", out string? refStorage)
+            && string.Equals(refStorage, "reftable", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -278,6 +284,13 @@ public class GitRepository : IDisposable
     /// </returns>
     public object GetHeadAsReferenceOrSha()
     {
+        if (this.usesReftable)
+        {
+            return this.ReadReftableReferences().TryGetValue(HeadFileName, out (object Value, GitObjectId? Peeled) head)
+                ? head.Value
+                : throw new GitException("The reftable stack does not contain HEAD.");
+        }
+
         using FileStream? stream = File.OpenRead(Path.Combine(this.GitDirectory, HeadFileName));
         return GitReferenceReader.ReadReference(stream);
     }
@@ -342,12 +355,21 @@ public class GitRepository : IDisposable
     /// </summary>
     /// <param name="objectish">Any "objectish" string (e.g. commit ID (partial or full), branch name, tag name, "HEAD", or a first-parent ancestor).</param>
     /// <returns>The object ID referenced by <paramref name="objectish"/> if found; otherwise <see langword="null"/>.</returns>
-    public GitObjectId? Lookup(string objectish)
+    public GitObjectId? Lookup(string objectish) => this.Lookup(objectish, out _);
+
+    /// <summary>
+    /// Parses any committish to an object id.
+    /// </summary>
+    /// <param name="objectish">Any "objectish" string (e.g. commit ID (partial or full), branch name, tag name, "HEAD", or a first-parent ancestor).</param>
+    /// <param name="missingObjectException">Receives the exception for an object missing while resolving an ancestor, if any.</param>
+    /// <returns>The object ID referenced by <paramref name="objectish"/> if found; otherwise <see langword="null"/>.</returns>
+    public GitObjectId? Lookup(string objectish, out GitException? missingObjectException)
     {
+        missingObjectException = null;
         int ancestorOperatorIndex = objectish.IndexOf('~');
         if (ancestorOperatorIndex > 0)
         {
-            GitObjectId? objectId = this.Lookup(objectish.Substring(0, ancestorOperatorIndex));
+            GitObjectId? objectId = this.Lookup(objectish.Substring(0, ancestorOperatorIndex), out missingObjectException);
             if (objectId is null)
             {
                 return null;
@@ -376,7 +398,17 @@ public class GitRepository : IDisposable
 
                 for (int i = 0; i < generations; i++)
                 {
-                    GitObjectId? parent = this.GetCommit(objectId.Value).FirstParent;
+                    GitObjectId? parent;
+                    try
+                    {
+                        parent = this.GetCommit(objectId.Value).FirstParent;
+                    }
+                    catch (GitException ex) when (ex.ErrorCode == GitException.ErrorCodes.ObjectNotFound)
+                    {
+                        missingObjectException = ex;
+                        return null;
+                    }
+
                     if (parent is null)
                     {
                         return null;
@@ -391,61 +423,88 @@ public class GitRepository : IDisposable
 
         bool skipObjectIdLookup = false;
 
-        if (objectish == "HEAD")
+        if (this.usesReftable)
         {
-            object? reference = this.GetHeadAsReferenceOrSha();
-            if (reference is GitObjectId headObjectId)
+            Dictionary<string, (object Value, GitObjectId? Peeled)> references = this.ReadReftableReferences();
+            if (objectish == HeadFileName && !references.ContainsKey(HeadFileName))
             {
-                return headObjectId;
+                throw new GitException("The reftable stack does not contain HEAD.");
             }
 
-            objectish = (string)reference;
-        }
+            string[] candidates = objectish == "HEAD" || objectish.StartsWith("refs/", StringComparison.Ordinal)
+                ? new[] { objectish }
+                : new[] { objectish, "refs/heads/" + objectish, "refs/tags/" + objectish, "refs/remotes/" + objectish };
+            foreach (string candidate in candidates)
+            {
+                if (references.ContainsKey(candidate))
+                {
+                    return ResolveReftableReference(references, candidate);
+                }
+            }
 
-        var possibleLooseFileMatches = new List<string>();
-        if (objectish.StartsWith("refs/", StringComparison.Ordinal))
-        {
-            // Match on loose ref files by their canonical name.
-            possibleLooseFileMatches.Add(Path.Combine(this.CommonDirectory, objectish));
-            skipObjectIdLookup = true;
+            if (objectish == "HEAD" || objectish.StartsWith("refs/", StringComparison.Ordinal))
+            {
+                return null;
+            }
         }
         else
         {
-            // Look for simple names for branch or tag.
-            possibleLooseFileMatches.Add(Path.Combine(this.CommonDirectory, "refs", "heads", objectish));
-            possibleLooseFileMatches.Add(Path.Combine(this.CommonDirectory, "refs", "tags", objectish));
-            possibleLooseFileMatches.Add(Path.Combine(this.CommonDirectory, "refs", "remotes", objectish));
-        }
-
-        if (possibleLooseFileMatches.FirstOrDefault(File.Exists) is string existingPath)
-        {
-            return GitObjectId.Parse(File.ReadAllText(existingPath).TrimEnd());
-        }
-
-        // Match in packed-refs file.
-        foreach ((string line, string? _) in this.EnumeratePackedRefsWithPeelLines(out var _))
-        {
-            var refName = line.Substring(41);
-            GitObjectId GetObjId() => GitObjectId.Parse(line.AsSpan().Slice(0, 40));
-
-            if (string.Equals(refName, objectish, StringComparison.Ordinal))
+            if (objectish == "HEAD")
             {
-                return GetObjId();
+                object? reference = this.GetHeadAsReferenceOrSha();
+                if (reference is GitObjectId headObjectId)
+                {
+                    return headObjectId;
+                }
+
+                objectish = (string)reference;
             }
-            else if (!objectish.StartsWith("refs/", StringComparison.Ordinal))
+
+            var possibleLooseFileMatches = new List<string>();
+            if (objectish.StartsWith("refs/", StringComparison.Ordinal))
             {
-                // Not a canonical ref, so try heads and tags
-                if (string.Equals(refName, "refs/heads/" + objectish, StringComparison.Ordinal))
+                // Match on loose ref files by their canonical name.
+                possibleLooseFileMatches.Add(Path.Combine(this.CommonDirectory, objectish));
+                skipObjectIdLookup = true;
+            }
+            else
+            {
+                // Look for simple names for branch or tag.
+                possibleLooseFileMatches.Add(Path.Combine(this.CommonDirectory, "refs", "heads", objectish));
+                possibleLooseFileMatches.Add(Path.Combine(this.CommonDirectory, "refs", "tags", objectish));
+                possibleLooseFileMatches.Add(Path.Combine(this.CommonDirectory, "refs", "remotes", objectish));
+            }
+
+            if (possibleLooseFileMatches.FirstOrDefault(File.Exists) is string existingPath)
+            {
+                return GitObjectId.Parse(File.ReadAllText(existingPath).TrimEnd());
+            }
+
+            // Match in packed-refs file.
+            foreach ((string line, string? _) in this.EnumeratePackedRefsWithPeelLines(out var _))
+            {
+                var refName = line.Substring(41);
+                GitObjectId GetObjId() => GitObjectId.Parse(line.AsSpan().Slice(0, 40));
+
+                if (string.Equals(refName, objectish, StringComparison.Ordinal))
                 {
                     return GetObjId();
                 }
-                else if (string.Equals(refName, "refs/tags/" + objectish, StringComparison.Ordinal))
+                else if (!objectish.StartsWith("refs/", StringComparison.Ordinal))
                 {
-                    return GetObjId();
-                }
-                else if (string.Equals(refName, "refs/remotes/" + objectish, StringComparison.Ordinal))
-                {
-                    return GetObjId();
+                    // Not a canonical ref, so try heads and tags
+                    if (string.Equals(refName, "refs/heads/" + objectish, StringComparison.Ordinal))
+                    {
+                        return GetObjId();
+                    }
+                    else if (string.Equals(refName, "refs/tags/" + objectish, StringComparison.Ordinal))
+                    {
+                        return GetObjId();
+                    }
+                    else if (string.Equals(refName, "refs/remotes/" + objectish, StringComparison.Ordinal))
+                    {
+                        return GetObjId();
+                    }
                 }
             }
         }
@@ -716,12 +775,30 @@ public class GitRepository : IDisposable
             }
             else if (!isPeeled && this.TryGetObjectBySha(pointsAt, "tag", out Stream? tagContent))
             {
-                GitAnnotatedTag tag = GitAnnotatedTagReader.Read(tagContent, pointsAt);
-                if ("commit".Equals(tag.Type, StringComparison.Ordinal) && objectId.Equals(tag.Object))
+                using (tagContent)
                 {
-                    tags.Add($"refs/tags/{tag.Tag}");
+                    GitAnnotatedTag tag = GitAnnotatedTagReader.Read(tagContent, pointsAt);
+                    if ("commit".Equals(tag.Type, StringComparison.Ordinal) && objectId.Equals(tag.Object))
+                    {
+                        tags.Add($"refs/tags/{tag.Tag}");
+                    }
                 }
             }
+        }
+
+        if (this.usesReftable)
+        {
+            Dictionary<string, (object Value, GitObjectId? Peeled)> references = this.ReadReftableReferences();
+            foreach (KeyValuePair<string, (object Value, GitObjectId? Peeled)> reference in references)
+            {
+                if (reference.Key.StartsWith("refs/tags/", StringComparison.Ordinal)
+                    && (reference.Value.Peeled ?? ResolveReftableReference(references, reference.Key)) is GitObjectId target)
+                {
+                    HandleCandidate(target, reference.Key, reference.Value.Peeled.HasValue);
+                }
+            }
+
+            return tags;
         }
 
         // Both tag files and packed-refs might either contain lightweight or annotated tags.
@@ -776,6 +853,170 @@ public class GitRepository : IDisposable
         }
     }
 
+    /// <summary>
+    /// Gets a value indicating whether the index or working tree has uncommitted changes.
+    /// </summary>
+    /// <returns><see langword="true"/> when the repository is dirty; otherwise, <see langword="false"/>.</returns>
+    internal bool IsWorkingTreeDirty()
+    {
+        var startInfo = new ProcessStartInfo("git")
+        {
+            Arguments = "status --porcelain=v1 --untracked-files=normal",
+            CreateNoWindow = true,
+            RedirectStandardError = true,
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            WorkingDirectory = this.WorkingDirectory,
+        };
+
+        using Process process = Process.Start(startInfo) ?? throw new GitException("Failed to start Git while checking the working tree status.");
+        Task<string> standardOutputTask = process.StandardOutput.ReadToEndAsync();
+        Task<string> standardErrorTask = process.StandardError.ReadToEndAsync();
+        process.WaitForExit();
+        string standardOutput = standardOutputTask.GetAwaiter().GetResult();
+        string standardError = standardErrorTask.GetAwaiter().GetResult();
+        if (process.ExitCode != 0)
+        {
+            throw new GitException($"Git failed while checking the working tree status: {standardError.Trim()}");
+        }
+
+        return standardOutput.Length > 0;
+    }
+
+    /// <summary>
+    /// Gets the names of the configured remotes that have remote-tracking references.
+    /// </summary>
+    /// <returns>The remote names.</returns>
+    internal IReadOnlyCollection<string> GetRemoteNames()
+    {
+        if (this.usesReftable)
+        {
+            return this.ReadReftableReferences().Keys
+                .Where(name => name.StartsWith("refs/remotes/", StringComparison.Ordinal))
+                .Select(name => name.Substring("refs/remotes/".Length).Split('/')[0])
+                .Distinct(StringComparer.Ordinal).ToArray();
+        }
+
+        string remotesDirectory = Path.Combine(this.CommonDirectory, "refs", "remotes");
+        return Directory.Exists(remotesDirectory)
+            ? Directory.EnumerateDirectories(remotesDirectory).Select(path => Path.GetFileName(path)!).ToArray()
+            : Array.Empty<string>();
+    }
+
+    /// <summary>
+    /// Gets the default branch advertised by a remote.
+    /// </summary>
+    /// <param name="remoteName">The remote name.</param>
+    /// <returns>The default branch name, or <see langword="null"/> if the remote does not advertise one.</returns>
+    internal string? GetRemoteDefaultBranch(string remoteName)
+    {
+        if (this.usesReftable)
+        {
+            string prefix = $"refs/remotes/{remoteName}/";
+            return this.ReadReftableReferences().TryGetValue(prefix + HeadFileName, out (object Value, GitObjectId? Peeled) reference) && reference.Value is string target && target.StartsWith(prefix, StringComparison.Ordinal)
+                ? target.Substring(prefix.Length)
+                : null;
+        }
+
+        string remoteHeadPath = Path.Combine(this.CommonDirectory, "refs", "remotes", remoteName, HeadFileName);
+        if (!File.Exists(remoteHeadPath))
+        {
+            return null;
+        }
+
+        using FileStream stream = File.OpenRead(remoteHeadPath);
+        string targetPrefix = $"refs/remotes/{remoteName}/";
+        return GitReferenceReader.ReadReference(stream) is string targetIdentifier && targetIdentifier.StartsWith(targetPrefix, StringComparison.Ordinal)
+            ? targetIdentifier.Substring(targetPrefix.Length)
+            : null;
+    }
+
+    /// <summary>
+    /// Gets the names of the local branches, including packed references.
+    /// </summary>
+    /// <returns>The local branch names.</returns>
+    internal IReadOnlyCollection<string> GetLocalBranchNames()
+    {
+        const string LocalBranchPrefix = "refs/heads/";
+        if (this.usesReftable)
+        {
+            return this.ReadReftableReferences().Keys
+                .Where(name => name.StartsWith(LocalBranchPrefix, StringComparison.Ordinal))
+                .Select(name => name.Substring(LocalBranchPrefix.Length)).ToArray();
+        }
+
+        var branchNames = new HashSet<string>(StringComparer.Ordinal);
+        string headsDirectory = Path.Combine(this.CommonDirectory, "refs", "heads");
+        if (Directory.Exists(headsDirectory))
+        {
+            foreach (string branchFile in Directory.EnumerateFiles(headsDirectory, "*", SearchOption.AllDirectories))
+            {
+                branchNames.Add(branchFile.Substring(headsDirectory.Length + 1).Replace('\\', '/'));
+            }
+        }
+
+        foreach ((string record, string? _) in this.EnumeratePackedRefsWithPeelLines(out bool _))
+        {
+            string referenceName = record.Substring(41);
+            if (referenceName.StartsWith(LocalBranchPrefix, StringComparison.Ordinal))
+            {
+                branchNames.Add(referenceName.Substring(LocalBranchPrefix.Length));
+            }
+        }
+
+        return branchNames.ToArray();
+    }
+
+    /// <summary>
+    /// Gets a value from Git configuration.
+    /// </summary>
+    /// <param name="section">The configuration section.</param>
+    /// <param name="name">The configuration value name.</param>
+    /// <returns>The configured value, or <see langword="null"/> when it is not set.</returns>
+    internal string? GetConfigurationValue(string section, string name)
+    {
+        if (this.GitDirectory != this.CommonDirectory)
+        {
+            string worktreeConfigPath = Path.Combine(this.GitDirectory, "config.worktree");
+            if (File.Exists(worktreeConfigPath) && TryReadConfigurationValue(worktreeConfigPath, section, name, out string? value))
+            {
+                return value;
+            }
+        }
+
+        string repositoryConfigPath = Path.Combine(this.CommonDirectory, "config");
+        if (File.Exists(repositoryConfigPath) && TryReadConfigurationValue(repositoryConfigPath, section, name, out string? repositoryValue))
+        {
+            return repositoryValue;
+        }
+
+        string? globalConfigPath = GetGlobalConfigPath();
+        return globalConfigPath is not null && TryReadConfigurationValue(globalConfigPath, section, name, out string? globalValue)
+            ? globalValue
+            : null;
+    }
+
+    private static GitObjectId? ResolveReftableReference(Dictionary<string, (object Value, GitObjectId? Peeled)> references, string name)
+    {
+        var visited = new HashSet<string>(StringComparer.Ordinal);
+        while (references.TryGetValue(name, out (object Value, GitObjectId? Peeled) reference))
+        {
+            if (!visited.Add(name))
+            {
+                throw new GitException($"Symbolic reference cycle detected at '{name}'.");
+            }
+
+            if (reference.Value is GitObjectId id)
+            {
+                return id;
+            }
+
+            name = (string)reference.Value;
+        }
+
+        return null;
+    }
+
     private static string TrimEndingDirectorySeparator(string path)
     {
 #if NETFRAMEWORK
@@ -825,6 +1066,40 @@ public class GitRepository : IDisposable
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Attempts to read a value from a git config file.
+    /// </summary>
+    /// <param name="configPath">The path to the git config file.</param>
+    /// <param name="section">The configuration section.</param>
+    /// <param name="name">The configuration value name.</param>
+    /// <param name="value">Receives the configuration value when found.</param>
+    /// <returns><see langword="true"/> if the setting was found; otherwise <see langword="false"/>.</returns>
+    private static bool TryReadConfigurationValue(string configPath, string section, string name, [NotNullWhen(true)] out string? value)
+    {
+        value = null;
+        bool inRequestedSection = false;
+
+        foreach (string line in File.ReadLines(configPath))
+        {
+            string trimmedLine = line.Trim();
+            if (trimmedLine.StartsWith("[", StringComparison.Ordinal) && trimmedLine.EndsWith("]", StringComparison.Ordinal))
+            {
+                string sectionName = trimmedLine.Substring(1, trimmedLine.Length - 2).Trim();
+                inRequestedSection = string.Equals(sectionName, section, StringComparison.OrdinalIgnoreCase);
+                continue;
+            }
+
+            int equalIndex = trimmedLine.IndexOf('=');
+            if (inRequestedSection && equalIndex >= 0 && string.Equals(trimmedLine.Substring(0, equalIndex).Trim(), name, StringComparison.OrdinalIgnoreCase))
+            {
+                value = trimmedLine.Substring(equalIndex + 1).Trim().Trim('"');
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -944,6 +1219,26 @@ public class GitRepository : IDisposable
 
         // Default to case-sensitive (false) if no config found or error occurred
         return false;
+    }
+
+    private Dictionary<string, (object Value, GitObjectId? Peeled)> ReadReftableReferences()
+    {
+        var references = new Dictionary<string, (object Value, GitObjectId? Peeled)>(StringComparer.Ordinal);
+        GitReftableReader.ReadStack(Path.Combine(this.CommonDirectory, "reftable"), references);
+        if (this.GitDirectory != this.CommonDirectory)
+        {
+            foreach (string name in references.Keys.Where(name => !name.StartsWith("refs/", StringComparison.Ordinal)
+                || name.StartsWith("refs/bisect/", StringComparison.Ordinal)
+                || name.StartsWith("refs/worktree/", StringComparison.Ordinal)
+                || name.StartsWith("refs/rewritten/", StringComparison.Ordinal)).ToArray())
+            {
+                references.Remove(name);
+            }
+
+            GitReftableReader.ReadStack(Path.Combine(this.GitDirectory, "reftable"), references);
+        }
+
+        return references;
     }
 
     private bool TryGetObjectByPath(GitObjectId sha, string objectType, [NotNullWhen(true)] out Stream? value)

@@ -54,7 +54,7 @@ public class GitPackTests : IDisposable
         }
     }
 
-    [Fact]
+    [Test]
     public void GetPackedObject()
     {
         using (var gitPack = new GitPack(
@@ -69,7 +69,7 @@ public class GitPackTests : IDisposable
             ZLibStream zlibStream = Assert.IsType<ZLibStream>(commitStream);
             DeflateStream deflateStream = Assert.IsType<DeflateStream>(zlibStream.BaseStream);
 
-            if (IntPtr.Size > 4)
+            if (Environment.Is64BitProcess)
             {
                 MemoryMappedStream pooledStream = Assert.IsType<MemoryMappedStream>(deflateStream.BaseStream);
             }
@@ -83,7 +83,7 @@ public class GitPackTests : IDisposable
         }
     }
 
-    [Fact]
+    [Test]
     public void GetDeltafiedObject()
     {
         using (var gitPack = new GitPack(
@@ -99,7 +99,7 @@ public class GitPackTests : IDisposable
             ZLibStream zlibStream = Assert.IsType<ZLibStream>(deltaStream.BaseStream);
             DeflateStream deflateStream = Assert.IsType<DeflateStream>(zlibStream.BaseStream);
 
-            if (IntPtr.Size > 4)
+            if (Environment.Is64BitProcess)
             {
                 MemoryMappedStream pooledStream = Assert.IsType<MemoryMappedStream>(deflateStream.BaseStream);
             }
@@ -113,7 +113,7 @@ public class GitPackTests : IDisposable
         }
     }
 
-    [Fact]
+    [Test]
     public void GetInvalidObject()
     {
         using (var gitPack = new GitPack(
@@ -130,7 +130,7 @@ public class GitPackTests : IDisposable
         }
     }
 
-    [Fact]
+    [Test]
     public void TryGetObjectTest()
     {
         using (var gitPack = new GitPack(
@@ -147,7 +147,7 @@ public class GitPackTests : IDisposable
                 ZLibStream zlibStream = Assert.IsType<ZLibStream>(commitStream);
                 DeflateStream deflateStream = Assert.IsType<DeflateStream>(zlibStream.BaseStream);
 
-                if (IntPtr.Size > 4)
+                if (Environment.Is64BitProcess)
                 {
                     MemoryMappedStream pooledStream = Assert.IsType<MemoryMappedStream>(deflateStream.BaseStream);
                 }
@@ -162,7 +162,7 @@ public class GitPackTests : IDisposable
         }
     }
 
-    [Fact]
+    [Test]
     public void TryGetMissingObjectTest()
     {
         using (var gitPack = new GitPack(
@@ -181,7 +181,7 @@ public class GitPackTests : IDisposable
     /// double-call <see cref="MemoryMappedStream"/>'s ReleasePointer and crash the process with
     /// free(): invalid pointer (glibc) — the Ubuntu CI host-crash pattern.
     /// </summary>
-    [Fact]
+    [Test]
     public void FullyReadCachedObjects_DoesNotDoubleFreeNativeMemory()
     {
         // Use the default GitPackMemoryCache (not NullCache) so DisposeStreamIfRead is exercised.
@@ -208,6 +208,22 @@ public class GitPackTests : IDisposable
 
         // Explicit double-dispose of the pack (and thus the cache) must not abort the process.
         gitPack.Dispose();
+        gitPack.Dispose();
+    }
+
+    [Test]
+    public void PartiallyReadCachedObject_ReleasesPointerBeforeDisposingView()
+    {
+        using var gitPack = new GitPack(
+            (sha, objectType) => null,
+            new Lazy<FileStream>(() => File.OpenRead(this.indexFile)),
+            () => File.OpenRead(this.packFile));
+
+        using Stream stream = gitPack.GetObject(12, "commit");
+        Assert.NotEqual(-1, stream.ReadByte());
+
+        // The cache owns the partially-read source stream and must release its acquired pointer
+        // before GitPack disposes the memory-mapped view.
         gitPack.Dispose();
     }
 }

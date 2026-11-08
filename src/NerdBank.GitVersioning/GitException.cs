@@ -94,4 +94,16 @@ public class GitException : Exception
         info.AddValue(nameof(this.ErrorCode), (int)this.ErrorCode);
         info.AddValue(nameof(this.IsShallowClone), this.IsShallowClone);
     }
+
+    /// <summary>
+    /// Creates an exception that describes a shallow clone missing required history.
+    /// </summary>
+    /// <param name="innerException">The exception caused by the missing object.</param>
+    /// <returns>The shallow clone exception.</returns>
+    internal static GitException CreateShallowCloneException(Exception innerException)
+        => new("Shallow clone lacks the objects required to calculate version height. Use full clones or clones with a history at least as deep as the last version height resetting change.", innerException)
+        {
+            IsShallowClone = true,
+            ErrorCode = ErrorCodes.ObjectNotFound,
+        };
 }

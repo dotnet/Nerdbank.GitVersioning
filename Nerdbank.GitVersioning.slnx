@@ -30,6 +30,7 @@
     <File Path="test/Directory.Build.targets" />
     <Project Path="test/Cake.GitVersioning.Tests/Cake.GitVersioning.Tests.csproj" />
     <Project Path="test/Nerdbank.GitVersioning.Benchmarks/Nerdbank.GitVersioning.Benchmarks.csproj" />
+    <Project Path="test/Nerdbank.GitVersioning.Combinatorial.Tests/Nerdbank.GitVersioning.Combinatorial.Tests.csproj" />
     <Project Path="test/Nerdbank.GitVersioning.Tests/Nerdbank.GitVersioning.Tests.csproj" />
   </Folder>
 </Solution>

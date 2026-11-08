@@ -38,6 +38,9 @@ and you are running Windows PowerShell, the command is:
 
 You can use `dotnet test` to build and/or test the repo.
 
+The managed reftable interoperability tests invoke Git to create local repositories,
+clones, and worktrees. They require Git 2.51 or newer on PATH and do not use the network.
+
 There may be tests that are known to be unstable or have special requirements. These can be avoided by running tests using the [dotnet-test-cloud.ps1](tools/dotnet-test-cloud.ps1) script *after* running `dotnet build`.
 
 After the normal restore and build, run the cross-ecosystem parity tests and
@@ -46,6 +49,9 @@ create the same packages as CI:
 ```powershell
 tools/Build-EcosystemAdapters.ps1 -Configuration Release
 ```
+
+This repo opts out of the template's NativeAOT test publishing (`PublishNativeAOTTests` is `false` in [test/Directory.Build.props](test/Directory.Build.props)) and has no `test/AotCompatibilityTest` project,
+because the shipping packages (the library, MSBuild task, `nbgv` tool and Cake addin) depend on MSBuild, NuGet, LibGit2Sharp and reflection-based JSON serialization, which are not NativeAOT-compatible.
 
 ## Releases
 
@@ -62,8 +68,12 @@ Having previously used `nbgv tag` and pushing the tag will help you identify the
 After publishing the release, the `.github/workflows/release.yml` workflow will be automatically triggered, which will:
 
 1. Find the most recent `.github/workflows/build.yml` GitHub workflow run of the tagged release.
-1. Upload the `deployables` artifact from that workflow run to your GitHub Release.
-1. If you have `NUGET_API_KEY` defined as a secret variable for your repo or org, any nuget packages in the `deployables` artifact will be pushed to nuget.org.
+1. Upload the `deployables-Linux` artifact from that workflow run to your GitHub Release.
+1. Any nuget packages in the `deployables-Linux` artifact will be pushed to nuget.org.
+1. Publish the Rust crates to crates.io using Trusted Publishing.
+
+The workflow is written to leverage NuGet.org Trusted Publishing.
+You should set `NUGET_USER` as a repo secret to satisfy Trusted Publishing requirements.
 
 The workflow also attaches the verified `ecosystem-deployables` files. Rust,
 Go, Maven Central, and Gradle Plugin Portal publication is intentionally not
@@ -79,10 +89,17 @@ Trigger the pipeline by adding the `auto-release` tag on a run of your main `azu
 
 ## Tutorial and API documentation
 
+Markup links are checked in CI with [mlc](https://github.com/becheran/mlc).
+Run `mlc` from the repository root to use the same settings, configured in `.mlc.toml`.
+
 API and hand-written docs are found under the `docfx/` directory and are built by [docfx](https://dotnet.github.io/docfx/).
 
 You can make changes and host the site locally to preview them by switching to that directory and running the `dotnet docfx --serve` command.
 After making a change, you can rebuild the docs site while the localhost server is running by running `dotnet docfx` again from a separate terminal.
+
+DocFX metadata extraction suppresses `NU1901` through `NU1904` in `docfx/docfx.json` to match the nonfatal NuGet audit warning policy in `.github/workflows/build.yml`.
+DocFX otherwise turns MSBuild workspace warnings into fatal documentation warnings under `--warningsAsErrors`.
+Normal builds still report these audit warnings, and other documentation warnings remain fatal in CI.
 
 The `.github/workflows/docs.yml` GitHub Actions workflow publishes the content of these docs to github.io if the workflow itself and [GitHub Pages is enabled for your repository](https://docs.github.com/en/pages/quickstart).
 

@@ -75,7 +75,7 @@ internal static class MSBuildExtensions
     {
         string sdkVersion = GetSdkVersion();
         List<string> dotnetRoots = new();
-        if (IntPtr.Size == 4)
+        if (!Environment.Is64BitProcess)
         {
             dotnetRoots.Add(Environment.GetEnvironmentVariable("DOTNET_ROOT_X86"));
             dotnetRoots.Add(Environment.GetEnvironmentVariable("DOTNET_ROOT(x86)"));

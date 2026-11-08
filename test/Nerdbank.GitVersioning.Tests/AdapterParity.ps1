@@ -251,7 +251,7 @@ try {
         '--framework', 'net10.0',
         '--no-build',
         '--',
-        '--filter-class', 'AdapterVersionInfoTests'
+        '--treenode-filter', '/*/*/AdapterVersionInfoTests/*'
     )
     Invoke-Native cargo @('test', '--manifest-path', 'rust\Cargo.toml', '--all-targets')
 

@@ -3,6 +3,7 @@
 
 #nullable enable
 
+using EditorConfig.Core;
 using Newtonsoft.Json;
 using Validation;
 
@@ -110,6 +111,17 @@ public abstract class VersionFile
         string jsonContent = JsonConvert.SerializeObject(
             version,
             VersionOptions.GetJsonSettings(version.Inherit, includeSchemaProperty, repoRelativeProjectDirectory));
+        FileConfiguration editorConfig = new EditorConfigParser().Parse(versionJsonPath);
+        if (editorConfig.InsertFinalNewline is true)
+        {
+            jsonContent += editorConfig.EndOfLine switch
+            {
+                EndOfLine.CR => "\r",
+                EndOfLine.CRLF => "\r\n",
+                _ => "\n",
+            };
+        }
+
         File.WriteAllText(versionJsonPath, jsonContent);
         return versionJsonPath;
     }

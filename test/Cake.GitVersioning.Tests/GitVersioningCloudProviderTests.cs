@@ -3,6 +3,7 @@
 
 using Cake.GitVersioning;
 using Nerdbank.GitVersioning;
+using TUnit.Core;
 using Xunit;
 
 /// <summary>
@@ -10,7 +11,7 @@ using Xunit;
 /// </summary>
 public class GitVersioningCloudProviderTests
 {
-    [Fact]
+    [Test]
     public void HasExpectedValues()
     {
         IEnumerable<string> expectedValues = CloudBuild.SupportedCloudBuilds.Select(cb => cb.GetType().Name);

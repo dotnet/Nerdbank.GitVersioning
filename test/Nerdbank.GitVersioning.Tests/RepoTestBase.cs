@@ -45,6 +45,12 @@ public abstract partial class RepoTestBase : IDisposable
 
     protected abstract GitContext CreateGitContext(string path, string? committish = null);
 
+    protected void ReplaceContext(GitContext context)
+    {
+        this.Context?.Dispose();
+        this.Context = context;
+    }
+
     protected void SetContextToHead() => Assumes.True(this.Context?.TrySelectCommit("HEAD") ?? false);
 
     protected VersionOptions? GetVersionOptions(string? path = null, string? committish = null)
@@ -84,12 +90,6 @@ public abstract partial class RepoTestBase : IDisposable
             this.LibGit2Repository?.Dispose();
             this.Context?.Dispose();
 
-            // LibGit2Sharp may still hold native file handles even after Dispose().
-            // Force a GC cycle to release any lingering native handles before
-            // attempting to delete the temporary directories.
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-
             foreach (string dir in this.repoDirectories)
             {
                 try
@@ -106,6 +106,8 @@ public abstract partial class RepoTestBase : IDisposable
 
     protected virtual void InitializeSourceControl(bool withInitialCommit = true)
     {
+        this.LibGit2Repository?.Dispose();
+        this.LibGit2Repository = null;
         this.Context?.Dispose();
         this.Context = this.InitializeSourceControl(this.RepoPath, withInitialCommit);
         this.LibGit2Repository = new Repository(this.RepoPath);
@@ -124,6 +126,7 @@ public abstract partial class RepoTestBase : IDisposable
 
         repo.Config.Set("user.name", this.Signer.Name, ConfigurationLevel.Local);
         repo.Config.Set("user.email", this.Signer.Email, ConfigurationLevel.Local);
+        repo.Config.Set("commit.gpgSign", false, ConfigurationLevel.Local);
         foreach (StatusEntry? file in repo.RetrieveStatus().Untracked)
         {
             if (!Path.GetFileName(file.FilePath).StartsWith("_git2_", StringComparison.Ordinal))

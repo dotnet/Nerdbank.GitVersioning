@@ -15,7 +15,7 @@ public class GitObjectIdTests
     private readonly byte[] shaAsByteArray = new byte[] { 0x4e, 0x91, 0x27, 0x36, 0xc2, 0x7e, 0x40, 0xb3, 0x89, 0x90, 0x4d, 0x04, 0x6d, 0xc6, 0x3d, 0xc9, 0xf5, 0x78, 0x11, 0x7f };
     private readonly byte[] shaAsHexAsciiByteArray = Encoding.ASCII.GetBytes(ShaAsHexString);
 
-    [Fact]
+    [Test]
     public void ParseByteArrayTest()
     {
         var objectId = GitObjectId.Parse(this.shaAsByteArray);
@@ -25,7 +25,7 @@ public class GitObjectIdTests
         Assert.True(value.SequenceEqual(this.shaAsByteArray.AsSpan()));
     }
 
-    [Fact]
+    [Test]
     public void ParseStringTest()
     {
         var objectId = GitObjectId.Parse(ShaAsHexString);
@@ -35,7 +35,7 @@ public class GitObjectIdTests
         Assert.True(value.SequenceEqual(this.shaAsByteArray.AsSpan()));
     }
 
-    [Fact]
+    [Test]
     public void ParseHexArrayTest()
     {
         var objectId = GitObjectId.ParseHex(this.shaAsHexAsciiByteArray);
@@ -45,7 +45,7 @@ public class GitObjectIdTests
         Assert.True(value.SequenceEqual(this.shaAsByteArray.AsSpan()));
     }
 
-    [Fact]
+    [Test]
     public void EqualsObjectTest()
     {
         var objectId = GitObjectId.ParseHex(this.shaAsHexAsciiByteArray);
@@ -67,7 +67,7 @@ public class GitObjectIdTests
         Assert.False(objectId.Equals((object)GitObjectId.Empty));
     }
 
-    [Fact]
+    [Test]
     public void EqualsObjectIdTest()
     {
         var objectId = GitObjectId.ParseHex(this.shaAsHexAsciiByteArray);
@@ -81,7 +81,7 @@ public class GitObjectIdTests
         Assert.False(objectId.Equals(GitObjectId.Empty));
     }
 
-    [Fact]
+    [Test]
     public void GetHashCodeTest()
     {
         // The hash code is the int32 representation of the first 4 bytes
@@ -90,7 +90,7 @@ public class GitObjectIdTests
         Assert.Equal(0, GitObjectId.Empty.GetHashCode());
     }
 
-    [Fact]
+    [Test]
     public void AsUInt16Test()
     {
         // The hash code is the int32 representation of the first 4 bytes
@@ -99,14 +99,14 @@ public class GitObjectIdTests
         Assert.Equal(0, GitObjectId.Empty.GetHashCode());
     }
 
-    [Fact]
+    [Test]
     public void ToStringTest()
     {
         var objectId = GitObjectId.Parse(this.shaAsByteArray);
         Assert.Equal(ShaAsHexString, objectId.ToString());
     }
 
-    [Fact]
+    [Test]
     public void CopyToUtf16StringTest()
     {
         // Common use case: create the path to the object in the Git object store,
@@ -122,7 +122,7 @@ public class GitObjectIdTests
         Assert.Equal("git/objects/4e/912736c27e40b389904d046dc63dc9f578117f", path);
     }
 
-    [Fact]
+    [Test]
     public void CopyToTest()
     {
         var objectId = GitObjectId.Parse(this.shaAsByteArray);

@@ -3,12 +3,11 @@
 
 using Xunit;
 
-[Trait("Engine", EngineString)]
-[Collection("Build")] // msbuild sets current directory in the process, so we can't have it be concurrent with other build tests.
+[Property("Engine", EngineString)]
+[InheritsTests]
 public class BuildIntegrationInProjectManagedTests : BuildIntegrationManagedTests
 {
-    public BuildIntegrationInProjectManagedTests(ITestOutputHelper logger)
-        : base(logger)
+    public BuildIntegrationInProjectManagedTests()
     {
     }
 

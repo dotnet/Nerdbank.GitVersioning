@@ -21,49 +21,62 @@ namespace Nerdbank.GitVersioning
     {
         public const string RuntimePath = "./runtimes";
         private readonly string nativeDependencyBasePath;
+        private readonly string? managedDependencyBasePath;
 
-        private (string?, IntPtr) lastLoadedLibrary;
+        private (string?, nint) lastLoadedLibrary;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GitLoaderContext"/> class.
         /// </summary>
         /// <param name="nativeDependencyBasePath">The path to the directory that contains the "runtimes" folder.</param>
-        public GitLoaderContext(string nativeDependencyBasePath)
+        /// <param name="managedDependencyBasePath">An optional path to probe for managed dependencies that are supplied by the .NET SDK.</param>
+        public GitLoaderContext(string nativeDependencyBasePath, string? managedDependencyBasePath = null)
         {
             this.nativeDependencyBasePath = nativeDependencyBasePath;
+            this.managedDependencyBasePath = managedDependencyBasePath;
         }
 
         /// <inheritdoc/>
         protected override Assembly Load(AssemblyName assemblyName)
         {
             string path = Path.Combine(Path.GetDirectoryName(typeof(GitLoaderContext).Assembly.Location)!, assemblyName.Name + ".dll");
-            return File.Exists(path)
-                ? this.LoadFromAssemblyPath(path)
-                : Default.LoadFromAssemblyName(assemblyName);
+            if (File.Exists(path))
+            {
+                return this.LoadFromAssemblyPath(path);
+            }
+
+            if (this.managedDependencyBasePath is not null)
+            {
+                path = Path.Combine(this.managedDependencyBasePath, assemblyName.Name + ".dll");
+                if (File.Exists(path))
+                {
+                    return this.LoadFromAssemblyPath(path);
+                }
+            }
+
+            return Default.LoadFromAssemblyName(assemblyName);
         }
 
-        protected override IntPtr LoadUnmanagedDll(string unmanagedDllName)
+        protected override nint LoadUnmanagedDll(string unmanagedDllName)
         {
             // Only intercept loads for libgit2 native libraries. Returning a handle from the
             // libgit2 runtimes directory for other libraries (e.g. hostfxr, KERNEL32) causes
             // EntryPointNotFoundException when P/Invokes hit the wrong module.
             if (!IsLibGit2LibraryName(unmanagedDllName))
             {
-                return IntPtr.Zero;
+                return nint.Zero;
             }
 
-            IntPtr p = base.LoadUnmanagedDll(unmanagedDllName);
+            nint p = base.LoadUnmanagedDll(unmanagedDllName);
 
-            if (p == IntPtr.Zero)
+            if (p == nint.Zero)
             {
                 if (unmanagedDllName == this.lastLoadedLibrary.Item1)
                 {
                     return this.lastLoadedLibrary.Item2;
                 }
 
-                string prefix =
-                    RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? string.Empty :
-                    "lib";
+                string prefix = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? string.Empty : "lib";
 
                 string? extension =
                     RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".dll" :
@@ -86,7 +99,7 @@ namespace Nerdbank.GitVersioning
                         }
                     }
 
-                    if (p != IntPtr.Zero)
+                    if (p != nint.Zero)
                     {
                         // Cache this to make us a little faster next time.
                         this.lastLoadedLibrary = (unmanagedDllName, p);

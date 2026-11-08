@@ -1,0 +1,87 @@
+name: 🧪 Merge queue
+
+on:
+  merge_group:
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  BUILDCONFIGURATION: Release
+  NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages/
+
+jobs:
+  rust:
+    name: 🦀 Rust (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+        - ubuntu-24.04
+        - windows-2025
+        - macos-15
+
+    defaults:
+      run:
+        working-directory: src/nerdbank-gitversioning-rs
+
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        fetch-depth: 0
+    - name: 💅 Verify formatted code
+      run: cargo fmt --all --check
+      if: runner.os == 'Linux'
+    - name: 📎 Lint
+      run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+    - name: 🧪 Test
+      run: cargo test --workspace
+    - name: 📚 Verify public documentation
+      run: cargo doc --workspace --no-deps
+      env:
+        RUSTDOCFLAGS: -D warnings
+
+  build:
+    name: 🏭 Build and unit test
+    runs-on: ubuntu-26.04
+
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
+        submodules: true
+    - name: ⚙ Install prerequisites
+      run: |
+        ./init.ps1 -UpgradePrerequisites -NoNuGetCredProvider
+        dotnet --info
+      shell: pwsh
+    - name: ⚙ Install node.js
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version: 26.x
+        cache: yarn
+        cache-dependency-path: src/nerdbank-gitversioning.npm/yarn.lock
+    - name: ⚙️ Set pipeline variables based on source
+      run: tools/variables/_define.ps1
+      shell: pwsh
+    - name: 🛠 Build
+      run: dotnet build --no-restore -c ${{ env.BUILDCONFIGURATION }} -warnAsError -warnNotAsError:NU1901,NU1902,NU1903,NU1904 /bl:"${{ runner.temp }}/_artifacts/build_logs/build.binlog"
+    - name: 🧪 Test
+      run: |
+        git config --global user.name ci
+        git config --global user.email me@ci.com
+        tools/dotnet-test-cloud.ps1 -Configuration ${{ env.BUILDCONFIGURATION }} -Agent ${{ runner.os }} -PublishResults
+      shell: pwsh
+      timeout-minutes: 15
+
+  required_status_checks:
+    name: Required status checks pass
+    needs:
+    - build
+    - rust
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+    - name: Verify required jobs succeeded
+      run: |
+        test '${{ needs.build.result }}' = success
+        test '${{ needs.rust.result }}' = success

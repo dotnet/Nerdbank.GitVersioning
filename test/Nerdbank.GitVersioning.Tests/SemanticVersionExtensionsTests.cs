@@ -15,27 +15,27 @@ using static Nerdbank.GitVersioning.VersionOptions;
 /// </summary>
 public class SemanticVersionExtensionsTests
 {
-    [Theory]
-    [InlineData("1.0", ReleaseVersionIncrement.Minor, "1.1")]
-    [InlineData("1.1", ReleaseVersionIncrement.Minor, "1.2")]
-    [InlineData("1.0", ReleaseVersionIncrement.Major, "2.0")]
-    [InlineData("1.1", ReleaseVersionIncrement.Major, "2.0")]
-    [InlineData("1.0-tag", ReleaseVersionIncrement.Minor, "1.1-tag")]
-    [InlineData("1.0-tag", ReleaseVersionIncrement.Major, "2.0-tag")]
-    [InlineData("1.0+metadata", ReleaseVersionIncrement.Minor, "1.1+metadata")]
-    [InlineData("1.0+metadata", ReleaseVersionIncrement.Major, "2.0+metadata")]
-    [InlineData("1.0-tag+metadata", ReleaseVersionIncrement.Minor, "1.1-tag+metadata")]
-    [InlineData("1.0-tag+metadata", ReleaseVersionIncrement.Major, "2.0-tag+metadata")]
-    [InlineData("1.2.3", ReleaseVersionIncrement.Minor, "1.3.0")]
-    [InlineData("1.2.3", ReleaseVersionIncrement.Major, "2.0.0")]
-    [InlineData("1.2.3.4", ReleaseVersionIncrement.Minor, "1.3.0.0")]
-    [InlineData("1.2.3.4", ReleaseVersionIncrement.Major, "2.0.0.0")]
-    [InlineData("1.2.3", ReleaseVersionIncrement.Build, "1.2.4")]
-    [InlineData("1.2.3.4", ReleaseVersionIncrement.Build, "1.2.4.0")]
-    [InlineData("1.2.3-tag", ReleaseVersionIncrement.Build, "1.2.4-tag")]
-    [InlineData("1.2.3-tag+metadata", ReleaseVersionIncrement.Build, "1.2.4-tag+metadata")]
-    [InlineData("1.2.3.4-tag", ReleaseVersionIncrement.Build, "1.2.4.0-tag")]
-    [InlineData("1.2.3.4-tag+metadata", ReleaseVersionIncrement.Build, "1.2.4.0-tag+metadata")]
+    [Test]
+    [Arguments("1.0", ReleaseVersionIncrement.Minor, "1.1")]
+    [Arguments("1.1", ReleaseVersionIncrement.Minor, "1.2")]
+    [Arguments("1.0", ReleaseVersionIncrement.Major, "2.0")]
+    [Arguments("1.1", ReleaseVersionIncrement.Major, "2.0")]
+    [Arguments("1.0-tag", ReleaseVersionIncrement.Minor, "1.1-tag")]
+    [Arguments("1.0-tag", ReleaseVersionIncrement.Major, "2.0-tag")]
+    [Arguments("1.0+metadata", ReleaseVersionIncrement.Minor, "1.1+metadata")]
+    [Arguments("1.0+metadata", ReleaseVersionIncrement.Major, "2.0+metadata")]
+    [Arguments("1.0-tag+metadata", ReleaseVersionIncrement.Minor, "1.1-tag+metadata")]
+    [Arguments("1.0-tag+metadata", ReleaseVersionIncrement.Major, "2.0-tag+metadata")]
+    [Arguments("1.2.3", ReleaseVersionIncrement.Minor, "1.3.0")]
+    [Arguments("1.2.3", ReleaseVersionIncrement.Major, "2.0.0")]
+    [Arguments("1.2.3.4", ReleaseVersionIncrement.Minor, "1.3.0.0")]
+    [Arguments("1.2.3.4", ReleaseVersionIncrement.Major, "2.0.0.0")]
+    [Arguments("1.2.3", ReleaseVersionIncrement.Build, "1.2.4")]
+    [Arguments("1.2.3.4", ReleaseVersionIncrement.Build, "1.2.4.0")]
+    [Arguments("1.2.3-tag", ReleaseVersionIncrement.Build, "1.2.4-tag")]
+    [Arguments("1.2.3-tag+metadata", ReleaseVersionIncrement.Build, "1.2.4-tag+metadata")]
+    [Arguments("1.2.3.4-tag", ReleaseVersionIncrement.Build, "1.2.4.0-tag")]
+    [Arguments("1.2.3.4-tag+metadata", ReleaseVersionIncrement.Build, "1.2.4.0-tag+metadata")]
     public void Increment(string currentVersionString, ReleaseVersionIncrement increment, string expectedVersionString)
     {
         var currentVersion = SemanticVersion.Parse(currentVersionString);
@@ -46,8 +46,8 @@ public class SemanticVersionExtensionsTests
         Assert.Equal(expectedVersion, actualVersion);
     }
 
-    [Theory]
-    [InlineData("1.0", ReleaseVersionIncrement.Build)]
+    [Test]
+    [Arguments("1.0", ReleaseVersionIncrement.Build)]
     public void Increment_InvalidIncrement(string currentVersionString, ReleaseVersionIncrement increment)
     {
         var currentVersion = SemanticVersion.Parse(currentVersionString);
@@ -55,26 +55,26 @@ public class SemanticVersionExtensionsTests
         Assert.Throws<ArgumentException>(() => currentVersion.Increment(increment));
     }
 
-    [Theory]
+    [Test]
     // no prerelease tag in input version
-    [InlineData("1.2", "pre", "1.2-pre")]
-    [InlineData("1.2", "-pre", "1.2-pre")]
-    [InlineData("1.2+build", "pre", "1.2-pre+build")]
-    [InlineData("1.2.3", "pre", "1.2.3-pre")]
-    [InlineData("1.2.3+build", "pre", "1.2.3-pre+build")]
+    [Arguments("1.2", "pre", "1.2-pre")]
+    [Arguments("1.2", "-pre", "1.2-pre")]
+    [Arguments("1.2+build", "pre", "1.2-pre+build")]
+    [Arguments("1.2.3", "pre", "1.2.3-pre")]
+    [Arguments("1.2.3+build", "pre", "1.2.3-pre+build")]
     // single prerelease tag in input version
-    [InlineData("1.2-alpha", "beta", "1.2-beta")]
-    [InlineData("1.2-alpha", "-beta", "1.2-beta")]
-    [InlineData("1.2.3-alpha", "beta", "1.2.3-beta")]
-    [InlineData("1.2-alpha+metadata", "-beta", "1.2-beta+metadata")]
+    [Arguments("1.2-alpha", "beta", "1.2-beta")]
+    [Arguments("1.2-alpha", "-beta", "1.2-beta")]
+    [Arguments("1.2.3-alpha", "beta", "1.2.3-beta")]
+    [Arguments("1.2-alpha+metadata", "-beta", "1.2-beta+metadata")]
     // multiple prerelease tags
-    [InlineData("1.2-alpha.preview", "beta", "1.2-beta.preview")]
-    [InlineData("1.2-alpha.preview", "-beta", "1.2-beta.preview")]
-    [InlineData("1.2-alpha.preview+metadata", "beta", "1.2-beta.preview+metadata")]
-    [InlineData("1.2.3-alpha.preview", "beta", "1.2.3-beta.preview")]
-    [InlineData("1.2-alpha.{height}", "beta", "1.2-beta.{height}")]
+    [Arguments("1.2-alpha.preview", "beta", "1.2-beta.preview")]
+    [Arguments("1.2-alpha.preview", "-beta", "1.2-beta.preview")]
+    [Arguments("1.2-alpha.preview+metadata", "beta", "1.2-beta.preview+metadata")]
+    [Arguments("1.2.3-alpha.preview", "beta", "1.2.3-beta.preview")]
+    [Arguments("1.2-alpha.{height}", "beta", "1.2-beta.{height}")]
     // remove tag
-    [InlineData("1.2-pre", "", "1.2")]
+    [Arguments("1.2-pre", "", "1.2")]
     public void SetFirstPrereleaseTag(string currentVersionString, string newTag, string expectedVersionString)
     {
         var currentVersion = SemanticVersion.Parse(currentVersionString);

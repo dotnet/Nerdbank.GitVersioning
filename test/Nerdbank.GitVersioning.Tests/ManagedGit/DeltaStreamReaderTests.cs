@@ -12,7 +12,7 @@ namespace ManagedGit;
 // Test case borrowed from https://stefan.saasen.me/articles/git-clone-in-haskell-from-the-bottom-up/#format-of-the-delta-representation
 public class DeltaStreamReaderTests
 {
-    [Fact]
+    [Test]
     public void ReadCopyInstruction()
     {
         using (Stream stream = new MemoryStream(
@@ -31,7 +31,7 @@ public class DeltaStreamReaderTests
         }
     }
 
-    [Fact]
+    [Test]
     public void ReadCopyInstruction_Memory()
     {
         byte[] stream = new byte[]
@@ -50,7 +50,7 @@ public class DeltaStreamReaderTests
         Assert.Equal(465, instruction.Size);
     }
 
-    [Fact]
+    [Test]
     public void ReadInsertInstruction()
     {
         using (Stream stream = new MemoryStream(new byte[] { 0b_00010111 }))
@@ -63,7 +63,7 @@ public class DeltaStreamReaderTests
         }
     }
 
-    [Fact]
+    [Test]
     public void ReadInsertInstruction_Memory()
     {
         byte[] stream = new byte[] { 0b_00010111 };
@@ -77,7 +77,7 @@ public class DeltaStreamReaderTests
         Assert.Equal(23, instruction.Size);
     }
 
-    [Fact]
+    [Test]
     public void ReadStreamTest()
     {
         using (Stream stream = new MemoryStream(
@@ -127,7 +127,7 @@ public class DeltaStreamReaderTests
         }
     }
 
-    [Fact]
+    [Test]
     public void ReadStreamTest_Memory()
     {
         byte[] stream =
