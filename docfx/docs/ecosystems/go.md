@@ -1,10 +1,5 @@
 # Go
 
-> [!IMPORTANT]
-> The Go module and `nbgv-go` command are currently a source preview. Do not
-> assume that a stable module tag has been published. Until a release
-> announcement says otherwise, install from a repository checkout.
-
 The module path is:
 
 ```text
@@ -18,22 +13,16 @@ intercepts a plain Go command.
 Install the native Rust or .NET `nbgv` CLI separately.
 Both support the [adapter JSON contract](../adapter-json.md), so the wrapper can use native `nbgv` without a .NET runtime.
 
-## Acquire from source
+## Install
 
-```console
-git clone https://github.com/dotnet/Nerdbank.GitVersioning
-cd Nerdbank.GitVersioning/go
-go install ./cmd/nbgv-go
-```
-
-After the first tagged module release, the intended equivalent is:
+Install the wrapper, then add the runtime package to your module:
 
 ```console
 go install github.com/dotnet/Nerdbank.GitVersioning/go/cmd/nbgv-go@v0.1.0
 go get github.com/dotnet/Nerdbank.GitVersioning/go@v0.1.0
 ```
 
-Confirm the version in the release notes before using these commands.
+Use the same released version for the wrapper and runtime package.
 
 ## Stamp and read a version
 

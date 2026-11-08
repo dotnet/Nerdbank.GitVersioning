@@ -1,8 +1,5 @@
 # Nerdbank.GitVersioning for Go
 
-> This module is currently a source preview. Install it from a repository
-> checkout until a release announcement confirms an immutable Go module tag.
-
 This Go module contains:
 
 - `nbgv-go`, an opt-in wrapper for `go build`, `go test`, and `go install`.
@@ -11,22 +8,17 @@ This Go module contains:
 `nbgv-go` delegates to the real Go command; it does not replace or intercept a
 plain `go build`.
 
-## Install from source
+## Install
 
 Install the native Rust or .NET `nbgv` CLI separately, then install the wrapper:
 
 ```console
-cd Nerdbank.GitVersioning/go
-go install ./cmd/nbgv-go
-```
-
-After the first module release, the intended command is:
-
-```console
 go install github.com/dotnet/Nerdbank.GitVersioning/go/cmd/nbgv-go@v0.1.0
+go get github.com/dotnet/Nerdbank.GitVersioning/go@v0.1.0
 ```
 
-Check the release notes before using that version.
+Run `go get` from your application's module directory.
+Use the same released version for the wrapper and runtime package.
 
 Your program must import and use the runtime package so the linker retains it:
 

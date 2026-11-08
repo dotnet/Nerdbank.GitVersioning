@@ -1,49 +1,27 @@
 # Java, Maven, and Gradle
 
-> [!IMPORTANT]
-> The Java artifacts and Gradle plugin are currently a source preview. The
-> coordinates below are intended for a first release and are not a claim that
-> Maven Central or the Gradle Plugin Portal already contains them.
-
 The integrations launch `nbgv` directly and consume the versioned
 [adapter JSON contract](../adapter-json.md). Install the native Rust or .NET `nbgv` CLI and
 make it available on `PATH`, set `NBGV_EXECUTABLE`, or use the adapter-specific
 executable setting.
 
-## Intended coordinates
+## Packages
 
-| Integration | Intended coordinate |
+| Integration | Coordinate |
 | --- | --- |
 | Shared adapter | `com.microsoft.nerdbank-gitversioning:nbgv-adapter:0.1.0` |
 | Maven core extension | `com.microsoft.nerdbank-gitversioning:nbgv-maven-extension:0.1.0` |
 | Gradle implementation | `com.microsoft.nerdbank-gitversioning:nbgv-gradle-plugin:0.1.0` |
 | Gradle plugin ID | `com.microsoft.nerdbank-gitversioning` |
 
-The names are repository-specific rather than generic Java names. Registry
-ownership and collision checks must still be repeated immediately before the
-first publication.
-
-## Build and acquire from source
-
-Gradle 8.8 or newer and Java 17 are required to build the adapters. The
-published bytecode targets Java 8.
-
-```console
-cd java
-gradle clean test \
-  :adapter-core:publishAllPublicationsToStagingRepository \
-  :maven-extension:publishAllPublicationsToStagingRepository \
-  :gradle-plugin:publishAllPublicationsToStagingRepository
-```
-
-This creates a local Maven repository below `java/build/maven-repository`.
-Point a test build at that repository while the adapters remain a source
-preview. Sources, Javadoc, POM metadata, license notices, plugin markers, and
-Gradle module metadata are generated with the binary JARs.
+The adapter and Maven extension are available from Maven Central.
+The Gradle plugin is available from the Gradle Plugin Portal.
+The published bytecode targets Java 8.
+See the [Java README][java-readme] for contributor build instructions.
 
 ## Gradle plugin
 
-After a Plugin Portal release, the intended plugin declaration is:
+Apply the plugin in your Gradle build:
 
 ```groovy
 plugins {
@@ -64,7 +42,7 @@ nbgv {
 
 ## Maven core extension
 
-After a Maven Central release, the intended `.mvn/extensions.xml` entry is:
+Add the extension to `.mvn/extensions.xml`:
 
 ```xml
 <extensions>
@@ -76,9 +54,8 @@ After a Maven Central release, the intended `.mvn/extensions.xml` entry is:
 </extensions>
 ```
 
-The extension updates the full reactor after projects are read. Maven 3
-publishing should use CI-friendly `${revision}` plus
-`flatten-maven-plugin`; detailed configuration and Maven 4 notes are in the
+The extension stamps project models before Maven indexes the reactor.
+Maven 3 publishing should use CI-friendly `${revision}` plus `flatten-maven-plugin`; detailed configuration and Maven 4 notes are in the
 [Java README][java-readme].
 
 ## Migrate an existing build
@@ -90,7 +67,6 @@ publishing should use CI-friendly `${revision}` plus
    custom manifest stamping for attributes it owns.
 4. Remove automatic `-SNAPSHOT` suffixing if immutable Nerdbank.GitVersioning
    SemVer is required.
-5. Publish the shared adapter and Maven artifacts before the Gradle plugin, then
-   test dependency resolution from clean caches.
+5. Verify artifact versions and manifest metadata in a test publication before releasing your project.
 
 [java-readme]: https://github.com/dotnet/Nerdbank.GitVersioning/blob/main/java/README.md

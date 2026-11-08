@@ -1,30 +1,29 @@
 # Rust and Cargo
 
-The Rust workspace at `src/nerdbank-gitversioning-rs` provides the native version calculation library, `nbgv` CLI, Cargo build helper, and `cargo-nbgv` packaging command.
+Nerdbank.GitVersioning provides a native Rust version calculation library, `nbgv` CLI, Cargo build helper, and `cargo-nbgv` packaging command.
 Cargo integrations calculate versions in-process using that library; they do not require .NET or an external `nbgv` executable.
-All crates use the native workspace's shared version and Rust toolchain policy.
+All four crates are distributed through crates.io.
 
-> [!IMPORTANT]
-> The build helper and packaging command are source-preview integrations.
-> The source examples below do not imply that those packages are already available on crates.io.
-> The `nbgv` crate name belongs to the native CLI, not the build helper.
+The `nbgv` crate provides the CLI.
+Use `nerdbank-gitversioning-build`, not `nbgv`, as a build dependency.
 
-## Acquire from source
+## Install
 
-Add `nerdbank-gitversioning-build` from the checkout as a build dependency:
-
-```toml
-[build-dependencies]
-nerdbank-gitversioning-build = { path = "../Nerdbank.GitVersioning/src/nerdbank-gitversioning-rs/build" }
-```
-
-Install the Cargo subcommand from that checkout:
+From your crate directory, add the build helper:
 
 ```console
-cargo install --path Nerdbank.GitVersioning/src/nerdbank-gitversioning-rs/cargo-nbgv
+cargo add --build nerdbank-gitversioning-build
 ```
 
-The helper uses `GitContext` and `VersionOracle` from the existing `nerdbank-gitversioning` library.
+Install the packaging subcommand:
+
+```console
+cargo install --locked cargo-nbgv
+```
+
+These commands acquire packages from crates.io; your project does not need a checkout of Nerdbank.GitVersioning.
+Commit the resulting build dependency in `Cargo.toml` and follow your project's lockfile policy.
+Add a [version.json](../versionJson.md) to your repository to define its base version and release settings.
 See the [native workspace README][native-readme] for library and CLI usage.
 
 ## Stamp a build
@@ -64,14 +63,12 @@ Explicit disabled-Git behavior remains distinct from rebuilding a stamped archiv
 4. Replace release-time source edits with `cargo nbgv package` or `publish`.
 5. Verify a dry-run package before the first release.
 
-The obsolete separate `rust/` workspace is no longer used.
-If you previously used its `nbgv` build dependency, switch to `nerdbank-gitversioning-build` and remove the external-executable configuration.
 `cargo-nbgv` packages one selected manifest; it does not silently rewrite sibling dependency versions for coordinated multi-crate publishing.
 
 ## Shared tooling
 
 The native CLI supports the same [adapter JSON contract](../adapter-json.md) as the .NET CLI, allowing Go and Java adapters to use it without .NET.
-The shared real-Git fixtures compare native and .NET results before testing ecosystem consumers.
-CI and release publishing reuse the native workspace's version stamping and Trusted Publishing configuration, rather than maintaining a separate Rust release pipeline.
+Install the native CLI with `cargo install --locked nbgv` when you need those commands.
+The CLI is optional for the Cargo integrations.
 
 [native-readme]: https://github.com/dotnet/Nerdbank.GitVersioning/blob/main/src/nerdbank-gitversioning-rs/README.md

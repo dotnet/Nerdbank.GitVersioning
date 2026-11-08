@@ -1,8 +1,7 @@
 # Nerdbank.GitVersioning for Java
 
-> These artifacts are currently source previews. The coordinates and plugin ID
-> below are intended for a first release; they are not a claim that Maven
-> Central or the Gradle Plugin Portal already contains them.
+The adapter and Maven extension are distributed through Maven Central.
+The Gradle plugin is distributed through the Gradle Plugin Portal.
 
 The Java integrations consume the narrow, versioned
 [`nbgv get-version --format adapter`](../docfx/docs/adapter-json.md) contract. They never install
@@ -113,9 +112,9 @@ gradle clean test \
 ```
 
 The command stages a local Maven repository in `build/maven-repository`.
-The intended group is `com.microsoft.nerdbank-gitversioning`, with artifacts
+The group is `com.microsoft.nerdbank-gitversioning`, with artifacts
 `nbgv-adapter`, `nbgv-maven-extension`, and `nbgv-gradle-plugin`, all initially
-at version 0.1.0. Repeat registry ownership checks before first publication.
+at version 0.1.0.
 See the [Java acquisition and migration guide][java-docs] and
 [release checklist][release-docs].
 

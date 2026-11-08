@@ -40,8 +40,7 @@ Do not expose these credentials to pull-request jobs.
    `nbgv-maven-extension` through the approved Maven Central namespace.
 5. Publish the Gradle plugin only after its Maven dependencies resolve from a
    clean repository.
-6. Verify every registry response, then update the acquisition docs from
-   “source preview” to released instructions.
+6. Verify every registry response and test the documented acquisition commands from clean caches before publishing the documentation.
 
 If publication is automated later, gate it on the existing protected
 `release: published` workflow/environment. Use clearly scoped secrets such as

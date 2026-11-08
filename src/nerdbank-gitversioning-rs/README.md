@@ -18,11 +18,10 @@ normal repository operations. If Git commit signing is enabled,
 
 ## Library usage
 
-Add the library from this checkout:
+Add the library to your crate:
 
-```toml
-[dependencies]
-nerdbank-gitversioning = { path = "src/nerdbank-gitversioning-rs" }
+```console
+cargo add nerdbank-gitversioning
 ```
 
 Calculate a version from the repository containing the current directory:
@@ -40,10 +39,10 @@ fn main() -> Result<(), nerdbank_gitversioning::Error> {
 
 ## CLI usage
 
-Install the native CLI from this checkout:
+Install the native CLI from crates.io:
 
 ```console
-cargo install --path src/nerdbank-gitversioning-rs/nbgv
+cargo install --locked nbgv
 nbgv get-version
 ```
 
@@ -76,7 +75,7 @@ They preserve Cargo's dirty-source and lockfile checks and store the full calcul
 See the [Cargo integration guide](../../docfx/docs/ecosystems/rust.md) for acquisition, migration, and publication details.
 
 All four crates share the native workspace version, CI, and release publishing.
-The build helper and packaging command remain source previews until their first published release.
+Acquire the helper with `cargo add --build nerdbank-gitversioning-build` and the packaging command with `cargo install --locked cargo-nbgv`.
 
 ## Preparing a release
 
