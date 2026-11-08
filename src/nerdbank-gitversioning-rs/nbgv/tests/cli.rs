@@ -253,10 +253,26 @@ fn adapter_format_exposes_versioned_contract_without_changing_legacy_json() {
 #[test]
 fn adapter_format_honors_disabled_git_without_changing_legacy_formats() {
     let repo = TestRepository::new(r#"{"version":"1.2-beta"}"#);
-    let output = nbgv()
+    let mut command = nbgv();
+    command
         .current_dir(repo.path())
-        .env("NBGV_GitEngine", "Disabled")
-        .env_remove("PublicRelease")
+        .env("NBGV_GitEngine", "Disabled");
+    for name in [
+        "PublicRelease",
+        "APPVEYOR",
+        "SYSTEM_TEAMPROJECTID",
+        "GITHUB_ACTIONS",
+        "BUILD_VCS_NUMBER",
+        "bamboo.buildKey",
+        "JENKINS_URL",
+        "GITLAB_CI",
+        "TRAVIS",
+        "JB_SPACE_GIT_REVISION",
+        "BITBUCKET_PIPELINE_UUID",
+    ] {
+        command.env_remove(name);
+    }
+    let output = command
         .args(["get-version", "--format", "adapter"])
         .assert()
         .success()
@@ -271,6 +287,20 @@ fn adapter_format_honors_disabled_git_without_changing_legacy_formats() {
     for field in ["gitCommitId", "gitCommitIdShort", "gitCommitDate"] {
         assert!(result[field].is_null());
     }
+    let cloud_commit = "0123456789abcdef0123456789abcdef01234567";
+    let cloud_output = command
+        .env("GITHUB_ACTIONS", "true")
+        .env("GITHUB_SHA", cloud_commit)
+        .env("GITHUB_REF", "refs/heads/feature")
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let cloud: serde_json::Value = serde_json::from_slice(&cloud_output).unwrap();
+    assert_eq!(cloud["gitCommitId"], cloud_commit);
+    assert_eq!(cloud["gitCommitIdShort"], "0123456789");
+    assert_eq!(cloud["semVer2"], "1.2.0-beta.g0123456789");
     nbgv()
         .current_dir(repo.path())
         .env("NBGV_GitEngine", "Disabled")

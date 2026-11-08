@@ -286,7 +286,7 @@ try {
         $env:NBGV_GitEngine = 'Disabled'
         Invoke-Native dotnet @(
             'build',
-            'test\Nerdbank.GitVersioning.Tests\Nerdbank.GitVersioning.Tests.csproj',
+            (Join-Path $repositoryRoot 'test\Nerdbank.GitVersioning.Tests\Nerdbank.GitVersioning.Tests.csproj'),
             '--configuration', $Configuration,
             '--framework', 'net10.0',
             '--no-restore',
@@ -297,14 +297,14 @@ try {
     }
     Invoke-Native dotnet @(
         'test',
-        '--project', 'test\Nerdbank.GitVersioning.Tests\Nerdbank.GitVersioning.Tests.csproj',
+        '--project', (Join-Path $repositoryRoot 'test\Nerdbank.GitVersioning.Tests\Nerdbank.GitVersioning.Tests.csproj'),
         '--configuration', $Configuration,
         '--framework', 'net10.0',
         '--no-build',
         '--',
         '--treenode-filter', '/*/*/AdapterVersionInfoTests/*'
     )
-    Invoke-Native cargo @('test', '--manifest-path', 'src\nerdbank-gitversioning-rs\Cargo.toml', '--workspace')
+    Invoke-Native cargo @('test', '--manifest-path', (Join-Path $rustWorkspace 'Cargo.toml'), '--workspace')
 
     $goTool = Get-Command $GoCommand -ErrorAction SilentlyContinue
     if (-not $goTool) {
