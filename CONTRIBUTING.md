@@ -77,7 +77,9 @@ You should set `NUGET_USER` as a repo secret to satisfy Trusted Publishing requi
 
 The workflow also attaches the verified `ecosystem-deployables` files.
 The native Rust workspace, including its Cargo integrations, uses the existing Trusted Publishing flow.
-Go, Maven Central, and Gradle Plugin Portal publication remains manual until registry ownership, signing, and protected credentials are configured.
+Java artifacts are signed and published to Maven Central, then the Gradle plugin is uploaded to the Plugin Portal.
+Configure registry ownership and the publishing/signing secrets before the first Java release.
+Go publication consists of creating its immutable module tag.
 Follow the
 [ecosystem first-publication checklist](docfx/docs/ecosystem-releases.md)
 instead of adding registry secrets to pull-request builds.

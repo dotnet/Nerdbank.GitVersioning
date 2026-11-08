@@ -3,7 +3,8 @@
 Rust, Go, and Java integrations are built, tested, and packaged on ordinary pull requests without registry credentials.
 A successful build uploads an `ecosystem-deployables` artifact; the release workflow attaches the verified files to a GitHub Release.
 Rust publishing uses the existing native workspace's protected Trusted Publishing flow.
-Go and Java publication remain manual or follow-up operations.
+Java publication signs and publishes Maven artifacts to Maven Central, waits for them to be published, and then uploads the Gradle plugin to the Plugin Portal.
+Go acquisition uses immutable repository tags rather than a registry upload.
 
 All Rust packages share the native workspace version, set by `tools/Set-CargoVersion.ps1`.
 The initial Java integration version is `0.1.0`, and the Go module uses the corresponding `go/v0.1.0` Git tag.
@@ -27,7 +28,7 @@ the files are attached.
 ## First-publication checklist
 
 New Rust crate names must be authorized in the existing Trusted Publishing setup before their first release.
-Go and Java registry publication remains a manual or follow-up operation until project owners approve namespaces, accounts, signing, and protected release secrets.
+Configure the verified Maven Central namespace, Plugin Portal account, and signing key before enabling Java publication.
 Do not expose these credentials to pull-request jobs.
 
 1. Repeat collision/ownership checks for `nerdbank-gitversioning-build`, `cargo-nbgv`,
@@ -36,16 +37,28 @@ Do not expose these credentials to pull-request jobs.
    Do not publish a build helper under the native CLI's `nbgv` name.
 3. Create and push the signed Go tag `go/v0.1.0`; Go modules have no upload
    command.
-4. Sign Maven artifacts and publish `nbgv-adapter` and
-   `nbgv-maven-extension` through the approved Maven Central namespace.
-5. Publish the Gradle plugin only after its Maven dependencies resolve from a
-   clean repository.
+4. Configure the Java publishing secrets described below; the release workflow publishes signed Java artifacts through the Central Portal and waits for the `PUBLISHED` state.
+5. The workflow then invokes `:gradle-plugin:publishPlugins`; the first Plugin Portal submission requires manual approval by Gradle before consumers can acquire it.
 6. Verify every registry response and test the documented acquisition commands from clean caches before publishing the documentation.
 
-If publication is automated later, gate it on the existing protected
-`release: published` workflow/environment. Use clearly scoped secrets such as
-`CARGO_REGISTRY_TOKEN`, `MAVEN_CENTRAL_USERNAME`,
-`MAVEN_CENTRAL_PASSWORD`, `MAVEN_SIGNING_KEY`,
-`MAVEN_SIGNING_PASSWORD`, `GRADLE_PUBLISH_KEY`, and
-`GRADLE_PUBLISH_SECRET`. Their names here are a design contract, not evidence
-that the secrets or registry accounts already exist.
+## Java publishing configuration
+
+Set these secrets in the protected `Publishing` environment:
+
+| Secret | Value |
+| --- | --- |
+| `MAVEN_CENTRAL_USERNAME` | Central Portal user-token username, not the account login. |
+| `MAVEN_CENTRAL_PASSWORD` | Central Portal user-token password. |
+| `MAVEN_SIGNING_KEY` | ASCII-armored private PGP signing key; distribute its public key as required by Maven Central. |
+| `MAVEN_SIGNING_PASSWORD` | Signing key passphrase. |
+| `GRADLE_PUBLISH_KEY` | Plugin Portal API key. |
+| `GRADLE_PUBLISH_SECRET` | Plugin Portal API secret. |
+
+The workflow checks credentials and verifies that the checkout matches the selected successful build before registry publication begins.
+It reads the integration version from that build's `packages.json`, rather than substituting the .NET release version.
+The Vanniktech Maven publishing base plugin uses the existing publications, signs with an in-memory PGP key, and uploads through the Central Portal API.
+Normal pull-request builds continue to stage unsigned packages without credentials.
+
+For a manual workflow dispatch, `publish_java` controls both Java registry steps.
+Disable it when intentionally shipping other ecosystems only, or when Java's independently versioned packages have already been published.
+Registry failures fail the workflow; configuring these steps does not create accounts, claim namespaces, or bypass first-publication approval.
