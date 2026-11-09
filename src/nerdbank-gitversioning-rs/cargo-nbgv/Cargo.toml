@@ -23,4 +23,4 @@ toml_edit = "0.22"
 
 [dev-dependencies]
 tempfile.workspace = true
-git2 = { version = "0.21.0", default-features = false }
+git2 = { version = "=0.21.0", default-features = false }
