@@ -9,10 +9,10 @@ base {
 
 dependencies {
     implementation project(':adapter-core')
-    compileOnly 'org.apache.maven:maven-core:3.9.11'
+    compileOnly 'org.apache.maven:maven-core:3.10.0'
     compileOnly 'javax.inject:javax.inject:1'
 
-    testImplementation 'org.apache.maven:maven-core:3.9.11'
+    testImplementation 'org.apache.maven:maven-core:3.10.0'
     testImplementation 'org.apache.maven:maven-embedder:3.9.11'
     testImplementation 'org.apache.maven:maven-compat:3.9.11'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.12.2'
