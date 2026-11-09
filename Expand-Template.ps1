@@ -113,14 +113,17 @@ try {
     git add "test/$LibraryName.Tests/$LibraryName.Tests.csproj"
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-    # Refresh solution file both to update paths and give the projects unique GUIDs
+    # Refresh solution file both to update paths and give the projects unique GUIDs.
+    # .NET 11 defaults `dotnet sln add --include-references` to true. The test project
+    # references the library, so that default tries to add the library a second time and
+    # fails with "Solution folder 'src' already contains a project with the filename".
     dotnet sln remove src/Library/Library.csproj
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     dotnet sln remove test/Library.Tests/Library.Tests.csproj
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-    dotnet sln add "src/$LibraryName"
+    dotnet sln add "src/$LibraryName" --include-references false
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-    dotnet sln add "test/$LibraryName.Tests"
+    dotnet sln add "test/$LibraryName.Tests" --include-references false
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     git add "$LibraryName.slnx"
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
