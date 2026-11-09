@@ -258,6 +258,24 @@ Function Test-DotNetSdkInstalled($DotNetRoot, $Version, $Channel) {
     return $false
 }
 
+Function Get-MachineDotNetInstallDir([string]$Architecture) {
+    # The native Program Files directory, even when this is a 32-bit process on 64-bit Windows.
+    $nativeProgramFiles = if ($env:ProgramW6432) { $env:ProgramW6432 } else { $env:ProgramFiles }
+    $isArm64Windows = [bool]${env:ProgramFiles(Arm)}
+    switch ($Architecture) {
+        'x86' {
+            if (${env:ProgramFiles(x86)}) { Join-Path ${env:ProgramFiles(x86)} 'dotnet' } else { Join-Path $nativeProgramFiles 'dotnet' }
+        }
+        'x64' {
+            # On ARM64 Windows, the x64 .NET installers use a dotnet\x64 subdirectory.
+            if ($isArm64Windows) { Join-Path $nativeProgramFiles 'dotnet\x64' } else { Join-Path $nativeProgramFiles 'dotnet' }
+        }
+        default {
+            Join-Path $nativeProgramFiles 'dotnet'
+        }
+    }
+}
+
 $switches = @()
 $envVars = @{
     # For locally installed dotnet, skip first time experience which takes a long time
@@ -268,8 +286,9 @@ if ($InstallLocality -eq 'machine') {
     if ($IsMacOS -or $IsLinux) {
         $DotNetInstallDir = '/usr/share/dotnet'
     } else {
-        $DotNetInstallDir = Join-Path $(if ($env:ProgramW6432) { $env:ProgramW6432 } else { $env:ProgramFiles }) 'dotnet'
-        $DotNetX86InstallDir = Join-Path ${env:ProgramFiles(x86)} 'dotnet'
+        # Check for installed components where the installers for each architecture put them.
+        $DotNetInstallDir = Get-MachineDotNetInstallDir -Architecture $arch
+        $DotNetX86InstallDir = Get-MachineDotNetInstallDir -Architecture x86
         $restartRequired = $false
         $sdks |% {
             if ($_.Version) { $version = $_.Version } else { $version = $_.Channel }

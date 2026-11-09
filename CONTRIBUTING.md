@@ -45,9 +45,9 @@ You can use `dotnet test` to build and/or test the repo.
 
 There may be tests that are known to be unstable or have special requirements. These can be avoided by running tests using the [dotnet-test-cloud.ps1](tools/dotnet-test-cloud.ps1) script *after* running `dotnet build`.
 
-To build both managed and NativeAOT tests, run `dotnet publish tools/dirs.proj -c Release`.
+To build both managed and NativeAOT tests, run `dotnet publish test -c Release`.
 Then run `./tools/dotnet-test-cloud.ps1 -Configuration Release -IncludeNativeAOT`.
-The traversal projects discover projects under `src` and `test`, and publish each eligible test framework targeting .NET 8 or later.
+The traversal project publishes each eligible test framework targeting .NET.
 Keep test projects in the solution as well: managed test runs still use the solution, while NativeAOT runs use the traversal's evaluated executable paths.
 Test projects can opt out of NativeAOT publishing with `<PublishNativeAOTTests>false</PublishNativeAOTTests>`.
 One restore includes all test target frameworks, runtime identifiers, and NativeAOT compiler dependencies.
@@ -56,10 +56,8 @@ For a specified RID, managed execution and native publishing can share the same 
 Test builds keep dynamic code, startup hooks, and event tracing enabled for managed code coverage.
 The `ConfigureNativeAOTTestFeatures` target disables those features only in the native compiler's publish-time inputs, without rewriting the managed runtime configuration.
 It preserves all other runtime feature options, including invariant globalization, so native compilation and linking use consistent settings.
-For an existing RID-specific build, `dotnet publish test/Library.Tests/Library.Tests.csproj -f net10.0 -r <RID> -p:NativeAOT=true --no-build` publishes native tests from the managed build.
-Use the same configuration, framework, and RID for the preceding build and the publish.
 Test builds use invariant globalization and retain only English satellite resources; RID-specific builds are self-contained.
-Shipping libraries targeting .NET 8 or later opt into NativeAOT compatibility analysis with `IsAotCompatible`.
+Shipping libraries targeting .NET opt into NativeAOT compatibility analysis with `IsAotCompatible`.
 The `test/AotCompatibilityTest` project complements those analyzers by rooting the shipping assembly and passing it through the NativeAOT compiler during every traversal publish.
 Add each shipping assembly that must be validated as a `TrimmerRootAssembly`, and keep this project publishable in `test/dirs.proj`.
 Root `Directory.Build.props` supplies project-reference defaults for both traversal and SDK projects that remove the `_IsPublishing` global property for managed dependencies, avoiding duplicate project instances that write to the same outputs during parallel publishing.
@@ -92,10 +90,17 @@ Trigger the pipeline by adding the `auto-release` tag on a run of your main `azu
 
 ## Tutorial and API documentation
 
+Markup links are checked in CI with [mlc](https://github.com/becheran/mlc).
+Run `mlc` from the repository root to use the same settings, configured in `.mlc.toml`.
+
 API and hand-written docs are found under the `docfx/` directory and are built by [docfx](https://dotnet.github.io/docfx/).
 
 You can make changes and host the site locally to preview them by switching to that directory and running the `dotnet docfx --serve` command.
 After making a change, you can rebuild the docs site while the localhost server is running by running `dotnet docfx` again from a separate terminal.
+
+DocFX metadata extraction suppresses `NU1901` through `NU1904` in `docfx/docfx.json` to match the nonfatal NuGet audit warning policy in `.github/workflows/build.yml`.
+DocFX otherwise turns MSBuild workspace warnings into fatal documentation warnings under `--warningsAsErrors`.
+Normal builds still report these audit warnings, and other documentation warnings remain fatal in CI.
 
 The `.github/workflows/docs.yml` GitHub Actions workflow publishes the content of these docs to github.io if the workflow itself and [GitHub Pages is enabled for your repository](https://docs.github.com/en/pages/quickstart).
 

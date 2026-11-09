@@ -17,4 +17,11 @@ public class CalculatorTests
         Assert.Equal(-1, Calculator.Subtract(1, 2));
 #endif
     }
+
+    [Test]
+    [Property("TestCategory", "FailsInCloudTest")]
+    public void Multiply()
+    {
+        throw new Exception("Fails");
+    }
 }

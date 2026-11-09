@@ -178,6 +178,9 @@ try {
     Replace-Placeholders -Path "azure-pipelines/build.yml" -Replacements @{
         "(?m).*expand-template\.yml(?:\r)?\n" = ""
     }
+    Replace-Placeholders -Path ".github/workflows/build.yml" -Replacements @{
+        "(?ms)^    # BEGIN TEMPLATE EXPANSION VALIDATION\r?\n.*?^    # END TEMPLATE EXPANSION VALIDATION\r?\n" = ""
+    }
 
     $YmlReplacements = @{}
     if ($CIFeed) {
@@ -193,13 +196,22 @@ try {
     git rm :/azure-pipelines/expand-template.yml
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+    git rm tools/Validate-TemplateExpansion.ps1
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
     # Self-integrity check
-    Get-ChildItem -Recurse -File -Exclude bin,obj,README.md,Expand-Template.* |? { -not $_.FullName.Contains("obj") } |% {
-        $PLACEHOLDERS = Get-Content -LiteralPath $_.FullName |? { $_.Contains('PLACEHOLDER') }
+    $placeholdersFound = $false
+    $filesToCheck = git ls-files
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    $filesToCheck |? { $_ -notmatch '(^|/)README\.md$' -and $_ -notmatch '(^|/)SKILL\.md$' -and $_ -notmatch '(^|/)Expand-Template\.' } |% {
+        $file = $_
+        $PLACEHOLDERS = Get-Content -LiteralPath $file |? { $_.Contains('PLACEHOLDER') }
         if ($PLACEHOLDERS) {
-            Write-Error "PLACEHOLDER discovered in $($_.FullName)"
+            $placeholdersFound = $true
+            Write-Error "PLACEHOLDER discovered in $file"
         }
     }
+    if ($placeholdersFound) { exit 1 }
 
     # Commit the changes
     git commit -qm "Expanded template for $LibraryName" -m "This expansion done by the (now removed) Expand-Template.ps1 script."
