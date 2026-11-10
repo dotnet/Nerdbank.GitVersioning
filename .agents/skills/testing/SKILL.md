@@ -49,12 +49,12 @@ dotnet test --no-build -c Release -- --treenode-filter "/*/*/*/*[PropertyName=va
 
 **Run tests for a specific framework only**:
 ```bash
-dotnet test --no-build -c Release --framework net8.0
+dotnet test --no-build -c Release --framework net10.0
 ```
 
 **List all available tests without running them**:
 ```bash
-dotnet run --no-build -c Release --framework net8.0 -- --list-tests
+dotnet run --no-build -c Release --framework net10.0 -- --list-tests
 ```
 
 **Key points about test filtering with TUnit / MTP v2**:
