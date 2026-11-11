@@ -125,6 +125,10 @@ jobs:
     - name: 🛠️ Build nerdbank-gitversioning NPM package
       run: yarn build
       working-directory: src/nerdbank-gitversioning.npm
+      env:
+        # The build runs the newest packaged nbgv (net10.0), but MSBuildLocator only finds SDKs that match
+        # the running runtime, and only the .NET 11 SDK is installed.
+        DOTNET_ROLL_FORWARD: Major
     - name: Capture .git directory
       shell: pwsh
       run: |
