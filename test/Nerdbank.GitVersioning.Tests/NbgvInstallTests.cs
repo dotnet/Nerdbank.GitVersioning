@@ -53,6 +53,8 @@ public class NbgvInstallTests : RepoTestBase
             RedirectStandardOutput = true,
             UseShellExecute = false,
         };
+        //// MSBuildLocator only finds SDKs that match the runtime nbgv runs on, so let nbgv roll forward to the newest runtime (e.g. when only the .NET 11 SDK is installed).
+        startInfo.Environment["DOTNET_ROLL_FORWARD"] = "LatestMajor";
         startInfo.ArgumentList.Add(nbgvToolPath);
         startInfo.ArgumentList.Add("install");
         startInfo.ArgumentList.Add("--path");
@@ -106,6 +108,8 @@ public class NbgvInstallTests : RepoTestBase
             RedirectStandardOutput = true,
             UseShellExecute = false,
         };
+        //// MSBuildLocator only finds SDKs that match the runtime nbgv runs on, so let nbgv roll forward to the newest runtime (e.g. when only the .NET 11 SDK is installed).
+        startInfo.Environment["DOTNET_ROLL_FORWARD"] = "LatestMajor";
         startInfo.ArgumentList.Add(nbgvToolPath);
         startInfo.ArgumentList.Add("install");
         startInfo.ArgumentList.Add("--path");
@@ -222,6 +226,8 @@ public class NbgvInstallTests : RepoTestBase
             RedirectStandardOutput = true,
             UseShellExecute = false,
         };
+        //// MSBuildLocator only finds SDKs that match the runtime nbgv runs on, so let nbgv roll forward to the newest runtime (e.g. when only the .NET 11 SDK is installed).
+        startInfo.Environment["DOTNET_ROLL_FORWARD"] = "LatestMajor";
         startInfo.ArgumentList.Add(nbgvToolPath);
         startInfo.ArgumentList.Add("get-version");
         startInfo.ArgumentList.Add("--project");

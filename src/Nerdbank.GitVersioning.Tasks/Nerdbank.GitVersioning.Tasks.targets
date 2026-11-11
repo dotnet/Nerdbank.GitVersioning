@@ -1,5 +1,5 @@
 <Project>
-  <Target Name="SetNuSpecProperties" BeforeTargets="GenerateNuspec" DependsOnTargets="GetBuildVersion">
+  <Target Name="SetNuSpecProperties" BeforeTargets="GenerateNuspec;_GetOutputItemsFromPack" DependsOnTargets="GetBuildVersion">
     <PropertyGroup>
       <LibGit2SharpNativeBinaries>$([System.IO.Path]::Combine('$(NuGetPackageRoot)', 'libgit2sharp.nativebinaries\$(LibGit2SharpNativeVersion)\'))</LibGit2SharpNativeBinaries>
       <NuspecProperties>$(NuspecProperties);Version=$(Version);commit=$(GitCommitId);BaseOutputPath=$(OutputPath);LibGit2SharpNativeBinaries=$(LibGit2SharpNativeBinaries);libgit2_filename=$(libgit2_filename)</NuspecProperties>
