@@ -10,7 +10,7 @@ base {
 dependencies {
     api 'com.fasterxml.jackson.core:jackson-databind:2.23.0'
 
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.12.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.14.4'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
