@@ -14,7 +14,7 @@ dependencies {
 
     testImplementation 'org.apache.maven:maven-core:3.9.11'
     testImplementation 'org.apache.maven:maven-embedder:3.9.11'
-    testImplementation 'org.apache.maven:maven-compat:3.9.11'
+    testImplementation 'org.apache.maven:maven-compat:3.10.0'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.14.4'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testRuntimeOnly 'org.slf4j:slf4j-simple:1.7.36'
