@@ -106,7 +106,7 @@ jobs:
       uses: gradle/actions/setup-gradle@748248ddd2a24f49513d8f472f81c3a07d4d50e1 # v4.4.4
       if: runner.os == 'Linux'
       with:
-        gradle-version: '8.14.6'
+        gradle-version: '8.14.7'
     - name: ⚙️ Set pipeline variables based on source
       run: tools/variables/_define.ps1
       shell: pwsh
