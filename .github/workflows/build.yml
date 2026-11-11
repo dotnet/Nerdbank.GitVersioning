@@ -290,7 +290,12 @@ jobs:
         cd caketest &&
         git init &&
         dotnet new tool-manifest &&
-        dotnet tool install Cake.Tool
+        # Cake.Tool 7 and later only run on .NET 10+, so the .NET 8 and 9 SDK containers need the last 6.x release.
+        if [[ "$(dotnet --version)" =~ ^(8|9)\. ]]; then
+          dotnet tool install Cake.Tool --version 6.3.0
+        else
+          dotnet tool install Cake.Tool
+        fi
 
         echo "#addin nuget:?package=Cake.GitVersioning&version=${NBGV_NuGetPackageVersion}&prerelease=true"
 
