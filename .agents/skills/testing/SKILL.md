@@ -23,7 +23,7 @@ dotnet test --no-build -c Release
 ```
 
 To run a specific test project, change to that project's directory first; the commands below then target it without hard-coding its path.
-The framework examples below target `Nerdbank.GitVersioning.Tests`; use `net8.0` instead for `Cake.GitVersioning.Tests`.
+The framework examples below target `Nerdbank.GitVersioning.Tests`; use `net10.0` for `Cake.GitVersioning.Tests` as well.
 
 **Run tests for a specific test project** (within that test project's directory):
 ```bash
