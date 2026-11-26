@@ -15,6 +15,16 @@ public abstract class GitPackIndexReader : IDisposable
     protected static readonly byte[] Header = new byte[] { 0xff, 0x74, 0x4f, 0x63 };
 
     /// <summary>
+    /// Gets the object format (hash algorithm) used by this index file.
+    /// </summary>
+    protected virtual GitObjectFormat ObjectFormat => GitObjectFormat.Sha1;
+
+    /// <summary>
+    /// Gets the length in bytes of object IDs stored in this index file.
+    /// </summary>
+    private protected int HashByteLength => GitObjectId.GetByteLength(this.ObjectFormat);
+
+    /// <summary>
     /// Gets the offset of a Git object in the index file.
     /// </summary>
     /// <param name="objectId">
@@ -26,7 +36,12 @@ public abstract class GitPackIndexReader : IDisposable
     /// </returns>
     public long? GetOffset(GitObjectId objectId)
     {
-        Span<byte> name = stackalloc byte[20];
+        if (objectId.ByteLength != this.HashByteLength)
+        {
+            return null;
+        }
+
+        Span<byte> name = stackalloc byte[objectId.ByteLength];
         objectId.CopyTo(name);
         (long? offset, GitObjectId? _) = this.GetOffset(name);
         return offset;

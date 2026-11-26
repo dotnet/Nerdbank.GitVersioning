@@ -82,9 +82,20 @@ These settings apply to both regular and design-time builds.
 
 ## Does Nerdbank.GitVersioning support Git's reftable reference format?
 
-The managed Git engine supports reading SHA-1 repositories that use reftable, including
+The managed Git engine supports reading SHA-1 and SHA-256 repositories that use reftable, including
 clones and linked worktrees. Version calculation, branch lookup, and tag detection work
 with either the traditional files reference backend or reftable.
 
 Operations that use LibGit2Sharp to write to a repository still depend on its native
 libgit2 support and do not support reftable repositories.
+
+## Does Nerdbank.GitVersioning support SHA-256 Git repositories?
+
+The managed Git engine supports reading SHA-256 Git repositories (`extensions.objectformat = sha256`),
+including loose objects, packfiles, loose/packed references, reftables, and linked worktrees.
+MSBuild version stamping, `nbgv get-version`, `nbgv cloud`, and the Cake add-in all use the managed
+engine by default and work on SHA-256 repositories.
+
+Operations that require the LibGit2 engine (such as `nbgv tag`, `nbgv set-version`, `nbgv get-commits`,
+`nbgv prepare-release`, `nbgv install`, or running with `NBGV_GitEngine=LibGit2`) are not supported
+on SHA-256 repositories because LibGit2Sharp / libgit2 does not yet ship production SHA-256 support.

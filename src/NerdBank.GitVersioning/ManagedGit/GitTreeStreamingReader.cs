@@ -25,7 +25,7 @@ public class GitTreeStreamingReader
     /// The <see cref="GitObjectId"/> of the requested node.
     /// </returns>
     public static GitObjectId FindNode(Stream stream, ReadOnlySpan<byte> name)
-        => FindNode(stream, name, ignoreCase: false);
+        => FindNode(stream, name, ignoreCase: false, GitObjectFormat.Sha1);
 
     /// <summary>
     /// Finds a specific node in a git tree.
@@ -43,43 +43,70 @@ public class GitTreeStreamingReader
     /// The <see cref="GitObjectId"/> of the requested node.
     /// </returns>
     public static GitObjectId FindNode(Stream stream, ReadOnlySpan<byte> name, bool ignoreCase)
+        => FindNode(stream, name, ignoreCase, GitObjectFormat.Sha1);
+
+    /// <summary>
+    /// Finds a specific node in a git tree.
+    /// </summary>
+    /// <param name="stream">
+    /// A <see cref="Stream"/> which represents the git tree.
+    /// </param>
+    /// <param name="name">
+    /// The name of the node to find, in its UTF-8 representation.
+    /// </param>
+    /// <param name="ignoreCase">
+    /// Whether to ignore case when matching node names.
+    /// </param>
+    /// <param name="objectFormat">
+    /// The object format (hash algorithm) used by the repository.
+    /// </param>
+    /// <returns>
+    /// The <see cref="GitObjectId"/> of the requested node.
+    /// </returns>
+    public static GitObjectId FindNode(Stream stream, ReadOnlySpan<byte> name, bool ignoreCase, GitObjectFormat objectFormat)
     {
+        int hashByteLength = GitObjectId.GetByteLength(objectFormat);
         byte[] buffer = ArrayPool<byte>.Shared.Rent((int)stream.Length);
-        var contents = new Span<byte>(buffer, 0, (int)stream.Length);
-
-        stream.ReadAll(contents);
-
-        GitObjectId value = GitObjectId.Empty;
-
-        while (contents.Length > 0)
+        try
         {
-            // Format: [mode] [file/ folder name]\0[SHA - 1 of referencing blob or tree]
-            // Mode is either 6-bytes long (directory) or 7-bytes long (file).
-            // If the entry is a file, the first byte is '1'
-            int fileNameEnds = contents.IndexOf((byte)0);
-            bool isFile = contents[0] == (byte)'1';
-            int modeLength = isFile ? 7 : 6;
+            var contents = new Span<byte>(buffer, 0, (int)stream.Length);
 
-            Span<byte> currentName = contents.Slice(modeLength, fileNameEnds - modeLength);
+            stream.ReadAll(contents);
 
-            bool matches = ignoreCase
-                ? currentName.SequenceEqual(name) || CompareIgnoreCase(currentName, name)
-                : currentName.SequenceEqual(name);
+            GitObjectId value = GitObjectId.Empty;
 
-            if (matches)
+            while (contents.Length > 0)
             {
-                value = GitObjectId.Parse(contents.Slice(fileNameEnds + 1, 20));
-                break;
+                // Format: [mode] [file/ folder name]\0[hash of referencing blob or tree]
+                // Mode is either 6-bytes long (directory) or 7-bytes long (file).
+                // If the entry is a file, the first byte is '1'
+                int fileNameEnds = contents.IndexOf((byte)0);
+                bool isFile = contents[0] == (byte)'1';
+                int modeLength = isFile ? 7 : 6;
+
+                Span<byte> currentName = contents.Slice(modeLength, fileNameEnds - modeLength);
+
+                bool matches = ignoreCase
+                    ? currentName.SequenceEqual(name) || CompareIgnoreCase(currentName, name)
+                    : currentName.SequenceEqual(name);
+
+                if (matches)
+                {
+                    value = GitObjectId.Parse(contents.Slice(fileNameEnds + 1, hashByteLength));
+                    break;
+                }
+                else
+                {
+                    contents = contents.Slice(fileNameEnds + 1 + hashByteLength);
+                }
             }
-            else
-            {
-                contents = contents.Slice(fileNameEnds + 1 + 20);
-            }
+
+            return value;
         }
-
-        ArrayPool<byte>.Shared.Return(buffer);
-
-        return value;
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
     }
 
     /// <summary>

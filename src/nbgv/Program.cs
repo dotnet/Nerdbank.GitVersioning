@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.CommandLine;
+using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -12,6 +13,8 @@ using Microsoft.Build.Graph;
 using Microsoft.Build.Locator;
 using Nerdbank.GitVersioning.Commands;
 using Nerdbank.GitVersioning.LibGit2;
+using Nerdbank.GitVersioning.Managed;
+using Nerdbank.GitVersioning.ManagedGit;
 using Newtonsoft.Json;
 using NuGet.Common;
 using NuGet.Configuration;
@@ -789,24 +792,62 @@ namespace Nerdbank.GitVersioning.Tool
             context.VersionFile.GetVersion(VersionFileRequirements.Default, out VersionFileLocations committedLocations);
             context.VersionFile.GetWorkingCopyVersion(VersionFileRequirements.Default, out VersionFileLocations workingLocations);
 
-            using var repository = new LibGit2Sharp.Repository(context.WorkingTreePath);
             var versionJsonPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            AddVersionJsonPaths(committedLocations, fromWorkingTree: false);
-            AddVersionJsonPaths(workingLocations, fromWorkingTree: true);
 
-            if (versionJsonPaths.Count > 0
-                && repository.RetrieveStatus(
-                    new LibGit2Sharp.StatusOptions
-                    {
-                        IncludeUntracked = true,
-                        RecurseUntrackedDirs = true,
-                        PathSpec = versionJsonPaths.ToArray(),
-                    }).Any())
+            if (context is ManagedGitContext managedContext)
             {
-                Console.Error.WriteLine("Warning: Dirty version.json files must be committed before their changes will be applied.");
+                GitObjectId headTree = managedContext.Commit?.Tree ?? GitObjectId.Empty;
+                AddVersionJsonPaths(
+                    committedLocations,
+                    fromWorkingTree: false,
+                    committedPathExists: path => TreeContainsPath(managedContext.Repository, headTree, path));
+                AddVersionJsonPaths(
+                    workingLocations,
+                    fromWorkingTree: true,
+                    committedPathExists: _ => false);
+
+                if (versionJsonPaths.Count > 0 && ArePathsDirty(managedContext.WorkingTreePath, versionJsonPaths))
+                {
+                    Console.Error.WriteLine("Warning: Dirty version.json files must be committed before their changes will be applied.");
+                }
+
+                return;
             }
 
-            void AddVersionJsonPaths(VersionFileLocations locations, bool fromWorkingTree)
+            LibGit2Sharp.Repository ownedRepository = null;
+            try
+            {
+                LibGit2Sharp.Repository repository = context is LibGit2Context libGit2Context
+                    ? libGit2Context.Repository
+                    : (ownedRepository = new LibGit2Sharp.Repository(context.WorkingTreePath));
+
+                AddVersionJsonPaths(
+                    committedLocations,
+                    fromWorkingTree: false,
+                    committedPathExists: path => repository.Head.Tip?.Tree[path] is not null);
+                AddVersionJsonPaths(
+                    workingLocations,
+                    fromWorkingTree: true,
+                    committedPathExists: _ => false);
+
+                if (versionJsonPaths.Count > 0
+                    && repository.RetrieveStatus(
+                        new LibGit2Sharp.StatusOptions
+                        {
+                            IncludeUntracked = true,
+                            RecurseUntrackedDirs = true,
+                            PathSpec = versionJsonPaths.ToArray(),
+                        }).Any())
+                {
+                    Console.Error.WriteLine("Warning: Dirty version.json files must be committed before their changes will be applied.");
+                }
+            }
+            finally
+            {
+                ownedRepository?.Dispose();
+            }
+
+            void AddVersionJsonPaths(VersionFileLocations locations, bool fromWorkingTree, Func<string, bool> committedPathExists)
             {
                 string lastDirectory = locations.NonInheritingVersionDirectory ?? locations.VersionSpecifyingVersionDirectory;
                 if (lastDirectory is null)
@@ -826,7 +867,7 @@ namespace Nerdbank.GitVersioning.Tool
                     string versionTxtPath = Path.Combine(repoRelativeDirectory, VersionFile.TxtFileName).Replace('\\', '/');
                     bool versionJsonWasRead = fromWorkingTree
                         ? File.Exists(Path.Combine(directory, VersionFile.JsonFileName)) && !File.Exists(Path.Combine(directory, VersionFile.TxtFileName))
-                        : repository.Head.Tip.Tree[versionJsonPath] is not null && repository.Head.Tip.Tree[versionTxtPath] is null;
+                        : committedPathExists(versionJsonPath) && !committedPathExists(versionTxtPath);
                     if (versionJsonWasRead)
                     {
                         versionJsonPaths.Add(versionJsonPath);
@@ -838,6 +879,65 @@ namespace Nerdbank.GitVersioning.Tool
                     }
                 }
             }
+        }
+
+        private static bool TreeContainsPath(GitRepository repository, GitObjectId rootTree, string repoRelativePath)
+        {
+            if (rootTree == GitObjectId.Empty)
+            {
+                return false;
+            }
+
+            GitObjectId currentTree = rootTree;
+            string[] segments = repoRelativePath.Split('/');
+            for (int i = 0; i < segments.Length; i++)
+            {
+                if (string.IsNullOrEmpty(segments[i]))
+                {
+                    continue;
+                }
+
+                currentTree = repository.GetTreeEntry(currentTree, GitRepository.Encoding.GetBytes(segments[i]));
+                if (currentTree == GitObjectId.Empty)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool ArePathsDirty(string workingTreePath, IEnumerable<string> repoRelativePaths)
+        {
+            var startInfo = new ProcessStartInfo("git")
+            {
+                CreateNoWindow = true,
+                RedirectStandardError = true,
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                WorkingDirectory = workingTreePath,
+            };
+            startInfo.ArgumentList.Add("status");
+            startInfo.ArgumentList.Add("--porcelain=v1");
+            startInfo.ArgumentList.Add("--untracked-files=all");
+            startInfo.ArgumentList.Add("--");
+            foreach (string path in repoRelativePaths)
+            {
+                startInfo.ArgumentList.Add(path);
+            }
+
+            using Process process = Process.Start(startInfo) ?? throw new GitException("Failed to start Git while checking the working tree status.");
+            Task<string> standardOutputTask = process.StandardOutput.ReadToEndAsync();
+            Task<string> standardErrorTask = process.StandardError.ReadToEndAsync();
+            process.WaitForExit();
+            string standardOutput = standardOutputTask.GetAwaiter().GetResult();
+            string standardError = standardErrorTask.GetAwaiter().GetResult();
+            if (process.ExitCode != 0)
+            {
+                throw new GitException($"Git failed while checking the working tree status: {standardError.Trim()}");
+            }
+
+            return standardOutput.Length > 0;
         }
 
         private static Task<int> OnSetVersionCommand(string project, string version)

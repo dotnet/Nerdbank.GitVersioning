@@ -243,11 +243,66 @@ public class GitReftableTests : RepoTestBase
     }
 
     [Test]
-    public void Sha256TableIsRejected()
+    public void UnsupportedHashTableIsRejected()
+    {
+        this.WriteTable(CreateTable(2, "unkn"));
+        using GitRepository repository = GitRepository.Create(this.RepoPath)!;
+        Assert.Contains("Unsupported reftable object format", Assert.Throws<GitException>(() => repository.GetHeadCommitSha()).Message);
+    }
+
+    [Test]
+    public void MismatchedSha256TableInSha1RepoIsRejected()
     {
         this.WriteTable(CreateTable(2, "s256"));
         using GitRepository repository = GitRepository.Create(this.RepoPath)!;
-        Assert.Contains("Only SHA-1", Assert.Throws<GitException>(() => repository.GetHeadCommitSha()).Message);
+        Assert.Contains("does not match", Assert.Throws<GitException>(() => repository.GetHeadCommitSha()).Message);
+    }
+
+    [Test]
+    public void Sha256ReftableRepositoryWorks()
+    {
+        this.Git(this.RepoPath, "init", "--object-format=sha256", "--ref-format=reftable", "--initial-branch=main");
+        this.ConfigureGit();
+        File.WriteAllText(Path.Combine(this.RepoPath, "version.json"), "{\"version\":\"2.1\",\"publicReleaseRefSpec\":[\"^refs/tags/v2.1$\"]}");
+        this.Git(this.RepoPath, "add", "version.json");
+        string first = this.Commit();
+        string second = this.Commit();
+        this.Git(this.RepoPath, "branch", "topic");
+        this.Git(this.RepoPath, "tag", "lightweight");
+        this.Git(this.RepoPath, "tag", "-a", "v2.1", "-m", "release");
+
+        using (GitRepository repository = GitRepository.Create(this.RepoPath)!)
+        {
+            Assert.Equal(GitObjectFormat.Sha256, repository.ObjectFormat);
+            Assert.Equal("refs/heads/main", repository.GetHeadAsReferenceOrSha());
+            Assert.Equal(GitObjectId.Parse(second), repository.GetHeadCommitSha());
+            Assert.Equal(GitObjectId.Parse(first), repository.Lookup("HEAD~1"));
+            Assert.Equal(GitObjectId.Parse(second), repository.Lookup("topic"));
+            Assert.Equal(new[] { "refs/tags/lightweight", "refs/tags/v2.1" }, repository.LookupTags(GitObjectId.Parse(second)).OrderBy(name => name).ToArray());
+
+            this.Git(this.RepoPath, "pack-refs", "--all");
+            Assert.Equal(GitObjectId.Parse(second), repository.GetHeadCommitSha());
+            Assert.Equal(new[] { "refs/tags/lightweight", "refs/tags/v2.1" }, repository.LookupTags(GitObjectId.Parse(second)).OrderBy(name => name).ToArray());
+        }
+
+        using (GitContext context = this.CreateGitContext(this.RepoPath))
+        {
+            var oracle = new VersionOracle(context);
+            Assert.Equal(second, oracle.GitCommitId);
+            Assert.Equal(64, oracle.GitCommitId!.Length);
+            Assert.Equal(2, oracle.VersionHeight);
+            Assert.True(oracle.PublicRelease);
+            Assert.Equal("main", context.GetDefaultBranch());
+        }
+
+        string worktree = this.CreateDirectoryForNewRepo();
+        this.Git(this.RepoPath, "worktree", "add", "--detach", worktree, first);
+        using (GitRepository worktreeRepo = GitRepository.Create(worktree)!)
+        {
+            Assert.Equal(GitObjectFormat.Sha256, worktreeRepo.ObjectFormat);
+            Assert.Equal(GitObjectId.Parse(first), worktreeRepo.GetHeadAsReferenceOrSha());
+            Assert.Equal(GitObjectId.Parse(first), worktreeRepo.GetHeadCommitSha());
+        }
     }
 
     [Test]

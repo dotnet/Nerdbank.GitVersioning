@@ -10,7 +10,11 @@ namespace Nerdbank.GitVersioning.ManagedGit;
 internal static class GitTreeReader
 {
     public static GitTree Read(Stream stream, GitObjectId objectId)
+        => Read(stream, objectId, objectId.ByteLength == GitObjectId.Sha256ByteLength ? GitObjectFormat.Sha256 : GitObjectFormat.Sha1);
+
+    public static GitTree Read(Stream stream, GitObjectId objectId, GitObjectFormat objectFormat)
     {
+        int hashByteLength = GitObjectId.GetByteLength(objectFormat);
         byte[] buffer = ArrayPool<byte>.Shared.Rent((int)stream.Length);
 #if DEBUG
         Array.Clear(buffer, 0, buffer.Length);
@@ -28,7 +32,7 @@ internal static class GitTreeReader
 
             while (contents.Length > 0)
             {
-                // Format: [mode] [file/ folder name]\0[SHA - 1 of referencing blob or tree]
+                // Format: [mode] [file/ folder name]\0[hash of referencing blob or tree]
                 // Mode is either 6-bytes long (directory) or 7-bytes long (file).
                 // If the entry is a file, the first byte is '1'
                 int fileNameEnds = contents.IndexOf((byte)0);
@@ -41,7 +45,7 @@ internal static class GitTreeReader
                 }
 
                 Span<byte> currentName = contents.Slice(modeLength, fileNameEnds - modeLength);
-                var currentObjectId = GitObjectId.Parse(contents.Slice(fileNameEnds + 1, 20));
+                var currentObjectId = GitObjectId.Parse(contents.Slice(fileNameEnds + 1, hashByteLength));
 
                 string? name = GitRepository.GetString(currentName);
 
@@ -49,7 +53,7 @@ internal static class GitTreeReader
                     name,
                     new GitTreeEntry(name, isFile, currentObjectId, mode));
 
-                contents = contents.Slice(fileNameEnds + 1 + 20);
+                contents = contents.Slice(fileNameEnds + 1 + hashByteLength);
             }
         }
         finally
