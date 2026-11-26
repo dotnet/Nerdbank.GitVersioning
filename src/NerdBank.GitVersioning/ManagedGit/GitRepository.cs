@@ -61,6 +61,12 @@ public class GitRepository : IDisposable
         this.CommonDirectory = TrimEndingDirectorySeparator(Path.GetFullPath(this.CommonDirectory));
         this.ObjectDirectory = TrimEndingDirectorySeparator(Path.GetFullPath(this.ObjectDirectory));
 
+        string configPath = Path.Combine(this.CommonDirectory, "config");
+        this.ObjectFormat = ReadObjectFormatFromConfig(configPath);
+        this.usesReftable = File.Exists(configPath)
+            && TryReadConfigurationValue(configPath, "extensions", "refStorage", out string? refStorage)
+            && string.Equals(refStorage, "reftable", StringComparison.OrdinalIgnoreCase);
+
         if (FileHelpers.TryOpen(
             Path.Combine(this.ObjectDirectory, "info", "alternates"),
             out FileStream? alternateStream))
@@ -87,7 +93,7 @@ public class GitRepository : IDisposable
             + 1 // '/'
             + 2 // 'xy' is first byte as 2 hex characters.
             + 1 // '/'
-            + 38 // 19 bytes * 2 hex chars each
+            + ((this.HashByteLength - 1) * 2) // remaining bytes * 2 hex chars each (38 for SHA-1, 62 for SHA-256)
             + 1; // Trailing null character
         this.objectPathBuffer = new char[pathLengthInChars];
         this.ObjectDirectory.CopyTo(0, this.objectPathBuffer, 0, this.ObjectDirectory.Length);
@@ -100,16 +106,17 @@ public class GitRepository : IDisposable
 
         // Read git configuration to determine case sensitivity
         this.IgnoreCase = this.ReadIgnoreCaseFromConfig();
-        string configPath = Path.Combine(this.CommonDirectory, "config");
-        this.usesReftable = File.Exists(configPath)
-            && TryReadConfigurationValue(configPath, "extensions", "refStorage", out string? refStorage)
-            && string.Equals(refStorage, "reftable", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
     /// Gets the encoding used by this Git repository.
     /// </summary>
     public static Encoding Encoding => Encoding.UTF8;
+
+    /// <summary>
+    /// Gets the object format (hash algorithm) used by this Git repository.
+    /// </summary>
+    public GitObjectFormat ObjectFormat { get; }
 
     /// <summary>
     /// Gets a value indicating whether this Git repository is case-insensitive.
@@ -137,6 +144,10 @@ public class GitRepository : IDisposable
     /// </summary>
     public string ObjectDirectory { get; private set; }
 
+    private int HashByteLength => GitObjectId.GetByteLength(this.ObjectFormat);
+
+    private int HashHexLength => GitObjectId.GetHexLength(this.ObjectFormat);
+
     /// <summary>
     /// Creates a new instance of the <see cref="GitRepository"/> class.
     /// </summary>
@@ -152,15 +163,7 @@ public class GitRepository : IDisposable
             return null;
         }
 
-        string commonDirectory = gitDirectory;
-        string commonDirFile = Path.Combine(gitDirectory, "commondir");
-
-        if (File.Exists(commonDirFile))
-        {
-            string? commonDirectoryRelativePath = File.ReadAllText(commonDirFile).Trim('\n');
-            commonDirectory = Path.Combine(gitDirectory, commonDirectoryRelativePath);
-        }
-
+        string commonDirectory = GetCommonDirectory(gitDirectory);
         string objectDirectory = Path.Combine(commonDirectory, "objects");
 
         return new GitRepository(workingDirectory!, gitDirectory, commonDirectory, objectDirectory);
@@ -483,8 +486,8 @@ public class GitRepository : IDisposable
             // Match in packed-refs file.
             foreach ((string line, string? _) in this.EnumeratePackedRefsWithPeelLines(out var _))
             {
-                var refName = line.Substring(41);
-                GitObjectId GetObjId() => GitObjectId.Parse(line.AsSpan().Slice(0, 40));
+                var refName = line.Substring(this.HashHexLength + 1);
+                GitObjectId GetObjId() => GitObjectId.Parse(line.AsSpan().Slice(0, this.HashHexLength));
 
                 if (string.Equals(refName, objectish, StringComparison.Ordinal))
                 {
@@ -514,13 +517,13 @@ public class GitRepository : IDisposable
             return null;
         }
 
-        if (objectish.Length == 40)
+        if (objectish.Length == this.HashHexLength && GitObjectId.TryParse(objectish.AsSpan(), out GitObjectId exactObjectId))
         {
-            return GitObjectId.Parse(objectish);
+            return exactObjectId;
         }
 
         var possibleObjectIds = new List<GitObjectId>();
-        if (objectish.Length > 2 && objectish.Length < 40)
+        if (objectish.Length > 2 && objectish.Length < this.HashHexLength)
         {
             // Search for _any_ object whose id starts with objectish in the object database
             string? directory = Path.Combine(this.ObjectDirectory, objectish.Substring(0, 2));
@@ -532,7 +535,10 @@ public class GitRepository : IDisposable
                 foreach (string? file in files)
                 {
                     string? objectId = $"{objectish.Substring(0, 2)}{Path.GetFileName(file)}";
-                    possibleObjectIds.Add(GitObjectId.Parse(objectId));
+                    if (objectId.Length == this.HashHexLength && GitObjectId.TryParse(objectId.AsSpan(), out GitObjectId parsedObjectId))
+                    {
+                        possibleObjectIds.Add(parsedObjectId);
+                    }
                 }
             }
 
@@ -545,7 +551,7 @@ public class GitRepository : IDisposable
                 objectish += "0";
             }
 
-            if (objectish.Length <= 40 && objectish.Length % 2 == 0)
+            if (objectish.Length <= this.HashHexLength && objectish.Length % 2 == 0)
             {
                 Span<byte> decodedHex = stackalloc byte[objectish.Length / 2];
                 if (TryConvertHexStringToByteArray(objectish, decodedHex))
@@ -599,7 +605,7 @@ public class GitRepository : IDisposable
             throw new GitException($"The tree {sha} was not found in this repository.") { ErrorCode = GitException.ErrorCodes.ObjectNotFound };
         }
 
-        return GitTreeReader.Read(stream, sha);
+        return GitTreeReader.Read(stream, sha, this.ObjectFormat);
     }
 
     /// <summary>
@@ -624,7 +630,7 @@ public class GitRepository : IDisposable
         }
 
         // Try case-sensitive search first
-        GitObjectId result = GitTreeStreamingReader.FindNode(treeStream, nodeName, ignoreCase: false);
+        GitObjectId result = GitTreeStreamingReader.FindNode(treeStream, nodeName, ignoreCase: false, this.ObjectFormat);
 
         // If not found and repository is configured for case-insensitive matching, try case-insensitive search
         if (result == GitObjectId.Empty && this.IgnoreCase)
@@ -633,7 +639,7 @@ public class GitRepository : IDisposable
             using Stream? treeStream2 = this.GetObjectBySha(treeId, "tree");
             if (treeStream2 is not null)
             {
-                result = GitTreeStreamingReader.FindNode(treeStream2, nodeName, ignoreCase: true);
+                result = GitTreeStreamingReader.FindNode(treeStream2, nodeName, ignoreCase: true, this.ObjectFormat);
             }
         }
 
@@ -808,7 +814,7 @@ public class GitRepository : IDisposable
         {
             foreach (string tagFile in Directory.EnumerateFiles(tagDir, "*", SearchOption.AllDirectories))
             {
-                var tagObjId = GitObjectId.ParseHex(File.ReadAllBytes(tagFile).AsSpan().Slice(0, 40));
+                var tagObjId = GitObjectId.ParseHex(File.ReadAllBytes(tagFile).AsSpan().Slice(0, this.HashHexLength));
 
                 // \ is not legal in git tag names
                 var tagName = tagFile.Substring(tagDir.Length + 1).Replace('\\', '/');
@@ -821,12 +827,12 @@ public class GitRepository : IDisposable
         // packed-refs file
         foreach ((string line, string? peelLine) in this.EnumeratePackedRefsWithPeelLines(out var tagsPeeled))
         {
-            var refName = line.Substring(41);
+            var refName = line.Substring(this.HashHexLength + 1);
 
             // If we remove this check we do find local and remote branch heads too.
             if (refName.StartsWith("refs/tags/", StringComparison.Ordinal))
             {
-                ReadOnlySpan<char> tagSpan = peelLine is null ? line.AsSpan().Slice(0, 40) : peelLine.AsSpan().Slice(1, 40);
+                ReadOnlySpan<char> tagSpan = peelLine is null ? line.AsSpan().Slice(0, this.HashHexLength) : peelLine.AsSpan().Slice(1, this.HashHexLength);
                 var tagObjId = GitObjectId.Parse(tagSpan);
                 HandleCandidate(tagObjId, refName, tagsPeeled);
             }
@@ -851,6 +857,36 @@ public class GitRepository : IDisposable
                 pack.Dispose();
             }
         }
+    }
+
+    /// <summary>
+    /// Resolves the common Git directory for a Git directory (handling worktrees via <c>commondir</c>).
+    /// </summary>
+    /// <param name="gitDirectory">The path to the Git directory.</param>
+    /// <returns>The path to the common Git directory.</returns>
+    internal static string GetCommonDirectory(string gitDirectory)
+    {
+        string commonDirectory = gitDirectory;
+        string commonDirFile = Path.Combine(gitDirectory, "commondir");
+
+        if (File.Exists(commonDirFile))
+        {
+            string commonDirectoryRelativePath = File.ReadAllText(commonDirFile).TrimEnd('\r', '\n');
+            commonDirectory = Path.Combine(gitDirectory, commonDirectoryRelativePath);
+        }
+
+        return commonDirectory;
+    }
+
+    /// <summary>
+    /// Reads the configured <see cref="GitObjectFormat"/> for a Git directory.
+    /// </summary>
+    /// <param name="gitDirectory">The path to the Git directory.</param>
+    /// <returns>The repository's <see cref="GitObjectFormat"/>.</returns>
+    internal static GitObjectFormat ReadObjectFormat(string gitDirectory)
+    {
+        string commonDirectory = GetCommonDirectory(gitDirectory);
+        return ReadObjectFormatFromConfig(Path.Combine(commonDirectory, "config"));
     }
 
     /// <summary>
@@ -957,7 +993,7 @@ public class GitRepository : IDisposable
 
         foreach ((string record, string? _) in this.EnumeratePackedRefsWithPeelLines(out bool _))
         {
-            string referenceName = record.Substring(41);
+            string referenceName = record.Substring(this.HashHexLength + 1);
             if (referenceName.StartsWith(LocalBranchPrefix, StringComparison.Ordinal))
             {
                 branchNames.Add(referenceName.Substring(LocalBranchPrefix.Length));
@@ -994,6 +1030,31 @@ public class GitRepository : IDisposable
         return globalConfigPath is not null && TryReadConfigurationValue(globalConfigPath, section, name, out string? globalValue)
             ? globalValue
             : null;
+    }
+
+    private static GitObjectFormat ReadObjectFormatFromConfig(string configPath)
+    {
+        if (File.Exists(configPath)
+            && TryReadConfigurationValue(configPath, "core", "repositoryformatversion", out string? formatVersionString)
+            && int.TryParse(formatVersionString, NumberStyles.Integer, CultureInfo.InvariantCulture, out int formatVersion)
+            && formatVersion >= 1
+            && TryReadConfigurationValue(configPath, "extensions", "objectformat", out string? objectFormat))
+        {
+            if (string.Equals(objectFormat, "sha1", StringComparison.OrdinalIgnoreCase))
+            {
+                return GitObjectFormat.Sha1;
+            }
+            else if (string.Equals(objectFormat, "sha256", StringComparison.OrdinalIgnoreCase))
+            {
+                return GitObjectFormat.Sha256;
+            }
+            else
+            {
+                throw new GitException($"Unsupported Git object format '{objectFormat}'.");
+            }
+        }
+
+        return GitObjectFormat.Sha1;
     }
 
     private static GitObjectId? ResolveReftableReference(Dictionary<string, (object Value, GitObjectId? Peeled)> references, string name)
@@ -1084,6 +1145,11 @@ public class GitRepository : IDisposable
         foreach (string line in File.ReadLines(configPath))
         {
             string trimmedLine = line.Trim();
+            if (trimmedLine.Length == 0 || trimmedLine[0] == '#' || trimmedLine[0] == ';')
+            {
+                continue;
+            }
+
             if (trimmedLine.StartsWith("[", StringComparison.Ordinal) && trimmedLine.EndsWith("]", StringComparison.Ordinal))
             {
                 string sectionName = trimmedLine.Substring(1, trimmedLine.Length - 2).Trim();
@@ -1224,7 +1290,7 @@ public class GitRepository : IDisposable
     private Dictionary<string, (object Value, GitObjectId? Peeled)> ReadReftableReferences()
     {
         var references = new Dictionary<string, (object Value, GitObjectId? Peeled)>(StringComparer.Ordinal);
-        GitReftableReader.ReadStack(Path.Combine(this.CommonDirectory, "reftable"), references);
+        GitReftableReader.ReadStack(Path.Combine(this.CommonDirectory, "reftable"), references, this.ObjectFormat);
         if (this.GitDirectory != this.CommonDirectory)
         {
             foreach (string name in references.Keys.Where(name => !name.StartsWith("refs/", StringComparison.Ordinal)
@@ -1235,7 +1301,7 @@ public class GitRepository : IDisposable
                 references.Remove(name);
             }
 
-            GitReftableReader.ReadStack(Path.Combine(this.GitDirectory, "reftable"), references);
+            GitReftableReader.ReadStack(Path.Combine(this.GitDirectory, "reftable"), references, this.ObjectFormat);
         }
 
         return references;
@@ -1243,8 +1309,14 @@ public class GitRepository : IDisposable
 
     private bool TryGetObjectByPath(GitObjectId sha, string objectType, [NotNullWhen(true)] out Stream? value)
     {
+        if (sha.ByteLength != this.HashByteLength)
+        {
+            value = null;
+            return false;
+        }
+
         sha.CopyAsHex(0, 1, this.objectPathBuffer.AsSpan(this.ObjectDirectory.Length + 1, 2));
-        sha.CopyAsHex(1, 19, this.objectPathBuffer.AsSpan(this.ObjectDirectory.Length + 1 + 2 + 1));
+        sha.CopyAsHex(1, sha.ByteLength - 1, this.objectPathBuffer.AsSpan(this.ObjectDirectory.Length + 1 + 2 + 1));
 
         if (!FileHelpers.TryOpen(this.objectPathBuffer, out FileStream? compressedFile))
         {
@@ -1286,7 +1358,7 @@ public class GitRepository : IDisposable
             // Only proceed if both the packfile and index file exist.
             if (File.Exists(packPath))
             {
-                packs[addCount++] = new GitPack(this.GetObjectBySha, indexPath, packPath);
+                packs[addCount++] = new GitPack(this.GetObjectBySha, indexPath, packPath, cache: null, this.ObjectFormat);
             }
         }
 

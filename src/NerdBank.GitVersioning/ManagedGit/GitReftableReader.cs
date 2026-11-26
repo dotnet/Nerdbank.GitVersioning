@@ -17,7 +17,8 @@ internal static class GitReftableReader
     /// </summary>
     /// <param name="directory">The directory containing the stack's tables.list.</param>
     /// <param name="references">The references to update, in oldest-to-newest table order.</param>
-    internal static void ReadStack(string directory, Dictionary<string, (object Value, GitObjectId? Peeled)> references)
+    /// <param name="expectedObjectFormat">The expected object format of the repository.</param>
+    internal static void ReadStack(string directory, Dictionary<string, (object Value, GitObjectId? Peeled)> references, GitObjectFormat expectedObjectFormat = GitObjectFormat.Sha1)
     {
         string listPath = Path.Combine(directory, "tables.list");
         for (int attempt = 0; attempt < 5; attempt++)
@@ -68,7 +69,7 @@ internal static class GitReftableReader
             {
                 foreach (FileStream stream in streams)
                 {
-                    ReadTable(stream, references);
+                    ReadTable(stream, references, expectedObjectFormat);
                 }
 
                 return;
@@ -83,7 +84,7 @@ internal static class GitReftableReader
         }
     }
 
-    private static void ReadTable(FileStream stream, Dictionary<string, (object Value, GitObjectId? Peeled)> references)
+    private static void ReadTable(FileStream stream, Dictionary<string, (object Value, GitObjectId? Peeled)> references, GitObjectFormat expectedObjectFormat)
     {
         Span<byte> header = stackalloc byte[28];
         if (stream.Length < 24 + 68)
@@ -98,23 +99,40 @@ internal static class GitReftableReader
         }
 
         int headerLength;
+        GitObjectFormat tableObjectFormat;
         switch (header[4])
         {
             case 1:
                 headerLength = 24;
+                tableObjectFormat = GitObjectFormat.Sha1;
                 break;
             case 2:
                 headerLength = 28;
                 stream.ReadAll(header.Slice(24, 4));
-                if (!header.Slice(24, 4).SequenceEqual("sha1"u8))
+                if (header.Slice(24, 4).SequenceEqual("sha1"u8))
                 {
-                    throw new GitException($"Unsupported reftable object format in '{stream.Name}'. Only SHA-1 repositories are supported.");
+                    tableObjectFormat = GitObjectFormat.Sha1;
+                }
+                else if (header.Slice(24, 4).SequenceEqual("s256"u8))
+                {
+                    tableObjectFormat = GitObjectFormat.Sha256;
+                }
+                else
+                {
+                    throw new GitException($"Unsupported reftable object format in '{stream.Name}'.");
                 }
 
                 break;
             default:
                 throw new GitException($"Unsupported reftable version {header[4]} in '{stream.Name}'.");
         }
+
+        if (tableObjectFormat != expectedObjectFormat)
+        {
+            throw new GitException($"Reftable object format '{tableObjectFormat}' in '{stream.Name}' does not match repository object format '{expectedObjectFormat}'.");
+        }
+
+        int hashByteLength = GitObjectId.GetByteLength(tableObjectFormat);
 
         int footerLength = headerLength + 44;
         long footerPosition = stream.Length - footerLength;
@@ -174,7 +192,7 @@ internal static class GitReftableReader
             byte[] block = new byte[blockLength];
             blockHeader.CopyTo(block.AsSpan(headerOffset));
             stream.ReadAll(block.AsSpan(headerOffset + 4));
-            ReadReferences(block, headerOffset + 4, maximumUpdate - minimumUpdate, references, stream);
+            ReadReferences(block, headerOffset + 4, maximumUpdate - minimumUpdate, hashByteLength, references, stream);
 
             long nextPosition = blockPosition + blockLength;
             if (blockSize != 0 && nextPosition < footerPosition)
@@ -199,6 +217,7 @@ internal static class GitReftableReader
         ReadOnlySpan<byte> block,
         int position,
         ulong maximumDelta,
+        int hashByteLength,
         Dictionary<string, (object Value, GitObjectId? Peeled)> references,
         FileStream stream)
     {
@@ -262,10 +281,10 @@ internal static class GitReftableReader
                     break;
                 case 1:
                 case 2:
-                    value = GitObjectId.Parse(ReadBytes(records, ref position, 20, stream));
+                    value = GitObjectId.Parse(ReadBytes(records, ref position, hashByteLength, stream));
                     if ((suffixAndType & 7) == 2)
                     {
-                        peeled = GitObjectId.Parse(ReadBytes(records, ref position, 20, stream));
+                        peeled = GitObjectId.Parse(ReadBytes(records, ref position, hashByteLength, stream));
                     }
 
                     break;

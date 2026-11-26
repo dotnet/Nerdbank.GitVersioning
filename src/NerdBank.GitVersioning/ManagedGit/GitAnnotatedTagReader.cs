@@ -16,8 +16,6 @@ namespace Nerdbank.GitVersioning.ManagedGit;
 /// </summary>
 public static class GitAnnotatedTagReader
 {
-    private const int ObjectLineLength = 48;
-
     private static readonly byte[] ObjectStart = GitRepository.Encoding.GetBytes("object ");
     private static readonly byte[] TypeStart = GitRepository.Encoding.GetBytes("type ");
     private static readonly byte[] TagStart = GitRepository.Encoding.GetBytes("tag ");
@@ -69,8 +67,8 @@ public static class GitAnnotatedTagReader
     {
         ReadOnlySpan<byte> buffer = tag;
 
-        GitObjectId obj = ReadObject(buffer.Slice(0, ObjectLineLength));
-        buffer = buffer.Slice(ObjectLineLength);
+        (GitObjectId obj, int objLen) = ReadObject(buffer);
+        buffer = buffer.Slice(objLen);
 
         (string type, int typeLen) = ReadType(buffer);
         buffer = buffer.Slice(typeLen);
@@ -86,18 +84,17 @@ public static class GitAnnotatedTagReader
         };
     }
 
-    private static GitObjectId ReadObject(ReadOnlySpan<byte> line)
+    private static (GitObjectId ObjectId, int BytesRead) ReadObject(ReadOnlySpan<byte> remaining)
     {
-        // Format: object d8329fc1cc938780ffdd9f94e0d364e0ea74f579\n
-        // 48 bytes:
-        //  object: 6 bytes
-        //  space: 1 byte
-        //  hash: 40 bytes
-        //  \n: 1 byte
-        Debug.Assert(line.Slice(0, ObjectStart.Length).SequenceEqual(ObjectStart));
-        Debug.Assert(line[ObjectLineLength - 1] == (byte)'\n');
+        // Format: object <hex-hash>\n
+        // SHA-1: 48 bytes (7 + 40 + 1); SHA-256: 72 bytes (7 + 64 + 1)
+        Debug.Assert(remaining.Slice(0, ObjectStart.Length).SequenceEqual(ObjectStart));
 
-        return GitObjectId.ParseHex(line.Slice(ObjectStart.Length, 40));
+        int lineEnd = remaining.IndexOf((byte)'\n');
+        Debug.Assert(lineEnd >= ObjectStart.Length);
+
+        ReadOnlySpan<byte> hash = remaining.Slice(ObjectStart.Length, lineEnd - ObjectStart.Length);
+        return (GitObjectId.ParseHex(hash), lineEnd + 1);
     }
 
     private static (string Content, int BytesRead) ReadPrefixedString(ReadOnlySpan<byte> remaining, byte[] prefix)

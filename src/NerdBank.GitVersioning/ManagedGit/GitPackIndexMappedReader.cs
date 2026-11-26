@@ -17,6 +17,7 @@ public unsafe class GitPackIndexMappedReader : GitPackIndexReader
 {
     private readonly MemoryMappedFile file;
     private readonly MemoryMappedViewAccessor accessor;
+    private readonly GitObjectFormat objectFormat;
 
     // The fanout table consists of
     // 256 4-byte network byte order integers.
@@ -34,48 +35,78 @@ public unsafe class GitPackIndexMappedReader : GitPackIndexReader
     /// A <see cref="FileStream"/> which points to the index file.
     /// </param>
     public GitPackIndexMappedReader(FileStream stream)
+        : this(stream, GitObjectFormat.Sha1)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="GitPackIndexMappedReader"/> class.
+    /// </summary>
+    /// <param name="stream">
+    /// A <see cref="FileStream"/> which points to the index file.
+    /// </param>
+    /// <param name="objectFormat">
+    /// The object format (hash algorithm) used by the repository.
+    /// </param>
+    public GitPackIndexMappedReader(FileStream stream, GitObjectFormat objectFormat)
     {
         if (stream is null)
         {
             throw new ArgumentNullException(nameof(stream));
         }
 
+        this.objectFormat = objectFormat;
         this.file = MemoryMappedFile.CreateFromFile(stream, mapName: null, capacity: 0, MemoryMappedFileAccess.Read, HandleInheritability.None, leaveOpen: false);
         this.accessor = this.file.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
         this.accessor.SafeMemoryMappedViewHandle.AcquirePointer(ref this.ptr);
     }
 
     /// <inheritdoc/>
+    protected override GitObjectFormat ObjectFormat => this.objectFormat;
+
+    /// <inheritdoc/>
     public override (long? Offset, GitObjectId? ObjectId) GetOffset(Span<byte> objectId, bool endsWithHalfByte = false)
     {
+        int hashByteLength = this.HashByteLength;
+        if (objectId.Length == 0 || objectId.Length > hashByteLength)
+        {
+            return (null, null);
+        }
+
         this.Initialize();
 
         int packStart = this.fanoutTable[objectId[0]];
         int packEnd = this.fanoutTable[objectId[0] + 1];
         int objectCount = this.fanoutTable[256];
 
-        // The fanout table is followed by a table of sorted 20-byte SHA-1 object names.
+        if (packStart >= packEnd)
+        {
+            return (null, null);
+        }
+
+        // The fanout table is followed by a table of sorted object names (20 bytes for SHA-1, 32 bytes for SHA-256).
         // These are packed together without offset values to reduce the cache footprint of the binary search for a specific object name.
 
-        // The object names start at: 4 (header) + 4 (version) + 256 * 4 (fanout table) + 20 * (packStart)
-        // and end at                 4 (header) + 4 (version) + 256 * 4 (fanout table) + 20 * (packEnd)
+        // The object names start at: 4 (header) + 4 (version) + 256 * 4 (fanout table) + hashByteLength * (packStart)
+        // and end at                 4 (header) + 4 (version) + 256 * 4 (fanout table) + hashByteLength * (packEnd)
         int i = 0;
         int order = 0;
 
-        int tableSize = 20 * (packEnd - packStart + 1);
-        ReadOnlySpan<byte> table = this.GetSpan((ulong)(4 + 4 + (256 * 4) + (20 * packStart)), tableSize);
+        int bucketCount = packEnd - packStart;
+        int tableSize = hashByteLength * bucketCount;
+        ReadOnlySpan<byte> table = this.GetSpan(4UL + 4UL + (256UL * 4UL) + ((ulong)hashByteLength * (ulong)packStart), tableSize);
 
         int originalPackStart = packStart;
 
-        packEnd -= originalPackStart;
+        packEnd = bucketCount - 1;
         packStart = 0;
 
-        Span<byte> buffer = stackalloc byte[20];
+        Span<byte> buffer = stackalloc byte[GitObjectId.MaxByteLength];
         while (packStart <= packEnd)
         {
             i = (packStart + packEnd) / 2;
 
-            ReadOnlySpan<byte> comparand = table.Slice(20 * i, objectId.Length);
+            ReadOnlySpan<byte> comparand = table.Slice(hashByteLength * i, objectId.Length);
             if (endsWithHalfByte)
             {
                 // Copy out the value to be checked so we can zero out the last four bits,
@@ -109,14 +140,14 @@ public unsafe class GitPackIndexMappedReader : GitPackIndexReader
         }
 
         // Get the offset value. It's located at:
-        // 4 (header) + 4 (version) + 256 * 4 (fanout table) + 20 * objectCount (SHA1 object name table) + 4 * objectCount (CRC32) + 4 * i (offset values)
-        int offsetTableStart = 4 + 4 + (256 * 4) + (20 * objectCount) + (4 * objectCount);
-        ReadOnlySpan<byte> offsetBuffer = this.GetSpan((ulong)(offsetTableStart + (4 * (i + originalPackStart))), 4);
+        // 4 (header) + 4 (version) + 256 * 4 (fanout table) + hashByteLength * objectCount (object name table) + 4 * objectCount (CRC32) + 4 * i (offset values)
+        ulong offsetTableStart = 4UL + 4UL + (256UL * 4UL) + ((ulong)hashByteLength * (ulong)objectCount) + (4UL * (ulong)objectCount);
+        ReadOnlySpan<byte> offsetBuffer = this.GetSpan(offsetTableStart + (4UL * (ulong)(i + originalPackStart)), 4);
         uint offset = BinaryPrimitives.ReadUInt32BigEndian(offsetBuffer);
 
         if (offsetBuffer[0] < 128)
         {
-            return (offset, GitObjectId.Parse(table.Slice(20 * i, 20)));
+            return (offset, GitObjectId.Parse(table.Slice(hashByteLength * i, hashByteLength)));
         }
         else
         {
@@ -124,9 +155,9 @@ public unsafe class GitPackIndexMappedReader : GitPackIndexReader
             // which follows the table of 4-byte offset entries: "large offsets are encoded as an index into the next table with the msbit set."
             offset = offset & 0x7FFFFFFF;
 
-            offsetBuffer = this.GetSpan((ulong)(offsetTableStart + (4 * objectCount) + (8 * (int)offset)), 8);
+            offsetBuffer = this.GetSpan(offsetTableStart + (4UL * (ulong)objectCount) + (8UL * offset), 8);
             long offset64 = BinaryPrimitives.ReadInt64BigEndian(offsetBuffer);
-            return (offset64, GitObjectId.Parse(table.Slice(20 * i, 20)));
+            return (offset64, GitObjectId.Parse(table.Slice(hashByteLength * i, hashByteLength)));
         }
     }
 

@@ -19,20 +19,31 @@ internal class GitReferenceReader
 
     public static object ReadReference(Span<byte> value)
     {
-        if (value.Length == 41 && !value.StartsWith(RefPrefix))
+        if (!value.StartsWith(RefPrefix))
         {
-            // Skip the trailing \n
-            return GitObjectId.ParseHex(value.Slice(0, 40));
+            int length = value.Length;
+            while (length > 0 && (value[length - 1] == (byte)'\n' || value[length - 1] == (byte)'\r'))
+            {
+                length--;
+            }
+
+            if (length == GitObjectId.Sha1HexLength || length == GitObjectId.Sha256HexLength)
+            {
+                return GitObjectId.ParseHex(value.Slice(0, length));
+            }
+
+            throw new GitException();
         }
         else
         {
-            if (!value.StartsWith(RefPrefix))
+            // Skip the terminating newline character(s)
+            int length = value.Length;
+            while (length > RefPrefix.Length && (value[length - 1] == (byte)'\n' || value[length - 1] == (byte)'\r'))
             {
-                throw new GitException();
+                length--;
             }
 
-            // Skip the terminating \n character
-            return GitRepository.GetString(value.Slice(RefPrefix.Length, value.Length - RefPrefix.Length - 1));
+            return GitRepository.GetString(value.Slice(RefPrefix.Length, length - RefPrefix.Length));
         }
     }
 }

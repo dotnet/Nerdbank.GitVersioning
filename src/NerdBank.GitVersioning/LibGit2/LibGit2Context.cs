@@ -5,6 +5,7 @@
 
 using System.Diagnostics;
 using LibGit2Sharp;
+using Nerdbank.GitVersioning.ManagedGit;
 
 namespace Nerdbank.GitVersioning.LibGit2;
 
@@ -23,7 +24,16 @@ public class LibGit2Context : GitContext
         : base(workingTreeDirectory, dotGitPath)
     {
         // LibGit2Sharp config search paths are process-global, so do not reset them while other contexts may be active.
-        Repository repository = new(workingTreeDirectory);
+        Repository repository;
+        try
+        {
+            repository = new(workingTreeDirectory);
+        }
+        catch (LibGit2SharpException ex) when (GitRepository.ReadObjectFormat(dotGitPath) == GitObjectFormat.Sha256)
+        {
+            throw new GitException("SHA-256 Git repositories are not supported by the LibGit2 engine. Use the Managed engine for read-only operations.", ex);
+        }
+
         try
         {
             if (repository.Info.WorkingDirectory is null)

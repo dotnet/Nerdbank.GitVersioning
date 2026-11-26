@@ -13,9 +13,6 @@ namespace Nerdbank.GitVersioning.ManagedGit;
 /// </summary>
 public static class GitCommitReader
 {
-    private const int TreeLineLength = 46;
-    private const int ParentLineLength = 48;
-
     private static readonly byte[] TreeStart = GitRepository.Encoding.GetBytes("tree ");
     private static readonly byte[] ParentStart = GitRepository.Encoding.GetBytes("parent ");
     private static readonly byte[] AuthorStart = GitRepository.Encoding.GetBytes("author ");
@@ -77,14 +74,13 @@ public static class GitCommitReader
     {
         ReadOnlySpan<byte> buffer = commit;
 
-        GitObjectId tree = ReadTree(buffer.Slice(0, TreeLineLength));
+        GitObjectId tree = ReadTree(buffer, out int treeLineLength);
 
-        buffer = buffer.Slice(TreeLineLength);
+        buffer = buffer.Slice(treeLineLength);
 
         GitObjectId? firstParent = null, secondParent = null;
         List<GitObjectId>? additionalParents = null;
-        var parents = new List<GitObjectId>();
-        while (TryReadParent(buffer, out GitObjectId parent))
+        while (TryReadParent(buffer, out GitObjectId parent, out int parentLineLength))
         {
             if (!firstParent.HasValue)
             {
@@ -100,7 +96,7 @@ public static class GitCommitReader
                 additionalParents.Add(parent);
             }
 
-            buffer = buffer.Slice(ParentLineLength);
+            buffer = buffer.Slice(parentLineLength);
         }
 
         GitSignature author = default;
@@ -133,36 +129,43 @@ public static class GitCommitReader
         };
     }
 
-    private static GitObjectId ReadTree(ReadOnlySpan<byte> line)
+    private static GitObjectId ReadTree(ReadOnlySpan<byte> line, out int lineLength)
     {
-        // Format: tree d8329fc1cc938780ffdd9f94e0d364e0ea74f579\n
-        // 46 bytes:
-        //  tree: 4 bytes
-        //  space: 1 byte
-        //  hash: 40 bytes
-        //  \n: 1 byte
+        // Format: tree <hex-hash>\n
+        // SHA-1: 46 bytes (5 + 40 + 1); SHA-256: 70 bytes (5 + 64 + 1)
         Debug.Assert(line.Slice(0, TreeStart.Length).SequenceEqual(TreeStart));
-        Debug.Assert(line[TreeLineLength - 1] == (byte)'\n');
+        int lineEnd = line.IndexOf((byte)'\n');
+        Debug.Assert(lineEnd >= TreeStart.Length);
 
-        return GitObjectId.ParseHex(line.Slice(TreeStart.Length, 40));
+        lineLength = lineEnd + 1;
+        return GitObjectId.ParseHex(line.Slice(TreeStart.Length, lineEnd - TreeStart.Length));
     }
 
-    private static bool TryReadParent(ReadOnlySpan<byte> line, out GitObjectId parent)
+    private static bool TryReadParent(ReadOnlySpan<byte> line, out GitObjectId parent, out int lineLength)
     {
-        // Format: "parent ef079ebcca375f6fd54aa0cb9f35e3ecc2bb66e7\n"
+        // Format: "parent <hex-hash>\n"
         parent = GitObjectId.Empty;
+        lineLength = 0;
 
-        if (!line.Slice(0, ParentStart.Length).SequenceEqual(ParentStart))
+        if (line.Length < ParentStart.Length || !line.Slice(0, ParentStart.Length).SequenceEqual(ParentStart))
         {
             return false;
         }
 
-        if (line[ParentLineLength - 1] != (byte)'\n')
+        int lineEnd = line.IndexOf((byte)'\n');
+        if (lineEnd < 0)
         {
             return false;
         }
 
-        parent = GitObjectId.ParseHex(line.Slice(ParentStart.Length, 40));
+        int hashLength = lineEnd - ParentStart.Length;
+        if (hashLength != GitObjectId.Sha1HexLength && hashLength != GitObjectId.Sha256HexLength)
+        {
+            return false;
+        }
+
+        parent = GitObjectId.ParseHex(line.Slice(ParentStart.Length, hashLength));
+        lineLength = lineEnd + 1;
         return true;
     }
 

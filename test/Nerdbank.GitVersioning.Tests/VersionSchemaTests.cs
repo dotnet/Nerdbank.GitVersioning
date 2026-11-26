@@ -138,4 +138,18 @@ public class VersionSchemaTests
         this.json = JObject.Parse(@"{ ""version"": ""2.3-beta+BUILD.123"" }");
         Assert.True(this.json.IsValid(this.schema));
     }
+
+    [Test]
+    public void GitCommitIdShortLengths_AllowUpTo64ForSha256()
+    {
+        this.json = JObject.Parse(@"{ ""version"": ""1.0"", ""gitCommitIdShortFixedLength"": 64 }");
+        Assert.True(this.json.IsValid(this.schema));
+        this.json = JObject.Parse(@"{ ""version"": ""1.0"", ""gitCommitIdShortFixedLength"": 65 }");
+        Assert.False(this.json.IsValid(this.schema));
+
+        this.json = JObject.Parse(@"{ ""version"": ""1.0"", ""gitCommitIdShortAutoMinimum"": 64 }");
+        Assert.True(this.json.IsValid(this.schema));
+        this.json = JObject.Parse(@"{ ""version"": ""1.0"", ""gitCommitIdShortAutoMinimum"": 65 }");
+        Assert.False(this.json.IsValid(this.schema));
+    }
 }

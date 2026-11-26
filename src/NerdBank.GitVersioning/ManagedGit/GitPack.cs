@@ -54,7 +54,31 @@ public class GitPack : IDisposable
     /// on the pack file.
     /// </param>
     public GitPack(GetObjectFromRepositoryDelegate getObjectFromRepositoryDelegate, string indexPath, string packPath, GitPackCache? cache = null)
-        : this(getObjectFromRepositoryDelegate, new Lazy<FileStream>(() => File.OpenRead(indexPath)), () => File.OpenRead(packPath), cache)
+        : this(getObjectFromRepositoryDelegate, new Lazy<FileStream>(() => File.OpenRead(indexPath)), () => File.OpenRead(packPath), cache, GitObjectFormat.Sha1)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="GitPack"/> class.
+    /// </summary>
+    /// <param name="getObjectFromRepositoryDelegate">
+    /// A delegate which fetches objects from the Git object store.
+    /// </param>
+    /// <param name="indexPath">
+    /// The full path to the index file.
+    /// </param>
+    /// <param name="packPath">
+    /// The full path to the pack file.
+    /// </param>
+    /// <param name="cache">
+    /// A <see cref="GitPackCache"/> which is used to cache <see cref="Stream"/> objects which operate
+    /// on the pack file.
+    /// </param>
+    /// <param name="objectFormat">
+    /// The object format (hash algorithm) used by the repository.
+    /// </param>
+    public GitPack(GetObjectFromRepositoryDelegate getObjectFromRepositoryDelegate, string indexPath, string packPath, GitPackCache? cache, GitObjectFormat objectFormat)
+        : this(getObjectFromRepositoryDelegate, new Lazy<FileStream>(() => File.OpenRead(indexPath)), () => File.OpenRead(packPath), cache, objectFormat)
     {
     }
 
@@ -77,8 +101,35 @@ public class GitPack : IDisposable
     /// on the pack file.
     /// </param>
     public GitPack(GetObjectFromRepositoryDelegate getObjectFromRepositoryDelegate, Lazy<FileStream> indexStream, Func<FileStream> packStream, GitPackCache? cache = null)
+        : this(getObjectFromRepositoryDelegate, indexStream, packStream, cache, GitObjectFormat.Sha1)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="GitPack"/> class.
+    /// </summary>
+    /// <param name="getObjectFromRepositoryDelegate">
+    /// A delegate which fetches objects from the Git object store.
+    /// </param>
+    /// <param name="indexStream">
+    /// A function which creates a new <see cref="Stream"/> which provides read-only
+    /// access to the index file.
+    /// </param>
+    /// <param name="packStream">
+    /// A function which creates a new <see cref="Stream"/> which provides read-only
+    /// access to the pack file.
+    /// </param>
+    /// <param name="cache">
+    /// A <see cref="GitPackCache"/> which is used to cache <see cref="Stream"/> objects which operate
+    /// on the pack file.
+    /// </param>
+    /// <param name="objectFormat">
+    /// The object format (hash algorithm) used by the repository.
+    /// </param>
+    public GitPack(GetObjectFromRepositoryDelegate getObjectFromRepositoryDelegate, Lazy<FileStream> indexStream, Func<FileStream> packStream, GitPackCache? cache, GitObjectFormat objectFormat)
     {
         this.GetObjectFromRepository = getObjectFromRepositoryDelegate ?? throw new ArgumentNullException(nameof(getObjectFromRepositoryDelegate));
+        this.ObjectFormat = objectFormat;
         this.indexReader = new Lazy<GitPackIndexReader>(this.OpenIndex);
         this.packStream = packStream ?? throw new ArgumentException(nameof(packStream));
         this.indexStream = indexStream ?? throw new ArgumentNullException(nameof(indexStream));
@@ -109,6 +160,16 @@ public class GitPack : IDisposable
     /// Gets a delegate which fetches objects from the Git object store.
     /// </summary>
     public GetObjectFromRepositoryDelegate GetObjectFromRepository { get; private set; }
+
+    /// <summary>
+    /// Gets the object format (hash algorithm) used by this pack.
+    /// </summary>
+    public GitObjectFormat ObjectFormat { get; }
+
+    /// <summary>
+    /// Gets the byte length of object IDs stored in this pack.
+    /// </summary>
+    internal int HashByteLength => GitObjectId.GetByteLength(this.ObjectFormat);
 
     /// <summary>
     /// Finds a git object using a partial object ID.
@@ -312,6 +373,6 @@ public class GitPack : IDisposable
 
     private GitPackIndexReader OpenIndex()
     {
-        return new GitPackIndexMappedReader(this.indexStream.Value);
+        return new GitPackIndexMappedReader(this.indexStream.Value, this.ObjectFormat);
     }
 }

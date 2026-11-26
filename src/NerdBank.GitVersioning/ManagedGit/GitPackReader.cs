@@ -56,7 +56,7 @@ internal static class GitPackReader
             }
             else if (type == GitPackObjectType.OBJ_REF_DELTA)
             {
-                Span<byte> baseObjectId = stackalloc byte[20];
+                Span<byte> baseObjectId = stackalloc byte[pack.HashByteLength];
                 stream.ReadAll(baseObjectId);
 
                 Stream baseObject = pack.GetObjectFromRepository(GitObjectId.Parse(baseObjectId), objectType)!;

@@ -11,23 +11,58 @@ namespace Nerdbank.GitVersioning.ManagedGit;
 
 /// <summary>
 /// A <see cref="GitObjectId"/> identifies an object stored in the Git repository. The
-/// <see cref="GitObjectId"/> of an object is the SHA-1 hash of the contents of that
+/// <see cref="GitObjectId"/> of an object is the hash (SHA-1 or SHA-256) of the contents of that
 /// object.
 /// </summary>
 /// <seealso href="https://git-scm.com/book/en/v2/Git-Internals-Git-Objects"/>.
 public unsafe struct GitObjectId : IEquatable<GitObjectId>
 {
+    /// <summary>
+    /// The length in bytes of a SHA-1 object ID.
+    /// </summary>
+    internal const int Sha1ByteLength = 20;
+
+    /// <summary>
+    /// The length in bytes of a SHA-256 object ID.
+    /// </summary>
+    internal const int Sha256ByteLength = 32;
+
+    /// <summary>
+    /// The length in hex characters of a SHA-1 object ID.
+    /// </summary>
+    internal const int Sha1HexLength = 40;
+
+    /// <summary>
+    /// The length in hex characters of a SHA-256 object ID.
+    /// </summary>
+    internal const int Sha256HexLength = 64;
+
+    /// <summary>
+    /// The maximum length in bytes of a supported object ID.
+    /// </summary>
+    internal const int MaxByteLength = Sha256ByteLength;
+
     private const string HexDigits = "0123456789abcdef";
-    private const int NativeSize = 20;
     private static readonly byte[] HexBytes = new byte[] { (byte)'0', (byte)'1', (byte)'2', (byte)'3', (byte)'4', (byte)'5', (byte)'6', (byte)'7', (byte)'8', (byte)'9', (byte)'a', (byte)'b', (byte)'c', (byte)'d', (byte)'e', (byte)'f' };
-    private static readonly byte[] ReverseHexDigits = BuildReverseHexDigits();
-    private fixed byte value[NativeSize];
+    private static readonly sbyte[] ReverseHexDigits = BuildReverseHexDigits();
+    private fixed byte value[MaxByteLength];
+    private bool isSha256;
     private string? sha;
 
     /// <summary>
     /// Gets a <see cref="GitObjectId"/> which represents an empty <see cref="GitObjectId"/>.
     /// </summary>
     public static GitObjectId Empty => default(GitObjectId);
+
+    /// <summary>
+    /// Gets the length in bytes of this <see cref="GitObjectId"/> (20 for SHA-1, 32 for SHA-256).
+    /// </summary>
+    public int ByteLength => this.isSha256 ? Sha256ByteLength : Sha1ByteLength;
+
+    /// <summary>
+    /// Gets the length in hexadecimal characters of this <see cref="GitObjectId"/> (40 for SHA-1, 64 for SHA-256).
+    /// </summary>
+    internal int HexLength => this.isSha256 ? Sha256HexLength : Sha1HexLength;
 
     public static bool operator ==(GitObjectId left, GitObjectId right) => Equals(left, right);
 
@@ -38,18 +73,22 @@ public unsafe struct GitObjectId : IEquatable<GitObjectId>
     /// as a sequence of byte values.
     /// </summary>
     /// <param name="value">
-    /// The <see cref="GitObjectId"/> as a sequence of byte values. Must be exactly 20 bytes in length.
+    /// The <see cref="GitObjectId"/> as a sequence of byte values. Must be 20 bytes (SHA-1) or 32 bytes (SHA-256) in length.
     /// </param>
     /// <returns>
     /// A <see cref="GitObjectId"/>.
     /// </returns>
     public static GitObjectId Parse(ReadOnlySpan<byte> value)
     {
-        Debug.Assert(value.Length == 20);
+        if (value.Length != Sha1ByteLength && value.Length != Sha256ByteLength)
+        {
+            throw new ArgumentException($"Length should be {Sha1ByteLength} or {Sha256ByteLength}, but was {value.Length}.", nameof(value));
+        }
 
         var objectId = default(GitObjectId);
         byte* bytes = objectId.value;
-        value.CopyTo(new Span<byte>(bytes, NativeSize));
+        value.CopyTo(new Span<byte>(bytes, value.Length));
+        objectId.isSha256 = value.Length == Sha256ByteLength;
         return objectId;
     }
 
@@ -59,23 +98,21 @@ public unsafe struct GitObjectId : IEquatable<GitObjectId>
     /// </summary>
     /// <param name="value">
     /// A <see cref="ReadOnlySpan{T}"/> of <see cref="char"/> which contains the
-    /// hexadecimal representation of the <see cref="GitObjectId"/>.
+    /// hexadecimal representation of the <see cref="GitObjectId"/>. Must be 40 characters (SHA-1) or 64 characters (SHA-256) in length.
     /// </param>
     /// <returns>
     /// A <see cref="GitObjectId"/>.
     /// </returns>
     public static GitObjectId Parse(ReadOnlySpan<char> value)
     {
-        Debug.Assert(value.Length == 40);
-
-        var objectId = default(GitObjectId);
-        byte* bytes = objectId.value;
-        for (int i = 0; i < value.Length; i++)
+        if (value.Length != Sha1HexLength && value.Length != Sha256HexLength)
         {
-            int c1 = ReverseHexDigits[value[i++] - '0'] << 4;
-            int c2 = ReverseHexDigits[value[i] - '0'];
+            throw new ArgumentException($"Length should be {Sha1HexLength} or {Sha256HexLength}, but was {value.Length}.", nameof(value));
+        }
 
-            bytes[i >> 1] = (byte)(c1 + c2);
+        if (!TryParse(value, out GitObjectId objectId))
+        {
+            throw new ArgumentException("Value contains invalid hexadecimal characters.", nameof(value));
         }
 
         return objectId;
@@ -95,7 +132,7 @@ public unsafe struct GitObjectId : IEquatable<GitObjectId>
     public static GitObjectId Parse(string value)
     {
         GitObjectId objectId = Parse(value.AsSpan());
-        objectId.sha = value.ToLower();
+        objectId.sha = value.ToLowerInvariant();
         return objectId;
     }
 
@@ -105,28 +142,33 @@ public unsafe struct GitObjectId : IEquatable<GitObjectId>
     /// </summary>
     /// <param name="value">
     /// A <see cref="ReadOnlySpan{T}"/> which contains the hexadecimal representation of the
-    /// <see cref="GitObjectId"/> encoded in ASCII.
+    /// <see cref="GitObjectId"/> encoded in ASCII. Must be 40 bytes (SHA-1) or 64 bytes (SHA-256) in length.
     /// </param>
     /// <returns>
     /// A <see cref="GitObjectId"/>.
     /// </returns>
     public static GitObjectId ParseHex(ReadOnlySpan<byte> value)
     {
-        if (value.Length != 40)
+        if (value.Length != Sha1HexLength && value.Length != Sha256HexLength)
         {
-            throw new ArgumentException($"Length should be exactly 40, but was {value.Length}.", nameof(value));
+            throw new ArgumentException($"Length should be {Sha1HexLength} or {Sha256HexLength}, but was {value.Length}.", nameof(value));
         }
 
         var objectId = default(GitObjectId);
         byte* bytes = objectId.value;
         for (int i = 0; i < value.Length; i++)
         {
-            int c1 = ReverseHexDigits[value[i++] - '0'] << 4;
-            int c2 = ReverseHexDigits[value[i] - '0'];
+            int c1 = ParseHexDigit(value[i++]);
+            int c2 = ParseHexDigit(value[i]);
+            if ((c1 | c2) < 0)
+            {
+                throw new ArgumentException("Value contains invalid hexadecimal characters.", nameof(value));
+            }
 
-            bytes[i >> 1] = (byte)(c1 + c2);
+            bytes[i >> 1] = (byte)((c1 << 4) | c2);
         }
 
+        objectId.isSha256 = value.Length == Sha256HexLength;
         return objectId;
     }
 
@@ -144,10 +186,16 @@ public unsafe struct GitObjectId : IEquatable<GitObjectId>
     /// <inheritdoc/>
     public bool Equals(GitObjectId other)
     {
+        if (this.isSha256 != other.isSha256)
+        {
+            return false;
+        }
+
+        int byteLength = this.ByteLength;
         fixed (byte* left = this.value)
         {
             byte* right = other.value;
-            return new ReadOnlySpan<byte>(left, NativeSize).SequenceEqual(new ReadOnlySpan<byte>(right, NativeSize));
+            return new ReadOnlySpan<byte>(left, byteLength).SequenceEqual(new ReadOnlySpan<byte>(right, byteLength));
         }
     }
 
@@ -175,14 +223,14 @@ public unsafe struct GitObjectId : IEquatable<GitObjectId>
     }
 
     /// <summary>
-    /// Returns the SHA1 hash of this object.
+    /// Returns the hexadecimal hash string of this object.
     /// </summary>
     /// <inheritdoc />
     public override string ToString()
     {
         if (this.sha is null)
         {
-            this.sha = this.CreateString(0, 20);
+            this.sha = this.CreateString(0, this.ByteLength);
         }
 
         return this.sha;
@@ -235,23 +283,90 @@ public unsafe struct GitObjectId : IEquatable<GitObjectId>
     {
         fixed (byte* bytes = this.value)
         {
-            new ReadOnlySpan<byte>(bytes, NativeSize).CopyTo(value);
+            new ReadOnlySpan<byte>(bytes, this.ByteLength).CopyTo(value);
         }
     }
 
-    private static byte[] BuildReverseHexDigits()
+    /// <summary>
+    /// Gets the hash byte length for the specified <see cref="GitObjectFormat"/>.
+    /// </summary>
+    /// <param name="objectFormat">The Git object format.</param>
+    /// <returns>20 for SHA-1, or 32 for SHA-256.</returns>
+    internal static int GetByteLength(GitObjectFormat objectFormat) => objectFormat switch
     {
-        byte[]? bytes = new byte['f' - '0' + 1];
+        GitObjectFormat.Sha1 => Sha1ByteLength,
+        GitObjectFormat.Sha256 => Sha256ByteLength,
+        _ => throw new ArgumentOutOfRangeException(nameof(objectFormat)),
+    };
+
+    /// <summary>
+    /// Gets the hexadecimal hash character length for the specified <see cref="GitObjectFormat"/>.
+    /// </summary>
+    /// <param name="objectFormat">The Git object format.</param>
+    /// <returns>40 for SHA-1, or 64 for SHA-256.</returns>
+    internal static int GetHexLength(GitObjectFormat objectFormat) => objectFormat switch
+    {
+        GitObjectFormat.Sha1 => Sha1HexLength,
+        GitObjectFormat.Sha256 => Sha256HexLength,
+        _ => throw new ArgumentOutOfRangeException(nameof(objectFormat)),
+    };
+
+    /// <summary>
+    /// Attempts to parse a hexadecimal character span into a <see cref="GitObjectId"/>.
+    /// </summary>
+    /// <param name="value">The hexadecimal characters to parse.</param>
+    /// <param name="objectId">Receives the parsed <see cref="GitObjectId"/> on success.</param>
+    /// <returns><see langword="true"/> if parsing succeeded; otherwise <see langword="false"/>.</returns>
+    internal static bool TryParse(ReadOnlySpan<char> value, out GitObjectId objectId)
+    {
+        objectId = default;
+        if (value.Length != Sha1HexLength && value.Length != Sha256HexLength)
+        {
+            return false;
+        }
+
+        var parsed = default(GitObjectId);
+        byte* bytes = parsed.value;
+        for (int i = 0; i < value.Length; i++)
+        {
+            int c1 = ParseHexDigit(value[i++]);
+            int c2 = ParseHexDigit(value[i]);
+            if ((c1 | c2) < 0)
+            {
+                return false;
+            }
+
+            bytes[i >> 1] = (byte)((c1 << 4) | c2);
+        }
+
+        parsed.isSha256 = value.Length == Sha256HexLength;
+        objectId = parsed;
+        return true;
+    }
+
+    private static int ParseHexDigit(int c)
+    {
+        uint index = (uint)(c - '0');
+        return index < (uint)ReverseHexDigits.Length ? ReverseHexDigits[index] : -1;
+    }
+
+    private static sbyte[] BuildReverseHexDigits()
+    {
+        sbyte[] bytes = new sbyte['f' - '0' + 1];
+        for (int i = 0; i < bytes.Length; i++)
+        {
+            bytes[i] = -1;
+        }
 
         for (int i = 0; i < 10; i++)
         {
-            bytes[i] = (byte)i;
+            bytes[i] = (sbyte)i;
         }
 
         for (int i = 10; i < 16; i++)
         {
-            bytes[i + 'a' - '0' - 0x0a] = (byte)i;
-            bytes[i + 'A' - '0' - 0x0a] = (byte)i;
+            bytes[i + 'a' - '0' - 0x0a] = (sbyte)i;
+            bytes[i + 'A' - '0' - 0x0a] = (sbyte)i;
         }
 
         return bytes;
